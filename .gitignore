@@ -4,12 +4,13 @@ pdf2zh/kernel/PDFMathTranslate-next.git/*.csv
 pdf2zh/kernel/PDFMathTranslate-next.git/*.pdf
 
 # PDF Files
-pdf2zh_files
-gui/pdf2zh_files
-gradio_files
-tmp
-gui/gradio_files
-gui/tmp
+pdf2zh_files/
+gui/pdf2zh_files/
+gradio_files/
+tmp/
+gui/gradio_files/
+gui/tmp/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -118,7 +119,6 @@ ipython_config.py
 #pdm.lock
 #   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
 #   in version control.
-#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
 .pdm.toml
 .pdm-python
 .pdm-build/
@@ -135,7 +135,7 @@ celerybeat.pid
 
 # Environments
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
@@ -173,8 +173,22 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 .idea/
-.vscode
+.vscode/
 .DS_Store
+
+# Package management
 uv.lock
+
+# PDF / DOCX source files (to avoid accidentally committing large binary files)
 *.pdf
 *.docx
+
+# Windows-specific build output (PyStand-based)
+script/build/
+script/dep_build/
+script/*.exe
+script/*.zip
+
+# User configuration override
+config.local.json
+config.local.yaml

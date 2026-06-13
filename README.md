@@ -222,6 +222,56 @@ For docker deployment on cloud service:
 </details>
 
 <details>
+  <summary>3.2.7 Source: Build and install locally</summary>
+
+If you have cloned the repository and want to build and install from source (e.g., to apply custom modifications or test the latest changes):
+
+1. **Prerequisites**: Python 3.11 or 3.12, and [Git](https://git-scm.com/).
+
+2. **Clone the repository**:
+
+   ```bash
+   git clone https://github.com/Byaidu/PDFMathTranslate.git
+   cd PDFMathTranslate
+   ```
+
+3. **Install build dependencies and build**:
+
+   Using pip:
+
+   ```bash
+   pip install build hatchling
+   python -m build
+   pip install dist/pdf2zh-*.whl
+   ```
+
+   Or install in editable mode for development:
+
+   ```bash
+   pip install -e .
+   ```
+
+   > [!TIP]
+   >
+   > - Editable mode (`-e`) lets you modify the source code and see changes immediately without reinstalling.
+   > - If you encounter issues with optional dependencies (e.g., GPU acceleration), you can install extras:
+   >   ```bash
+   >   pip install -e .[cuda]     # for NVIDIA CUDA support
+   >   pip install -e .[dml]      # for DirectML (Windows)
+   >   pip install -e .[backend]  # for Flask + Celery backend
+   >   ```
+
+4. **Verify installation**:
+
+   ```bash
+   pdf2zh --version
+   ```
+
+   You should see the version number printed.
+
+</details>
+
+<details>
   <summary>3.2.* Solutions for network issues in installation</summary>
 
   Users in specific regions may encounter network difficulties when loading the AI model. The current program relies on the AI model (`wybxc/DocLayout-YOLO-DocStructBench-onnx`), and some users are unable to download it due to these network issues.
