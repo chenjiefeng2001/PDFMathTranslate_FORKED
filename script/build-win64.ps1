@@ -8,9 +8,8 @@ param(
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Resolve-Path "$ScriptDir/.."
 
-# ---- 使用项目外部的临时目录避免死锁 ----
-# dep_build 放在项目目录外部，避免 Copy-Item 递归复制到自身子树
-$TempRoot = Join-Path ([System.IO.Path]::GetTempPath()) "pdf2zh-build-$([System.IO.Path]::GetRandomFileName())"
+# ---- 使用系统临时目录（修复 TempRoot 为空的问题） ----
+$TempRoot = Join-Path $env:TEMP "pdf2zh-build-$([System.IO.Path]::GetRandomFileName())"
 $DepBuildDir = "$TempRoot/dep_build"
 $BuildDir = "$TempRoot/build"
 
@@ -19,9 +18,9 @@ Write-Host "==== Project root: $ProjectRoot ===="
 Write-Host "==== Temp build root: $TempRoot ===="
 
 Write-Host "==== Creating directories ===="
-New-Item -Path "$BuildDir" -ItemType Directory -Force
-New-Item -Path "$BuildDir/runtime" -ItemType Directory -Force
-New-Item -Path "$DepBuildDir" -ItemType Directory -Force
+New-Item -Path "$BuildDir" -ItemType Directory -Force | Out-Null
+New-Item -Path "$BuildDir/runtime" -ItemType Directory -Force | Out-Null
+New-Item -Path "$DepBuildDir" -ItemType Directory -Force | Out-Null
 
 if ($CleanBabelDoc) {
     Write-Host "==== Cleaning babeldoctemp1234567 ===="
@@ -32,7 +31,6 @@ if ($CleanBabelDoc) {
 }
 
 Write-Host "==== Copying source to dep_build (safe copy: dep_build is OUTSIDE project tree) ===="
-# 安全复制：目标不在源目录树下方，无死锁风险
 Get-ChildItem -Path "$ProjectRoot" -Exclude ".git", ".idea", ".venv", "__pycache__", ".mypy_cache", ".pytest_cache", "node_modules" | Copy-Item -Destination "$DepBuildDir" -Recurse -Force
 
 Write-Host "==== Downloading and extracting Python $PythonVersion ===="
@@ -84,16 +82,41 @@ Write-Host "==== Creating Python venv in dep_build ===="
 uv venv "$DepBuildDir/venv"
 
 Write-Host "==== Installing project dependencies from dep_build ===="
-# 在 dep_build 目录下执行安装，因为 pyproject.toml 已经复制到那里
+# 使用 -e "$DepBuildDir" 显式指定项目根目录，避免 Push-Location 路径问题
 Push-Location "$DepBuildDir"
 try {
-    uv pip install --python "$DepBuildDir/venv/Scripts/python.exe" -e .
+    # 验证 pyproject.toml 是否存在
+    if (-not (Test-Path "$DepBuildDir/pyproject.toml") -and -not (Test-Path "$DepBuildDir/setup.py") -and -not (Test-Path "$DepBuildDir/setup.cfg")) {
+        Write-Warning "WARNING: No pyproject.toml, setup.py, or setup.cfg found in $DepBuildDir!"
+        Write-Host "Falling back to: pip install $DepBuildDir"
+        & "$DepBuildDir/venv/Scripts/python.exe" -m pip install -e "$DepBuildDir"
+    } else {
+        if (Test-Path "$DepBuildDir/pyproject.toml") {
+            Write-Host "Found pyproject.toml, using uv install (non-editable)..."
+        }
+        # 注意：必须用非 editable 模式安装（去掉 -e），
+        # 否则 .pth 文件会指向临时目录，清理后就找不到了
+        uv pip install --python "$DepBuildDir/venv/Scripts/python.exe" "$DepBuildDir"
+    }
 } finally {
     Pop-Location
 }
 
 Write-Host "==== Copying site-packages to build ===="
 Copy-Item -Path "$DepBuildDir/venv/Lib/site-packages" -Destination "$BuildDir/site-packages" -Recurse -Force
+
+# 清理 site-packages 中指向临时目录的 editable-install .pth 文件
+# 这些文件是 pip install -e 安装时生成的，会引用已删除的临时路径
+Get-ChildItem -Path "$BuildDir/site-packages" -Filter "*.pth" -Recurse | ForEach-Object {
+    $content = Get-Content $_.FullName -Raw
+    if ($content -match "pdf2zh" -or $content -match "temp" -or $content -like "*$env:TEMP*") {
+        Write-Host "  Cleaning editable .pth: $($_.Name)"
+        # 对于包含临时路径引用的 .pth 文件，在内容前加上注释标记（#）
+        # 这样 Python 会忽略该路径引用，但文件本身保留（避免删除后其他依赖出问题）
+        $newContent = $content -replace "$env:TEMP[^`r`n]*", "# REMOVED_TEMP_PATH"
+        Set-Content -Path $_.FullName -Value $newContent
+    }
+}
 
 Write-Host "==== Copying _pystand_static.int to build ===="
 $staticFile = "$ScriptDir/_pystand_static.int"

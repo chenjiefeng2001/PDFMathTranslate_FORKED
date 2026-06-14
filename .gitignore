@@ -188,7 +188,7 @@ script/build/
 script/dep_build/
 script/*.exe
 script/*.zip
-
+script
 # User configuration override
 config.local.json
 config.local.yaml
