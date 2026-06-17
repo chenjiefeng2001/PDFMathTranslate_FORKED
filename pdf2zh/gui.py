@@ -1,4 +1,4 @@
-import asyncio, os, shutil, socket, uuid, time, threading, queue, sys, logging as _logging, inspect
+import asyncio, os, shutil, socket, uuid, time, threading, queue, sys, logging as _logging, inspect, zipfile, io
 from asyncio import CancelledError
 from email.message import Message
 from pathlib import Path
@@ -21,6 +21,63 @@ GLOBAL_TASK_STORE = {}
 task_executor = ThreadPoolExecutor(max_workers=3)
 
 cancellation_event_map = {}; pause_event_map = {}; skip_event_map = {}
+
+# ── 全局任务队列 ──
+TASK_QUEUE = []
+QUEUED_TASK_ARGS = {}
+QUEUE_LOCK = threading.Lock()
+MAX_CONCURRENCY = 3
+
+def _get_active_task_count():
+    with QUEUE_LOCK:
+        queued_set = set(TASK_QUEUE)
+    count = 0
+    for cid, store in GLOBAL_TASK_STORE.items():
+        if cid in queued_set:
+            continue
+        st = store.get("status", "")
+        if st in ("translating", "pending"):
+            count += 1
+    return count
+
+def _start_next_queued_task():
+    with QUEUE_LOCK:
+        if not TASK_QUEUE:
+            return
+        cid = TASK_QUEUE.pop(0)
+        args = QUEUED_TASK_ARGS.pop(cid, None)
+    if args is None:
+        return
+    if cid in GLOBAL_TASK_STORE:
+        GLOBAL_TASK_STORE[cid]["status"] = "pending"
+        GLOBAL_TASK_STORE[cid]["label"] = "任务开始执行..."
+    _update_queue_positions()
+    task_executor.submit(background_translation_worker, args)
+
+def _update_queue_positions():
+    with QUEUE_LOCK:
+        for pos, cid in enumerate(TASK_QUEUE):
+            if cid in GLOBAL_TASK_STORE:
+                GLOBAL_TASK_STORE[cid]["queue_position"] = pos + 1
+                GLOBAL_TASK_STORE[cid]["label"] = f"⏳ 排队中（位置 {pos + 1}/{len(TASK_QUEUE)}）"
+
+def _add_to_queue(client_id, task_args):
+    with QUEUE_LOCK:
+        TASK_QUEUE.append(client_id)
+        QUEUED_TASK_ARGS[client_id] = task_args
+        pos = len(TASK_QUEUE)
+    if client_id in GLOBAL_TASK_STORE:
+        GLOBAL_TASK_STORE[client_id]["status"] = "queued"
+        GLOBAL_TASK_STORE[client_id]["queue_position"] = pos
+        GLOBAL_TASK_STORE[client_id]["label"] = f"⏳ 排队中（位置 {pos}）"
+    _update_queue_positions()
+
+def _remove_from_queue(client_id):
+    with QUEUE_LOCK:
+        if client_id in TASK_QUEUE:
+            TASK_QUEUE.remove(client_id)
+        QUEUED_TASK_ARGS.pop(client_id, None)
+    _update_queue_positions()
 
 class _LazyModel:
     def __init__(self): self._model = None
@@ -119,7 +176,6 @@ def _render_file_list(fl):
         items.append(f'<div style="display:flex;align-items:center;padding:4px 8px;border-bottom:1px solid var(--border-color-primary);gap:8px;"><span>{ic}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;" title="{name}">{name}</span><span style="width:8px;height:8px;border-radius:50%;background:{c};"></span><span style="color:{c};font-size:12px;">{st}</span>{m}</div>')
     return f'<div id="file-list-container" style="border:1px solid var(--border-color-primary);border-radius:8px;max-height:250px;overflow-y:auto;background:var(--background-fill-primary);">{"".join(items)}</div>'
 def _prog(pct, label=""):
-    """稳定版 HTML 进度条，移除动画防止闪烁，适配夜间模式"""
     p = max(0, min(100, pct))
     l = f'<div style="font-size:13px;color:var(--body-text-color);margin-bottom:4px;font-weight:500;">{label}</div>' if label else ""
     return (
@@ -130,7 +186,7 @@ def _prog(pct, label=""):
         f'border-radius:5px;"></div></div>'
     )
 
-# ── 提交翻译任务（前端调用，立即返回） ──
+# ── 提交翻译任务 ──
 def submit_translation_task(client_id, file_type, file_input, link_input, service, lang_from, lang_to,
     page_range, page_input, prompt, threads, skip_subset_fonts, ignore_cache, vfont, mode_choice,
     recaptcha_response, fl_state, *envs):
@@ -165,7 +221,6 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
     total_files = len(files_to_process)
     if total_files == 0: raise gr.Error("没有可处理的文件")
 
-    # 缓存检查
     cached = {}; non_cached = []
     for fp in files_to_process:
         fname = os.path.basename(fp)
@@ -180,7 +235,6 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
             st = "cached" if fp in cached else "pending"
             copied_fl_state.append({**fe, "status": st, "message": "缓存命中" if st == "cached" else ""})
 
-    # 通过 client_id 实现暂停/继续/跳过/停止的事件隔离
     sid = client_id
     c_evt = asyncio.Event()
     p_evt = asyncio.Event()
@@ -189,7 +243,6 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
     pause_event_map[sid] = p_evt
     skip_event_map[sid] = s_evt
 
-    # 初始化全局状态
     GLOBAL_TASK_STORE[client_id] = {
         "status": "pending",
         "progress": 0.0,
@@ -206,11 +259,15 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
         "total_files": total_files,
         "total_to_do": len(non_cached),
         "all_results": {},
-        "result_mono": None,
-        "result_dual": None,
+        "result_zip": None,
+        "result_files": [],
+        "selected_file": "",
+        "preview_path": "",
         "file_list_html": _render_file_list(copied_fl_state),
         "current_file_name": "",
         "current_label_raw": "",
+        "last_sync_hash": "",
+        "queue_position": 0,
     }
     all_results = {}
     for fp, v in cached.items():
@@ -239,10 +296,20 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
         "mode_choice": mode_choice,
         "fl_state": copied_fl_state,
     }
-    task_executor.submit(background_translation_worker, task_args)
+
+    active_count = _get_active_task_count()
+    if active_count < MAX_CONCURRENCY:
+        if client_id in GLOBAL_TASK_STORE:
+            GLOBAL_TASK_STORE[client_id]["status"] = "pending"
+            GLOBAL_TASK_STORE[client_id]["label"] = "任务开始执行..."
+        task_executor.submit(background_translation_worker, task_args)
+    else:
+        _add_to_queue(client_id, task_args)
+        return f"⏳ 任务已加入队列（位置 {GLOBAL_TASK_STORE[client_id].get('queue_position', '?')}），请等待..."
+
     return "⏳ 任务已提交到后台，请等待处理..."
 
-# ── 后台翻译工作者（独立于浏览器会话） ──
+# ── 后台翻译工作者 ──
 def background_translation_worker(args):
     client_id = args["client_id"]
     store = GLOBAL_TASK_STORE[client_id]
@@ -318,7 +385,6 @@ def background_translation_worker(args):
                 logger.error(f"PDF检测失败 {fname}: {e}"); errors += 1; store["errors"] = errors
                 if raw.exists(): raw.unlink()
                 continue
-            # ── 核心翻译 ──
             try:
                 from pdf2zh.kernel import KernelRegistry; from pdf2zh.kernel.protocol import TranslateRequest
                 KernelRegistry.switch(mode_choice); kernel = KernelRegistry.get()
@@ -420,7 +486,32 @@ def background_translation_worker(args):
                 store["status"] = "cancelled"; store["label"] = "⏹ 用户已手动停止任务"
             elif success:
                 store["status"] = "done"; store["label"] = "✅ 翻译完成"
-                store["result_mono"] = all_results[success[-1]][0]; store["result_dual"] = all_results[success[-1]][1]
+                # 构建 result_files 列表供文件选择器使用
+                result_files = []
+                for fp in success:
+                    mono_path, dual_path = all_results[fp]
+                    stem = os.path.splitext(os.path.basename(fp))[0]
+                    if mono_path and os.path.exists(mono_path):
+                        result_files.append({"name": f"{stem}-mono.pdf", "path": mono_path})
+                    if dual_path and os.path.exists(dual_path):
+                        result_files.append({"name": f"{stem}-dual.pdf", "path": dual_path})
+                store["result_files"] = result_files
+                # 设置默认选中第一个文件
+                if result_files:
+                    store["selected_file"] = result_files[0]["name"]
+                    store["preview_path"] = result_files[0]["path"]
+                # 生成 ZIP 打包
+                try:
+                    zip_name = f"translated_{uuid.uuid4().hex[:8]}.zip"
+                    zip_path = output / zip_name
+                    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                        for rfile in result_files:
+                            zf.write(rfile["path"], rfile["name"])
+                    store["result_zip"] = str(zip_path)
+                    logger.info(f"ZIP 打包完成: {zip_path}")
+                except Exception as ze:
+                    logger.error(f"ZIP 打包失败: {ze}")
+                    store["result_zip"] = None
                 store["file_progress"] = 100; store["total_progress"] = 100
             else:
                 store["status"] = "error"; store["label"] = "❌ 翻译失败，未生成输出文件"
@@ -430,45 +521,95 @@ def background_translation_worker(args):
             GLOBAL_TASK_STORE[client_id]["status"] = "error"; GLOBAL_TASK_STORE[client_id]["label"] = f"❌ 后台错误: {str(e)[:80]}"
     finally:
         cancellation_event_map.pop(client_id, None); pause_event_map.pop(client_id, None); skip_event_map.pop(client_id, None)
+        _start_next_queued_task()
 
-# ── 前端轮询接口（每 2 秒调用） ──
+# ── 文件选择回调 ──
+def on_select_result_file(client_id, selected_name):
+    if not client_id or client_id not in GLOBAL_TASK_STORE:
+        return gr.update(), gr.update(), gr.update()
+    task = GLOBAL_TASK_STORE[client_id]
+    for rf in task.get("result_files", []):
+        if rf["name"] == selected_name:
+            task["selected_file"] = selected_name
+            task["preview_path"] = rf["path"]
+            is_mono = "mono" in selected_name.lower()
+            return (
+                gr.update(value=rf["path"] if os.path.exists(rf["path"]) else None),
+                gr.update(value=rf["path"]),
+                gr.update(value=rf["path"]),
+            )
+    return gr.update(), gr.update(), gr.update()
+
+# ── 前端轮询接口 ──
 def sync_status_from_backend(client_id):
     if not client_id or client_id not in GLOBAL_TASK_STORE:
-        return (gr.update(),)*11
+        return (gr.update(),)*12
+
     task = GLOBAL_TASK_STORE[client_id]
+
+    current_hash = f"{task.get('status')}_{task.get('file_progress')}_{task.get('total_progress')}"
+    if task.get("last_sync_hash") == current_hash:
+        return (gr.update(),)*12
+    task["last_sync_hash"] = current_hash
+
     status = task.get("status", "idle")
     fp = task.get("file_progress", 0.0)
     tp = task.get("total_progress", 0.0)
     lbl = task.get("label", "")
     fl_html = task.get("file_list_html", "")
     fname = task.get("current_file_name", "")
-    result_mono = task.get("result_mono")
-    result_dual = task.get("result_dual")
-    if status == "pending": summary = "⏳ 任务已提交，排队中..."
-    elif status in ["translating", "done", "cancelled", "error"]: summary = lbl
-    else: summary = ""
-    is_done = (status == "done" and result_mono is not None)
-    show_mono = gr.update(visible=True, value=result_mono) if is_done else gr.update()
-    show_dual = gr.update(visible=True, value=result_dual) if is_done else gr.update()
-    show_title = gr.update(visible=True) if is_done else gr.update()
-    show_preview = gr.update(value=result_mono) if is_done else gr.update()
-    if status == "done": file_icon = "✅ 全部完成"
-    elif status == "cancelled": file_icon = "⏹ 已停止"
-    elif status == "error": file_icon = "❌ 运行失败"
-    elif status == "pending": file_icon = "⏳ 排队中..."
-    else: file_icon = f"🔄 {fname}" if fname else "🔄 处理中..."
+    qpos = task.get("queue_position", 0)
+    result_zip = task.get("result_zip")
+    result_files = task.get("result_files", [])
+    preview_path = task.get("preview_path", "")
+
+    if status == "queued":
+        summary = f"⏳ 排队中（位置 {qpos}）..."
+    elif status == "pending":
+        summary = "⏳ 任务已提交，排队中..."
+    elif status in ["translating", "done", "cancelled", "error"]:
+        summary = lbl
+    else:
+        summary = ""
+
+    is_done = (status == "done" and len(result_files) > 0)
+    file_choices = [rf["name"] for rf in result_files] if result_files else []
+
+    # 生成文件选择器选项
+    show_file_selector = gr.update(visible=is_done, choices=file_choices, value=task.get("selected_file", file_choices[0] if file_choices else "")) if is_done else gr.update(visible=False, choices=[], value="")
+    show_zip = gr.update(visible=is_done, value=result_zip if result_zip and os.path.exists(result_zip) else None) if is_done else gr.update(visible=False, value=None)
+    show_preview = gr.update(visible=is_done, value=preview_path if preview_path and os.path.exists(preview_path) else None) if is_done else gr.update(visible=False, value=None)
+    show_download_label = gr.update(visible=is_done) if is_done else gr.update(visible=False)
+
+    if status == "done":
+        file_icon = "✅ 全部完成"
+    elif status == "cancelled":
+        file_icon = "⏹ 已停止"
+    elif status == "error":
+        file_icon = "❌ 运行失败"
+    elif status == "queued":
+        file_icon = f"⏳ 排队中（{qpos}）"
+    elif status == "pending":
+        file_icon = "⏳ 排队中..."
+    else:
+        file_icon = f"🔄 {fname}" if fname else "🔄 处理中..."
+
     return (
-        show_mono, show_dual, show_preview, show_title,
+        show_download_label, show_file_selector, show_zip, show_preview,
         gr.update(value=fl_html), gr.update(value=file_icon),
         gr.update(value=_prog(fp, f"当前进度: {fp:.1f}%")),
         gr.update(value=summary),
         gr.update(value=_prog(tp, f"总进度: {tp:.1f}%")),
         gr.update(value=summary),
-        gr.update(value=task.get("file_list", []))
+        gr.update(value=task.get("file_list", [])),
+        gr.update(value=preview_path),
     )
 
 def stop_translate_task(client_id):
-    if client_id and client_id in cancellation_event_map: cancellation_event_map[client_id].set()
+    if client_id and client_id in cancellation_event_map:
+        cancellation_event_map[client_id].set()
+    _remove_from_queue(client_id)
+
 def pause_translate_task(client_id):
     if client_id and client_id in pause_event_map: pause_event_map[client_id].set()
 def resume_translate_task(client_id):
@@ -485,7 +626,6 @@ custom_css = """.gradio-container{font-family:'Inter','Segoe UI',system-ui,sans-
 .pdf-wrapper{border:1px solid var(--border-color-primary);border-radius:12px;overflow:hidden;background:var(--background-fill-primary);box-shadow:0 4px 12px rgba(0,0,0,.05)}
 .hidden-ele { display: none !important; width: 0 !important; height: 0 !important; overflow: hidden !important; position: absolute !important; pointer-events: none !important; }"""
 
-# ── 增强版前端持久化 Session 与自动保活 JS ──
 session_recovery_js = """
 <script>
 window.getClientId = function() {
@@ -551,7 +691,6 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
             file_type.select(on_select_filetype,file_type,[file_input,link_input],js=(f"""(a,b)=>{{try{{grecaptcha.render('recaptcha-box',{{'sitekey':'{client_key}','callback':'onVerify'}});}}catch(error){{}}return [a];}}""" if flag_demo else ""))
             gr.Markdown("### 🚀 任务执行看板")
 
-            # ── 持久化 Client ID 与隐藏轮询按钮 (CSS隐藏，确保DOM存在) ──
             client_id_state = gr.Textbox(elem_id="client_id_state", elem_classes=["hidden-ele"])
             hidden_sync_btn = gr.Button("sync", elem_id="hidden-sync-btn", elem_classes=["hidden-ele"])
 
@@ -568,7 +707,16 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
                 total_label=gr.Markdown(value="",visible=True)
                 total_progress=gr.HTML(value="")
                 batch_summary=gr.Markdown(value="",elem_classes=["summary-text"])
-            output_title=gr.Markdown("## 下载结果",visible=False); output_file_mono=gr.File(label="单语翻译结果 (Mono)",visible=False); output_file_dual=gr.File(label="双语对照结果 (Dual)",visible=False)
+
+            # ── 下载区域：文件选择器 + ZIP 打包 + 单独下载 ──
+            output_title=gr.Markdown("## 📥 下载结果",visible=False)
+            with gr.Row(visible=False) as output_download_row:
+                result_file_selector=gr.Dropdown(label="选择文件",choices=[],interactive=True,scale=3)
+                with gr.Column(scale=1,min_width=120):
+                    result_zip=gr.File(label="打包下载 (ZIP)",visible=False)
+            # 单独文件下载组件（hidden，供选择文件后更新 preview）
+            result_single_file=gr.File(label="下载选中文件",visible=False)
+
             recaptcha_response=gr.Textbox(label="reCAPTCHA",elem_id="verify",visible=False); recaptcha_box=gr.HTML('<div id="recaptcha-box"></div>')
             with gr.Accordion("Technical details",open=False): gr.Markdown(tech_details)
         with gr.Column(scale=7):
@@ -577,10 +725,8 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
         js=(f"""(a,b)=>{{try{{grecaptcha.render('recaptcha-box',{{'sitekey':'{client_key}','callback':'onVerify'}});}}catch(error){{}}return [a];}}""" if flag_demo else ""))
     file_input.change(on_file_input_change,inputs=[file_input,file_list_state],outputs=[file_list_state,file_list_summary,file_list_html])
 
-    # ── 页面加载注入 ──
     demo.load(fn=None, inputs=None, outputs=client_id_state, js="() => window.getClientId()")
 
-    # ── 点击"开始翻译" → 提交后台任务（JS 强制注入 client_id） ──
     translate_btn.click(
         submit_translation_task,
         inputs=[client_id_state, file_type, file_input, link_input, service, lang_from, lang_to,
@@ -590,13 +736,21 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
         js="""(...args) => { args[0] = window.getClientId(); return args; }"""
     )
 
-    # ── 隐藏轮询按钮（JS 定时器每 2 秒触发） ──
+    # ── 文件选择器变更 → 更新预览和下载 ──
+    result_file_selector.change(
+        on_select_result_file,
+        inputs=[client_id_state, result_file_selector],
+        outputs=[result_single_file, preview, result_single_file],
+    )
+
+    # ── 轮询 ──
     hidden_sync_btn.click(
         sync_status_from_backend,
         inputs=[client_id_state],
-        outputs=[output_file_mono, output_file_dual, preview, output_title, file_list_html,
-            current_file_label, file_progress, total_label, total_progress, batch_summary,
-            file_list_state]
+        outputs=[output_title, result_file_selector, result_zip, preview,
+            file_list_html, current_file_label, file_progress, total_label,
+            total_progress, batch_summary, file_list_state, result_single_file],
+        show_progress="hidden"
     )
 
     # ── 控制按钮 ──
