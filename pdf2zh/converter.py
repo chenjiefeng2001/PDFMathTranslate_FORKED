@@ -229,12 +229,17 @@ class TranslateConverter(PDFConverterEx):
         for child in ltpage:
             if isinstance(child, LTChar):
                 cur_v = False
-                layout = self.layout[ltpage.pageid]
-                # ltpage.height 可能是 fig 里面的高度，这里统一用 layout.shape
-                h, w = layout.shape
-                # 读取当前字符在 layout 中的类别
-                cx, cy = np.clip(int(child.x0), 0, w - 1), np.clip(int(child.y0), 0, h - 1)
-                cls = layout[cy, cx]
+                try:
+                    layout = self.layout[ltpage.pageid]
+                    # ltpage.height 可能是 fig 里面的高度，这里统一用 layout.shape
+                    h, w = layout.shape
+                    # 读取当前字符在 layout 中的类别
+                    cx, cy = np.clip(int(child.x0), 0, w - 1), np.clip(int(child.y0), 0, h - 1)
+                    cls = layout[cy, cx]
+                except (KeyError, IndexError) as e:
+                    log.debug("Layout missing for page %s: %s, falling back to default class", ltpage.pageid, e)
+                    cls = -1
+                    h, w = ltpage.height, ltpage.width
                 # 锚定文档中 bullet 的位置
                 if child.get_text() == "•":
                     cls = 0
@@ -317,12 +322,17 @@ class TranslateConverter(PDFConverterEx):
             elif isinstance(child, LTFigure):   # 图表
                 pass
             elif isinstance(child, LTLine):     # 线条
-                layout = self.layout[ltpage.pageid]
-                # ltpage.height 可能是 fig 里面的高度，这里统一用 layout.shape
-                h, w = layout.shape
-                # 读取当前线条在 layout 中的类别
-                cx, cy = np.clip(int(child.x0), 0, w - 1), np.clip(int(child.y0), 0, h - 1)
-                cls = layout[cy, cx]
+                try:
+                    layout = self.layout[ltpage.pageid]
+                    # ltpage.height 可能是 fig 里面的高度，这里统一用 layout.shape
+                    h, w = layout.shape
+                    # 读取当前线条在 layout 中的类别
+                    cx, cy = np.clip(int(child.x0), 0, w - 1), np.clip(int(child.y0), 0, h - 1)
+                    cls = layout[cy, cx]
+                except (KeyError, IndexError):
+                    cls = -1
+                    lstk.append(child)  # 布局缺失时按全局线条处理
+                    continue
                 if vstk and cls == xt_cls:      # 公式线条
                     vlstk.append(child)
                 else:                           # 全局线条
@@ -358,10 +368,19 @@ class TranslateConverter(PDFConverterEx):
                 else:
                     log.exception(e, exc_info=False)
                 raise e
+
+        def _safe_worker(s: str):
+            """带 fallback 的 worker，翻译失败时返回原文，避免单个段落崩溃导致整页丢失"""
+            try:
+                return worker(s)
+            except BaseException as e:
+                log.error("Translation worker exhausted retries, falling back to original: %s", str(e)[:120])
+                return s
+
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.thread
         ) as executor:
-            news = list(executor.map(worker, sstk))
+            news = list(executor.map(_safe_worker, sstk))
 
         ############################################################
         # C. 新文档排版
@@ -382,11 +401,21 @@ class TranslateConverter(PDFConverterEx):
         _x, _y = 0, 0
         ops_list = []
 
+        def _safe_float(val):
+            """防止 NaN/Inf 进入 PDF 指令流，避免 MuPDF bad 'value' 错误"""
+            try:
+                v = float(val)
+                if np.isfinite(v):
+                    return f"{v:.4f}"
+                return "0.0000"
+            except (ValueError, TypeError):
+                return "0.0000"
+
         def gen_op_txt(font, size, x, y, rtxt):
-            return f"/{font} {size:f} Tf 1 0 0 1 {x:f} {y:f} Tm [<{rtxt}>] TJ "
+            return f"/{font} {_safe_float(size)} Tf 1 0 0 1 {_safe_float(x)} {_safe_float(y)} Tm [<{rtxt}>] TJ "
 
         def gen_op_line(x, y, xlen, ylen, linewidth):
-            return f"ET q 1 0 0 1 {x:f} {y:f} cm [] 0 d 0 J {linewidth:f} w 0 0 m {xlen:f} {ylen:f} l S Q BT "
+            return f"ET q 1 0 0 1 {_safe_float(x)} {_safe_float(y)} cm [] 0 d 0 J {_safe_float(linewidth)} w 0 0 m {_safe_float(xlen)} {_safe_float(ylen)} l S Q BT "
 
         for id, new in enumerate(news):
             x: float = pstk[id].x                       # 段落初始横坐标
@@ -413,11 +442,15 @@ class TranslateConverter(PDFConverterEx):
                 mod = 0  # 文字修饰符
                 if vy_regex:  # 加载公式
                     ptr += len(vy_regex.group(0))
-                    try:
-                        vid = int(vy_regex.group(1).replace(" ", ""))
-                        adv = vlen[vid]
-                    except Exception:
-                        continue  # 翻译器可能会自动补个越界的公式标记
+                    raw_vid_str = vy_regex.group(1).replace(" ", "")
+                    if not raw_vid_str.isdigit():
+                        log.warning("Translator generated non-numeric formula tag: {%s}", vy_regex.group(1))
+                        continue
+                    vid = int(raw_vid_str)
+                    if vid >= len(var):
+                        log.warning("Translator hallucinated formula tag {v%d} (max %d), page %d", vid, len(var) - 1, ltpage.pageid)
+                        continue
+                    adv = vlen[vid]
                     if var[vid][-1].get_text() and unicodedata.category(var[vid][-1].get_text()[0]) in ["Lm", "Mn", "Sk"]:  # 文字修饰符
                         mod = var[vid][-1].width
                 else:  # 加载文字
@@ -512,8 +545,13 @@ class TranslateConverter(PDFConverterEx):
 
             line_height = default_line_height
 
-            while (lidx + 1) * size * line_height > height and line_height >= 1:
-                line_height -= 0.05
+            # 安全检查：height 异常小或为非有限值时，跳过循环避免死循环
+            if height > 0 and np.isfinite(height):
+                max_iter = max(int((default_line_height - 0.5) / 0.05), 1)
+                iter_count = 0
+                while (lidx + 1) * size * line_height > height and line_height >= 1 and iter_count < max_iter:
+                    line_height -= 0.05
+                    iter_count += 1
 
             for vals in ops_vals:
                 if vals["type"] == OpType.TEXT:

@@ -15,6 +15,66 @@ from pdf2zh.cache import check_file_cache, set_file_cache, compute_file_hash
 
 logger = _logging.getLogger(__name__)
 
+# ── 线程安全的日志/输出拦截器（解决多线程进度条串台） ──
+class _ThreadAwareLogHandler(_logging.Handler):
+    """按线程 ID 隔离日志进度消息，避免多任务进度串台"""
+    def __init__(self):
+        super().__init__()
+        self.thread_queues = {}
+
+    def emit(self, record):
+        tid = threading.get_ident()
+        q = self.thread_queues.get(tid)
+        if q is None:
+            return
+        msg = record.getMessage()
+        if "Progress:" in msg:
+            try:
+                parts = msg.split("Progress:", 1)[1].split(",", 1)
+                val = float(parts[0].strip()) * 100
+                lbl = parts[1].strip() if len(parts) > 1 else "处理中..."
+                q.put(("PROGRESS", val, lbl))
+            except Exception:
+                pass
+
+class _ThreadAwareStderr:
+    """按线程 ID 隔离 stderr 进度输出，使用 thread-local 缓冲区"""
+    def __init__(self, original_stderr):
+        self.original_stderr = original_stderr
+        self.thread_queues = {}
+
+    def write(self, s):
+        self.original_stderr.write(s)
+        tid = threading.get_ident()
+        q = self.thread_queues.get(tid)
+        if q is None:
+            return
+        self._parse_for_q(s, q)
+
+    def flush(self):
+        self.original_stderr.flush()
+
+    def _parse_for_q(self, s, q):
+        if "%|" not in s:
+            return
+        for line in s.replace('\r', '\n').split('\n'):
+            if "%|" in line:
+                try:
+                    pct_str = line.split("%|")[0].split()[-1]
+                    val = float(pct_str)
+                    lbl = line.split("%|")[0].rsplit(pct_str, 1)[0].strip(" :")
+                    q.put(("PROGRESS", val, lbl if lbl else "翻译中"))
+                except Exception:
+                    pass
+
+# 初始化全局线程安全拦截器（仅一次）
+_GLOBAL_LOG_HANDLER = _ThreadAwareLogHandler()
+_GLOBAL_LOG_HANDLER.setLevel(_logging.INFO)
+_logging.getLogger().addHandler(_GLOBAL_LOG_HANDLER)
+
+if not hasattr(sys.stderr, 'thread_queues'):
+    sys.stderr = _ThreadAwareStderr(sys.stderr)
+
 # ── 全局任务状态池（脱离浏览器会话，刷新页面不受影响） ──
 # 结构: { client_id: { "status":..., "progress":0, "label":"", "cancelled":Event, ... } }
 GLOBAL_TASK_STORE = {}
@@ -188,9 +248,15 @@ def _prog(pct, label=""):
 
 # ── 提交翻译任务 ──
 def submit_translation_task(client_id, file_type, file_input, link_input, service, lang_from, lang_to,
-    page_range, page_input, prompt, threads, skip_subset_fonts, ignore_cache, vfont, mode_choice,
-    recaptcha_response, fl_state, *envs):
+    page_range, page_input, threads, skip_subset_fonts, ignore_cache, vfont, vchar, mode_choice,
+    recaptcha_response, fl_state, env0, env1, env2, prompt_env):
     if flag_demo and not verify_recaptcha_response(recaptcha_response): raise gr.Error("reCAPTCHA fail")
+
+    # 防连点：检查当前 client 是否已有任务在运行
+    if client_id in GLOBAL_TASK_STORE:
+        current_status = GLOBAL_TASK_STORE[client_id].get("status", "")
+        if current_status in ["pending", "queued", "translating"]:
+            raise gr.Error("您当前已有任务正在执行或排队中，请等待完成或手动停止后再提交新任务！")
 
     output = Path("pdf2zh_files"); output.mkdir(parents=True, exist_ok=True)
     translator = service_map[service]; lang_in = lang_map[lang_from]; lang_out = lang_map[lang_to]
@@ -213,7 +279,9 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
         fp = download_with_limit(link_input, output, 5*1024*1024 if flag_demo else None)
         files_to_process = [str(fp)]
     _envs = {}
-    for i, env in enumerate(translator.envs.items()): _envs[env[0]] = envs[i]
+    envs_tuple = (env0, env1, env2)
+    for i, env in enumerate(translator.envs.items()):
+        _envs[env[0]] = envs_tuple[i]
     for k, v in _envs.items():
         if str(k).upper().endswith("API_KEY") and str(v) == "***": _envs[k] = ConfigManager.get_env_by_translatername(translator, k, None)
     try: threads_int = int(threads)
@@ -262,7 +330,7 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
         "result_zip": None,
         "result_files": [],
         "selected_file": "",
-        "preview_path": "",
+        "preview_path": None,
         "file_list_html": _render_file_list(copied_fl_state),
         "current_file_name": "",
         "current_label_raw": "",
@@ -289,10 +357,11 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
         "pages": pages,
         "threads_int": threads_int,
         "_envs": _envs,
-        "prompt": str(prompt) if prompt else None,
+        "prompt": str(prompt_env) if prompt_env else None,
         "skip_subset_fonts": skip_subset_fonts,
         "ignore_cache": ignore_cache,
         "vfont": vfont,
+        "vchar": vchar,
         "mode_choice": mode_choice,
         "fl_state": copied_fl_state,
     }
@@ -361,7 +430,10 @@ def background_translation_worker(args):
             safe = _sanitize_filename(fp)
             max_p = 240 if os.name == 'nt' else 400
             if len(str(output/f"{safe}-mono.pdf")) > max_p: safe = uuid.uuid4().hex[:16]
-            raw = output/f"{safe}.pdf"; mono = output/f"{safe}-mono.pdf"; dual = output/f"{safe}-dual.pdf"
+            # 使用 client_id 子文件夹隔离每个任务的文件，防止多用户文件覆盖
+            client_output_dir = output / str(client_id)
+            client_output_dir.mkdir(parents=True, exist_ok=True)
+            raw = client_output_dir/f"{safe}.pdf"; mono = client_output_dir/f"{safe}-mono.pdf"; dual = client_output_dir/f"{safe}-dual.pdf"
             try: shutil.copy2(fp, raw)
             except Exception as e:
                 logger.error(f"复制失败 {fname}: {e}")
@@ -389,35 +461,10 @@ def background_translation_worker(args):
                 from pdf2zh.kernel import KernelRegistry; from pdf2zh.kernel.protocol import TranslateRequest
                 KernelRegistry.switch(mode_choice); kernel = KernelRegistry.get()
                 progress_q = queue.Queue()
-                class ProgressHdlr(_logging.Handler):
-                    def emit(self, record):
-                        msg = record.getMessage()
-                        if "Progress:" in msg:
-                            try:
-                                parts = msg.split("Progress:",1)[1].split(",",1)
-                                val = float(parts[0].strip())*100
-                                lbl = parts[1].strip() if len(parts)>1 else "处理中..."
-                                progress_q.put(("PROGRESS",val,lbl))
-                            except: pass
-                prog_hdlr = ProgressHdlr(); prog_hdlr.setLevel(_logging.INFO)
-                _logging.getLogger().addHandler(prog_hdlr)
-                orig_stderr = sys.stderr
-                class StderrIntercept:
-                    def __init__(self, f, q): self.f = f; self.q = q; self.buf = ""
-                    def write(self, s):
-                        self.f.write(s); self.buf += s
-                        if '\r' in self.buf or '\n' in self.buf:
-                            for line in self.buf.replace('\r','\n').split('\n')[:-1]: self._parse(line)
-                            self.buf = self.buf.split('\n')[-1]
-                    def flush(self): self.f.flush()
-                    def _parse(self, line):
-                        if "%|" in line:
-                            try:
-                                pct_str = line.split("%|")[0].split()[-1]; val = float(pct_str)
-                                lbl = line.split("%|")[0].rsplit(pct_str,1)[0].strip(" :")
-                                self.q.put(("PROGRESS",val,lbl if lbl else "翻译中"))
-                            except: pass
-                sys.stderr = StderrIntercept(orig_stderr, progress_q)
+                # 使用全局线程安全拦截器注册当前线程的队列
+                tid = threading.get_ident()
+                _GLOBAL_LOG_HANDLER.thread_queues[tid] = progress_q
+                sys.stderr.thread_queues[tid] = progress_q
                 def _worker():
                     try:
                         req = TranslateRequest(files=[str(raw)],output=str(output),pages=pages,lang_in=lang_in,lang_out=lang_out,service=translator.name,thread=threads_int,envs=_envs,prompt=prompt,skip_subset_fonts=skip_subset_fonts,ignore_cache=ignore_cache,vfont=vfont)
@@ -443,7 +490,10 @@ def background_translation_worker(args):
                             scp = (completed+errors+(last_val/100.0))/max(total_files,1)*100
                             store["total_progress"] = scp; store["label"] = f"({idx+1}/{total_to_do}) {last_lbl}"; store["progress"] = scp
                     except queue.Empty: pass
-                sys.stderr = orig_stderr; _logging.getLogger().removeHandler(prog_hdlr)
+                # 清理线程安全拦截器的注册
+                tid = threading.get_ident()
+                _GLOBAL_LOG_HANDLER.thread_queues.pop(tid, None)
+                sys.stderr.thread_queues.pop(tid, None)
                 if cancellation_event.is_set(): raise CancelledError("用户已手动停止任务")
                 if not mono.exists() or not dual.exists(): raise RuntimeError("未生成输出文件")
                 try:
@@ -482,28 +532,27 @@ def background_translation_worker(args):
         if client_id in GLOBAL_TASK_STORE:
             store = GLOBAL_TASK_STORE[client_id]
             success = [fp for fp, v in all_results.items() if v[0] and os.path.exists(v[0])]
-            if cancellation_event.is_set():
-                store["status"] = "cancelled"; store["label"] = "⏹ 用户已手动停止任务"
-            elif success:
-                store["status"] = "done"; store["label"] = "✅ 翻译完成"
-                # 构建 result_files 列表供文件选择器使用
-                result_files = []
-                for fp in success:
-                    mono_path, dual_path = all_results[fp]
-                    stem = os.path.splitext(os.path.basename(fp))[0]
-                    if mono_path and os.path.exists(mono_path):
-                        result_files.append({"name": f"{stem}-mono.pdf", "path": mono_path})
-                    if dual_path and os.path.exists(dual_path):
-                        result_files.append({"name": f"{stem}-dual.pdf", "path": dual_path})
-                store["result_files"] = result_files
+
+            # 不论状态如何，只要有成功文件就构建 result_files 和 ZIP
+            result_files = []
+            for fp in success:
+                mono_path, dual_path = all_results[fp]
+                stem = os.path.splitext(os.path.basename(fp))[0]
+                if mono_path and os.path.exists(mono_path):
+                    result_files.append({"name": f"{stem}-mono.pdf", "path": mono_path})
+                if dual_path and os.path.exists(dual_path):
+                    result_files.append({"name": f"{stem}-dual.pdf", "path": dual_path})
+            store["result_files"] = result_files
+
+            if result_files:
                 # 设置默认选中第一个文件
-                if result_files:
+                if "selected_file" not in store or not store.get("selected_file"):
                     store["selected_file"] = result_files[0]["name"]
                     store["preview_path"] = result_files[0]["path"]
                 # 生成 ZIP 打包
                 try:
                     zip_name = f"translated_{uuid.uuid4().hex[:8]}.zip"
-                    zip_path = output / zip_name
+                    zip_path = client_output_dir / zip_name
                     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                         for rfile in result_files:
                             zf.write(rfile["path"], rfile["name"])
@@ -512,9 +561,24 @@ def background_translation_worker(args):
                 except Exception as ze:
                     logger.error(f"ZIP 打包失败: {ze}")
                     store["result_zip"] = None
+            else:
+                store["result_zip"] = None
+
+            # 更新最终状态展示
+            if cancellation_event.is_set():
+                store["status"] = "cancelled"
+                store["label"] = f"⏹ 用户已手动停止任务" + (f" (已生成 {len(result_files)} 个文件)" if result_files else "")
+            elif result_files:
+                if errors > 0 or skipped > 0:
+                    store["status"] = "done"
+                    store["label"] = f"⚠️ 任务结束 (成功 {len(success)} 个，失败 {errors} 个，跳过 {skipped} 个)"
+                else:
+                    store["status"] = "done"
+                    store["label"] = "✅ 全部翻译完成"
                 store["file_progress"] = 100; store["total_progress"] = 100
             else:
-                store["status"] = "error"; store["label"] = "❌ 翻译失败，未生成输出文件"
+                store["status"] = "error"
+                store["label"] = "❌ 翻译失败，未生成任何输出文件"
     except Exception as e:
         logger.exception(f"后台翻译线程异常: {e}")
         if client_id in GLOBAL_TASK_STORE:
@@ -526,30 +590,29 @@ def background_translation_worker(args):
 # ── 文件选择回调 ──
 def on_select_result_file(client_id, selected_name):
     if not client_id or client_id not in GLOBAL_TASK_STORE:
-        return gr.update(), gr.update(), gr.update()
+        return gr.update(), gr.update()
     task = GLOBAL_TASK_STORE[client_id]
     for rf in task.get("result_files", []):
         if rf["name"] == selected_name:
             task["selected_file"] = selected_name
             task["preview_path"] = rf["path"]
-            is_mono = "mono" in selected_name.lower()
+            abs_path = os.path.abspath(rf["path"])
             return (
-                gr.update(value=rf["path"] if os.path.exists(rf["path"]) else None),
-                gr.update(value=rf["path"]),
-                gr.update(value=rf["path"]),
+                gr.update(value=abs_path if os.path.exists(abs_path) else None),
+                gr.update(value=abs_path),
             )
-    return gr.update(), gr.update(), gr.update()
+    return gr.update(), gr.update()
 
 # ── 前端轮询接口 ──
 def sync_status_from_backend(client_id):
     if not client_id or client_id not in GLOBAL_TASK_STORE:
-        return (gr.update(),)*12
+        return (gr.update(),)*13
 
     task = GLOBAL_TASK_STORE[client_id]
 
-    current_hash = f"{task.get('status')}_{task.get('file_progress')}_{task.get('total_progress')}"
+    current_hash = f"{task.get('status')}_{task.get('file_progress')}_{task.get('total_progress')}_{len(task.get('result_files', []))}_{task.get('selected_file')}"
     if task.get("last_sync_hash") == current_hash:
-        return (gr.update(),)*12
+        return (gr.update(),)*13
     task["last_sync_hash"] = current_hash
 
     status = task.get("status", "idle")
@@ -561,7 +624,7 @@ def sync_status_from_backend(client_id):
     qpos = task.get("queue_position", 0)
     result_zip = task.get("result_zip")
     result_files = task.get("result_files", [])
-    preview_path = task.get("preview_path", "")
+    preview_path = task.get("preview_path", None)
 
     if status == "queued":
         summary = f"⏳ 排队中（位置 {qpos}）..."
@@ -572,14 +635,23 @@ def sync_status_from_backend(client_id):
     else:
         summary = ""
 
-    is_done = (status == "done" and len(result_files) > 0)
-    file_choices = [rf["name"] for rf in result_files] if result_files else []
+    has_results = len(result_files) > 0
+    file_choices = [rf["name"] for rf in result_files] if has_results else []
 
-    # 生成文件选择器选项
-    show_file_selector = gr.update(visible=is_done, choices=file_choices, value=task.get("selected_file", file_choices[0] if file_choices else "")) if is_done else gr.update(visible=False, choices=[], value="")
-    show_zip = gr.update(visible=is_done, value=result_zip if result_zip and os.path.exists(result_zip) else None) if is_done else gr.update(visible=False, value=None)
-    show_preview = gr.update(visible=is_done, value=preview_path if preview_path and os.path.exists(preview_path) else None) if is_done else gr.update(visible=False, value=None)
-    show_download_label = gr.update(visible=is_done) if is_done else gr.update(visible=False)
+    current_val = task.get("selected_file")
+    if current_val not in file_choices and file_choices:
+        current_val = file_choices[0]
+
+    show_download_label = gr.update(visible=has_results)
+    show_download_row = gr.update(visible=has_results)
+    show_file_selector = gr.update(visible=has_results, choices=file_choices, value=current_val) if has_results else gr.update(visible=False, choices=[], value=None)
+    show_zip = gr.update(visible=has_results, value=result_zip if result_zip and os.path.exists(result_zip) else None) if has_results else gr.update(visible=False, value=None)
+    if preview_path and os.path.exists(preview_path):
+        abs_preview_path = os.path.abspath(preview_path)
+        show_preview = gr.update(visible=True, value=abs_preview_path)
+    else:
+        show_preview = gr.update(visible=False, value=None)
+    show_single_file = gr.update(visible=has_results, value=preview_path if preview_path and os.path.exists(preview_path) else None) if has_results else gr.update(visible=False, value=None)
 
     if status == "done":
         file_icon = "✅ 全部完成"
@@ -595,14 +667,14 @@ def sync_status_from_backend(client_id):
         file_icon = f"🔄 {fname}" if fname else "🔄 处理中..."
 
     return (
-        show_download_label, show_file_selector, show_zip, show_preview,
+        show_download_label, show_download_row, show_file_selector, show_zip, show_preview,
         gr.update(value=fl_html), gr.update(value=file_icon),
         gr.update(value=_prog(fp, f"当前进度: {fp:.1f}%")),
         gr.update(value=summary),
         gr.update(value=_prog(tp, f"总进度: {tp:.1f}%")),
         gr.update(value=summary),
         gr.update(value=task.get("file_list", [])),
-        gr.update(value=preview_path),
+        show_single_file,
     )
 
 def stop_translate_task(client_id):
@@ -672,10 +744,16 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
             page_range=gr.Radio(choices=page_map.keys(),label="翻译页码",value=list(page_map.keys())[0]); page_input=gr.Textbox(label="自定义页码范围（如 1-5, 8）",visible=False,interactive=True)
             with gr.Accordion("🛠️ 高级与实验性选项",open=False):
                 mode_choice=gr.Dropdown(label="翻译模式",choices=["fast","precise"],value="fast",interactive=True)
-                threads=gr.Textbox(label="并发线程数",interactive=True,value="4"); skip_subset_fonts=gr.Checkbox(label="Skip font subsetting",interactive=True,value=False)
-                ignore_cache=gr.Checkbox(label="忽略缓存重新翻译",interactive=True,value=False); vfont=gr.Textbox(label="自定义公式字体正则 (vfont)",interactive=True,value=ConfigManager.get("PDF2ZH_VFONT",""))
-                prompt=gr.Textbox(label="LLM 提示词 (Prompt)",interactive=True,visible=False); envs.append(prompt)
-            def on_select_service(sv,evt):
+                with gr.Row():
+                    threads=gr.Textbox(label="并发线程数",interactive=True,value="4")
+                    skip_subset_fonts=gr.Checkbox(label="Skip font subsetting (防乱码)",interactive=True,value=False)
+                    ignore_cache=gr.Checkbox(label="忽略缓存重新翻译",interactive=True,value=False)
+                gr.Markdown("#### 📐 公式与排版规则")
+                with gr.Row():
+                    vfont=gr.Textbox(label="公式字体正则 (vfont)",interactive=True,value=ConfigManager.get("PDF2ZH_VFONT",""),placeholder="例如: .*Math.*")
+                    vchar=gr.Textbox(label="公式字符正则 (vchar)",interactive=True,value=ConfigManager.get("PDF2ZH_VCHAR",""),placeholder="需要保留不翻译的特殊字符")
+                prompt=gr.Textbox(label="LLM 提示词 (Prompt) - 仅限大模型服务有效",interactive=True,visible=False); envs.append(prompt)
+            def on_select_service(sv):
                 t=service_map[sv];_envs=[gr.update(visible=False,value="") for _ in range(4)]
                 for i,e in enumerate(t.envs.items()):
                     l=e[0];v=ConfigManager.get_env_by_translatername(t,e[0],e[1]);vis=True
@@ -708,21 +786,35 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
                 total_progress=gr.HTML(value="")
                 batch_summary=gr.Markdown(value="",elem_classes=["summary-text"])
 
-            # ── 下载区域：文件选择器 + ZIP 打包 + 单独下载 ──
+            # ── 下载区域：文件选择器 + 单独下载 + ZIP 打包 ──
             output_title=gr.Markdown("## 📥 下载结果",visible=False)
-            with gr.Row(visible=False) as output_download_row:
-                result_file_selector=gr.Dropdown(label="选择文件",choices=[],interactive=True,scale=3)
-                with gr.Column(scale=1,min_width=120):
-                    result_zip=gr.File(label="打包下载 (ZIP)",visible=False)
-            # 单独文件下载组件（hidden，供选择文件后更新 preview）
-            result_single_file=gr.File(label="下载选中文件",visible=False)
+
+            with gr.Column(visible=False) as output_download_row:
+                # 1. 独占一行的文件选择器，彻底解决长文件名挤压问题
+                result_file_selector=gr.Dropdown(
+                    label="📂 选择文件 (切换以预览或下载)",
+                    choices=[],
+                    interactive=True,
+                )
+                # 2. 两个下载卡片并排放置
+                with gr.Row():
+                    result_single_file=gr.File(
+                        label="📄 下载当前选中文件",
+                        interactive=False,
+                        visible=False,
+                    )
+                    result_zip=gr.File(
+                        label="📦 打包下载所有文件 (ZIP)",
+                        interactive=False,
+                        visible=False,
+                    )
 
             recaptcha_response=gr.Textbox(label="reCAPTCHA",elem_id="verify",visible=False); recaptcha_box=gr.HTML('<div id="recaptcha-box"></div>')
             with gr.Accordion("Technical details",open=False): gr.Markdown(tech_details)
         with gr.Column(scale=7):
             with gr.Column(elem_classes="pdf-wrapper"): preview=PDF(label="Document Preview",show_label=False,visible=True,height=750)
     file_input.upload(on_upload_files,inputs=[file_input,file_list_state],outputs=[file_list_state,file_list_summary,file_list_html,preview],
-        js=(f"""(a,b)=>{{try{{grecaptcha.render('recaptcha-box',{{'sitekey':'{client_key}','callback':'onVerify'}});}}catch(error){{}}return [a];}}""" if flag_demo else ""))
+        js=(f"""(a,b)=>{{try{{grecaptcha.render('recaptcha-box',{{'sitekey':'{client_key}','callback':'onVerify'}});}}catch(error){{}}return [a];}}""" if flag_demo else None))
     file_input.change(on_file_input_change,inputs=[file_input,file_list_state],outputs=[file_list_state,file_list_summary,file_list_html])
 
     demo.load(fn=None, inputs=None, outputs=client_id_state, js="() => window.getClientId()")
@@ -730,7 +822,7 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
     translate_btn.click(
         submit_translation_task,
         inputs=[client_id_state, file_type, file_input, link_input, service, lang_from, lang_to,
-            page_range, page_input, prompt, threads, skip_subset_fonts, ignore_cache, vfont,
+            page_range, page_input, threads, skip_subset_fonts, ignore_cache, vfont, vchar,
             mode_choice, recaptcha_response, file_list_state, *envs],
         outputs=[current_file_label],
         js="""(...args) => { args[0] = window.getClientId(); return args; }"""
@@ -740,14 +832,14 @@ with gr.Blocks(title="PDFMathTranslate - PDF Translation",theme=gr.themes.Soft(p
     result_file_selector.change(
         on_select_result_file,
         inputs=[client_id_state, result_file_selector],
-        outputs=[result_single_file, preview, result_single_file],
+        outputs=[result_single_file, preview],
     )
 
     # ── 轮询 ──
     hidden_sync_btn.click(
         sync_status_from_backend,
         inputs=[client_id_state],
-        outputs=[output_title, result_file_selector, result_zip, preview,
+        outputs=[output_title, output_download_row, result_file_selector, result_zip, preview,
             file_list_html, current_file_label, file_progress, total_label,
             total_progress, batch_summary, file_list_state, result_single_file],
         show_progress="hidden"
