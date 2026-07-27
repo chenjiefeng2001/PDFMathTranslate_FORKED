@@ -15,6 +15,30 @@ from pdf2zh.cache import check_file_cache, set_file_cache, compute_file_hash
 
 logger = _logging.getLogger(__name__)
 
+# ── Gradio 5.x compatibility patch ──
+# gradio-client _json_schema_to_python_type crashes when schema is a bare bool
+# (e.g., pydantic v2 generates additionalProperties: True for **kwargs).
+# Patch both get_type and _json_schema_to_python_type to handle booleans.
+try:
+    import gradio_client.utils as _gc_utils
+
+    _orig_get_type = _gc_utils.get_type
+    def _patched_get_type(schema):
+        if isinstance(schema, bool):
+            return "object" if schema else "null"
+        return _orig_get_type(schema)
+    _gc_utils.get_type = _patched_get_type
+
+    _orig_jstp = _gc_utils._json_schema_to_python_type
+    def _patched_jstp(schema, defs):
+        if isinstance(schema, bool):
+            schema = {"type": "boolean"} if schema is True else {"type": "null"}
+        return _orig_jstp(schema, defs)
+    _gc_utils._json_schema_to_python_type = _patched_jstp
+except Exception:
+    pass
+
+
 # ── 线程安全的日志/输出拦截器（解决多线程进度条串台） ──
 class _ThreadAwareLogHandler(_logging.Handler):
     """按线程 ID 隔离日志进度消息，避免多任务进度串台"""
