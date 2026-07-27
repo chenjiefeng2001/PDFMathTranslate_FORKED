@@ -202,6 +202,11 @@ def translate_stream(
     prompt: Template = None,
     skip_subset_fonts: bool = False,
     ignore_cache: bool = False,
+    use_text_metrics: bool = True,
+    use_translation_cache: bool = True,
+    parallel_pages: bool = True,
+    parallel_workers: int = 4,
+
     **kwarg: Any,
 ):
     font_list = [("tiro", None)]
