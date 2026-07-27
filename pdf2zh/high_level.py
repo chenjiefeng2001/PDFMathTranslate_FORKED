@@ -27,6 +27,8 @@ from pymupdf import Document, Font
 from pdf2zh.converter import TranslateConverter
 from pdf2zh.doclayout import OnnxModel
 from pdf2zh.pdfinterp import PDFPageInterpreterEx
+from pdf2zh.font_resolver import FontResolver
+from pdf2zh.font_cache import DocumentFontCache
 
 from pdf2zh.config import ConfigManager
 from babeldoc.assets.assets import get_font_and_metadata
@@ -189,6 +191,8 @@ def translate_stream(
     font_list = [("tiro", None)]
 
     font_path = download_remote_fonts(lang_out.lower())
+    # Phase 1: Style-aware font resolver
+    font_resolver = FontResolver(lang_out)
     noto_name = NOTO_NAME
     noto = Font(noto_name, font_path)
     font_list.append((noto_name, font_path))
@@ -198,6 +202,9 @@ def translate_stream(
     doc_en.save(stream)
     doc_zh = Document(stream=stream)
     page_count = doc_zh.page_count
+    # Phase 1: Document-level font cache
+    font_cache = DocumentFontCache(doc_zh)
+    font_cache.register(font_path)
     # font_list = [("GoNotoKurrent-Regular.ttf", font_path), ("tiro", None)]
     font_id = {}
     for page in doc_zh:
