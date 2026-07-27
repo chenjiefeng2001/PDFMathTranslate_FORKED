@@ -145,6 +145,12 @@ class TranslateConverter(PDFConverterEx):
         envs: Dict = None,
         prompt: Template = None,
         ignore_cache: bool = False,
+        # === 2.0 additions ===
+        text_metrics: dict = None,
+        font_resolver: object = None,
+        layout_graph: object = None,
+        collision_resolver: object = None,
+        translation_cache: object = None,
     ) -> None:
         super().__init__(rsrcmgr)
         self.vfont = vfont
@@ -153,6 +159,14 @@ class TranslateConverter(PDFConverterEx):
         self.layout = layout
         self.noto_name = noto_name
         self.noto = noto
+        # 2.0 modules
+        self.text_metrics = text_metrics or {}
+        self.font_resolver = font_resolver
+        self.layout_graph = layout_graph
+        self.collision_resolver = collision_resolver
+        self.cache = translation_cache
+        self._para_orig_fonts: dict = {}
+        self._rendered_obstacles: list = []
         self.translator: BaseTranslator = None
         # e.g. "ollama:gemma2:9b" -> ["ollama", "gemma2:9b"]
         param = service.split(":", 1)
@@ -370,9 +384,16 @@ class TranslateConverter(PDFConverterEx):
                 raise e
 
         def _safe_worker(s: str):
-            """带 fallback 的 worker，翻译失败时返回原文，避免单个段落崩溃导致整页丢失"""
+            """带 fallback + cache 的 worker (2.0 L3)"""
+            if self.cache:
+                cached = self.cache.get(s, self.translator.lang_in, self.translator.lang_out)
+                if cached is not None:
+                    return cached
             try:
-                return worker(s)
+                result = worker(s)
+                if self.cache:
+                    self.cache.set(s, self.translator.lang_in, self.translator.lang_out, result)
+                return result
             except BaseException as e:
                 log.error("Translation worker exhausted retries, falling back to original: %s", str(e)[:120])
                 return s
@@ -411,8 +432,10 @@ class TranslateConverter(PDFConverterEx):
             except (ValueError, TypeError):
                 return "0.0000"
 
+        from pdf2zh.pdf_op_builder import PDFOpRebuilder as _OpB
+
         def gen_op_txt(font, size, x, y, rtxt):
-            return f"/{font} {_safe_float(size)} Tf 1 0 0 1 {_safe_float(x)} {_safe_float(y)} Tm [<{rtxt}>] TJ "
+            return _OpB.build_tj_simple(font, size, x, y, rtxt)
 
         def gen_op_line(x, y, xlen, ylen, linewidth):
             return f"ET q 1 0 0 1 {_safe_float(x)} {_safe_float(y)} cm [] 0 d 0 J {_safe_float(linewidth)} w 0 0 m {_safe_float(xlen)} {_safe_float(ylen)} l S Q BT "
@@ -458,12 +481,15 @@ class TranslateConverter(PDFConverterEx):
                     fcur_ = None
                     try:
                         if fcur_ is None and self.fontmap["tiro"].to_unichr(ord(ch)) == ch:
-                            fcur_ = "tiro"  # 默认拉丁字体
+                            fcur_ = "tiro"
                     except Exception:
                         pass
                     if fcur_ is None:
-                        fcur_ = self.noto_name  # 默认非拉丁字体
-                    if fcur_ == self.noto_name: # FIXME: change to CONST
+                        fcur_ = self.noto_name
+                    tm = self.text_metrics.get(fcur_) if self.text_metrics else None
+                    if tm:
+                        adv = tm.char_width(ch, size)
+                    elif fcur_ == self.noto_name:
                         adv = self.noto.char_lengths(ch, size)[0]
                     else:
                         adv = self.fontmap[fcur_].char_width(ord(ch)) * size
@@ -543,10 +569,14 @@ class TranslateConverter(PDFConverterEx):
                     "lidx": lidx
                 })
 
+            # === 2.0: TextMetrics line height (M1) ===
             line_height = default_line_height
-
-            # 安全检查：height 异常小或为非有限值时，跳过循环避免死循环
-            if height > 0 and np.isfinite(height):
+            tm_line = self.text_metrics.get(fcur) if self.text_metrics else None
+            if tm_line:
+                ascent = getattr(tm_line, 'ascent', 0.8)
+                descent = getattr(tm_line, 'descent', -0.2)
+                line_height = max(ascent - descent, 1.0)
+            elif height > 0 and np.isfinite(height):
                 max_iter = max(int((default_line_height - 0.5) / 0.05), 1)
                 iter_count = 0
                 while (lidx + 1) * size * line_height > height and line_height >= 1 and iter_count < max_iter:

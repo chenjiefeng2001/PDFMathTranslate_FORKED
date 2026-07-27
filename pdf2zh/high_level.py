@@ -32,6 +32,11 @@ from pdf2zh.font_cache import DocumentFontCache
 
 from pdf2zh.config import ConfigManager
 from babeldoc.assets.assets import get_font_and_metadata
+from pdf2zh.text_metrics import TextMetrics
+from pdf2zh.translation_cache import TranslationCache
+from pdf2zh.collision_resolver import CollisionResolver
+from pdf2zh.layout_graph import LayoutGraph
+
 
 NOTO_NAME = "noto"
 
@@ -89,6 +94,12 @@ def translate_patch(
     envs: Dict = None,
     prompt: Template = None,
     ignore_cache: bool = False,
+    # 2.0 additions
+    text_metrics: dict = None,
+    font_resolver: object = None,
+    layout_graph: object = None,
+    collision_resolver: object = None,
+    translation_cache: object = None,
     **kwarg: Any,
 ) -> None:
     rsrcmgr = PDFResourceManager()
@@ -107,6 +118,11 @@ def translate_patch(
         envs,
         prompt,
         ignore_cache,
+        text_metrics=text_metrics,
+        font_resolver=font_resolver,
+        layout_graph=layout_graph,
+        collision_resolver=collision_resolver,
+        translation_cache=translation_cache,
     )
 
     assert device is not None
@@ -204,7 +220,7 @@ def translate_stream(
     page_count = doc_zh.page_count
     # Phase 1: Document-level font cache
     font_cache = DocumentFontCache(doc_zh)
-    font_cache.register(font_path)
+    registered_font_name = font_cache.register(font_path)
     # font_list = [("GoNotoKurrent-Regular.ttf", font_path), ("tiro", None)]
     font_id = {}
     for page in doc_zh:
@@ -238,7 +254,44 @@ def translate_stream(
     fp = io.BytesIO()
 
     doc_zh.save(fp)
-    obj_patch: dict = translate_patch(fp, **locals())
+
+    # === 2.0: Create TextMetrics instances (M1) ===
+    text_metrics = {}
+    if use_text_metrics and font_path and os.path.exists(font_path):
+        try:
+            from pdf2zh.text_metrics import TextMetrics as _TM
+            tm = _TM(font_path)
+            text_metrics[noto_name] = tm
+            text_metrics[registered_font_name] = tm
+        except Exception as e:
+            logger.warning("TextMetrics init failed (falling back to legacy width): %s", e)
+
+    # === 2.0: Translation cache (L3) ===
+    translation_cache_obj = None
+    if use_translation_cache and not ignore_cache:
+        try:
+            translation_cache_obj = TranslationCache()
+        except Exception as e:
+            logger.warning("TranslationCache init failed: %s", e)
+
+    # === 2.0: Collision Resolver & Layout Graph ===
+    collision_resolver = CollisionResolver()
+    layout_graph = LayoutGraph()
+
+    # Ensure 2.0 module references exist in locals
+    if 'text_metrics' not in dir():
+        text_metrics = {}
+    if 'translation_cache_obj' not in dir():
+        translation_cache_obj = None
+
+    # === 2.0: Parallel page processing (L2) ===
+    if parallel_pages and page_count > 5:
+        obj_patch = _translate_parallel(
+            fp, dict(locals()),
+            workers=parallel_workers,
+        )
+    else:
+        obj_patch = translate_patch(fp, **dict(locals()))
 
     for obj_id, ops_new in obj_patch.items():
         # ops_old=doc_en.xref_stream(obj_id)
@@ -308,6 +361,66 @@ def convert_to_pdfa(input_path, output_path):
     pdf.close()
 
 
+def _translate_parallel(
+    fp: io.BytesIO,
+    locals_dict: dict,
+    workers: int = 4,
+) -> dict:
+    """Parallel page processing for translate_patch (2.0 L2).
+
+    Splits pages across multiple processes. Each process handles a chunk
+    of pages independently, and results are merged at the end.
+
+    Args:
+        fp: PDF file pointer (pre-saved document)
+        locals_dict: Locals from translate_stream
+        workers: Number of parallel workers
+
+    Returns:
+        Merged obj_patch dictionary
+    """
+    import concurrent.futures
+
+    from pdf2zh.collision_resolver import CollisionResolver as _CR
+    from pdf2zh.layout_graph import LayoutGraph as _LG
+    from pdf2zh.font_resolver import FontResolver as _FR
+
+    doc_zh = locals_dict.get("doc_zh")
+    if doc_zh is None:
+        # Fall back to serial
+        return translate_patch(fp, **locals_dict)
+
+    all_pages = list(range(doc_zh.page_count))
+    chunk_size = max(1, len(all_pages) // workers)
+    chunks = [all_pages[i:i+chunk_size] for i in range(0, len(all_pages), chunk_size)]
+
+    def _process_chunk(chunk_pages):
+        """Process a chunk of pages in a separate process."""
+        import io as _io
+        with open(fp.name, "rb") if hasattr(fp, "name") else _io.BytesIO(fp.getvalue()) as chunk_fp:
+            chunk_locals = dict(locals_dict)
+            chunk_locals.pop("obj_patch", None)
+            chunk_locals["pages"] = chunk_pages
+            # Each worker gets its own instances
+            chunk_locals["collision_resolver"] = _CR()
+            chunk_locals["layout_graph"] = _LG()
+            return translate_patch(
+                chunk_fp if not hasattr(chunk_fp, "name") else chunk_fp,
+                **chunk_locals,
+            )
+
+    obj_patch = {}
+    with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_process_chunk, chk) for chk in chunks]
+        for f in concurrent.futures.as_completed(futures):
+            chunk_result = f.result()
+            if chunk_result:
+                obj_patch.update(chunk_result)
+
+    return obj_patch
+
+
+
 def translate(
     files: list[str],
     output: str = "",
@@ -326,6 +439,11 @@ def translate(
     prompt: Template = None,
     skip_subset_fonts: bool = False,
     ignore_cache: bool = False,
+    # 2.0 additions
+    parallel_pages: bool = False,
+    parallel_workers: int = 4,
+    use_text_metrics: bool = True,
+    use_translation_cache: bool = True,
     **kwarg: Any,
 ):
     if not files:
