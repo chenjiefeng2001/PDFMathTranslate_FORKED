@@ -64,9 +64,11 @@ class TextMetrics:
         widths: List[float] = []
 
         for ch in text:
-            glyph_id = self.cmap.get(ord(ch), 0)
+            glyph_name = self.cmap.get(ord(ch))
+            if glyph_name is None:
+                glyph_name = self.ttfont.getGlyphName(0)
             try:
-                advance, _ = self.hmtx[glyph_id]
+                advance, _ = self.hmtx[glyph_name]
             except KeyError:
                 advance = self.upem // 2
             char_width = (advance / self.upem) * font_size
@@ -92,8 +94,10 @@ class TextMetrics:
         Returns:
             Advance width in points
         """
-        glyph_id = self.cmap.get(ord(char), 0)
-        advance, _ = self.hmtx[glyph_id]
+        glyph_name = self.cmap.get(ord(char))
+        if glyph_name is None:
+            glyph_name = self.ttfont.getGlyphName(0)
+        advance, _ = self.hmtx[glyph_name]
         return (advance / self.upem) * font_size
 
     def close(self):
