@@ -14,12 +14,21 @@ import requests
 import xinference_client
 from azure.ai.translation.text import TextTranslationClient
 from azure.core.credentials import AzureKeyCredential
-from tencentcloud.common import credential
-from tencentcloud.tmt.v20180321.models import (
-    TextTranslateRequest,
-    TextTranslateResponse,
-)
-from tencentcloud.tmt.v20180321.tmt_client import TmtClient
+# TencentCloud SDK: lazy import to handle version incompatibility
+_tmt_available = False
+try:
+    from tencentcloud.common import credential as _tmt_credential
+    from tencentcloud.tmt.v20180321.models import (
+        TextTranslateRequest as _TextTranslateRequest,
+        TextTranslateResponse as _TextTranslateResponse,
+    )
+    from tencentcloud.tmt.v20180321.tmt_client import TmtClient as _TmtClient
+    _tmt_available = True
+except ImportError:
+    _tmt_credential = None
+    _TextTranslateRequest = None
+    _TextTranslateResponse = None
+    _TmtClient = None
 
 from pdf2zh.cache import TranslationCache
 from pdf2zh.config import ConfigManager
@@ -766,14 +775,19 @@ class TencentTranslator(BaseTranslator):
         self.set_envs(envs)
         super().__init__(lang_in, lang_out, model)
         try:
-            cred = credential.DefaultCredentialProvider().get_credential()
+            cred = _tmt_credential.DefaultCredentialProvider().get_credential()
         except EnvironmentError:
-            cred = credential.Credential(
+            cred = _tmt_credential.Credential(
                 self.envs["TENCENTCLOUD_SECRET_ID"],
                 self.envs["TENCENTCLOUD_SECRET_KEY"],
             )
-        self.client = TmtClient(cred, "ap-beijing")
-        self.req = TextTranslateRequest()
+        if not _tmt_available:
+            raise RuntimeError(
+                "Tencent Cloud TMT SDK version mismatch: TextTranslate API not available. "
+                "Install: pip install tencentcloud-sdk-python-tmt==3.0.928"
+            )
+        self.client = _TmtClient(cred, "ap-beijing")
+        self.req = _TextTranslateRequest()
         self.req.Source = self.lang_in
         self.req.Target = self.lang_out
         self.req.ProjectId = 0
@@ -783,7 +797,7 @@ class TencentTranslator(BaseTranslator):
 
     def _translate_chunk(self, text):
         self.req.SourceText = text
-        resp: TextTranslateResponse = self.client.TextTranslate(self.req)
+        resp: _TextTranslateResponse = self.client.TextTranslate(self.req)
         return resp.TargetText
 
     def do_translate(self, text):
