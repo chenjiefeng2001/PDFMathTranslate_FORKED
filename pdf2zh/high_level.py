@@ -259,6 +259,7 @@ def translate_stream(
     fp = io.BytesIO()
 
     doc_zh.save(fp)
+    fp.seek(0)  # Rewind before passing to translate_patch / PDFParser
 
     # === 2.0: Create TextMetrics instances (M1) ===
     text_metrics = {}
