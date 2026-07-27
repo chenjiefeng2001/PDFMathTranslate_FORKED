@@ -491,7 +491,7 @@ def background_translation_worker(args):
                 sys.stderr.thread_queues[tid] = progress_q
                 def _worker():
                     try:
-                        req = TranslateRequest(files=[str(raw)],output=str(output),pages=pages,lang_in=lang_in,lang_out=lang_out,service=translator.name,thread=threads_int,envs=_envs,prompt=prompt,skip_subset_fonts=skip_subset_fonts,ignore_cache=ignore_cache,vfont=vfont)
+                        req = TranslateRequest(files=[str(raw)],output=str(client_output_dir),pages=pages,lang_in=lang_in,lang_out=lang_out,service=translator.name,thread=threads_int,envs=_envs,prompt=prompt,skip_subset_fonts=skip_subset_fonts,ignore_cache=ignore_cache,vfont=vfont)
                         kernel.translate(req, cancellation_event=cancellation_event)
                         progress_q.put(("DONE",None,None))
                     except Exception as e: progress_q.put(("ERROR",e,None))
