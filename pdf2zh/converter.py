@@ -432,10 +432,8 @@ class TranslateConverter(PDFConverterEx):
             except (ValueError, TypeError):
                 return "0.0000"
 
-        from pdf2zh.pdf_op_builder import PDFOpRebuilder as _OpB
-
         def gen_op_txt(font, size, x, y, rtxt):
-            return _OpB.build_tj_simple(font, size, x, y, rtxt)
+            return f"/{font} {_safe_float(size)} Tf 1 0 0 1 {_safe_float(x)} {_safe_float(y)} Tm [<{rtxt}>] TJ "
 
         def gen_op_line(x, y, xlen, ylen, linewidth):
             return f"ET q 1 0 0 1 {_safe_float(x)} {_safe_float(y)} cm [] 0 d 0 J {_safe_float(linewidth)} w 0 0 m {_safe_float(xlen)} {_safe_float(ylen)} l S Q BT "
