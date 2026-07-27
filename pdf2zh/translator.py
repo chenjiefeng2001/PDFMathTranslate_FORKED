@@ -196,6 +196,15 @@ class GoogleTranslator(BaseTranslator):
         )
         if response.status_code == 400:
             result = "IRREPARABLE TRANSLATION ERROR"
+        elif not re_result:
+            # Google returned unexpected page format (rate-limited, captcha, etc.)
+            # Fall back to original text instead of crashing
+            logger.warning(
+                "Google Translate returned unparseable response (len=%d, status=%d). "
+                "Falling back to original text.",
+                len(response.text), response.status_code,
+            )
+            result = text
         else:
             response.raise_for_status()
             result = html.unescape(re_result[0])

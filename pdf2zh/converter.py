@@ -425,11 +425,14 @@ class TranslateConverter(PDFConverterEx):
         def _safe_float(val):
             """防止 NaN/Inf 进入 PDF 指令流，避免 MuPDF bad 'value' 错误"""
             try:
-                v = float(val)
-                if np.isfinite(v):
-                    return f"{v:.4f}"
+                if isinstance(val, (bool, str, bytes, bytearray)):
+                    val_v = float(val) if not isinstance(val, bool) else float(int(val))
+                else:
+                    val_v = float(val)
+                if np.isfinite(val_v):
+                    return f"{val_v:.4f}"
                 return "0.0000"
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, OverflowError, AttributeError):
                 return "0.0000"
 
         def gen_op_txt(font, size, x, y, rtxt):

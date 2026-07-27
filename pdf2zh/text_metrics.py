@@ -83,8 +83,6 @@ class TextMetrics:
         }
 
     def char_width(self, char: str, font_size: float) -> float:
-        if not char:
-            return 0.0
         """Measure width of a single character.
 
         Args:
@@ -94,10 +92,21 @@ class TextMetrics:
         Returns:
             Advance width in points
         """
-        glyph_name = self.cmap.get(ord(char))
-        if glyph_name is None:
-            glyph_name = self.ttfont.getGlyphName(0)
-        advance, _ = self.hmtx[glyph_name]
+        if not char:
+            return 0.0
+        try:
+            glyph_name = self.cmap.get(ord(char))
+            if glyph_name is None:
+                glyph_name = self.ttfont.getGlyphName(0)
+            if not isinstance(glyph_name, str):
+                glyph_name = self.ttfont.getGlyphName(int(glyph_name))
+            advance, _ = self.hmtx[glyph_name]
+        except (KeyError, TypeError, ValueError):
+            logger.warning(
+                "char_width fallback for U+%04X at size %.1f",
+                ord(char), font_size,
+            )
+            advance = self.upem // 2
         return (advance / self.upem) * font_size
 
     def close(self):

@@ -282,7 +282,7 @@ def submit_translation_task(client_id, file_type, file_input, link_input, servic
         if current_status in ["pending", "queued", "translating"]:
             raise gr.Error("您当前已有任务正在执行或排队中，请等待完成或手动停止后再提交新任务！")
 
-    output = Path("pdf2zh_files"); output.mkdir(parents=True, exist_ok=True)
+    output = Path("pdf2zh_files").resolve(); output.mkdir(parents=True, exist_ok=True)
     translator = service_map[service]; lang_in = lang_map[lang_from]; lang_out = lang_map[lang_to]
     if page_range != "Others": pages = page_map[page_range]
     else:
