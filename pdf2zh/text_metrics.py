@@ -95,16 +95,20 @@ class TextMetrics:
         if not char:
             return 0.0
         try:
-            glyph_name = self.cmap.get(ord(char))
-            if glyph_name is None:
-                glyph_name = self.ttfont.getGlyphName(0)
-            if not isinstance(glyph_name, str):
-                glyph_name = self.ttfont.getGlyphName(int(glyph_name))
+            glyph_id_or_name = self.cmap.get(ord(char))
+            if glyph_id_or_name is None:
+                glyph_id_or_name = self.ttfont.getGlyphName(0)
+            if isinstance(glyph_id_or_name, int):
+                glyph_name = self.ttfont.getGlyphName(glyph_id_or_name)
+            elif isinstance(glyph_id_or_name, str):
+                glyph_name = glyph_id_or_name
+            else:
+                glyph_name = self.ttfont.getGlyphName(int(glyph_id_or_name))
             advance, _ = self.hmtx[glyph_name]
-        except (KeyError, TypeError, ValueError):
+        except (KeyError, TypeError, ValueError) as exc:
             logger.warning(
-                "char_width fallback for U+%04X at size %.1f",
-                ord(char), font_size,
+                "char_width fallback for U+%04X at size %.1f: %s",
+                ord(char), font_size, exc,
             )
             advance = self.upem // 2
         return (advance / self.upem) * font_size

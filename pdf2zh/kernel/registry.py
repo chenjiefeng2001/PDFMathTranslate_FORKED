@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import threading
+import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pdf2zh.kernel.protocol import KernelProtocol
+
+
+logger = logging.getLogger(__name__)
 
 
 class KernelRegistry:
@@ -33,8 +37,21 @@ class KernelRegistry:
         with cls._lock:
             kernel = cls._kernels[name]
             if hasattr(kernel, "ensure_venv"):
-                kernel.ensure_venv()  # type: ignore[attr-defined]
+                try:
+                    kernel.ensure_venv()  # type: ignore[attr-defined]
+                except Exception as exc:
+                    raise RuntimeError(
+                        f"Failed to initialize kernel \'{name}\': {exc}"
+                    ) from exc
             if not kernel.is_available():
+                # Fall back to 'fast' if target kernel is unavailable
+                if "fast" in cls._kernels and cls._kernels["fast"].is_available():
+                    logger.warning(
+                        "Kernel '%s' not available, falling back to 'fast' kernel",
+                        name,
+                    )
+                    cls._active = cls._kernels["fast"]
+                    return
                 raise RuntimeError(
                     f"Kernel '{name}' is not available. "
                     "Check that the submodule is initialized and venv is set up."

@@ -241,8 +241,20 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
                 self.obj_patch[self.xobjmap[xobjid].objid] = (
                     f"q {ops_base}Q {a} {b} {c} {d} {e} {f} cm {ops_new}"
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                log.warning(
+                    "XObject %s form processing failed (%s: %s). "
+                    "Restoring state and clearing XObject stream to prevent overlay.",
+                    xobjid, type(e).__name__, str(e)[:120],
+                )
+                try:
+                    if self.device._stack:
+                        self.device.cur_item = self.device._stack.pop()
+                except Exception as restore_err:
+                    log.debug("Failed to restore cur_item: %s", restore_err)
+                xobj_objid = self.xobjmap[xobjid].objid
+                if xobj_objid not in self.obj_patch:
+                    self.obj_patch[xobj_objid] = ""
         elif subtype is LITERAL_IMAGE and "Width" in xobj and "Height" in xobj:
             self.device.begin_figure(xobjid, (0, 0, 1, 1), MATRIX_IDENTITY)
             self.device.render_image(xobjid, xobj)

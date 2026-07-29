@@ -94,6 +94,7 @@ def translate_patch(
     envs: Dict = None,
     prompt: Template = None,
     ignore_cache: bool = False,
+    skip_subset_fonts: bool = False,
     # 2.0 additions
     text_metrics: dict = None,
     font_resolver: object = None,
@@ -118,6 +119,7 @@ def translate_patch(
         envs,
         prompt,
         ignore_cache,
+        skip_subset_fonts=skip_subset_fonts,
         text_metrics=text_metrics,
         font_resolver=font_resolver,
         layout_graph=layout_graph,
@@ -292,10 +294,18 @@ def translate_stream(
 
     # === 2.0: Parallel page processing (L2) ===
     if parallel_pages and page_count > 5:
-        obj_patch = _translate_parallel(
-            fp, dict(locals()),
-            workers=parallel_workers,
-        )
+        try:
+            obj_patch = _translate_parallel(
+                fp, dict(locals()),
+                workers=parallel_workers,
+            )
+        except Exception as parallel_err:
+            logger.warning(
+                "Parallel page processing failed ({}), falling back to serial: {}".format(
+                    type(parallel_err).__name__, str(parallel_err)[:120],
+                ),
+            )
+            obj_patch = translate_patch(fp, **dict(locals()))
     else:
         obj_patch = translate_patch(fp, **dict(locals()))
 
@@ -309,9 +319,48 @@ def translate_stream(
     doc_en.insert_file(doc_zh)
     for id in range(page_count):
         doc_en.move_page(page_count + id, id * 2 + 1)
+    def _protect_math_fonts(doc):
+        """保护已知数学字体不被 MuPDF subset_fonts 子集化破坏宽度"""
+        try:
+            xreflen = doc.xref_length()
+            for xref in range(1, xreflen):
+                try:
+                    subtype_res = doc.xref_get_key(xref, "/Subtype")
+                    if subtype_res[0] == "name" and "Type3" in str(subtype_res[1]):
+                        # Type3 字体跳过子集化
+                        doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
+                except Exception:
+                    pass
+                try:
+                    basefont_res = doc.xref_get_key(xref, "/BaseFont")
+                    if basefont_res[0] == "name":
+                        bf = str(basefont_res[1])
+                        math_patterns = [
+                            "CM", "CMSY", "CMEX", "CMMI", "EUFM", "MSBM", "MSAM",
+                            "STIX", "XITS", "MnSymbol", "rsfs", "txsy", "wasy", "stmary",
+                            "Symbol", "MT", "BL", "RM", "EU", "LA", "RS"
+                        ]
+                        for mp in math_patterns:
+                            if mp in bf:
+                                doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
+                                break
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     if not skip_subset_fonts:
-        doc_zh.subset_fonts(fallback=True)
-        doc_en.subset_fonts(fallback=True)
+        # 在子集化前保护数学字体
+        _protect_math_fonts(doc_zh)
+        _protect_math_fonts(doc_en)
+        try:
+            doc_zh.subset_fonts(fallback=False)
+        except Exception as subset_err:
+            logger.warning("subset_fonts failed for doc_zh: %s", str(subset_err)[:120])
+        try:
+            doc_en.subset_fonts(fallback=False)
+        except Exception as subset_err:
+            logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])
     return (
         doc_zh.write(deflate=True, garbage=3, use_objstms=1),
         doc_en.write(deflate=True, garbage=3, use_objstms=1),

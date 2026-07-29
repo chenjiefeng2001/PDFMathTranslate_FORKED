@@ -151,6 +151,7 @@ class TranslateConverter(PDFConverterEx):
         layout_graph: object = None,
         collision_resolver: object = None,
         translation_cache: object = None,
+        skip_subset_fonts: bool = False,
     ) -> None:
         super().__init__(rsrcmgr)
         self.vfont = vfont
@@ -159,6 +160,7 @@ class TranslateConverter(PDFConverterEx):
         self.layout = layout
         self.noto_name = noto_name
         self.noto = noto
+        self.skip_subset_fonts = skip_subset_fonts
         # 2.0 modules
         self.text_metrics = text_metrics or {}
         self.font_resolver = font_resolver
@@ -167,6 +169,7 @@ class TranslateConverter(PDFConverterEx):
         self.cache = translation_cache
         self._para_orig_fonts: dict = {}
         self._rendered_obstacles: list = []
+        self._rendered_paragraphs: list = []
         self.translator: BaseTranslator = None
         # e.g. "ollama:gemma2:9b" -> ["ollama", "gemma2:9b"]
         param = service.split(":", 1)
@@ -202,13 +205,20 @@ class TranslateConverter(PDFConverterEx):
         vmax: float = ltpage.width / 4  # 行内公式最大宽度
         ops: str = ""                   # 渲染结果
 
-        def vflag(font: str, char: str):    # 匹配公式（和角标）字体
-            if isinstance(font, bytes):     # 不一定能 decode，直接转 str
+        def _extract_font_name(font: str) -> str:
+            """从 PDF 字体引用中提取规范字体名（改进版）"""
+            if isinstance(font, bytes):
                 try:
-                    font = font.decode('utf-8')  # 尝试使用 UTF-8 解码
+                    font = font.decode('utf-8')
                 except UnicodeDecodeError:
-                    font = ""
-            font = font.split("+")[-1]      # 字体名截断
+                    return ""
+            # 处理 /ABCDEF+CMMI10 格式（取最后一个 + 之后的部分）
+            if "+" in font:
+                font = font.split("+")[-1]
+            return font
+
+        def vflag(font: str, char: str):    # 匹配公式（和角标）字体
+            font = _extract_font_name(font)  # 字体名截断（改进版）
             if re.match(r"\(cid:", char):
                 return True
             # 基于字体名规则的判定
@@ -216,8 +226,14 @@ class TranslateConverter(PDFConverterEx):
                 if re.match(self.vfont, font):
                     return True
             else:
-                if re.match(                                            # latex 字体
-                    r"(CM[^R]|MS.M|XY|MT|BL|RM|EU|LA|RS|LINE|LCIRCLE|TeX-|rsfs|txsy|wasy|stmary|.*Mono|.*Code|.*Ital|.*Sym|.*Math)",
+                # 扩展默认公式字体正则，覆盖 Springer/Elsevier/AMS/LaTeX 等常见数学字体
+                if re.match(
+                    r"(CM[^R]|MS[BM]|XY|MT|BL|RM|EU[FM]|LA|RS|LINE|LCIRCLE|"
+                    r"TeX-|rsfs|txsy|wasy|stmary|"
+                    r".*Mono|.*Code|.*Ital|.*Sym|.*Math|"
+                    r"EUFM|MSBM|MSAM|CMSY|CMEX|CMMI|S[0-9]|"
+                    r"STIX.*|XITS.*Math|Cambria\s*Math|Asana\s*Math|LMMath|MnSymbol|"
+                    r"bb[0-9]?|bbold|cal[0-9]?|frak[0-9]?|mathscr)",
                     font,
                 ):
                     return True
@@ -300,7 +316,7 @@ class TranslateConverter(PDFConverterEx):
                         vfix = 0
                 # 当前字符不属于公式或当前字符是公式的第一个字符
                 if not vstk:
-                    if cls == xt_cls:               # 当前字符与前一个字符属于同一段落
+                    if xt is not None and cls == xt_cls:               # 当前字符与前一个字符属于同一段落
                         if child.x0 > xt.x1 + 1:    # 添加行内空格
                             sstk[-1] += " "
                         elif child.x1 < xt.x0:      # 添加换行空格并标记原文段落存在换行
@@ -408,7 +424,7 @@ class TranslateConverter(PDFConverterEx):
         def raw_string(fcur: str, cstk: str):  # 编码字符串
             if fcur == self.noto_name:
                 return "".join(["%04x" % self.noto.has_glyph(ord(c)) for c in cstk])
-            elif isinstance(self.fontmap[fcur], PDFCIDFont):  # 判断编码长度
+            elif isinstance(self.fontmap.get(fcur), PDFCIDFont):  # 判断编码长度
                 return "".join(["%04x" % ord(c) for c in cstk])
             else:
                 return "".join(["%02x" % ord(c) for c in cstk])
@@ -493,7 +509,13 @@ class TranslateConverter(PDFConverterEx):
                     elif fcur_ == self.noto_name:
                         adv = self.noto.char_lengths(ch, size)[0]
                     else:
-                        adv = self.fontmap[fcur_].char_width(ord(ch)) * size
+                        font_obj = self.fontmap.get(fcur_)
+                        if font_obj:
+                            adv = font_obj.char_width(ord(ch))
+                            if adv <= 0 and not self.skip_subset_fonts:
+                                adv = size * 0.5
+                        else:
+                            adv = size * 0.5
                     ptr += 1
                 if (                                # 输出文字缓冲区
                     fcur_ != fcur                   # 1. 字体更新
@@ -522,11 +544,11 @@ class TranslateConverter(PDFConverterEx):
                         vc = chr(vch.cid)
                         ops_vals.append({
                             "type": OpType.TEXT,
-                            "font": self.fontid[vch.font],
+                            "font": self.fontid.get(vch.font, "0"),
                             "size": vch.size,
                             "x": x + vch.x0 - var[vid][0].x0,
                             "dy": fix + vch.y0 - var[vid][0].y0,
-                            "rtxt": raw_string(self.fontid[vch.font], vc),
+                            "rtxt": raw_string(self.fontid.get(vch.font, "0"), vc),
                             "lidx": lidx
                         })
                         if log.isEnabledFor(logging.DEBUG):
@@ -572,17 +594,35 @@ class TranslateConverter(PDFConverterEx):
 
             # === 2.0: TextMetrics line height (M1) ===
             line_height = default_line_height
+            # CJK/western mixed line height
+            if any("一" <= c <= "鿿" or "　" <= c <= "〿" for c in new):
+                line_height = max(default_line_height, 1.3)
             tm_line = self.text_metrics.get(fcur) if self.text_metrics else None
             if tm_line:
                 ascent = getattr(tm_line, 'ascent', 0.8)
                 descent = getattr(tm_line, 'descent', -0.2)
-                line_height = max(ascent - descent, 1.0)
+                line_height = max(ascent - descent, 1.0) if np.isfinite(ascent) and np.isfinite(descent) else default_line_height
             elif height > 0 and np.isfinite(height):
                 max_iter = max(int((default_line_height - 0.5) / 0.05), 1)
                 iter_count = 0
                 while (lidx + 1) * size * line_height > height and line_height >= 1 and iter_count < max_iter:
                     line_height -= 0.05
                     iter_count += 1
+            # === 2.0: Collision detection & resolution (M2) ===
+            para_bottom = y - (lidx + 1) * size * line_height
+            if self.collision_resolver and lidx > 0:
+                from pdf2zh.collision_resolver import BoundingBox
+                pb = BoundingBox(x0, para_bottom, x1, y)
+                shift = 0.0
+                for prev in self._rendered_paragraphs:
+                    if pb.overlaps(prev):
+                        _, ny, _ = self.collision_resolver.resolve(pb, [prev], size)
+                        shift = max(shift, ny - pb.y0)
+                        pb = BoundingBox(x0, para_bottom + shift, x1, y + shift)
+                if shift > 0:
+                    y += shift
+                self._rendered_paragraphs.append(pb)
+
 
             for vals in ops_vals:
                 if vals["type"] == OpType.TEXT:

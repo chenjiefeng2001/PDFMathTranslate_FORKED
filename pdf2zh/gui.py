@@ -892,5 +892,18 @@ def setup_gui(share=False,auth_file=["",""],server_port=7860):
     akw={"auth":ul,"auth_message":html} if ul else {}
     demo.queue(default_concurrency_limit=2,max_size=10,status_update_rate=0.1)
     if flag_demo: demo.launch(server_name="0.0.0.0",max_file_size="5mb",inbrowser=True);return
-    demo.launch(server_name="127.0.0.1",debug=True,inbrowser=True,share=False,server_port=server_port,**akw)
+    try:
+        demo.launch(server_name="127.0.0.1",debug=True,inbrowser=True,share=False,server_port=server_port,**akw)
+    except ValueError as _e:
+        msg = str(_e)
+        if "localhost" in msg.lower() or "share" in msg.lower():
+            _logging.warning("Localhost not accessible, falling back to share=True")
+            try:
+                demo.launch(server_name="0.0.0.0",debug=True,inbrowser=True,share=True,server_port=server_port,**akw)
+            except Exception as _e2:
+                _logging.error("Failed to launch with share=True: %s", _e2)
+                raise _e2
+        else:
+            raise _e
+
 if __name__=="__main__":_logging.basicConfig(level=_logging.DEBUG);setup_gui()

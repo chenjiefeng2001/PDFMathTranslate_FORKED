@@ -64,6 +64,59 @@ class PreciseKernel:
             and Path(_venv_python()).exists()
         )
 
+    @staticmethod
+    def _find_system_python() -> str:
+        """Find a real system Python interpreter.
+
+        When running inside a PyInstaller bundle, sys.executable points to
+        the bundled .exe which cannot run '-m venv'. Fall back to searching
+        PATH for a real Python interpreter.
+        """
+        # If not frozen, sys.executable is a real Python — use it directly.
+        if not getattr(sys, "frozen", False):
+            python = sys.executable
+            if python:
+                return python
+
+        # Frozen executable — search PATH for a system Python.
+        candidates = ["python3", "python"]
+        seen = set()
+        for candidate in candidates:
+            try:
+                result = subprocess.run(
+                    [candidate, "--version"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                continue
+            if result.returncode != 0:
+                continue
+            resolved = result.args[0]
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            # Must be able to run `python -m venv`
+            try:
+                result2 = subprocess.run(
+                    [resolved, "-m", "venv", "--help"],
+                    capture_output=True,
+                    timeout=10,
+                )
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                continue
+            if result2.returncode == 0:
+                logger.info("Discovered system Python: %s", resolved)
+                return resolved
+
+        raise RuntimeError(
+            "No system Python interpreter found. The 'precise' kernel requires "
+            "a standalone Python installation to create its virtual environment. "
+            "Please install Python from https://python.org and ensure it is on PATH."
+        )
+
+
     def ensure_venv(self) -> None:
         """Create venv and install pdf2zh_next if not already set up."""
         if (
@@ -83,7 +136,7 @@ class PreciseKernel:
         if not venv_exists:
             logger.info("Creating precise kernel venv...")
             subprocess.run(
-                [sys.executable, "-m", "venv", str(_VENV_DIR)],
+                [self._find_system_python(), "-m", "venv", str(_VENV_DIR)],
                 check=True,
                 timeout=60,
             )
