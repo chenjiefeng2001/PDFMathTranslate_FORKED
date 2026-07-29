@@ -15,7 +15,7 @@ a = Analysis(
         'pdf2zh.translator', 'pdf2zh.font_resolver', 'pdf2zh.font_cache',
         'pdf2zh.text_metrics', 'pdf2zh.paragraph_layout', 'pdf2zh.layout_graph',
         'pdf2zh.scan_pdf_processor', 'pdf2zh.collision_resolver', 'pdf2zh.pdf_op_builder',
-        'pdf2zh.translation_cache', 'pdf2zh.overlay_renderer', 'pdf2zh.cache',
+        'pdf2zh.translation_cache', 'pdf2zh.overlay_renderer', 'pdf2zh.overflow_policy', 'pdf2zh.paragraph_style', 'pdf2zh.cache',
         'pdf2zh.config', 'pdf2zh.doclayout', 'pdf2zh.backend', 'pdf2zh.gui',
         'pdf2zh.mcp_server', 'pdf2zh.pdfinterp',
         'pdf2zh.kernel', 'pdf2zh.kernel.legacy', 'pdf2zh.kernel.precise',

@@ -358,6 +358,21 @@ Write-Host "==== Pinning gradio >=5.20 <5.36 (avoids 'const in bool' schema bug 
 
 Write-Host "  gradio pinned"
 
+
+Write-Host "==== Patching gradio route_utils.py for Windows long path support (>260 char filenames) ===="
+
+$PatchScript = Join-Path $ScriptDir "patch_gradio_longpath.py"
+$RouteUtilsPath = Join-Path $RuntimeDir "Lib\site-packages\gradio\route_utils.py"
+
+if ((Test-Path $PatchScript) -and (Test-Path $RouteUtilsPath)) {
+    & "$EmbeddedPython" $PatchScript $RouteUtilsPath
+    Write-Host "  Long path patch applied"
+} else {
+    Write-Host "  WARNING: patch script or route_utils.py not found" -ForegroundColor Yellow
+}
+
+
+
 Pop-Location
 
 
