@@ -98,6 +98,7 @@ class TaskGraph:
         if task:
             self._name_index.pop(task.name, None)
             for t in self._tasks.values():
+
                 t.dependencies.discard(task_id)
 
     def get_ready_tasks(self) -> List[Task]:
@@ -117,6 +118,11 @@ class TaskGraph:
             t for t in self._tasks.values()
             if task_id in t.dependencies
         ]
+
+    def clear(self) -> None:
+        """Remove all tasks from the graph."""
+        self._tasks.clear()
+        self._name_index.clear()
 
     @property
     def tasks(self) -> List[Task]:

@@ -560,9 +560,17 @@ class IssueGraph:
                 "by_module": {m: len(v) for m, v in self._issues.items()}}
 
 class RepairScheduler:
-    """Schedules repair tasks based on issues found."""
-    def __init__(self):
+    """Schedules repair tasks based on issues found.
+
+    Can optionally be bound to an IssueGraph for automatic repair scheduling.
+    """
+    def __init__(self, issue_graph=None):
         self._repairs = []
+        self._issue_graph = issue_graph
+
+    def bind_issue_graph(self, issue_graph):
+        self._issue_graph = issue_graph
+
     def schedule(self, issue):
         repair = {"issue_type": issue.issue_type, "node_id": issue.node_id, "module": issue.module,
                   "action": {"overlap": "relayout", "bad_translation": "retranslate",
@@ -572,12 +580,43 @@ class RepairScheduler:
                   "priority": {"critical": 1, "major": 2, "minor": 3, "info": 4}.get(issue.severity.value, 5)}
         self._repairs.append(repair)
         return repair
+
     def schedule_all(self, issues):
-        for m in issues.modules:
-            for i in issues.get_by_module(m): self.schedule(i)
+        if isinstance(issues, IssueGraph):
+            for m in issues.modules:
+                for i in issues.get_by_module(m):
+                    self.schedule(i)
+        elif hasattr(issues, "__iter__"):
+            for i in issues:
+                self.schedule(i)
         return self.list_repairs()
-    def list_repairs(self): return list(self._repairs)
-    def clear(self): self._repairs.clear()
+
+    def schedule_from_issues(self):
+        """Convenience: schedule from bound IssueGraph."""
+        if self._issue_graph:
+            return self.schedule_all(self._issue_graph)
+        return []
+
+    def list_repairs(self):
+        return list(self._repairs)
+
+    def clear(self):
+        self._repairs.clear()
+
+    def execute_all(self, graph=None):
+        """Execute all scheduled repairs on a DocumentGraph."""
+        executed = []
+        for repair in self._repairs:
+            action = repair.get("action", "reinspect")
+            if action == "retranslate" and graph:
+                node = graph.get_node(repair["node_id"])
+                if node:
+                    node.translated_text = None
+                    node.confidence = 0.0
+                    executed.append(repair)
+            elif action in ("relayout", "reformat", "reinspect"):
+                executed.append(repair)
+        return executed
 
 
 __all__ = [
