@@ -37,7 +37,7 @@ class TestBaseAdapter(unittest.TestCase):
 class TestLegacyTranslatorAdapter(unittest.TestCase):
     def test_init(self):
         adapter = LegacyTranslatorAdapter()
-        self.assertEqual(adapter.stats.adapter_name, "LegacyTranslatorAdapter")
+        self.assertEqual(adapter.stats.adapter_name, "LegacyTranslatorAdapter(mock)")
     def test_translate_empty_graph(self):
         adapter = LegacyTranslatorAdapter()
         g = DocumentGraph()
@@ -125,7 +125,7 @@ class TestLegacyConverterBridgeIntegration(unittest.TestCase):
         g.add_node(DocumentNode("n1", NodeType.PARAGRAPH, (0,0,100,20), text="Test", page_num=0))
         bridge.convert(g)
         stats = bridge.get_adapter_stats()
-        self.assertEqual(stats["translator"]["adapter"], "LegacyTranslatorAdapter")
+        self.assertEqual(stats["translator"]["adapter"], "LegacyTranslatorAdapter(mock)")
         self.assertIn("processed", stats["translator"])
 
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set
 
 from pdf2zh.v3.graph import DocumentGraph, DocumentNode
+from pdf2zh.v3.memory import DocumentMemory
 
 logger = logging.getLogger(__name__)
 
@@ -325,21 +326,26 @@ class RuntimeFacade:
         result = rt.evaluate()
     """
 
-    def __init__(self, config: Optional[dict] = None):
+    def __init__(self, config: Optional[dict] = None,
+                 feature_flags: Optional["FeatureFlags"] = None):
+
         self.config = config or {}
+        from pdf2zh.v3.feature_flags import FeatureFlags, get_feature_flags
+        self.feature_flags = feature_flags if feature_flags is not None else get_feature_flags()
         self.source: str = ""
         self.graph: Optional[DocumentGraph] = None
         self.memory: Optional[DocumentMemory] = None
         self.plans: Optional[dict] = None
         self.translator: Optional[Any] = None
         self.layout_engine: Optional[Any] = None
-        self.tree: Optional[Any] = None
+        self.tree: Optional[VisualTree] = None
         self.output: Optional[bytes] = None
         self.evaluation: Optional[Any] = None
         self._parser: Any = None
         self._normalizer: Any = None
         self._analyzer: Any = None
         self._planner: Any = None
+        self._diagnostic_report: Optional[Any] = None
 
     def load(self, path: str) -> "RuntimeFacade":
         """Parse a PDF into DocumentGraph."""
@@ -395,14 +401,30 @@ class RuntimeFacade:
         return self
 
     def layout(self) -> Any:
-        """Run layout engine and return VisualTree."""
-        from pdf2zh.v3.layout import LayoutEngine
+        """Run layout engine and return VisualTree.
 
-        self.layout_engine = LayoutEngine(
-            page_width=self.config.get("page_width", 612),
-            page_height=self.config.get("page_height", 792),
-        )
-        self.tree = self.layout_engine.layout(self.graph)
+        Phase 2, Step 2.1: When use_v4_visual_tree_builder flag is
+        enabled, builds via VisualTreeBuilder from DocumentGraph.
+        """
+        ff = self.feature_flags
+        if ff.use_v4_visual_tree_builder:
+            from pdf2zh.v3.visual_tree_builder import VisualTreeBuilder
+            builder = VisualTreeBuilder(
+                page_width=self.config.get("page_width", 612),
+                page_height=self.config.get("page_height", 792),
+            )
+            self.tree = builder.build_from_graph(self.graph)
+        else:
+            from pdf2zh.v3.layout import LayoutEngine
+            self.layout_engine = LayoutEngine(
+                page_width=self.config.get("page_width", 612),
+                page_height=self.config.get("page_height", 792),
+            )
+            self.tree = self.layout_engine.layout(self.graph)
+
+        # Phase 2, Step 2.4: Freeze layout
+        if self.tree is not None and not getattr(self.tree, 'is_layout_frozen', False):
+            self.tree.freeze_layout()
         return self.tree
 
     def render(self, fmt: str = "pdf") -> bytes:
@@ -414,22 +436,107 @@ class RuntimeFacade:
         return self.output
 
     def evaluate(self) -> Any:
-        """Run quality evaluation."""
+        """Run quality evaluation.
+
+        Phase 3, Step 3.1: Generates DiagnosticReport when
+        use_v4_diagnostic flag is enabled.
+        """
         from pdf2zh.v3.evaluator import QualityEvaluator, EvaluatorConfig
 
         evaluator = QualityEvaluator(EvaluatorConfig())
-        from pdf2zh.v3.graph import DocumentGraph
         self.evaluation = evaluator.evaluate(self.graph, self.graph)
+
+        if self.feature_flags.use_v4_diagnostic:
+            try:
+                from pdf2zh.v3.evaluator import (
+                    DiagnosticReport, EvaluationIssueMapper,
+                )
+                mapper = EvaluationIssueMapper()
+                self._diagnostic_report = mapper.map_result(
+                    self.evaluation, self.graph,
+                )
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "DiagnosticReport failed: %s", exc,
+                )
+
         return self.evaluation
 
     def pipeline(self, path: str, fmt: str = "pdf") -> bytes:
-        """Run end-to-end pipeline: load → analyze → plan → translate → layout → render."""
-        return (self.load(path)
-                .analyze()
-                .plan()
-                .translate()
-                .layout()
-                .render(fmt))
+        """Run end-to-end pipeline: load → analyze → plan → translate → layout → render → evaluate.
+
+        Phase 3, Step 3.4: Fix-Validate loop when use_v4_fix_validate_loop
+        flag is enabled. Iterates up to max_repair_passes times.
+        """
+        self.load(path).analyze().plan().translate().layout()
+
+        if self.feature_flags.use_v4_fix_validate_loop:
+            max_p = max(1, self.feature_flags.max_repair_passes)
+            for lp in range(max_p):
+                self.evaluate()
+                if self._diagnostic_report is not None:
+                    try:
+                        from pdf2zh.v3.evaluator import (
+                            IssueSeverity, RepairScheduler,
+                        )
+                        critical = (
+                            self._diagnostic_report.get_issues_by_severity(
+                                IssueSeverity.CRITICAL,
+                            )
+                            + self._diagnostic_report.get_issues_by_severity(
+                                IssueSeverity.BLOCKER,
+                            )
+                        )
+                        if not critical:
+                            logger.info(
+                                "No critical issues (pass %d/%d)",
+                                lp + 1, max_p,
+                            )
+                            break
+
+                        logger.info(
+                            "Fix pass %d/%d: %d critical issues",
+                            lp + 1, max_p, len(critical),
+                        )
+
+                        scheduler = RepairScheduler()
+                        repairs = scheduler.schedule(
+                            self._diagnostic_report,
+                        )
+                        if not repairs:
+                            break
+
+                        # Repairs: RE_TRANSLATE or RE_LAYOUT
+                        if self.feature_flags.use_v4_translator:
+                            from pdf2zh.v3.translation_runtime import (
+                                TranslationRuntime,
+                            )
+                            tr = TranslationRuntime()
+                            re_tn_ids = [
+                                r["node_id"] for r in repairs
+                                if r.get("action") == "RE_TRANSLATE"
+                                and r.get("node_id")
+                            ]
+                            for nid in re_tn_ids:
+                                node = self.graph.get_node(nid)
+                                if node:
+                                    node.translated_text = None
+                            if re_tn_ids:
+                                from pdf2zh.v3.planner import TranslationPlan
+                                plan = TranslationPlan(node_ids=re_tn_ids)
+                                tr.execute(self.graph, plan)
+
+                        if self.feature_flags.use_v4_layout:
+                            self.layout()
+
+                    except Exception as exc:
+                        logger.warning(
+                            "Fix-validate loop error: %s", exc,
+                        )
+                        break
+
+        return self.render(fmt)
 
     def summary(self) -> dict:
         return {

@@ -203,13 +203,19 @@ class PromptComposer:
             raise ValueError(f"Node {node_id!r} not found")
         plan = self._planner.plan(graph, node_id)
         route = self._router.route(node)
-        glossary_pairs = list(plan.glossary)
+        plan_pairs = list(plan.glossary or [])
+        pairs = []
+        for g in plan_pairs:
+            if isinstance(g, tuple):
+                pairs.append((g[0], g[1]))
+            else:
+                pairs.append((g.source, g.target))
         if self._memory is not None:
             for g in self._memory.get_all_glossary():
-                if g.source not in {ge.source for ge in glossary_pairs}:
-                    glossary_pairs.append(g)
+                if g.source not in {ge[0] for ge in pairs}:
+                    pairs.append((g.source, g.target))
         sys_msg = "You are a professional document translator.\nGlossary:\n"
-        sys_msg += "\n".join(f"- {g.source} -> {g.target}" for g in glossary_pairs[:20]) if glossary_pairs else "(none)"
+        sys_msg += "\n".join(f"- {s} -> {t}" for s, t in pairs[:20]) if pairs else "(none)"
         msgs = [{"role": "system", "content": sys_msg}, {"role": "user", "content": plan.prompt}]
         return ComposedPrompt(messages=msgs, model=route.model, temperature=route.temperature,
                               max_tokens=route.max_tokens, plan=plan, node_id=node_id)

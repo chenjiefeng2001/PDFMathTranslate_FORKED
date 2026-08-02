@@ -15,14 +15,9 @@ Modules:
   - Module 13: Layout Engine           (pdf2zh.v3.layout)
   - Module 14: Renderer                (pdf2zh.v3.renderer)
   - Module 15: Layout Optimizer        (pdf2zh.v3.optimizer)
-
-Usage:
-    from pdf2zh.v3 import (
-        Parsing, Normalization, Graph, Analysis,
-        TranslationPlanning, QualityEvaluation,
-        GraphRuntime, DocumentMemory, VisualTree,
-        ServiceRegistry, Scheduler,
-    )
+  - V7.0: Operators + Property Graph   (pdf2zh.v3.operators / graph_property)
+  - V7.2: State Snapshot (WAL-style)   (pdf2zh.v3.runtime_snapshot)
+  - V7.3: Runtime Service              (pdf2zh.v3.runtime_service)
 """
 
 from pdf2zh.v3.parser import RawBlock, RawBlockType, RawSpan, PDFParser
@@ -65,7 +60,6 @@ from pdf2zh.v3.service import (
     TranslatorService, LayoutService, RendererService,
     QAService, MemoryService,
 )
-
 from pdf2zh.v3.translator import (
     ModelRoute, ModelRouter, PromptComposer,
     CacheEntry, TranslationCache, TranslationSession, Translator,
@@ -90,97 +84,201 @@ from pdf2zh.v3.evaluator import (
     Issue, IssueSeverity, IssueGraph, RepairScheduler,
     DiagnosticRecord, DiagnosticReport, EvaluationIssueMapper,
 )
-
-
-def build_document_graph(
-    pdf_path: str,
-    lang_in: str = "auto",
-    dpi: int = 300,
-) -> DocumentGraph:
-    """One-shot pipeline: parse → normalize → build graph.
-
-    Args:
-        pdf_path: Path to PDF file.
-        lang_in: Input language code ('auto' for automatic detection).
-        dpi: Rendering DPI for layout analysis.
-
-    Returns:
-        A DocumentGraph with initial semantic labels.
-    """
-    # Module 1: Parse
-    parser = PDFParser()
-    raw_blocks = parser.parse(pdf_path, dpi=dpi)
-
-    # Module 2: Normalize
-    normalizer = Normalizer(NormalizerConfig(lang_in=lang_in))
-    normalized = normalizer.normalize(raw_blocks)
-
-    # Module 3: Build graph
-    builder = DocumentGraphBuilder()
-    graph = builder.build(normalized)
-
-    # Module 4: Analyze
-    analyzer = SemanticAnalyzer(AnalyzerConfig(lang_in=lang_in))
-    graph = analyzer.analyze(graph)
-
-    return graph
-
+# V5 Modules
+from pdf2zh.v3.runtime_context import (
+    RuntimeConfig, LRUCache, RuntimeContext,
+)
+from pdf2zh.v3.runtime_kernel import (
+    RuntimeKernel, EventBus, Event, EventType, PriorityLevel,
+    DeadLetterRecord, NodeStateMachine, NodeLifecycleState,
+    DiagnosticCenter, Diagnostic, DiagnosticSeverity,
+    MemoryCenter, PluginManager, Plugin, PluginState,
+    Capability, CapabilityPlugin,
+    TransactionSnapshot, RuntimeTransaction,
+    KnowledgeEntry, KnowledgeCenter,
+    DiagnosticNode, DiagnosticGraph,
+    TelemetrySample, TelemetryCollector,
+)
+from pdf2zh.v3.storage import (
+    StorageTier, StorageStats, MemoryGraph,
+    CacheGraph, PersistentGraph, StorageRuntime,
+)
+from pdf2zh.v3.feature_flags import (
+    FeatureFlags, get_feature_flags, set_feature_flags, reset_feature_flags,
+)
+from pdf2zh.v3.repair import (
+    RepairStats, RepairResult, RepairRuntime,
+)
+from pdf2zh.v3.workflow_engine import (
+    WorkflowNodeType, WorkflowNode, WorkflowEngine,
+)
+from pdf2zh.v3.execution_graph import (
+    ExecutionNodeState, ExecutionNode, ExecutionGraph,
+)
+from pdf2zh.v3.causal_graph import (
+    Severity, CausalNode, CausalDiagnosticGraph,
+    RepairStatus,
+)
+from pdf2zh.v3.runtime_supervisor import (
+    ResourceUsage, ResourceReport, ResourceManager,
+    RecoveryManager, RuntimeSupervisor,
+)
+from pdf2zh.v3.tracing import (
+    TraceSpan, Tracer,
+)
+# V6 Modules (Constraint Layout, Translation Runtime, Document Intelligence)
+from pdf2zh.v3.constraint_graph import (
+    ConstraintPriority, ConstraintRelation, ConstraintEdge,
+    LayoutNode, ConstraintGraph, ConstraintSolver,
+    build_constraint_graph_from_document,
+)
+from pdf2zh.v3.translation_runtime import (
+    ChunkStatus, ConsistencyLevel,
+    TranslationChunkResult, TranslationRoute,
+    Router, ChunkScheduler, ConsistencyChecker,
+    RetryPolicy, TranslationWorkflow, TranslationRuntime,
+)
+from pdf2zh.v3.document_intelligence import (
+    EntityNode, EntityRelation, EntityGraph,
+    ConceptNode, ConceptGraph,
+    CitationNode, CitationRelation, CitationGraph,
+    KnowledgeFuser, DocumentIntelligence,
+)
+from pdf2zh.v3.visual_tree import DisplayCommand
+from pdf2zh.v3.visual_tree_builder import VisualTreeBuilder
+# V6.0 Design RFC — 约束布局求解 / 统一渲染适配 / 端到端管线
+from pdf2zh.v3.review_agent import (
+    ReviewIssue, ReviewResult, ReviewAgent, QualityPipeline,
+)
+from pdf2zh.v3.relayout_engine import (
+    RelayoutConfig, RelayoutResult, ModelSelector,
+    RelayoutSolver, OutputAssembler, RelayoutEngine,
+)
+from pdf2zh.v3.render_adapter import (
+    RenderBlock, HTMLFloatRenderer, TextRenderer, RenderAdapter,
+)
+from pdf2zh.v3.transformation_pipeline import (
+    PipelineConfig, PipelineStats, RuleBasedProvider,
+    PipelineOutput, TransformationPipeline,
+)
+# V6.1 Runtime-First — 统一图基础设施（BaseGraph）与文档运行时（DocumentRuntime）
+from pdf2zh.v3.base_graph import (
+    GraphKind, GraphNode, GraphEdge, GraphProperty,
+    GraphTraversal, GraphVisitor, GraphDiff, GraphSnapshot,
+    BaseGraph, adapt,
+)
+from pdf2zh.v3.document_runtime import (
+    SessionState, TRANSITIONS, RuntimeCheckpoint,
+    DocumentSession, DocumentRuntime,
+)
+# V7.0-V7.3 Operator-Based Runtime — Document Intelligence Runtime
+from pdf2zh.v3.operators import (
+    OperatorContext, OperatorGraph, OperatorRegistry,
+    ParseOperator, AnalyzeOperator, PlanOperator,
+    TranslateOperator, ReviewOperator, LayoutOperator, RenderOperator,
+)
+from pdf2zh.v3.runtime_snapshot import RuntimeSnapshot, SnapshotDiff
+from pdf2zh.v3.graph_property import (
+    PropertySchema, PropertyEdge, PropertyQuery, PropertyGraph,
+    create_property_graph_from_document,
+)
+from pdf2zh.v3.runtime_service import (
+    ResourceManager, SessionManager, IncrementalPlan,
+    IncrementalEngine, ExecutionScheduler, PersistenceLayer,
+    RuntimeNotificationBus, RuntimeService,
+)
 
 __all__ = [
-    # Module 1: Parser
     "RawBlock", "RawBlockType", "RawSpan", "PDFParser",
-    # Module 2: Normalizer
     "NormalizedBlock", "Normalizer", "NormalizerConfig",
-    # Module 3: Graph
     "DocumentNode", "NodeType", "Edge", "EdgeType",
     "DocumentGraph", "DocumentGraphBuilder", "GraphBuildConfig",
-    # Module 4: Analyzer
     "SemanticAnalyzer", "AnalyzerConfig",
-    # Module 5: Planner
     "TranslationPlanner", "TranslationPlan", "TranslationChunk",
     "ContextWindow", "PromptManager", "ContextBuilder",
     "GlossaryEntry", "GlossaryManager",
     "ChunkStrategy", "ChunkSplitter", "PlannerConfig",
-    # Module 6: Graph Runtime
     "GraphRuntime", "GraphTransaction", "GraphVersion",
     "GraphSnapshot", "GraphObserver", "ChangeRecord",
     "TransactionStatus",
-    # Module 7: Document Memory
-    "DocumentMemory", "DocumentMemorySnapshot",
-    "EntityEntry", "MemoryGlossaryEntry", "AbbreviationEntry",
-    # Module 8: Visual Tree
+    "DocumentMemory", "DocumentMemorySnapshot", "EntityEntry",
     "VisualTree", "VisualNode", "VisualNodeType",
     "BoundingBox", "Page", "Paragraph", "Line",
     "TextRun", "GlyphRun", "Image", "Formula",
-    # Module 9: Evaluator
-    "EvaluationResult", "EvaluatorConfig", "QualityEvaluator",
-    # Module 10: Execution Runtime
     "Task", "TaskStatus", "TaskGraph", "Executor", "Scheduler",
-    # Module 11: Service Registry
     "ServiceRegistry", "ServiceInterface",
-    "ParserService", "AnalyzerService", "PlannerService",
-    "TranslatorService", "LayoutService", "RendererService",
-    "QAService", "MemoryService",
-    # Module 12: Translator (Phase 2)
     "ModelRoute", "ModelRouter", "PromptComposer",
     "CacheEntry", "TranslationCache", "TranslationSession", "Translator",
-    "LLMResponse", "LLMProvider", "MockLLMProvider", "OpenAIProvider",
-    "PostProcessResult", "PostProcessor", "TranslationStats",
-    # Module 13: Layout Engine (Phase 2)
     "ConstraintType", "LayoutConstraint", "Measure", "Flow",
     "ConstraintSolver", "LayoutEngine",
-    "GlyphMetric", "InlineLayout", "ColumnRegion", "ColumnLayout",
     "CollisionRecord", "CollisionEngine",
-    # Module 14: Renderer (Phase 2)
-    "RenderContext", "Renderer", "PDFRenderer", "HTMLRenderer",
-    "MarkdownRenderer", "SVGRenderer", "DOCXRenderer", "RendererFactory",
-    # Module 15: Optimizer (Phase 2)
+    "RenderContext", "Renderer", "PDFRenderer",
+    "HTMLRenderer", "MarkdownRenderer", "SVGRenderer",
+    "DOCXRenderer", "RendererFactory",
     "LayoutElement", "OptimizationResult", "LayoutOptimizer",
-    # Runtime Facade (Phase 2)
+    "DisplayCommand",
+    "VisualTreeBuilder",
     "RuntimeFacade",
-    # Issue Graph (Phase 2)
     "Issue", "IssueSeverity", "IssueGraph", "RepairScheduler",
+    "EvaluationResult", "EvaluatorConfig", "QualityEvaluator",
     "DiagnosticRecord", "DiagnosticReport", "EvaluationIssueMapper",
-    # Pipeline
-    "build_document_graph",
+    "RuntimeConfig", "RuntimeContext",
+    "LRUCache",
+    "WorkflowNodeType", "WorkflowNode", "WorkflowEngine",
+    "ExecutionNodeState", "ExecutionNode", "ExecutionGraph",
+    "Severity", "CausalNode", "CausalDiagnosticGraph", "RepairStatus",
+    "ResourceUsage", "ResourceReport", "ResourceManager",
+    "RecoveryManager", "RuntimeSupervisor",
+    "TraceSpan", "Tracer",
+    # V5 Runtime Kernel & Infrastructure
+    "RuntimeKernel", "EventBus", "Event", "EventType", "PriorityLevel",
+    "DeadLetterRecord", "NodeStateMachine", "NodeLifecycleState",
+    "DiagnosticCenter", "Diagnostic", "DiagnosticSeverity",
+    "MemoryCenter", "PluginManager", "Plugin", "PluginState",
+    "Capability", "CapabilityPlugin",
+    "TransactionSnapshot", "RuntimeTransaction",
+    "KnowledgeEntry", "KnowledgeCenter",
+    "DiagnosticNode", "DiagnosticGraph",
+    "TelemetrySample", "TelemetryCollector",
+    "StorageTier", "StorageStats", "MemoryGraph",
+    "CacheGraph", "PersistentGraph", "StorageRuntime",
+    "FeatureFlags", "get_feature_flags", "set_feature_flags", "reset_feature_flags",
+    "RepairStats", "RepairResult", "RepairRuntime",
+    # V6
+    "ConstraintPriority", "ConstraintRelation", "ConstraintEdge",
+    "LayoutNode", "ConstraintGraph", "ConstraintSolver",
+    "build_constraint_graph_from_document",
+    "ChunkStatus", "ConsistencyLevel",
+    "TranslationChunkResult", "TranslationRoute",
+    "Router", "ChunkScheduler", "ConsistencyChecker",
+    "RetryPolicy", "TranslationWorkflow", "TranslationRuntime",
+    "EntityNode", "EntityRelation", "EntityGraph",
+    "ConceptNode", "ConceptGraph",
+    "CitationNode", "CitationRelation", "CitationGraph",
+    "KnowledgeFuser", "DocumentIntelligence",
+    # V6.0 Design RFC — 约束布局求解 / 统一渲染适配 / 端到端管线
+    "ReviewIssue", "ReviewResult", "ReviewAgent", "QualityPipeline",
+    "RelayoutConfig", "RelayoutResult", "ModelSelector",
+    "RelayoutSolver", "OutputAssembler", "RelayoutEngine",
+    "RenderBlock", "HTMLFloatRenderer", "TextRenderer", "RenderAdapter",
+    "PipelineConfig", "PipelineStats", "RuleBasedProvider",
+    "PipelineOutput", "TransformationPipeline",
+    # V6.1 Runtime-First
+    "GraphKind", "GraphNode", "GraphEdge", "GraphProperty",
+    "GraphTraversal", "GraphVisitor", "GraphDiff", "GraphSnapshot",
+    "BaseGraph", "adapt",
+    "SessionState", "TRANSITIONS", "RuntimeCheckpoint",
+    "DocumentSession", "DocumentRuntime",
+    # V7.0-V7.3 Operator-Based Runtime — Document Intelligence Runtime
+    "OperatorContext", "OperatorGraph", "OperatorRegistry",
+    "ParseOperator", "AnalyzeOperator", "PlanOperator",
+    "TranslateOperator", "ReviewOperator", "LayoutOperator",
+    "RenderOperator",
+    "RuntimeSnapshot", "SnapshotDiff",
+    "PropertySchema", "PropertyEdge", "PropertyQuery", "PropertyGraph",
+    "create_property_graph_from_document",
+    "ResourceManager", "SessionManager", "IncrementalPlan",
+    "IncrementalEngine", "ExecutionScheduler", "PersistenceLayer",
+    "RuntimeNotificationBus", "RuntimeService",
+
 ]

@@ -11,6 +11,8 @@ Usage:
 
 from __future__ import annotations
 
+__all__ = ["RawBlockType", "RawSpan", "RawBlock", "PDFParser"]
+
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -116,17 +118,19 @@ class PDFParser:
         from pdfminer.pdfdocument import PDFDocument
         from pdfminer.pdfpage import PDFPage
         from pdfminer.pdfparser import PDFParser as PDFMinerParser
-        from pdfminer.pdfinterp import PDFResourceManager
+        from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
         from pdfminer.converter import PDFPageAggregator
-        from pdfminer.utils import open_filename
+        from pdfminer.layout import LAParams
 
         blocks: List[RawBlock] = []
-        with open_filename(pdf_path) as fp:
+        # Use explicit binary mode to avoid Python 3.13 str vs bytes issue
+        with open(pdf_path, "rb") as fp:
             parser = PDFMinerParser(fp)
             doc = PDFDocument(parser)
             rsrcmgr = PDFResourceManager()
-            device = PDFPageAggregator(rsrcmgr, pageno=1)
-            interpreter = None
+            laparams = LAParams()
+            device = PDFPageAggregator(rsrcmgr, laparams=laparams)
+            interpreter = PDFPageInterpreter(rsrcmgr, device)
 
             for page_num, page in enumerate(PDFPage.create_pages(doc)):
                 page_image = None
@@ -135,17 +139,13 @@ class PDFParser:
                         pdf_path, page_num, dpi
                     )
 
-                if interpreter is None:
-                    from pdf2zh.pdfinterp import PDFPageInterpreterEx
-                    interpreter = PDFPageInterpreterEx(rsrcmgr, device, {})
-                else:
-                    interpreter = interpreter.dup()
-
                 interpreter.process_page(page)
                 lt_page = device.get_result()
 
                 page_blocks = self._extract_blocks(lt_page, page_num)
                 blocks.extend(page_blocks)
+
+            return blocks
 
     def _extract_blocks(
         self, lt_page, page_num: int, layout_result=None
@@ -159,36 +159,88 @@ class PDFParser:
             LTTextBoxHorizontal, LTFigure, LTAnno, LTChar,
         )
 
+        def _extract_spans_from_line(text_line) -> List[RawSpan]:
+            """Extract RawSpan list from a pdfminer text line (LTTextLineHorizontal)."""
+            spans: List[RawSpan] = []
+            for char_obj in text_line:
+                if isinstance(char_obj, LTChar):
+                    bx0, by0, bx1, by1 = (
+                        char_obj.bbox if isinstance(char_obj.bbox, (tuple, list))
+                        else (char_obj.bbox.x0, char_obj.bbox.y0,
+                              char_obj.bbox.x1, char_obj.bbox.y1)
+                    )
+                    spans.append(RawSpan(
+                        text=char_obj.get_text(),
+                        font_name=self._safe_fontname(
+                            char_obj.fontname
+                        ),
+                        font_size=char_obj.size,
+                        bbox=(bx0, by0, bx1, by1),
+                        confidence=1.0,
+                    ))
+                elif isinstance(char_obj, LTAnno) and spans:
+                    spans[-1].text += char_obj.get_text()
+            return spans
+
+        def _emit_block(element, spans: List[RawSpan]):
+            """Emit a RawBlock for the given element and its spans."""
+            if not spans:
+                return
+            ex0, ey0, ex1, ey1 = (
+                element.bbox if isinstance(element.bbox, (tuple, list))
+                else (element.bbox.x0, element.bbox.y0,
+                      element.bbox.x1, element.bbox.y1)
+            )
+            raw = RawBlock(
+                block_type=RawBlockType.TEXT,
+                bbox=(ex0, ey0, ex1, ey1),
+                spans=spans,
+                page_num=page_num,
+            )
+            blocks.append(raw)
+
         def _walk(element, depth=0):
             if isinstance(element, LTTextBoxHorizontal):
-                spans: List[RawSpan] = []
+                # Standard text box — aggregate all lines into one block
+                all_spans: List[RawSpan] = []
                 for text_line in element:
-                    for char_obj in text_line:
-                        if isinstance(char_obj, LTChar):
-                            spans.append(RawSpan(
-                                text=char_obj.get_text(),
-                                font_name=self._safe_fontname(
-                                    char_obj.fontname
-                                ),
-                                font_size=char_obj.size,
-                                bbox=(char_obj.bbox.x0, char_obj.bbox.y0,
-                                      char_obj.bbox.x1, char_obj.bbox.y1),
-                                confidence=1.0,
-                            ))
-                        elif isinstance(char_obj, LTAnno) and spans:
-                            spans[-1].text += char_obj.get_text()
-                if spans:
-                    raw = RawBlock(
-                        block_type=RawBlockType.TEXT,
-                        bbox=(element.bbox.x0, element.bbox.y0,
-                              element.bbox.x1, element.bbox.y1),
-                        spans=spans,
-                        page_num=page_num,
-                    )
-                    blocks.append(raw)
+                    all_spans.extend(_extract_spans_from_line(text_line))
+                _emit_block(element, all_spans)
             elif isinstance(element, LTFigure):
+                # Figure container — recurse into children to find text
                 for child in element:
                     _walk(child, depth + 1)
+            elif isinstance(element, LTChar):
+                # Stand-alone character (not wrapped in a text line)
+                bx0, by0, bx1, by1 = (
+                    element.bbox if isinstance(element.bbox, (tuple, list))
+                    else (element.bbox.x0, element.bbox.y0,
+                          element.bbox.x1, element.bbox.y1)
+                )
+                spans = [RawSpan(
+                    text=element.get_text(),
+                    font_name=self._safe_fontname(element.fontname),
+                    font_size=element.size,
+                    bbox=(bx0, by0, bx1, by1),
+                    confidence=1.0,
+                )]
+                _emit_block(element, spans)
+            elif isinstance(element, LTAnno):
+                # Stand-alone annotation text (e.g. spaces between chars)
+                pass  # skip; will be merged by normalizer
+            else:
+                # Try to iterate as container (LTPage, etc.) or
+                # treat as a stand-alone text line if it looks like one
+                element_type_name = type(element).__name__
+                if element_type_name == 'LTTextLineHorizontal':
+                    spans = _extract_spans_from_line(element)
+                    _emit_block(element, spans)
+                else:
+                    try:
+                        for child in element:
+                            _walk(child, depth + 1)
+                    except TypeError:
+                        pass  # skip non-iterable elements (e.g. LTLine, LTRect)
 
         _walk(lt_page)
         return blocks

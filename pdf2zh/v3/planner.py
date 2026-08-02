@@ -338,6 +338,8 @@ class ContextBuilder:
         ]
         content_ids = [n.id for n in all_content]
 
+        preceding = []
+        following = []
         if node.id in content_ids:
             idx = content_ids.index(node.id)
             start = max(0, idx - self.max_preceding)

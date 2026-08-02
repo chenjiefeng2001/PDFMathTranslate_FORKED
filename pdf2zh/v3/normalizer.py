@@ -11,7 +11,10 @@ representation by:
 All downstream modules consume NormalizedBlock, never RawBlock directly.
 """
 
+
 from __future__ import annotations
+
+__all__ = ["NormalizerConfig", "NormalizedBlock", "Normalizer"]
 
 import logging
 import re
@@ -43,7 +46,6 @@ class NormalizerConfig:
 # ── Output data structure ───────────────────────────────────────────────
 
 
-@dataclass
 @dataclass
 class NormalizedBlock:
     """A parser block after normalization.
@@ -124,14 +126,54 @@ class Normalizer:
 
         return result
 
+    @staticmethod
+    def remove_surrogates(text: str) -> str:
+        """Remove surrogate characters (U+D800-U+DFFF) from text.
+
+        PDF text extraction (pdfminer) can produce malformed Unicode with
+        lone surrogate characters that are not valid UTF-8.  These cause
+        ``orjson.dumps()`` / ``json.dumps()`` to raise ``TypeError`` and
+        break Gradio UI rendering.
+
+        This method strips any code points in the surrogate range,
+        preserving all other valid Unicode characters.
+        """
+        if not text:
+            return ""
+        # Fast path: check if any surrogate exists before building a new string
+        if not any("\ud800" <= ch <= "\udfff" for ch in text):
+            return text
+        return "".join(ch for ch in text if not ("\ud800" <= ch <= "\udfff"))
+
+    @staticmethod
+    def sanitize_text(text: str) -> str:
+        """Comprehensive text sanitisation for safe JSON/HTML output.
+
+        Applies in order:
+          1. Surrogate removal
+          2. NFC Unicode normalisation
+          3. Null-byte removal
+          4. Control-character removal (keeps \t, \n, \r)
+        """
+        if not text:
+            return ""
+        # 1. Strip surrogates (critical for orjson / Gradio)
+        text = Normalizer.remove_surrogates(text)
+        # 2. NFC normalisation
+        text = unicodedata.normalize("NFC", text)
+        # 3. Remove null bytes
+        text = text.replace("\x00", "")
+        # 4. Remove control characters except \t \n \r
+        text = re.sub(r"[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+        return text
+
     def _normalize_text(self, text: str) -> str:
         """Apply text normalization rules."""
         if not text:
             return ""
 
-        # Unicode normalization (NFC)
-        if self.config.normalize_unicode:
-            text = unicodedata.normalize("NFC", text)
+        # 0. Sanitize: surrogates, NFC, nulls, controls
+        text = Normalizer.sanitize_text(text)
 
         # Whitespace normalization
         if self.config.normalize_whitespace:

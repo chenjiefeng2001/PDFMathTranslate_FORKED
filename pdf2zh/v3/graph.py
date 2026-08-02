@@ -10,7 +10,11 @@ typed Edge objects. Unlike a flat list or tree, a graph natively supports:
   - Layout constraints (ConstraintEdge)
 """
 
+
 from __future__ import annotations
+
+__all__ = ["NodeType", "EdgeType", "ConstraintPriority", "Edge",
+           "DocumentNode", "DocumentGraph", "GraphBuildConfig", "DocumentGraphBuilder"]
 
 import hashlib
 import logging
@@ -42,6 +46,7 @@ class NodeType(Enum):
     LIST = "list"
     LIST_ITEM = "list_item"
     REFERENCE = "reference"
+    BIBLIOGRAPHY = "bibliography"
     CITATION = "citation"
     ABSTRACT = "abstract"
     KEYWORDS = "keywords"

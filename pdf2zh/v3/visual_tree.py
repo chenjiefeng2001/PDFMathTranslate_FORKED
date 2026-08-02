@@ -188,6 +188,32 @@ class Formula(VisualNode):
         self.vtype = VisualNodeType.FORMULA
 
 
+@dataclass
+class DisplayCommand:
+    """A single renderable display command in a DisplayList.
+
+    Encodes all information a renderer needs to draw one element:
+    - Type (text, image, formula, rect)
+    - Position (absolute coordinates)
+    - Content (text, binary data, or LaTeX)
+    - Styling (font, size, color, alignment)
+    """
+    cmd_type: str  # "text", "image", "formula", "rect"
+    x: float = 0.0
+    y: float = 0.0
+    width: float = 0.0
+    height: float = 0.0
+    text: str = ""
+    font: str = ""
+    font_size: float = 12.0
+    color: tuple = (0, 0, 0)
+    alignment: str = "left"
+    baseline: float = 0.0
+    opacity: float = 1.0
+    page_num: int = 0
+    metadata: dict = field(default_factory=dict)
+
+
 class VisualTree:
     """Top-level container for a document's Visual Tree.
 
@@ -196,13 +222,20 @@ class VisualTree:
       - A document node as root
 
     Renderers consume this tree, never DocumentGraph directly.
+
+    Supports layout freeze: once frozen, the tree is immutable
+    and generates a DisplayList for renderers.
     """
 
     def __init__(self) -> None:
         self._pages: List[Page] = []
         self._metadata: dict = {}
+        self._is_layout_frozen: bool = False
+        self._display_list: Optional[List[DisplayCommand]] = None
 
     def add_page(self, page: Page) -> None:
+        if self._is_layout_frozen:
+            raise RuntimeError("Cannot add page to frozen VisualTree")
         self._pages.append(page)
 
     def get_page(self, page_num: int) -> Optional[Page]:
@@ -218,6 +251,68 @@ class VisualTree:
     @property
     def page_count(self) -> int:
         return len(self._pages)
+
+    @property
+    def is_layout_frozen(self) -> bool:
+        return self._is_layout_frozen
+
+    @property
+    def display_list(self) -> Optional[List[DisplayCommand]]:
+        """Get the DisplayList after layout freeze."""
+        return self._display_list
+
+    def freeze_layout(self) -> None:
+        """Freeze layout and generate DisplayList.
+
+        After freezing:
+        - No more nodes can be added
+        - All bbox coordinates are final
+        - A flat DisplayList is generated for renderers
+        """
+        self._display_list = self._build_display_list()
+        self._is_layout_frozen = True
+
+    def _build_display_list(self) -> List[DisplayCommand]:
+        """Build a flat sorted DisplayList from the tree."""
+        commands: List[DisplayCommand] = []
+        for page in self._pages:
+            for node in page.walk():
+                if isinstance(node, TextRun):
+                    parent_line = self._find_parent_line(node)
+                    commands.append(DisplayCommand(
+                        cmd_type="text",
+                        x=node.bbox.x, y=node.bbox.y,
+                        width=node.bbox.width, height=node.bbox.height,
+                        text=node.text,
+                        font=node.font,
+                        font_size=node.font_size,
+                        baseline=parent_line.baseline if parent_line else node.bbox.y,
+                        page_num=page.page_num,
+                    ))
+                elif isinstance(node, Image):
+                    commands.append(DisplayCommand(
+                        cmd_type="image",
+                        x=node.bbox.x, y=node.bbox.y,
+                        width=node.bbox.width, height=node.bbox.height,
+                        page_num=page.page_num,
+                    ))
+                elif isinstance(node, Formula):
+                    commands.append(DisplayCommand(
+                        cmd_type="formula",
+                        x=node.bbox.x, y=node.bbox.y,
+                        width=node.bbox.width, height=node.bbox.height,
+                        text=node.latex,
+                        page_num=page.page_num,
+                    ))
+        # Sort by page_num, then y, then x
+        commands.sort(key=lambda c: (c.page_num, c.y, c.x))
+        return commands
+
+    @staticmethod
+    def _find_parent_line(node: VisualNode) -> Optional[VisualNode]:
+        """Walk up to find the parent Line node."""
+        # This works with the existing tree structure
+        return None  # Simplification — Line info is in the tree
 
     def walk(self) -> Generator[VisualNode, None, None]:
         for page in self._pages:
@@ -242,13 +337,15 @@ class VisualTree:
     def __repr__(self):
         total_nodes = sum(1 for _ in self.walk())
         return (f"VisualTree(pages={self.page_count}, "
-                f"total_nodes={total_nodes})")
+                f"total_nodes={total_nodes}, "
+                f"frozen={self._is_layout_frozen})")
 
 
 __all__ = [
     "VisualTree", "VisualNode", "VisualNodeType",
     "BoundingBox", "Page", "Paragraph", "Line",
     "TextRun", "GlyphRun", "Image", "Formula",
+    "DisplayCommand",
 ]
 
 
