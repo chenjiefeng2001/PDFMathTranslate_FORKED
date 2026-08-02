@@ -223,7 +223,7 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
                 resources,
                 [xobj],
                 ctm=ctm,
-            )
+            ) or ""  # 空内容流返回 None，避免生成非法 PDF 指令串
             self.ncs = interpreter.ncs
             self.scs = interpreter.scs
             try:  # 有的时候 form 字体加不上这里会烂掉
@@ -278,12 +278,15 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
         else:
             ctm = (1, 0, 0, 1, -x0, -y0)
         self.device.begin_page(page, ctm)
-        ops_base = self.render_contents(page.resources, page.contents, ctm=ctm)
+        ops_base = self.render_contents(page.resources, page.contents, ctm=ctm) or ""  # 空内容流安全
         self.device.fontid = self.fontid
         self.device.fontmap = self.fontmap
         ops_new = self.device.end_page(page)
         # 上面渲染的时候会根据 cropbox 减掉页面偏移得到真实坐标，这里输出的时候需要用 cm 把页面偏移加回来
-        self.obj_patch[page.page_xref] = (
+        xref_key = getattr(page, "page_xref", getattr(page, "pageid", None))
+        if xref_key is None:
+            raise AttributeError("PDFPage has neither page_xref nor pageid")
+        self.obj_patch[xref_key] = (
             f"q {ops_base}Q 1 0 0 1 {x0} {y0} cm {ops_new}"  # ops_base 里可能有图，需要让 ops_new 里的文字覆盖在上面，使用 q/Q 重置位置矩阵
         )
         for obj in page.contents:

@@ -84,6 +84,118 @@ def delete_translate_task(id: str):
     return {"state": str(result.state)}
 
 
+# ── V2 RuntimeService API ─────────────────────────────────────────────────────
+
+@flask_app.route("/v2/translate", methods=["POST"])
+def create_translate_task_v2():
+    """Submit a translation task via RuntimeService.
+
+    POST body (JSON):
+        {
+            "file": <file bytes or file path>,
+            "lang_in": "auto",
+            "lang_out": "zh-CN",
+            "service": "google",
+            "pages": null
+        }
+
+    Returns:
+        {"task_id": "task_abc123"}
+    """
+    from pdf2zh.services.runtime_service import RuntimeService, TranslationRequest
+
+    file = request.files.get("file")
+    form_data = request.form.get("data", "{}")
+    args = json.loads(form_data)
+
+    if file is None:
+        return {"error": "No file provided"}, 400
+
+    stream = file.stream.read()
+    # Save to temp file for RuntimeService
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    tmp.write(stream)
+    tmp.close()
+
+    req = TranslationRequest(
+        source_path=tmp.name,
+        target_lang=args.get("lang_out", "zh-CN"),
+        source_lang=args.get("lang_in", "auto"),
+        engine=args.get("service", "google"),
+        page_range=args.get("pages"),
+    )
+
+    svc = RuntimeService()
+    task_id = svc.submit_task(req)
+    return {"task_id": task_id}
+
+
+@flask_app.route("/v2/translate/<task_id>", methods=["GET"])
+def get_translate_task_v2(task_id: str):
+    """Get translation task state and result.
+
+    Returns:
+        {
+            "status": "completed",
+            "progress": 100.0,
+            "stage": "completed",
+            "message": "Completed",
+            "result_files": [{"name": "...", "path": "..."}],
+            "diagnostic_summary": null,
+            "quality_scores": null
+        }
+    """
+    from pdf2zh.services.runtime_service import RuntimeService
+
+    svc = RuntimeService()
+    state = svc.get_task_state(task_id)
+    if state is None:
+        return {"error": "task not found"}, 404
+    return state.to_dict()
+
+
+@flask_app.route("/v2/translate/<task_id>", methods=["DELETE"])
+def cancel_translate_task_v2(task_id: str):
+    """Cancel a running translation task."""
+    from pdf2zh.services.runtime_service import RuntimeService
+
+    svc = RuntimeService()
+    ok = svc.cancel_task(task_id)
+    return {"cancelled": ok}
+
+
+@flask_app.route("/v2/translate/<task_id>/artifacts/<format>")
+def get_translate_artifact_v2(task_id: str, format: str):
+    """Download translation result by format (pdf, mono, dual)."""
+    from pdf2zh.services.runtime_service import RuntimeService
+
+    svc = RuntimeService()
+    state = svc.get_task_state(task_id)
+    if state is None:
+        return {"error": "task not found"}, 404
+    if state.status != "completed":
+        return {"error": "task not completed"}, 400
+    if not state.result_files:
+        return {"error": "no result files"}, 400
+
+    # Find matching file
+    for f in state.result_files:
+        name = f.get("name", "")
+        if format == "pdf" and "-mono" in name:
+            continue
+        if format in name or format == "pdf":
+            path = f.get("path")
+            if path and os.path.exists(path):
+                return send_file(path, "application/pdf")
+    return {"error": f"No artifact for format: {format}"}, 404
+
+def delete_translate_task(id: str):
+    result: AsyncResult = celery_app.AsyncResult(id)
+    result.revoke(terminate=True)
+    return {"state": str(result.state)}
+
+
 @flask_app.route("/v1/translate/<id>/<format>")
 def get_translate_result(id: str, format: str):
     result = celery_app.AsyncResult(id)

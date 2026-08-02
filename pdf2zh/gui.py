@@ -1,3 +1,11 @@
+# DEPRECATED: Use pdf2zh.gui.entry.setup_gui() or python -m pdf2zh.gui.app instead.
+import warnings
+warnings.warn(
+    "pdf2zh.gui (monolithic) is deprecated. Use pdf2zh.gui.entry.setup_gui() or python -m pdf2zh.gui.app instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 import asyncio, os, shutil, socket, uuid, time, threading, queue, sys, logging as _logging, inspect, zipfile, io
 from asyncio import CancelledError
 from email.message import Message

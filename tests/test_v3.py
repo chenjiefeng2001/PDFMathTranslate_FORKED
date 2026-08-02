@@ -60,6 +60,58 @@ class TestNormalizer(unittest.TestCase):
         n = Normalizer(NormalizerConfig(lang_in='en'))
         result = n.normalize([RawBlock(RawBlockType.TEXT, spans=[RawSpan(text='Hello World')])])
         self.assertGreater(len(result), 0)
+    # ── Surrogate character sanitization ────────────────────────────────────
+
+    def test_remove_surrogates_empty(self):
+        d800 = chr(0xD800)
+        dfff = chr(0xDFFF)
+        self.assertEqual(Normalizer.remove_surrogates(''), '')
+
+    def test_remove_surrogates_clean(self):
+        self.assertEqual(Normalizer.remove_surrogates('Hello, World!'), 'Hello, World!')
+
+    def test_remove_surrogates_removes_lone_surrogates(self):
+        d800 = chr(0xD800)
+        dfff = chr(0xDFFF)
+        result = Normalizer.remove_surrogates('ab' + d800 + 'cd' + dfff + 'ef')
+        self.assertNotIn(d800, result)
+        self.assertNotIn(dfff, result)
+        self.assertEqual(result, 'abcdef')
+
+    def test_remove_surrogates_all_surrogates(self):
+        d800 = chr(0xD800)
+        d801 = chr(0xD801)
+        dfff = chr(0xDFFF)
+        self.assertEqual(Normalizer.remove_surrogates(d800 + d801 + dfff), '')
+
+    def test_sanitize_text_removes_surrogates(self):
+        d800 = chr(0xD800)
+        dfff = chr(0xDFFF)
+        result = Normalizer.sanitize_text('a' + d800 + 'b' + dfff + 'c')
+        self.assertNotIn(d800, result)
+        self.assertEqual(result, 'abc')
+
+    def test_sanitize_text_removes_null_bytes(self):
+        self.assertEqual(Normalizer.sanitize_text('a\x00b\x00c'), 'abc')
+
+    def test_sanitize_text_removes_control_chars(self):
+        self.assertEqual(Normalizer.sanitize_text('a\x01b\x02c'), 'abc')
+
+    def test_sanitize_text_keeps_tab_newline(self):
+        self.assertEqual(Normalizer.sanitize_text('a\tb\nc'), 'a\tb\nc')
+
+    def test_sanitize_text_keeps_valid_unicode(self):
+        self.assertEqual(Normalizer.sanitize_text('Hello – 中文 «ταБългерия»'), 'Hello – 中文 «ταБългерия»')
+
+    def test_normalize_removes_surrogates(self):
+        d800 = chr(0xD800)
+        n = Normalizer(NormalizerConfig())
+        result = n._normalize_text('hello' + d800 + 'world')
+        self.assertNotIn(d800, result)
+        self.assertEqual(result, 'helloworld')
+
+
+
 
 
 

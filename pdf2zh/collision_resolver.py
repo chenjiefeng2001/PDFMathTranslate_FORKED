@@ -88,8 +88,10 @@ class CollisionResolver:
             return x, y, size
 
         # Strategy 1: Vertical shift (try moving up/down)
+        # 传入全部障碍物而非仅当前重叠项：
+        # 向下偏移后可能撞到原本未重叠的下方元素，需一并避让
         vertical_shift = self._try_vertical_shift(
-            text_bbox, colliding, font_size
+            text_bbox, obstacles, font_size
         )
         if vertical_shift is not None:
             return x, vertical_shift, size
@@ -120,17 +122,21 @@ class CollisionResolver:
 
         Returns y coordinate if found, None otherwise.
         """
-        shift = font_size * 0.5  # Half line shift
-        for direction in [1, -1, 2, -2]:  # Try down, up, more down, more up
-            new_y = text_bbox.y0 + (direction * shift)
-            shifted_bbox = BoundingBox(
-                text_bbox.x0,
-                new_y,
-                text_bbox.x1,
-                new_y + text_bbox.height,
-            )
-            if not any(shifted_bbox.overlaps(obs) for obs in colliding):
-                return new_y
+        # 递增行距试探：覆盖英译中后 1 行 -> 3+ 行的行数膨胀场景。
+        # CJK 行高约为 1.3~1.4 倍字号，故以字号倍数逐步加大偏移量，
+        # 直至避开所有障碍物或达到上限（10 行）。
+        for mult in (0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 7.0, 10.0):
+            shift = font_size * mult
+            for direction in (1, -1):  # 优先向下（正文推进方向），再向上
+                new_y = text_bbox.y0 + (direction * shift)
+                shifted_bbox = BoundingBox(
+                    text_bbox.x0,
+                    new_y,
+                    text_bbox.x1,
+                    new_y + text_bbox.height,
+                )
+                if not any(shifted_bbox.overlaps(obs) for obs in colliding):
+                    return new_y
         return None
 
     def _try_width_reduction(

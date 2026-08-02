@@ -287,7 +287,7 @@ def main(args: Optional[List[str]] = None) -> int:
         ModelInstance.value = OnnxModel.load_available()
 
     if parsed_args.interactive:
-        from pdf2zh.gui import setup_gui
+        from pdf2zh.gui.entry import setup_gui
 
         if parsed_args.serverport:
             setup_gui(

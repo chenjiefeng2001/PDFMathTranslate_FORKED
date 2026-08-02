@@ -103,6 +103,27 @@ class TestCollisionResolver(unittest.TestCase):
         # Size may or may not shrink depending on strategy
         self.assertLessEqual(size, 12.0)
 
+    def test_large_vertical_shift_for_line_expansion(self):
+        """单行段落（lidx==0）膨胀侵占下方空间时，应获得大幅（多行）
+        垂直偏移，而不是回退到缩小字号。"""
+        text = BoundingBox(100, 300, 500, 340)      # 单行段落
+        obstacle = BoundingBox(100, 280, 500, 330)  # 占据约 2.5 行高度
+        new_y = self.resolver._try_vertical_shift(text, [obstacle], 10.0)
+        self.assertIsNotNone(new_y)
+        # 需要 >= 4 行偏移（40pt）才能完全避开障碍物
+        self.assertGreaterEqual(new_y, text.y0 + 40.0)
+
+    def test_resolve_avoids_lower_noncolliding_obstacle(self):
+        """向下偏移时必须避开原本未重叠的下方元素（全量障碍物探测）。"""
+        text = BoundingBox(100, 100, 300, 160)
+        upper = BoundingBox(100, 150, 300, 155)    # 与 text 重叠
+        lower = BoundingBox(100, 165, 300, 170)    # 位于 text 下方
+        x, y, size = self.resolver.resolve(text, [upper, lower], 10.0)
+        shifted = BoundingBox(x, y, x + text.width, y + text.height)
+        self.assertFalse(shifted.overlaps(upper))
+        self.assertFalse(shifted.overlaps(lower))
+        self.assertNotEqual(y, text.y0)  # 必须发生移动
+
 
 if __name__ == "__main__":
     unittest.main()

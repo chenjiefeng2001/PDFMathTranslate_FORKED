@@ -60,6 +60,10 @@ class PDFConverterEx(PDFConverter):
         x1, y1 = apply_matrix_pt(ctm, (x1, y1))
         mediabox = (0, 0, abs(x0 - x1), abs(y0 - y1))
         self.cur_item = LTPage(page.pageno, mediabox)
+        # === 2.0: 每页开始时重置跨页排版状态，避免跨页坐标误判 ===
+        # 不同页面的坐标是相对坐标，若沿用上一页的段落 BBox 会导致误判重叠
+        self._rendered_paragraphs = []
+        self._rendered_obstacles = []
 
     def end_page(self, page):
         # 重载返回指令流
@@ -201,7 +205,8 @@ class TranslateConverter(PDFConverterEx):
         # 全局
         lstk: list[LTLine] = []         # 全局线条栈
         xt: LTChar = None               # 上一个字符
-        xt_cls: int = -1                # 上一个字符所属段落，保证无论第一个字符属于哪个类别都可以触发新段落
+        xt_cls: int = -2                # 上一个字符所属段落。初始为 -2 哨兵值：布局缺失时 cls 回退为 -1，
+        # 若此处也是 -1，首字符会误入同一段落分支并越界访问空 sstk/pstk
         vmax: float = ltpage.width / 4  # 行内公式最大宽度
         ops: str = ""                   # 渲染结果
 
@@ -276,7 +281,7 @@ class TranslateConverter(PDFConverterEx):
                 # 判定当前字符是否属于公式
                 if (                                                                                        # 判定当前字符是否属于公式
                     cls == 0                                                                                # 1. 类别为保留区域
-                    or (cls == xt_cls and len(sstk[-1].strip()) > 1 and child.size < pstk[-1].size * 0.79)  # 2. 角标字体，有 0.76 的角标和 0.799 的大写，这里用 0.79 取中，同时考虑首字母放大的情况
+                    or (cls == xt_cls and sstk and len(sstk[-1].strip()) > 1 and child.size < pstk[-1].size * 0.79)  # 2. 角标字体，有 0.76 的角标和 0.799 的大写，这里用 0.79 取中，同时考虑首字母放大的情况
                     or vflag(child.fontname, child.get_text())                                              # 3. 公式字体
                     or (child.matrix[0] == 0 and child.matrix[3] == 0)                                      # 4. 垂直字体
                 ):
@@ -296,7 +301,7 @@ class TranslateConverter(PDFConverterEx):
                     # 禁止纯公式（代码）段落换行，直到文字开始再重开文字段落，保证只存在两种情况
                     # A. 纯公式（代码）段落（锚定绝对位置）sstk[-1]=="" -> sstk[-1]=="{v*}"
                     # B. 文字开头段落（排版相对位置）sstk[-1]!=""
-                    or (sstk[-1] != "" and abs(child.x0 - xt.x0) > vmax)    # 因为 cls==xt_cls==0 一定有 sstk[-1]==""，所以这里不需要再判定 cls!=0
+                    or (sstk and sstk[-1] != "" and abs(child.x0 - xt.x0) > vmax)    # 因为 cls==xt_cls==0 一定有 sstk[-1]==""，所以这里不需要再判定 cls!=0
                 ):
                     if vstk:
                         if (                                                # 根据公式右侧的文字修正公式的纵向偏移
@@ -305,7 +310,7 @@ class TranslateConverter(PDFConverterEx):
                             and child.x0 > max([vch.x0 for vch in vstk])    # 3. 当前字符在公式右侧
                         ):
                             vfix = vstk[0].y0 - child.y0
-                        if sstk[-1] == "":
+                        if sstk and sstk[-1] == "":
                             xt_cls = -1 # 禁止纯公式段落（sstk[-1]=="{v*}"）的后续连接，但是要考虑新字符和后续字符的连接，所以这里修改的是上个字符的类别
                         sstk[-1] += f"{{v{len(var)}}}"
                         var.append(vstk)
@@ -350,7 +355,19 @@ class TranslateConverter(PDFConverterEx):
                 xt = child
                 xt_cls = cls
             elif isinstance(child, LTFigure):   # 图表
-                pass
+                # === 2.0: 记录原文非文字元素 BBox 供碰撞检测使用 ===
+                # 图片、表格、公式块等非文字元素不参与翻译排版，
+                # 但译文段落必须避开其占据的空间，避免图文重叠
+                try:
+                    from pdf2zh.collision_resolver import BoundingBox
+                    self._rendered_obstacles.append(
+                        BoundingBox(
+                            float(child.x0), float(child.y0),
+                            float(child.x1), float(child.y1),
+                        )
+                    )
+                except Exception as e:
+                    log.debug("Failed to record figure obstacle: %s", e)
             elif isinstance(child, LTLine):     # 线条
                 try:
                     layout = self.layout[ltpage.pageid]
@@ -415,7 +432,7 @@ class TranslateConverter(PDFConverterEx):
                 return s
 
         with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.thread
+            max_workers=max(1, self.thread or 4)  # thread<=0 时兜底为 4，避免 max_workers=0 崩溃
         ) as executor:
             news = list(executor.map(_safe_worker, sstk))
 
@@ -610,11 +627,15 @@ class TranslateConverter(PDFConverterEx):
                     iter_count += 1
             # === 2.0: Collision detection & resolution (M2) ===
             para_bottom = y - (lidx + 1) * size * line_height
-            if self.collision_resolver and lidx > 0:
+            if self.collision_resolver:
                 from pdf2zh.collision_resolver import BoundingBox
                 pb = BoundingBox(x0, para_bottom, x1, y)
                 shift = 0.0
-                for prev in self._rendered_paragraphs:
+                # 融合已渲染段落与原文非文字元素（图片/图表等）。
+                # lidx > 0 门控已移除：即使译文仍为单行（lidx == 0），
+                # 中文宽度膨胀导致底部下探同样可能侵占下方段落空间。
+                all_obstacles = list(self._rendered_paragraphs) + list(self._rendered_obstacles)
+                for prev in all_obstacles:
                     if pb.overlaps(prev):
                         _, ny, _ = self.collision_resolver.resolve(pb, [prev], size)
                         shift = max(shift, ny - pb.y0)
