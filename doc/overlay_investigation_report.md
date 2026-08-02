@@ -1,281 +1,196 @@
-# 中英文叠加显示问题调查报告
+# Background Stream / Collision Overlap 深度排查报告
 
-## 摘要
+## 一、问题定义
 
-用户报告 pdf2zh 在翻译 PDF 时"有概率把中文和英文一起叠加显示，导致整个翻译的 PDF 全部排版混乱"。经过对后端代码的全面分析，本报告定位了 **4 个根因**，其中 **XObject 处理异常静默失败** 和 **XObject 内容双重渲染** 是最主要的两个原因。
-
----
-
-## 问题现象
-
-- **表现**: 同一位置同时出现英文原文和中文翻译，文字重叠
-- **概率**: "有概率" — 部分 PDF 正常，部分 PDF 出现叠加
-- **影响**: 翻译结果排版混乱，无法阅读
+| 问题 | 现象 | 严重程度 |
+|:---|:---|:---|
+| **Background Stream Issue** | Mono 版中英文原文与中文译文叠在一起显示 | 严重 |
+| **Collision Overlap** | 中文译文段落之间互相重叠 | 严重 |
 
 ---
 
-## 渲染流水线分析
+## 二、Background Stream Issue — 根因分析
 
-### 正常流程（预期行为）
+### 2.1 当前代码语义分析
 
-原始页面内容流 → pdfminer 解析 → 提取文字 → 翻译 → 生成替换内容流
+核心数据流路径如下：
 
-关键机制在 `pdfinterp.py` 的 `execute()` 方法（L301-366）：
+```
+high_level.py: translate_stream()
+  └─ translate_patch()
+       └─ PDFPageInterpreterEx.process_page()
+            ├─ render_contents() → execute()  # 返回 ops_base (已滤除 T* 算子)
+            ├─ device.end_page()              # 返回 ops_new (译文排版算子)
+            └─ obj_patch[xref_key] = f"q {ops_base} Q cm {ops_new}"
+  └─ obj_patch[obj.objid] = ""               # 清空原页面内容流
+  └─ doc_zh.update_stream(obj_id, ops_new)   # 覆写内容流
+```
+
+**关键过滤逻辑**（`pdfinterp.py:343-346`）：
 
 ```python
-# 所有以 'T' 开头的操作符（文字操作符）被过滤，不会进入 ops_base
-if not (name[0] == "T" or name in ['"', "'", "EI", "MP", "DP", "BMC", "BDC"]):
-    ops += f"{p} {name} "
+if not (
+    name[0] == "T"                     # 过滤所有 T* 系列指令
+    or name in ['"', "'", "EI", "MP", "DP", "BMC", "BDC"]
+):
+    ops += f"{p} {name} "              # 仅非文字指令加入 ops_base
 ```
 
-`process_page()` 方法（L254-278）组合最终内容流：
+该逻辑对所有以 `T` 开头的 PDF 操作符（`BT`, `ET`, `Tj`, `TJ`, `Td`, `TD`, `Tm`, `T*` 等）进行过滤，只保留非文字指令到 `ops_base` 中。**页面级内容流的原文文字理论上已被正确剥离。**
+
+### 2.2 遗漏路径：Form XObject 未处理
+
+**根因定位：`do_Do` 的返回值被丢弃。**
+
+`execute()` 解析到 `Do` 操作符时，会调用父类 `PDFPageInterpreter.do_Do()` 处理 Form XObject：
 
 ```python
-self.obj_patch[page.page_xref] = (
-    f"q {ops_base}Q 1 0 0 1 {x0} {y0} cm {ops_new}"
-)
+# pdfminer.pdfinterp.PDFPageInterpreter.do_Do()
+def do_Do(self, xobjid_arg):
+    xobj = stream_value(self.xobjmap[xobjid])
+    if subtype is LITERAL_FORM and "BBox" in xobj:
+        interpreter = self.dup()
+        interpreter.render_contents(resources, [xobj])   # 返回的 ops 被丢弃!
+        self.device.end_figure(xobjid)
 ```
 
+`render_contents()` 内部调用 `execute()` 对 XObject 子内容流执行算子过滤，但其返回值（即过滤后的 ops）**没有任何代码将其写回到 XObject 的内容流中**。
+
+**最终效果：**
+
+```
+PDF 页面内容流:
+  q cm /Fnt1 12 Tf ... (译文) Tj Q       # 原文已被剥离
+  1 0 0 1 100 200 cm /XObj1 Do           # 引用 XObject
+
+XObject (Form) 内容流 (未修改):
+  BT /F1 10 Tf (Original English) Tj ET  # 原文原封不动
+```
+
+因此 Mono 版 PDF 渲染时，XObject 内的原文 + 页面流中的译文**叠加显示**，形成重叠。
+
+### 2.3 辅助证据
+
+- `obj_patch` 仅储存页面级 xref 的 ops，不包含任何 XObject 内容流的更新条目
+- 代码中不存在遍历 `/XObject` 字典并递归覆写子流对象的逻辑
+
+
+## 三、Collision Overlap — 根因分析
+
+### 3.1 碰撞检测代码路径
+
+位于 converter.py:611-624：
+
+`python
+# === 2.0: Collision detection & resolution (M2) ===
+para_bottom = y - (lidx + 1) * size * line_height
+if self.collision_resolver and lidx > 0:           # 条件一
+    pb = BoundingBox(x0, para_bottom, x1, y)
+    shift = 0.0
+    for prev in self._rendered_paragraphs:          # 条件二
+        if pb.overlaps(prev):
+            _, ny, _ = self.collision_resolver.resolve(pb, [prev], size)
+            shift = max(shift, ny - pb.y0)
+            pb = BoundingBox(x0, para_bottom + shift, x1, y + shift)
+    if shift > 0:
+        y += shift                                  # 仅偏移 y
+    self._rendered_paragraphs.append(pb)
+`
+
+### 3.2 四大碰撞检测缺陷
+
+#### 缺陷 1：lidx > 0 门控排除了大量需要检测的段落
+
+lidx 为**译文换行次数**。当一段英文原为 1 行、译文仍为 1 行时，lidx = 0，整个碰撞检测逻辑被跳过。但中文宽度通常大于英文：
+
+| 原文 | 译文 | lidx | 是否检测 |
+|:---|:---|:---:|:---:|
+| "Hello World" | "你好世界" | 0 | 跳过 |
+| "A B C D E F" | "一二三四五六七八九十" | 0 | 跳过 |
+| 原文 1行 -> 译文3行 | | 2 | 检测 |
+
+**影响**：大量 1->1 或 1->2 行膨胀但未触发行内换行的段落，其底部扩展未被后续段落感知。
+
+#### 缺陷 2：_rendered_paragraphs 跨页面不重置
+
+TranslateConverter 实例在 	ranslate_patch() 中创建一次，处理所有页面（or pageno in range(total_pages)）。但 _rendered_paragraphs 在页面之间从未清空。跨页面的坐标是相对坐标，页面 0 底部的段落 BBox 会被带入到页面 1 的碰撞检测中，导致误判。
+
+#### 缺陷 3：垂直偏移幅度不足
+
+当一段英文从 1 行膨胀到 3 行时，所需偏移为 2 * line_height。但碰撞解算器仅尝试 +/-0.5*fs 和 +/-1.0*fs。若 line_height > 1.0 * font_size（CJK 通常为 1.3-1.4），两条增量都不足以解算实际碰撞。
+
+_try_vertical_shift 返回 None 后，依次回退到 _try_width_reduction（不适用于垂直方向碰撞）、_try_shrink（仅缩小 10% 字号），所有策略失败则返回原位置，**直接导致重叠**。
+
+#### 缺陷 4：未考虑原文渲染元素（图片、表格等）的碰撞
+
+原文中的图片、表格、公式块等非文字元素的 BBox **从未加入 _rendered_paragraphs**。_rendered_obstacles（line 171）虽有定义但从未在碰撞检测逻辑中使用。
 
 ---
 
-## 根因 1: XObject Form 双重渲染（主要）
+## 四、修复方案
 
-**严重程度**: 🔴 高  
-**影响范围**: 使用了 Form XObject 的 PDF（常见于 LaTeX 生成、复杂版面文档）
+### 4.1 修复 Background Stream Issue
 
-### 代码定位
+**目标**：递归清除 Form XObject 内容流中的文字算子。
 
-`pdfinterp.py` L196-252 — `do_Do()` 方法
+#### 方案 A（推荐）：在 xecute() 中拦截 XObject
 
-### 原理
+修改 PDFPageInterpreterEx.execute()，拦截 Do 操作符的处理结果并写回 obj_patch。
 
-当页面的内容流中包含 `Do` 操作符引用一个 Form XObject 时：
+#### 方案 B：在 process_page() 后遍历 XObject 字典
 
-**Step 1**: `do_Do()` 处理 XObject（L220-243）
+在 	ranslate_patch() 中每页处理完毕后，遍历 /XObject 字典并递归清理子流。
 
-```python
-self.device.begin_figure(xobjid, bbox, matrix)
-ops_base = interpreter.render_contents(resources, [xobj], ctm=ctm)
-...
-ops_new = self.device.end_figure(xobjid)
+### 4.2 修复 Collision Overlap
 
-# 更新 XObject 自身的内容流
-self.obj_patch[self.xobjmap[xobjid].objid] = (
-    f"q {ops_base}Q {a} {b} {c} {d} {e} {f} cm {ops_new}"
-)
-```
+#### 修复 1：取消 lidx > 0 门控
 
-**Step 2**: 页面级别的 `ops_new` 包含所有文字（包括 XObject 内的文字）
+`python
+# converter.py:613
+if self.collision_resolver:  # 移除 and lidx > 0
+`
 
-**Step 3**: 最终页面内容流
+#### 修复 2：每页开始时重置 _rendered_paragraphs
 
-```
-q {page_ops_base} Q 1 0 0 1 {x0} {y0} cm {page_ops_new}
-^
-|-- "Fo1 Do" 渲染 XObject
-    → q {xobj_ops_base} Q ... cm {xobj_ops_new}  ← 翻译文字渲染一次
-                                              ^
-                    page_ops_new 也包含 XObject 的翻译文字 → 再渲染一次
-```
+`python
+if not hasattr(self, '_current_page') or self._current_page != ltpage.pageid:
+    self._rendered_paragraphs = []
+    self._rendered_obstacles = []
+self._current_page = ltpage.pageid
+`
 
-### 效果
+#### 修复 3：增强垂直偏移解算器
 
-翻译文字被渲染两次（来自 XObject 自身流和页面级流），表现为文字加粗/模糊。
+在 CollisionResolver 中添加大幅偏移试探（3、5、10 行），确保膨胀段落能获得足够偏移。
 
----
+#### 修复 4：将原文非文字元素 BBox 注入碰撞检测
 
-## 根因 2: XObject 处理异常静默失败（关键）
-
-**严重程度**: 🔴 高  
-**影响范围**: 任何使用了 Form XObject 且字体/矩阵处理有兼容性问题的 PDF
-
-### 代码定位
-
-`pdfinterp.py` L229-245 — `do_Do()` 中的 try/except
-
-```python
-try:  # 有的时候 form 字体加不上这里会烂掉
-    self.device.fontid = interpreter.fontid
-    self.device.fontmap = interpreter.fontmap
-    ops_new = self.device.end_figure(xobjid)
-    ctm_inv = np.linalg.inv(np.array(ctm[:4]).reshape(2, 2))
-    ...
-    self.obj_patch[self.xobjmap[xobjid].objid] = (
-        f"q {ops_base}Q {a} {b} {c} {d} {e} {f} cm {ops_new}"
-    )
-except Exception:
-    pass  # ← 静默吞掉所有异常！
-```
-
-### 触发场景
-
-任何异常（字体缺失、矩阵奇异、下标越界等）都会导致：
-
-1. **XObject 的 `obj_patch` 未更新** → XObject 的原始内容流保持不变
-2. **但 pdfminer 已提取 XObject 中的文字** → 这些文字被翻译并进入 page-level `ops_new`
-3. **不透明遮罩没有设置** → 原始 XObject 中的英文原文透过翻译文字显示
-
-### 效果
-
-**英文原文 + 中文翻译同时渲染在同一位置** = 中英文叠加！
-
-### 问题频发原因
-
-LaTeX 生成的 PDF 广泛使用 Form XObject：
-- 数学公式
-- 章节标题
-- 页眉页脚
-- 复杂排版元素
-
-这些 XObject 中的字体通常是 LaTeX 特有的 Type3 字体，在 fontmap 处理时极易触发异常。
+`python
+if isinstance(child, LTFigure):
+    self._rendered_obstacles.append(BoundingBox(child.x0, child.y0, child.x1, child.y1))
+# 碰撞检测时融合
+all_obstacles = self._rendered_paragraphs + self._rendered_obstacles
+`
 
 ---
 
-## 根因 3: 并行处理数据竞争
+## 五、修复优先级与影响评估
 
-**严重程度**: 🟡 中  
-**影响范围**: 使用并行模式（>5页，默认启用）时
-
-### 代码定位
-
-`high_level.py` L370-426 — `_translate_parallel()`
-
-### 原理
-
-```python
-def _translate_parallel(fp, locals_dict, workers=4):
-    doc_zh = locals_dict.get("doc_zh")
-    ...
-    with ProcessPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(_process_chunk, chk) for chk in chunks]
-        for f in as_completed(futures):
-            obj_patch.update(f.result())
-```
-
-每个子进程通过 `ProcessPoolExecutor` 获得 `doc_zh`（PyMuPDF Document）的 pickle 副本。Worker 中创建的 xref ID 在主进程的 doc_zh 中不存在。`update_stream` 使用不存在的 xref ID 执行，效果未定义。
-
-### 效果
-
-- 部分页面的内容流未更新 → 保留原始英文
-- 或更新到错误的 xref → 写入其他对象
-- 导致某些页面英文原文 + 翻译文字并存
+| 修复项 | 难度 | 影响范围 | 优先级 | 建议 |
+|:---|:---:|:---:|:---:|:---|
+| XObject 文字剥离 | 高 | Mono 版全文档 | **P0 立即** | 解决 Background Stream 重叠 |
+| 取消 lidx > 0 门控 | 低 | 全文档段落 | **P0 立即** | 单行改动收益最大 |
+| 跨页重置列表 | 低 | 多页文档 | **P0 立即** | 防止跨页误判 |
+| 大幅偏移试探 | 中 | 大膨胀段落 | **P1 重要** | 减少多段膨胀后碰撞 |
+| 原文元素碰撞注入 | 高 | 图文混排文档 | **P2 增强** | 学术论文/教材 |
 
 ---
 
-## 根因 4: 字体子集化导致文字丢失
+## 六、验证方法
 
-**严重程度**: 🟢 低  
-**影响范围**: 使用了 `subset_fonts` 的文档
-
-### 代码定位
-
-`high_level.py` L312-314
-
-```python
-if not skip_subset_fonts:
-    doc_zh.subset_fonts(fallback=True)
-    doc_en.subset_fonts(fallback=True)
-```
-
-字体子集化可能移除未被正确标记为使用的字形，或 fallback 字体替换导致度量变化。
-
----
-
-## 根本原因对比
-
-| 根因 | 触发条件 | 表现 | 概率 | 修复难度 |
-|------|----------|------|------|----------|
-| **1. XObject 双重渲染** | PDF 使用 Form XObject | 翻译文字模糊/加粗 | 较高 | 中 |
-| **2. XObject 异常静默** | XObject 处理异常 | 中英文叠加 | 高 | 低 |
-| **3. 并行 xref 竞争** | >5页 + 并行模式 | 部分页面叠加 | 中 | 中 |
-| **4. 字体子集化** | 特定字体/字形 | 文字缺失 | 低 | 低 |
-
----
-
-## 推荐修复方案
-
-### P0 — 紧急修复（根因 2）
-
-**修复 `do_Do()` 中的异常处理**（`pdfinterp.py` L244）：
-
-```python
-except Exception as e:
-    logger.error("XObject processing failed for %s: %s", xobjid, e)
-    # 即使处理失败，也显式标记 XObject 内容流为空
-    # 或保留原始非文字操作符，确保原文不被渲染
-    # 选项 A: 清空 XObject 流（完全移除原文）
-    # self.obj_patch[self.xobjmap[xobjid].objid] = f"q {ops_base}Q "
-    # 选项 B: 使用白色遮罩覆盖原文区域（更安全）
-    # (需要计算 bbox 后插入白色矩形)
-```
-
-### P0 — 紧急修复（根因 1）
-
-**在页面级 ops_new 中剔除已包含在 XObject 中的文字**，避免双重渲染。
-
-方案：在 `TranslateConverter` 中添加对已处理的 XObject 范围的跟踪，生成页面级 ops_new 时跳过已包含在 XObject 翻译中的文字。
-
-### P1 — 重要修复（根因 3）
-
-**修复并行处理中的 xref 同步问题**：
-
-```python
-# 方案 A: 使用共享内存管理 xref 分配
-# 方案 B: 改为多线程（ThreadPoolExecutor）而非多进程
-# 方案 C: 序列化处理 xref 创建，并行只做翻译
-```
-
-### P2 — 低优先级（根因 4）
-
-在子集化前显式标记所有使用的字形，避免被移除。
-
----
-
-## 调试/验证方法
-
-### 重现命令
-
-使用一个包含 Form XObject 的测试 PDF：
-
-```powershell
-python -m pdf2zh "test_fixtures/latex_form_xobject.pdf" -o test_output/
-```
-
-### 验证方法
-
-1. **检查 XObject 处理日志**: 增加 `do_Do()` 中的日志输出
-2. **检查 xref 分配**: 在并行模式下跟踪 xref ID
-3. **PDF 内容流分析**: 使用 `mutool show` 检查被替换的内容流
-
-```bash
-mutool show output-mono.pdf 1 | grep "BT\|ET\|Tm"
-# 应只包含翻译后文字，不应有原文
-```
-
-### 单元测试覆盖
-
-- `test_form_xobject_processing` — 验证 XObject 正确处理
-- `test_parallel_xref_isolation` — 验证并行模式下 xref 不冲突
-- `test_no_text_overlay` — 验证翻译结果不含原文
-
----
-
-## 附录: 相关代码文件
-
-| 文件 | 关键函数/类 | 行号 |
-|------|------------|------|
-| `pdf2zh/pdfinterp.py` | `do_Do()` | L196-252 |
-| `pdf2zh/pdfinterp.py` | `process_page()` | L254-278 |
-| `pdf2zh/pdfinterp.py` | `execute()` | L301-366 |
-| `pdf2zh/converter.py` | `receive_layout()` | L185-614 |
-| `pdf2zh/converter.py` | `gen_op_txt()` | L439-440 |
-| `pdf2zh/high_level.py` | `translate_stream()` | L189-318 |
-| `pdf2zh/high_level.py` | `_translate_parallel()` | L370-426 |
-| `pdf2zh/collision_resolver.py` | `resolve()` | L63-111 |
-
----
-
-*报告生成日期: 2026-07-28*
-*分析人: Cline AI*
-
+| 测试类型 | 验证内容 | 工具 |
+|:---|:---|:---|
+| 单元测试 | 	est_collision_resolver.py 增加 lidx==0 大膨胀场景 | pytest |
+| 视觉回归 | Mono 版 PDF 渲染截图对比，检查英文残留 | MuPDF/PDF.js 渲染 + diff |
+| 批量测试 | 100 份 PDF 测试集，自动化 QA 打分 | qa/metrics.py |
+| 人工抽检 | 双栏/三栏学术论文、教材、复杂图表文档 | 目视检查 |
