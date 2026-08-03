@@ -1,7 +1,14 @@
 """Translation configuration panel component.
 
-Replaces the 21-parameter inline form from Legacy gui.py with
-a structured configuration form.
+Replaces the 21-parameter inline form from Legacy gui.py with a
+grouped, progressively-disclosed configuration form:
+
+  * Basic   - engine / source / target language
+  * Service - engine mode (v0..v4 pipeline selector)
+  * Advanced- threads, font/char mapping, page range, custom env (collapsed)
+
+All component keys returned here are part of the app.py wiring contract
+and MUST stay stable.
 """
 
 from __future__ import annotations
@@ -45,6 +52,10 @@ LANGUAGES = [
     ("auto", "auto"),
 ]
 
+#: Pipeline mode choices surfaced in the Service group
+MODE_CHOICES = ["auto", "v0", "v1", "v2", "v3", "v4"]
+MODE_INFO = "v0: 基础 | v1: 普通 | v2: 高质量 | v3: 精准 | v4: 布局优先"
+
 
 def create_config_panel() -> dict:
     """Create translation configuration form panel.
@@ -52,9 +63,10 @@ def create_config_panel() -> dict:
     Returns:
         dict of Gradio component references
     """
-    with gr.Group():
+    with gr.Group(elem_classes="panel-card"):
         gr.Markdown("## ⚙️ 翻译配置 / Translation Config", elem_classes="section-header")
 
+        # ---- 基础设置 / Basic ----
         with gr.Row():
             service = gr.Dropdown(
                 choices=[e[1] for e in ENGINES],
@@ -75,14 +87,15 @@ def create_config_panel() -> dict:
                 elem_classes="config-dropdown",
             )
 
-        with gr.Row():
-            mode_choice = gr.Radio(
-                choices=["auto", "v0", "v1", "v2", "v3", "v4"],
-                value="auto",
-                label="引擎模式 / Engine Mode",
-                info="v0: 基础 | v1: 普通 | v2: 高质量 | v3: 精准 | v4: 布局优先",
-            )
+        # ---- 服务模式 / Service ----
+        mode_choice = gr.Radio(
+            choices=MODE_CHOICES,
+            value="auto",
+            label="引擎模式 / Engine Mode",
+            info=MODE_INFO,
+        )
 
+        # ---- 高级选项 / Advanced ----
         with gr.Accordion("🔧 高级选项 / Advanced Options", open=False):
             with gr.Row():
                 threads = gr.Slider(
@@ -138,3 +151,4 @@ def create_config_panel() -> dict:
         "env1": env1,
         "env2": env2,
     }
+

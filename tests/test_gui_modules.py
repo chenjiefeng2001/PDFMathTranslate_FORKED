@@ -465,6 +465,121 @@ class TestComponentInterfaces:
         assert callable(create_preview_panel)
 
 
+
+# =============================================================================
+# 9. App Shell / Design System (styles.py) Tests
+# =============================================================================
+
+
+class TestStylesModule:
+    def test_token_parity_and_completeness(self):
+        from pdf2zh.gui.styles import (
+            LIGHT_TOKENS, DARK_TOKENS, TOKEN_KEYS,
+        )
+        assert set(LIGHT_TOKENS) == set(DARK_TOKENS)
+        assert set(TOKEN_KEYS) <= set(LIGHT_TOKENS)
+
+    def test_dark_mode_selector_in_ui_css(self):
+        from pdf2zh.gui.styles import UI_CSS
+        assert 'html[data-theme="dark"]' in UI_CSS
+        assert ".stepbar" in UI_CSS
+        assert ".theme-toggle-btn" in UI_CSS
+
+    def test_session_js_persists_theme_and_client(self):
+        from pdf2zh.gui.styles import SESSION_JS
+        assert "pdf2zh_theme" in SESSION_JS
+        assert "pdf2zh_client_id" in SESSION_JS
+        assert "pdf2zh_last_task_id" in SESSION_JS
+
+    def test_toggle_theme_js_is_frontend_only(self):
+        from pdf2zh.gui.styles import TOGGLE_THEME_JS
+        assert "data-theme" in TOGGLE_THEME_JS
+        assert "localStorage" in TOGGLE_THEME_JS
+
+    def test_status_badge_html(self):
+        from pdf2zh.gui.styles import build_status_badge_html
+        assert "status-success" in build_status_badge_html("completed")
+        assert "status-error" in build_status_badge_html("failed")
+        assert "status-running" in build_status_badge_html("translating")
+        assert "status-idle" in build_status_badge_html("idle")
+        assert "v4 pipeline" in build_status_badge_html("translating", "v4 pipeline")
+
+
+# =============================================================================
+# 10. StepBar Pipeline Tests (progress_panel.py)
+# =============================================================================
+
+
+class TestStepBar:
+    def test_idle_stepbar(self):
+        from pdf2zh.gui.components.progress_panel import build_stepbar_html
+        html = build_stepbar_html("", 0.0)
+        assert "stepbar" in html
+        assert html.count("step-item") == 4  # four stages
+
+    def test_active_stage(self):
+        from pdf2zh.gui.components.progress_panel import build_stepbar_html
+        html = build_stepbar_html("translating", 40.0)
+        assert "step-item active" in html
+        assert "step-connector done" in html
+
+    def test_completed_stepbar_all_done(self):
+        from pdf2zh.gui.components.progress_panel import build_stepbar_html
+        html = build_stepbar_html("completed", 100.0)
+        assert html.count("step-item done") == 4
+
+    def test_failed_stepbar_marks_error(self):
+        from pdf2zh.gui.components.progress_panel import build_stepbar_html
+        html = build_stepbar_html("failed", 10.0)
+        assert "step-item error" in html
+
+    def test_progress_bar_html_states(self):
+        from pdf2zh.gui.components.progress_panel import build_progress_bar_html
+        done = build_progress_bar_html("completed", 100.0, "all good")
+        assert "progress-done" in done
+        err = build_progress_bar_html("failed", 10.0, "boom")
+        assert "progress-error" in err
+        run = build_progress_bar_html("translating", 33.0, "working")
+        assert "33.0%" in run
+
+
+# =============================================================================
+# 11. Upload Panel Summary Tests
+# =============================================================================
+
+
+class TestUploadPanelSummary:
+    def test_build_file_summary_html_empty(self):
+        from pdf2zh.gui.components.upload_panel import build_file_summary_html
+        assert build_file_summary_html(None) == ""
+        assert build_file_summary_html([]) == ""
+
+    def test_build_file_summary_html_single(self):
+        from pdf2zh.gui.components.upload_panel import build_file_summary_html
+        html = build_file_summary_html(
+            {"name": "tmp/paper.pdf", "size": 2048}
+        )
+        assert "paper.pdf" in html
+        assert "已选择" in html
+        assert "2.0 KB" in html
+
+    def test_build_file_summary_html_multi(self):
+        from pdf2zh.gui.components.upload_panel import build_file_summary_html
+        html = build_file_summary_html(
+            [
+                {"name": "a.pdf", "size": 1024},
+                {"name": "b.pdf", "size": 3072},
+            ]
+        )
+        assert "a.pdf" in html
+        assert "b.pdf" in html
+        assert "× 2" in html
+
+    def test_human_size(self):
+        from pdf2zh.gui.components.upload_panel import _human_size
+        assert _human_size(0) == "0 B"
+        assert _human_size(1500) == "1.5 KB"
+
 # =============================================================================
 # 8. Cleanup
 # =============================================================================
@@ -477,3 +592,44 @@ def cleanup_global_store():
     GLOBAL_TASK_STORE.queue_clear()
     for tid in GLOBAL_TASK_STORE.list_tasks():
         GLOBAL_TASK_STORE.remove(tid)
+
+# =============================================================================
+# 12. App Sync Contract Tests (app.py)
+# =============================================================================
+
+
+class TestAppSyncContract:
+    def test_sync_status_arity_matches_sync_outputs(self):
+        import pdf2zh.gui.app as app
+        # Building the Blocks wires every sync output; a mismatch would raise.
+        app.create_gui()
+        # The idle tuple must carry the 3 new values on top of the 16 legacy
+        # ones (stepbar rail + header badge + panel badge).
+        idle = app._idle_updates()
+        assert len(idle) == 19
+
+    def test_create_gui_wires_new_components(self):
+        import inspect
+        import pdf2zh.gui.app as app
+        app.create_gui()
+        src = inspect.getsource(app.create_gui)
+        assert "build_stepbar_html" in src
+        assert "build_status_badge_html" in src
+        assert "header_badge" in src
+        assert 'pc["status_badge"]' in src
+
+    def test_result_selector_replaces_legacy_dropdown(self):
+        import inspect
+        import pdf2zh.gui.app as app
+        src = inspect.getsource(app.create_gui)
+        assert "result_selector" in src
+        assert "result_files_dropdown" not in src
+
+    def test_theme_toggle_frontend_only(self):
+        import inspect
+        import pdf2zh.gui.app as app
+        src = inspect.getsource(app.create_gui)
+        assert "js=TOGGLE_THEME_JS" in src
+        assert "theme_toggle" in src
+
+

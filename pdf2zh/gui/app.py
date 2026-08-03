@@ -9,17 +9,27 @@ from __future__ import annotations
 import logging
 import os
 import threading
-from typing import Any, List
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import gradio as gr
 
 from pdf2zh.gui.components.upload_panel import create_upload_panel
 from pdf2zh.gui.components.config_panel import create_config_panel
-from pdf2zh.gui.components.progress_panel import create_progress_panel
+from pdf2zh.gui.components.progress_panel import (
+    create_progress_panel,
+    build_stepbar_html,
+    build_progress_bar_html,
+)
 from pdf2zh.gui.components.preview_panel import create_preview_panel
 from pdf2zh.gui.components.diagnostic_panel import (
     create_diagnostic_panel,
     build_diagnostic_markdown,
+)
+from pdf2zh.gui.styles import (
+    UI_CSS,
+    SESSION_JS,
+    TOGGLE_THEME_JS,
+    build_status_badge_html,
 )
 from pdf2zh.gui.state import GLOBAL_TASK_STORE
 from pdf2zh.gui.logger import get_handler
@@ -28,55 +38,34 @@ from pdf2zh.gui.worker import (
     submit_translation_task,
     _clean_stale_in_flight,
 )
+from pdf2zh.gui.events import (
+    EVENT_BUS,
+    DiagnosticsUpdated,
+    FileGenerated,
+    PreviewReady,
+    TaskCancelled,
+    TaskFailed,
+    TaskFinished,
+    TaskMessageChanged,
+    TaskPaused,
+    TaskProgressChanged,
+    TaskResumed,
+    TaskSkipped,
+    TaskStageChanged,
+    TaskStarted,
+)
+from pdf2zh.gui.event_bridge import EVENT_BRIDGE
 
 logger = logging.getLogger(__name__)
 
-CUSTOM_CSS = (
-    # note: :root CSS --vars removed for Gradio 5 compat
-    ".section-header { margin-top: 0.5rem; margin-bottom: 0.25rem; }\n"
-    ".upload-area { border: 2px dashed #E5E6EB; border-radius: 8px; padding: 1rem; }\n"
-    ".progress-bar { min-height: 40px; padding: 8px; background: #FFFFFF; border-radius: 6px; }\n"
-    ".status-text { padding: 4px 0; }\n"
-    ".log-output { max-height: 300px; overflow-y: auto; background: #1D2129; "
-    "color: #E5E6EB; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; }\n"
-    ".preview-empty { display: flex; align-items: center; justify-content: center; "
-    "min-height: 400px; background: #F7F8FA; border-radius: 6px; color: #86909C; }\n"
-    ".diagnostic-overview, .quality-scores, .diagnostic-status { "
-    "min-height: 60px; padding: 8px; background: #F7F8FA; border-radius: 4px; }"
-    ".pdf-iframe-container { width: 100%; min-height: 500px; border: 1px solid #E5E6EB; border-radius: 6px; overflow: hidden; }\n"
-    ".pdf-iframe-container iframe { width: 100%; min-height: 500px; border: none; }"
+#: Branding block rendered in the App Shell header.
+BRAND_HTML = (
+    "<div class='app-brand'>"
+    "<span class='brand-logo'>PDF</span>"
+    "<div><h1 class='brand-title'>PDFMathTranslate</h1>"
+    "<p class='brand-subtitle'>Document Intelligence Runtime</p></div>"
+    "</div>"
 )
-
-SESSION_JS = """<script>
-(function() {
-    var cid = localStorage.getItem("pdf2zh_client_id");
-    if (!cid) { cid = "client_" + Math.random().toString(36).substr(2, 12); localStorage.setItem("pdf2zh_client_id", cid); }
-    window.__pdf2zh_client_id = cid;
-
-    var savedTaskId = localStorage.getItem("pdf2zh_last_task_id");
-    if (savedTaskId) {
-        window.__pdf2zh_last_task_id = savedTaskId;
-        window.__pdf2zh_last_preview = localStorage.getItem("pdf2zh_last_preview_path") || "";
-        try {
-            window.__pdf2zh_last_results = JSON.parse(localStorage.getItem("pdf2zh_last_results") || "[]");
-        } catch(e) { window.__pdf2zh_last_results = []; }
-    }
-
-    // Persist config panel values to localStorage when changed
-    var configKeys = ["service","lang_from","lang_to","mode_choice","threads","skip_subset_fonts","ignore_cache","vfont","vchar","page_range","prompt_env","env0","env1","env2"];
-    document.addEventListener("change", function(e) {
-        var t = e.target;
-        if (!t || !t.id) return;
-        for (var i=0; i<configKeys.length; i++) {
-            var k = configKeys[i];
-            if (t.id.indexOf(k) !== -1) {
-                try { localStorage.setItem("pdf2zh_config_" + k, t.value); } catch(ex) {}
-                break;
-            }
-        }
-    });
-})();
-</script>"""
 
 
 def _sanitize_html(text: str) -> str:
@@ -129,27 +118,37 @@ def on_translate(
 
 
 def on_cancel(current_task_id: str) -> str:
+    """Cancel the running task and announce it on the EventBus."""
     if current_task_id:
         get_runtime_service().cancel_task(current_task_id)
-    return ""
+        EVENT_BUS.publish(
+            TaskCancelled(task_id=current_task_id, message="Cancelled by user")
+        )
+    return current_task_id
 
 
 def on_pause(current_task_id: str) -> str:
+    """Pause the running task and announce it on the EventBus."""
     if current_task_id:
         get_runtime_service().pause_task(current_task_id)
+        EVENT_BUS.publish(TaskPaused(task_id=current_task_id))
     return current_task_id
 
+
 def on_resume(current_task_id: str) -> str:
+    """Resume a paused task and announce it on the EventBus."""
     if current_task_id:
         get_runtime_service().resume_task(current_task_id)
+        EVENT_BUS.publish(TaskResumed(task_id=current_task_id))
     return current_task_id
 
 
 def on_skip(current_task_id: str) -> str:
+    """Skip the current file and announce it on the EventBus."""
     if current_task_id:
         get_runtime_service().skip_task(current_task_id)
+        EVENT_BUS.publish(TaskSkipped(task_id=current_task_id))
     return current_task_id
-
 
 
 
@@ -163,7 +162,6 @@ def _persist_state_to_storage(task_id: str, ts) -> str:
             ensure_ascii=False,
         )
         preview = getattr(ts, "preview_path", None) or ""
-        sel = getattr(ts, "selected_file", None) or ""
         safe_tid = json.dumps(task_id)
         safe_preview = json.dumps(preview)
         safe_results = json.dumps(results_json)
@@ -177,6 +175,8 @@ def _persist_state_to_storage(task_id: str, ts) -> str:
         return script
     except Exception:
         return ""
+
+
 def on_download_single(current_task_id: str):
     if not current_task_id:
         return None
@@ -227,12 +227,277 @@ def _collect_logs(max_lines: int = 50) -> str:
         return ""
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Event-driven delta sync layer (pdf2zh-next Stage 2)
+#
+# Architecture:  Worker -> EventBus -> TaskStore -> (Timer transport) -> UI
+#
+#   * ``sync_status``  -- FULL re-render (page load / task switch).
+#   * ``drain_events`` -- DELTA re-render: consumes only NEW bus events and
+#     re-renders only the affected components; untouched components return a
+#     no-op ``gr.update()`` so Gradio ships a minimal patch to the browser.
+#
+# The Timer no longer drives business logic -- it is just a transport. When a
+# WebSocket/SSE transport arrives (Stage 3) this layer stays unchanged.
+# ═══════════════════════════════════════════════════════════════════════════
 
-def sync_status(current_task_id: str) -> tuple:
-    """Periodic sync - updates all dynamic UI components."""
+#: Names of the 19 dynamic components, matched against ``sync_outputs`` order.
+_SYNC_COMPONENTS: Tuple[str, ...] = (
+    "progress_bar",
+    "status_markdown",
+    "translate_btn",
+    "cancel_btn",
+    "pause_btn",
+    "resume_btn",
+    "skip_btn",
+    "node_overview",
+    "quality_scores",
+    "diagnostic_status",
+    "result_selector",
+    "download_single",
+    "download_zip",
+    "log_output",
+    "pdf_preview",
+    "task_id",
+    "stepbar",
+    "header_badge",
+    "status_badge",
+)
+
+
+class _DeltaAccumulator:
+    """Collect targeted component updates and emit the 19-tuple sync contract.
+
+    Components not touched by the collected events stay as ``gr.update()``
+    (a no-op), so Gradio ships only the true deltas to the browser.
+    """
+
+    def __init__(self) -> None:
+        self._updates: Dict[str, Any] = {}
+
+    def set(self, name: str, value: Any) -> None:
+        self._updates[name] = value
+
+    def update(self, **kwargs: Any) -> None:
+        self._updates.update(kwargs)
+
+    def touched(self) -> List[str]:
+        return list(self._updates.keys())
+
+    def as_tuple(self) -> tuple:
+        return tuple(
+            self._updates.get(name, gr.update()) for name in _SYNC_COMPONENTS
+        )
+
+
+# ── Event -> component renderers (pure functions of the event) ──────────────
+
+
+def _render_task_started(acc: _DeltaAccumulator, ev: "TaskStarted") -> None:
+    acc.set("task_id", ev.task_id)
+    acc.set("translate_btn", gr.update(interactive=False))
+    acc.set("cancel_btn", gr.update(interactive=True))
+    acc.set("pause_btn", gr.update(interactive=True))
+    acc.set("resume_btn", gr.update(interactive=False))
+    acc.set("skip_btn", gr.update(interactive=True))
+    acc.set("status_badge", gr.update(value=build_status_badge_html("running")))
+
+
+def _render_stage_changed(acc: _DeltaAccumulator, ev: "TaskStageChanged") -> None:
+    acc.set("stepbar", gr.update(value=build_stepbar_html(ev.stage, ev.progress)))
+    acc.set("status_badge", gr.update(value=build_status_badge_html(ev.stage)))
+    st = f"**Status**: `{_clean_surrogates(ev.stage)}`"
+    if ev.progress:
+        st += f" | **Progress**: {ev.progress:.1f}%"
+    acc.set("status_markdown", gr.update(value=st))
+    if ev.stage in ("completed", "cancelled", "failed"):
+        acc.set("translate_btn", gr.update(interactive=True))
+        acc.set("cancel_btn", gr.update(interactive=False))
+        acc.set("pause_btn", gr.update(interactive=False))
+        acc.set("resume_btn", gr.update(interactive=False))
+        acc.set("skip_btn", gr.update(interactive=False))
+
+
+def _render_progress_changed(
+    acc: _DeltaAccumulator, ev: "TaskProgressChanged"
+) -> None:
+    acc.set(
+        "progress_bar",
+        gr.update(
+            value=build_progress_bar_html(
+                ev.stage or "running", ev.progress, ev.message or ""
+            )
+        ),
+    )
+    if ev.stage:
+        acc.set(
+            "status_badge",
+            gr.update(value=build_status_badge_html(ev.stage, ev.message or "")),
+        )
+
+
+def _render_message_changed(
+    acc: _DeltaAccumulator, ev: "TaskMessageChanged"
+) -> None:
+    acc.set("status_markdown", gr.update(value=ev.message))
+    logs = _collect_logs()
+    if logs:
+        acc.set("log_output", gr.update(value=f"<pre class='log-output'>{logs}</pre>"))
+
+
+def _render_paused(acc: _DeltaAccumulator, ev: "TaskPaused") -> None:
+    acc.set("pause_btn", gr.update(interactive=False))
+    acc.set("resume_btn", gr.update(interactive=True))
+    acc.set("status_markdown", gr.update(value="**Status**: Paused ⏸"))
+
+
+def _render_resumed(acc: _DeltaAccumulator, ev: "TaskResumed") -> None:
+    acc.set("pause_btn", gr.update(interactive=True))
+    acc.set("resume_btn", gr.update(interactive=False))
+    acc.set("status_markdown", gr.update(value="**Status**: Running ▶️"))
+
+
+def _render_skipped(acc: _DeltaAccumulator, ev: "TaskSkipped") -> None:
+    acc.set("status_markdown", gr.update(value="**Status**: Skipping current file..."))
+
+
+def _render_terminal(
+    acc: _DeltaAccumulator, status: str, message: str = ""
+) -> None:
+    """Common terminal-state rendering shared by cancelled/failed/finished."""
+    acc.set("translate_btn", gr.update(interactive=True))
+    acc.set("cancel_btn", gr.update(interactive=False))
+    acc.set("pause_btn", gr.update(interactive=False))
+    acc.set("resume_btn", gr.update(interactive=False))
+    acc.set("skip_btn", gr.update(interactive=False))
+    acc.set("status_badge", gr.update(value=build_status_badge_html(status, message)))
+    if status == "completed":
+        acc.set("stepbar", gr.update(value=build_stepbar_html("completed", 100.0)))
+        acc.set(
+            "status_markdown",
+            gr.update(value="**Status**: `completed` | **Progress**: 100.0%"),
+        )
+    elif status == "failed":
+        acc.set(
+            "progress_bar",
+            gr.update(value=build_progress_bar_html("failed", 100.0, message)),
+        )
+        acc.set("status_markdown", gr.update(value=message or "**Status**: Failed"))
+    else:
+        acc.set(
+            "progress_bar",
+            gr.update(value=build_progress_bar_html("cancelled", 0.0, message)),
+        )
+        acc.set("status_markdown", gr.update(value=message or "**Status**: Cancelled"))
+
+
+def _render_cancelled(acc: _DeltaAccumulator, ev: "TaskCancelled") -> None:
+    acc.set("task_id", ev.task_id)
+    _render_terminal(acc, "cancelled", ev.message)
+
+
+def _render_failed(acc: _DeltaAccumulator, ev: "TaskFailed") -> None:
+    acc.set("task_id", ev.task_id)
+    _render_terminal(acc, "failed", ev.message)
+
+
+def _render_finished(acc: _DeltaAccumulator, ev: "TaskFinished") -> None:
+    acc.set("task_id", ev.task_id)
+    _render_terminal(acc, "completed", "Complete")
+
+
+def _render_preview_ready(acc: _DeltaAccumulator, ev: "PreviewReady") -> None:
+    if not ev.preview_path or not os.path.exists(ev.preview_path):
+        return
+    import urllib.parse as _pp
+
+    encoded = _pp.quote(ev.preview_path)
+    acc.set(
+        "pdf_preview",
+        gr.update(
+            value=(
+                '<div class="pdf-iframe-container"><iframe src="/pdf-preview/'
+                + encoded
+                + '" type="application/pdf"></iframe></div>'
+            )
+        ),
+    )
+
+
+def _render_file_generated(acc: _DeltaAccumulator, ev: "FileGenerated") -> None:
+    if not ev.files:
+        return
+    choices = [r.get("name", "") for r in ev.files]
+    sval = choices[0] if choices else None
+    acc.set("result_selector", gr.update(choices=choices, value=sval, visible=True))
+    single_path = None
+    for rf in ev.files:
+        p = rf.get("path", "")
+        if p and os.path.exists(p):
+            single_path = p
+            break
+    acc.set("download_single", gr.update(value=single_path, visible=bool(single_path)))
+    zip_ok = bool(ev.zip_path) and os.path.exists(ev.zip_path)
+    acc.set(
+        "download_zip",
+        gr.update(value=ev.zip_path if zip_ok else None, visible=zip_ok),
+    )
+
+
+def _render_diagnostics_updated(
+    acc: _DeltaAccumulator, ev: "DiagnosticsUpdated"
+) -> None:
+    qs = ev.quality_scores or {}
+    acc.set(
+        "quality_scores", gr.update(value=build_diagnostic_markdown(quality_scores=qs))
+    )
+    acc.set(
+        "diagnostic_status",
+        gr.update(
+            value=build_diagnostic_markdown(diagnostic_summary=ev.diagnostic_summary)
+        ),
+    )
+    if ev.diagnostic_summary or qs:
+        acc.set(
+            "node_overview",
+            gr.update(value=build_diagnostic_markdown(node_overview={"pages": 1})),
+        )
+
+
+#: Event type -> renderer dispatch table (the UI's event handlers).
+_EVENT_RENDERERS: Dict[str, Callable[[_DeltaAccumulator, Any], None]] = {
+    "TaskStarted": _render_task_started,
+    "TaskStageChanged": _render_stage_changed,
+    "TaskProgressChanged": _render_progress_changed,
+    "TaskMessageChanged": _render_message_changed,
+    "TaskPaused": _render_paused,
+    "TaskResumed": _render_resumed,
+    "TaskSkipped": _render_skipped,
+    "TaskCancelled": _render_cancelled,
+    "TaskFailed": _render_failed,
+    "TaskFinished": _render_finished,
+    "PreviewReady": _render_preview_ready,
+    "FileGenerated": _render_file_generated,
+    "DiagnosticsUpdated": _render_diagnostics_updated,
+}
+
+
+def _apply_events(acc: _DeltaAccumulator, events: List[Any]) -> None:
+    """Dispatch events onto the accumulator (ordered, fault-tolerant)."""
+    for ev in events:
+        renderer = _EVENT_RENDERERS.get(ev.event_type)
+        if renderer is None:
+            continue
+        try:
+            renderer(acc, ev)
+        except Exception:
+            logger.exception("Failed to render event %s", ev.event_type)
+
+
+def _resolve_current_task_id(current_task_id: str) -> str:
+    """Resolve the active task id, falling back to the global store."""
     svc = get_runtime_service()
-    tid = current_task_id
-
+    tid = current_task_id or ""
     if not tid:
         tasks = GLOBAL_TASK_STORE.list_tasks()
         if tasks:
@@ -242,13 +507,15 @@ def sync_status(current_task_id: str) -> tuple:
         if ts is None:
             tasks = GLOBAL_TASK_STORE.list_tasks()
             tid = tasks[-1] if tasks else ""
+    return tid
 
-    if not tid:
-        return _idle_updates()
 
+
+def _fill_full_state(acc: _DeltaAccumulator, svc, tid: str) -> None:
+    """Render the entire current task state into the accumulator."""
     ts = svc.get_task_state(tid)
     if ts is None:
-        return _idle_updates()
+        return
 
     _clean_stale_in_flight()
     running = ts.status in (
@@ -256,15 +523,19 @@ def sync_status(current_task_id: str) -> tuple:
         "planning", "translating", "layouting", "rendering",
         "evaluating", "repairing",
     )
-    finished = ts.status in ("completed", "cancelled", "failed")
     done = ts.status == "completed"
     pct = ts.progress
 
-    bar = _build_bar(ts.stage or "running", pct, ts.message or "")
+    bar = build_progress_bar_html(
+        ts.stage or ts.status or "running", pct, ts.message or ""
+    )
     st = f"**Status**: `{_clean_surrogates(ts.status)}` | **Progress**: {pct:.1f}%"
     if ts.error_message:
         st += f"\n\nError: {ts.error_message}"
     btn_upd = gr.update(interactive=not running)
+
+    stepbar = build_stepbar_html(ts.status, pct)
+    badge = build_status_badge_html(ts.status, ts.message or "")
 
     qs = (ts.quality_scores or {}) if isinstance(ts.quality_scores, dict) else {}
     ds = ts.diagnostic_summary or ""
@@ -279,6 +550,7 @@ def sync_status(current_task_id: str) -> tuple:
     if ts.message:
         safe_msg = _sanitize_html(ts.message)
         ov += f"\n\n**Message**: {safe_msg}"
+
     choices = []
     sval = None
     if ts.result_files:
@@ -302,13 +574,15 @@ def sync_status(current_task_id: str) -> tuple:
     if done and ts.result_zip and os.path.exists(ts.result_zip):
         download_zip_val = ts.result_zip
 
-    ph = """<div class='preview-empty'>等待翻译完成后显示预览</div>"""
+    ph = "<div class='preview-empty'>等待翻译完成后显示预览</div>"
     if done:
         preview_path = None
-        if ts.preview_path and os.path.exists(ts.preview_path):
-            preview_path = ts.preview_path
-        elif download_single_val and os.path.exists(download_single_val):
+        # honour the output-mode selector first so the preview follows the
+        # dual/mono toggle, then fall back to the worker's preview path.
+        if download_single_val and os.path.exists(download_single_val):
             preview_path = download_single_val
+        elif ts.preview_path and os.path.exists(ts.preview_path):
+            preview_path = ts.preview_path
         if preview_path is None and ts.result_files:
             for rf in ts.result_files:
                 p = rf.get("path", "")
@@ -317,8 +591,13 @@ def sync_status(current_task_id: str) -> tuple:
                     break
         if preview_path:
             import urllib.parse as _pp
+
             encoded = _pp.quote(preview_path)
-            ph = '<div class=\"pdf-iframe-container\"><iframe src="/pdf-preview/' + encoded + '" type="application/pdf"></iframe></div>'
+            ph = (
+                '<div class="pdf-iframe-container"><iframe src="/pdf-preview/'
+                + encoded
+                + '" type="application/pdf"></iframe></div>'
+            )
 
     if done:
         _persist_state_to_storage(tid, ts)
@@ -328,29 +607,128 @@ def sync_status(current_task_id: str) -> tuple:
     if logs:
         lh = f"<pre class='log-output'>{logs}</pre>"
 
-    return (
-        gr.update(value=bar),
-        gr.update(value=st),
-        btn_upd,
-        gr.update(interactive=running),
-        gr.update(interactive=running),
-        gr.update(interactive=running),
-        gr.update(interactive=running),
-        gr.update(value=ov),
-        gr.update(value=qs_md),
-        gr.update(value=diag_md),
-        gr.update(choices=choices, value=sval, visible=bool(choices)),
-        gr.update(value=download_single_val, visible=done and bool(download_single_val)),
-        gr.update(value=download_zip_val, visible=done and bool(download_zip_val)),
-        gr.update(value=lh),
-        gr.update(value=ph),
-        tid,
+    acc.update(
+        progress_bar=gr.update(value=bar),
+        status_markdown=gr.update(value=st),
+        translate_btn=btn_upd,
+        cancel_btn=gr.update(interactive=running),
+        pause_btn=gr.update(interactive=running),
+        resume_btn=gr.update(interactive=running),
+        skip_btn=gr.update(interactive=running),
+        node_overview=gr.update(value=ov),
+        quality_scores=gr.update(value=qs_md),
+        diagnostic_status=gr.update(value=diag_md),
+        result_selector=gr.update(
+            choices=choices, value=sval, visible=bool(choices)
+        ),
+        download_single=gr.update(
+            value=download_single_val, visible=done and bool(download_single_val)
+        ),
+        download_zip=gr.update(
+            value=download_zip_val, visible=done and bool(download_zip_val)
+        ),
+        log_output=gr.update(value=lh),
+        pdf_preview=gr.update(value=ph),
+        task_id=tid,
+        stepbar=gr.update(value=stepbar),
+        header_badge=gr.update(value=badge),
+        status_badge=gr.update(value=badge),
     )
+
+
+
+def sync_status(current_task_id: str) -> tuple:
+    """Full re-render of all dynamic UI components.
+
+    Used for page load and task switches. Returns a 19-tuple matched against
+    ``sync_outputs`` in ``create_gui`` (see ``_SYNC_COMPONENTS``).
+    """
+    svc = get_runtime_service()
+    tid = _resolve_current_task_id(current_task_id)
+    if not tid:
+        return _idle_updates()
+
+    acc = _DeltaAccumulator()
+    _fill_full_state(acc, svc, tid)
+    if not acc.touched():
+        return _idle_updates()
+    return acc.as_tuple()
+
+
+def _parse_consumed(consumed: Any) -> Tuple[str, int]:
+    """Unpack the ``(task_id, last_sequence)`` delta cursor held in gr.State."""
+    if isinstance(consumed, (tuple, list)) and len(consumed) == 2:
+        return str(consumed[0] or ""), int(consumed[1] or 0)
+    return "", 0
+
+
+def drain_events(current_task_id: str, consumed: Any) -> tuple:
+    """Event-driven delta sync (Gradio Timer transport).
+
+    ``consumed`` is a ``(task_id, last_sequence)`` pair held in a ``gr.State``.
+    Each tick pulls only NEW events from the bus and re-renders only the
+    components those events affect; untouched components stay ``gr.update()``
+    no-ops. Returns a 2-tuple ``(updates_tuple, new_consumed_cursor)`` where
+    ``updates_tuple`` is the 19-component sync contract (matched against
+    ``_SYNC_COMPONENTS`` / ``sync_outputs``) and ``new_consumed_cursor`` is the
+    ``(task_id, last_sequence)`` cursor to store back into ``gr.State``.
+
+    The Gradio Timer binding cannot consume a nested tuple directly, so the
+    transport layer flattens the result via ``_drain_events_flat``.
+    """
+    svc = get_runtime_service()
+    tid = _resolve_current_task_id(current_task_id)
+    prev_tid, last_seq = _parse_consumed(consumed)
+
+    if tid and tid != prev_tid:
+        # Task switch -> full state render, then replay the task's events so
+        # busy/terminal flags (buttons, badges) come from the event log.
+        acc = _DeltaAccumulator()
+        _fill_full_state(acc, svc, tid)
+        events = EVENT_BUS.events_since(tid, 0)
+        _apply_events(acc, events)
+        _persist_if_terminal(svc, tid, events)
+        new_seq = events[-1].sequence if events else EVENT_BUS.last_sequence(tid)
+        return acc.as_tuple(), (tid, new_seq)
+
+    if not tid:
+        return _DeltaAccumulator().as_tuple(), ("", 0)
+
+    events = EVENT_BUS.events_since(tid, last_seq)
+    if not events:
+        return _DeltaAccumulator().as_tuple(), (tid, last_seq)
+
+    acc = _DeltaAccumulator()
+    _apply_events(acc, events)
+    _persist_if_terminal(svc, tid, events)
+    new_seq = events[-1].sequence
+    return acc.as_tuple(), (tid, new_seq)
+
+
+def _drain_events_flat(current_task_id: str, consumed: Any) -> tuple:
+    """Gradio transport adapter: flatten ``drain_events`` into 20 output slots.
+
+    Gradio binds one function return value per output component, so the
+    structured ``(updates_19, cursor)`` pair is flattened into the
+    ``[*sync_outputs, event_seq_state]`` tuple the Timer tick expects.
+    """
+    updates, new_consumed = drain_events(current_task_id, consumed)
+    return (*updates, new_consumed)
+
+
+def _persist_if_terminal(svc, tid: str, events: List[Any]) -> None:
+    """Persist the localStorage snapshot once the task reaches a done state."""
+    for ev in reversed(events):
+        if isinstance(ev, (TaskFinished, TaskCancelled, TaskFailed)):
+            ts = svc.get_task_state(tid)
+            if ts is not None:
+                _persist_state_to_storage(tid, ts)
+            break
 
 
 def _idle_updates() -> tuple:
     return (
-        gr.update(value="<div class='progress-idle'>Ready</div>"),
+        gr.update(value=build_progress_bar_html("", 0.0, "")),
         gr.update(value="**Status**: Ready"),
         gr.update(interactive=True),
         gr.update(interactive=False),
@@ -366,26 +744,9 @@ def _idle_updates() -> tuple:
         gr.update(value="<pre class='log-output'>[System ready]</pre>"),
         gr.update(value=None),
         "",
-    )
-
-
-def _build_bar(stage: str, pct: float, msg: str) -> str:
-    if stage == "completed" and pct >= 100:
-        return (
-            "<div class='progress-active' style='border-left: 3px solid #00B42A;'>"
-            "<div style='display:flex;justify-content:space-between'>"
-            "<span>Complete</span><span>100%</span></div>"
-            "<div style='background:#E5E6EB;border-radius:4px;height:8px;margin:4px 0'>"
-            "<div style='width:100%;background:#00B42A;height:8px;border-radius:4px'></div></div>"
-            f"<div style='font-size:0.9em;color:#86909C'>{msg}</div></div>"
-        )
-    return (
-        "<div class='progress-active'>"
-        "<div style='display:flex;justify-content:space-between'>"
-        f"<span>{stage}</span><span>{pct:.1f}%</span></div>"
-        "<div style='background:#E5E6EB;border-radius:4px;height:8px;margin:4px 0'>"
-        f"<div style='width:{pct}%;background:#165DFF;height:8px;border-radius:4px'></div></div>"
-        f"<div style='font-size:0.9em;color:#86909C'>{msg}</div></div>"
+        gr.update(value=build_stepbar_html("", 0.0)),
+        gr.update(value=build_status_badge_html("idle")),
+        gr.update(value=build_status_badge_html("idle")),
     )
 
 
@@ -401,29 +762,53 @@ def create_gui() -> gr.Blocks:
     get_handler()
 
     with gr.Blocks(
-        css=CUSTOM_CSS, title="PDFMathTranslate",
-        theme=gr.themes.Soft(primary_hue="blue"), head=SESSION_JS,
+        css=UI_CSS, title="PDFMathTranslate",
+        theme=gr.themes.Base(primary_hue="blue", neutral_hue="slate"),
+        head=SESSION_JS,
     ) as gui:
 
-        gr.HTML(
-            '<div class="app-header">'
-            "<h1>PDFMathTranslate</h1>"
-            '<p style="color: #86909C;">'
-            "Document Intelligence Runtime</p></div>"
+        # ---- App Shell Header (brand + global status badge + theme toggle) ----
+        with gr.Row(elem_classes="app-header"):
+            gr.HTML(BRAND_HTML, elem_classes="brand-block")
+            header_badge = gr.HTML(
+                value=build_status_badge_html("idle"),
+                elem_classes="badge-block",
+            )
+            theme_toggle = gr.Button(
+                "🌙 深色模式 / Dark",
+                elem_classes="theme-toggle-btn",
+            )
+
+        # Theme hot-swap runs purely in the browser (localStorage persisted).
+        theme_toggle.click(
+            fn=None,
+            js=TOGGLE_THEME_JS,
+            inputs=None,
+            outputs=None,
+            queue=False,
         )
 
         file_state = gr.State([])
         task_id_state = gr.State("")
 
-        with gr.Row():
-            with gr.Column(scale=4):
-                uc = create_upload_panel()
-                cc = create_config_panel()
-                pc = create_progress_panel()
-                dc = create_diagnostic_panel()
+        # ---- StepBar pipeline rail (4 stages) ----
+        stepbar_html = gr.HTML(
+            value=build_stepbar_html("", 0.0),
+            elem_classes="stepbar-wrap",
+        )
 
+        # ---- Main two-column layout ----
+        #   Left (scale 7): upload -> progress -> preview  (pipeline)
+        #   Right (scale 3): config + diagnostics            (side rail)
+        with gr.Row():
             with gr.Column(scale=7):
+                uc = create_upload_panel()
+                pc = create_progress_panel()
                 prc = create_preview_panel()
+
+            with gr.Column(scale=3):
+                cc = create_config_panel()
+                dc = create_diagnostic_panel()
 
         t_inputs = [
             gr.State(""), gr.State("file"), uc["file_input"],
@@ -478,11 +863,13 @@ def create_gui() -> gr.Blocks:
             if tid:
                 GLOBAL_TASK_STORE.update(tid, selected_file=val)
 
-        prc["result_files_dropdown"].change(
+        prc["result_selector"].change(
             fn=_on_select,
-            inputs=[task_id_state, prc["result_files_dropdown"]],
+            inputs=[task_id_state, prc["result_selector"]],
             outputs=[],
         )
+
+
 
         sync_outputs = [
             pc["progress_bar"],
@@ -495,18 +882,29 @@ def create_gui() -> gr.Blocks:
             dc["node_overview"],
             dc["quality_scores"],
             dc["diagnostic_status"],
-            prc["result_files_dropdown"],
+            prc["result_selector"],
             prc["download_single"],
             prc["download_zip"],
             pc["log_output"],
             prc["pdf_preview"],
             task_id_state,
+            stepbar_html,
+            header_badge,
+            pc["status_badge"],
         ]
 
+        # Start the Worker -> EventBus bridge once (idempotent). The worker
+        # publishes typed domain events; the Timer below is only a transport
+        # that pulls NEW events each tick (delta update).
+        EVENT_BRIDGE.start()
+
+        # (task_id, last_sequence) delta cursor consumed by drain_events.
+        event_seq_state = gr.State(("", 0))
+
         gr.Timer(value=1.5, active=True).tick(
-            fn=sync_status,
-            inputs=[task_id_state],
-            outputs=sync_outputs,
+            fn=_drain_events_flat,
+            inputs=[task_id_state, event_seq_state],
+            outputs=[*sync_outputs, event_seq_state],
         )
 
         def _on_page_load():
@@ -514,13 +912,15 @@ def create_gui() -> gr.Blocks:
             tasks = GLOBAL_TASK_STORE.list_tasks()
             if tasks:
                 tid = tasks[-1]
-                return sync_status(tid)
-            return _idle_updates()
+                full = sync_status(tid)
+                consumed = (tid, EVENT_BUS.last_sequence(tid))
+                return (*full, consumed)
+            return (*_idle_updates(), ("", 0))
 
         gui.load(
             fn=_on_page_load,
             inputs=None,
-            outputs=sync_outputs,
+            outputs=[*sync_outputs, event_seq_state],
         )
 
     return gui

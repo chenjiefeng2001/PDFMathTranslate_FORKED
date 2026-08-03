@@ -52,25 +52,29 @@ def build_diagnostic_markdown(
 def create_diagnostic_panel() -> dict:
     """Create the V4 document intelligence diagnostic panel.
 
+    Diagnostics are collapsed into the side rail (progressive disclosure):
+    the graph overview, five-dimension quality scores and the self-healing
+    dashboard appear only on demand.
+
     Returns:
         dict of Gradio component references
     """
-    with gr.Group():
+    with gr.Group(elem_classes="panel-card"):
         gr.Markdown("## \U0001F9E0 V4 \u6587\u6863\u667a\u80fd\u5206\u6790 / Document Intelligence", elem_classes="section-header")
 
-        with gr.Accordion("\U0001F4CA \u6587\u6863\u56fe\u8282\u70b9\u6982\u51b5 / Document Graph Overview", open=True):
+        with gr.Accordion("\U0001F4CA \u6587\u6863\u56fe\u8282\u70b9\u6982\u51b5 / Document Graph Overview", open=False):
             node_overview = gr.Markdown(
                 value="*\u7b49\u5f85\u7ffb\u8bd1\u4efb\u52a1\u5f00\u59cb...*",
                 elem_classes="diagnostic-overview",
             )
 
-        with gr.Accordion("\U0001F3AF \u4e94\u7ef4\u8d28\u91cf\u8bc4\u4f30 / Quality Assessment", open=True):
+        with gr.Accordion("\U0001F3AF \u4e94\u7ef4\u8d28\u91cf\u8bc4\u4f30 / Quality Assessment", open=False):
             quality_scores = gr.Markdown(
                 value="*\u7ffb\u8bd1\u5b8c\u6210\u540e\u5c06\u663e\u793a\u8d28\u91cf\u8bc4\u5206*",
                 elem_classes="quality-scores",
             )
 
-        with gr.Accordion("\U0001FAB7 \u8bca\u65ad\u4e0e\u81ea\u6108\u770b\u677f / Diagnostic & Self-Healing", open=True):
+        with gr.Accordion("\U0001FAB7 \u8bca\u65ad\u4e0e\u81ea\u6108\u770b\u677f / Diagnostic & Self-Healing", open=False):
             diagnostic_status = gr.Markdown(
                 value="*\u5c1a\u672a\u8fd0\u884c\u8bca\u65ad\u5206\u6790*",
                 elem_classes="diagnostic-status",
