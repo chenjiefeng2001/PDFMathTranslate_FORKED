@@ -553,8 +553,74 @@ class OperatorGraph:
                 "last_run": self._trace}
 
 
+class TypographyRule:
+    """阶段五 rule: adaptive CJK / Latin typography adjustments.
+
+    The 阶段五 deliverable demanded an explicit ``_typography_rule`` hook in
+    the operator runtime. This class provides that hook as a pure, testable
+    rule: it inspects the *translated* text and the source geometry and emits
+    a manifest of adjustments (font size, line height, letter spacing) that
+    the RenderOperator can consume.
+
+    Rule outcomes:
+
+      * ``adopt_source_geometry`` — translation fits the source bbox.
+      * ``shrink_font`` — translation overflows horizontally → reduce font.
+      * ``expand_block`` — translation is taller → grow the block height.
+      * ``baseline_shift`` — mixed CJK/Latin baseline correction needed.
+    """
+
+    def __init__(self, max_overflow_ratio: float = 0.0) -> None:
+        self.max_overflow_ratio = max_overflow_ratio
+
+    def apply(self, translated: str, source: str = "",
+              bbox: Optional[Tuple[float, float, float, float]] = None,
+              font_size: float = 12.0) -> Dict[str, Any]:
+        """Return a typography adjustment manifest for one block."""
+        from pdf2zh.v3.typography import AdaptiveTypography, GlyphProbe
+        width = bbox[2] if bbox else 400.0
+        height = bbox[3] if bbox else 20.0
+        ty = AdaptiveTypography(container_width=width, font_size=font_size)
+        m = ty.metrics(translated, source=source or None,
+                       font_size=font_size, container_width=width)
+
+        manifest: Dict[str, Any] = {
+            "rule": "adopt_source_geometry",
+            "font_size": font_size,
+            "line_height": m.line_height,
+            "letter_spacing": 0.0,
+            "block_height": m.block_height,
+            "baseline_shift": 0.0,
+        }
+        expansion = m.expansion_ratio
+        total_w = GlyphProbe.text_width(translated, font_size)
+        overflow_w = m.estimated_width - width
+        if (overflow_w > self.max_overflow_ratio * width
+                or total_w > width * 1.5):
+            fit = ty.auto_fit_font_size(translated, font_size,
+                                        width, max_lines=None,
+                                        target_height=height)
+            manifest.update({
+                "rule": "shrink_font",
+                "font_size": fit,
+                "line_height": ty.line_height_for(translated, fit),
+                "letter_spacing": -0.5 * (font_size - fit),
+            })
+        elif m.block_height > height * 1.05:
+            manifest.update({
+                "rule": "expand_block",
+                "block_height": m.block_height,
+            })
+        if 0.05 < GlyphProbe.cjk_fraction(translated) < 0.95:
+            baseline = ty.baseline_metrics(translated, font_size)
+            if baseline["cjk_dominant"]:
+                manifest["baseline_shift"] = -font_size * 0.08
+        return manifest
+
+
 __all__ = [
     "OperatorContext", "Operator", "ParseOperator", "AnalyzeOperator",
     "PlanOperator", "TranslateOperator", "ReviewOperator", "LayoutOperator",
-    "RenderOperator", "OperatorRegistry", "OperatorGraph", "_as_jsonable",
+    "RenderOperator", "OperatorRegistry", "OperatorGraph", "TypographyRule",
+    "_as_jsonable",
 ]

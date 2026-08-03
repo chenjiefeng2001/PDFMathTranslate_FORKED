@@ -187,6 +187,24 @@ from pdf2zh.v3.runtime_service import (
     IncrementalEngine, ExecutionScheduler, PersistenceLayer,
     RuntimeNotificationBus, RuntimeService,
 )
+# 阶段七 — Adaptive Typography Engine
+from pdf2zh.v3.typography import (
+    is_cjk, GlyphMetric, TypographyMetrics, GlyphProbe, AdaptiveTypography,
+)
+# 阶段十一 — Multi-Agent Pipeline
+from pdf2zh.v3.agents import (
+    ParserReport, LayoutPlan, TypographyPlan, ReviewOutcome, PipelineReport,
+    ParserAgent, LayoutAgent, TypographyAgent, TranslateAgent,
+    ReviewerAgent, AgentPipeline,
+)
+# V8.1 Migration Diff / IR Snapshot Baseline / V8.4 Mainline Gate
+from pdf2zh.v3.migration_diff import (
+    BlockRecord, normalize_block, dice_similarity, overlap_rate,
+    MigrationDiffReport, MigrationDiffHarness, snapshot_ir, SyntheticCorpus,
+)
+from pdf2zh.v3.mainline_gate import (
+    GateBlock, GatedResult, MainlineRelayoutGate,
+)
 
 __all__ = [
     "RawBlock", "RawBlockType", "RawSpan", "PDFParser",
@@ -246,7 +264,7 @@ __all__ = [
     "RepairStats", "RepairResult", "RepairRuntime",
     # V6
     "ConstraintPriority", "ConstraintRelation", "ConstraintEdge",
-    "LayoutNode", "ConstraintGraph", "ConstraintSolver",
+    "LayoutNode", "ConstraintGraph", "ConstraintSolver", "KiwiSolver",
     "build_constraint_graph_from_document",
     "ChunkStatus", "ConsistencyLevel",
     "TranslationChunkResult", "TranslationRoute",
@@ -280,5 +298,12 @@ __all__ = [
     "ResourceManager", "SessionManager", "IncrementalPlan",
     "IncrementalEngine", "ExecutionScheduler", "PersistenceLayer",
     "RuntimeNotificationBus", "RuntimeService",
-
+    # 阶段七 Adaptive Typography / 阶段十一 Agents / V8.1+V8.4
+    "is_cjk", "TypographyMetrics", "GlyphProbe", "AdaptiveTypography",
+    "ParserReport", "LayoutPlan", "TypographyPlan", "ReviewOutcome",
+    "PipelineReport", "ParserAgent", "LayoutAgent", "TypographyAgent",
+    "TranslateAgent", "ReviewerAgent", "AgentPipeline",
+    "BlockRecord", "normalize_block", "dice_similarity", "overlap_rate",
+    "MigrationDiffReport", "MigrationDiffHarness", "snapshot_ir",
+    "SyntheticCorpus", "GateBlock", "GatedResult", "MainlineRelayoutGate",
 ]

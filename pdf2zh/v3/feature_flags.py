@@ -74,6 +74,12 @@ class FeatureFlags:
     metadata: dict = field(default_factory=dict)
     """Additional metadata for context propagation."""
 
+    rollout_policy: Optional["RolloutPolicy"] = None
+    """Optional rollout policy for dynamic per-document feature decisions."""
+
+    telemetry: Optional["FallbackTelemetry"] = None
+    """Optional fallback telemetry sink (records legacy-fallback events)."""
+
     def __post_init__(self) -> None:
         if self.use_v4_engine:
             # Master switch enables all sub-features
@@ -128,6 +134,24 @@ class FeatureFlags:
         self.use_v4_repair_scheduler = False
         self.use_v4_fix_validate_loop = False
 
+    def evaluate(self, *, page_num: int = 0, doc_type: str = "pdf",
+                 user_id: str = "anonymous") -> bool:
+        """Decide whether the V4 engine is active for this document.
+
+        When a ``rollout_policy`` is configured it wins over the static
+        ``use_v4_engine`` flag, giving per-document gradual rollout.
+        """
+        if self.rollout_policy is not None:
+            return self.rollout_policy.enabled(
+                page_num=page_num, doc_type=doc_type, user_id=user_id,
+                flags=self)
+        return self.use_v4_engine
+
+    def record_fallback(self, event: dict) -> None:
+        """Record a legacy-fallback event (no-op without a telemetry sink)."""
+        if self.telemetry is not None:
+            self.telemetry.record({"flags": self._as_dict(), **event})
+
 
 # Singleton instance for global access
 _global_flags: Optional[FeatureFlags] = None
@@ -153,9 +177,177 @@ def reset_feature_flags() -> None:
     _global_flags = FeatureFlags()
 
 
+# ═══════════════════════════════════════════════════════════════════
+# V8.2 Rollout Rules Engine
+# ═══════════════════════════════════════════════════════════════════
+
+@dataclass
+class RolloutDecision:
+    """Outcome of evaluating a rollout policy."""
+
+    enabled: bool
+    reason: str = ""
+    rule: str = ""
+
+
+class RolloutRule:
+    """Base class for rollout rules (pure predicates on document context)."""
+
+    name: str = "base"
+
+    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
+                user_id: str = "anonymous") -> bool:
+        raise NotImplementedError
+
+
+class PercentRolloutRule(RolloutRule):
+    """Stable-percentage rollout keyed by a stable hash of the user/page.
+
+    The same document + user always lands in the same bucket, so a user
+    never flips between engines mid-session.
+    """
+
+    def __init__(self, percent: float, key: str = "user") -> None:
+        if not 0.0 <= percent <= 100.0:
+            raise ValueError("percent must be in [0, 100]")
+        self.percent = percent
+        self.key = key
+        self.name = f"percent_{percent:.0f}"
+
+    @staticmethod
+    def _bucket(value: str) -> int:
+        # stable cross-process hash (built-in hash() is salted per run)
+        import hashlib
+        digest = hashlib.md5(value.encode("utf-8")).hexdigest()
+        return int(digest[:8], 16) % 100
+
+    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
+                user_id: str = "anonymous") -> bool:
+        if self.key == "page":
+            h = self._bucket(f"page:{page_num}")
+        else:
+            h = self._bucket(f"user:{user_id or 'anonymous'}")
+        return h < self.percent
+
+
+class PageRangeRolloutRule(RolloutRule):
+    """Roll out to the given page numbers; optionally expand beyond them.
+
+    With ``include_external=False`` only the listed pages take part (first
+    wave). With ``include_external=True`` pages *beyond* the last listed page
+    also take part, modelling "roll out early pages first, then expand".
+    """
+
+    def __init__(self, pages, include_external: bool = False) -> None:
+        self.pages = set(int(p) for p in pages)
+        self.include_external = include_external
+        self.name = f"pages_{sorted(self.pages)}"
+
+    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
+                user_id: str = "anonymous") -> bool:
+        if page_num in self.pages:
+            return True
+        if self.include_external and self.pages:
+            return page_num > max(self.pages)
+        return False
+
+
+class DocTypeRolloutRule(RolloutRule):
+    """Roll out only to specific document types."""
+
+    def __init__(self, doc_types) -> None:
+        self.doc_types = set(doc_types)
+        self.name = f"doc_types_{sorted(self.doc_types)}"
+
+    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
+                user_id: str = "anonymous") -> bool:
+        return doc_type in self.doc_types
+
+
+class UserAllowlistRolloutRule(RolloutRule):
+    """Roll out only to an explicit allowlist of users (internal beta)."""
+
+    def __init__(self, users) -> None:
+        self.users = set(users)
+        self.name = f"users_{len(self.users)}"
+
+    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
+                user_id: str = "anonymous") -> bool:
+        return user_id in self.users
+
+
+@dataclass
+class RolloutPolicy:
+    """Ordered set of rollout rules; first match wins."""
+
+    rules: list = field(default_factory=list)
+
+    def add(self, rule: RolloutRule) -> "RolloutPolicy":
+        self.rules.append(rule)
+        return self
+
+    def decide(self, *, page_num: int = 0, doc_type: str = "pdf",
+               user_id: str = "anonymous", flags: Optional[FeatureFlags] = None) -> RolloutDecision:
+        for rule in self.rules:
+            if rule.matches(page_num=page_num, doc_type=doc_type,
+                            user_id=user_id):
+                return RolloutDecision(enabled=True,
+                                       reason=f"matched rule {rule.name}",
+                                       rule=rule.name)
+        # No rule matched → conservative default: keep legacy unless the
+        # static master switch is on.
+        enabled = bool(flags) and flags.use_v4_engine
+        return RolloutDecision(enabled=enabled, reason="no rule matched")
+
+    def enabled(self, *, page_num: int = 0, doc_type: str = "pdf",
+                user_id: str = "anonymous",
+                flags: Optional[FeatureFlags] = None) -> bool:
+        return self.decide(page_num=page_num, doc_type=doc_type,
+                           user_id=user_id, flags=flags).enabled
+
+
+class FallbackTelemetry:
+    """In-memory telemetry sink for legacy-fallback events (V8.2).
+
+    Records every fallback so the migration team can quantify how often the
+    V4 engine had to hand back to the legacy pipeline.
+    """
+
+    def __init__(self, backend=None) -> None:
+        self.backend = backend   # optional callable(event) external sink
+        self._events: list = []
+
+    def record(self, event: dict) -> None:
+        self._events.append(dict(event))
+        if self.backend is not None:
+            try:
+                self.backend(event)
+            except Exception:
+                pass
+
+    def events(self) -> list:
+        return list(self._events)
+
+    def clear(self) -> None:
+        self._events.clear()
+
+    def count(self, reason: str = "") -> int:
+        if reason:
+            return sum(1 for e in self._events if e.get("reason") == reason)
+        return len(self._events)
+
+
 __all__ = [
     "FeatureFlags",
     "get_feature_flags",
     "set_feature_flags",
     "reset_feature_flags",
+    "RolloutDecision",
+    "RolloutRule",
+    "PercentRolloutRule",
+    "PageRangeRolloutRule",
+    "DocTypeRolloutRule",
+    "UserAllowlistRolloutRule",
+    "RolloutPolicy",
+    "FallbackTelemetry",
 ]

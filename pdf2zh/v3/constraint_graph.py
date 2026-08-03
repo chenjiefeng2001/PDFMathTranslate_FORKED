@@ -28,10 +28,48 @@ logger = logging.getLogger(__name__)
 
 
 class ConstraintPriority(Enum):
-    HARD = "hard"          # Must be satisfied
-    SOFT = "soft"          # Should be satisfied if possible
-    PREFERRED = "preferred"  # Nice to have
-    STRONG = "strong"      # Between hard and soft
+    """Six-band constraint priority ladder (report P3).
+
+    The first four members are the original strength bands; the last three
+    are the semantic/advisory bands added by the P3 requirement
+    "+TYPOGRAPHY/READING/SEMANTIC". Lower ``rank()`` values bind harder.
+
+        HARD        0  must be satisfied
+        STRONG      1  nearly mandatory (structural ordering)
+        SOFT        2  should be satisfied if possible (reading order)
+        PREFERRED   3  nice to have (whitespace / paragraph spacing)
+        TYPOGRAPHY  4  typography guidance (baseline / line-height)
+        READING     5  reading-order preference (weak hint)
+        SEMANTIC    6  semantic association preference (weakest)
+    """
+
+    HARD = "hard"
+    STRONG = "strong"
+    SOFT = "soft"
+    PREFERRED = "preferred"
+    TYPOGRAPHY = "typography"
+    READING = "reading"
+    SEMANTIC = "semantic"
+
+    def rank(self) -> int:
+        """0 (HARD) .. 6 (SEMANTIC); lower ranks bind harder."""
+        return _PRIORITY_RANK[self]
+
+    @property
+    def is_advisory(self) -> bool:
+        """True for the three advisory semantic bands."""
+        return self.rank() >= _PRIORITY_RANK[ConstraintPriority.TYPOGRAPHY]
+
+
+_PRIORITY_RANK: Dict["ConstraintPriority", int] = {
+    ConstraintPriority.HARD: 0,
+    ConstraintPriority.STRONG: 1,
+    ConstraintPriority.SOFT: 2,
+    ConstraintPriority.PREFERRED: 3,
+    ConstraintPriority.TYPOGRAPHY: 4,
+    ConstraintPriority.READING: 5,
+    ConstraintPriority.SEMANTIC: 6,
+}
 
 
 class ConstraintRelation(Enum):
@@ -304,14 +342,177 @@ class ConstraintGraph:
         }
 
 
-class ConstraintSolver:
-    """Simplified constraint solver for layout constraint graphs.
+class KiwiSolver:
+    """Weighted-stay linear constraint solver in the spirit of Kiwi / Cassowary.
 
-    Uses a greedy approach:
-    1. Topological sort for ordering constraints
-    2. Apply HARD constraints first
-    3. Apply SOFT constraints (if they don't conflict)
-    4. Resolve overlaps by pushing elements down/right
+    Solves the vertical (y) axis of a layout with three kinds of constraints:
+
+        stays         — minimize Σ wᵢ·(yᵢ − preferredᵢ)²        (elasticity)
+        inequalities  — y_below ≥ y_above + height_above + gap   (must_below)
+        equalities    — y_b == y_a + offset                      (align / center)
+
+    Constraints are processed in priority tiers (HARD first ... SEMANTIC last),
+    so a weaker band can never break a stronger one. Feasibility is reached by
+    deterministic Gauss–Seidel projection; stays are then relaxed toward the
+    preferred positions without violating the hard inequalities (the classic
+    "push/pull" behaviour of Cassowary-class solvers). No external deps.
+
+    Usage::
+
+        ks = KiwiSolver()
+        ks.add_variable("a", preferred=50.0, height=30.0)
+        ks.add_variable("b", preferred=100.0, height=30.0)
+        ks.add_inequality(below="b", above="a", gap=10.0)
+        y = ks.solve()          # {"a": 50.0, "b": 90.0}
+    """
+
+    def __init__(self, max_iterations: int = 300,
+                 tolerance: float = 1e-3,
+                 tier_max_iterations: int = 120) -> None:
+        self.max_iterations = max_iterations
+        self.tolerance = tolerance
+        self.tier_max_iterations = tier_max_iterations
+        self._variables: Dict[str, Dict[str, float]] = {}
+        self._inequalities: List[Dict[str, Any]] = []
+        self._equalities: List[Dict[str, Any]] = []
+        self._fixed_y: Dict[str, float] = {}
+
+    # ── Variable declaration ──────────────────────────────────────────
+
+    def add_variable(self, name: str, preferred: float = 0.0,
+                     weight: float = 1.0, lower: float = 0.0,
+                     upper: float = 1e9, height: float = 0.0,
+                     fixed: bool = False) -> None:
+        """Register a vertical variable (y of the box top)."""
+        self._variables[name] = {
+            "preferred": float(preferred),
+            "weight": float(weight),
+            "lower": float(lower),
+            "upper": float(upper),
+            "height": float(height),
+            "y": float(preferred),
+            "fixed": bool(fixed),
+        }
+
+    def add_inequality(self, below: str, above: str,
+                       gap: float = 0.0, priority: str = "soft",
+                       weight: float = 1.0) -> None:
+        """Require ``y_below ≥ y_above + height_above + gap``."""
+        rank = self._rank(priority)
+        self._inequalities.append({
+            "below": below, "above": above, "gap": float(gap),
+            "rank": rank, "weight": float(weight),
+        })
+
+    def add_equality(self, a: str, b: str, offset: float = 0.0,
+                     priority: str = "soft", weight: float = 1.0) -> None:
+        """Require ``y_b == y_a + offset`` (align_top / align_bottom / center)."""
+        self._equalities.append({
+            "a": a, "b": b, "offset": float(offset),
+            "rank": self._rank(priority), "weight": float(weight),
+        })
+
+    @staticmethod
+    def _rank(priority: Any) -> int:
+        if isinstance(priority, ConstraintPriority):
+            return priority.rank()
+        try:
+            return ConstraintPriority(str(priority)).rank()
+        except ValueError:
+            return ConstraintPriority.SOFT.rank()
+
+    # ── Solve ─────────────────────────────────────────────────────────
+
+    def solve(self) -> Dict[str, float]:
+        """Run feasibility + stay relaxation and return ``{name: y}``."""
+        # Phase A — feasibility, tier by tier (hard bands bind first).
+        tiers = sorted({ine["rank"] for ine in self._inequalities})
+        for tier in tiers:
+            active = [ine for ine in self._inequalities if ine["rank"] <= tier]
+            for _ in range(self.tier_max_iterations):
+                changed = self._project_inequalities(active)
+                if not changed:
+                    break
+        self._apply_equalities()
+        # Re-establish feasibility disturbed by equality assignment.
+        for _ in range(self.tier_max_iterations):
+            if not self._project_inequalities(self._inequalities):
+                break
+        # Phase B — stay relaxation (elastic pull toward preferred positions).
+        self._relax_stays()
+        return {name: var["y"] for name, var in self._variables.items()}
+
+    def get_y(self, name: str) -> float:
+        return self._variables[name]["y"]
+
+    # ── Internals ─────────────────────────────────────────────────────
+
+    def _project_inequalities(self, active: List[Dict[str, Any]]) -> bool:
+        changed = False
+        for ine in active:
+            below = self._variables.get(ine["below"])
+            above = self._variables.get(ine["above"])
+            if below is None or above is None or below["fixed"]:
+                continue
+            required = above["y"] + above["height"] + ine["gap"]
+            if below["y"] < required - self.tolerance:
+                below["y"] = min(required, below["upper"])
+                changed = True
+        return changed
+
+    def _apply_equalities(self) -> None:
+        for eq in self._equalities:
+            a = self._variables.get(eq["a"])
+            b = self._variables.get(eq["b"])
+            if a is None or b is None or b["fixed"]:
+                continue
+            target = a["y"] + eq["offset"]
+            if eq["rank"] <= ConstraintPriority.STRONG.rank():
+                # Strong alignment: snap the follower onto the anchor.
+                b["y"] = target
+            else:
+                # Soft alignment: average so both sides yield slightly.
+                b["y"] = (b["y"] + target) / 2.0
+            b["y"] = max(b["lower"], min(b["upper"], b["y"]))
+
+    def _relax_stays(self) -> None:
+        """Elastic relaxation toward preferred positions (Kiwi stays).
+
+        Only the hard inequalities (HARD / STRONG) constrain the window the
+        stays may move in, so soft / advisory bands never lock the layout.
+        """
+        hard = [ine for ine in self._inequalities
+                if ine["rank"] <= ConstraintPriority.STRONG.rank()]
+        ordered = sorted(self._variables.items(),
+                         key=lambda kv: -kv[1]["weight"])
+        for name, var in ordered:
+            if var["fixed"]:
+                continue
+            max_increase = var["upper"] - var["y"]
+            max_decrease = var["y"] - var["lower"]
+            for ine in hard:
+                if ine["below"] == name:
+                    required = (self._variables[ine["above"]]["y"]
+                                + self._variables[ine["above"]]["height"]
+                                + ine["gap"])
+                    max_decrease = min(max_decrease, var["y"] - required)
+                if ine["above"] == name:
+                    upper = (self._variables[ine["below"]]["y"]
+                             - var["height"] - ine["gap"])
+                    max_increase = min(max_increase, upper - var["y"])
+            max_increase = max(0.0, max_increase)
+            max_decrease = max(0.0, max_decrease)
+            delta = var["preferred"] - var["y"]
+            var["y"] += max(-max_decrease, min(max_increase, delta))
+
+
+class ConstraintSolver:
+    """Constraint solver for layout constraint graphs (P3 Kiwi upgrade).
+
+    Default ``engine="auto"`` uses the weighted-stay Kiwi solver for the
+    vertical axis (elastic push/pull), then the horizontal pass and a final
+    overlap-resolution safety net. ``engine="greedy"`` preserves the original
+    greedy behaviour for debugging / A-B comparison.
     """
 
     def __init__(self, graph: ConstraintGraph, page_width: float = 612.0,
@@ -321,9 +522,108 @@ class ConstraintSolver:
         self.page_height = page_height
         self._solved = False
 
-    def solve(self) -> bool:
-        """Run the constraint solving algorithm."""
+    def solve(self, engine: str = "auto") -> bool:
+        """Run the constraint solving algorithm.
+
+        Args:
+            engine: "auto" / "kiwi" → weighted-stay Kiwi vertical solve plus
+                    horizontal pass and overlap safety net (P3 default);
+                    "greedy" → the original priority-grouped greedy pass.
+        """
         self.graph.reset_all()
+        if engine in ("auto", "kiwi"):
+            return self._solve_kiwi()
+        return self._solve_greedy()
+
+    def _solve_kiwi(self) -> bool:
+        """Kiwi-style vertical solve with elastic stays (report P3)."""
+        ordered = self.graph.topological_sort()
+        nodes_map = {n.id: n for n in ordered}
+        for page in sorted({n.page_num for n in nodes_map.values()}):
+            page_nodes = [n for n in ordered if n.page_num == page]
+            ks = KiwiSolver()
+            free = {n.id for n in page_nodes
+                    if not self.graph.get_edges_for_node(n.id)}
+            for n in page_nodes:
+                ks.add_variable(
+                    n.id, preferred=n.bbox.y,
+                    weight=2.0 if n.id in free else 1.0,
+                    lower=0.0,
+                    upper=max(0.0, self.page_height - n.bbox.height),
+                    height=n.bbox.height, fixed=n.fixed)
+            for e in self.graph.edges:
+                if not e.enabled or e.priority.is_advisory:
+                    # Advisory bands feed the stays only; they do not take
+                    # part in the feasibility projection.
+                    continue
+                r = e.relation
+                if r in (ConstraintRelation.MUST_BELOW,
+                         ConstraintRelation.MUST_ABOVE):
+                    below, above = ((e.target_id, e.source_id)
+                                    if r == ConstraintRelation.MUST_BELOW
+                                    else (e.source_id, e.target_id))
+                    ks.add_inequality(below=below, above=above,
+                                      gap=e.gap, priority=e.priority)
+                elif r == ConstraintRelation.ALIGN_TOP:
+                    ks.add_equality(a=e.source_id, b=e.target_id,
+                                    priority=e.priority)
+                elif r == ConstraintRelation.ALIGN_BOTTOM:
+                    src = nodes_map.get(e.source_id)
+                    tgt = nodes_map.get(e.target_id)
+                    if src is not None and tgt is not None:
+                        ks.add_equality(a=e.source_id, b=e.target_id,
+                                        offset=src.bbox.height - tgt.bbox.height,
+                                        priority=e.priority)
+                elif r == ConstraintRelation.CENTER_Y:
+                    tgt = nodes_map.get(e.target_id)
+                    if tgt is not None:
+                        ks.add_variable(f"{e.target_id}__center",
+                                        preferred=0.0, fixed=True,
+                                        upper=self.page_height)
+                        ks.add_equality(a=f"{e.target_id}__center",
+                                        b=e.target_id,
+                                        offset=(self.page_height
+                                                - tgt.bbox.height) / 2.0,
+                                        priority=e.priority)
+                elif r == ConstraintRelation.CANNOT_OVERLAP:
+                    src = nodes_map.get(e.source_id)
+                    tgt = nodes_map.get(e.target_id)
+                    if (src is not None and tgt is not None
+                            and src.page_num == tgt.page_num):
+                        if src.bbox.y <= tgt.bbox.y:
+                            ks.add_inequality(below=e.target_id,
+                                              above=e.source_id, gap=2.0,
+                                              priority=e.priority)
+                        else:
+                            ks.add_inequality(below=e.source_id,
+                                              above=e.target_id, gap=2.0,
+                                              priority=e.priority)
+                elif r == ConstraintRelation.KEEP_WITH_NEXT:
+                    ks.add_inequality(below=e.target_id, above=e.source_id,
+                                      gap=0.0, priority="soft")
+                # Horizontal relations (MUST_LEFT / MUST_RIGHT / ALIGN_LEFT /
+                # CENTER_X / SAME_*) are applied by the horizontal pass below.
+            if ks._variables:
+                for nid, y in ks.solve().items():
+                    n = nodes_map.get(nid)
+                    if n is not None:
+                        n.resolved_bbox = BoundingBox(
+                            n.bbox.x, y, n.bbox.width, n.bbox.height)
+        # Horizontal pass + overlap safety net (shared with greedy engine).
+        # Vertical relations were already resolved by the Kiwi stage above, so
+        # re-applying them here would corrupt the elastic solution (the legacy
+        # pass applies MUST_BELOW with inverse push semantics).
+        horizontal = (ConstraintRelation.MUST_LEFT, ConstraintRelation.MUST_RIGHT,
+                      ConstraintRelation.ALIGN_LEFT, ConstraintRelation.ALIGN_RIGHT,
+                      ConstraintRelation.CENTER_X)
+        self._apply_constraints(
+            [e for e in self.graph.edges if e.relation in horizontal], nodes_map)
+        self._resolve_overlaps(nodes_map)
+        self._solved = True
+        return True
+        self.graph.reset_all()
+    def _solve_greedy(self) -> bool:
+        """Original greedy solve (priority-grouped application)."""
         # 1. Sort topologically for ordering
         ordered = self.graph.topological_sort()
         nodes_map = {n.id: n for n in ordered}
@@ -503,6 +803,6 @@ def _map_node_type(nt) -> str:
 
 __all__ = [
     "ConstraintPriority", "ConstraintRelation", "ConstraintEdge",
-    "LayoutNode", "ConstraintGraph", "ConstraintSolver",
+    "LayoutNode", "ConstraintGraph", "ConstraintSolver", "KiwiSolver",
     "build_constraint_graph_from_document",
 ]

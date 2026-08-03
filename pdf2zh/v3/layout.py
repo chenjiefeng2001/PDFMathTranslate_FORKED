@@ -10,10 +10,12 @@ Phase 2 upgrades:
 from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType
 from pdf2zh.v3.visual_tree import VisualTree, BoundingBox, Page, Paragraph, Line, TextRun
+# Unified single-source ConstraintPriority (report P3): layout.py reuses the
+# constraint_graph enum so the duplicated definitions can never drift again.
+from pdf2zh.v3.constraint_graph import ConstraintPriority as ConstraintType
 logger = logging.getLogger(__name__)
 
 
@@ -82,10 +84,7 @@ class CollisionEngine:
 
 
 
-class ConstraintType(Enum):
-    HARD = "hard"
-    SOFT = "soft"
-    PREFERRED = "preferred"
+# ConstraintType unified with ConstraintPriority (imported at top).
 
 @dataclass
 class LayoutConstraint:

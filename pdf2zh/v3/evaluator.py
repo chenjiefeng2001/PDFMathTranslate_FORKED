@@ -619,6 +619,148 @@ class RepairScheduler:
         return executed
 
 
+# ── Composite Scoring & Quality Gate (阶段十) ─────────────────────────
+
+def composite_score(result: "EvaluationResult",
+                    weights: Optional[Dict[str, float]] = None) -> float:
+    """Composite quality score in [0, 100].
+
+    Default weights come from the roadmap 阶段十 quality gate; custom weights
+    can be supplied (they must be a subset of the five score families).
+    """
+    w = dict(weights or WEIGHTS)
+    total = 0.0
+    for key, weight in w.items():
+        score = getattr(result, f"{key}_score", 100.0)
+        total += weight * score
+    return round(total, 2)
+
+
+@dataclass
+class QualityGateResult:
+    """Verdict of one quality-gate evaluation (阶段十)."""
+
+    passed: bool
+    total_score: float
+    threshold: float
+    per_page_scores: Dict[int, dict] = field(default_factory=dict)
+    issues: List[str] = field(default_factory=list)
+    snapshot: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "passed": self.passed,
+            "total_score": self.total_score,
+            "threshold": self.threshold,
+            "per_page_scores": self.per_page_scores,
+            "issues": self.issues,
+        }
+
+
+class QualityGate:
+    """阶段十 release gate: a translation may ship only above the threshold.
+
+    The gate is evaluated per run and per page; a page below the per-page
+    minimum is reported as an issue even if the total passes.
+    """
+
+    DEFAULT_THRESHOLD = 90.0
+    DEFAULT_PAGE_THRESHOLD = 75.0
+
+    def __init__(self, threshold: float = DEFAULT_THRESHOLD,
+                 page_threshold: float = DEFAULT_PAGE_THRESHOLD,
+                 weights: Optional[Dict[str, float]] = None) -> None:
+        self.threshold = threshold
+        self.page_threshold = page_threshold
+        self.weights = weights
+
+    def evaluate(self, result: "EvaluationResult",
+                 extra: Optional[dict] = None) -> QualityGateResult:
+        total = composite_score(result, self.weights)
+        issues: List[str] = []
+        if total < self.threshold:
+            issues.append(f"total {total:.1f} below gate "
+                          f"{self.threshold:.1f}")
+        page_map: Dict[int, dict] = {}
+        for page, scores in (result.per_page_scores or {}).items():
+            page_total = composite_score(
+                _ResultProxy(scores), self.weights)
+            page_map[int(page)] = {"score": page_total}
+            if page_total < self.page_threshold:
+                issues.append(
+                    f"page {page} score {page_total:.1f} below "
+                    f"{self.page_threshold:.1f}")
+        return QualityGateResult(
+            passed=total >= self.threshold and not issues,
+            total_score=total,
+            threshold=self.threshold,
+            per_page_scores=page_map,
+            issues=issues,
+            snapshot=QualitySnapshot.capture(
+                result, total_score=total, extra=extra),
+        )
+
+    def save_snapshot(self, result: "EvaluationResult",
+                      output_dir: str, tag: str = "",
+                      extra: Optional[dict] = None) -> str:
+        """Persist the gate snapshot and return the written path."""
+        snapshot = QualitySnapshot.capture(
+            result, total_score=composite_score(result, self.weights),
+            extra=extra)
+        return QualitySnapshot.save(snapshot, output_dir, tag=tag)
+
+
+class _ResultProxy:
+    """Adapter to read ``{key}_score`` from a plain scores dict."""
+
+    def __init__(self, scores: dict) -> None:
+        self._scores = scores
+
+    def __getattr__(self, name: str):
+        if name.endswith("_score"):
+            return float(self._scores.get(name[:-6], 100.0))
+        return getattr(self._scores, name)
+
+
+class QualitySnapshot:
+    """阶段十 snapshot: JSON-able record of one quality evaluation."""
+
+    @staticmethod
+    def capture(result: "EvaluationResult", total_score: Optional[float] = None,
+                extra: Optional[dict] = None) -> dict:
+        return {
+            "schema": "pdf2zh.v3.quality-snapshot",
+            "version": 1,
+            "total_score": round(total_score if total_score is not None
+                                 else float(result.total_score), 2),
+            "scores": {
+                "translation": round(float(result.translation_score), 1),
+                "semantic": round(float(result.semantic_score), 1),
+                "typography": round(float(result.typography_score), 1),
+                "layout": round(float(result.layout_score), 1),
+                "consistency": round(float(result.consistency_score), 1),
+            },
+            "extra": dict(extra or {}),
+        }
+
+    @staticmethod
+    def save(snapshot: dict, output_dir: str, tag: str = "") -> str:
+        import json as _json
+        import os
+        os.makedirs(output_dir, exist_ok=True)
+        name = f"quality_snapshot{'_' + tag if tag else ''}.json"
+        path = os.path.join(output_dir, name)
+        with open(path, "w", encoding="utf-8") as fh:
+            _json.dump(snapshot, fh, ensure_ascii=False, indent=2)
+        return path
+
+    @staticmethod
+    def load(path: str) -> dict:
+        import json as _json
+        with open(path, encoding="utf-8") as fh:
+            return _json.load(fh)
+
+
 __all__ = [
     "EvaluationResult",
     "EvaluatorConfig",
@@ -629,6 +771,9 @@ __all__ = [
     "LayoutEvaluator",
     "ConsistencyEvaluator",
     "WEIGHTS",
+    "composite_score",
+    "QualityGate",
+    "QualityGateResult",
+    "QualitySnapshot",
     "Issue", "IssueSeverity", "IssueGraph", "RepairScheduler",
 ]
-

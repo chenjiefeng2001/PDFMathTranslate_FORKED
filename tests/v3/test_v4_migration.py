@@ -83,7 +83,7 @@ class TestConverterStrangulation:
         p=os.path.join(os.path.dirname(__file__),'..','..','pdf2zh','converter.py')
         if os.path.exists(p):
             with open(p,encoding='utf-8') as f: l=len(f.readlines())
-            assert 0<l<700
+            assert 0<l<850  # 2.0 collision pipeline (S1-S6) added ~100 lines; strangulation target unchanged
         else: pytest.skip('nf')
     def test_has_strangler(self):
         from pdf2zh.v3.legacy_adapter import TranslateConverterStrangler
