@@ -188,3 +188,19 @@ line_height = max(ascent - descent, 1.0) if np.isfinite(ascent) and np.isfinite(
 | 2 | pdfinterp.py L84 | `stream_value(spec[1])["N"]` spec[1] 类型异常 | 添加防御性编码 |
 | 3 | converter.py L75 | `end_figure` 中 assert 类型检查 | 改为 try/except 跳过 |
 | 4 | gui.py L500-516 | 多文件进度标签不同步 | 添加回退标签逻辑 |
+
+## 七、碰撞管线加固（S1-S6）与 F9 的后续增强
+
+本报告 F5-F9 之后，`converter.py` / `collision_resolver.py` 又完成了一轮
+**文本框重叠碰撞管线**（S1-S6）修复，与 F9（行高）直接相关的是 S5：
+
+| 编号 | 内容 | 与 F9 的关系 |
+| :-- | :-- | :-- |
+| S5 | 行高下限取字形真实跨度（CJK ≥ 1.3），压缩循环止步于下限；仍溢出时输出 QA 溢出标记 | F9 解决 `NaN` 传播；S5 在有限值基础上进一步保证**行高不会压到使相邻行字面盒相接**，并引入可机器解析的溢出告警 |
+| S1/S2/S3 | 无条件应用下移避让 + 全量障碍物求解 + 宽度/字号缩减落地 | 解决 F9 之外的段落级重叠（根因1/2/5） |
+| S4 | 单行段落译文超宽折行（去 `brk` 门控） | 消除横向溢出 |
+| S6 | 表格边框 / 公式块边界线条登记为障碍物 | 补齐避让障碍物集合 |
+
+完整分析见 `doc/text_overlap_analysis_report.md` 附录 C。新增回归测试：
+`tests/test_converter_layout_fixes.py`（6 项）与 `tests/test_collision_resolver.py`（扩展 7 项）。
+
