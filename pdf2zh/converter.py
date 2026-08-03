@@ -64,6 +64,8 @@ class PDFConverterEx(PDFConverter):
         # 不同页面的坐标是相对坐标，若沿用上一页的段落 BBox 会导致误判重叠
         self._rendered_paragraphs = []
         self._rendered_obstacles = []
+        self._overflow_flags = []
+        self._page_rect = None
 
     def end_page(self, page):
         # 重载返回指令流
@@ -174,6 +176,10 @@ class TranslateConverter(PDFConverterEx):
         self._para_orig_fonts: dict = {}
         self._rendered_obstacles: list = []
         self._rendered_paragraphs: list = []
+        # === 2.0: 溢出/避让失败 QA 标记（S5）与页面边界 ===
+        self._overflow_flags: list = []
+        self._page_rect = None  # 当前页边界（BoundingBox），供碰撞求解夹紧
+
         self.translator: BaseTranslator = None
         # e.g. "ollama:gemma2:9b" -> ["ollama", "gemma2:9b"]
         param = service.split(":", 1)
@@ -209,6 +215,11 @@ class TranslateConverter(PDFConverterEx):
         # 若此处也是 -1，首字符会误入同一段落分支并越界访问空 sstk/pstk
         vmax: float = ltpage.width / 4  # 行内公式最大宽度
         ops: str = ""                   # 渲染结果
+        # === 2.0: 记录页面边界，供碰撞求解夹紧（S1）===
+        from pdf2zh.collision_resolver import BoundingBox
+        _page_w = float(getattr(ltpage, "width", 0.0) or 0.0)
+        _page_h = float(getattr(ltpage, "height", 0.0) or 0.0)
+        self._page_rect = BoundingBox(0.0, 0.0, _page_w, _page_h)
 
         def _extract_font_name(font: str) -> str:
             """从 PDF 字体引用中提取规范字体名（改进版）"""
@@ -261,6 +272,8 @@ class TranslateConverter(PDFConverterEx):
 
         ############################################################
         # A. 原文档解析
+        cur_line_size = 0.0  # 当前行文字字号基准（同行角标判定），随行切换重置，避免标题→正文字号切换污染整个段落
+
         for child in ltpage:
             if isinstance(child, LTChar):
                 cur_v = False
@@ -278,10 +291,14 @@ class TranslateConverter(PDFConverterEx):
                 # 锚定文档中 bullet 的位置
                 if child.get_text() == "•":
                     cls = 0
+                # 行内字号基准：行切换时重置（同行角标判定用），避免段落级最大字号（如标题）污染角标判定
+                if xt is None or abs(child.y0 - xt.y0) > 0.5 * max(child.size, xt.size):
+                    cur_line_size = child.size
+
                 # 判定当前字符是否属于公式
                 if (                                                                                        # 判定当前字符是否属于公式
                     cls == 0                                                                                # 1. 类别为保留区域
-                    or (cls == xt_cls and sstk and len(sstk[-1].strip()) > 1 and child.size < pstk[-1].size * 0.79)  # 2. 角标字体，有 0.76 的角标和 0.799 的大写，这里用 0.79 取中，同时考虑首字母放大的情况
+                    or (cls == xt_cls and sstk and len(sstk[-1].strip()) > 1 and child.size < cur_line_size * 0.79)  # 2. 角标字体，有 0.76 的角标和 0.799 的大写，这里用 0.79 取中，同时考虑首字母放大的情况
                     or vflag(child.fontname, child.get_text())                                              # 3. 公式字体
                     or (child.matrix[0] == 0 and child.matrix[3] == 0)                                      # 4. 垂直字体
                 ):
@@ -337,6 +354,9 @@ class TranslateConverter(PDFConverterEx):
                     ) and child.get_text() != " ":                          # 3. 当前字符不是空格
                         pstk[-1].y -= child.size - pstk[-1].size            # 修正段落初始纵坐标，假设两个不同大小字符的上边界对齐
                         pstk[-1].size = child.size
+                    if child.size > cur_line_size and child.get_text() != " ":
+                        cur_line_size = child.size                          # 更新当前行文字字号基准（仅文字字符，公式字符不污染）
+
                     sstk[-1] += child.get_text()
                 else:                                                       # 公式入栈
                     if (                                                    # 根据公式左侧的文字修正公式的纵向偏移
@@ -384,6 +404,24 @@ class TranslateConverter(PDFConverterEx):
                     vlstk.append(child)
                 else:                           # 全局线条
                     lstk.append(child)
+                    # === 2.0: 表格边框/公式块边界登记为障碍物 (S6) ===
+                    # 表格与块级公式区域在 layout 中被标记为 0（保留区域），
+                    # 其边框线不会进入 vstk（非公式上下文），登记后译文段落可避让。
+                    # 过滤细线/装饰线（linewidth < 1.0 或长度 < 30pt），降低误报。
+                    if cls == 0 and child.linewidth >= 1.0:
+                        dx = child.x1 - child.x0
+                        dy = child.y1 - child.y0
+                        if dx * dx + dy * dy >= 900.0:
+                            try:
+                                self._rendered_obstacles.append(
+                                    BoundingBox(
+                                        float(child.x0), float(child.y0),
+                                        float(child.x1), float(child.y1),
+                                    )
+                                )
+                            except Exception as e:
+                                log.debug("Failed to record table/formula obstacle: %s", e)
+
             else:
                 pass
         # 处理结尾
@@ -528,7 +566,10 @@ class TranslateConverter(PDFConverterEx):
                     else:
                         font_obj = self.fontmap.get(fcur_)
                         if font_obj:
-                            adv = font_obj.char_width(ord(ch))
+                            # pdfminer PDFType1Font.char_width 返回 0~1 的 em 比例（Times 等 Type1 字体），
+                            # 必须乘字号才是 pt；此前未缩放导致英文宽度被低估约 16 倍，
+                            # 中英混排时后续中文字符起点严重偏左、压在英文之上（重叠根因）。
+                            adv = font_obj.char_width(ord(ch)) * size
                             if adv <= 0 and not self.skip_subset_fonts:
                                 adv = size * 0.5
                         else:
@@ -550,7 +591,7 @@ class TranslateConverter(PDFConverterEx):
                             "lidx": lidx
                         })
                         cstk = ""
-                if brk and x + adv > x1 + 0.1 * size:  # 到达右边界且原文段落存在换行
+                if x + adv > x1 + 0.1 * size:  # 到达右边界一律换行（S4：不再要求原文 brk，译文单行段落超宽也能折行）
                     x = x0
                     lidx += 1
                 if vy_regex:  # 插入公式
@@ -609,40 +650,106 @@ class TranslateConverter(PDFConverterEx):
                     "lidx": lidx
                 })
 
-            # === 2.0: TextMetrics line height (M1) ===
+            # === 2.0: TextMetrics line height (M1, S5) ===
             line_height = default_line_height
-            # CJK/western mixed line height
-            if any("一" <= c <= "鿿" or "　" <= c <= "〿" for c in new):
+            # CJK/western mixed line height（扩展字符覆盖：全角标点 U+FF00-U+FFEF 也计入 CJK）
+            has_cjk = any(
+                ("一" <= c <= "鿿")
+                or ("　" <= c <= "〿")
+                or ("＀" <= c <= "￯")
+                for c in new
+            )
+            if has_cjk:
                 line_height = max(default_line_height, 1.3)
+            # 行高下限优先取目标字形真实跨度 ascent-descent（>1.0），
+            # 避免压缩到 1.0 时相邻行字面盒相接（行级重叠来源，S5）
+            line_height_min = 1.0
             tm_line = self.text_metrics.get(fcur) if self.text_metrics else None
             if tm_line:
                 ascent = getattr(tm_line, 'ascent', 0.8)
                 descent = getattr(tm_line, 'descent', -0.2)
-                line_height = max(ascent - descent, 1.0) if np.isfinite(ascent) and np.isfinite(descent) else default_line_height
-            elif height > 0 and np.isfinite(height):
+                if np.isfinite(ascent) and np.isfinite(descent):
+                    glyph_span = max(ascent - descent, 1.0)
+                    line_height_min = max(glyph_span, 1.0)
+                    line_height = line_height_min
+            if has_cjk:
+                line_height = max(line_height, 1.3)
+                line_height_min = max(line_height_min, 1.3)
+            # 压缩循环：原文高度不足以容纳译文行数时压缩行距，
+            # 但止步于行高下限；压缩到下限仍溢出则记录 QA 溢出标记
+            if (
+                height > 0
+                and np.isfinite(height)
+                and (lidx + 1) * size * line_height > height
+            ):
                 max_iter = max(int((default_line_height - 0.5) / 0.05), 1)
                 iter_count = 0
-                while (lidx + 1) * size * line_height > height and line_height >= 1 and iter_count < max_iter:
-                    line_height -= 0.05
+                while (
+                    (lidx + 1) * size * line_height > height
+                    and line_height > line_height_min
+                    and iter_count < max_iter
+                ):
+                    line_height = max(line_height - 0.05, line_height_min)
                     iter_count += 1
-            # === 2.0: Collision detection & resolution (M2) ===
+                if (lidx + 1) * size * line_height > height:
+                    self._overflow_flags.append(
+                        {
+                            "page": ltpage.pageid,
+                            "lidx": lidx,
+                            "size": size,
+                            "line_height": line_height,
+                            "required_height": (lidx + 1) * size * line_height,
+                            "available_height": height,
+                            "text": new[:40],
+                        }
+                    )
+            # === 2.0: Collision detection & resolution (M2, S1/S2/S3) ===
             para_bottom = y - (lidx + 1) * size * line_height
             if self.collision_resolver:
                 from pdf2zh.collision_resolver import BoundingBox
                 pb = BoundingBox(x0, para_bottom, x1, y)
                 shift = 0.0
-                # 融合已渲染段落与原文非文字元素（图片/图表等）。
+                # 融合已渲染段落与原文非文字元素（图片/表格/公式块等）。
                 # lidx > 0 门控已移除：即使译文仍为单行（lidx == 0），
                 # 中文宽度膨胀导致底部下探同样可能侵占下方段落空间。
                 all_obstacles = list(self._rendered_paragraphs) + list(self._rendered_obstacles)
-                for prev in all_obstacles:
-                    if pb.overlaps(prev):
-                        _, ny, _ = self.collision_resolver.resolve(pb, [prev], size)
-                        shift = max(shift, ny - pb.y0)
-                        pb = BoundingBox(x0, para_bottom + shift, x1, y + shift)
-                if shift > 0:
-                    y += shift
+                colliding = [obs for obs in all_obstacles if pb.overlaps(obs)]
+                if colliding:
+                    # S2: 一次传入全部障碍物，求解器给出全局可行位置；
+                    # S3: 解包 (x, y, size) 全部应用（宽度/字号缩减真正落地）。
+                    nx, ny, nsize, strategy = self.collision_resolver.resolve(
+                        pb,
+                        all_obstacles,
+                        size,
+                        page_rect=self._page_rect,
+                        return_strategy=True,
+                    )
+                    # S1: 无条件应用位移 —— 负 shift 即向下推挤（正文推进方向），
+                    # 消除 `if shift > 0` 对下移解的丢弃；配合全量障碍物，
+                    # "当前段被推到所有重叠段之下"自动形成整页链式流式重排。
+                    shift = ny - pb.y0
+                    if shift:
+                        y += shift
+                    if nsize != size:  # S3: 字号缩减生效
+                        size = nsize
+                    if nx != x0:  # S3: 水平缩进生效，平移已生成行
+                        dx = nx - x0
+                        for v in ops_vals:
+                            v["x"] += dx
+                # 记录已渲染段落（使用最终位置），供后续段落链式避让
+                pb = BoundingBox(x0, para_bottom + shift, x1, y)
                 self._rendered_paragraphs.append(pb)
+                if colliding and strategy == "none":
+                    # 全部策略失败：位置/字号均未变，必然仍重叠 → QA 标记
+                    self._overflow_flags.append(
+                        {
+                            "page": ltpage.pageid,
+                            "kind": "collision-unresolved",
+                            "lidx": lidx,
+                            "bbox": f"[{pb.x0:.1f},{pb.y0:.1f},{pb.x1:.1f},{pb.y1:.1f}]",
+                            "text": new[:40],
+                        }
+                    )
 
 
             for vals in ops_vals:
@@ -651,6 +758,26 @@ class TranslateConverter(PDFConverterEx):
                 elif vals["type"] == OpType.LINE:
                     ops_list.append(gen_op_line(vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height, vals["xlen"], vals["ylen"], vals["linewidth"]))
 
+        # === 2.0: QA 溢出标记（S5）→ 内容流注释 + debug 日志，供自动化回归解析 ===
+        for flag in self._overflow_flags:
+            if "required_height" in flag:
+                log.debug(
+                    "QA overflow page=%s lidx=%s required=%.1f available=%.1f",
+                    flag["page"], flag["lidx"], flag["required_height"], flag["available_height"],
+                )
+                ops_list.append(
+                    f"% pdf2zh-qa-overflow page={flag['page']} lidx={flag['lidx']} "
+                    f"required={flag['required_height']:.1f} available={flag['available_height']:.1f}\n"
+                )
+            else:
+                log.debug(
+                    "QA collision-unresolved page=%s lidx=%s bbox=%s",
+                    flag["page"], flag["lidx"], flag["bbox"],
+                )
+                ops_list.append(
+                    f"% pdf2zh-qa-overflow page={flag['page']} lidx={flag['lidx']} "
+                    f"kind={flag['kind']} bbox={flag['bbox']}\n"
+                )
         for l in lstk:  # 排版全局线条
             if l.linewidth < 5:  # hack 有的文档会用粗线条当图片背景
                 ops_list.append(gen_op_line(l.pts[0][0], l.pts[0][1], l.pts[1][0] - l.pts[0][0], l.pts[1][1] - l.pts[0][1], l.linewidth))

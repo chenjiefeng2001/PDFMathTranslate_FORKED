@@ -22,7 +22,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -264,6 +264,35 @@ class RuntimeService:
         self._store = _TaskStore()
         self._lock = threading.Lock()
         self._active_count = 0
+        #: External callbacks invoked on every emitted ``TaskProgressEvent``
+        #: (Observer pattern -- the service stays fully decoupled from the
+        #: GUI: listeners receive low-level records only).
+        self._event_listeners: List[Callable[[TaskProgressEvent], None]] = []
+        self._listeners_lock = threading.Lock()
+
+    # ── Event listener API (Worker -> EventBus bridge) ───────────────────────
+
+    def add_event_listener(
+        self, listener: Callable[[TaskProgressEvent], None]
+    ) -> None:
+        """Register a callback invoked on every emitted ``TaskProgressEvent``."""
+        with self._listeners_lock:
+            if listener not in self._event_listeners:
+                self._event_listeners.append(listener)
+
+    def remove_event_listener(
+        self, listener: Callable[[TaskProgressEvent], None]
+    ) -> None:
+        """Unregister a previously added callback."""
+        with self._listeners_lock:
+            if listener in self._event_listeners:
+                self._event_listeners.remove(listener)
+
+    def clear_event_listeners(self) -> None:
+        """Remove all registered event listeners."""
+        with self._listeners_lock:
+            self._event_listeners.clear()
+
 
     def submit_task(self, request: TranslationRequest) -> str:
         """Submit a translation task; returns task_id."""
@@ -579,6 +608,20 @@ class RuntimeService:
         )
         self._store.add_event(task_id, event)
         self._store.update_task(task_id, stage=stage, progress=progress, message=message)
+        self._notify_event_listeners(event)
+
+    def _notify_event_listeners(self, event: TaskProgressEvent) -> None:
+        """Invoke registered listeners (guarded, never raises)."""
+        with self._listeners_lock:
+            listeners = list(self._event_listeners)
+        for listener in listeners:
+            try:
+                listener(event)
+            except Exception:
+                logger.exception(
+                    "Event listener error for task %s", event.task_id
+                )
+
 
 
 __all__ = [
