@@ -192,3 +192,8 @@ script
 # User configuration override
 config.local.json
 config.local.yaml
+
+# Temporary probe / repro scripts and debug artifacts
+/_probe_*.py
+/_repro*.py
+/_p1_region.png
