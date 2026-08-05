@@ -187,16 +187,15 @@ class TranslateConverter(PDFConverterEx):
         self._page_rect = None  # 当前页边界（BoundingBox），供碰撞求解夹紧
 
         self.translator: BaseTranslator = None
-        # e.g. "ollama:gemma2:9b" -> ["ollama", "gemma2:9b"]
         self.translator = build_translator(service, lang_in, lang_out, envs, prompt, ignore_cache)
 
     def receive_layout(self, ltpage: LTPage):
         # 段落
-        sstk: list[str] = []            # 段落文字栈
-        pstk: list[Paragraph] = []      # 段落属性栈
+        sstk, pstk = [], []         # 段落文字栈 / 段落属性栈
         vbkt: int = 0                   # 段落公式括号计数
         self._gate_records: list = []  # V8.4: 写回前门控段落几何
         from pdf2zh.v3.mainline_wiring import _new_gate_record, run_mainline_channels
+        from pdf2zh.v3.toc_semantics import compose_toc_title, parse_toc_entry
         # 公式组
         vstk: list[LTChar] = []         # 公式符号组
         vlstk: list[LTLine] = []        # 公式线条组
@@ -438,20 +437,21 @@ class TranslateConverter(PDFConverterEx):
             l = max([vch.x1 for vch in v]) - v[0].x0
             log.debug(f'< {l:.1f} {v[0].x0:.1f} {v[0].y0:.1f} {v[0].cid} {v[0].fontname} {len(varl[id])} > v{id} = {"".join([ch.get_text() for ch in v])}')
             vlen.append(l)
+        if getattr(self, "geometry_cluster", False):  # V8.3 P1：双轨一致才接管聚类
+            from pdf2zh.v3.geometry_merge import adopt_geometry_cluster
+            self.geometry_adoptions = {**getattr(self, "geometry_adoptions", {}), ltpage.pageid: adopt_geometry_cluster(self, ltpage, sstk, pstk, var, varl, varf, toc_track, vlen)}
 
-        ############################################################
         # B. 段落翻译
         log.debug("\n==========[SSTACK]==========\n")
 
-        # === 目录行结构感知（P0-1）：识别"标题+点线+页码"，标题单独翻译 ===
-        # 目录条目整行作为普通段落翻译会破坏点线/页码结构，
-        # 此处把标题切出翻译，点线与页码保留原样并原位渲染（P0-2）。
+        # === 目录行结构感知（P0-1/P0-2）：识别"标题+点线+页码"，标题单独翻译，点线/页码原位渲染；V8.7 结构词走模板本地渲染 ===
         toc_specs: list = [None] * len(sstk)
         for _ti, _ptxt in enumerate(sstk):
             _spec = detect_toc_line(_ptxt, pstk[_ti].brk, toc_track[_ti], pstk[_ti].x1)
             if _spec is not None:
                 toc_specs[_ti] = _spec
-                sstk[_ti] = _spec["title"]
+                _ent = _spec["entry"] = parse_toc_entry(_spec["title"], page=_spec["page_digits"])
+                sstk[_ti] = _ent.title if _ent.matched else _spec["title"]  # 结构化标题只送剩余部分（V8.7）
 
         @retry(wait=wait_fixed(1))
         def worker(s: str):  # 多线程翻译
@@ -486,6 +486,7 @@ class TranslateConverter(PDFConverterEx):
             max_workers=max(1, self.thread or 4)  # thread<=0 时兜底为 4，避免 max_workers=0 崩溃
         ) as executor:
             news = list(executor.map(_safe_worker, sstk))
+        news = [compose_toc_title(s.get("entry") if s else None, n, self.translator.lang_out) for s, n in zip(toc_specs, news)]
 
         ############################################################
         # C. 新文档排版

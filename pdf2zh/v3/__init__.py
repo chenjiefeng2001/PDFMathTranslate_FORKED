@@ -230,6 +230,80 @@ from pdf2zh.v3.content_preservation import (
     PreservationAction, PreservationDecision, DelegateSpec,
     ROLE_DEFAULT, ContentPreservationEngine, classify_node,
 )
+# V8.7 — TOC Semantic Rendering（目录语义渲染）
+from pdf2zh.v3.toc_semantics import (
+    TOCKind, TOCEntry, parse_toc_entry,
+    TOC_TEMPLATES, toc_structure_prefix,
+    TOCTranslationPolicy, compose_toc_title, render_toc_line,
+)
+# V9.0 — 单一核心 IR + Node Processors（AST-Pass / ECS-System 层）
+from pdf2zh.v3.processors import (
+    NodeStage, STAGE_KEY, SEMANTIC_KEY, POLICY_KEY,
+    ORIGINAL_KEY, TRANSLATED_KEY, RENDER_KEY,
+    get_semantic, set_policy,
+    NodeProcessor, ProcessorRegistry, default_processor_registry,
+    TOCSemanticProcessor, FormulaNodeProcessor, CodeNodeProcessor,
+    ImageTranslationProcessor, ContentPolicyProcessor,
+    CaptionNodeProcessor, TableNodeProcessor, ReferenceNodeProcessor,
+)
+from pdf2zh.v3.document_pipeline import (
+    DEFAULT_STAGES, PipelineReport, DocumentPipeline,
+    run_semantic_pipeline, view_as_ir,
+)
+# V9.0 P1/P2 — Processor 层主链路接线与渲染/融合/翻译/OCR 顾问
+from pdf2zh.v3.render_advisor import (
+    RenderAdvisor, RoutingDecision,
+    PATH_TRANSLATE_REFIT, PATH_SHIFT_DOWN, PATH_PRESERVE_FLOAT,
+    PATH_OVERLAY, PATH_BLOCK,
+)
+from pdf2zh.v3.geometry_merge import (
+    GeometryMergeReport, dice_similarity,
+    rows_from_geometry, merge_geometry_and_legacy,
+)
+from pdf2zh.v3.structure_fusion import (
+    FusionReport, StructureFusion,
+)
+from pdf2zh.v3.translation_advisor import (
+    KEEP_ROUTE, TRANSLATE_ROUTE,
+    RouteVerdict, MainlineTranslationRouter, LLMRefiner,
+    TranslationAdvisorReport, TranslationAdvisor,
+    TranslationAdvisorProcessor,
+)
+from pdf2zh.v3.ocr_engine import (
+    OCRBackend, DeterministicOCRBackend,
+    ocr_regions_into_object, ocr_into_pixels,
+)
+from pdf2zh.v3.image_renderer import (
+    render_preserve, render_region_replace,
+    render_overlay, render_full_repaint, render_image_decision,
+)
+from pdf2zh.v3.image_calibrate import (
+    CalibrationSample, CalibrationReport,
+    accuracy, calibrate,
+)
+from pdf2zh.v3.ir_convergence import (
+    DEPRECATED_VIEWS, DEPRECATION_NOTE,
+    deprecated_note, converged_snapshot, snapshot_consistency,
+)
+from pdf2zh.v3.toc_semantics import toc_to_ir_records
+from pdf2zh.v3.mainline_wiring import (
+    run_mainline_channels, run_processor_channels,
+    run_toc_channel, emit_page_ir, run_writeback_gate,
+    run_render_takeover, run_translation_qa_channel,
+)
+from pdf2zh.v3.image_pipeline import (
+    ImageRenderSummary, PlateRenderer, SolidPlateRenderer,
+    PillowPlateRenderer, decide_with_ocr, translate_image_pixels,
+)
+from pdf2zh.v3.render_takeover import (
+    WritebackBlock, plan_writeback_takeover, apply_render_plan,
+)
+from pdf2zh.v3.mainline_qa import (
+    QARecorder, TranslationQAReport, run_translation_qa,
+)
+from pdf2zh.v3.geometry_merge import (
+    AdoptedParagraph, adopt_geometry_cluster,
+)
 
 __all__ = [
     "RawBlock", "RawBlockType", "RawSpan", "PDFParser",
@@ -348,4 +422,46 @@ __all__ = [
     "analyze_image_bytes", "analyze_pdf_images",
     "PreservationAction", "PreservationDecision", "DelegateSpec",
     "ROLE_DEFAULT", "ContentPreservationEngine", "classify_node",
+    # V8.7 — TOC Semantic Rendering
+    "TOCKind", "TOCEntry", "parse_toc_entry",
+    "TOC_TEMPLATES", "toc_structure_prefix",
+    "TOCTranslationPolicy", "compose_toc_title", "render_toc_line",
+    # V9.0 — 单一核心 IR + Node Processors
+    "NodeStage", "STAGE_KEY", "SEMANTIC_KEY", "POLICY_KEY",
+    "ORIGINAL_KEY", "TRANSLATED_KEY", "RENDER_KEY",
+    "get_semantic", "set_policy",
+    "NodeProcessor", "ProcessorRegistry", "default_processor_registry",
+    "TOCSemanticProcessor", "FormulaNodeProcessor", "CodeNodeProcessor",
+    "ImageTranslationProcessor", "ContentPolicyProcessor",
+    "CaptionNodeProcessor", "TableNodeProcessor", "ReferenceNodeProcessor",
+    "DEFAULT_STAGES", "PipelineReport", "DocumentPipeline",
+    "run_semantic_pipeline", "view_as_ir",
+    # V9.0 P1/P2 — Processor 主链路接线与顾问模块
+    "RenderAdvisor", "RoutingDecision",
+    "PATH_TRANSLATE_REFIT", "PATH_SHIFT_DOWN", "PATH_PRESERVE_FLOAT",
+    "PATH_OVERLAY", "PATH_BLOCK",
+    "GeometryMergeReport", "dice_similarity",
+    "rows_from_geometry", "merge_geometry_and_legacy",
+    "FusionReport", "StructureFusion",
+    "KEEP_ROUTE", "TRANSLATE_ROUTE",
+    "RouteVerdict", "MainlineTranslationRouter", "LLMRefiner",
+    "TranslationAdvisorReport", "TranslationAdvisor",
+    "TranslationAdvisorProcessor",
+    "OCRBackend", "DeterministicOCRBackend",
+    "ocr_regions_into_object", "ocr_into_pixels",
+    "render_preserve", "render_region_replace",
+    "render_overlay", "render_full_repaint", "render_image_decision",
+    "CalibrationSample", "CalibrationReport",
+    "accuracy", "calibrate",
+    "DEPRECATED_VIEWS", "DEPRECATION_NOTE",
+    "deprecated_note", "converged_snapshot", "snapshot_consistency",
+    "toc_to_ir_records",
+    "run_mainline_channels", "run_processor_channels",
+    "run_toc_channel", "emit_page_ir", "run_writeback_gate",
+    "run_render_takeover", "run_translation_qa_channel",
+    "ImageRenderSummary", "PlateRenderer", "SolidPlateRenderer",
+    "PillowPlateRenderer", "decide_with_ocr", "translate_image_pixels",
+    "WritebackBlock", "plan_writeback_takeover", "apply_render_plan",
+    "QARecorder", "TranslationQAReport", "run_translation_qa",
+    "AdoptedParagraph", "adopt_geometry_cluster",
 ]

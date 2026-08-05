@@ -126,6 +126,10 @@ class TaskState:
     """V8.3: 主链路产出的 DocumentIR 快照（pageid -> snapshot dict）。"""
     gate_verdicts: Optional[Dict[str, Any]] = None
     """V8.4: 写回门控裁决（pageid -> GatedResult.to_dict()）。"""
+    processor_reports: Optional[Dict[str, Any]] = None
+    """V9.0: Processor 语义通道报告（pageid -> PipelineReport.to_dict()）。"""
+    toc_ir_records: Optional[Dict[str, Any]] = None
+    """V9.0: 目录条目 IR 结构化记录（pageid -> toc_to_ir_records 输出）。"""
     error_message: Optional[str] = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -149,6 +153,8 @@ class TaskState:
             "quality_scores": self.quality_scores,
             "ir_snapshots": self.ir_snapshots,
             "gate_verdicts": self.gate_verdicts,
+            "processor_reports": self.processor_reports,
+            "toc_ir_records": self.toc_ir_records,
             "error_message": self.error_message,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -175,6 +181,9 @@ class ServiceConfig:
     content_preservation: bool = False
     # V8.6: 是否把图片决策回传 task state / v3_output（side-channel）
     emit_preservation: bool = True
+    # V9.0: Processor 层（RAW/SEMANTIC 语义通道 + TOC 结构化记录）挂主链路
+    # v1.6 双轨对比（开/关输出恒等）后默认翻转开
+    processor_channels: bool = True
     # P1: 评测 <90 分自动留存的报告目录（report_dir/<basename>/）
     evaluation_report_dir: str = ""
     output_dir: str = ""
@@ -430,6 +439,7 @@ class RuntimeService:
             flags.relink_links = self.config.relink_links
             flags.use_v4_image_engine = self.config.image_engine
             flags.use_v4_content_preservation = self.config.content_preservation
+            flags.use_v4_processor_channels = self.config.processor_channels
             if not self.config.use_v4_engine:
                 flags.use_v4_engine = False
                 flags.use_v4_translator = flags.use_v4_translator or False
@@ -585,6 +595,7 @@ class RuntimeService:
                 image_engine=self.config.image_engine,
                 content_preservation=self.config.content_preservation,
                 emit_preservation=self.config.emit_preservation,
+                processor_channels=self.config.processor_channels,
                 **request.extra_config,
             )
         except Exception as tx_exc:
@@ -684,6 +695,9 @@ class RuntimeService:
                 diag_extra = f"Gate {len(blocked)} page(s) blocked write-back: {','.join(blocked)}"
                 diagnostic_summary = f"{diagnostic_summary} | {diag_extra}" \
                     if diagnostic_summary else diag_extra
+        # V9.0: Processor 语义通道（处理器报告 + TOC 结构化记录）回传 task state
+        processor_reports = v3_output.get("processor_reports") or None
+        toc_ir_records = v3_output.get("toc_ir_records") or None
 
         self._store.update_task(
             task_id, status=TaskStage.COMPLETED.value, progress=100.0,
@@ -693,6 +707,8 @@ class RuntimeService:
             quality_scores=quality_scores,
             ir_snapshots=ir_snapshots,
             gate_verdicts=gate_verdicts,
+            processor_reports=processor_reports,
+            toc_ir_records=toc_ir_records,
             result_zip=dual_path if os.path.exists(dual_path) else mono_path,
             preview_path=dual_path if os.path.exists(dual_path) else mono_path,
             message="Completed (Legacy)",

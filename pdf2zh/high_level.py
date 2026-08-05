@@ -105,12 +105,18 @@ def translate_patch(
     # 并行模式：由调用方预创建每页的新内容流 xref（保证主进程与 worker 进程编号一致）
     page_xref_map: dict = None,
     apply_page_xrefs: bool = True,
-    # V8.3/V8.4: 主链路 IR 产出 + 写回前重排版门控
+# V8.3/V8.4: 主链路 IR 产出 + 写回前重排版门控
     emit_ir: bool = False,
     relayout_gate: object = None,
     v3_output: dict = None,
-    # V8.5: 采集逐篇段落源/目标几何（link_remap 桥接数据）
+# V8.5: 采集逐篇段落源/目标几何（link_remap 桥接数据）
     link_remap: bool = False,
+    # V9.0: Processor 层语义通道（RAW/SEMANTIC + TOC 结构化记录，side-channel）
+    processor_channels: bool = True,
+    # V8.3 后半程/阶段六八: 渲染接管计划 + 翻译 QA + 双轨聚类接管（side-channel）
+    render_takeover: bool = False,
+    translation_qa: bool = False,
+    geometry_cluster: bool = False,
 
     **kwarg: Any,
 ) -> None:
@@ -144,6 +150,15 @@ def translate_patch(
     # （translate_stream 经 **dict(locals()) 传入 relink_links，worker 串行回退也一致）
     device.link_remap = bool(kwarg.get("relink_links", link_remap))
     device.gate_records_by_page = {}
+    # V9.0: Processor 语义通道开关（converter 无 __init__ 参数，动态接线）
+    device.processor_channels = bool(processor_channels)
+    # V8.3 后半程/阶段六八: side-channel 开关 + 采集容器（动态接线）
+    device.render_takeover = bool(render_takeover)
+    device.translation_qa = bool(translation_qa)
+    device.geometry_cluster = bool(geometry_cluster)
+    device.geometry_adoptions = {}
+    device.render_plans = {}
+    device.translation_qa_records = {}
 
     assert device is not None
     obj_patch = {}
@@ -210,11 +225,17 @@ def translate_patch(
             interpreter.process_page(page)
 
     device.close()
-    # V8.3/V8.4/V8.5: 主链路 side-channel 数据回传（IR 快照 + 门控裁决 + 超链接重定位桥）
+    # V8.3–V9.0: 主链路 side-channel 数据回传（IR 快照 + 门控裁决 +
+    # 超链接重定位桥 + Processor 语义通道）
     if v3_output is not None:
         v3_output["ir_snapshots"] = dict(getattr(device, "ir_snapshots", {}))
         v3_output["gate_verdicts"] = dict(getattr(device, "gate_verdicts", {}))
         v3_output["link_records"] = dict(getattr(device, "gate_records_by_page", {}))
+        v3_output["processor_reports"] = dict(getattr(device, "processor_reports", {}))
+        v3_output["toc_ir_records"] = dict(getattr(device, "toc_ir_records", {}))
+        v3_output["render_plans"] = dict(getattr(device, "render_plans", {}))
+        v3_output["translation_qa_records"] = dict(getattr(device, "translation_qa_records", {}))
+        v3_output["geometry_adoptions"] = dict(getattr(device, "geometry_adoptions", {}))
     return obj_patch
 
 
@@ -238,7 +259,16 @@ def _relink_translated_doc(doc_zh, v3_output: dict = None) -> dict:
         logger.warning("link_remap import failed: %s", str(e)[:120])
         return empty
     try:
-        return remap_document_links(doc_zh, records, page_offset=0)
+        # v1.6 P1：真实翻译产物回归 —— gate 记录为 pdfminer 坐标系（y 向上），
+        # fitz link /Rect 为左上原点（y 向下），需按页高翻转才能命中锚点。
+        heights = {}
+        for pno in range(doc_zh.page_count):
+            try:
+                heights[pno] = float(doc_zh[pno].rect.height)
+            except Exception:
+                continue
+        return remap_document_links(doc_zh, records, page_offset=0,
+                                    y_flip=True, page_heights=heights)
     except Exception as e:
         logger.warning("link_remap failed at doc level: %s", str(e)[:160])
         return empty
@@ -249,12 +279,15 @@ def _collect_preservation_side_channel(
     v3_output: dict = None,
     image_engine: bool = False,
     content_preservation: bool = False,
+    image_render: bool = False,
 ) -> dict:
     """V8.6: 图片翻译决策 + 内容保护决策的 side-channel 采集。
 
     只把决策回填到 ``v3_output["preservation_records"]``，**不修改任何页面
     内容/像素/链接**，也不影响 legacy 主链路渲染。所有异常仅在 debug 日志
     可见（side-channel 纪律，与 V8.3/V8.4 一致）。
+    ``image_render=True`` 时额外对每页栅格跑一遍完整图片渲染管线
+    （OCR→决策→翻译→渲染），把摘要写入 ``v3_output["image_render_records"]``。
     """
     empty = {"pages": 0, "objects": 0, "translated": 0, "preserved": 0,
              "overlay": 0}
@@ -298,10 +331,47 @@ def _collect_preservation_side_channel(
         if v3_output is not None:
             v3_output["preservation_records"] = rec
             v3_output["preservation_stats"] = stats
+        if image_render:
+            render_records = _render_page_previews(doc_zh)
+            if v3_output is not None:
+                v3_output["image_render_records"] = render_records
         return stats
     except Exception as e:
         logger.debug("preservation collection failed: %s", str(e)[:160])
         return empty
+
+
+def _render_page_previews(doc_zh) -> dict:
+    """V8.6 P1: 对每页栅格跑一遍图片渲染管线，返回逐页渲染摘要。
+
+    只产摘要（渲染模式/翻译区域数/字节数），不写回 PDF —— 用于验证
+    OCR→决策→翻译→渲染后端在真实页面上可跑通。失败页跳过（side-channel）。
+    """
+    import numpy as _np
+    out: dict = {}
+    try:
+        from pdf2zh.v3.image_pipeline import translate_image_pixels
+        for pno in range(doc_zh.page_count):
+            try:
+                page = doc_zh[pno]
+                pix = page.get_pixmap(matrix=None)
+                px = _np.frombuffer(pix.samples, dtype=_np.uint8).reshape(
+                    pix.height, pix.width, pix.n)
+                rgb = px[..., :3] if pix.n >= 3 else px
+                out_bytes, summ = translate_image_pixels(
+                    rgb, object_id=f"p{pno}_render", page_num=pno)
+                out[str(pno)] = {
+                    "mode": summ.render_mode,
+                    "translated": summ.regions_translated,
+                    "total": summ.regions_total,
+                    "bytes": len(out_bytes),
+                }
+            except Exception as e:  # noqa: BLE001
+                logger.debug("page preview render failed p%s: %s", pno,
+                             str(e)[:120])
+    except Exception as e:  # noqa: BLE001
+        logger.debug("image render channel failed: %s", str(e)[:120])
+    return out
 
 
 def _apply_bookmarks(
@@ -401,6 +471,13 @@ def translate_stream(
     image_engine: bool = False,
     content_preservation: bool = False,
     emit_preservation: bool = True,
+    # V9.0: Processor 层语义通道（RAW/SEMANTIC + TOC 结构化记录；默认开）
+    processor_channels: bool = True,
+    # V8.3 后半程/阶段六八: 渲染接管计划 + 翻译 QA + 双轨聚类接管（side-channel）
+    render_takeover: bool = False,
+    translation_qa: bool = False,
+    geometry_cluster: bool = False,
+    image_render: bool = False,
 
     **kwarg: Any,
 ):
@@ -584,6 +661,7 @@ def translate_stream(
                 doc_zh, v3_output,
                 image_engine=image_engine,
                 content_preservation=content_preservation,
+                image_render=image_render,
             )
             if pres_stats and pres_stats["objects"]:
                 logger.info(

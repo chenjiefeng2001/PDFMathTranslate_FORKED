@@ -37,15 +37,29 @@ def _new_gate_record(x0, y, x1, size, text, translated, toc_mode,
 
 
 def run_mainline_channels(conv, ltpage) -> None:
-    """V8.3/V8.4/V8.5 主链路 side-channel 统一入口。
+    """V8.3–V9.0 主链路 side-channel 统一入口。
 
-    IR 快照 + 写回门控 + （可选）超链接重定位桥接数据。所有通道严格
-    side-channel：失败只写入 debug 日志，永不干扰主链路渲染。
+    IR 快照 + 写回门控 + （可选）超链接重定位桥接数据 + Processor
+    语义通道 + TOC 结构化记录。所有通道严格 side-channel：失败只写入
+    debug 日志，永不干扰主链路渲染。
     """
     if conv.emit_ir:
         emit_page_ir(conv, ltpage)
     if conv.relayout_gate and conv._gate_records:
         run_writeback_gate(conv, ltpage)
+    # V9.0: Processor 层挂主链路（RAW/SEMANTIC 语义通道，结果只存报告）
+    if getattr(conv, "processor_channels", False):
+        run_processor_channels(conv, ltpage)
+    # V9.0: 目录条目 → IR 结构化记录（读 gate 记录，不触碰 converter）
+    if getattr(conv, "processor_channels", False) and conv._gate_records:
+        run_toc_channel(conv, ltpage)
+    # V8.3 后半程: gate 判据驱动的渲染路径切换（决策只存 render_plans）
+    if getattr(conv, "render_takeover", False) and conv._gate_records \
+            and conv.relayout_gate:
+        run_render_takeover(conv, ltpage)
+    # 阶段六/八: 置信度路由 + Review 复检 QA（读 gate 记录，不触碰渲染）
+    if getattr(conv, "translation_qa", False) and conv._gate_records:
+        run_translation_qa_channel(conv, ltpage)
     # V8.5: 超链接重定位需要逐段落的源/目标几何 —— 按页存档（页面级重置为
     # 空列表，_gate_records 在本页耗尽，存档需在 run_writeback_gate 之后、
     # _gate_records 尚未被下一页覆盖时立即做）。
@@ -85,6 +99,89 @@ def emit_page_ir(conv, ltpage) -> None:
         conv.ir_snapshots[pageid] = snapshot_ir(ir, title=f"page_{pageid}")
     except Exception as e:
         log.debug("V8.3 IR emission failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def run_processor_channels(conv, ltpage) -> None:
+    """V9.0 P1：把 Processor 层（RAW/SEMANTIC）挂到主链路字符流上。
+
+    同一份 LTChar → Geometry 段落 → DocumentGraph（全 PARAGRAPH 起点，
+    交给默认注册表做 TOC/公式/代码/图片/表格/引用/题注语义化），运行
+    RAW+SEMANTIC 两阶段。结果只进 ``conv.processor_reports[pageid]``
+    （PipelineReport.to_dict）+ 语义类型计数，绝不回写 legacy 渲染。
+    """
+    try:
+        from pdf2zh.v3.geometry import GeometryEngine, chars_from_ltpage
+        from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType
+        from pdf2zh.v3.document_pipeline import run_semantic_pipeline
+
+        pageid = getattr(ltpage, "pageid", 0)
+        chars = chars_from_ltpage(ltpage, page_num=pageid)
+        if not chars:
+            return
+        page = GeometryEngine().build_page(chars, page_num=pageid)
+        graph = DocumentGraph()
+        for i, para in enumerate(page.reading_order()):
+            graph.add_node(DocumentNode(
+                id=f"p{pageid}_{i}",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(para.x0, para.y0, para.x1, para.y1),
+                text=para.text,
+                page_num=pageid,
+                font_size=getattr(para, "avg_char_size", 0.0) or 0.0,
+                metadata={"index": i, "source": "geometry"},
+            ))
+        report = run_semantic_pipeline(graph)
+        reports = getattr(conv, "processor_reports", {})
+        reports[pageid] = (report.to_dict() if hasattr(report, "to_dict")
+                           else {"ok": report.ok(), "errors": list(report.errors)})
+        conv.processor_reports = reports
+        # 语义类型分布（轻量侧信道，供报告/QA 用）
+        type_counts = {}
+        for n in graph.nodes:
+            key = n.node_type.value if hasattr(n.node_type, "value") \
+                else str(n.node_type)
+            type_counts[key] = type_counts.get(key, 0) + 1
+        counts = getattr(conv, "processor_type_counts", {})
+        counts[pageid] = type_counts
+        conv.processor_type_counts = counts
+    except Exception as e:
+        log.debug("V9.0 processor channels failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def run_toc_channel(conv, ltpage) -> None:
+    """V9.0 P1：gate 记录里的目录行 → IR 结构化 TOC 记录。
+
+    复用 toc_semantics 解析 + toc_to_ir_records，把 ``(entry, remainder,
+    translated_title)`` 三字段契约存进 ``conv.toc_ir_records[pageid]``。
+    目录行的 translated 文本即 TOCPolicy 渲染后的译文行。converter 的
+    gate 记录只保留标题余量（号段被剥离），号段在组合译文中 ——
+    PLAIN 时回退解析组合译头（"第1节 …"）复原 kind/number。
+    """
+    try:
+        from pdf2zh.v3.toc_semantics import parse_toc_entry, toc_to_ir_records
+        pageid = getattr(ltpage, "pageid", 0)
+        triples = []
+        for rec in getattr(conv, "_gate_records", []):
+            if rec.get("node_type") != "toc":
+                continue
+            text = rec.get("text") or ""
+            entry = parse_toc_entry(text)
+            if not entry.matched:
+                composed = rec.get("translated") or ""
+                fallback = parse_toc_entry(composed)
+                if fallback.matched:
+                    entry = fallback
+            triples.append((entry, text, rec.get("translated", "")))
+        records = toc_to_ir_records(triples, page_num=pageid)
+        if not records:
+            return
+        stored = getattr(conv, "toc_ir_records", {})
+        stored[pageid] = records
+        conv.toc_ir_records = stored
+    except Exception as e:
+        log.debug("V9.0 toc channel failed for page %s: %s",
                   getattr(ltpage, "pageid", 0), e)
 
 
@@ -136,4 +233,78 @@ def run_writeback_gate(conv, ltpage) -> None:
             )
     except Exception as e:
         log.debug("V8.4 gate failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def run_render_takeover(conv, ltpage) -> None:
+    """V8.3 后半程: gate 判据驱动的渲染路径切换（side-channel 决策）。
+
+    把 gate 裁决 + 写回块合并为逐块渲染路由（RenderAdvisor.plan），并给出
+    应用后的写回块清单（apply_render_plan）。只存 ``conv.render_plans``，
+    不触碰 legacy 渲染 —— 消费端（迁移闭环）决定是否应用。
+    """
+    try:
+        from pdf2zh.v3.render_takeover import (
+            WritebackBlock, apply_render_plan, plan_writeback_takeover,
+        )
+        pageid = getattr(ltpage, "pageid", 0)
+        blocks = [
+            WritebackBlock(
+                node_id=f"p{pageid}_{i}",
+                text=rec["text"],
+                translated=rec.get("translated", rec["text"]),
+                x=rec["x"], y=rec["y"],
+                width=max(1.0, rec["width"]),
+                height=max(1.0, rec["height"]),
+                page=pageid, font_size=rec.get("size") or 12.0,
+                node_type=rec.get("node_type", "paragraph"),
+            )
+            for i, rec in enumerate(conv._gate_records)
+        ]
+        if not blocks:
+            return
+        verdict = conv.gate_verdicts.get(pageid)
+        plan = plan_writeback_takeover(blocks, verdict=verdict)
+        applied = apply_render_plan(plan, blocks)
+        plans = getattr(conv, "render_plans", {})
+        plans[pageid] = {
+            "plan": plan,
+            "applied_count": len(applied),
+            "dropped_count": len(blocks) - len(applied),
+        }
+        conv.render_plans = plans
+    except Exception as e:
+        log.debug("V8.3 render takeover failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def run_translation_qa_channel(conv, ltpage) -> None:
+    """阶段六/八 P2: gate 记录逐段「置信度路由 + Review 复检」QA。
+
+    只产出 ``conv.translation_qa_records[pageid]``（逐段 route/confidence/
+    issues/action）与 QA 标记（kind=translation-qa），不触碰渲染。
+    """
+    try:
+        from pdf2zh.v3.mainline_qa import run_translation_qa
+        pageid = getattr(ltpage, "pageid", 0)
+        records = [
+            {"node_id": f"p{pageid}_{i}", "text": rec["text"],
+             "translated": rec.get("translated", rec["text"])}
+            for i, rec in enumerate(conv._gate_records)
+        ]
+        if not records:
+            return
+        report = run_translation_qa(records)
+        qa = getattr(conv, "translation_qa_records", {})
+        qa[pageid] = report.to_dict()
+        conv.translation_qa_records = qa
+        if report.action_retranslate:
+            conv._overflow_flags.append({
+                "page": pageid,
+                "kind": "translation-qa",
+                "issue": f"{report.action_retranslate} segments need retranslate",
+                "text": "",
+            })
+    except Exception as e:
+        log.debug("translation QA failed for page %s: %s",
                   getattr(ltpage, "pageid", 0), e)

@@ -8,12 +8,16 @@ document_ir → snapshot_ir），落盘为 ``<stem>.ir.json`` + ``manifest.json`
 CLI::
 
     python -m pdf2zh.corpus_baseline build <pdf_dir> <out_dir> [--max-pages N]
+    python -m pdf2zh.corpus_baseline synthetic <out_dir> [--count N] [--converged]
     python -m pdf2zh.corpus_baseline diff <baseline_a> <baseline_b>
 
 Library::
 
-    from pdf2zh.corpus_baseline import build_corpus_baseline, diff_corpora
+    from pdf2zh.corpus_baseline import (
+        build_corpus_baseline, build_synthetic_corpus, diff_corpora,
+    )
     manifest = build_corpus_baseline("pdfs/", "baseline/")
+    syn_manifest = build_synthetic_corpus("baseline_syn/", count=100)
     diffs = diff_corpora("baseline/", "baseline_new/")
 """
 from __future__ import annotations
@@ -26,6 +30,7 @@ import sys
 from typing import Any, Dict, List, Optional, Sequence
 
 from pdf2zh.evaluate import build_profile
+from pdf2zh.v3.ir_convergence import converged_snapshot
 from pdf2zh.v3.migration_diff import snapshot_ir
 from pdf2zh.v3.structure import StructureClassifier, to_document_ir
 
@@ -82,6 +87,42 @@ def build_corpus_baseline(pdf_dir: str, out_dir: str,
                 "stem": stem,
                 "error": str(e)[:200],
             })
+    manifest_path = os.path.join(out_dir, "manifest.json")
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+    return manifest
+
+
+def build_synthetic_corpus(out_dir: str, count: int = 100, seed: int = 42,
+                           title_prefix: str = "synthetic",
+                           converged: bool = False) -> List[Dict[str, Any]]:
+    """合成语料 IR 基线（V8.7 P2 扩展）：确定性、无需真实 PDF。
+
+    ``converged=True`` 时经 V9.0 唯一视图出口（IRBuilder.from_graph）产出
+    快照，与真实 PDF 基线同构，可直接 ``diff`` 对比。
+    """
+    os.makedirs(out_dir, exist_ok=True)
+    from pdf2zh.v3.migration_diff import SyntheticCorpus
+    corpus = SyntheticCorpus(count=count, seed=seed)
+    manifest: List[Dict[str, Any]] = []
+    for i in range(count):
+        title = f"{title_prefix}_{i:03d}"
+        snapshot = corpus.snapshot(i, title=title)
+        if converged:
+            g = corpus.make_document_graph(i, title=title)
+            snapshot = converged_snapshot(g, title=title)
+        out_path = os.path.join(out_dir, f"{title}.ir.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(snapshot, f, ensure_ascii=False, indent=2)
+        manifest.append({
+            "file": f"{title}.ir.json",
+            "stem": title,
+            "pages": 1,
+            "chars": 0,
+            "node_count": snapshot.get("node_count", 0),
+            "snapshot": out_path,
+            "source": "synthetic",
+        })
     manifest_path = os.path.join(out_dir, "manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
@@ -148,6 +189,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_build.add_argument("out_dir")
     p_build.add_argument("--max-pages", type=int, default=None)
     p_build.add_argument("--target-lang", default="zh-CN")
+    p_syn = sub.add_parser("synthetic", help="build deterministic synthetic IR baseline")
+    p_syn.add_argument("out_dir")
+    p_syn.add_argument("--count", type=int, default=100)
+    p_syn.add_argument("--seed", type=int, default=42)
+    p_syn.add_argument("--prefix", default="synthetic")
+    p_syn.add_argument("--converged", action="store_true",
+                       help="经 V9.0 唯一视图出口（IRBuilder.from_graph）产出")
     p_diff = sub.add_parser("diff", help="compare two IR baselines")
     p_diff.add_argument("baseline_a")
     p_diff.add_argument("baseline_b")
@@ -163,6 +211,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         print(f"built {len(ok)} snapshots into {args.out_dir}")
         if failed:
             print(f"failed: {len(failed)} ({[m['stem'] for m in failed]})")
+        return 0
+    if args.command == "synthetic":
+        manifest = build_synthetic_corpus(
+            args.out_dir, count=args.count, seed=args.seed,
+            title_prefix=args.prefix, converged=args.converged,
+        )
+        ok = [m for m in manifest if "error" not in m]
+        print(f"built {len(ok)} synthetic snapshots into {args.out_dir}")
         return 0
     diffs = diff_corpora(args.baseline_a, args.baseline_b)
     inconsistent = [d for d in diffs if not d.get("consistent", False)

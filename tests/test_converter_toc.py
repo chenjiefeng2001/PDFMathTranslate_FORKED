@@ -168,5 +168,50 @@ class TestTocLineRendering(TocRenderBase):
         self.assertNotIn("pdf2zh-qa-overflow", ops)
 
 
+class TestTocSemanticRendering(TocRenderBase):
+    """V8.7：结构词（Chapter/Section/Appendix…）走模板本地渲染，不送翻译器。"""
+
+    def test_structure_only_title_not_sent_to_translator(self):
+        # "Chapter 1" 无剩余描述 → 完全不调用翻译器，本地渲染为 第1章
+        page = LTPage(1, (0, 0, 600, 800))
+        add_tight(page, 50, 648, "Chapter1....42")
+        conv, translator = self.build_converter(page, translations=[])
+        ops = conv.receive_layout(page)
+        self.assertEqual(translator.translate.call_args_list, [])
+        # 结构前缀本地渲染在行首（第1章 = 3 个字形）
+        self.assertIn("1 50.0000 660.0000 Tm [<000100010001>] TJ", ops)
+        # 页码 "42" 保留、未翻译，右对齐渲染在行末
+        self.assertIn("[<00010001>] TJ ET", ops)
+
+    def test_section_remainder_sent_and_composed(self):
+        # 只把剩余描述标题送翻译器，结构词 "Section 3" 由模板渲染
+        page = LTPage(1, (0, 0, 600, 800))
+        add_tight(page, 40, 648, "Section3ExperimentalSetup....42")
+        conv, translator = self.build_converter(page, translations=["实验设置"])
+        ops = conv.receive_layout(page)
+        args = translator.translate.call_args_list
+        self.assertEqual(len(args), 1)
+        self.assertEqual(args[0][0][0], "ExperimentalSetup")
+        # 组合标题渲染在行首：第3节 实验设置 = 8 个字形（第/3/节/空格/实/验/设/置）
+        self.assertIn("1 40.0000 660.0000 Tm [<00010001000100010001000100010001>] TJ", ops)
+
+    def test_appendix_local_render(self):
+        page = LTPage(1, (0, 0, 600, 800))
+        add_tight(page, 50, 648, "AppendixA....42")
+        conv, translator = self.build_converter(page, translations=[])
+        conv.receive_layout(page)
+        self.assertEqual(translator.translate.call_args_list, [])
+
+    def test_plain_title_still_fullsent_to_translator(self):
+        # 非结构标题保持既有路径：整条标题送翻译器
+        page = LTPage(1, (0, 0, 600, 800))
+        add_tight(page, 50, 648, "Intro....3")
+        conv, translator = self.build_converter(page, translations=["介绍"])
+        conv.receive_layout(page)
+        args = translator.translate.call_args_list
+        self.assertEqual(len(args), 1)
+        self.assertEqual(args[0][0][0], "Intro")
+
+
 if __name__ == "__main__":
     unittest.main()
