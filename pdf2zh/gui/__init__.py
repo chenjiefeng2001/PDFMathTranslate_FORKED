@@ -6,6 +6,8 @@ Replaces the 909-line gui.py God Object with a clean MVC-like structure:
     state.py       — TaskState, global store, thread-safe state mgmt
     logger.py      — Thread-aware log handler (replaces _ThreadAwareLogHandler)
     worker.py      — Background translation via RuntimeService
+    i18n.py        — Bilingual (zh/en) copy dictionary & stage labels
+    styles.py      — Design tokens, theme runtime, session layer
     components/    — UI panels
       ├── upload_panel.py
       ├── config_panel.py

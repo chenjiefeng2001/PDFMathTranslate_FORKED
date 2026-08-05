@@ -2,7 +2,7 @@
 
 Implements the "Worker publishes events -> EventBus -> UI consumes events"
 architecture from the pdf2zh-next roadmap. The UI no longer re-reads the whole
-``TaskState`` on every Timer tick; instead the worker publishes *changes* and
+``TaskState`` on every sync tick; instead the worker publishes *changes* and
 the UI applies targeted (delta) updates.
 
 Design principles (from the roadmap):
@@ -12,12 +12,12 @@ Design principles (from the roadmap):
   * The ``EventBus`` is the single integration point between the Worker
     (producer) and the UI / any other consumer.
   * Producers never know who is listening (Observer pattern / Dependency
-    Inversion), so the same backend can later drive WebSocket/SSE or a
-    React/Vue frontend without changing the worker.
+    Inversion), so the same backend can drive the SSE transport (see
+    ``notifier.py``) or a React/Vue frontend without changing the worker.
 
-The Gradio Timer is reduced to a *transport*: each tick calls
-``EventBus.events_since(task_id, last_seq)`` to fetch only NEW events and
-re-renders only the affected components (delta update).
+The UI transport pulls events with ``EventBus.events_since(task_id, last_seq)``
+to fetch only NEW events and re-renders only the affected components (delta
+update); it is woken by server push (SSE), never by a polling timer.
 """
 
 from __future__ import annotations
@@ -208,7 +208,7 @@ class EventBus:
       appends it to the task's history (a bounded ``deque``).
     * Subscribers may filter by event type and/or task id.
     * ``events_since(task_id, last_seq)`` gives consumers a cheap, idempotent
-      delta cursor -- the exact primitive the Gradio Timer transport needs.
+      delta cursor -- the exact primitive the SSE wake transport needs.
     """
 
     def __init__(self, max_history_per_task: int = 500) -> None:
@@ -245,7 +245,6 @@ class EventBus:
                     logger.exception("Event subscriber error for %s", event.event_type)
         return event
 
-
     # ── subscribe side (UI / any consumer) ──────────────────────────────────
 
     def subscribe(
@@ -279,8 +278,6 @@ class EventBus:
     def subscriber_count(self) -> int:
         with self._lock:
             return len(self._subscriptions)
-
-
 
     # ── delta cursors (UI) ───────────────────────────────────────────────────
 

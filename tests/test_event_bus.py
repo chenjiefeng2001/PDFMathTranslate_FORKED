@@ -261,7 +261,6 @@ class TestEventBus:
         assert len(set(seqs)) == 4 * 150  # no duplicate / lost sequences
 
 
-
 # =============================================================================
 # 3. RuntimeService listener API (Worker -> EventBus bridge hook)
 # =============================================================================
@@ -379,8 +378,6 @@ class TestTaskEventBridge:
         assert "TaskStarted" not in types
         assert "TaskProgressChanged" in types
 
-
-
     def test_completed_publishes_terminal_and_output_events(self, tmp_path):
         from pdf2zh.services.runtime_service import (
             TaskProgressEvent,
@@ -482,17 +479,17 @@ _NOOP = {"__type__": "update"}
 
 
 class TestDeltaSync:
-    def test_sync_status_no_task_returns_idle_19(self):
+    def test_sync_status_no_task_returns_idle_20(self):
         import pdf2zh.gui.app as app
 
-        assert len(app.sync_status("")) == 19
-        assert len(app._idle_updates()) == 19
+        assert len(app.sync_status("")) == 20
+        assert len(app._idle_updates()) == 20
 
     def test_drain_events_arity_and_idle_cursor(self):
         import pdf2zh.gui.app as app
 
         out, consumed = app.drain_events("", ("", 0))
-        assert len(out) == 19
+        assert len(out) == 20
         assert consumed == ("", 0)
 
     def test_drain_events_untouched_components_are_noop(self):
@@ -511,10 +508,10 @@ class TestDeltaSync:
         assert "value" in out[0]
         assert "35.0%" in str(out[0]["value"])
         # untouched components stay no-op patches
-        assert out[10] == _NOOP  # result_selector
-        assert out[11] == _NOOP  # download_single
-        assert out[12] == _NOOP  # download_zip
-        assert out[15] == _NOOP  # task_id unchanged
+        assert out[11] == _NOOP  # result_selector
+        assert out[12] == _NOOP  # download_single
+        assert out[13] == _NOOP  # download_zip
+        assert out[16] == _NOOP  # task_id unchanged
 
     def test_drain_events_second_drain_is_noop(self):
         import pdf2zh.gui.app as app
@@ -561,17 +558,17 @@ class TestDeltaSync:
         assert consumed[0] == "t1"
 
         # result selector now offers the generated files
-        sel = out[10]
+        sel = out[11]
         assert sel.get("choices") == ["doc-mono.pdf", "doc-dual.pdf"]
         assert sel.get("visible") is True
         # downloads reveal the produced artifacts
-        assert out[11].get("value") == str(mono)
-        assert out[12].get("value") == str(dual)
+        assert out[12].get("value") == str(mono)
+        assert out[13].get("value") == str(dual)
         # preview iframe points at the dual output
-        assert "pdf-iframe-container" in str(out[14].get("value"))
-        assert "doc-dual.pdf" in str(out[14].get("value"))
+        assert "pdf-iframe-container" in str(out[15].get("value"))
+        assert "doc-dual.pdf" in str(out[15].get("value"))
         # task id resolved into the UI state
-        assert out[15] == "t1"
+        assert out[16] == "t1"
         # translate button re-enabled at completion
         assert out[2].get("interactive") is True
 
@@ -582,9 +579,40 @@ class TestDeltaSync:
         EVENT_BUS.publish(TaskStarted(task_id="t1"))
         out, consumed = app.drain_events("t1", ("old_task", 3))
         # full re-render: task id populated, busy buttons locked
-        assert out[15] == "t1"
+        assert out[16] == "t1"
         assert out[2].get("interactive") is False
         assert consumed[0] == "t1"
+
+    def test_progress_event_does_not_touch_status_badge(self):
+        """Flicker guard: high-frequency progress events must only re-render
+        the progress bar. The badge (with its pulse animation) is tied to the
+        stage; re-setting it per progress event would restart its animation
+        and cause visible periodic flicker."""
+        import pdf2zh.gui.app as app
+
+        _register_gui_task("t1")
+        EVENT_BUS.publish(
+            TaskProgressChanged(task_id="t1", progress=35.0, stage="translating")
+        )
+        out, _ = app.drain_events("t1", ("t1", 0))
+        # badge (last sync slot) untouched -> no DOM churn / animation restart
+        assert out[19] == _NOOP
+        assert "value" in out[0]
+        assert "35.0%" in str(out[0]["value"])
+
+    def test_stage_change_renders_badge_once(self):
+        """The badge IS re-rendered when the stage itself changes."""
+        import pdf2zh.gui.app as app
+
+        _register_gui_task("t1")
+        EVENT_BUS.publish(
+            TaskStageChanged(
+                task_id="t1", stage="translating", prev_stage="parsing", progress=50.0
+            )
+        )
+        out, _ = app.drain_events("t1", ("t1", 0))
+        assert out[19] != _NOOP
+        assert "运行中 / Running" in str(out[19]["value"])
 
     def test_control_handlers_publish_events(self):
         import pdf2zh.gui.app as app
@@ -613,4 +641,3 @@ class TestDeltaSync:
             assert (
                 cls.__name__ in app._EVENT_RENDERERS
             ), f"no renderer for {cls.__name__}"
-

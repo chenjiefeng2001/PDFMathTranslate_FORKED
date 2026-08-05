@@ -465,7 +465,6 @@ class TestComponentInterfaces:
         assert callable(create_preview_panel)
 
 
-
 # =============================================================================
 # 9. App Shell / Design System (styles.py) Tests
 # =============================================================================
@@ -478,6 +477,50 @@ class TestStylesModule:
         )
         assert set(LIGHT_TOKENS) == set(DARK_TOKENS)
         assert set(TOKEN_KEYS) <= set(LIGHT_TOKENS)
+
+    def test_token_namespaces_are_ontological(self):
+        """shadow/radius/spacing/typography/motion must NOT live under --color-*."""
+        from pdf2zh.gui.styles import UI_CSS
+        assert "--radius-sm" in UI_CSS
+        assert "--shadow-sm" in UI_CSS
+        assert "--space-1" in UI_CSS
+        assert "--text-base" in UI_CSS
+        assert "--motion-fast" in UI_CSS
+        assert "--brand-gradient" in UI_CSS
+        assert "--color-radius" not in UI_CSS
+        assert "--color-shadow" not in UI_CSS
+
+    def test_gradio_dark_vars_derived_from_tokens(self):
+        """Gradio dark overrides are a single-source derivation of DARK_TOKENS."""
+        from pdf2zh.gui.styles import (
+            DARK_TOKENS, GRADIO_DARK_VARS, build_gradio_dark_vars,
+        )
+        assert GRADIO_DARK_VARS == build_gradio_dark_vars(DARK_TOKENS)
+        # no unresolved "{token}" placeholders may leak into the CSS
+        assert not any("{" in v for v in GRADIO_DARK_VARS.values())
+
+    def test_component_css_uses_token_vars_only(self):
+        from pdf2zh.gui.styles import COMPONENT_CSS, LIGHT_TOKENS
+        assert "var(--color-" in COMPONENT_CSS
+        assert "var(--radius-" in COMPONENT_CSS
+        # hex colors may only appear inside the token palettes / gradio maps
+        import re
+        hexes = re.findall(r"#[0-9a-fA-F]{3,8}\b", COMPONENT_CSS)
+        assert hexes == []
+
+    def test_css_vars_all_defined_by_tokens(self):
+        """Every var() referenced in the component CSS is emitted by tokens."""
+        import re
+        from pdf2zh.gui.styles import COMPONENT_CSS, UI_CSS, build_token_css, LIGHT_TOKENS
+        vars_used = set(re.findall(r"var\((--[a-z0-9-]+)\)", COMPONENT_CSS))
+        tokens = {
+            m.rstrip(":")
+            for m in re.findall(r"--[a-z0-9-]+:", build_token_css(LIGHT_TOKENS))
+        }
+        assert vars_used <= tokens
+        # no legacy --color-shadow-* / --color-radius-* namespaces may remain
+        assert "--color-shadow" not in UI_CSS
+        assert "--color-radius" not in UI_CSS
 
     def test_dark_mode_selector_in_ui_css(self):
         from pdf2zh.gui.styles import UI_CSS
@@ -504,6 +547,15 @@ class TestStylesModule:
         assert "status-idle" in build_status_badge_html("idle")
         assert "v4 pipeline" in build_status_badge_html("translating", "v4 pipeline")
 
+    def test_i18n_copy_parity(self):
+        """Every copy entry has both languages; every stage label is covered."""
+        from pdf2zh.gui.i18n import T, STAGE_LABELS, B
+        for key, (zh, en) in T.items():
+            assert zh and en, key
+            assert " / " in B(key)
+        for status, (zh, en) in STAGE_LABELS.items():
+            assert zh and en, status
+
 
 # =============================================================================
 # 10. StepBar Pipeline Tests (progress_panel.py)
@@ -516,6 +568,13 @@ class TestStepBar:
         html = build_stepbar_html("", 0.0)
         assert "stepbar" in html
         assert html.count("step-item") == 4  # four stages
+
+    def test_stepbar_is_aria_annotated(self):
+        from pdf2zh.gui.components.progress_panel import build_stepbar_html
+        html = build_stepbar_html("translating", 40.0)
+        assert 'role="list"' in html
+        assert 'role="listitem"' in html
+        assert 'aria-current="step"' in html
 
     def test_active_stage(self):
         from pdf2zh.gui.components.progress_panel import build_stepbar_html
@@ -541,6 +600,12 @@ class TestStepBar:
         assert "progress-error" in err
         run = build_progress_bar_html("translating", 33.0, "working")
         assert "33.0%" in run
+
+    def test_progress_bar_aria(self):
+        from pdf2zh.gui.components.progress_panel import build_progress_bar_html
+        html = build_progress_bar_html("translating", 45.0, "working")
+        assert 'role="progressbar"' in html
+        assert 'aria-valuenow="45.0"' in html
 
 
 # =============================================================================
@@ -603,10 +668,14 @@ class TestAppSyncContract:
         import pdf2zh.gui.app as app
         # Building the Blocks wires every sync output; a mismatch would raise.
         app.create_gui()
-        # The idle tuple must carry the 3 new values on top of the 16 legacy
-        # ones (stepbar rail + header badge + panel badge).
+        # 16 legacy slots + stepbar rail + header badge + panel badge + retry.
         idle = app._idle_updates()
-        assert len(idle) == 19
+        assert len(idle) == 20
+
+    def test_sync_components_has_retry(self):
+        import pdf2zh.gui.app as app
+        assert "retry_btn" in app._SYNC_COMPONENTS
+        assert len(app._SYNC_COMPONENTS) == len(app._idle_updates())
 
     def test_create_gui_wires_new_components(self):
         import inspect
@@ -632,4 +701,86 @@ class TestAppSyncContract:
         assert "js=TOGGLE_THEME_JS" in src
         assert "theme_toggle" in src
 
+    def test_sync_is_event_driven_no_timer(self):
+        """SSE push replaces the polling Timer: create_gui wires the hidden
+        sync-trigger button and must not construct any gr.Timer."""
+        import inspect
+        import pdf2zh.gui.app as app
+        app.create_gui()
+        src = inspect.getsource(app.create_gui)
+        assert "gr.Timer" not in src
+        assert 'elem_id="sync-trigger"' in src
+        assert "_drain_events_flat" in src
 
+    def test_events_route_registers_on_live_app(self):
+        """_register_events_route adds /gui/events to the FastAPI app."""
+        import pdf2zh.gui.app as app
+        gui = app.create_gui()
+        app._register_events_route(gui)
+        paths = [getattr(r, "path", None) for r in gui.app.routes]
+        assert "/gui/events" in paths
+
+    def test_session_js_has_sse_client(self):
+        from pdf2zh.gui.styles import SESSION_JS
+        assert "EventSource" in SESSION_JS
+        assert "/gui/events" in SESSION_JS
+        assert "sync-trigger" in SESSION_JS
+
+
+# =============================================================================
+# 13. EventNotifier (SSE push transport) Tests
+# =============================================================================
+
+
+class TestEventNotifier:
+    def test_notifier_fans_out_published_events(self):
+        import asyncio
+        from pdf2zh.gui.events import EventBus, TaskStarted
+        from pdf2zh.gui.notifier import EventNotifier
+
+        bus = EventBus()
+        notifier = EventNotifier(bus)
+        notifier.start()
+
+        async def run():
+            q = notifier.connect()
+            bus.publish(TaskStarted(task_id="t1"))
+            payload = await asyncio.wait_for(q.get(), timeout=1.0)
+            return payload
+
+        payload = asyncio.run(run())
+        assert '"t1"' in payload
+        assert '"seq":' in payload
+        notifier.stop()
+
+    def test_notifier_disconnect_stops_delivery(self):
+        import asyncio
+        from pdf2zh.gui.events import EventBus, TaskStarted
+        from pdf2zh.gui.notifier import EventNotifier
+
+        bus = EventBus()
+        notifier = EventNotifier(bus)
+        notifier.start()
+
+        async def run():
+            q = notifier.connect()
+            notifier.disconnect(q)
+            bus.publish(TaskStarted(task_id="t2"))
+            assert notifier.subscriber_count() == 0
+            with pytest.raises(asyncio.TimeoutError):
+                await asyncio.wait_for(q.get(), timeout=0.2)
+
+        asyncio.run(run())
+        notifier.stop()
+
+    def test_notifier_start_is_idempotent(self):
+        from pdf2zh.gui.events import EventBus
+        from pdf2zh.gui.notifier import EventNotifier
+
+        bus = EventBus()
+        notifier = EventNotifier(bus)
+        notifier.start()
+        notifier.start()
+        assert notifier._sub_id is not None
+        notifier.stop()
+        assert notifier._sub_id is None

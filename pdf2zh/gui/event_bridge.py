@@ -6,9 +6,9 @@ translates it into the typed domain events the GUI (and any other consumer)
 subscribes to. Neither the service nor the UI knows about each other -- the
 bridge is the only coupling point (Dependency Inversion).
 
-This decouples the business logic from the Gradio Timer: the worker only ever
+This decouples the business logic from the UI transport: the worker only ever
 ``publish(es)``, the ``TaskStore`` only saves state, and the UI only consumes
-events.
+events (pushed via SSE, see ``notifier.py``).
 """
 
 from __future__ import annotations
@@ -192,4 +192,3 @@ EVENT_BRIDGE = TaskEventBridge()
 
 
 __all__ = ["TaskEventBridge", "EVENT_BRIDGE"]
-

@@ -3,12 +3,16 @@
 Replaces the 13-tuple sync pattern with targeted component updates.
 Supports V4 Diagnostic summary display and a 4-stage StepBar pipeline
 (上传 -> 版面分析 -> 翻译 -> 渲染) rendered from runtime task state.
+
+The StepBar is fully ARIA-annotated (``role="list"`` / ``role="listitem"`` /
+``aria-current``) so screen readers can follow the pipeline position.
 """
 
 from __future__ import annotations
 
 import gradio as gr
 
+from pdf2zh.gui.i18n import B, stage_text
 from pdf2zh.gui.styles import build_status_badge_html
 
 #: StepBar pipeline definition -- order matters and matches the worker stages.
@@ -38,7 +42,8 @@ _STATUS_STEP_MAP = {
     "cancelled": (0, True),
 }
 
-#: Human-readable labels for running stages (progress bar / badge)
+#: Human-readable Chinese labels for running stages (kept for compatibility;
+#: new code should use ``pdf2zh.gui.i18n.stage_text``).
 BADGE_LABELS = {
     "pending": "排队中",
     "parsing": "解析中",
@@ -59,7 +64,7 @@ def build_stepbar_html(status: str, progress: float = 0.0) -> str:
     The active stage is derived from ``_STATUS_STEP_MAP``; when a task is
     ``failed`` the *first* pipeline step is marked as an error so the user
     sees immediately where the flow broke. A completed task paints all steps
-    green.
+    green. The markup carries ARIA semantics (list / listitem / current).
 
     Args:
         status: runtime task status (e.g. ``parsing``, ``translating``).
@@ -85,35 +90,41 @@ def build_stepbar_html(status: str, progress: float = 0.0) -> str:
             cls = "step-item active"
         else:
             cls = "step-item"
+        current_attr = ' aria-current="step"' if i == step_idx and not done else ""
         label = zh if zh else en
         nodes.append(
-            f'<div class="{cls}"><span class="step-dot">{i + 1}</span>'
+            f'<div class="{cls}" role="listitem"{current_attr}>'
+            f'<span class="step-dot" aria-hidden="true">{i + 1}</span>'
             f'<span class="step-label">{label}</span></div>'
         )
     parts = [nodes[0]]
     for i in range(1, len(nodes)):
         conn_done = done or (i <= step_idx and not error) or (error and i <= step_idx)
         conn_cls = "step-connector done" if conn_done else "step-connector"
-        parts.append(f'<div class="{conn_cls}"></div>')
+        parts.append(f'<div class="{conn_cls}" role="presentation"></div>')
         parts.append(nodes[i])
-    return f'<div class="stepbar">{"".join(parts)}</div>'
+    return (
+        f'<div class="stepbar" role="list" '
+        f'aria-label="{B("stepbar_aria")}">{"".join(parts)}</div>'
+    )
 
 
 def build_progress_bar_html(stage: str, pct: float, msg: str) -> str:
     """Render the token-driven progress bar HTML.
 
     Replaces the legacy inline ``<div style=...>`` markup so the progress
-    indicator re-skins automatically in dark mode.
+    indicator re-skins automatically in dark mode. Exposes a semantic
+    ``role="progressbar"`` with ``aria-valuenow`` for assistive tech.
     """
     if stage == "completed" and pct >= 100:
         cls = "progress-active progress-done"
-        stage_label = "完成 / Complete"
+        stage_label = "✓ 完成 / Done"
     elif stage in ("failed", "cancelled"):
         cls = "progress-active progress-error"
-        stage_label = "已取消" if stage == "cancelled" else "失败 / Failed"
+        stage_label = stage_text(stage)
     else:
         cls = "progress-active"
-        stage_label = BADGE_LABELS.get(stage, stage or "运行中")
+        stage_label = stage_text(stage) if stage else B("status_running")
     safe_msg = "".join(
         c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd" for c in (msg or "")
     )
@@ -123,11 +134,13 @@ def build_progress_bar_html(stage: str, pct: float, msg: str) -> str:
         '<div class="progress-head"><span>'
         f"{stage_label}</span><span class='pct'>{pct_clamped:.1f}%</span></div>"
         '<div class="progress-track">'
-        f'<div class="progress-fill" style="width:{pct_clamped:.1f}%"></div>'
+        f'<div class="progress-fill" style="width:{pct_clamped:.1f}%" '
+        f'role="progressbar" aria-valuemin="0" aria-valuemax="100" '
+        f'aria-valuenow="{pct_clamped:.1f}" '
+        f'aria-label="{B("progress_aria")}"></div>'
         "</div>"
         f'<div class="progress-msg">{safe_msg}</div></div>'
     )
-
 
 
 def create_progress_panel() -> dict:
@@ -137,15 +150,16 @@ def create_progress_panel() -> dict:
         dict of Gradio component references
     """
     with gr.Group(elem_classes="panel-card"):
-        gr.Markdown("## 📊 执行状态 / Execution Status", elem_classes="section-header")
+        gr.Markdown(f"## 📊 {B('section_progress')}", elem_classes="section-header")
 
-        control_row = gr.Row()
+        control_row = gr.Row(elem_classes="control-row")
         with control_row:
-            translate_btn = gr.Button("🚀 开始翻译 / Translate", variant="primary")
-            pause_btn = gr.Button("⏸ 暂停 / Pause")
-            resume_btn = gr.Button("▶️ 恢复 / Resume")
-            skip_btn = gr.Button("⏭ 跳过文件 / Skip")
-            cancel_btn = gr.Button("⏹ 停止 / Cancel", variant="stop")
+            translate_btn = gr.Button(f"🚀 {B('progress_translate')}", variant="primary")
+            pause_btn = gr.Button(f"⏸ {B('progress_pause')}")
+            resume_btn = gr.Button(f"▶️ {B('progress_resume')}")
+            skip_btn = gr.Button(f"⏭ {B('progress_skip')}")
+            retry_btn = gr.Button(f"🔁 {B('progress_retry')}", visible=False)
+            cancel_btn = gr.Button(f"⏹ {B('progress_cancel')}", variant="stop")
 
         progress_bar = gr.HTML(
             value=build_progress_bar_html("", 0.0, ""),
@@ -156,13 +170,13 @@ def create_progress_panel() -> dict:
             elem_classes="status-badge-box",
         )
         status_markdown = gr.Markdown(
-            value="**状态**: 就绪 / Ready",
+            value=f"**{B('label_status')}**: {B('status_ready')}",
             elem_classes="status-text",
         )
 
-        with gr.Accordion("📋 详细日志 / Detailed Logs", open=False):
+        with gr.Accordion(f"📋 {B('progress_logs')}", open=False):
             log_output = gr.HTML(
-                value="<pre class='log-output'>[系统就绪]</pre>",
+                value=f"<pre class='log-output'>{B('progress_log_idle')}</pre>",
                 elem_classes="log-output",
             )
 
@@ -171,10 +185,10 @@ def create_progress_panel() -> dict:
         "pause_btn": pause_btn,
         "resume_btn": resume_btn,
         "skip_btn": skip_btn,
+        "retry_btn": retry_btn,
         "cancel_btn": cancel_btn,
         "progress_bar": progress_bar,
         "status_badge": status_badge,
         "status_markdown": status_markdown,
         "log_output": log_output,
     }
-

@@ -14,6 +14,8 @@ from typing import Any, List
 
 import gradio as gr
 
+from pdf2zh.gui.i18n import B
+
 #: Pairs of display names -> extensions. Kept here so the panel stays
 #: self-contained; the worker validates the real file type later.
 ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".doc", ".PDF", ".DOCX", ".DOC"]
@@ -65,7 +67,7 @@ def build_file_summary_html(files: Any) -> str:
     total = len(items)
     plural = "" if total == 1 else f" × {total}"
     return (
-        '<div class="file-summary"><strong>已选择</strong>'
+        f'<div class="file-summary"><strong>{B("upload_summary_selected")}</strong>'
         f"{plural}: {' '.join(chips)}</div>"
     )
 
@@ -77,12 +79,12 @@ def create_upload_panel() -> dict:
         dict of Gradio component references
     """
     with gr.Group(elem_classes="panel-card"):
-        gr.Markdown("## 📂 文件上传 / File Upload", elem_classes="section-header")
+        gr.Markdown(f"## 📂 {B('section_upload')}", elem_classes="section-header")
 
         with gr.Tabs():
-            with gr.Tab("📁 本地上传 / Local File"):
+            with gr.Tab(f"📁 {B('upload_tab_local')}"):
                 file_input = gr.File(
-                    label="上传 PDF/DOCX 文件 / Upload PDF/DOCX",
+                    label=B("upload_label_file"),
                     file_types=ACCEPTED_EXTENSIONS,
                     file_count="multiple",
                     elem_classes="upload-area",
@@ -102,19 +104,16 @@ def create_upload_panel() -> dict:
                     outputs=[file_summary],
                 )
 
-            with gr.Tab("🔗 在线链接 / URL Link"):
+            with gr.Tab(f"🔗 {B('upload_tab_url')}"):
                 link_input = gr.Textbox(
-                    label="输入 PDF 链接 / PDF URL",
+                    label=B("upload_label_url"),
                     placeholder="https://example.com/paper.pdf",
                     lines=1,
                 )
-                gr.Markdown(
-                    "_提示：仅支持可直接下载的 PDF 文件链接。_"
-                )
+                gr.Markdown(f"_{B('upload_url_hint')}_")
 
     return {
         "file_input": file_input,
         "link_input": link_input,
         "file_summary": file_summary,
     }
-

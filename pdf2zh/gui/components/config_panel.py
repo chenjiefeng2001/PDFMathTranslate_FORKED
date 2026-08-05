@@ -3,8 +3,8 @@
 Replaces the 21-parameter inline form from Legacy gui.py with a
 grouped, progressively-disclosed configuration form:
 
-  * Basic   - engine / source / target language
-  * Service - engine mode (v0..v4 pipeline selector)
+  * Basic   - engine / source / target language (filterable dropdowns)
+  * Service - engine mode (v0..v4 pipeline selector with user-facing labels)
   * Advanced- threads, font/char mapping, page range, custom env (collapsed)
 
 All component keys returned here are part of the app.py wiring contract
@@ -14,6 +14,8 @@ and MUST stay stable.
 from __future__ import annotations
 
 import gradio as gr
+
+from pdf2zh.gui.i18n import B
 
 # Available translation engines (from pdf2zh translators)
 ENGINES = [
@@ -52,9 +54,16 @@ LANGUAGES = [
     ("auto", "auto"),
 ]
 
-#: Pipeline mode choices surfaced in the Service group
-MODE_CHOICES = ["auto", "v0", "v1", "v2", "v3", "v4"]
-MODE_INFO = "v0: 基础 | v1: 普通 | v2: 高质量 | v3: 精准 | v4: 布局优先"
+#: Pipeline mode choices surfaced in the Service group. Display labels are
+#: user-facing quality levels; values remain the internal pipeline selector.
+MODE_CHOICES = [
+    (B("config_mode_auto"), "auto"),
+    (B("config_mode_v0"), "v0"),
+    (B("config_mode_v1"), "v1"),
+    (B("config_mode_v2"), "v2"),
+    (B("config_mode_v3"), "v3"),
+    (B("config_mode_v4"), "v4"),
+]
 
 
 def create_config_panel() -> dict:
@@ -64,26 +73,29 @@ def create_config_panel() -> dict:
         dict of Gradio component references
     """
     with gr.Group(elem_classes="panel-card"):
-        gr.Markdown("## ⚙️ 翻译配置 / Translation Config", elem_classes="section-header")
+        gr.Markdown(f"## ⚙️ {B('section_config')}", elem_classes="section-header")
 
         # ---- 基础设置 / Basic ----
         with gr.Row():
             service = gr.Dropdown(
                 choices=[e[1] for e in ENGINES],
                 value="google",
-                label="翻译引擎 / Engine",
+                label=B("config_engine"),
+                filterable=True,
                 elem_classes="config-dropdown",
             )
             lang_from = gr.Dropdown(
                 choices=[l[1] for l in LANGUAGES],
                 value="auto",
-                label="源语言 / Source",
+                label=B("config_lang_source"),
+                filterable=True,
                 elem_classes="config-dropdown",
             )
             lang_to = gr.Dropdown(
                 choices=[l[1] for l in LANGUAGES],
                 value="zh-CN",
-                label="目标语言 / Target",
+                label=B("config_lang_target"),
+                filterable=True,
                 elem_classes="config-dropdown",
             )
 
@@ -91,49 +103,49 @@ def create_config_panel() -> dict:
         mode_choice = gr.Radio(
             choices=MODE_CHOICES,
             value="auto",
-            label="引擎模式 / Engine Mode",
-            info=MODE_INFO,
+            label=B("config_mode"),
+            info=B("config_mode_info"),
         )
 
         # ---- 高级选项 / Advanced ----
-        with gr.Accordion("🔧 高级选项 / Advanced Options", open=False):
+        with gr.Accordion(f"🔧 {B('config_advanced')}", open=False):
             with gr.Row():
                 threads = gr.Slider(
                     minimum=1, maximum=16, value=4, step=1,
-                    label="线程数 / Threads",
+                    label=B("config_threads"),
                 )
                 skip_subset_fonts = gr.Checkbox(
-                    value=False, label="跳过字体子集 / Skip Subset Fonts",
+                    value=False, label=B("config_skip_subset"),
                 )
                 ignore_cache = gr.Checkbox(
-                    value=False, label="忽略缓存 / Ignore Cache",
+                    value=False, label=B("config_ignore_cache"),
                 )
 
             with gr.Row():
                 vfont = gr.Textbox(
-                    label="字体映射 / Font Map (V-Font)",
+                    label=B("config_vfont"),
                     placeholder="e.g. sans-serif:serif",
                 )
                 vchar = gr.Textbox(
-                    label="字符映射 / Char Map (V-Char)",
+                    label=B("config_vchar"),
                     placeholder="e.g. ...",
                 )
 
             with gr.Row():
                 page_range = gr.Textbox(
-                    label="页码范围 / Pages",
+                    label=B("config_pages"),
                     placeholder="e.g. 1-5, 7, 10-12",
                 )
                 prompt_env = gr.Textbox(
-                    label="自定义 Prompt 环境变量",
+                    label=B("config_prompt_env"),
                     placeholder="PROMPT=...",
                     lines=1,
                 )
 
             with gr.Row():
-                env0 = gr.Textbox(label="自定义环境变量 0", placeholder="KEY=VALUE")
-                env1 = gr.Textbox(label="自定义环境变量 1", placeholder="KEY=VALUE")
-                env2 = gr.Textbox(label="自定义环境变量 2", placeholder="KEY=VALUE")
+                env0 = gr.Textbox(label=f"{B('config_env')} 0", placeholder="KEY=VALUE")
+                env1 = gr.Textbox(label=f"{B('config_env')} 1", placeholder="KEY=VALUE")
+                env2 = gr.Textbox(label=f"{B('config_env')} 2", placeholder="KEY=VALUE")
 
     return {
         "service": service,
@@ -151,4 +163,3 @@ def create_config_panel() -> dict:
         "env1": env1,
         "env2": env2,
     }
-

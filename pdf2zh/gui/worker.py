@@ -14,9 +14,8 @@ from typing import Any, Callable, Dict, Optional
 from pdf2zh.services.runtime_service import (
     RuntimeService,
     TranslationRequest,
-    TaskStage,
 )
-from pdf2zh.gui.state import GLOBAL_TASK_STORE, MAX_CONCURRENCY, TaskState
+from pdf2zh.gui.state import GLOBAL_TASK_STORE, TaskState
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +61,7 @@ def _clean_stale_in_flight(max_age: float = 300.0) -> int:
         for cid in stale:
             _IN_FLIGHT.pop(cid, None)
     return len(_IN_FLIGHT)
+
 
 def submit_translation_task(
     client_id: str,
@@ -146,22 +146,6 @@ def submit_translation_task(
         _IN_FLIGHT[client_id] = task_id
 
     return task_id
-
-
-def _clean_stale_in_flight() -> None:
-    """Clean up all stale in-flight tracking entries."""
-    svc = get_runtime_service()
-    with _SUBMIT_LOCK:
-        stale = []
-        for cid, tid in _IN_FLIGHT.items():
-            if tid == "__submitting__" or tid is None:
-                stale.append(cid)
-            else:
-                ts = svc.get_task_state(tid)
-                if ts is None or ts.status in ("completed", "cancelled", "failed"):
-                    stale.append(cid)
-        for cid in stale:
-            _IN_FLIGHT.pop(cid, None)
 
 
 def _try_clean_in_flight(client_id: str) -> None:
