@@ -61,6 +61,12 @@ class FeatureFlags:
     """V8.6: Content Preservation Engine (统一 translate/preserve/overlay
     决策层，写回 IR 角色；side-channel，需显式开启)."""
 
+    use_v4_processor_channels: bool = True
+    """V9.0: 把 Processor 层（RAW/SEMANTIC 语义通道 + TOC 结构化记录）
+    挂到主链路字符流（side-channel，结果只进 processor_reports 等，
+    不回写 legacy 渲染）。v1.6 双轨对比（开/关输出恒等）后默认翻转开。
+    运行时经 ServiceConfig.processor_channels 开关。"""
+
     # ── Individual Feature Toggles ───────────────────────────────────
 
     use_v4_visual_tree_builder: bool = False

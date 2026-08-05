@@ -50,9 +50,11 @@ class SemanticRole(Enum):
     HEADING = "heading"
     CAPTION = "caption"
     FIGURE = "figure"
+    IMAGE = "image"
     TABLE = "table"
     FORMULA = "formula"
     FORMULA_INLINE = "formula_inline"
+    TOC_ENTRY = "toc_entry"
     REFERENCE = "reference"
     CITATION = "citation"
     FOOTNOTE = "footnote"
@@ -419,9 +421,11 @@ _SEMANTIC_MAP = {
     "heading": SemanticRole.HEADING,
     "caption": SemanticRole.CAPTION,
     "figure": SemanticRole.FIGURE,
+    "image": SemanticRole.IMAGE,
     "table": SemanticRole.TABLE,
     "formula": SemanticRole.FORMULA,
     "formula_inline": SemanticRole.FORMULA_INLINE,
+    "toc_entry": SemanticRole.TOC_ENTRY,
     "reference": SemanticRole.REFERENCE,
     "bibliography": SemanticRole.BIBLIOGRAPHY,
     "citation": SemanticRole.CITATION,
@@ -443,10 +447,13 @@ _TRANSLATION_MAP = {
     SemanticRole.CODE: TranslationRole.KEEP_FORMULA,
     SemanticRole.CAPTION: TranslationRole.NEED_CONTEXT,
     SemanticRole.ABSTRACT: TranslationRole.NEED_CONTEXT,
+    SemanticRole.IMAGE: TranslationRole.SKIP,
+    SemanticRole.TOC_ENTRY: TranslationRole.TRANSLATE,
 }
 
 _RENDERING_MAP = {
     SemanticRole.FIGURE: RenderingRole.FLOAT,
+    SemanticRole.IMAGE: RenderingRole.FLOAT,
     SemanticRole.TABLE: RenderingRole.FLOAT,
     SemanticRole.HEADER: RenderingRole.OVERLAY,
     SemanticRole.FOOTER: RenderingRole.OVERLAY,

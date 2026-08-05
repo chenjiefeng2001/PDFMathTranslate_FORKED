@@ -82,6 +82,7 @@ class PreservationDecision:
 # 这些语义角色默认"保护不翻译"（工业/技术文档最常见策略）
 _PRESERVE_ROLES = {
     SemanticRole.FIGURE,
+    SemanticRole.IMAGE,
     SemanticRole.TABLE,
     SemanticRole.FORMULA,
     SemanticRole.FORMULA_INLINE,
@@ -98,6 +99,7 @@ _TRANSLATE_ROLES = {
     SemanticRole.SUBSECTION,
     SemanticRole.BODY_TEXT,
     SemanticRole.HEADING,
+    SemanticRole.TOC_ENTRY,
     SemanticRole.LIST,
     SemanticRole.LIST_ITEM,
     SemanticRole.ABSTRACT,

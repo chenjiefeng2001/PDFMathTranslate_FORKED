@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 class NodeType(Enum):
     """Semantic node types in the DocumentGraph."""
+    UNKNOWN = "unknown"
     DOCUMENT = "document"
     PAGE = "page"
     PARAGRAPH = "paragraph"
@@ -39,6 +40,7 @@ class NodeType(Enum):
     HEADER = "header"
     FOOTER = "footer"
     FIGURE = "figure"
+    IMAGE = "image"
     TABLE = "table"
     FORMULA = "formula"
     FORMULA_INLINE = "formula_inline"
@@ -52,6 +54,7 @@ class NodeType(Enum):
     KEYWORDS = "keywords"
     SECTION = "section"
     SUBSECTION = "subsection"
+    TOC_ENTRY = "toc_entry"
 
 
 class EdgeType(Enum):

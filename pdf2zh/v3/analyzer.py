@@ -54,6 +54,9 @@ class AnalyzerConfig:
     heading_font_ratio: float = 1.15
     footnote_font_ratio: float = 0.85
     header_footer_margin: float = 0.1
+    use_rule_classifier: bool = True
+    """阶段三融合：先用 ``structure.StructureClassifier`` 规则流给未定型
+    节点打分，高置信度（>= rule_confidence_threshold）结果直接采纳。"""
 
 
 # ── Regex patterns ──────────────────────────────────────────────────────
@@ -74,6 +77,35 @@ _RE_SECTION_NUM = re.compile(
     r"[A-Z]\.)\s+"
 )
 _RE_FOOTNOTE_MARK = re.compile(r"^[\d†‡*§¶‖#†‡§¶†‡•◊○●]")
+
+
+class _RuleParagraphAdapter:
+    """DocumentNode → ``structure.compute_features`` 所需 Paragraph 鸭子类型。
+
+    只读字段适配（text / lines[].size / words[0].font / alignment /
+    line_count / first_line_indent / x0/x1/y0/y1 / size），不创建新对象。
+    """
+
+    class _Word:
+        def __init__(self, font: str = ""):
+            self.font = font
+
+    class _Line:
+        def __init__(self, size: float, font: str):
+            self.size = size
+            self.words = [_RuleParagraphAdapter._Word(font)]
+
+    def __init__(self, node: DocumentNode):
+        self.text = node.text or ""
+        self.x0, self.y0, self.x1, self.y1 = node.bbox
+        self.size = float(node.font_size or 0.0)
+        self.first_line_indent = 0.0
+        self.alignment = "left"
+        self.line_count = max(1, (self.text or "").count("\n") + 1)
+        font = node.metadata.get("font_name", "") if node.metadata else ""
+        self.lines = [_RuleParagraphAdapter._Line(self.size, font)]
+        for _ in range(self.line_count - 1):
+            self.lines.append(_RuleParagraphAdapter._Line(self.size, font))
 
 
 
@@ -101,6 +133,9 @@ class SemanticAnalyzer:
         Returns:
             Same graph instance, modified in-place.
         """
+        # 阶段三融合：规则分类器（structure.py）先行打分，高置信度直接采纳
+        if self.config.use_rule_classifier:
+            self._apply_rule_classifier(graph)
         if self.config.refine_heading_levels:
             self._refine_headings(graph)
         if self.config.detect_captions:
@@ -120,6 +155,74 @@ class SemanticAnalyzer:
         if self.config.detect_paragraph_boundaries:
             self._refine_paragraphs(graph)
         return graph
+
+    # 阶段三融合：规则分类器先行（structure.py 规则流 + 图级通道合并）
+    _RULE_ROLE_TO_TYPE: Dict["BlockRole", Optional[NodeType]] = None
+
+    @classmethod
+    def _rule_type_map(cls) -> Dict["BlockRole", Optional[NodeType]]:
+        if cls._RULE_ROLE_TO_TYPE is None:
+            from pdf2zh.v3.structure import BlockRole
+            cls._RULE_ROLE_TO_TYPE = {
+                BlockRole.PAGE_NUMBER: None,
+                BlockRole.HEADER: NodeType.HEADER,
+                BlockRole.FOOTER: NodeType.FOOTER,
+                BlockRole.TOC_ENTRY: NodeType.TOC_ENTRY,
+                BlockRole.HEADING: NodeType.HEADING,
+                BlockRole.CAPTION: NodeType.CAPTION,
+                BlockRole.FOOTNOTE: NodeType.FOOTNOTE,
+                BlockRole.FORMULA: NodeType.FORMULA,
+                BlockRole.CITATION: NodeType.CITATION,
+                BlockRole.BODY_TEXT: None,
+                BlockRole.UNKNOWN: None,
+            }
+        return cls._RULE_ROLE_TO_TYPE
+
+    def _apply_rule_classifier(self, graph: DocumentGraph) -> None:
+        """结构规则分类器先行：未定型节点按高置信度规则采纳角色。
+
+        融合点（阶段三"与 analyzer 图级通道融合"）：规则流产出角色与
+        置信度写进 ``metadata["analysis.rule_role"]`` /
+        ``["analysis.rule_confidence"]``；图级通道（本类其余 pass）只
+        在规则未定型或置信度不足时兜底。规则置信度低于阈值不覆盖。
+        """
+        try:
+            from pdf2zh.v3.structure import StructureClassifier
+        except Exception:  # noqa: BLE001 — 融合失败即跳过（side-channel 纪律）
+            return
+        threshold = 0.65
+        body_size = self._estimate_graph_body_size(graph)
+        type_map = self._rule_type_map()
+        for node in graph.nodes:
+            if node.node_type not in (NodeType.PARAGRAPH, NodeType.UNKNOWN):
+                continue
+            if not (node.text or "").strip():
+                continue
+            try:
+                para = _RuleParagraphAdapter(node)
+                classified = StructureClassifier(
+                    heading_font_ratio=self.config.heading_font_ratio,
+                    body_font_size=body_size,
+                ).classify_paragraph(para, page=None,
+                                     body_font_size=body_size)
+            except Exception:  # noqa: BLE001
+                continue
+            role = classified.role
+            conf = classified.confidence
+            node.metadata["analysis.rule_role"] = role.value
+            node.metadata["analysis.rule_confidence"] = round(conf, 4)
+            target = type_map.get(role)
+            if target is not None and conf >= threshold:
+                node.node_type = target
+
+    @staticmethod
+    def _estimate_graph_body_size(graph: DocumentGraph) -> float:
+        sizes = [n.font_size for n in graph.nodes
+                 if (n.font_size or 0) > 0 and n.text]
+        if not sizes:
+            return 12.0
+        sizes.sort()
+        return sizes[len(sizes) // 2]
 
 
     def _refine_headings(self, graph: DocumentGraph) -> None:
