@@ -1219,3 +1219,21 @@ class QwenMtTranslator(OpenAITranslator):
             extra_body={"translation_options": translation_options},
         )
         return response.choices[0].message.content.strip()
+
+
+def build_translator(service, lang_in, lang_out, envs=None, prompt=None, ignore_cache=False):
+    """按 service 名构造翻译器实例（如 "google"、"ollama:model"）。
+
+    模块级工厂，供正文翻译（TranslateConverter）与书签标题翻译复用。
+    未匹配的 service 名抛出 ValueError。
+    """
+    param = service.split(":", 1)
+    service_name = param[0]
+    service_model = param[1] if len(param) > 1 else None
+    if not envs:
+        envs = {}
+    for translator in [GoogleTranslator, BingTranslator, DeepLTranslator, DeepLXTranslator, OllamaTranslator, XinferenceTranslator, AzureOpenAITranslator,
+                       OpenAITranslator, ZhipuTranslator, ModelScopeTranslator, SiliconTranslator, GeminiTranslator, AzureTranslator, TencentTranslator, DifyTranslator, AnythingLLMTranslator, ArgosTranslator, GrokTranslator, GroqTranslator, DeepseekTranslator, MiniMaxTranslator, OpenAIlikedTranslator, QwenMtTranslator, X302AITranslator]:
+        if service_name == translator.name:
+            return translator(lang_in, lang_out, service_model, envs=envs, prompt=prompt, ignore_cache=ignore_cache)
+    raise ValueError("Unsupported translation service")

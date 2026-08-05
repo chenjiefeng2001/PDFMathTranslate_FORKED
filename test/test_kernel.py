@@ -87,7 +87,9 @@ class TestKernelRegistry(unittest.TestCase):
         KernelRegistry.switch("switchable")
         self.assertEqual(KernelRegistry.active_name(), "switchable")
 
-    def test_switch_unavailable_raises(self):
+    def test_switch_unavailable_falls_back_to_fast(self):
+        """Registry design: switching to an unavailable kernel falls back to
+        the always-available 'fast' kernel (warning logged), not a raise."""
         from pdf2zh.kernel.registry import KernelRegistry
 
         mock_kernel = MagicMock()
@@ -95,8 +97,25 @@ class TestKernelRegistry(unittest.TestCase):
         mock_kernel.is_available.return_value = False
 
         KernelRegistry.register(mock_kernel)
-        with self.assertRaises(RuntimeError):
-            KernelRegistry.switch("unavailable")
+        KernelRegistry.switch("unavailable")
+        self.assertEqual(KernelRegistry.active_name(), "fast")
+
+    def test_switch_unavailable_raises_when_no_fallback(self):
+        """If even the 'fast' fallback is unavailable, switch must raise."""
+        from pdf2zh.kernel.registry import KernelRegistry
+
+        mock_kernel = MagicMock()
+        mock_kernel.name = "unavailable"
+        mock_kernel.is_available.return_value = False
+        fast_unavailable = MagicMock()
+        fast_unavailable.is_available.return_value = False
+
+        with patch.dict(
+            KernelRegistry._kernels,
+            {"unavailable": mock_kernel, "fast": fast_unavailable},
+        ):
+            with self.assertRaises(RuntimeError):
+                KernelRegistry.switch("unavailable")
 
     def test_available_filters_correctly(self):
         from pdf2zh.kernel.registry import KernelRegistry

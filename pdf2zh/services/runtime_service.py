@@ -122,6 +122,10 @@ class TaskState:
     preview_path: Optional[str] = None
     diagnostic_summary: Optional[str] = None
     quality_scores: Optional[Dict[str, float]] = None
+    ir_snapshots: Optional[Dict[str, Any]] = None
+    """V8.3: 主链路产出的 DocumentIR 快照（pageid -> snapshot dict）。"""
+    gate_verdicts: Optional[Dict[str, Any]] = None
+    """V8.4: 写回门控裁决（pageid -> GatedResult.to_dict()）。"""
     error_message: Optional[str] = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -143,6 +147,8 @@ class TaskState:
             "preview_path": self.preview_path,
             "diagnostic_summary": self.diagnostic_summary,
             "quality_scores": self.quality_scores,
+            "ir_snapshots": self.ir_snapshots,
+            "gate_verdicts": self.gate_verdicts,
             "error_message": self.error_message,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
@@ -156,6 +162,21 @@ class ServiceConfig:
     use_v4_translator: bool = False
     use_v4_layout: bool = False
     use_v4_repair: bool = False
+    run_evaluation: bool = False
+    """翻译完成后对输出 mono PDF 运行文档级评测（几何/结构/翻译/渲染）。"""
+    # V8.3: legacy 主链路直接产出 DocumentIR（side-channel，不影响渲染）
+    emit_ir: bool = False
+    # V8.4: legacy 内容流写回前的主链路重排版门控
+    use_v4_gate: bool = False
+    # V8.5: 译文页面超链接 /Rect 重定位（默认开，side-channel 数据缺失时自动跳过）
+    relink_links: bool = True
+    # V8.6: 图片翻译决策层（独立 side-channel，不影响 legacy 主链路渲染在前台默认关闭）
+    image_engine: bool = False
+    content_preservation: bool = False
+    # V8.6: 是否把图片决策回传 task state / v3_output（side-channel）
+    emit_preservation: bool = True
+    # P1: 评测 <90 分自动留存的报告目录（report_dir/<basename>/）
+    evaluation_report_dir: str = ""
     output_dir: str = ""
 
 
@@ -380,6 +401,7 @@ class RuntimeService:
             self._emit_event(task_id, TaskStage.PARSING.value, 5.0, "Starting...")
             if self._store.is_cancelled(task_id):
                 return
+            self._sync_feature_flags(task_id)
             if self.config.use_v4_engine:
                 self._execute_v4(task_id, request)
             else:
@@ -391,6 +413,38 @@ class RuntimeService:
                 error_message=str(exc), message=f"Error: {exc}",
             )
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {exc}")
+
+    def _sync_feature_flags(self, task_id: str) -> None:
+        """V8.2：把 ServiceConfig.use_v4_* 同步到 v3 FeatureFlags 单例，
+        并记录回退遥测（use_v4_engine=False 即 legacy 回退事件）。"""
+        try:
+            from pdf2zh.v3.feature_flags import (
+                FallbackTelemetry, FeatureFlags, get_feature_flags, set_feature_flags,
+            )
+            flags = get_feature_flags()
+            flags.use_v4_engine = self.config.use_v4_engine
+            flags.use_v4_translator = self.config.use_v4_translator
+            flags.use_v4_layout = self.config.use_v4_layout
+            flags.use_v4_repair = self.config.use_v4_repair
+            flags.use_v4_gate = self.config.use_v4_gate
+            flags.relink_links = self.config.relink_links
+            flags.use_v4_image_engine = self.config.image_engine
+            flags.use_v4_content_preservation = self.config.content_preservation
+            if not self.config.use_v4_engine:
+                flags.use_v4_engine = False
+                flags.use_v4_translator = flags.use_v4_translator or False
+            flags.telemetry = FallbackTelemetry()
+            flags.record_fallback({
+                "reason": "legacy_mainline" if not self.config.use_v4_engine
+                else "v4_enabled",
+                "task_id": task_id,
+                "run_evaluation": self.config.run_evaluation,
+                "emit_ir": self.config.emit_ir,
+                "use_v4_gate": self.config.use_v4_gate,
+            })
+            set_feature_flags(flags)
+        except Exception:
+            logger.debug("feature flag sync skipped", exc_info=True)
 
     def _execute_v4(self, task_id: str, request: TranslationRequest) -> None:
         """Execute with V4 RuntimeFacade pipeline."""
@@ -510,6 +564,8 @@ class RuntimeService:
             return
         self._emit_event(task_id, TaskStage.TRANSLATING.value, 50.0, "Translating...")
         logger.info("[task=%s] Translation phase starting...", task_id)
+        # V8.3/V8.4: 主链路 IR 产出 + 写回前门控（side-channel）
+        v3_output: Dict[str, Any] = {}
         try:
             doc_dual, doc_mono = translate_stream(
                 file_bytes,
@@ -522,6 +578,13 @@ class RuntimeService:
                 skip_subset_fonts=request.skip_subset_fonts,
                 ignore_cache=request.ignore_cache,
                 model=ModelInstance.value,
+                emit_ir=self.config.emit_ir,
+                relayout_gate=(self._make_gate if self.config.use_v4_gate else None),
+                v3_output=v3_output,
+                relink_links=self.config.relink_links,
+                image_engine=self.config.image_engine,
+                content_preservation=self.config.content_preservation,
+                emit_preservation=self.config.emit_preservation,
                 **request.extra_config,
             )
         except Exception as tx_exc:
@@ -569,11 +632,58 @@ class RuntimeService:
             {"name": f"{basename}-mono.pdf", "path": mono_path},
             {"name": f"{basename}-dual.pdf", "path": dual_path},
         ]
-        # Ensure diagnostic_summary is always defined
+        # 文档级评测（阶段九）：源 PDF vs mono 译文
+        if self.config.run_evaluation:
+            try:
+                from pdf2zh.evaluate import evaluate_translation
+                self._emit_event(task_id, TaskStage.EVALUATING.value, 92.0,
+                                 "Evaluating output...")
+                eval_report = evaluate_translation(
+                    request.source_path, mono_path,
+                    target_lang=request.target_lang,
+                    report_dir=self.config.evaluation_report_dir or None,
+                    report_threshold=90.0,
+                )
+                quality_scores = {
+                    "overall": float(eval_report.overall_score),
+                    "geometry_score": float(eval_report.geometry.get("geometry_score", 0)),
+                    "structure_score": float(eval_report.structure.get("structure_score", 0)),
+                    "translation_score": float(eval_report.translation.get("translation_score", 0)),
+                    "rendering_score": float(eval_report.rendering.get("rendering_score", 0)),
+                    "collision_rate": float(eval_report.rendering.get("collision_rate", 0)),
+                    "overflow_rate": float(eval_report.rendering.get("overflow_rate", 0)),
+                    "residue_estimate": float(eval_report.translation.get("residue_estimate", 0)),
+                }
+                diag_parts = []
+                for k in ("geometry_score", "structure_score", "translation_score", "rendering_score"):
+                    diag_parts.append(f"{k}: {int(quality_scores[k])}/100")
+                if quality_scores["collision_rate"] > 0.05:
+                    diag_parts.append("Overlap")
+                if quality_scores["overflow_rate"] > 0.05:
+                    diag_parts.append("Overflow")
+                if quality_scores["residue_estimate"] > 0.15:
+                    diag_parts.append("Original residue")
+                diagnostic_summary = " | ".join(diag_parts) if diag_parts else "All checks passed"
+                self._emit_event(task_id, TaskStage.EVALUATING.value, 98.0,
+                                 f"Evaluated: {eval_report.summary()}")
+            except Exception as ev_exc:
+                logger.warning("[task=%s] evaluation failed: %s", task_id, ev_exc)
+        # 确保 diagnostic_summary 和 quality_scores 至少有一个默认值
         if 'diagnostic_summary' not in dir() or not diagnostic_summary:
             diagnostic_summary = "Legacy pipeline - V4 diagnostics not available"
         if 'quality_scores' not in dir() or not quality_scores:
             quality_scores = {}
+
+        # V8.3/V8.4: 收集主链路 side-channel（IR 快照 + 写回门控裁决）
+        ir_snapshots = v3_output.get("ir_snapshots") or None
+        gate_verdicts = v3_output.get("gate_verdicts") or None
+        if gate_verdicts:
+            blocked = [str(p) for p, v in gate_verdicts.items()
+                       if not v.get("writeback_allowed", True)]
+            if blocked:
+                diag_extra = f"Gate {len(blocked)} page(s) blocked write-back: {','.join(blocked)}"
+                diagnostic_summary = f"{diagnostic_summary} | {diag_extra}" \
+                    if diagnostic_summary else diag_extra
 
         self._store.update_task(
             task_id, status=TaskStage.COMPLETED.value, progress=100.0,
@@ -581,6 +691,8 @@ class RuntimeService:
             result_files=result_files, selected_file=result_files[0]["name"],
             diagnostic_summary=diagnostic_summary,
             quality_scores=quality_scores,
+            ir_snapshots=ir_snapshots,
+            gate_verdicts=gate_verdicts,
             result_zip=dual_path if os.path.exists(dual_path) else mono_path,
             preview_path=dual_path if os.path.exists(dual_path) else mono_path,
             message="Completed (Legacy)",
@@ -596,6 +708,19 @@ class RuntimeService:
         if state.status != TaskStage.PENDING.value:
             return 0
         return max(0, self._active_count)
+
+    def _make_gate(self, page_width: float = 612.0,
+                   page_height: float = 792.0, margin: float = 50.0):
+        """V8.4: 创建写回前重排版门控（按页面尺寸工厂）。
+
+        阈值放宽（overlap_rate >= 5% 才触发重排）避免在真实文档上过度干预
+        legacy 布局 —— 门控主要承担「写回安全护栏」：只在明显重叠时记录拦截。
+        """
+        from pdf2zh.v3.mainline_gate import MainlineRelayoutGate
+        return MainlineRelayoutGate(
+            page_width=page_width, page_height=page_height,
+            margin=margin, threshold=0.05, max_passes=2,
+        )
 
     def _emit_event(
         self, task_id: str, stage: str, progress: float,

@@ -25,6 +25,7 @@ from pdfminer.pdfparser import PDFParser
 from pymupdf import Document, Font
 
 from pdf2zh.converter import TranslateConverter
+from pdf2zh.translator import build_translator
 from pdf2zh.doclayout import OnnxModel
 from pdf2zh.pdfinterp import PDFPageInterpreterEx
 from pdf2zh.font_resolver import FontResolver
@@ -104,6 +105,12 @@ def translate_patch(
     # 并行模式：由调用方预创建每页的新内容流 xref（保证主进程与 worker 进程编号一致）
     page_xref_map: dict = None,
     apply_page_xrefs: bool = True,
+    # V8.3/V8.4: 主链路 IR 产出 + 写回前重排版门控
+    emit_ir: bool = False,
+    relayout_gate: object = None,
+    v3_output: dict = None,
+    # V8.5: 采集逐篇段落源/目标几何（link_remap 桥接数据）
+    link_remap: bool = False,
 
     **kwarg: Any,
 ) -> None:
@@ -129,7 +136,14 @@ def translate_patch(
         layout_graph=layout_graph,
         collision_resolver=collision_resolver,
         translation_cache=translation_cache,
+        emit_ir=emit_ir,
+        relayout_gate=relayout_gate,
     )
+
+    # V8.5: 超链接重定位桥 —— 让 converter side-channel 采集逐段落源/目标几何
+    # （translate_stream 经 **dict(locals()) 传入 relink_links，worker 串行回退也一致）
+    device.link_remap = bool(kwarg.get("relink_links", link_remap))
+    device.gate_records_by_page = {}
 
     assert device is not None
     obj_patch = {}
@@ -196,11 +210,167 @@ def translate_patch(
             interpreter.process_page(page)
 
     device.close()
+    # V8.3/V8.4/V8.5: 主链路 side-channel 数据回传（IR 快照 + 门控裁决 + 超链接重定位桥）
+    if v3_output is not None:
+        v3_output["ir_snapshots"] = dict(getattr(device, "ir_snapshots", {}))
+        v3_output["gate_verdicts"] = dict(getattr(device, "gate_verdicts", {}))
+        v3_output["link_records"] = dict(getattr(device, "gate_records_by_page", {}))
     return obj_patch
 
 
 # ---------------------------------------------------------------------------
 # Marker: translate_stream start
+def _relink_translated_doc(doc_zh, v3_output: dict = None) -> dict:
+    """V8.5: 用 converter side-channel 的段落源→目标几何重定位译文页超链接。
+
+    文档级守护：v3_output 缺失 / 无采集数据 / PyMuPDF 不可用时返回零统计，
+    绝不抛异常拨乱主链路。跳过错位页（含旋转页）与无锚点匹配的链接。
+    """
+    empty = {"pages": 0, "relinked": 0, "skipped": 0}
+    if not v3_output:
+        return empty
+    records = (v3_output or {}).get("link_records") or {}
+    if not records:
+        return empty
+    try:
+        from pdf2zh.v3.link_remap import remap_document_links
+    except Exception as e:
+        logger.warning("link_remap import failed: %s", str(e)[:120])
+        return empty
+    try:
+        return remap_document_links(doc_zh, records, page_offset=0)
+    except Exception as e:
+        logger.warning("link_remap failed at doc level: %s", str(e)[:160])
+        return empty
+
+
+def _collect_preservation_side_channel(
+    doc_zh,
+    v3_output: dict = None,
+    image_engine: bool = False,
+    content_preservation: bool = False,
+) -> dict:
+    """V8.6: 图片翻译决策 + 内容保护决策的 side-channel 采集。
+
+    只把决策回填到 ``v3_output["preservation_records"]``，**不修改任何页面
+    内容/像素/链接**，也不影响 legacy 主链路渲染。所有异常仅在 debug 日志
+    可见（side-channel 纪律，与 V8.3/V8.4 一致）。
+    """
+    empty = {"pages": 0, "objects": 0, "translated": 0, "preserved": 0,
+             "overlay": 0}
+    if not getattr(doc_zh, "page_count", None):
+        return empty
+    if not (image_engine or content_preservation):
+        return empty
+    try:
+        from pdf2zh.v3.image_engine import (
+            TranslationDecisionEngine, analyze_pdf_images,
+        )
+        from pdf2zh.v3.content_preservation import ContentPreservationEngine
+    except Exception as e:
+        logger.debug("preservation engine import failed: %s", str(e)[:120])
+        return empty
+    try:
+        engine = TranslationDecisionEngine()
+        image_objs = analyze_pdf_images(
+            doc_zh, engine=engine,
+            page_range=list(range(doc_zh.page_count)) if doc_zh.page_count < 2000 else None,
+        )
+        pres_engine = ContentPreservationEngine(engine=engine)
+        rec = {}
+        for page_no, objs in image_objs.items():
+            page_rec = []
+            for obj in objs:
+                dec = pres_engine.decide_image(obj)
+                page_rec.append(dec.to_dict())
+            rec[str(page_no)] = page_rec
+
+        stats = {"pages": len(image_objs), "objects": sum(len(v) for v in image_objs.values()),
+                 "translated": 0, "preserved": 0, "overlay": 0}
+        for page_no, objs in image_objs.items():
+            for obj in objs:
+                if obj.decision and obj.decision.render_mode.value == "overlay":
+                    stats["overlay"] += 1
+                elif obj.decision and obj.decision.translate:
+                    stats["translated"] += 1
+                else:
+                    stats["preserved"] += 1
+        if v3_output is not None:
+            v3_output["preservation_records"] = rec
+            v3_output["preservation_stats"] = stats
+        return stats
+    except Exception as e:
+        logger.debug("preservation collection failed: %s", str(e)[:160])
+        return empty
+
+
+def _apply_bookmarks(
+    doc_zh,
+    doc_en,
+    stream_bytes: bytes,
+    service: str,
+    lang_in: str,
+    lang_out: str,
+    envs: Dict,
+    prompt: Template,
+    ignore_cache: bool = False,
+) -> None:
+    """翻译并重建 PDF 书签（/Outlines）到译文文档。
+
+    - 读取源 PDF 的 outline 树（fitz get_toc）
+    - 用与正文一致的翻译器翻译书签标题
+    - mono 文档（doc_zh，纯译文）：书签页码保持不变
+    - dual 文档（doc_en，双语交错 en0,zh0,en1,zh1,...）：
+      原页码 n 映射为 2n-1（指向英文页），保持原书签页码语义
+    - 任一步失败仅记 warning，不回退整个翻译任务
+    """
+    try:
+        import fitz
+        reader = fitz.open(stream=stream_bytes, filetype="pdf")
+        toc = reader.get_toc()
+        reader.close()
+    except Exception as e:
+        logger.warning("bookmarks: failed to read outline: %s", str(e)[:120])
+        return
+    if not toc:
+        return
+    translator = None
+    try:
+        translator = build_translator(service, lang_in, lang_out, envs, prompt, ignore_cache)
+    except Exception as e:
+        logger.warning("bookmarks: translator init failed: %s", str(e)[:120])
+        return
+    if translator is None:
+        return
+    new_toc = []
+    for item in toc:
+        lvl = item[0] if len(item) > 0 else 1
+        title = (item[1] if len(item) > 1 else "").strip()
+        page = item[2] if len(item) > 2 else 1
+        if not title:
+            continue
+        try:
+            translated = translator.translate(title)
+        except Exception as e:
+            logger.warning("bookmarks: title translate failed (%r): %s", title[:30], str(e)[:120])
+            translated = title
+        t = (translated or "").strip() or title
+        new_toc.append([lvl, t, page])
+    if not new_toc:
+        return
+    try:
+        doc_zh.set_toc(new_toc)
+    except Exception as e:
+        logger.warning("bookmarks: set_toc mono failed: %s", str(e)[:120])
+    dual_toc = []
+    for lvl, t, page in new_toc:
+        dual_toc.append([lvl, t, max(1, 2 * int(page) - 1)])
+    try:
+        doc_en.set_toc(dual_toc)
+    except Exception as e:
+        logger.warning("bookmarks: set_toc dual failed: %s", str(e)[:120])
+
+
 def translate_stream(
     stream: bytes,
     pages: Optional[list[int]] = None,
@@ -221,6 +391,16 @@ def translate_stream(
     use_translation_cache: bool = True,
     parallel_pages: bool = True,
     parallel_workers: int = 4,
+    # V8.3/V8.4: 主链路 IR 产出 + 写回前重排版门控（经 **dict(locals()) 透传）
+    emit_ir: bool = False,
+    relayout_gate: object = None,
+    v3_output: dict = None,
+    # V8.5: 翻译页面上超链接 /Rect 重定位（默认开；无桥接数据时安全跳过）
+    relink_links: bool = True,
+    # V8.6: 图片翻译决策层（side-channel，仅回传决策不入主链路渲染；默认关）
+    image_engine: bool = False,
+    content_preservation: bool = False,
+    emit_preservation: bool = True,
 
     **kwarg: Any,
 ):
@@ -383,6 +563,38 @@ def translate_stream(
                     _px_pageno, _px_xref, str(se)[:80],
                 )
 
+    # === V8.5: 超链接重定位（必须发生在 insert_file 合并之前，译副本才能继承修正 rect） ===
+    # 用 converter side-channel 采集的段落源→目标几何，把译文页面上继承自原文的
+    # link /Rect 重新投影到译文实际渲染位置（mono 原文页的锚点保持原样不动）。
+    if relink_links:
+        try:
+            link_stats = _relink_translated_doc(doc_zh, v3_output)
+            if any(link_stats["relinked"] for _ in [0]):
+                logger.info(
+                    "translate_stream: relinked %d links across %d pages",
+                    link_stats["relinked"], link_stats["pages"],
+                )
+        except Exception as relink_err:
+            logger.warning("translate_stream: link relink skipped: %s", str(relink_err)[:160])
+
+    # === V8.6: 图片翻译 + 内容保护决策的 side-channel（仅采集回传，不改渲染） ===
+    if emit_preservation:
+        try:
+            pres_stats = _collect_preservation_side_channel(
+                doc_zh, v3_output,
+                image_engine=image_engine,
+                content_preservation=content_preservation,
+            )
+            if pres_stats and pres_stats["objects"]:
+                logger.info(
+                    "translate_stream: preservation decided %d image objects "
+                    "(translate=%d preserve=%d overlay=%d)",
+                    pres_stats["objects"], pres_stats["translated"],
+                    pres_stats["preserved"], pres_stats["overlay"],
+                )
+        except Exception as pres_err:
+            logger.warning("translate_stream: preservation skipped: %s", str(pres_err)[:160])
+
     logger.info("=" * 60)
     logger.info("translate_stream: MERGING %d pages (this may take a while for large PDFs)...", page_count)
     logger.info("=" * 60)
@@ -456,6 +668,13 @@ def translate_stream(
             logger.info("translate_stream: doc_en subset_fonts complete")
         except Exception as subset_err:
             logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])
+    # === 书签（/Outlines）：翻译标题并重建到 mono/dual 文档（P0-3） ===
+    # 在子集化之后、写出之前重建，避免子集化影响新写入的 outline 对象。
+    _apply_bookmarks(
+        doc_zh, doc_en, stream.getvalue(),
+        service=service, lang_in=lang_in, lang_out=lang_out,
+        envs=envs, prompt=prompt, ignore_cache=ignore_cache,
+    )
     logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
     try:
         _write_start = _merge_time.time()

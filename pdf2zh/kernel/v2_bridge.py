@@ -130,11 +130,17 @@ def request_to_cli_args(request: Any) -> list[str]:
 
     # Always resolve output to an absolute path to avoid cwd confusion
     # in the subprocess.  Default to input file's parent dir (v1 behavior).
-    from pathlib import Path
+    from pathlib import Path, PurePosixPath
 
     output = data.get("output", "")
     if not output and data.get("files"):
-        output = str(Path(data["files"][0]).resolve().parent)
+        first = data["files"][0]
+        if first.startswith("/"):
+            # POSIX-style input on any host: keep POSIX semantics, otherwise
+            # os/pathlib on Windows would rewrite /some/dir into \some\dir.
+            output = str(PurePosixPath(first).parent)
+        else:
+            output = str(Path(first).resolve().parent)
     elif output:
         output = str(Path(output).resolve())
     if output:

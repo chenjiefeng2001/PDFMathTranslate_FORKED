@@ -15,6 +15,7 @@ from pdfminer.utils import apply_matrix_pt, mult_matrix
 from pymupdf import Font
 from tenacity import retry, wait_fixed
 
+from pdf2zh.toc import TOC_LEADER_CHARS, detect_toc_line, char_adv
 from pdf2zh.translator import (
     AnythingLLMTranslator,
     ArgosTranslator,
@@ -41,6 +42,7 @@ from pdf2zh.translator import (
     XinferenceTranslator,
     ZhipuTranslator,
     X302AITranslator,
+    build_translator,
 )
 
 log = logging.getLogger(__name__)
@@ -158,6 +160,7 @@ class TranslateConverter(PDFConverterEx):
         collision_resolver: object = None,
         translation_cache: object = None,
         skip_subset_fonts: bool = False,
+        emit_ir: bool = False, relayout_gate: object = None,
     ) -> None:
         super().__init__(rsrcmgr)
         self.vfont = vfont
@@ -167,6 +170,9 @@ class TranslateConverter(PDFConverterEx):
         self.noto_name = noto_name
         self.noto = noto
         self.skip_subset_fonts = skip_subset_fonts
+        # V8.3/V8.4 side-channels（逻辑在 v3.mainline_wiring）
+        self.emit_ir, self.relayout_gate = emit_ir, relayout_gate
+        self.ir_snapshots, self.gate_verdicts = {}, {}
         # 2.0 modules
         self.text_metrics = text_metrics or {}
         self.font_resolver = font_resolver
@@ -182,23 +188,15 @@ class TranslateConverter(PDFConverterEx):
 
         self.translator: BaseTranslator = None
         # e.g. "ollama:gemma2:9b" -> ["ollama", "gemma2:9b"]
-        param = service.split(":", 1)
-        service_name = param[0]
-        service_model = param[1] if len(param) > 1 else None
-        if not envs:
-            envs = {}
-        for translator in [GoogleTranslator, BingTranslator, DeepLTranslator, DeepLXTranslator, OllamaTranslator, XinferenceTranslator, AzureOpenAITranslator,
-                           OpenAITranslator, ZhipuTranslator, ModelScopeTranslator, SiliconTranslator, GeminiTranslator, AzureTranslator, TencentTranslator, DifyTranslator, AnythingLLMTranslator, ArgosTranslator, GrokTranslator, GroqTranslator, DeepseekTranslator, MiniMaxTranslator, OpenAIlikedTranslator, QwenMtTranslator, X302AITranslator]:
-            if service_name == translator.name:
-                self.translator = translator(lang_in, lang_out, service_model, envs=envs, prompt=prompt, ignore_cache=ignore_cache)
-        if not self.translator:
-            raise ValueError("Unsupported translation service")
+        self.translator = build_translator(service, lang_in, lang_out, envs, prompt, ignore_cache)
 
     def receive_layout(self, ltpage: LTPage):
         # 段落
         sstk: list[str] = []            # 段落文字栈
         pstk: list[Paragraph] = []      # 段落属性栈
         vbkt: int = 0                   # 段落公式括号计数
+        self._gate_records: list = []  # V8.4: 写回前门控段落几何
+        from pdf2zh.v3.mainline_wiring import _new_gate_record, run_mainline_channels
         # 公式组
         vstk: list[LTChar] = []         # 公式符号组
         vlstk: list[LTLine] = []        # 公式线条组
@@ -213,6 +211,7 @@ class TranslateConverter(PDFConverterEx):
         xt: LTChar = None               # 上一个字符
         xt_cls: int = -2                # 上一个字符所属段落。初始为 -2 哨兵值：布局缺失时 cls 回退为 -1，
         # 若此处也是 -1，首字符会误入同一段落分支并越界访问空 sstk/pstk
+        toc_track: list = []            # 目录行字符记录：每段 [(点线字符或数字, x0, x1), ...]
         vmax: float = ltpage.width / 4  # 行内公式最大宽度
         ops: str = ""                   # 渲染结果
         # === 2.0: 记录页面边界，供碰撞求解夹紧（S1）===
@@ -347,6 +346,7 @@ class TranslateConverter(PDFConverterEx):
                     else:                           # 根据当前字符构建一个新的段落
                         sstk.append("")
                         pstk.append(Paragraph(child.y0, child.x0, child.x0, child.x0, child.y0, child.y1, child.size, False))
+                        toc_track.append([])
                 if not cur_v:                                               # 文字入栈
                     if (                                                    # 根据当前字符修正段落属性
                         child.size > pstk[-1].size                          # 1. 当前字符比段落字体大
@@ -357,7 +357,10 @@ class TranslateConverter(PDFConverterEx):
                     if child.size > cur_line_size and child.get_text() != " ":
                         cur_line_size = child.size                          # 更新当前行文字字号基准（仅文字字符，公式字符不污染）
 
-                    sstk[-1] += child.get_text()
+                    _tch = child.get_text()
+                    sstk[-1] += _tch
+                    if _tch in TOC_LEADER_CHARS or _tch.isdigit():
+                        toc_track[-1].append((_tch, child.x0, child.x1))
                 else:                                                       # 公式入栈
                     if (                                                    # 根据公式左侧的文字修正公式的纵向偏移
                         not vstk                                            # 1. 当前字符是公式的第一个字符
@@ -440,6 +443,16 @@ class TranslateConverter(PDFConverterEx):
         # B. 段落翻译
         log.debug("\n==========[SSTACK]==========\n")
 
+        # === 目录行结构感知（P0-1）：识别"标题+点线+页码"，标题单独翻译 ===
+        # 目录条目整行作为普通段落翻译会破坏点线/页码结构，
+        # 此处把标题切出翻译，点线与页码保留原样并原位渲染（P0-2）。
+        toc_specs: list = [None] * len(sstk)
+        for _ti, _ptxt in enumerate(sstk):
+            _spec = detect_toc_line(_ptxt, pstk[_ti].brk, toc_track[_ti], pstk[_ti].x1)
+            if _spec is not None:
+                toc_specs[_ti] = _spec
+                sstk[_ti] = _spec["title"]
+
         @retry(wait=wait_fixed(1))
         def worker(s: str):  # 多线程翻译
             if not s.strip() or re.match(r"^\{v\d+\}$", s):  # 空白和公式不翻译
@@ -520,6 +533,9 @@ class TranslateConverter(PDFConverterEx):
             height: float = pstk[id].y1 - pstk[id].y0   # 段落高度
             size: float = pstk[id].size                 # 段落字体大小
             brk: bool = pstk[id].brk                    # 段落换行标记
+            spec = toc_specs[id] if toc_specs else None  # 目录行规格（None = 普通段落）
+            toc_mode = spec is not None                  # 目录行模式：禁折行、点线/页码原位渲染
+            x1_bound = float("inf") if toc_mode else x1  # 目录行标题不做右边界折行
             cstk: str = ""                              # 当前文字栈
             fcur: str = None                            # 当前字体 ID
             lidx = 0                                    # 记录换行次数
@@ -578,7 +594,7 @@ class TranslateConverter(PDFConverterEx):
                 if (                                # 输出文字缓冲区
                     fcur_ != fcur                   # 1. 字体更新
                     or vy_regex                     # 2. 插入公式
-                    or x + adv > x1 + 0.1 * size    # 3. 到达右边界（可能一整行都被符号化，这里需要考虑浮点误差）
+                    or x + adv > x1_bound + 0.1 * size    # 3. 到达右边界（可能一整行都被符号化，这里需要考虑浮点误差）
                 ):
                     if cstk:
                         ops_vals.append({
@@ -591,7 +607,7 @@ class TranslateConverter(PDFConverterEx):
                             "lidx": lidx
                         })
                         cstk = ""
-                if x + adv > x1 + 0.1 * size:  # 到达右边界一律换行（S4：不再要求原文 brk，译文单行段落超宽也能折行）
+                if x + adv > x1_bound + 0.1 * size:  # 到达右边界一律换行（S4：不再要求原文 brk，译文单行段落超宽也能折行）；目录行禁折行（P0-2）
                     x = x0
                     lidx += 1
                 if vy_regex:  # 插入公式
@@ -650,6 +666,42 @@ class TranslateConverter(PDFConverterEx):
                     "lidx": lidx
                 })
 
+            if toc_mode:
+                # === 目录行排版（P0-2）：标题已单独翻译，点线+页码原位渲染 ===
+                # 点线：从标题结束处向后填充 '.'，到页码起点为止（保留点线引导结构）
+                _page = spec["page_digits"]
+                _page_start = spec["page_start_x"]
+                _page_right = spec["page_right_x"]
+                _dot_adv = char_adv(self, ".", size)
+                if not _dot_adv or _dot_adv <= 0:
+                    _dot_adv = size * 0.5
+                _cx = x
+                _dot_count = 0
+                while _cx + _dot_adv <= _page_start - 0.5 and _dot_count < 300:
+                    ops_vals.append({
+                        "type": OpType.TEXT,
+                        "font": self.noto_name,
+                        "size": size,
+                        "x": _cx,
+                        "dy": 0,
+                        "rtxt": raw_string(self.noto_name, "."),
+                        "lidx": 0,
+                    })
+                    _cx += _dot_adv
+                    _dot_count += 1
+                # 页码：右对齐到页码右边界（保持目录右对齐页码列）
+                _pw = sum(char_adv(self, c, size) for c in _page)
+                _px = _page_right - _pw
+                ops_vals.append({
+                    "type": OpType.TEXT,
+                    "font": self.noto_name,
+                    "size": size,
+                    "x": _px,
+                    "dy": 0,
+                    "rtxt": raw_string(self.noto_name, _page),
+                    "lidx": 0,
+                })
+
             # === 2.0: TextMetrics line height (M1, S5) ===
             line_height = default_line_height
             # CJK/western mixed line height（扩展字符覆盖：全角标点 U+FF00-U+FFEF 也计入 CJK）
@@ -676,8 +728,9 @@ class TranslateConverter(PDFConverterEx):
                 line_height = max(line_height, 1.3)
                 line_height_min = max(line_height_min, 1.3)
             # 压缩循环：原文高度不足以容纳译文行数时压缩行距，
-            # 但止步于行高下限；压缩到下限仍溢出则记录 QA 溢出标记
-            if (
+            # 但止步于行高下限；压缩到下限仍溢出则记录 QA 溢出标记。
+            # 目录行禁压缩（P1）：单行目录条目不压缩行距、不产生溢出标记。
+            if not toc_mode and (
                 height > 0
                 and np.isfinite(height)
                 and (lidx + 1) * size * line_height > height
@@ -732,7 +785,7 @@ class TranslateConverter(PDFConverterEx):
                         y += shift
                     if nsize != size:  # S3: 字号缩减生效
                         size = nsize
-                    if nx != x0:  # S3: 水平缩进生效，平移已生成行
+                    if nx != x0 and not toc_mode:  # S3: 水平缩进生效，平移已生成行；目录行右对齐页码保持原位不动
                         dx = nx - x0
                         for v in ops_vals:
                             v["x"] += dx
@@ -751,7 +804,7 @@ class TranslateConverter(PDFConverterEx):
                         }
                     )
 
-
+            self._gate_records.append(_new_gate_record(x0, y, x1, size, sstk[id], new, toc_mode, lidx, line_height, pstk[id].y0, pstk[id].y1))
             for vals in ops_vals:
                 if vals["type"] == OpType.TEXT:
                     ops_list.append(gen_op_txt(vals["font"], vals["size"], vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height, vals["rtxt"]))
@@ -772,15 +825,19 @@ class TranslateConverter(PDFConverterEx):
             else:
                 log.debug(
                     "QA collision-unresolved page=%s lidx=%s bbox=%s",
-                    flag["page"], flag["lidx"], flag["bbox"],
+                    flag["page"], flag.get("lidx", "-"), flag.get("bbox", "-"),
                 )
                 ops_list.append(
-                    f"% pdf2zh-qa-overflow page={flag['page']} lidx={flag['lidx']} "
-                    f"kind={flag['kind']} bbox={flag['bbox']}\n"
+                    f"% pdf2zh-qa-overflow page={flag['page']} "
+                    f"lidx={flag.get('lidx', '-')} "
+                    f"kind={flag.get('kind', '-')} "
+                    f"issue={flag.get('issue', '')} "
+                    f"bbox={flag.get('bbox', '-')}\n"
                 )
         for l in lstk:  # 排版全局线条
             if l.linewidth < 5:  # hack 有的文档会用粗线条当图片背景
                 ops_list.append(gen_op_line(l.pts[0][0], l.pts[0][1], l.pts[1][0] - l.pts[0][0], l.pts[1][1] - l.pts[0][1], l.linewidth))
+        run_mainline_channels(self, ltpage)  # V8.3/V8.4 side-channels
 
         ops = f"BT {''.join(ops_list)}ET "
         return ops
