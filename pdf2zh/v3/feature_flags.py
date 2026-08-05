@@ -46,6 +46,21 @@ class FeatureFlags:
     use_v4_renderer: bool = False
     """Enable V4 VisualTree-based unified renderer."""
 
+    use_v4_gate: bool = False
+    """Enable the V8.4 write-back relayout gate on the legacy path."""
+
+    relink_links: bool = True
+    """V8.5: re-anchor link annotations on translated pages to the rendered
+    translation geometry (fixed in high_level, guarded, side-channel data)."""
+
+    use_v4_image_engine: bool = False
+    """V8.6: Image Translation Engine (独立图片决策，不修改 legacy 主链路，
+    仅当显式开启并接入渲染后端时才影响输出)."""
+
+    use_v4_content_preservation: bool = False
+    """V8.6: Content Preservation Engine (统一 translate/preserve/overlay
+    决策层，写回 IR 角色；side-channel，需显式开启)."""
+
     # ── Individual Feature Toggles ───────────────────────────────────
 
     use_v4_visual_tree_builder: bool = False

@@ -205,6 +205,31 @@ from pdf2zh.v3.migration_diff import (
 from pdf2zh.v3.mainline_gate import (
     GateBlock, GatedResult, MainlineRelayoutGate,
 )
+# 阶段二 — Geometry Engine / 阶段三 — Structure Engine
+from pdf2zh.v3.geometry import (
+    Char, Word, Line, Paragraph, PageGeometry, GeometryConfig,
+    GeometryEngine, extract_chars_from_page, extract_chars_from_stream,
+    chars_from_ltpage,
+)
+from pdf2zh.v3.structure import (
+    BlockRole, BlockFeatures, ClassifiedBlock,
+    compute_features, StructureClassifier, to_document_ir,
+)
+# V8.6 — Image Translation Engine / Content Preservation Engine
+from pdf2zh.v3.image_engine import (
+    ImageClass, RenderMode, ImageSource,
+    ImageObject, TextRegion, TranslationDecision, RegionDecision,
+    ImagePolicy, IMAGE_POLICY,
+    ImageFeatures, compute_image_features,
+    ImageClassifierBackend, RuleImageClassifier, classify_image,
+    detect_text_regions, TranslationDecisionEngine,
+    router_should_translate, is_probably_brand_or_technical,
+    analyze_image_bytes, analyze_pdf_images,
+)
+from pdf2zh.v3.content_preservation import (
+    PreservationAction, PreservationDecision, DelegateSpec,
+    ROLE_DEFAULT, ContentPreservationEngine, classify_node,
+)
 
 __all__ = [
     "RawBlock", "RawBlockType", "RawSpan", "PDFParser",
@@ -306,4 +331,21 @@ __all__ = [
     "BlockRecord", "normalize_block", "dice_similarity", "overlap_rate",
     "MigrationDiffReport", "MigrationDiffHarness", "snapshot_ir",
     "SyntheticCorpus", "GateBlock", "GatedResult", "MainlineRelayoutGate",
+    # 阶段二/三 — Geometry + Structure Engine
+    "Char", "Word", "Line", "Paragraph", "PageGeometry",
+    "GeometryConfig", "GeometryEngine",
+    "extract_chars_from_page", "extract_chars_from_stream", "chars_from_ltpage",
+    "BlockRole", "BlockFeatures", "ClassifiedBlock",
+    "compute_features", "StructureClassifier", "to_document_ir",
+    # V8.6 — Image Translation Engine / Content Preservation Engine
+    "ImageClass", "RenderMode", "ImageSource",
+    "ImageObject", "TextRegion", "TranslationDecision", "RegionDecision",
+    "ImagePolicy", "IMAGE_POLICY",
+    "ImageFeatures", "compute_image_features",
+    "ImageClassifierBackend", "RuleImageClassifier", "classify_image",
+    "detect_text_regions", "TranslationDecisionEngine",
+    "router_should_translate", "is_probably_brand_or_technical",
+    "analyze_image_bytes", "analyze_pdf_images",
+    "PreservationAction", "PreservationDecision", "DelegateSpec",
+    "ROLE_DEFAULT", "ContentPreservationEngine", "classify_node",
 ]
