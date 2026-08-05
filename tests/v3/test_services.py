@@ -63,6 +63,25 @@ class TestTranslationRequest:
         d = req.to_dict()
         assert d["prompt"] == "Translate academic paper"
 
+    def test_resolved_files_prefers_files_list(self):
+        req = TranslationRequest(source_path="/tmp/first.pdf", files=["/tmp/a.pdf", "/tmp/b.pdf"])
+        assert req.resolved_files() == ["/tmp/a.pdf", "/tmp/b.pdf"]
+
+    def test_resolved_files_falls_back_to_source_path(self):
+        req = TranslationRequest(source_path="/tmp/single.pdf")
+        assert req.resolved_files() == ["/tmp/single.pdf"]
+
+    def test_resolved_files_empty(self):
+        req = TranslationRequest()
+        assert req.resolved_files() == []
+        req2 = TranslationRequest(source_path="", files=["", "  "])
+        assert req2.resolved_files() == []
+
+    def test_source_path_optional(self):
+        # Batch-only request without legacy source_path is valid.
+        req = TranslationRequest(files=["/tmp/a.pdf", "/tmp/b.pdf"])
+        assert req.resolved_files() == ["/tmp/a.pdf", "/tmp/b.pdf"]
+
 
 class TestTaskProgressEvent:
     def test_defaults(self):
@@ -178,6 +197,77 @@ class TestRuntimeService:
         state = svc.get_task_state(task_id)
         assert state is not None
         assert state.status in (TaskStage.PENDING.value, TaskStage.FAILED.value)
+
+    def test_submit_batch_sets_file_list(self):
+        svc = RuntimeService()
+        req = TranslationRequest(
+            source_path="/tmp/a.pdf", files=["/tmp/a.pdf", "/tmp/b.pdf"],
+        )
+        task_id = svc.submit_batch(req)
+        state = svc.get_task_state(task_id)
+        assert state is not None
+        assert state.total_files == 2
+        assert state.file_list == ["a.pdf", "b.pdf"]
+        assert state.current_file_name == "a.pdf"
+
+    def test_submit_task_without_files_fails(self):
+        svc = RuntimeService()
+        task_id = svc.submit_task(TranslationRequest())
+        state = svc.get_task_state(task_id)
+        assert state is not None
+        assert state.status == TaskStage.FAILED.value
+
+    def test_agg_progress(self):
+        from pdf2zh.services.runtime_service import _BatchContext
+
+        svc = RuntimeService()
+        ctx = _BatchContext(total_files=2)
+        assert svc._agg(ctx, 0.0) == 0.0
+        assert abs(svc._agg(ctx, 50.0) - 25.0) < 1e-6
+        ctx.completed_files = 1
+        assert abs(svc._agg(ctx, 50.0) - 75.0) < 1e-6
+        assert abs(svc._agg(ctx, 100.0) - 100.0) < 1e-6
+
+    def test_complete_file_batch_accumulates_results(self):
+        svc = RuntimeService()
+        task_id = svc.submit_batch(
+            TranslationRequest(files=["/tmp/a.pdf", "/tmp/b.pdf"])
+        )
+        svc.cancel_task(task_id)  # stop the background thread promptly
+        state = svc.get_task_state(task_id)
+        assert state is not None
+        # Directly drive the aggregation helpers (no real translation runs).
+        svc._complete_file(
+            task_id, [{"name": "a-mono.pdf", "path": "/tmp/a-mono.pdf"}],
+            total_files=2, selected_file="a-mono.pdf",
+        )
+        state = svc.get_task_state(task_id)
+        assert state.completed_files == 1
+        assert len(state.result_files) == 1
+        assert state.result_files[0]["name"] == "a-mono.pdf"
+        svc._complete_file(
+            task_id, [{"name": "b-mono.pdf", "path": "/tmp/b-mono.pdf"}],
+            total_files=2, selected_file="b-mono.pdf",
+        )
+        state = svc.get_task_state(task_id)
+        assert state.completed_files == 2
+        assert len(state.result_files) == 2
+        # Batch mode must NOT transition to a terminal stage per file.
+        assert state.status not in (TaskStage.COMPLETED.value, TaskStage.FAILED.value)
+
+    def test_fail_file_batch_records_failure(self):
+        svc = RuntimeService()
+        task_id = svc.submit_batch(
+            TranslationRequest(files=["/tmp/a.pdf", "/tmp/b.pdf"])
+        )
+        svc.cancel_task(task_id)
+        state = svc.get_task_state(task_id)
+        assert state is not None
+        svc._fail_file(task_id, "boom", total_files=2)
+        state = svc.get_task_state(task_id)
+        assert state.failed_files == 1
+        assert len(state.file_failures) == 1
+        assert state.status != TaskStage.FAILED.value
 
     def test_get_task_state_nonexistent(self):
         svc = RuntimeService()

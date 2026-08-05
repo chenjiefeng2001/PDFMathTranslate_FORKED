@@ -35,6 +35,10 @@ class TaskState:
     total_progress: float = 0.0
     current_file_name: str = ""
     file_list: List[str] = field(default_factory=list)
+    total_files: int = 0
+    completed_files: int = 0
+    failed_files: int = 0
+    file_failures: List[Dict[str, str]] = field(default_factory=list)
     result_files: List[Dict[str, str]] = field(default_factory=list)
     selected_file: Optional[str] = None
     result_zip: Optional[str] = None
@@ -65,6 +69,10 @@ class TaskState:
             "total_progress": self.total_progress,
             "current_file_name": self.current_file_name,
             "file_list": self.file_list,
+            "total_files": self.total_files,
+            "completed_files": self.completed_files,
+            "failed_files": self.failed_files,
+            "file_failures": self.file_failures,
             "result_files": self.result_files,
             "selected_file": self.selected_file,
             "result_zip": self.result_zip,

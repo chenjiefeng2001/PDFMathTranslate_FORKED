@@ -110,18 +110,19 @@ def submit_translation_task(
                 return existing
         _IN_FLIGHT[client_id] = "__submitting__"
 
-    # Resolve source path
-    source_path = _resolve_source_path(file_type, file_input, link_input, page_input)
+    # Resolve source path(s) -- multi-file upload yields a list
+    source_paths = _resolve_source_paths(file_type, file_input, link_input, page_input)
 
-    if not source_path or not os.path.exists(source_path):
+    if not source_paths:
         with _SUBMIT_LOCK:
             _IN_FLIGHT.pop(client_id, None)
-        logger.error("Source file not found: %s", source_path)
-        raise FileNotFoundError(f"Source file not found: {source_path}")
+        logger.error("No source files provided")
+        raise FileNotFoundError("No source file provided")
 
     # Build typed request
     request = TranslationRequest(
-        source_path=source_path,
+        source_path=source_paths[0],
+        files=source_paths,
         target_lang=lang_to,
         source_lang=lang_from,
         engine=service,
@@ -187,60 +188,74 @@ def background_translation_worker(
     svc.submit_task(request)
 
 
+def _coerce_path(item: Any) -> Optional[str]:
+    """Extract a filesystem path from a Gradio 5 value (str / FileData / UploadFile)."""
+    if item is None:
+        return None
+    if isinstance(item, str) and item.strip():
+        return item
+    for attr in ("path", "name"):
+        if hasattr(item, attr):
+            val = getattr(item, attr)
+            if isinstance(val, str) and val.strip():
+                return val
+    return None
+
+
+def _resolve_source_paths(
+    file_type: str,
+    file_input: Any,
+    link_input: str,
+    page_input: Any,
+) -> List[str]:
+    """Resolve ALL source file paths from various input formats.
+
+    Handles:
+      - Direct file upload (gr.File single file -> one path string)
+      - Multi-file upload (gr.File file_count=\"multiple\" -> list of paths)
+      - Gradio FileData / UploadFile objects (have .name / .path)
+      - URL link download (saved to temp)
+      - Page input (saved to temp)
+
+    Returns a (possibly empty) list of paths; no ``os.path.exists`` filtering
+    is applied so invalid files still surface as per-file failures downstream.
+    """
+    paths: List[str] = []
+    if file_type == "file" and file_input is not None:
+        raw_items: List[Any]
+        if isinstance(file_input, (list, tuple)):
+            raw_items = list(file_input)
+        else:
+            raw_items = [file_input]
+        for item in raw_items:
+            p = _coerce_path(item)
+            if p:
+                paths.append(p)
+
+    # URL link fallback (only when no local files were provided).
+    if not paths and link_input and link_input.startswith(("http://", "https://")):
+        import tempfile
+        import urllib.request
+
+        try:
+            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+            urllib.request.urlretrieve(link_input, tmp.name)
+            paths.append(tmp.name)
+        except Exception as exc:
+            logger.warning("Failed to download URL %s: %s", link_input, exc)
+    return paths
+
+
+
 def _resolve_source_path(
     file_type: str,
     file_input: Any,
     link_input: str,
     page_input: Any,
 ) -> Optional[str]:
-    """Resolve the source file path from various input formats.
-
-    Handles:
-      - Direct file upload (gr.File → single path string)
-      - Multi-file upload (gr.File file_count="multiple" → list of paths, take first)
-      - Gradio UploadFile object (has .name attribute)
-      - URL link download (saved to temp)
-      - Page input (saved to temp)
-    """
-    # If file_input is a list (gr.File with file_count="multiple"), take first
-    if isinstance(file_input, (list, tuple)):
-        if not file_input:
-            return None
-        first = file_input[0]
-        # First element might be a path string or an UploadFile
-        if isinstance(first, str) and os.path.exists(first):
-            return first
-        if hasattr(first, "name"):
-            path = getattr(first, "name", "")
-            if path and os.path.exists(path):
-                return path
-        return None
-
-    # If file_input is a string path
-    if isinstance(file_input, str) and os.path.exists(file_input):
-        return file_input
-
-    # If file_input has a .name attribute (Gradio UploadFile / single file upload)
-    if hasattr(file_input, "name"):
-        path = getattr(file_input, "name", "")
-        if path and os.path.exists(path):
-            return path
-
-    # If link_input is provided
-    if link_input and link_input.startswith(("http://", "https://")):
-        import tempfile
-        import urllib.request
-        try:
-            tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-            urllib.request.urlretrieve(link_input, tmp.name)
-            return tmp.name
-        except Exception as exc:
-            logger.warning("Failed to download URL %s: %s", link_input, exc)
-            return None
-
-    return None
-
-
+    """Resolve the first source file path (legacy single-file entry point)."""
+    paths = _resolve_source_paths(file_type, file_input, link_input, page_input)
+    return paths[0] if paths else None
 def cancel_task(task_id: str) -> bool:
     """Cancel a running translation task."""
     svc = get_runtime_service()
@@ -266,6 +281,10 @@ def get_task_state(task_id: str) -> Optional[TaskState]:
         total_progress=svc_state.total_progress,
         current_file_name=svc_state.current_file_name,
         file_list=svc_state.file_list,
+        total_files=svc_state.total_files,
+        completed_files=svc_state.completed_files,
+        failed_files=svc_state.failed_files,
+        file_failures=list(getattr(svc_state, "file_failures", None) or []),
         result_files=svc_state.result_files,
         selected_file=svc_state.selected_file,
         result_zip=svc_state.result_zip,

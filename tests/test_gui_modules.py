@@ -442,6 +442,34 @@ class TestWorkerModule:
         assert result is None
 
 
+    def test_resolve_source_paths_multi(self):
+        from pdf2zh.gui.worker import _resolve_source_paths
+        paths = _resolve_source_paths(
+            "file", ["/tmp/a.pdf", "/tmp/b.pdf"], "", None,
+        )
+        assert paths == ["/tmp/a.pdf", "/tmp/b.pdf"]
+
+    def test_resolve_source_paths_single(self):
+        from pdf2zh.gui.worker import _resolve_source_paths
+        assert _resolve_source_paths("file", "/tmp/a.pdf", "", None) == ["/tmp/a.pdf"]
+
+    def test_resolve_source_paths_empty(self):
+        from pdf2zh.gui.worker import _resolve_source_paths
+        assert _resolve_source_paths("file", None, "", None) == []
+        assert _resolve_source_paths("file", [], "", None) == []
+
+    def test_resolve_source_paths_filedata_objects(self):
+        from pdf2zh.gui.worker import _resolve_source_paths
+
+        class FakeFile:
+            def __init__(self, path):
+                self.path = path
+
+        assert _resolve_source_paths(
+            "file", [FakeFile("/tmp/a.pdf"), FakeFile("/tmp/b.pdf")], "", None,
+        ) == ["/tmp/a.pdf", "/tmp/b.pdf"]
+
+
 # =============================================================================
 # 7. Gradio Component Interface Tests (headless)
 # =============================================================================
@@ -639,6 +667,34 @@ class TestUploadPanelSummary:
         assert "a.pdf" in html
         assert "b.pdf" in html
         assert "× 2" in html
+
+    def test_build_file_summary_html_path_strings(self):
+        from pdf2zh.gui.components.upload_panel import build_file_summary_html
+        html = build_file_summary_html(["tmp/a.pdf", "tmp/b.pdf"])
+        assert "a.pdf" in html
+        assert "b.pdf" in html
+        assert "× 2" in html
+
+    def test_build_file_summary_html_single_path(self):
+        from pdf2zh.gui.components.upload_panel import build_file_summary_html
+        html = build_file_summary_html("tmp/paper.pdf")
+        assert "paper.pdf" in html
+
+    def test_build_file_summary_html_filedata_objects(self):
+        from pdf2zh.gui.components.upload_panel import build_file_summary_html
+
+        class FakeFile:
+            def __init__(self, name, size):
+                self.name = name
+                self.size = size
+
+        html = build_file_summary_html(
+            [FakeFile("a.pdf", 1024), FakeFile("b.pdf", 3072)]
+        )
+        assert "a.pdf" in html
+        assert "b.pdf" in html
+        assert "× 2" in html
+
 
     def test_human_size(self):
         from pdf2zh.gui.components.upload_panel import _human_size

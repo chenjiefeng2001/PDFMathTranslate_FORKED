@@ -10,7 +10,7 @@ Provides:
 from __future__ import annotations
 
 import os
-from typing import Any, List
+from typing import Any, List, Optional
 
 import gradio as gr
 
@@ -37,21 +37,59 @@ def _human_size(num_bytes: float) -> str:
     return f"{size:.1f} {units[idx]}"
 
 
+def _summary_item_from_path(path: str) -> dict:
+    """Build a summary item dict from a plain filesystem path."""
+    size = None
+    try:
+        size = os.path.getsize(path)
+    except OSError:
+        pass
+    return {"name": os.path.basename(path), "path": path, "size": size}
+
+
+def _summary_item_from_obj(obj: Any) -> Optional[dict]:
+    """Build a summary item dict from a FileData-like object (.path / .name)."""
+    item = {}
+    for attr in ("name", "path", "size"):
+        if hasattr(obj, attr):
+            val = getattr(obj, attr)
+            if val is not None:
+                item[attr] = val
+    return item if item else None
+
+
 def build_file_summary_html(files: Any) -> str:
     """Render file-selection summary chips from a gr.File value.
 
     Args:
-        files: ``gr.File`` value -- a dict (single) or a list of dicts
-            (multi). Each dict has ``name`` / ``path`` and usually ``size``.
+        files: ``gr.File`` value in any Gradio 5 shape -- a single path
+            string, a list of path strings, a dict (single FileData), a list
+            of dicts (multi), or FileData-like objects with ``.path``/``.name``.
 
     Returns:
         HTML string (empty when no files are selected).
     """
-    items: List[dict] = []
-    if isinstance(files, dict):
-        items = [files]
-    elif isinstance(files, (list, tuple)):
-        items = [f for f in files if isinstance(f, dict)]
+    items = []
+    if isinstance(files, (list, tuple)):
+        for f in files:
+            if f is None:
+                continue
+            if isinstance(f, str) and f.strip():
+                items.append(_summary_item_from_path(f))
+            elif isinstance(f, dict):
+                items.append(f)
+            else:
+                it = _summary_item_from_obj(f)
+                if it:
+                    items.append(it)
+    elif isinstance(files, dict):
+        items.append(files)
+    elif isinstance(files, str) and files.strip():
+        items.append(_summary_item_from_path(files))
+    elif files is not None:
+        it = _summary_item_from_obj(files)
+        if it:
+            items.append(it)
     if not items:
         return ""
     chips = []
@@ -62,14 +100,20 @@ def build_file_summary_html(files: Any) -> str:
         size = item.get("size")
         label = _human_size(size) if size is not None else "?"
         chips.append(
-            f'<span class="file-summary-item">{base} <em>({label})</em></span>'
+            '<span class="file-summary-item">' + base + " <em>(" + label + ")</em></span>"
         )
     total = len(items)
-    plural = "" if total == 1 else f" × {total}"
+    plural = "" if total == 1 else " × " + str(total)
     return (
-        f'<div class="file-summary"><strong>{B("upload_summary_selected")}</strong>'
-        f"{plural}: {' '.join(chips)}</div>"
+        '<div class="file-summary"><strong>'
+        + B("upload_summary_selected")
+        + "</strong>"
+        + plural
+        + ": "
+        + " ".join(chips)
+        + "</div>"
     )
+
 
 
 def create_upload_panel() -> dict:

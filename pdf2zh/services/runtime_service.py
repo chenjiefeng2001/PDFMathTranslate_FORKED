@@ -15,6 +15,7 @@ Lifecycle:
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 import threading
@@ -48,9 +49,15 @@ class TaskStage(str, Enum):
 
 @dataclass
 class TranslationRequest:
-    """Strong-typed request replacing the 21-parameter tuple pattern."""
+    """Strong-typed request replacing the 21-parameter tuple pattern.
 
-    source_path: str
+    ``files`` (batch mode) takes precedence over the legacy single-file
+    ``source_path``. Both may be provided for compatibility; ``resolved_files()``
+    returns the effective list of files to process.
+    """
+
+    source_path: str = ""
+    files: List[str] = field(default_factory=list)
     target_lang: str = "zh-CN"
     source_lang: str = "auto"
     engine: str = "google"
@@ -63,6 +70,13 @@ class TranslationRequest:
     skip_subset_fonts: bool = False
     ignore_cache: bool = False
     extra_config: Dict[str, Any] = field(default_factory=dict)
+
+    def resolved_files(self) -> List[str]:
+        """Return the effective list of files to translate (batch or single)."""
+        files = [f for f in (self.files or []) if f and f.strip()]
+        if not files and self.source_path and self.source_path.strip():
+            files = [self.source_path]
+        return files
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -104,6 +118,20 @@ class TaskProgressEvent:
 
 
 @dataclass
+class _BatchContext:
+    """Per-task aggregation state for multi-file (batch) translation.
+
+    Tracks how many files completed / failed so per-file progress events can
+    be folded into one smooth overall progress for the whole task.
+    """
+
+    total_files: int
+    completed_files: int = 0
+    failed_files: int = 0
+    current_file: str = ""
+
+
+@dataclass
 class TaskState:
     """Type-safe task state replacing bare dict (20+ fields)."""
 
@@ -116,6 +144,10 @@ class TaskState:
     total_progress: float = 0.0
     current_file_name: str = ""
     file_list: List[str] = field(default_factory=list)
+    total_files: int = 0
+    completed_files: int = 0
+    failed_files: int = 0
+    file_failures: List[Dict[str, Any]] = field(default_factory=list)
     result_files: List[Dict[str, str]] = field(default_factory=list)
     selected_file: Optional[str] = None
     result_zip: Optional[str] = None
@@ -145,6 +177,10 @@ class TaskState:
             "total_progress": self.total_progress,
             "current_file_name": self.current_file_name,
             "file_list": self.file_list,
+            "total_files": self.total_files,
+            "completed_files": self.completed_files,
+            "failed_files": self.failed_files,
+            "file_failures": self.file_failures,
             "result_files": self.result_files,
             "selected_file": self.selected_file,
             "result_zip": self.result_zip,
@@ -294,6 +330,9 @@ class RuntimeService:
         self._store = _TaskStore()
         self._lock = threading.Lock()
         self._active_count = 0
+        #: Per-task batch aggregation state (only for multi-file tasks).
+        self._batch_ctx: Dict[str, _BatchContext] = {}
+        self._batch_ctx_lock = threading.Lock()
         #: External callbacks invoked on every emitted ``TaskProgressEvent``
         #: (Observer pattern -- the service stays fully decoupled from the
         #: GUI: listeners receive low-level records only).
@@ -325,21 +364,47 @@ class RuntimeService:
 
 
     def submit_task(self, request: TranslationRequest) -> str:
-        """Submit a translation task; returns task_id."""
+        """Submit a translation task; returns task_id.
+
+        Supports both single-file requests (legacy ``source_path``) and
+        multi-file batch requests (``files``). Batch tasks are executed
+        sequentially with aggregate progress reporting.
+        """
         task_id = f"task_{uuid.uuid4().hex[:12]}"
         self._store.create_task(task_id)
-        filename = os.path.basename(request.source_path) if request.source_path else "unknown"
+        files = request.resolved_files()
+        if not files:
+            self._store.update_task(
+                task_id, status=TaskStage.FAILED.value,
+                error_message="No source files provided",
+                message="Error: No source files provided",
+            )
+            return task_id
+        filenames = [os.path.basename(f) for f in files]
         self._store.update_task(
             task_id,
             status=TaskStage.PENDING.value,
-            current_file_name=filename,
-            file_list=[filename],
+            current_file_name=filenames[0],
+            file_list=filenames,
+            total_files=len(files),
         )
+        if len(files) > 1:
+            with self._batch_ctx_lock:
+                self._batch_ctx[task_id] = _BatchContext(total_files=len(files))
         thread = threading.Thread(
             target=self._execute_task, args=(task_id, request), daemon=True,
         )
         thread.start()
         return task_id
+
+    def submit_batch(self, request: TranslationRequest) -> str:
+        """Submit a multi-file batch translation; returns task_id.
+
+        Semantically equivalent to ``submit_task`` (which already detects
+        batch requests via ``request.files``); kept as an explicit API for
+        batch-oriented callers.
+        """
+        return self.submit_task(request)
 
     def get_task_state(self, task_id: str) -> Optional[TaskState]:
         return self._store.get_task(task_id)
@@ -411,7 +476,10 @@ class RuntimeService:
             if self._store.is_cancelled(task_id):
                 return
             self._sync_feature_flags(task_id)
-            if self.config.use_v4_engine:
+            files = request.resolved_files()
+            if len(files) > 1:
+                self._execute_batch(task_id, request, files)
+            elif self.config.use_v4_engine:
                 self._execute_v4(task_id, request)
             else:
                 self._execute_legacy(task_id, request)
@@ -422,6 +490,219 @@ class RuntimeService:
                 error_message=str(exc), message=f"Error: {exc}",
             )
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {exc}")
+
+    def _execute_batch(
+        self, task_id: str, request: TranslationRequest, files: List[str],
+    ) -> None:
+        """Execute a multi-file batch sequentially, aggregating overall progress.
+
+        Per-file results are accumulated into ``result_files`` and failures are
+        recorded per-file (task continues with the next file). The task only
+        reaches a terminal stage once every file has been processed.
+        """
+        ctx = self._batch_ctx.get(task_id)
+        if ctx is None:
+            ctx = _BatchContext(total_files=len(files))
+            with self._batch_ctx_lock:
+                self._batch_ctx[task_id] = ctx
+        total = ctx.total_files
+        for path in files:
+            if self._store.is_cancelled(task_id):
+                return
+            ctx.current_file = os.path.basename(path)
+            # Reset to running state (a previous file may have ended in FAILED).
+            self._store.update_task(
+                task_id,
+                status=TaskStage.PARSING.value,
+                current_file_name=ctx.current_file,
+                file_progress=0.0,
+                total_progress=self._agg(ctx, 0.0),
+                progress=self._agg(ctx, 0.0),
+                message=f"Processing {ctx.current_file}",
+            )
+            sub_request = dataclasses.replace(request, source_path=path, files=[])
+            try:
+                if self.config.use_v4_engine:
+                    self._execute_v4(task_id, sub_request)
+                else:
+                    self._execute_legacy(task_id, sub_request)
+            except Exception as exc:
+                logger.error(
+                    "[task=%s] file %s failed: %s", task_id, path, exc, exc_info=True,
+                )
+                self._fail_file(task_id, exc, total_files=total)
+            # Defensive: if the per-file executor left the task in FAILED
+            # (some legacy error paths update status directly), record it as a
+            # file failure but keep the batch going.
+            state = self._store.get_task(task_id)
+            if (
+                state is not None
+                and state.status == TaskStage.FAILED.value
+                and not self._file_failure_recorded(task_id, ctx)
+            ):
+                self._fail_file(task_id, state.error_message or "File failed",
+                                total_files=total)
+        if self._store.is_cancelled(task_id):
+            return
+        self._finish_batch(task_id, ctx)
+
+    def _finish_batch(self, task_id: str, ctx: _BatchContext) -> None:
+        """Terminal wrap-up for a batch task after every file was processed."""
+        total = ctx.total_files
+        if ctx.failed_files >= total:
+            self._store.update_task(
+                task_id, status=TaskStage.FAILED.value, progress=100.0,
+                total_progress=100.0, message="All files failed",
+                error_message="All files failed",
+            )
+            self._emit_event(task_id, TaskStage.FAILED.value, 100.0, "All files failed")
+            return
+        msg = f"Completed {total - ctx.failed_files}/{total} file(s)"
+        if ctx.failed_files:
+            msg += f", {ctx.failed_files} failed"
+        zip_path = self._build_batch_zip(task_id)
+        state = self._store.get_task(task_id)
+        self._store.update_task(
+            task_id, status=TaskStage.COMPLETED.value, progress=100.0,
+            total_progress=100.0, file_progress=100.0, message=msg,
+            result_zip=zip_path,
+            result_files=list(state.result_files or []) if state else [],
+        )
+        self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, msg)
+
+    def _file_failure_recorded(self, task_id: str, ctx: _BatchContext) -> bool:
+        """True when the current file was already recorded as failed by _fail_file."""
+        state = self._store.get_task(task_id)
+        if state is None or not state.file_failures:
+            return False
+        return any(f.get("file") == ctx.current_file for f in state.file_failures)
+
+    def _agg(self, ctx: _BatchContext, file_progress: float) -> float:
+        """Aggregate a per-file progress (0-100) into overall task progress (0-100)."""
+        f = min(max(float(file_progress), 0.0), 100.0)
+        if ctx.total_files <= 0:
+            return f
+        return (ctx.completed_files + f / 100.0) / ctx.total_files * 100.0
+
+    def _emit_batch_progress(self, task_id: str, ctx: _BatchContext, message: str = "") -> None:
+        """Persist aggregate batch progress and broadcast a low-level event.
+
+        ``ctx.completed_files`` already counts the file that just finished, so
+        the overall progress is simply ``completed / total``.
+        """
+        agg = self._agg(ctx, 0.0)
+        self._store.update_task(
+            task_id,
+            stage=TaskStage.RENDERING.value,
+            progress=agg,
+            total_progress=agg,
+            file_progress=100.0,
+            completed_files=ctx.completed_files,
+            failed_files=ctx.failed_files,
+            message=message or f"Completed {ctx.current_file}",
+        )
+        event = TaskProgressEvent(
+            task_id=task_id, stage=TaskStage.RENDERING.value, progress=agg,
+            message=message or f"Completed {ctx.current_file}",
+        )
+        self._store.add_event(task_id, event)
+        self._notify_event_listeners(event)
+
+    def _batch_total(self, task_id: str) -> int:
+        """Total files of a batch task (1 for single-file tasks)."""
+        ctx = self._batch_ctx.get(task_id)
+        return ctx.total_files if ctx else 1
+
+    def _complete_file(
+        self, task_id: str, result_files: List[Dict[str, str]], *,
+        total_files: int = 1, message: str = "Completed", **extra: Any,
+    ) -> None:
+        """Record a per-file completion.
+
+        Single-file tasks complete the whole task here (existing behaviour);
+        batch tasks accumulate ``result_files`` and bump the aggregate progress.
+        """
+        if total_files <= 1 or task_id not in self._batch_ctx:
+            self._store.update_task(
+                task_id, status=TaskStage.COMPLETED.value, progress=100.0,
+                total_progress=100.0, file_progress=100.0,
+                result_files=result_files,
+                selected_file=(
+                    extra.pop("selected_file", None)
+                    or (result_files[0]["name"] if result_files else None)
+                ),
+                message=message,
+                **extra,
+            )
+            self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, message)
+            return
+        ctx = self._batch_ctx[task_id]
+        ctx.completed_files += 1
+        state = self._store.get_task(task_id)
+        prev = list(state.result_files or []) if state else []
+        upd: Dict[str, Any] = {
+            "result_files": prev + list(result_files),
+            "file_progress": 100.0,
+            "completed_files": ctx.completed_files,
+            "message": f"Completed {ctx.current_file}",
+        }
+        if extra.get("selected_file"):
+            upd["selected_file"] = extra.pop("selected_file")
+        for key in (
+            "diagnostic_summary", "quality_scores", "ir_snapshots",
+            "gate_verdicts", "processor_reports", "toc_ir_records",
+        ):
+            if extra.get(key) is not None:
+                upd[key] = extra.pop(key)
+        self._store.update_task(task_id, **upd)
+        self._emit_batch_progress(task_id, ctx, f"Completed {ctx.current_file}")
+
+    def _fail_file(
+        self, task_id: str, exc: Any, *, total_files: int = 1, message: Optional[str] = None,
+    ) -> None:
+        """Record a per-file failure.
+
+        Single-file tasks transition to FAILED immediately (existing behaviour);
+        batch tasks record the failure and continue with the next file.
+        """
+        error = str(exc)
+        if total_files <= 1 or task_id not in self._batch_ctx:
+            self._store.update_task(
+                task_id, status=TaskStage.FAILED.value,
+                error_message=error, message=message or f"Error: {error}",
+            )
+            self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {error}")
+            return
+        ctx = self._batch_ctx[task_id]
+        ctx.failed_files += 1
+        state = self._store.get_task(task_id)
+        failures = list(getattr(state, "file_failures", None) or [])
+        failures.append({"file": ctx.current_file, "error": error})
+        self._store.update_task(
+            task_id, failed_files=ctx.failed_files, file_failures=failures,
+            message=f"Failed {ctx.current_file}",
+        )
+        self._emit_batch_progress(task_id, ctx, f"Failed {ctx.current_file}: {error}")
+
+    def _build_batch_zip(self, task_id: str) -> Optional[str]:
+        """Package all completed result files into a single zip (batch mode)."""
+        import tempfile
+        import zipfile
+
+        state = self._store.get_task(task_id)
+        if state is None or not state.result_files:
+            return None
+        zip_path = os.path.join(tempfile.gettempdir(), f"pdf2zh_batch_{task_id}.zip")
+        try:
+            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+                for rf in state.result_files:
+                    p = rf.get("path") or ""
+                    if p and os.path.exists(p):
+                        zf.write(p, arcname=os.path.basename(p))
+            return zip_path
+        except Exception:
+            logger.exception("Failed to build batch zip for task %s", task_id)
+            return None
 
     def _sync_feature_flags(self, task_id: str) -> None:
         """V8.2：把 ServiceConfig.use_v4_* 同步到 v3 FeatureFlags 单例，
@@ -460,6 +741,7 @@ class RuntimeService:
         """Execute with V4 RuntimeFacade pipeline."""
         from pdf2zh.v3.runtime import RuntimeFacade
 
+        total_files = self._batch_total(task_id)
         # Initialize diagnostics early to avoid NameError in error paths
         diagnostic_summary = ""
         quality_scores = {}
@@ -538,22 +820,22 @@ class RuntimeService:
         except NameError:
             quality_scores = {}
 
-        self._store.update_task(
-            task_id, status=TaskStage.COMPLETED.value, progress=100.0,
-            total_progress=100.0, file_progress=100.0,
-            result_files=result_files, selected_file=result_files[0]["name"],
+        self._complete_file(
+            task_id, result_files, total_files=total_files,
+            selected_file=result_files[0]["name"],
             diagnostic_summary=diagnostic_summary,
             quality_scores=quality_scores,
             result_zip=result_path if os.path.exists(result_path) else "",
             preview_path=result_path if os.path.exists(result_path) else "",
-            message="Completed",
+            message="Completed (V4)",
         )
-        self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, "Complete!")
 
     def _execute_legacy(self, task_id: str, request: TranslationRequest) -> None:
         """Execute with Legacy translate_stream pipeline."""
         from pdf2zh.high_level import translate_stream
         from pdf2zh.doclayout import ModelInstance, OnnxModel
+
+        total_files = self._batch_total(task_id)
 
         # Ensure layout model is loaded before translation
         if ModelInstance.value is None:
@@ -600,11 +882,7 @@ class RuntimeService:
             )
         except Exception as tx_exc:
             logger.error("[task=%s] translate_stream failed: %s", task_id, tx_exc, exc_info=True)
-            self._store.update_task(
-                task_id, status=TaskStage.FAILED.value,
-                error_message=str(tx_exc), message=f"Translate failed: {tx_exc}",
-            )
-            self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {tx_exc}")
+            self._fail_file(task_id, tx_exc, total_files=total_files)
             return
         if self._store.is_cancelled(task_id):
             return
@@ -612,12 +890,7 @@ class RuntimeService:
         self._emit_event(task_id, TaskStage.RENDERING.value, 80.0, "Merging pages...")
         if doc_mono is None or doc_dual is None:
             logger.error("Page merging failed: translate_stream returned None")
-            self._store.update_task(
-                task_id, status=TaskStage.FAILED.value,
-                error_message="translate_stream returned None",
-                message="Error: Page merging failed",
-            )
-            self._emit_event(task_id, TaskStage.FAILED.value, 100.0, "Failed: merge returned None")
+            self._fail_file(task_id, "translate_stream returned None", total_files=total_files)
             return
         self._emit_event(task_id, TaskStage.RENDERING.value, 82.0, "Subsetting fonts...")
         # Track merge progress: subset_fonts + write can take minutes for large PDFs.
@@ -699,10 +972,9 @@ class RuntimeService:
         processor_reports = v3_output.get("processor_reports") or None
         toc_ir_records = v3_output.get("toc_ir_records") or None
 
-        self._store.update_task(
-            task_id, status=TaskStage.COMPLETED.value, progress=100.0,
-            total_progress=100.0, file_progress=100.0,
-            result_files=result_files, selected_file=result_files[0]["name"],
+        self._complete_file(
+            task_id, result_files, total_files=total_files,
+            selected_file=result_files[0]["name"],
             diagnostic_summary=diagnostic_summary,
             quality_scores=quality_scores,
             ir_snapshots=ir_snapshots,
@@ -714,8 +986,6 @@ class RuntimeService:
             message="Completed (Legacy)",
         )
         logger.info("[task=%s] Output files written successfully", task_id)
-
-        self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, "Complete!")
 
     def get_queue_position(self, task_id: str) -> int:
         state = self._store.get_task(task_id)
@@ -742,13 +1012,33 @@ class RuntimeService:
         self, task_id: str, stage: str, progress: float,
         message: str = "", node_count: int = 0, diag_count: int = 0,
     ) -> None:
+        batch = self._batch_ctx.get(task_id)
+        file_progress = progress
+        # In batch mode, ``progress`` is the per-file progress; fold it into
+        # the overall task progress. Terminal stages bypass aggregation.
+        if (
+            batch is not None
+            and stage not in (
+                TaskStage.COMPLETED.value,
+                TaskStage.FAILED.value,
+                TaskStage.CANCELLED.value,
+            )
+        ):
+            progress = self._agg(batch, progress)
         event = TaskProgressEvent(
             task_id=task_id, stage=stage, progress=progress,
             current_node_count=node_count, diagnostics_count=diag_count,
             message=message,
         )
         self._store.add_event(task_id, event)
-        self._store.update_task(task_id, stage=stage, progress=progress, message=message)
+        if batch is not None:
+            self._store.update_task(
+                task_id, stage=stage, progress=progress,
+                total_progress=progress, file_progress=file_progress,
+                message=message,
+            )
+        else:
+            self._store.update_task(task_id, stage=stage, progress=progress, message=message)
         self._notify_event_listeners(event)
 
     def _notify_event_listeners(self, event: TaskProgressEvent) -> None:
