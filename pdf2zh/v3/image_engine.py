@@ -391,56 +391,113 @@ class ImageClassifierBackend:
         raise NotImplementedError
 
 
+@dataclass
+class RuleClassifierConfig:
+    """RuleImageClassifier 的全部判定阈值（V8.6 P2 标定入口）。
+
+    默认值 = 启发式基线（与历史行为完全一致）；``calibrate``（见
+    image_calibrate.py）可在真实语料上网格搜索并回写最优值。
+    """
+
+    # QR / 条形码
+    qr_max_colors: int = 8
+    qr_edge: float = 0.30
+    qr_min_aspect: float = 0.8
+    qr_max_aspect: float = 1.25
+    barcode_max_aspect: float = 0.4
+    barcode_edge: float = 0.25
+    # CAD
+    cad_max_colors: int = 4
+    cad_edge: float = 0.35
+    # Equation
+    equation_min_aspect: float = 1.6
+    equation_white: float = 0.55
+    equation_max_colors: int = 64
+    # Logo
+    logo_max_area: int = 64 * 64
+    logo_max_colors: int = 12
+    # Photo
+    photo_min_colors: int = 192
+    photo_min_unique: float = 0.15
+    photo_max_edge: float = 0.30
+    # Chart
+    chart_min_white: float = 0.4
+    chart_max_colors: int = 96
+    chart_min_edge: float = 0.18
+    # Comic
+    comic_min_colors: int = 120
+    comic_min_edge: float = 0.28
+    # Screenshot
+    shot_min_colors: int = 24
+    shot_max_colors: int = 192
+    shot_max_edge: float = 0.30
+
+    def tuned(self) -> Dict[str, float]:
+        return {k: v for k, v in self.__dict__.items()
+                if isinstance(v, (int, float))}
+
+
 class RuleImageClassifier(ImageClassifierBackend):
     """纯统计规则分类器（与 structure.py 同风格，确定性、可单测）。
 
     判定顺序：QR/条形码 → CAD → Equation → Logo → 照片 → 图表/流程图 →
-    Comic → 截图 → UNKNOWN。阈值基于工业 PDF 常见图片启发式。
+    Comic → 截图 → UNKNOWN。阈值全部收敛进 ``RuleClassifierConfig``
+    （可调参，见 ``image_calibrate.calibrate``）。
     """
+
+    def __init__(self, config: Optional[RuleClassifierConfig] = None) -> None:
+        self.config = config or RuleClassifierConfig()
 
     def classify(self, features: ImageFeatures) -> Tuple[ImageClass, float]:
         f = features
+        cfg = self.config
         area = max(f.width * f.height, 1)
         if f.width <= 0 or f.height <= 0 or f.color_count == 0:
             return ImageClass.UNKNOWN, 0.2
 
         # QR/条形码：方形/条状 + 黑白高对比 + 高边缘密度
-        if f.mostly_grayscale and f.color_count > 0 and f.color_count <= 8:
-            if 0.8 <= f.aspect_ratio <= 1.25 and f.edge_density >= 0.30:
+        if f.mostly_grayscale and 0 < f.color_count <= cfg.qr_max_colors:
+            if cfg.qr_min_aspect <= f.aspect_ratio <= cfg.qr_max_aspect \
+                    and f.edge_density >= cfg.qr_edge:
                 return ImageClass.QR_CODE, _bounded(f.edge_density * 1.6)
-            if f.aspect_ratio < 0.4 and f.edge_density >= 0.25:
+            if f.aspect_ratio < cfg.barcode_max_aspect and f.edge_density >= cfg.barcode_edge:
                 return ImageClass.BARCODE, _bounded(0.6 + f.edge_density)
 
         # CAD：近单色工程图，超低色数 + 高边缘密度
-        if f.color_count <= 4 and f.mostly_grayscale and f.edge_density >= 0.35 and \
-                f.width >= 32 and f.height >= 32:
+        if f.color_count <= cfg.cad_max_colors and f.mostly_grayscale \
+                and f.edge_density >= cfg.cad_edge and f.width >= 32 and f.height >= 32:
             return ImageClass.CAD, _bounded(0.55 + f.edge_density * 0.8)
 
         # Equation：窄高条、白底、密集细笔划、色数低
-        if f.mostly_grayscale and f.aspect_ratio > 1.6 and \
-                f.white_ratio >= 0.55 and f.color_count <= 64:
+        if f.mostly_grayscale and f.aspect_ratio > cfg.equation_min_aspect \
+                and f.white_ratio >= cfg.equation_white \
+                and f.color_count <= cfg.equation_max_colors:
             return ImageClass.EQUATION, _bounded(0.55 + f.edge_density)
 
         # Logo：面积小、色数极少、对比强烈的简洁图形
-        if area <= 64 * 64 and f.color_count <= 12 and \
-                (f.dark_ratio > 0.05 or f.edge_density > 0.02):
+        if area <= cfg.logo_max_area and f.color_count <= cfg.logo_max_colors \
+                and (f.dark_ratio > 0.05 or f.edge_density > 0.02):
             return ImageClass.LOGO, _bounded(0.5 + max(0.0, 0.2 - f.unique_color_ratio))
 
         # 照片：高色数 + 低边缘密度（自然渐变）
-        if f.color_count >= 192 and f.unique_color_ratio >= 0.15 and \
-                f.edge_density < 0.30:
+        if f.color_count >= cfg.photo_min_colors \
+                and f.unique_color_ratio >= cfg.photo_min_unique \
+                and f.edge_density < cfg.photo_max_edge:
             return ImageClass.PHOTO, _bounded(0.55 + f.unique_color_ratio)
 
         # 图表/流程图：白底、中低色数、高边缘（线条/网格）
-        if f.white_ratio >= 0.4 and f.color_count <= 96 and f.edge_density >= 0.18:
+        if f.white_ratio >= cfg.chart_min_white \
+                and f.color_count <= cfg.chart_max_colors \
+                and f.edge_density >= cfg.chart_min_edge:
             return ImageClass.CHART, _bounded(0.5 + f.edge_density)
 
         # Comic：高色数 + 高边缘密度（粗描边）
-        if f.color_count >= 120 and f.edge_density >= 0.28:
+        if f.color_count >= cfg.comic_min_colors and f.edge_density >= cfg.comic_min_edge:
             return ImageClass.COMIC, _bounded(0.55)
 
         # 截图：色数中等偏高 + 低-中边缘、常带深色/白色 UI 块
-        if f.color_count >= 24 and f.color_count < 192 and f.edge_density < 0.30:
+        if cfg.shot_min_colors <= f.color_count < cfg.shot_max_colors \
+                and f.edge_density < cfg.shot_max_edge:
             return ImageClass.SCREENSHOT, _bounded(0.5)
 
         return ImageClass.UNKNOWN, 0.35
