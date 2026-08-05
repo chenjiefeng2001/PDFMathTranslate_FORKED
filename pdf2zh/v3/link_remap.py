@@ -202,6 +202,8 @@ def remap_document_links(
     page_records_map: Dict[int, List[dict]],
     page_offset: int = 0,
     page_shifts: Optional[Dict[int, Tuple[float, float]]] = None,
+    y_flip: bool = False,
+    page_heights: Optional[Dict[int, float]] = None,
 ) -> Dict[str, int]:
     """Guarded, fitz-based entry point: re-anchor links on translated pages.
 
@@ -217,6 +219,10 @@ def remap_document_links(
             cropbox-relative frame into page user space (the space of link
             /Rect values). Applied to both src and dst boxes before matching.
             Pages with ``rotation != 0`` are skipped conservatively.
+        y_flip: gate 记录坐标系为 pdfminer（原点左下、y 向上），而 fitz
+            link /Rect 为左上原点、y 向下 —— 真实翻译产物回归（v1.6 P1）
+            发现需翻转；``page_heights`` 给出每页高度用于翻转。
+        page_heights: {page_no: height}，``y_flip=True`` 时必填。
 
     Returns a small stats dict (``{"pages": n, "relinked": n, "skipped": n}``).
     Failures are logged and swallowed — relinking never breaks translation.
@@ -254,6 +260,13 @@ def remap_document_links(
         if dx or dy:
             src_boxes = [(b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in src_boxes]
             dst_boxes = [(b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in dst_boxes]
+        if y_flip:
+            ph = float((page_heights or {}).get(page_no, 0.0) or 0.0)
+            if ph <= 0:
+                stats["skipped"] += 1
+                continue
+            src_boxes = [(b[0], ph - b[3], b[2], ph - b[1]) for b in src_boxes]
+            dst_boxes = [(b[0], ph - b[3], b[2], ph - b[1]) for b in dst_boxes]
         updates = compute_link_updates(links, src_boxes, dst_boxes)
         for link, new_rect in updates:
             try:
