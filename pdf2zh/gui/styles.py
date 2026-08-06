@@ -640,8 +640,8 @@ _THEME_LABEL_JS = (
     "function syncThemeLabel(dark) {"
     "var btn = document.getElementById('theme-toggle-btn');"
     "if (btn) { btn.textContent = dark"
-    " ? '\u2600\ufe0f \u6d45\u8272\u6a21\u5f0f / Light'"
-    " : '\U0001f319 \u6df1\u8272\u6a21\u5f0f / Dark';"
+    " ? '\u6d45\u8272\u6a21\u5f0f / Light'"
+    " : '\u6df1\u8272\u6a21\u5f0f / Dark';"
     "}"
     "}"
 )
@@ -767,8 +767,8 @@ TOGGLE_THEME_JS = """() => {
     const btn = document.getElementById("theme-toggle-btn");
     if (btn) {
         btn.textContent = dark
-            ? "☀️ 浅色模式 / Light"
-            : "🌙 深色模式 / Dark";
+            ? "浅色模式 / Light"
+            : "深色模式 / Dark";
     }
 }"""
 

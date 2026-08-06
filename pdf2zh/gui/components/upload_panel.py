@@ -123,10 +123,10 @@ def create_upload_panel() -> dict:
         dict of Gradio component references
     """
     with gr.Group(elem_classes="panel-card"):
-        gr.Markdown(f"## 📂 {B('section_upload')}", elem_classes="section-header")
+        gr.Markdown(f"## {B('section_upload')}", elem_classes="section-header")
 
         with gr.Tabs():
-            with gr.Tab(f"📁 {B('upload_tab_local')}"):
+            with gr.Tab(f"{B('upload_tab_local')}"):
                 file_input = gr.File(
                     label=B("upload_label_file"),
                     file_types=ACCEPTED_EXTENSIONS,
@@ -148,7 +148,7 @@ def create_upload_panel() -> dict:
                     outputs=[file_summary],
                 )
 
-            with gr.Tab(f"🔗 {B('upload_tab_url')}"):
+            with gr.Tab(f"{B('upload_tab_url')}"):
                 link_input = gr.Textbox(
                     label=B("upload_label_url"),
                     placeholder="https://example.com/paper.pdf",

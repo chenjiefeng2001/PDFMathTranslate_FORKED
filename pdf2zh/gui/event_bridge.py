@@ -63,6 +63,8 @@ class TaskEventBridge:
         self._lock = threading.Lock()
         self._last_stage: Dict[str, str] = {}
         self._started: set = set()
+        #: Per-task last-published node overview (avoids duplicate publishes).
+        self._last_overview: Dict[str, Optional[Dict]] = {}
 
     @property
     def service(self) -> RuntimeService:
@@ -149,11 +151,45 @@ class TaskEventBridge:
                 self._bus.publish(
                     TaskCancelled(task_id=tid, message=event.message)
                 )
+            self._publish_live_diagnostics(tid)
         except Exception:
             logger.exception(
                 "TaskEventBridge failed to translate event for task %s",
                 getattr(event, "task_id", "?"),
             )
+
+    def _publish_live_diagnostics(self, task_id: str) -> None:
+        """Publish DiagnosticsUpdated as soon as an overview becomes available.
+
+        The runtime attaches ``node_overview`` (and, later, quality scores)
+        to the task state mid-run; this forwards them immediately so the
+        document-intelligence panel updates live instead of only at the end.
+        """
+        state = self.service.get_task_state(task_id)
+        if state is None:
+            return
+        overview = (
+            dict(state.node_overview)
+            if isinstance(state.node_overview, dict) and state.node_overview
+            else None
+        )
+        if overview is None:
+            return
+        if self._last_overview.get(task_id) == overview:
+            return
+        self._last_overview[task_id] = overview
+        self._bus.publish(
+            DiagnosticsUpdated(
+                task_id=task_id,
+                diagnostic_summary=state.diagnostic_summary or "",
+                quality_scores=dict(state.quality_scores or {}),
+                node_overview=overview,
+                diagnostic_report=getattr(state, "diagnostic_report", None),
+                heal_status=getattr(state, "heal_status", None),
+                repair_records=getattr(state, "repair_records", None),
+                confidence_stats=getattr(state, "confidence_stats", None),
+            )
+        )
 
     def _publish_outputs(self, task_id: str) -> None:
         """Snapshot the terminal task state once to announce the outputs.
@@ -183,6 +219,15 @@ class TaskEventBridge:
                     task_id=task_id,
                     diagnostic_summary=state.diagnostic_summary or "",
                     quality_scores=dict(state.quality_scores or {}),
+                    node_overview=(
+                        dict(state.node_overview)
+                        if isinstance(state.node_overview, dict)
+                        else None
+                    ),
+                    diagnostic_report=getattr(state, "diagnostic_report", None),
+                    heal_status=getattr(state, "heal_status", None),
+                    repair_records=getattr(state, "repair_records", None),
+                    confidence_stats=getattr(state, "confidence_stats", None),
                 )
             )
 

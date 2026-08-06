@@ -67,15 +67,17 @@ def setup_gui(
 
 
 def _register_custom_routes(gui) -> None:
-    """Register /pdf-preview/ and /gui/events AFTER launch (Gradio 5 rebuilds
-    the FastAPI app inside launch(), dropping pre-launch routes)."""
+    """Register /pdf-preview/, /gui/events and /gui/logs AFTER launch (Gradio 5
+    rebuilds the FastAPI app inside launch(), dropping pre-launch routes)."""
     from pdf2zh.gui.app import (
         _register_events_route,
+        _register_logs_route,
         _register_preview_route,
     )
 
     _register_preview_route(gui)
     _register_events_route(gui)
+    _register_logs_route(gui)
 
 
 if __name__ == "__main__":

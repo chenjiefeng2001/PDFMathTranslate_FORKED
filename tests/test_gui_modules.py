@@ -229,6 +229,22 @@ class TestThreadAwareLogHandler:
         assert q is not None
         assert q.empty()
 
+    def test_recent_lines_ring_buffer(self):
+        handler = ThreadAwareLogHandler()
+        for i in range(5):
+            record = logging.LogRecord(
+                name="test", level=logging.INFO,
+                pathname="", lineno=0, msg=f"detail line {i}", args=None,
+                exc_info=None,
+            )
+            handler.emit(record)
+        lines = handler.recent_lines(max_lines=10)
+        assert len(lines) == 5
+        assert lines[-1] == "detail line 4"
+        # max_lines truncates from the tail
+        assert len(handler.recent_lines(max_lines=2)) == 2
+        assert handler.recent_lines(max_lines=2)[-1] == "detail line 4"
+
     def test_get_handler_singleton(self):
         h1 = get_handler()
         h2 = get_handler()
@@ -297,6 +313,67 @@ class TestDiagnosticPanel:
         assert callable(create_diagnostic_panel)
 
 
+class TestHealingDashboard:
+    def test_healing_markdown_empty(self):
+        from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+        result = build_healing_markdown()
+        assert "诊断" in result or "diagnostic" in result.lower()
+
+    def test_healing_markdown_legacy_report(self):
+        from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+        result = build_healing_markdown(
+            diagnostic_report={
+                "errors": 2, "warnings": 1, "admissible": False,
+                "issues": [],
+            },
+        )
+        assert "errors=2" in result
+        assert "warnings=1" in result
+        assert "admissible=False" in result
+
+    def test_healing_markdown_v4_report(self):
+        from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+        result = build_healing_markdown(
+            diagnostic_report={
+                "total": 10, "passed": 8, "failed": 2, "pass_rate": 80.0,
+                "records": [],
+            },
+        )
+        assert "80.0" in result
+        assert "failed=2/10" in result
+
+    def test_healing_markdown_actions_and_run(self):
+        from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+        result = build_healing_markdown(
+            diagnostic_report={
+                "errors": 1, "warnings": 0, "admissible": False, "issues": [],
+            },
+            repair_records=[
+                {"code": "unicode_error", "node_id": "p1_0", "page": 1,
+                 "severity": "error", "message": "Unicode 损坏",
+                 "action": "Unicode 修复 (OCR 计划)", "status": "applied"},
+            ],
+            heal_status={
+                "ran": True, "iterations": 1,
+                "before_errors": 1, "after_errors": 0, "improved": True,
+            },
+            confidence_stats={"annotated": 12, "avg": 0.8, "min": 0.1, "max": 0.99},
+        )
+        assert "unicode_error" in result
+        assert "Unicode" in result
+        assert "before=1" in result
+        assert "after=0" in result
+        assert "annotated=12" in result
+
+    def test_healing_markdown_failed_run(self):
+        from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+        result = build_healing_markdown(
+            diagnostic_summary="Diagnostics unavailable",
+            heal_status={"ran": False, "error": "boom"},
+        )
+        assert "boom" in result
+
+
 # =============================================================================
 # 4. Services Layer Tests (RuntimeService)
 # =============================================================================
@@ -356,8 +433,7 @@ class TestServicesLayer:
         event = TaskProgressEvent(
             task_id="test",
             stage="evaluating",
-            progress=95.0,
-            current_node_count=128,
+            progress=95.0,            current_node_count=128,
             diagnostics_count=3,
             message="Evaluating quality",
         )
@@ -366,6 +442,419 @@ class TestServicesLayer:
         assert d["progress"] == 95.0
         assert d["current_node_count"] == 128
         assert d["diagnostics_count"] == 3
+
+    def test_emit_smooth_monotonic_throttled(self):
+        from pdf2zh.services.runtime_service import RuntimeService, TaskStage
+
+        svc = RuntimeService()
+        emitted = []
+
+        def listener(ev):
+            emitted.append(ev.progress)
+
+        svc.add_event_listener(listener)
+        # First emission always goes out; sub-1% steps within a stage are folded.
+        svc._emit_smooth("t1", TaskStage.TRANSLATING.value, 50.0)
+        svc._emit_smooth("t1", TaskStage.TRANSLATING.value, 50.4)
+        svc._emit_smooth("t1", TaskStage.TRANSLATING.value, 51.0)
+        svc._emit_smooth("t1", TaskStage.TRANSLATING.value, 79.9)
+        # Progress never goes backwards even if a report dips.
+        svc._emit_smooth("t1", TaskStage.TRANSLATING.value, 30.0)
+        svc._emit_smooth("t1", TaskStage.COMPLETED.value, 100.0)
+        assert emitted == [50.0, 51.0, 79.9, 100.0]
+        assert emitted == sorted(emitted)
+
+    def test_emit_smooth_terminal_always_emitted(self):
+        from pdf2zh.services.runtime_service import RuntimeService, TaskStage
+
+        svc = RuntimeService()
+        emitted = []
+        svc.add_event_listener(lambda ev: emitted.append(ev.progress))
+        svc._emit_smooth("t2", TaskStage.FAILED.value, 100.0)
+        assert emitted == [100.0]
+
+    def test_emit_smooth_batch_aggregation_monotonic(self):
+        from pdf2zh.services.runtime_service import RuntimeService, TaskStage
+
+        svc = RuntimeService()
+        with svc._batch_ctx_lock:
+            svc._batch_ctx["t3"] = type("Ctx", (), {
+                "total_files": 2, "completed_files": 0, "failed_files": 0,
+                "current_file": "a.pdf",
+            })()
+        emitted = []
+        svc.add_event_listener(lambda ev: emitted.append(ev.progress))
+        # File 1 translating window: 50 -> 80 (aggregated 25 -> 40)
+        svc._emit_smooth("t3", TaskStage.TRANSLATING.value, 50.0)
+        svc._emit_smooth("t3", TaskStage.TRANSLATING.value, 80.0)
+        assert emitted == [25.0, 40.0]
+        # File 2 restarts at 50 (aggregated 25) -- must NOT go backwards.
+        svc._emit_smooth("t3", TaskStage.TRANSLATING.value, 50.0)
+        assert emitted == [25.0, 40.0]
+        svc._emit_smooth("t3", TaskStage.TRANSLATING.value, 100.0)
+        assert emitted == [25.0, 40.0, 50.0]
+
+    def test_worker_parse_env_lines(self):
+        from pdf2zh.gui.worker import _parse_env_lines
+
+        envs = _parse_env_lines(
+            "OPENAI_API_KEY=sk-abc",
+            "openai_api_base=https://x.example",
+            "# comment line",
+            "NO_EQUALS",
+            "  ",
+        )
+        assert envs == {
+            "openai_api_key": "sk-abc",
+            "openai_api_base": "https://x.example",
+        }
+        assert _parse_env_lines() == {}
+        assert _parse_env_lines(None, "") == {}
+
+    def test_collect_legacy_diagnostics_no_errors(self):
+        """No error-level issues: no repair run, records still produced."""
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        class _StubModel:
+            def __init__(self, metadata=None):
+                self.metadata = metadata or {}
+
+        svc = RuntimeService()
+        dm = _StubModel({
+            "diagnostics": {
+                "errors": 0, "warnings": 1, "admissible": True,
+                "issues": [
+                    {"code": "toc_low_confidence", "node_id": "p1_0", "page": 1,
+                     "severity": "warning", "message": "low toc"},
+                ],
+            },
+            "confidence_stats": {"annotated": 3, "avg": 0.7},
+        })
+        diag, heal, recs, conf = svc._collect_legacy_diagnostics(
+            {"document_model": dm}
+        )
+        assert diag == dm.metadata["diagnostics"]
+        assert heal is None
+        assert recs and recs[0]["code"] == "toc_low_confidence"
+        assert "TOC" in recs[0]["action"]
+        assert recs[0]["status"] == "applied"
+        assert conf == {"annotated": 3, "avg": 0.7}
+
+    def test_collect_legacy_diagnostics_repair_run(self):
+        """Error-level issues trigger the repair loop with before/after evidence."""
+        from pdf2zh.services.runtime_service import RuntimeService
+        from pdf2zh.v3.document_model import DocumentModel
+        from pdf2zh.v3.canonical_page import (
+            BlockModel, GlyphModel, LineModel, PageModel, SpanModel,
+        )
+
+        glyph = GlyphModel(char="A", decode="notdef")
+        span = SpanModel(text="A", glyphs=[glyph])
+        line = LineModel(text="A", spans=[span])
+        block = BlockModel(kind="paragraph", lines=[line])
+        page = PageModel(page_num=1, blocks=[block])
+        dm = DocumentModel(pages=[page])
+        dm.metadata["diagnostics"] = {
+            "errors": 1, "warnings": 0, "admissible": False,
+            "issues": [
+                {"code": "unicode_error", "node_id": "p1_0", "page": 1,
+                 "severity": "error", "message": "Unicode 损坏", "evidence": {}},
+            ],
+        }
+        svc = RuntimeService()
+        diag, heal, recs, conf = svc._collect_legacy_diagnostics(
+            {"document_model": dm}
+        )
+        assert diag is not None
+        assert heal is not None
+        assert heal["ran"] is True
+        assert isinstance(heal["improved"], bool)
+        assert recs and recs[0]["code"] == "unicode_error"
+        assert "Unicode" in recs[0]["action"]
+
+    def test_collect_legacy_diagnostics_no_model(self):
+        from pdf2zh.services.runtime_service import RuntimeService
+        svc = RuntimeService()
+        diag, heal, recs, conf = svc._collect_legacy_diagnostics({})
+        assert (diag, heal, recs, conf) == (None, None, None, None)
+
+    def test_mode_presets_resolve(self):
+        from pdf2zh.services.runtime_service import (
+            resolve_mode_config, ServiceConfig,
+        )
+        base = ServiceConfig()
+        # v0 基础：纯 legacy 回路，关闭全部现代 side-channel
+        c0 = resolve_mode_config("v0", base)
+        assert c0.use_v4_engine is False
+        assert c0.processor_channels is False
+        assert c0.relink_links is False
+        assert c0.use_v4_gate is False
+        assert c0.run_evaluation is False
+        # v1 标准 —— 当前生产默认行为
+        c1 = resolve_mode_config("v1", base)
+        assert c1.use_v4_engine is False
+        assert c1.processor_channels is True
+        assert c1.relink_links is True
+        assert c1.emit_ir is True
+        # v2 高质量 —— legacy + 文档级评测 + 写回门控
+        c2 = resolve_mode_config("v2", base)
+        assert c2.use_v4_engine is False
+        assert c2.run_evaluation is True
+        assert c2.use_v4_gate is True
+        assert c2.processor_channels is True
+        # v3 精准 —— V4 引擎 + 集评评测
+        c3 = resolve_mode_config("v3", base)
+        assert c3.use_v4_engine is True
+        assert c3.use_v4_translator is True
+        assert c3.use_v4_gate is True
+        # v4 布局优先 —— V4 + 布局/修复 + Fix-Validate 自愈
+        c4 = resolve_mode_config("v4", base)
+        assert c4.use_v4_engine is True
+        assert c4.use_v4_layout is True
+        assert c4.use_v4_repair is True
+        assert c4.use_v4_fix_validate_loop is True
+        assert c4.max_repair_passes >= 1
+
+    def test_mode_auto_and_unknown_preserve_base(self):
+        from pdf2zh.services.runtime_service import (
+            resolve_mode_config, ServiceConfig,
+        )
+        base = ServiceConfig(use_v4_engine=True, run_evaluation=True)
+        for mode in ("auto", "", "bogus", None):
+            resolved = resolve_mode_config(mode, base)
+            assert resolved.use_v4_engine is True
+            assert resolved.run_evaluation is True
+
+    def test_legacy_mode_kwargs_mapping(self):
+        from pdf2zh.services.runtime_service import legacy_mode_kwargs
+        assert legacy_mode_kwargs("v0")["document_model"] is False
+        assert legacy_mode_kwargs("v1")["document_model"] is True
+        k2 = legacy_mode_kwargs("v2")
+        assert k2["translation_qa"] is True
+        assert k2["render_takeover"] is True
+        assert legacy_mode_kwargs("v3") == {}
+        assert legacy_mode_kwargs("auto") == {}
+        assert legacy_mode_kwargs(None) == {}
+
+    def test_submit_task_records_mode_choice(self, monkeypatch):
+        import tempfile
+        from pdf2zh.services.runtime_service import (
+            RuntimeService, TranslationRequest,
+        )
+        svc = RuntimeService()
+        monkeypatch.setattr(svc, "_execute_task", lambda tid, req: None)
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            f.write(b"%PDF-1.4\n%%EOF\n")
+            tmp = f.name
+        tid = svc.submit_task(TranslationRequest(
+            source_path=tmp, files=[tmp], target_lang="zh-CN",
+            extra_config={"mode_choice": "v2"},
+        ))
+        state = svc.get_task_state(tid)
+        assert state is not None
+        assert state.mode_choice == "v2"
+        default_tid = svc.submit_task(TranslationRequest(
+            source_path=tmp, files=[tmp], target_lang="en",
+        ))
+        dstate = svc.get_task_state(default_tid)
+        assert dstate.mode_choice == "auto"
+
+
+# =============================================================================
+# 4b. v1.20 sync-fix & packaging tests
+# =============================================================================
+
+
+class TestV120ZipPackaging:
+    def test_single_file_completion_builds_real_zip(self, tmp_path, monkeypatch):
+        import zipfile
+
+        from pdf2zh.services.runtime_service import RuntimeService, TaskStage
+
+        monkeypatch.setattr("tempfile.gettempdir", lambda: str(tmp_path))
+        mono = tmp_path / "doc-mono.pdf"
+        dual = tmp_path / "doc-dual.pdf"
+        mono.write_bytes(b"%PDF-1.7 fake mono")
+        dual.write_bytes(b"%PDF-1.7 fake dual")
+
+        svc = RuntimeService()
+        svc._store.create_task("t_zip")
+        emitted = []
+        svc.add_event_listener(lambda ev: emitted.append(ev.stage))
+        svc._complete_file(
+            "t_zip",
+            [
+                {"name": "doc-mono.pdf", "path": str(mono)},
+                {"name": "doc-dual.pdf", "path": str(dual)},
+            ],
+            selected_file="doc-mono.pdf",
+            preview_path=str(dual),
+            diagnostic_summary="ok",
+            message="Completed",
+        )
+
+        ts = svc.get_task_state("t_zip")
+        assert ts.status == TaskStage.COMPLETED.value
+        # Download-All must serve a genuine ZIP, not a bare mono/dual PDF.
+        assert ts.result_zip and ts.result_zip.endswith(".zip")
+        assert os.path.exists(ts.result_zip)
+        with zipfile.ZipFile(ts.result_zip) as zf:
+            names = sorted(zf.namelist())
+        assert names == ["doc-dual.pdf", "doc-mono.pdf"]
+        # Preview is not clobbered by the packaging step.
+        assert ts.preview_path == str(dual)
+        assert emitted == [TaskStage.COMPLETED.value]
+
+    def test_single_file_completion_ignores_caller_result_zip(self, tmp_path):
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        mono = tmp_path / "a-mono.pdf"
+        mono.write_bytes(b"%PDF-1.7 fake")
+        svc = RuntimeService()
+        svc._store.create_task("t_legacy")
+        svc._complete_file(
+            "t_legacy",
+            [{"name": "a-mono.pdf", "path": str(mono)}],
+            result_zip=str(mono),  # bogus legacy caller value -> must be dropped
+            message="Completed (Legacy)",
+        )
+        ts = svc.get_task_state("t_legacy")
+        assert ts.result_zip.endswith(".zip")
+        assert ts.result_zip != str(mono)
+
+    def test_list_task_ids_creation_order_and_update_task_state(self):
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        svc = RuntimeService()
+        svc._store.create_task("a")
+        svc._store.create_task("b")
+        assert svc.list_task_ids() == ["a", "b"]
+        svc.update_task_state("b", selected_file="out.pdf")
+        assert svc.get_task_state("b").selected_file == "out.pdf"
+
+    def test_batch_zip_still_built_at_finish(self, tmp_path):
+        import zipfile
+
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        svc = RuntimeService()
+        svc._store.create_task("t_batch")
+        ctx = type("Ctx", (), {
+            "total_files": 2, "completed_files": 1, "failed_files": 0,
+            "current_file": "b.pdf",
+        })()
+        with svc._batch_ctx_lock:
+            svc._batch_ctx["t_batch"] = ctx
+        a = tmp_path / "a.pdf"
+        a.write_bytes(b"%PDF-1.7 a")
+        svc._store.update_task(
+            "t_batch", result_files=[{"name": "a.pdf", "path": str(a)}],
+        )
+        zip_path = svc._build_batch_zip("t_batch")
+        assert zip_path and zip_path.endswith(".zip")
+        with zipfile.ZipFile(zip_path) as zf:
+            assert zf.namelist() == ["a.pdf"]
+
+
+class TestV120DetailedLogs:
+    def test_get_handler_raises_root_level_to_info(self):
+        from pdf2zh.gui.logger import get_handler
+
+        root = logging.getLogger()
+        prev = root.level
+        try:
+            get_handler()
+            assert root.level == logging.NOTSET or root.level <= logging.INFO
+            assert get_handler() in root.handlers
+        finally:
+            root.setLevel(prev)
+
+    def test_info_records_flow_into_ring_through_root(self):
+        from pdf2zh.gui.logger import get_handler
+
+        root = logging.getLogger()
+        prev = root.level
+        try:
+            get_handler()
+            root.setLevel(logging.INFO)
+            marker = f"[task=t_live] v1.20 detail line"
+            log = logging.getLogger("pdf2zh.gui.app")
+            log.info("%s", marker)
+            lines = get_handler().recent_lines()
+            assert any(marker in ln for ln in lines)
+        finally:
+            root.setLevel(prev)
+
+
+class TestV120GuiSync:
+    def test_resolve_current_task_id_falls_back_to_runtime(self, monkeypatch):
+        import pdf2zh.gui.app as app
+        from pdf2zh.gui.state import GLOBAL_TASK_STORE
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        GLOBAL_TASK_STORE.remove("t_idle")
+        svc = RuntimeService()
+        svc._store.create_task("live_task_42")
+        monkeypatch.setattr(app, "get_runtime_service", lambda: svc)
+        assert app._resolve_current_task_id("") == "live_task_42"
+        assert app._resolve_current_task_id("unknown") == "live_task_42"
+
+    def test_render_message_changed_keeps_status_label(self, monkeypatch):
+        import pdf2zh.gui.app as app
+        from pdf2zh.gui.events import TaskMessageChanged
+        from pdf2zh.gui.i18n import B
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        svc = RuntimeService()
+        svc._store.create_task("t_msg")
+        svc._store.update_task("t_msg", status="translating", progress=55.0)
+        monkeypatch.setattr(app, "get_runtime_service", lambda: svc)
+
+        acc = app._DeltaAccumulator()
+        ev = TaskMessageChanged(task_id="t_msg", message="slicing pages 55%")
+        app._render_message_changed(acc, ev)
+        md = acc._updates["status_markdown"]["value"]
+        assert B("label_status") in md
+        assert "55%" in md
+        assert "slicing pages 55%" in md
+
+    def test_render_progress_changed_updates_status_text(self, monkeypatch):
+        import pdf2zh.gui.app as app
+        from pdf2zh.gui.events import TaskProgressChanged
+        from pdf2zh.gui.i18n import B
+
+        acc = app._DeltaAccumulator()
+        ev = TaskProgressChanged(
+            task_id="t_p", progress=42.0, stage="translating", message="x"
+        )
+        app._render_progress_changed(acc, ev)
+        md = acc._updates["status_markdown"]["value"]
+        assert B("label_status") in md and "42.0%" in md
+
+    def test_on_select_writes_runtime_store(self, monkeypatch):
+        import pdf2zh.gui.app as app
+        from pdf2zh.gui.state import GLOBAL_TASK_STORE, TaskState
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        svc = RuntimeService()
+        svc._store.create_task("t_sel")
+        GLOBAL_TASK_STORE.set("t_sel", TaskState(task_id="t_sel"))
+        monkeypatch.setattr(app, "get_runtime_service", lambda: svc)
+        app.on_select_file("t_sel", "doc-dual.pdf")
+        assert svc.get_task_state("t_sel").selected_file == "doc-dual.pdf"
+        assert GLOBAL_TASK_STORE.get("t_sel").selected_file == "doc-dual.pdf"
+
+    def test_entry_registers_logs_route(self, monkeypatch):
+        import pdf2zh.gui.entry as entry
+
+        called = []
+        for name in ("_register_preview_route", "_register_events_route", "_register_logs_route"):
+            def stub(*args, name=name, **kwargs):
+                called.append(name)
+            monkeypatch.setattr("pdf2zh.gui.app." + name, stub)
+        entry._register_custom_routes(None)
+        assert "_register_logs_route" in called
+        assert called == ["_register_preview_route", "_register_events_route", "_register_logs_route"]
 
 
 # =============================================================================

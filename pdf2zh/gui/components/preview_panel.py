@@ -21,7 +21,7 @@ def create_preview_panel() -> dict:
         dict of Gradio component references
     """
     with gr.Group(elem_classes="panel-card"):
-        gr.Markdown(f"## 👁️ {B('section_preview')}", elem_classes="section-header")
+        gr.Markdown(f"## {B('section_preview')}", elem_classes="section-header")
 
         # PDF preview — use gr.HTML with an iframe; the /pdf-preview/ endpoint
         # is registered at app level to serve the file.
@@ -38,9 +38,9 @@ def create_preview_panel() -> dict:
                 interactive=True,
                 elem_classes="result-select",
             )
-            download_btn = gr.Button(f"📥 {B('preview_download')}", variant="secondary")
+            download_btn = gr.Button(f"{B('preview_download')}", variant="secondary")
             download_all_btn = gr.Button(
-                f"📦 {B('preview_download_all')}", variant="secondary"
+                f"{B('preview_download_all')}", variant="secondary"
             )
 
         # Use gr.File with visible=True; sync_status will set value when done.

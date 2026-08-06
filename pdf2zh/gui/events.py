@@ -154,6 +154,15 @@ class DiagnosticsUpdated(TaskEvent):
 
     diagnostic_summary: str = ""
     quality_scores: Dict[str, float] = field(default_factory=dict)
+    node_overview: Optional[Dict[str, int]] = None
+    diagnostic_report: Optional[Dict[str, Any]] = None
+    """结构化诊断报告（legacy: errors/warnings/admissible/issues；V4: evaluator 记录）。"""
+    heal_status: Optional[Dict[str, Any]] = None
+    """自愈行程摘要（ran/iterations/before_errors/after_errors/improved）。"""
+    repair_records: Optional[List[Dict[str, Any]]] = None
+    """自愈处置记录（issue -> 策略/状态）。"""
+    confidence_stats: Optional[Dict[str, float]] = None
+    """文档置信度统计（annotated/avg/min/max）。"""
 
 
 #: Concrete domain event classes, in definition order.

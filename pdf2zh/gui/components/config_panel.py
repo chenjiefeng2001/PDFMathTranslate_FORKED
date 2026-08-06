@@ -73,7 +73,7 @@ def create_config_panel() -> dict:
         dict of Gradio component references
     """
     with gr.Group(elem_classes="panel-card"):
-        gr.Markdown(f"## ⚙️ {B('section_config')}", elem_classes="section-header")
+        gr.Markdown(f"## {B('section_config')}", elem_classes="section-header")
 
         # ---- 基础设置 / Basic ----
         with gr.Row():
@@ -108,7 +108,7 @@ def create_config_panel() -> dict:
         )
 
         # ---- 高级选项 / Advanced ----
-        with gr.Accordion(f"🔧 {B('config_advanced')}", open=False):
+        with gr.Accordion(B("config_advanced"), open=False):
             with gr.Row():
                 threads = gr.Slider(
                     minimum=1, maximum=16, value=4, step=1,
@@ -138,14 +138,27 @@ def create_config_panel() -> dict:
                 )
                 prompt_env = gr.Textbox(
                     label=B("config_prompt_env"),
+                    info=B("config_prompt_env_info"),
                     placeholder="PROMPT=...",
-                    lines=1,
+                    lines=2,
                 )
 
             with gr.Row():
-                env0 = gr.Textbox(label=f"{B('config_env')} 0", placeholder="KEY=VALUE")
-                env1 = gr.Textbox(label=f"{B('config_env')} 1", placeholder="KEY=VALUE")
-                env2 = gr.Textbox(label=f"{B('config_env')} 2", placeholder="KEY=VALUE")
+                env0 = gr.Textbox(
+                    label=B("config_env_label", num=1),
+                    info=B("config_env_info"),
+                    placeholder="OPENAI_API_KEY=sk-...",
+                )
+                env1 = gr.Textbox(
+                    label=B("config_env_label", num=2),
+                    info=B("config_env_info"),
+                    placeholder="OPENAI_API_BASE=https://...",
+                )
+                env2 = gr.Textbox(
+                    label=B("config_env_label", num=3),
+                    info=B("config_env_info"),
+                    placeholder="ANY_ENGINE_KEY=...",
+                )
 
     return {
         "service": service,

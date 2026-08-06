@@ -150,16 +150,16 @@ def create_progress_panel() -> dict:
         dict of Gradio component references
     """
     with gr.Group(elem_classes="panel-card"):
-        gr.Markdown(f"## 📊 {B('section_progress')}", elem_classes="section-header")
+        gr.Markdown(f"## {B('section_progress')}", elem_classes="section-header")
 
         control_row = gr.Row(elem_classes="control-row")
         with control_row:
-            translate_btn = gr.Button(f"🚀 {B('progress_translate')}", variant="primary")
-            pause_btn = gr.Button(f"⏸ {B('progress_pause')}")
-            resume_btn = gr.Button(f"▶️ {B('progress_resume')}")
-            skip_btn = gr.Button(f"⏭ {B('progress_skip')}")
-            retry_btn = gr.Button(f"🔁 {B('progress_retry')}", visible=False)
-            cancel_btn = gr.Button(f"⏹ {B('progress_cancel')}", variant="stop")
+            translate_btn = gr.Button(B("progress_translate"), variant="primary")
+            pause_btn = gr.Button(B("progress_pause"))
+            resume_btn = gr.Button(B("progress_resume"))
+            skip_btn = gr.Button(B("progress_skip"))
+            retry_btn = gr.Button(B("progress_retry"), visible=False)
+            cancel_btn = gr.Button(B("progress_cancel"), variant="stop")
 
         progress_bar = gr.HTML(
             value=build_progress_bar_html("", 0.0, ""),
@@ -174,7 +174,7 @@ def create_progress_panel() -> dict:
             elem_classes="status-text",
         )
 
-        with gr.Accordion(f"📋 {B('progress_logs')}", open=False):
+        with gr.Accordion(B("progress_logs"), open=False):
             log_output = gr.HTML(
                 value=f"<pre class='log-output'>{B('progress_log_idle')}</pre>",
                 elem_classes="log-output",

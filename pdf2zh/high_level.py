@@ -555,6 +555,9 @@ def translate_stream(
     document_model: bool = False,
     # Phase D: 可观测框架（Trace/Snapshot/Decision/Overlay/Inspector，默认关）
     observability: bool = False,
+    # 并行进度回调：progress_cb(percent: float, message: str)，percent ∈ [0, 100]
+    # 只由主进程调用（并行路径按 chunk 完成回报；串行路径不回报）。
+    progress_cb: object = None,
 
     **kwarg: Any,
 ):
@@ -1139,6 +1142,9 @@ def _translate_parallel(
 
     obj_patch = {}
     obs_bundles: list = []
+    progress_cb = locals_dict.get("progress_cb")
+    total_chunks = len(chunks) if chunks else 1
+    done_chunks = 0
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=workers, initializer=_init_worker_process,
     ) as executor:
@@ -1155,6 +1161,16 @@ def _translate_parallel(
                 obj_patch.update(chunk_result)
             if obs_bundle:
                 obs_bundles.append(obs_bundle)
+            # 并行统计口径：已完成的页面分块 / 总分块（单调不减，天然平滑）
+            done_chunks += 1
+            if callable(progress_cb):
+                try:
+                    progress_cb(
+                        done_chunks * 100.0 / total_chunks,
+                        f"Translating {done_chunks}/{total_chunks} chunk(s)",
+                    )
+                except Exception:
+                    pass
 
     if obs_bundles:
         merged = obs_bundles[0]

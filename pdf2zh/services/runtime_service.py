@@ -28,6 +28,135 @@ from typing import Any, Callable, Dict, Iterator, List, Optional
 logger = logging.getLogger(__name__)
 
 
+# 自愈策略映射：诊断 issue code -> 修复动作（与 v3/repair_engine 策略一致）。
+_HEAL_ACTIONS = {
+    "unicode_error": "Unicode 修复 (OCR 计划)",
+    "toc_merged_lines": "TOC 拆分重切 (TOCSplitRepair)",
+    "toc_low_confidence": "TOC 拆分重切 (TOCSplitRepair)",
+    "formula_low_confidence": "公式重建 (MathRecoveryRepair)",
+    "translation_overflow": "溢出重排 (EmptyBlockRepair)",
+    "font_uncertain": "字体归一化",
+    "empty_block": "空块清理",
+}
+
+# ── 引擎翻译模式预设 ─────────────────────────────────────────────────────────
+#
+# GUI「引擎模式」下拉的 v0..v4 五种模式 → 具体管线。每个模式是 ServiceConfig
+# 字段的覆盖集合；"auto" 表示保持调用方配置（语义上等价于默认模式）。
+# 落地管线只有两条（都是已实现路径）：
+#   - legacy：``translate_stream`` 经典管线（v0/v1/v2）
+#   - V4：``_execute_v4``（RuntimeFacade 全流程，v3/v4）
+MODE_PRESETS: Dict[str, Dict[str, Any]] = {
+    # v0 基础：纯 legacy 经典路径，关闭全部现代 side-channel（最快、干预最少）
+    "v0": {
+        "use_v4_engine": False,
+        "use_v4_translator": False,
+        "use_v4_layout": False,
+        "use_v4_repair": False,
+        "use_v4_fix_validate_loop": False,
+        "run_evaluation": False,
+        "emit_ir": False,
+        "use_v4_gate": False,
+        "relink_links": False,
+        "image_engine": False,
+        "content_preservation": False,
+        "processor_channels": False,
+    },
+    # v1 标准：legacy + 全部现代 side-channel + 文档模型（当前生产默认行为）
+    "v1": {
+        "use_v4_engine": False,
+        "use_v4_translator": False,
+        "use_v4_layout": False,
+        "use_v4_repair": False,
+        "use_v4_fix_validate_loop": False,
+        "use_v4_gate": False,
+        "run_evaluation": False,
+        "emit_ir": True,
+        "relink_links": True,
+        "image_engine": True,
+        "content_preservation": True,
+        "processor_channels": True,
+    },
+    # v2 高质量：legacy + 文档级评测 + 写回门控 + QA 侧通道
+    "v2": {
+        "use_v4_engine": False,
+        "use_v4_translator": False,
+        "use_v4_layout": False,
+        "use_v4_repair": False,
+        "use_v4_fix_validate_loop": False,
+        "use_v4_gate": True,
+        "run_evaluation": True,
+        "emit_ir": True,
+        "relink_links": True,
+        "image_engine": True,
+        "content_preservation": True,
+        "processor_channels": True,
+    },
+    # v3 精准：V4 引擎 + 评测（自带 QualityEvaluator）+ 写回门控
+    "v3": {
+        "use_v4_engine": True,
+        "use_v4_translator": True,
+        "use_v4_layout": False,
+        "use_v4_repair": False,
+        "use_v4_fix_validate_loop": False,
+        "use_v4_gate": True,
+        "run_evaluation": False,  # V4 内部自带评测，不需文档级二次评测
+        "relink_links": True,
+        "image_engine": False,
+        "content_preservation": True,
+        "processor_channels": True,
+    },
+    # v4 布局优先：V4 引擎 + 布局/修复 + Fix-Validate 自愈循环
+    "v4": {
+        "use_v4_engine": True,
+        "use_v4_translator": True,
+        "use_v4_layout": True,
+        "use_v4_repair": True,
+        "use_v4_fix_validate_loop": True,
+        "max_repair_passes": 2,
+        "use_v4_gate": True,
+        "run_evaluation": False,
+        "relink_links": True,
+        "image_engine": False,
+        "content_preservation": True,
+        "processor_channels": True,
+    },
+}
+
+#: legacy 模式注入 translate_stream 的额外模态 kwargs（V4 模式不走此表）。
+MODE_LEGACY_KWARGS: Dict[str, Dict[str, Any]] = {
+    "v0": {"document_model": False, "toc_split": True,
+           "render_takeover": False, "translation_qa": False,
+           "geometry_cluster": False, "observability": False,
+           "pipeline_dump": False},
+    "v1": {"document_model": True, "toc_split": True},
+    "v2": {"document_model": True, "toc_split": True,
+           "render_takeover": True, "translation_qa": True,
+           "geometry_cluster": True},
+}
+
+
+def resolve_mode_config(
+    mode_choice: Optional[str], base: ServiceConfig,
+) -> ServiceConfig:
+    """Resolve an engine-mode preset onto a ``ServiceConfig``.
+
+    Unknown/empty modes and ``auto`` return the base config unchanged
+    (auto-selection keeps the caller-provided defaults). Unknown preset
+    keys are filtered so a future flag never breaks resolution.
+    """
+    preset = MODE_PRESETS.get((mode_choice or "auto").strip() or "auto")
+    if not preset:
+        return base
+    overrides = {k: v for k, v in preset.items() if hasattr(base, k)}
+    return dataclasses.replace(base, **overrides)
+
+
+def legacy_mode_kwargs(mode_choice: Optional[str]) -> Dict[str, Any]:
+    """Extra ``translate_stream`` kwargs for legacy engine modes."""
+    return dict(MODE_LEGACY_KWARGS.get((mode_choice or "auto").strip() or "auto", {}) or {})
+
+
 # ── Data Models ──────────────────────────────────────────────────────────────
 
 
@@ -140,6 +269,8 @@ class TaskState:
     progress: float = 0.0
     message: str = ""
     stage: str = ""
+    mode_choice: str = ""
+    """用户选择的引擎模式（auto/v0/v1/v2/v3/v4），用于可观测与模式解析。"""
     file_progress: float = 0.0
     total_progress: float = 0.0
     current_file_name: str = ""
@@ -154,6 +285,17 @@ class TaskState:
     preview_path: Optional[str] = None
     diagnostic_summary: Optional[str] = None
     quality_scores: Optional[Dict[str, float]] = None
+    node_overview: Optional[Dict[str, int]] = None
+    """文档智能分析概况（pages/paragraphs/headings/figures/formulas 节点计数）。"""
+    diagnostic_report: Optional[Dict[str, Any]] = None
+    """结构化诊断报告：legacy 为 errors/warnings/admissible/issues，
+    V4 为 evaluator 的 records/pass_rate 记录。"""
+    heal_status: Optional[Dict[str, Any]] = None
+    """自愈行程摘要（ran/iterations/before_errors/after_errors/improved）。"""
+    repair_records: Optional[List[Dict[str, Any]]] = None
+    """自愈处置记录：每个 issue -> {code, node_id, page, severity, message, action, status}。"""
+    confidence_stats: Optional[Dict[str, float]] = None
+    """文档置信度统计（annotated/avg/min/max）。"""
     ir_snapshots: Optional[Dict[str, Any]] = None
     """V8.3: 主链路产出的 DocumentIR 快照（pageid -> snapshot dict）。"""
     gate_verdicts: Optional[Dict[str, Any]] = None
@@ -173,6 +315,7 @@ class TaskState:
             "progress": self.progress,
             "message": self.message,
             "stage": self.stage,
+            "mode_choice": self.mode_choice,
             "file_progress": self.file_progress,
             "total_progress": self.total_progress,
             "current_file_name": self.current_file_name,
@@ -187,6 +330,11 @@ class TaskState:
             "preview_path": self.preview_path,
             "diagnostic_summary": self.diagnostic_summary,
             "quality_scores": self.quality_scores,
+            "node_overview": self.node_overview,
+            "diagnostic_report": self.diagnostic_report,
+            "heal_status": self.heal_status,
+            "repair_records": self.repair_records,
+            "confidence_stats": self.confidence_stats,
             "ir_snapshots": self.ir_snapshots,
             "gate_verdicts": self.gate_verdicts,
             "processor_reports": self.processor_reports,
@@ -204,6 +352,9 @@ class ServiceConfig:
     use_v4_translator: bool = False
     use_v4_layout: bool = False
     use_v4_repair: bool = False
+    use_v4_fix_validate_loop: bool = False
+    """V4：Fix-Validate 修复自愈循环（pipeline 内最多 max_repair_passes 轮）。"""
+    max_repair_passes: int = 2
     run_evaluation: bool = False
     """翻译完成后对输出 mono PDF 运行文档级评测（几何/结构/翻译/渲染）。"""
     # V8.3: legacy 主链路直接产出 DocumentIR（side-channel，不影响渲染）
@@ -248,6 +399,11 @@ class _TaskStore:
     def get_task(self, task_id: str) -> Optional[TaskState]:
         with self._lock:
             return self._tasks.get(task_id)
+
+    def list_task_ids(self) -> List[str]:
+        """Task ids in creation order (oldest first)."""
+        with self._lock:
+            return list(self._tasks.keys())
 
     def update_task(self, task_id: str, **kwargs: Any) -> Optional[TaskState]:
         with self._lock:
@@ -338,6 +494,9 @@ class RuntimeService:
         #: GUI: listeners receive low-level records only).
         self._event_listeners: List[Callable[[TaskProgressEvent], None]] = []
         self._listeners_lock = threading.Lock()
+        #: Per-task last emitted progress (throttle for smooth parallel reports).
+        self._last_progress: Dict[str, float] = {}
+        self._progress_lock = threading.Lock()
 
     # ── Event listener API (Worker -> EventBus bridge) ───────────────────────
 
@@ -372,6 +531,12 @@ class RuntimeService:
         """
         task_id = f"task_{uuid.uuid4().hex[:12]}"
         self._store.create_task(task_id)
+        self._store.update_task(
+            task_id,
+            mode_choice=(request.extra_config or {}).get("mode_choice") or "auto",
+        )
+        with self._progress_lock:
+            self._last_progress[task_id] = -1.0
         files = request.resolved_files()
         if not files:
             self._store.update_task(
@@ -408,6 +573,15 @@ class RuntimeService:
 
     def get_task_state(self, task_id: str) -> Optional[TaskState]:
         return self._store.get_task(task_id)
+
+    def list_task_ids(self) -> List[str]:
+        """Task ids in creation order (oldest first) -- single source of truth
+        for GUI task recovery (refresh / new session after a submit)."""
+        return self._store.list_task_ids()
+
+    def update_task_state(self, task_id: str, **kwargs: Any) -> Optional[TaskState]:
+        """Update arbitrary task-state fields (e.g. the GUI output selection)."""
+        return self._store.update_task(task_id, **kwargs)
 
     def cancel_task(self, task_id: str) -> bool:
         state = self._store.get_task(task_id)
@@ -475,14 +649,17 @@ class RuntimeService:
             self._emit_event(task_id, TaskStage.PARSING.value, 5.0, "Starting...")
             if self._store.is_cancelled(task_id):
                 return
-            self._sync_feature_flags(task_id)
+            mode = (request.extra_config or {}).get("mode_choice") or "auto"
+            self._store.update_task(task_id, mode_choice=mode)
+            task_config = resolve_mode_config(mode, self.config)
+            self._sync_feature_flags(task_id, task_config)
             files = request.resolved_files()
             if len(files) > 1:
-                self._execute_batch(task_id, request, files)
-            elif self.config.use_v4_engine:
-                self._execute_v4(task_id, request)
+                self._execute_batch(task_id, request, files, task_config)
+            elif task_config.use_v4_engine:
+                self._execute_v4(task_id, request, task_config)
             else:
-                self._execute_legacy(task_id, request)
+                self._execute_legacy(task_id, request, task_config)
         except Exception as exc:
             logger.error("Task %s failed: %s", task_id, exc, exc_info=True)
             self._store.update_task(
@@ -493,6 +670,7 @@ class RuntimeService:
 
     def _execute_batch(
         self, task_id: str, request: TranslationRequest, files: List[str],
+        config: ServiceConfig,
     ) -> None:
         """Execute a multi-file batch sequentially, aggregating overall progress.
 
@@ -522,10 +700,10 @@ class RuntimeService:
             )
             sub_request = dataclasses.replace(request, source_path=path, files=[])
             try:
-                if self.config.use_v4_engine:
-                    self._execute_v4(task_id, sub_request)
+                if config.use_v4_engine:
+                    self._execute_v4(task_id, sub_request, config)
                 else:
-                    self._execute_legacy(task_id, sub_request)
+                    self._execute_legacy(task_id, sub_request, config)
             except Exception as exc:
                 logger.error(
                     "[task=%s] file %s failed: %s", task_id, path, exc, exc_info=True,
@@ -623,6 +801,10 @@ class RuntimeService:
         batch tasks accumulate ``result_files`` and bump the aggregate progress.
         """
         if total_files <= 1 or task_id not in self._batch_ctx:
+            # The ZIP is built from the stored result_files below; a caller
+            # supplied result_zip (commonly a bare mono/dual PDF path) would
+            # surface as a bogus "Download All (ZIP)" target, so drop it.
+            extra.pop("result_zip", None)
             self._store.update_task(
                 task_id, status=TaskStage.COMPLETED.value, progress=100.0,
                 total_progress=100.0, file_progress=100.0,
@@ -634,6 +816,7 @@ class RuntimeService:
                 message=message,
                 **extra,
             )
+            self._ensure_result_zip(task_id)
             self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, message)
             return
         ctx = self._batch_ctx[task_id]
@@ -649,8 +832,9 @@ class RuntimeService:
         if extra.get("selected_file"):
             upd["selected_file"] = extra.pop("selected_file")
         for key in (
-            "diagnostic_summary", "quality_scores", "ir_snapshots",
-            "gate_verdicts", "processor_reports", "toc_ir_records",
+            "diagnostic_summary", "quality_scores", "node_overview",
+            "ir_snapshots", "gate_verdicts", "processor_reports", "toc_ir_records",
+            "diagnostic_report", "heal_status", "repair_records", "confidence_stats",
         ):
             if extra.get(key) is not None:
                 upd[key] = extra.pop(key)
@@ -685,14 +869,19 @@ class RuntimeService:
         self._emit_batch_progress(task_id, ctx, f"Failed {ctx.current_file}: {error}")
 
     def _build_batch_zip(self, task_id: str) -> Optional[str]:
-        """Package all completed result files into a single zip (batch mode)."""
+        """Package all completed result files into a single zip.
+
+        Used by batch tasks at finish time AND by single-file tasks
+        (``_ensure_result_zip``) so the "Download All (ZIP)" button always
+        serves a genuine ZIP archive, never a bare mono/dual PDF.
+        """
         import tempfile
         import zipfile
 
         state = self._store.get_task(task_id)
         if state is None or not state.result_files:
             return None
-        zip_path = os.path.join(tempfile.gettempdir(), f"pdf2zh_batch_{task_id}.zip")
+        zip_path = os.path.join(tempfile.gettempdir(), f"pdf2zh_task_{task_id}.zip")
         try:
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for rf in state.result_files:
@@ -701,50 +890,86 @@ class RuntimeService:
                         zf.write(p, arcname=os.path.basename(p))
             return zip_path
         except Exception:
-            logger.exception("Failed to build batch zip for task %s", task_id)
+            logger.exception("Failed to build result zip for task %s", task_id)
             return None
 
-    def _sync_feature_flags(self, task_id: str) -> None:
+    def _ensure_result_zip(self, task_id: str) -> Optional[str]:
+        """Guarantee ``result_zip`` points at a real ZIP of the outputs.
+
+        Builds the archive from the stored ``result_files``; if packaging
+        fails, falls back to the first existing result file so the download
+        button still has something to serve. Never raises.
+        """
+        zip_path = self._build_batch_zip(task_id)
+        state = self._store.get_task(task_id)
+        if state is None:
+            return None
+        if zip_path is None:
+            zip_path = next(
+                (
+                    rf.get("path") for rf in (state.result_files or [])
+                    if rf.get("path") and os.path.exists(rf.get("path"))
+                ),
+                None,
+            ) or ""
+        self._store.update_task(task_id, result_zip=zip_path)
+        return zip_path
+
+    def _sync_feature_flags(self, task_id: str,
+                            config: Optional[ServiceConfig] = None) -> None:
         """V8.2：把 ServiceConfig.use_v4_* 同步到 v3 FeatureFlags 单例，
-        并记录回退遥测（use_v4_engine=False 即 legacy 回退事件）。"""
+        并记录回退遥测（use_v4_engine=False 即 legacy 回退事件）。
+
+        使用任务的解析后配置（引擎模式 preset 已折叠）而不是服务全局配置。
+        """
+        cfg = config or self.config
         try:
             from pdf2zh.v3.feature_flags import (
                 FallbackTelemetry, FeatureFlags, get_feature_flags, set_feature_flags,
             )
             flags = get_feature_flags()
-            flags.use_v4_engine = self.config.use_v4_engine
-            flags.use_v4_translator = self.config.use_v4_translator
-            flags.use_v4_layout = self.config.use_v4_layout
-            flags.use_v4_repair = self.config.use_v4_repair
-            flags.use_v4_gate = self.config.use_v4_gate
-            flags.relink_links = self.config.relink_links
-            flags.use_v4_image_engine = self.config.image_engine
-            flags.use_v4_content_preservation = self.config.content_preservation
-            flags.use_v4_processor_channels = self.config.processor_channels
-            if not self.config.use_v4_engine:
+            flags.use_v4_engine = cfg.use_v4_engine
+            flags.use_v4_translator = cfg.use_v4_translator
+            flags.use_v4_layout = cfg.use_v4_layout
+            flags.use_v4_repair = cfg.use_v4_repair
+            flags.use_v4_gate = cfg.use_v4_gate
+            flags.relink_links = cfg.relink_links
+            flags.use_v4_image_engine = cfg.image_engine
+            flags.use_v4_content_preservation = cfg.content_preservation
+            flags.use_v4_processor_channels = cfg.processor_channels
+            if hasattr(flags, "use_v4_fix_validate_loop"):
+                flags.use_v4_fix_validate_loop = cfg.use_v4_fix_validate_loop
+            if hasattr(flags, "max_repair_passes"):
+                flags.max_repair_passes = cfg.max_repair_passes
+            if not cfg.use_v4_engine:
                 flags.use_v4_engine = False
                 flags.use_v4_translator = flags.use_v4_translator or False
             flags.telemetry = FallbackTelemetry()
             flags.record_fallback({
-                "reason": "legacy_mainline" if not self.config.use_v4_engine
+                "reason": "legacy_mainline" if not cfg.use_v4_engine
                 else "v4_enabled",
                 "task_id": task_id,
-                "run_evaluation": self.config.run_evaluation,
-                "emit_ir": self.config.emit_ir,
-                "use_v4_gate": self.config.use_v4_gate,
+                "run_evaluation": cfg.run_evaluation,
+                "emit_ir": cfg.emit_ir,
+                "use_v4_gate": cfg.use_v4_gate,
+                "mode_choice": getattr(
+                    self._store.get_task(task_id), "mode_choice", "") or "",
             })
             set_feature_flags(flags)
         except Exception:
             logger.debug("feature flag sync skipped", exc_info=True)
 
-    def _execute_v4(self, task_id: str, request: TranslationRequest) -> None:
+    def _execute_v4(self, task_id: str, request: TranslationRequest,
+                    config: Optional[ServiceConfig] = None) -> None:
         """Execute with V4 RuntimeFacade pipeline."""
         from pdf2zh.v3.runtime import RuntimeFacade
 
+        config = config or self.config
         total_files = self._batch_total(task_id)
         # Initialize diagnostics early to avoid NameError in error paths
         diagnostic_summary = ""
         quality_scores = {}
+        diag_report: Optional[Dict[str, Any]] = None
 
         self._emit_event(task_id, TaskStage.PARSING.value, 10.0, "Parsing PDF...")
         rt = RuntimeFacade(config={
@@ -756,12 +981,15 @@ class RuntimeService:
             return
         self._emit_event(task_id, TaskStage.ANALYZING.value, 30.0, "Analyzing...")
         rt.analyze()
+        node_overview = self._collect_node_overview(rt)
+        if node_overview:
+            self._store.update_task(task_id, node_overview=node_overview)
         self._emit_event(task_id, TaskStage.PLANNING.value, 40.0, "Planning...")
         rt.plan()
         if self._store.is_cancelled(task_id):
             return
         self._emit_event(task_id, TaskStage.TRANSLATING.value, 50.0, "Translating...")
-        if self.config.use_v4_translator:
+        if config.use_v4_translator:
             from pdf2zh.v3.translation_runtime import TranslationRuntime
             tr = TranslationRuntime()
             if rt.plans:
@@ -796,10 +1024,18 @@ class RuntimeService:
                 if ts < 80:
                     issues.append("Low quality")
                 diagnostic_summary = " | ".join(issues) if issues else "All checks passed"
+            diag_src = getattr(ev, "_diagnostic", None)
+            if diag_src is not None and hasattr(diag_src, "to_dict"):
+                try:
+                    drill = diag_src.to_dict()
+                    if drill and drill.get("total"):
+                        diag_report = drill
+                except Exception:
+                    diag_report = None
         except Exception:
             diagnostic_summary = "Diagnostics unavailable"
 
-        out_dir = self.config.output_dir or os.path.dirname(request.source_path)
+        out_dir = config.output_dir or os.path.dirname(request.source_path)
         basename = os.path.splitext(os.path.basename(request.source_path))[0]
         os.makedirs(out_dir, exist_ok=True)
         result_path = os.path.join(out_dir, f"{basename}-translated.pdf")
@@ -825,16 +1061,54 @@ class RuntimeService:
             selected_file=result_files[0]["name"],
             diagnostic_summary=diagnostic_summary,
             quality_scores=quality_scores,
-            result_zip=result_path if os.path.exists(result_path) else "",
+            node_overview=node_overview or None,
+            diagnostic_report=diag_report,
             preview_path=result_path if os.path.exists(result_path) else "",
             message="Completed (V4)",
         )
 
-    def _execute_legacy(self, task_id: str, request: TranslationRequest) -> None:
+    def _collect_node_overview(self, rt) -> Optional[Dict[str, int]]:
+        """Extract the document node overview from a V4 runtime graph.
+
+        Pure side-channel: any failure falls back to ``None`` (the UI then
+        renders the idle overview). Never raises.
+        """
+        try:
+            graph = getattr(rt, "graph", None)
+            if graph is None:
+                return None
+            pages = 0
+            counts: Dict[str, int] = {"paragraphs": 0, "headings": 0,
+                                      "figures": 0, "formulas": 0}
+            for node in graph:
+                kind = str(getattr(node, "kind", "") or "").lower()
+                ntype = str(getattr(node, "type", "") or "").lower()
+                tag = f"{kind}:{ntype}"
+                if not pages and ("doc" in tag or "page" in tag):
+                    pages += 1
+                if "paragraph" in tag:
+                    counts["paragraphs"] += 1
+                elif "heading" in tag or "title" in tag:
+                    counts["headings"] += 1
+                elif "figure" in tag or "image" in tag or "table" in tag:
+                    counts["figures"] += 1
+                elif "formula" in tag or "equation" in tag:
+                    counts["formulas"] += 1
+            if pages:
+                counts["pages"] = pages
+            if any(v for k, v in counts.items() if k != "pages"):
+                return counts
+            return None
+        except Exception:
+            return None
+
+    def _execute_legacy(self, task_id: str, request: TranslationRequest,
+                        config: Optional[ServiceConfig] = None) -> None:
         """Execute with Legacy translate_stream pipeline."""
         from pdf2zh.high_level import translate_stream
         from pdf2zh.doclayout import ModelInstance, OnnxModel
 
+        config = config or self.config
         total_files = self._batch_total(task_id)
 
         # Ensure layout model is loaded before translation
@@ -858,7 +1132,20 @@ class RuntimeService:
         logger.info("[task=%s] Translation phase starting...", task_id)
         # V8.3/V8.4: 主链路 IR 产出 + 写回前门控（side-channel）
         v3_output: Dict[str, Any] = {}
+        # 并行进度回调：translate_stream 按已完成的页面分块回报（0-100），
+        # 映射到翻译窗口 50→80；经 _emit_smooth 节流 + 单调不减后推给 UI，
+        # 避免并行下进度条跳变。
+        def _progress_cb(pct: float, msg: str) -> None:
+            self._emit_smooth(
+                task_id, TaskStage.TRANSLATING.value,
+                50.0 + max(0.0, min(100.0, float(pct))) * 0.30,
+                msg,
+            )
+
         try:
+            mode = (request.extra_config or {}).get("mode_choice") or "auto"
+            extra_config = dict(request.extra_config or {})
+            extra_config.pop("mode_choice", None)
             doc_dual, doc_mono = translate_stream(
                 file_bytes,
                 lang_in=request.source_lang,
@@ -870,15 +1157,17 @@ class RuntimeService:
                 skip_subset_fonts=request.skip_subset_fonts,
                 ignore_cache=request.ignore_cache,
                 model=ModelInstance.value,
-                emit_ir=self.config.emit_ir,
-                relayout_gate=(self._make_gate if self.config.use_v4_gate else None),
+                emit_ir=config.emit_ir,
+                relayout_gate=(self._make_gate if config.use_v4_gate else None),
                 v3_output=v3_output,
-                relink_links=self.config.relink_links,
-                image_engine=self.config.image_engine,
-                content_preservation=self.config.content_preservation,
-                emit_preservation=self.config.emit_preservation,
-                processor_channels=self.config.processor_channels,
-                **request.extra_config,
+                relink_links=config.relink_links,
+                image_engine=config.image_engine,
+                content_preservation=config.content_preservation,
+                emit_preservation=config.emit_preservation,
+                processor_channels=config.processor_channels,
+                progress_cb=_progress_cb,
+                **legacy_mode_kwargs(mode),
+                **extra_config,
             )
         except Exception as tx_exc:
             logger.error("[task=%s] translate_stream failed: %s", task_id, tx_exc, exc_info=True)
@@ -897,7 +1186,7 @@ class RuntimeService:
         # translate_stream handles the merge internally; we poll with short sleeps
         # to allow the UI to receive periodic progress updates.
         self._emit_event(task_id, TaskStage.RENDERING.value, 85.0, "Writing output files...")
-        out_dir = self.config.output_dir or os.path.dirname(request.source_path)
+        out_dir = config.output_dir or os.path.dirname(request.source_path)
         basename = os.path.splitext(os.path.basename(request.source_path))[0]
         os.makedirs(out_dir, exist_ok=True)
         logger.info("[task=%s] Merge OK: mono=%d bytes, dual=%d bytes", task_id, len(doc_mono), len(doc_dual))
@@ -917,7 +1206,7 @@ class RuntimeService:
             {"name": f"{basename}-dual.pdf", "path": dual_path},
         ]
         # 文档级评测（阶段九）：源 PDF vs mono 译文
-        if self.config.run_evaluation:
+        if config.run_evaluation:
             try:
                 from pdf2zh.evaluate import evaluate_translation
                 self._emit_event(task_id, TaskStage.EVALUATING.value, 92.0,
@@ -925,7 +1214,7 @@ class RuntimeService:
                 eval_report = evaluate_translation(
                     request.source_path, mono_path,
                     target_lang=request.target_lang,
-                    report_dir=self.config.evaluation_report_dir or None,
+                    report_dir=config.evaluation_report_dir or None,
                     report_threshold=90.0,
                 )
                 quality_scores = {
@@ -972,20 +1261,156 @@ class RuntimeService:
         processor_reports = v3_output.get("processor_reports") or None
         toc_ir_records = v3_output.get("toc_ir_records") or None
 
+        # 文档智能概况（side-channel）：优先 document_model 节点统计，退化到页数
+        node_overview = self._collect_legacy_overview(v3_output, request.source_path)
+        if node_overview:
+            self._store.update_task(task_id, node_overview=node_overview)
+        # 诊断报告 + 置信度统计 + 自愈行程（side-channel 模型，纯只读分析之外会
+        # 在模型副本上运行修复闭环以产出 before/after 证据；渲染不受影响）。
+        diag_report, heal_status, repair_records, confidence_stats = \
+            self._collect_legacy_diagnostics(v3_output)
+        if diag_report and heal_status:
+            errs = int(diag_report.get("errors") or 0)
+            warns = int(diag_report.get("warnings") or 0)
+            heal = f"Heal: {heal_status.get('before_errors', '?')}→{heal_status.get('after_errors', '?')} (runs={heal_status.get('iterations', '?')})"
+            diag_extra = f"Errors={errs} Warnings={warns} {heal}"
+            if diagnostic_summary and "Errors=" not in diagnostic_summary:
+                diagnostic_summary = f"{diagnostic_summary} | {diag_extra}"
+            elif diagnostic_summary in ("", "Legacy pipeline - V4 diagnostics not available"):
+                diagnostic_summary = diag_extra
+
         self._complete_file(
             task_id, result_files, total_files=total_files,
             selected_file=result_files[0]["name"],
             diagnostic_summary=diagnostic_summary,
             quality_scores=quality_scores,
+            node_overview=node_overview or None,
             ir_snapshots=ir_snapshots,
             gate_verdicts=gate_verdicts,
             processor_reports=processor_reports,
             toc_ir_records=toc_ir_records,
-            result_zip=dual_path if os.path.exists(dual_path) else mono_path,
+            diagnostic_report=diag_report,
+            heal_status=heal_status,
+            repair_records=repair_records,
+            confidence_stats=confidence_stats,
             preview_path=dual_path if os.path.exists(dual_path) else mono_path,
             message="Completed (Legacy)",
         )
         logger.info("[task=%s] Output files written successfully", task_id)
+
+    def _collect_legacy_overview(
+        self, v3_output: Dict[str, Any], source_path: str,
+    ) -> Optional[Dict[str, int]]:
+        """Build the document overview for the legacy pipeline.
+
+        Uses the V11 document model node counts when available; otherwise
+        falls back to the source page count. Pure side-channel, never raises.
+        """
+        try:
+            dm = v3_output.get("document_model")
+            counts: Dict[str, int] = {}
+            pages = 0
+            for node in dm:
+                kind = str(getattr(node, "kind", "") or "").lower()
+                if "page" in kind or "doc" in kind:
+                    pages += 1
+                elif "paragraph" in kind:
+                    counts["paragraphs"] = counts.get("paragraphs", 0) + 1
+                elif "heading" in kind or "title" in kind:
+                    counts["headings"] = counts.get("headings", 0) + 1
+                elif "figure" in kind or "table" in kind or "image" in kind:
+                    counts["figures"] = counts.get("figures", 0) + 1
+                elif "formula" in kind or "equation" in kind:
+                    counts["formulas"] = counts.get("formulas", 0) + 1
+            if pages:
+                counts["pages"] = pages
+            if counts:
+                return counts
+            if source_path and os.path.exists(source_path):
+                import fitz as _fitz
+                with _fitz.open(source_path) as src:
+                    return {"pages": src.page_count}
+            return None
+        except Exception:
+            try:
+                if source_path and os.path.exists(source_path):
+                    import fitz as _fitz
+                    with _fitz.open(source_path) as src:
+                        return {"pages": src.page_count}
+            except Exception:
+                pass
+            return None
+
+    def _collect_legacy_diagnostics(self, v3_output: Dict[str, Any]) -> tuple:
+        """Collect legacy diagnostic report, confidence stats and self-heal summary.
+
+        Pure side-channel: reads the V11 ``document_model`` (already annotated
+        with analyze_document/annotate_confidence during the mainline). When
+        error-level issues exist, runs the repair engine over the model to
+        derive a before/after healing record. Never raises.
+        """
+        E_NOT_FOUND: tuple = (None, None, None, None)
+        dm = None
+        if v3_output:
+            for key in ("document_model", "ir_model"):
+                candidate = v3_output.get(key)
+                if candidate is not None:
+                    dm = candidate
+                    break
+        if dm is None:
+            return E_NOT_FOUND
+        meta = getattr(dm, "metadata", None) or {}
+        diag = meta.get("diagnostics")
+        if not isinstance(diag, dict):
+            diag = None
+        conf = meta.get("confidence_stats")
+        if not isinstance(conf, dict) or not conf:
+            conf = None
+        issues = (diag or {}).get("issues") or []
+        records: List[Dict[str, Any]] = []
+        for i in issues:
+            if not isinstance(i, dict):
+                continue
+            code = str(i.get("code") or "")
+            records.append({
+                "code": code,
+                "node_id": str(i.get("node_id") or ""),
+                "page": int(i.get("page") or i.get("page_num") or 0),
+                "severity": str(i.get("severity") or "warning"),
+                "message": str(i.get("message") or "")[:160],
+                "action": _HEAL_ACTIONS.get(code, "人工复核"),
+                "status": "applied" if code in _HEAL_ACTIONS else "manual",
+            })
+        heal = None
+        if diag and int(diag.get("errors") or 0) > 0:
+            try:
+                from pdf2zh.v3.diagnostics import analyze_document
+                from pdf2zh.v3.repair_engine import repair_loop
+                res = repair_loop(dm, max_iterations=2)
+                after = analyze_document(dm).to_dict()
+                heal = {
+                    "ran": True,
+                    "iterations": int(res.get("iterations") or 0),
+                    "before_errors": int(res.get("before_errors") or 0),
+                    "after_errors": int(res.get("after_errors") or 0),
+                    "improved": bool(res.get("improved")),
+                    "admissible": bool(not after.get("errors")),
+                    "final_report": after,
+                }
+            except Exception as exc:  # noqa: BLE001
+                heal = {"ran": False, "error": str(exc)[:200]}
+        # V1.23：Layout Inspector 侧通道 —— 逐 Paragraph 排版证据（Font
+        # Resolution / 对齐 / Lv2 段拆 provenance）挂到诊断报告上供 GUI 渲染。
+        layout = None
+        try:
+            from pdf2zh.v3.document_inspector import build_layout_report
+            layout = build_layout_report(dm)
+        except Exception:  # noqa: BLE001
+            layout = None
+        if isinstance(diag, dict) and layout:
+            diag = dict(diag)
+            diag["layout"] = layout
+        return diag, heal, (records or None), conf
 
     def get_queue_position(self, task_id: str) -> int:
         state = self._store.get_task(task_id)
@@ -1007,6 +1432,39 @@ class RuntimeService:
             page_width=page_width, page_height=page_height,
             margin=margin, threshold=0.05, max_passes=2,
         )
+
+    def _emit_smooth(
+        self, task_id: str, stage: str, progress: float,
+        message: str = "", min_delta: float = 1.0,
+    ) -> None:
+        """Emit a progress event that is throttled and monotonically non-decreasing.
+
+        Parallel pipelines report fine-grained progress (per completed chunk);
+        raw emissions would flood the EventBus (each one wakes the browser via
+        SSE). This folds them into smooth, never-backward steps so the UI
+        progress bar conforms to the parallel-aggregation standard.
+
+        Monotonicity is enforced on the *visible* value: in batch mode the
+        per-file progress is aggregated first, so the clamp never goes
+        backwards across files.
+        """
+        raw = max(0.0, min(100.0, float(progress)))
+        terminal = stage in (
+            TaskStage.COMPLETED.value,
+            TaskStage.FAILED.value,
+            TaskStage.CANCELLED.value,
+        )
+        batch = self._batch_ctx.get(task_id)
+        visible = raw
+        if batch is not None and not terminal:
+            visible = self._agg(batch, raw)
+        with self._progress_lock:
+            prev = self._last_progress.get(task_id, -1.0)
+            if prev < 0 or terminal or visible - prev >= min_delta:
+                if visible < prev:
+                    return
+                self._last_progress[task_id] = visible
+                self._emit_event(task_id, stage, raw, message)
 
     def _emit_event(
         self, task_id: str, stage: str, progress: float,

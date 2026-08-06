@@ -11,7 +11,14 @@ import logging
 import queue
 import sys
 import threading
-from typing import IO, Any, Optional
+from collections import deque
+from typing import IO, Any, Deque, List, Optional
+
+
+#: 详细日志 API 的全局环形缓冲上限（条）。所有线程的日志都汇入这里，
+#: 前端 /gui/logs 接口与 _collect_logs 读取的正是这份日志（线程队列仅保留
+#: legacy "Progress:" 语义，供旧式 per-thread 消费）。
+_RING_MAX = 2000
 
 
 class ThreadAwareLogHandler(logging.Handler):
@@ -19,11 +26,15 @@ class ThreadAwareLogHandler(logging.Handler):
 
     Messages matching "Progress:" are captured per thread ID so that
     the UI can display per-task progress without cross-contamination.
+    All records are additionally appended to a global bounded ring buffer
+    (``recent_lines``) so the detailed-log API / log panel can surface the
+    real pipeline output instead of a placeholder.
     """
 
     def __init__(self, level: int = logging.INFO) -> None:
         super().__init__(level)
         self._queues: dict[int, queue.Queue[str]] = {}
+        self._ring: Deque[str] = deque(maxlen=_RING_MAX)
         self._lock = threading.Lock()
 
     def register_thread(self, thread_id: Optional[int] = None) -> int:
@@ -47,8 +58,17 @@ class ThreadAwareLogHandler(logging.Handler):
         with self._lock:
             self._queues.pop(tid, None)
 
+    def recent_lines(self, max_lines: int = 200) -> List[str]:
+        """Most recent log lines from the global ring buffer (newest last)."""
+        with self._lock:
+            lines = list(self._ring)
+        return lines[-max_lines:]
+
     def emit(self, record: logging.LogRecord) -> None:
         msg = self.format(record)
+        # Every record lands in the global ring (detailed log API / log panel).
+        with self._lock:
+            self._ring.append(msg)
         # Only route "Progress:" messages per thread
         if "Progress:" in msg:
             tid = threading.current_thread().ident or 0
@@ -127,7 +147,15 @@ def get_handler() -> ThreadAwareLogHandler:
             logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
         )
         root = logging.getLogger()
-        root.addHandler(_thread_aware_handler)
+        # The detailed-log ring only fills if records actually reach the root
+        # logger: Python's default root level is WARNING, so every INFO record
+        # (pipeline stages, "[task=...] ...") would be dropped upstream and the
+        # log panel / /gui/logs would stay empty. Keep the level at INFO unless
+        # the application configured something more verbose already.
+        if root.level == logging.NOTSET or root.level > logging.INFO:
+            root.setLevel(logging.INFO)
+        if _thread_aware_handler not in root.handlers:
+            root.addHandler(_thread_aware_handler)
     return _thread_aware_handler
 
 

@@ -23,6 +23,7 @@ from pdf2zh.gui.components.preview_panel import create_preview_panel
 from pdf2zh.gui.components.diagnostic_panel import (
     create_diagnostic_panel,
     build_diagnostic_markdown,
+    build_healing_markdown,
 )
 from pdf2zh.gui.styles import (
     UI_CSS,
@@ -253,25 +254,28 @@ def on_download_all(current_task_id: str):
     return None
 
 
-def _collect_logs(max_lines: int = 50) -> str:
+def _collect_logs(max_lines: int = 50, task_id: str = "") -> str:
+    """Collect recent log lines from the global ring buffer (sanitized).
+
+    The detailed-log channel is the ``ThreadAwareLogHandler`` ring: every
+    record (from any thread) lands there, so the panel shows the real
+    pipeline output. When ``task_id`` is known, lines carrying a
+    ``task=<id>`` marker are preferred (they belong to the active task);
+    otherwise the newest global lines are returned.
+    """
     try:
         handler = get_handler()
-        handler.register_thread()
-        q = handler.get_queue()
-        if q is None:
+        lines = handler.recent_lines(max_lines=max(100, max_lines * 4))
+        if not lines:
             return ""
-        lines = []
-        while not q.empty() and len(lines) < max_lines:
-            try:
-                lines.append(q.get_nowait())
-            except Exception:
-                break
-        if lines:
-            return "\n".join(
-                _sanitize_html(line)
-                for line in lines[-max_lines:]
-            )
-        return ""
+        if task_id:
+            tagged = [ln for ln in lines if f"task={task_id}" in ln]
+            if len(tagged) >= 2:
+                lines = tagged
+        return "\n".join(
+            _sanitize_html(line)
+            for line in lines[-max_lines:]
+        )
     except Exception:
         return ""
 
@@ -356,6 +360,50 @@ def _render_task_started(acc: _DeltaAccumulator, ev: "TaskStarted") -> None:
     acc.set("skip_btn", gr.update(interactive=True))
     acc.set("retry_btn", gr.update(visible=False))
     acc.set("status_badge", gr.update(value=build_status_badge_html("running")))
+    svc = get_runtime_service()
+    _render_overview(acc, svc, ev.task_id)
+    _render_logs(acc, ev.task_id)
+
+
+def _render_logs(acc: _DeltaAccumulator, task_id: str) -> None:
+    """Refresh the detailed-log panel from the global ring buffer."""
+    logs = _collect_logs(task_id=task_id)
+    if logs:
+        acc.set("log_output", gr.update(value=f"<pre class='log-output'>{logs}</pre>"))
+
+
+def _render_overview(acc: _DeltaAccumulator, svc, tid: str) -> None:
+    """Refresh the document-overview panel from the current task state."""
+    ts = svc.get_task_state(tid) if tid else None
+    if ts is None:
+        return
+    acc.set("node_overview", gr.update(value=_build_overview_markdown(ts)))
+
+
+def _build_overview_markdown(ts) -> str:
+    """Render the document-overview markdown from a task state."""
+    ov = f"**{B('label_document')}**: {ts.current_file_name or B('label_n_a')}"
+    if ts.file_list:
+        ov += f" | **{B('label_files')}**: {len(ts.file_list)}"
+    no = ts.node_overview if isinstance(ts.node_overview, dict) else None
+    if no:
+        parts = []
+        if no.get("pages"):
+            parts.append(f"{B('diag_node_heading')} {no.get('pages')}")
+        for key, label in (
+            ("paragraphs", "diag_paragraphs"),
+            ("headings", "diag_headings"),
+            ("figures", "diag_figures"),
+            ("formulas", "diag_formulas"),
+        ):
+            if no.get(key):
+                parts.append(f"{B(label)} {no.get(key)}")
+        if parts:
+            ov += f"\n\n**{B('diag_graph')}**: {' | '.join(parts)}"
+    if ts.message:
+        safe_msg = _sanitize_html(ts.message)
+        ov += f"\n\n**{B('label_message')}**: {safe_msg}"
+    return ov
 
 
 def _render_stage_changed(acc: _DeltaAccumulator, ev: "TaskStageChanged") -> None:
@@ -365,6 +413,7 @@ def _render_stage_changed(acc: _DeltaAccumulator, ev: "TaskStageChanged") -> Non
     if ev.progress:
         st += f" | **{B('label_progress')}**: {ev.progress:.1f}%"
     acc.set("status_markdown", gr.update(value=st))
+    _render_logs(acc, ev.task_id)
     if ev.stage in ("completed", "cancelled", "failed"):
         acc.set("translate_btn", gr.update(interactive=True))
         acc.set("cancel_btn", gr.update(interactive=False))
@@ -392,15 +441,37 @@ def _render_progress_changed(
             )
         ),
     )
+    # Keep the status text in the same labelled format as the full render so
+    # live progress does not drift from the page-load/refresh snapshot.
+    acc.set(
+        "status_markdown",
+        gr.update(
+            value=(
+                f"**{B('label_status')}**: {stage_text(ev.stage or 'running')} | "
+                f"**{B('label_progress')}**: {ev.progress:.1f}%"
+            )
+        ),
+    )
+    _render_logs(acc, ev.task_id)
 
 
 def _render_message_changed(
     acc: _DeltaAccumulator, ev: "TaskMessageChanged"
 ) -> None:
-    acc.set("status_markdown", gr.update(value=ev.message))
-    logs = _collect_logs()
-    if logs:
-        acc.set("log_output", gr.update(value=f"<pre class='log-output'>{logs}</pre>"))
+    # Keep the labelled status/progress prefix so the live status text matches
+    # the full re-render (a bare message would silently drop the 状态/进度 label).
+    svc = get_runtime_service()
+    ts = svc.get_task_state(ev.task_id) if ev.task_id else None
+    st = (
+        f"**{B('label_status')}**: "
+        f"{stage_text(ts.status) if ts is not None and ts.status else B('status_running')}"
+    )
+    if ts is not None and ts.progress:
+        st += f" | **{B('label_progress')}**: {ts.progress:.1f}%"
+    if ev.message:
+        st += f"\n\n{ev.message}"
+    acc.set("status_markdown", gr.update(value=st))
+    _render_logs(acc, ev.task_id)
 
 
 def _render_paused(acc: _DeltaAccumulator, ev: "TaskPaused") -> None:
@@ -408,7 +479,7 @@ def _render_paused(acc: _DeltaAccumulator, ev: "TaskPaused") -> None:
     acc.set("resume_btn", gr.update(interactive=True))
     acc.set(
         "status_markdown",
-        gr.update(value=f"**{B('label_status')}**: {B('status_paused')} ⏸"),
+        gr.update(value=f"**{B('label_status')}**: {B('status_paused')}"),
     )
 
 
@@ -417,7 +488,7 @@ def _render_resumed(acc: _DeltaAccumulator, ev: "TaskResumed") -> None:
     acc.set("resume_btn", gr.update(interactive=False))
     acc.set(
         "status_markdown",
-        gr.update(value=f"**{B('label_status')}**: {B('status_running')} ▶️"),
+        gr.update(value=f"**{B('label_status')}**: {B('status_running')}"),
     )
 
 
@@ -429,7 +500,7 @@ def _render_skipped(acc: _DeltaAccumulator, ev: "TaskSkipped") -> None:
 
 
 def _render_terminal(
-    acc: _DeltaAccumulator, status: str, message: str = ""
+    acc: _DeltaAccumulator, status: str, message: str = "", task_id: str = ""
 ) -> None:
     """Common terminal-state rendering shared by cancelled/failed/finished."""
     acc.set("translate_btn", gr.update(interactive=True))
@@ -439,6 +510,10 @@ def _render_terminal(
     acc.set("skip_btn", gr.update(interactive=False))
     acc.set("retry_btn", gr.update(visible=status == "failed", interactive=status == "failed"))
     acc.set("status_badge", gr.update(value=build_status_badge_html(status, message)))
+    if task_id:
+        svc = get_runtime_service()
+        _render_overview(acc, svc, task_id)
+        _render_logs(acc, task_id)
     if status == "completed":
         acc.set("stepbar", gr.update(value=build_stepbar_html("completed", 100.0)))
         acc.set(
@@ -478,17 +553,17 @@ def _render_terminal(
 
 def _render_cancelled(acc: _DeltaAccumulator, ev: "TaskCancelled") -> None:
     acc.set("task_id", ev.task_id)
-    _render_terminal(acc, "cancelled", ev.message)
+    _render_terminal(acc, "cancelled", ev.message, ev.task_id)
 
 
 def _render_failed(acc: _DeltaAccumulator, ev: "TaskFailed") -> None:
     acc.set("task_id", ev.task_id)
-    _render_terminal(acc, "failed", ev.message)
+    _render_terminal(acc, "failed", ev.message, ev.task_id)
 
 
 def _render_finished(acc: _DeltaAccumulator, ev: "TaskFinished") -> None:
     acc.set("task_id", ev.task_id)
-    _render_terminal(acc, "completed", "Complete")
+    _render_terminal(acc, "completed", "Complete", ev.task_id)
 
 
 def _render_preview_ready(acc: _DeltaAccumulator, ev: "PreviewReady") -> None:
@@ -539,9 +614,25 @@ def _render_diagnostics_updated(
     acc.set(
         "diagnostic_status",
         gr.update(
-            value=build_diagnostic_markdown(diagnostic_summary=ev.diagnostic_summary)
+            value=build_healing_markdown(
+                diagnostic_report=ev.diagnostic_report,
+                heal_status=ev.heal_status,
+                repair_records=ev.repair_records,
+                confidence_stats=ev.confidence_stats,
+                diagnostic_summary=ev.diagnostic_summary,
+            )
         ),
     )
+    if ev.node_overview:
+        acc.set(
+            "node_overview",
+            gr.update(
+                value=build_diagnostic_markdown(
+                    node_overview=dict(ev.node_overview),
+                    diagnostic_summary=ev.diagnostic_summary,
+                )
+            ),
+        )
 
 
 #: Event type -> renderer dispatch table (the UI's event handlers).
@@ -575,18 +666,28 @@ def _apply_events(acc: _DeltaAccumulator, events: List[Any]) -> None:
 
 
 def _resolve_current_task_id(current_task_id: str) -> str:
-    """Resolve the active task id, falling back to the global store."""
+    """Resolve the active task id, falling back to the global store.
+
+    The runtime service is the single source of truth: submits create task
+    entries there but *not* in ``GLOBAL_TASK_STORE``, so a page refresh /
+    new session must recover the latest task from the service store, otherwise
+    the UI resets to idle while the backend task keeps running (desync).
+    """
     svc = get_runtime_service()
     tid = current_task_id or ""
+
+    def _latest() -> str:
+        ids = GLOBAL_TASK_STORE.list_tasks()
+        if not ids:
+            ids = svc.list_task_ids()
+        return ids[-1] if ids else ""
+
     if not tid:
-        tasks = GLOBAL_TASK_STORE.list_tasks()
-        if tasks:
-            tid = tasks[-1]
+        tid = _latest()
     else:
         ts = svc.get_task_state(tid)
         if ts is None:
-            tasks = GLOBAL_TASK_STORE.list_tasks()
-            tid = tasks[-1] if tasks else ""
+            tid = _latest()
     return tid
 
 
@@ -618,13 +719,14 @@ def _fill_full_state(acc: _DeltaAccumulator, svc, tid: str) -> None:
     qs = (ts.quality_scores or {}) if isinstance(ts.quality_scores, dict) else {}
     ds = ts.diagnostic_summary or ""
     qs_md = build_diagnostic_markdown(quality_scores=qs)
-    diag_md = build_diagnostic_markdown(diagnostic_summary=ds)
-    ov = f"**{B('label_document')}**: {ts.current_file_name or B('label_n_a')}"
-    if ts.file_list:
-        ov += f" | **{B('label_files')}**: {len(ts.file_list)}"
-    if ts.message:
-        safe_msg = _sanitize_html(ts.message)
-        ov += f"\n\n**{B('label_message')}**: {safe_msg}"
+    diag_md = build_healing_markdown(
+        diagnostic_report=ts.diagnostic_report,
+        heal_status=ts.heal_status,
+        repair_records=ts.repair_records,
+        confidence_stats=ts.confidence_stats,
+        diagnostic_summary=ds,
+    )
+    ov = _build_overview_markdown(ts)
 
     choices = []
     sval = None
@@ -678,7 +780,7 @@ def _fill_full_state(acc: _DeltaAccumulator, svc, tid: str) -> None:
         _persist_state_to_storage(tid, ts)
 
     lh = f"<pre class='log-output'>{B('progress_log_idle')}</pre>"
-    logs = _collect_logs()
+    logs = _collect_logs(task_id=tid)
     if logs:
         lh = f"<pre class='log-output'>{logs}</pre>"
 
@@ -794,6 +896,18 @@ def _drain_events_flat(current_task_id: str, consumed: Any) -> tuple:
     return (*updates, new_consumed)
 
 
+def on_select_file(tid: str, val: str) -> None:
+    """Record the output-file selection for the active task.
+
+    The runtime store is the source of truth for downloads and the full
+    re-render; GLOBAL_TASK_STORE is only a legacy mirror.
+    """
+    if tid:
+        svc = get_runtime_service()
+        svc.update_task_state(tid, selected_file=val)
+        GLOBAL_TASK_STORE.update(tid, selected_file=val)
+
+
 def _persist_if_terminal(svc, tid: str, events: List[Any]) -> None:
     """Persist the localStorage snapshot once the task reaches a done state."""
     for ev in reversed(events):
@@ -854,7 +968,7 @@ def create_gui() -> gr.Blocks:
                 elem_classes="badge-block",
             )
             theme_toggle = gr.Button(
-                "🌙 深色模式 / Dark",
+                B("theme_dark_label"),
                 elem_id="theme-toggle-btn",
                 elem_classes="theme-toggle-btn",
             )
@@ -949,8 +1063,7 @@ def create_gui() -> gr.Blocks:
         )
 
         def _on_select(tid: str, val: str) -> None:
-            if tid:
-                GLOBAL_TASK_STORE.update(tid, selected_file=val)
+            on_select_file(tid, val)
 
         prc["result_selector"].change(
             fn=_on_select,
@@ -1000,9 +1113,8 @@ def create_gui() -> gr.Blocks:
         )
 
         def _on_page_load():
-            tasks = GLOBAL_TASK_STORE.list_tasks()
-            if tasks:
-                tid = tasks[-1]
+            tid = _resolve_current_task_id("")
+            if tid:
                 full = sync_status(tid)
                 consumed = (tid, EVENT_BUS.last_sequence(tid))
                 return (*full, consumed)
@@ -1070,6 +1182,35 @@ def _register_events_route(gui: "gr.Blocks") -> None:
         logger.warning("Could not register /gui/events route: %s", route_err)
 
 
+def _register_logs_route(gui: "gr.Blocks") -> None:
+    """Register the /gui/logs detailed-log API on the LIVE FastAPI app.
+
+    Returns the most recent log lines from the global ring buffer as JSON
+    (``{"lines": [...], "total": N}``) so any client can tail the detailed
+    logs without SSE. Registered after launch like the other routes.
+    """
+    try:
+        app = gui.app
+        if app is None or not hasattr(app, "add_api_route"):
+            logger.warning("Could not register /gui/logs route: no FastAPI app available")
+            return
+
+        def logs_endpoint(max_lines: int = 200):
+            from starlette.responses import JSONResponse
+
+            lines = get_handler().recent_lines(max_lines=max(1, min(int(max_lines), 1000)))
+            return JSONResponse({"lines": lines, "total": len(lines)})
+
+        app.add_api_route(
+            "/gui/logs",
+            endpoint=logs_endpoint,
+            methods=["GET"],
+        )
+        logger.info("Registered /gui/logs detailed-log API")
+    except Exception as route_err:
+        logger.warning("Could not register /gui/logs route: %s", route_err)
+
+
 def main() -> None:
     gui = create_gui()
     gui.queue(default_concurrency_limit=2, max_size=10, status_update_rate=0.1)
@@ -1083,6 +1224,7 @@ def main() -> None:
     # inside launch(), dropping pre-launch routes).
     _register_preview_route(gui)
     _register_events_route(gui)
+    _register_logs_route(gui)
     gui.block_thread()
 
 

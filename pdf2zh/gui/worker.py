@@ -120,6 +120,13 @@ def submit_translation_task(
         raise FileNotFoundError("No source file provided")
 
     # Build typed request
+    extra_config = {
+        "mode_choice": mode_choice,
+        "prompt": prompt_env,
+    }
+    envs = _parse_env_lines(env0, env1, env2)
+    if envs:
+        extra_config["envs"] = envs
     request = TranslationRequest(
         source_path=source_paths[0],
         files=source_paths,
@@ -132,10 +139,7 @@ def submit_translation_task(
         threads=threads,
         skip_subset_fonts=skip_subset_fonts,
         ignore_cache=ignore_cache,
-        extra_config={
-            "mode_choice": mode_choice,
-            "prompt": prompt_env,
-        },
+        extra_config=extra_config,
     )
 
     # Submit via RuntimeService
@@ -147,6 +151,26 @@ def submit_translation_task(
         _IN_FLIGHT[client_id] = task_id
 
     return task_id
+
+
+def _parse_env_lines(*lines: str) -> Dict[str, str]:
+    """Parse ``KEY=VALUE`` lines into an engine env dict.
+
+    Keys are lowercased (engine lookups are case-insensitive); blank lines,
+    comments (``#``) and lines without ``=`` are skipped.
+    """
+    envs: Dict[str, str] = {}
+    for line in lines:
+        if not line or not isinstance(line, str):
+            continue
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip().lower()
+        if key:
+            envs[key] = value.strip()
+    return envs
 
 
 def _try_clean_in_flight(client_id: str) -> None:

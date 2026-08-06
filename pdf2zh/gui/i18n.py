@@ -64,8 +64,21 @@ T: Dict[str, Tuple[str, str]] = {
     "config_vfont": ("字体映射 (V-Font)", "Font Map (V-Font)"),
     "config_vchar": ("字符映射 (V-Char)", "Char Map (V-Char)"),
     "config_pages": ("页码范围", "Pages"),
-    "config_prompt_env": ("自定义 Prompt 环境变量", "Custom Prompt Env"),
+    "config_prompt_env": ("Prompt 模板 (KEY=VALUE)", "Prompt Template (KEY=VALUE)"),
+    "config_prompt_env_info": (
+        "按 KEY=VALUE 填写 LLM 类引擎（OpenAI/Claude/Gemini 等）的翻译提示词模板，"
+        "例如 PROMPT=请将以下内容翻译成简体中文。",
+        "Set the translation prompt template for LLM engines (OpenAI/Claude/Gemini "
+        "etc.), e.g. PROMPT=Translate the following into Chinese.",
+    ),
     "config_env": ("自定义环境变量", "Custom Env Var"),
+    "config_env_label": ("环境变量 {num} (KEY=VALUE)", "Env Var {num} (KEY=VALUE)"),
+    "config_env_info": (
+        "提供引擎所需的密钥或参数，按 KEY=VALUE 填写（键名不区分大小写，自动注入引擎），"
+        "例如 OPENAI_API_KEY=sk-xxx / OPENAI_API_BASE=https://...。",
+        "Engine credentials or parameters as KEY=VALUE (case-insensitive, injected "
+        "into the engine), e.g. OPENAI_API_KEY=sk-xxx / OPENAI_API_BASE=https://...",
+    ),
 
     # ── progress panel ───────────────────────────────────────────────────
     "progress_translate": ("开始翻译", "Translate"),
@@ -95,12 +108,19 @@ T: Dict[str, Tuple[str, str]] = {
     "diag_graph_idle": ("等待翻译任务开始...", "Waiting for a translation task..."),
     "diag_quality_idle": ("翻译完成后将显示质量评分", "Quality scores appear after translation"),
     "diag_healing_idle": ("尚未运行诊断分析", "No diagnostic analysis yet"),
+    "diag_healing_actions": ("自愈处置", "Healing actions"),
+    "diag_heal_summary": ("自愈行程", "Healing run"),
+    "diag_confidence": ("置信度", "Confidence"),
     "diag_node_heading": ("页面", "pages"),
     "diag_paragraphs": ("段落", "paragraphs"),
     "diag_headings": ("标题", "headings"),
     "diag_figures": ("图表", "figures"),
     "diag_formulas": ("公式", "formulas"),
     "diag_diagnosis": ("诊断", "Diagnosis"),
+    "diag_layout": ("Layout 检查器", "Layout Inspector"),
+    "diag_layout_paragraphs": ("段落", "paragraphs"),
+    "diag_layout_issues": ("问题", "issues"),
+    "diag_layout_align": ("对齐", "align"),
     "diag_no_task": ("等待翻译任务开始...", "Waiting for a translation task..."),
 
     # ── status lines ─────────────────────────────────────────────────────
@@ -152,12 +172,21 @@ STAGE_LABELS: Dict[str, Tuple[str, str]] = {
 
 def ZH(key: str, **kwargs: object) -> str:
     """Return the Chinese half of an entry (fallback: the key itself)."""
-    return (T.get(key, (key, key))[0]).format(**kwargs)
+    text = T.get(key, (key, key))[0]
+    try:
+        return text.format(**kwargs)
+    except (KeyError, IndexError, ValueError):
+        # Tolerant formatting: placeholders without matching kwargs render raw.
+        return text
 
 
 def EN(key: str, **kwargs: object) -> str:
     """Return the English half of an entry (fallback: the key itself)."""
-    return (T.get(key, (key, key))[1]).format(**kwargs)
+    text = T.get(key, (key, key))[1]
+    try:
+        return text.format(**kwargs)
+    except (KeyError, IndexError, ValueError):
+        return text
 
 
 def B(key: str, **kwargs: object) -> str:
