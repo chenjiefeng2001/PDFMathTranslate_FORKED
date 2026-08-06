@@ -4,14 +4,19 @@ import unittest
 
 
 class TestCliVersion(unittest.TestCase):
+    _LAZY = ["pdf2zh", "pdf2zh.pdf2zh", "pdf2zh.high_level", "pdf2zh.doclayout"]
+
+    def setUp(self):
+        # 记录测试开始前的模块对象；tearDown 恢复，避免污染同进程后续测试
+        # （同进程内 pop 后 patch 会 import 出第二个模块实例，patch 不生效）
+        self._saved = {name: sys.modules.get(name) for name in self._LAZY}
+
     def tearDown(self):
-        for module_name in [
-            "pdf2zh",
-            "pdf2zh.pdf2zh",
-            "pdf2zh.high_level",
-            "pdf2zh.doclayout",
-        ]:
-            sys.modules.pop(module_name, None)
+        for name, mod in self._saved.items():
+            if mod is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = mod
 
     def test_importing_package_does_not_eagerly_load_translation_pipeline(self):
         before = set(sys.modules)
