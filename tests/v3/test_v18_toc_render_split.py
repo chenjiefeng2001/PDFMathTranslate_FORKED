@@ -211,6 +211,38 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
         self.assertEqual(specs[1]["page_digits"], "32")
         self.assertEqual(specs[2]["page_start_x"], 520)
 
+    def test_split_with_non_numbered_preface_rows(self):
+        """目录块混入无编号前缀行（Preface/Contents 等）仍须切分。
+
+        回归根因：ESL 等书籍 TOC 页以 "Preface to the Second Edition vii"
+        这类无编号行开头，旧逻辑 ``any(e is None)`` 导致整块放弃重切，
+        整页目录并成一段被当普通段落翻译 → TOC 混乱。
+        """
+        page = build_toc_page()
+        add_text(page, 50, 750, "Preface to the Second Edition")
+        add_text(page, 520, 750, "vii")
+        add_text(page, 50, 745, "Preface to the First Edition")
+        add_text(page, 520, 745, "xi")
+        sstk = ["Preface to the Second Edition vii Preface to the First Edition xi "
+                "2.3 Continuous Random Variables 31 2.3.1 Uniform Random Variables 32 "
+                "2.3.2 Expectations 34"]
+        pstk = [Paragraph(765.0, 50.0, 50.0, 539.0, 725.0, 765.0, 10.0, True)]
+        toc_track = [page_digit_track(page)]
+        report = split_merged_toc_paragraphs(
+            Mock(), page, sstk, pstk, toc_track, page_width=600.0)
+        self.assertEqual(report["split"], 1)
+        self.assertEqual(len(sstk), 5)
+        # 无编号的 Preface 行保留为独立物理行段落（不丢弃）
+        self.assertEqual(sstk[0], "Preface to the Second Edition vii")
+        self.assertEqual(sstk[1], "Preface to the First Edition xi")
+        self.assertTrue(all(p.brk is False for p in pstk))
+        # 编号行仍可被 detect_toc_line 识别为目录行
+        specs = [detect_toc_line(s, p.brk, t, p.x1, page_width=600.0)
+                 for s, p, t in zip(sstk, pstk, toc_track)]
+        self.assertIsNone(specs[0])   # Preface 行非目录行
+        self.assertEqual(specs[2]["page_digits"], "31")
+        self.assertEqual(specs[3]["page_digits"], "32")
+
 
 if __name__ == "__main__":
     unittest.main()

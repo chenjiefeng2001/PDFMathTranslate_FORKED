@@ -343,10 +343,15 @@ def split_merged_toc_paragraphs(conv, ltpage, sstk, pstk, toc_track,
         if len(inner) < 2:
             continue
         entries = [parse_entry_text(r["text"]) for r in inner]
-        if any(e is None for e in entries):
-            continue  # 行内混入非目录行：保守不拆
-        with_page = sum(1 for e in entries if e.page)
-        if with_page * 2 < len(entries):
+        hits = [e for e in entries if e is not None]
+        # 目录块的硬性前提：足够多的行命中 TOC 语法（编号 + 页码形态）。
+        # 行内混入非目录行（如 Preface/Contents 等无编号前缀）不再整块放弃——
+        # 否则整页目录被并成一段，翻译会毁掉点线/页码结构（TOC 混乱）。
+        # 未命中的行仍拆成独立物理行段落，交由后续 detect_toc_line/普通段落处理。
+        if len(hits) < 2:
+            continue
+        with_page = sum(1 for e in hits if e.page)
+        if with_page * 2 < len(hits):
             continue
         # 一致性校验：重切文本与 legacy 段文本逐字一致（去空白后）
         joined = "".join(r["text"].replace(" ", "") for r in inner)

@@ -398,7 +398,15 @@ def annotate_formulas(page: PageModel) -> int:
 
 
 def annotate_style(page: PageModel) -> None:
-    """Style Pass：块级字体/字号清单 + 多字体信号（供渲染/诊断）。"""
+    """Style Pass：块级字体/字号清单 + Font Resolution + 对齐标注。
+
+    - ``fonts`` / ``multifont``：既有多字体信号；
+    - Font Resolution（L3，取 **major-font** 而非 max/avg）：
+      ``font_major / font_size / font_size_max / font_size_ratio /
+      font_uniform`` —— 避免混入标题/公式大字 span 时整段字号被抬升；
+    - 逐行 ``line_fonts / line_sizes / line_alignments`` + 块级
+      ``alignment``（L4 对齐检测），供 layout 切分与 Inspector 取证。
+    """
     for block in page.blocks:
         fonts: Dict[str, List[float]] = {}
         for span in (s for l in block.lines for s in l.spans):
@@ -407,9 +415,163 @@ def annotate_style(page: PageModel) -> None:
                 fonts[span.font].append(round(span.size, 2))
         block.metadata["fonts"] = {f: sorted(s) for f, s in fonts.items()}
         block.metadata["multifont"] = len(fonts) > 1
+        _annotate_block_style(block)
+
+
+# ── Font Resolution / 对齐度量（Lv3 / Lv4） ──────────────────────────────
+
+
+def _annotate_block_style(block) -> None:
+    """对单个块写 Font Resolution + 逐行/块级对齐度量（供切分与 Inspector）。"""
+    major_font, major_size, max_size = _block_font_usage(block)
+    block.metadata["font_major"] = major_font
+    block.metadata["font_size"] = round(major_size, 2)
+    block.metadata["font_size_max"] = round(max_size, 2)
+    ratio = (max_size / major_size) if major_size else 1.0
+    block.metadata["font_size_ratio"] = round(ratio, 3)
+    block.metadata["font_uniform"] = bool(major_size) and ratio <= 1.0
+
+    box_x0, box_x1 = block.x0, block.x1
+    line_fonts, line_sizes, line_alignments = [], [], []
+    for line in block.lines:
+        mf, ms = _line_font_usage(line)
+        line_fonts.append(mf)
+        line_sizes.append(round(ms, 2))
+        line_alignments.append(_line_alignment(line, box_x0, box_x1))
+    block.metadata["line_fonts"] = line_fonts
+    block.metadata["line_sizes"] = line_sizes
+    block.metadata["line_alignments"] = line_alignments
+    block.metadata["alignment"] = _major_alignment(line_alignments)
+
+
+def _block_font_usage(block) -> tuple:
+    """聚合块内 (font, 字号)→ 字形权重；返回 (major_font, major_size, max_size)。
+
+    major = 按字形出现数量加权的组字（加权众数），不取平均、不取 max，
+    避免混入少量大字号字形时把整段抬到异常字号。
+    """
+    usage: Dict[tuple, int] = {}
+    max_size = 0.0
+    for span in (s for l in block.lines for s in l.spans):
+        size = float(span.size or 0.0)
+        if size > 0:
+            max_size = max(max_size, round(size, 2))
+        key = (span.font, round(size, 2))
+        usage[key] = usage.get(key, 0) + max(1, len(span.text or ""))
+    if not usage:
+        return "", 0.0, 0.0
+    (major_font, major_size), _ = max(usage.items(), key=lambda kv: kv[1])
+    return major_font, major_size, max_size
+
+
+def _line_font_usage(line) -> tuple:
+    usage: Dict = {}
+    for span in line.spans:
+        size = round(float(span.size or 0.0), 2)
+        key = (span.font, size)
+        usage[key] = usage.get(key, 0) + max(1, len(span.text or ""))
+    if not usage:
+        return "", 0.0
+    (mfont, msize), _ = max(usage.items(), key=lambda kv: kv[1])
+    return mfont, msize
+
+
+def _line_alignment(line, box_x0: float, box_x1: float) -> str:
+    """按行相对所在块的水平偏移判对齐（center / left / right）。
+
+    顶格/两端对齐的正文行（左右余量≈0）判为 left；只有两侧余量都超过
+    容差的行才判 center，避免把满宽正文行误判为右对齐。
+    """
+    box_w = max(1e-6, box_x1 - box_x0)
+    left = line.x0 - box_x0
+    right = box_x1 - line.x1
+    tol = max(6.0, 0.12 * box_w)
+    if abs(left - right) <= tol:
+        if left > 2.0 and right > 2.0:
+            return "center"
+        return "left"
+    return "left" if left < right else "right"
+
+
+def _major_alignment(alignments: list) -> str:
+    if not alignments:
+        return ""
+    counts: Dict[str, int] = {}
+    for a in alignments:
+        counts[a] = counts.get(a, 0) + 1
+    return max(counts.items(), key=lambda kv: kv[1])[0]
+
+
+_SPLIT_SIZE_RATIO = 1.6
+
+
+def apply_layout_splits(page: PageModel) -> int:
+    """Lv2 Paragraph 修复：段内字号跳变 / 对齐翻转 → 拆块。
+
+    标题被并入正文段是排版级联失效（字号放大→高度级联）的主要来源。
+    本 Pass 在 Style Pass 之后，把同时满足以下的行间断开拆为独立块：
+      - 字号跳变：相邻行 major 字号比 ≥ 1.6×；
+      - 对齐翻转：相邻行来自 center ↔ left/right。
+    拆出的新块带 ``metadata.layout_split``（来源原因）供 Inspector 定位。
+    返回拆分次数。
+    """
+    new_blocks = []
+    splits = 0
+    for block in page.blocks:
+        n = len(block.lines)
+        if n <= 1:
+            new_blocks.append(block)
+            continue
+        sizes = block.metadata.get("line_sizes") or []
+        aligns = block.metadata.get("line_alignments") or []
+        group = [block.lines[0]]
+        for i in range(1, n):
+            prev_s = float(sizes[i - 1] or 0.0) if i - 1 < len(sizes) else 0.0
+            cur_s = float(sizes[i] or 0.0) if i < len(sizes) else 0.0
+            prev_a = aligns[i - 1] if i - 1 < len(aligns) else ""
+            cur_a = aligns[i] if i < len(aligns) else ""
+            ms, mx = max(prev_s, cur_s), min(prev_s, cur_s)
+            size_jump = bool(mx > 0 and ms >= _SPLIT_SIZE_RATIO * mx)
+            align_flip = bool(prev_a and cur_a and prev_a != cur_a)
+            if not (size_jump or align_flip):
+                group.append(block.lines[i])
+                continue
+            why = []
+            if size_jump:
+                why.append(f"size:{cur_s:.1f}>{prev_s:.1f}@{i + 1}")
+            if align_flip:
+                why.append(f"align:{prev_a}->{cur_a}@{i + 1}")
+            new_blocks.append(_make_sub_block(
+                group, block, "|".join(why)))
+            splits += 1
+            group = [block.lines[i]]
+        if group:
+            new_blocks.append(_make_sub_block(group, block))
+    page.blocks = new_blocks
+    return splits
+
+
+def _make_sub_block(lines, base, provenance: str = "") -> BlockModel:
+    """用既有基础块生成一个（可能裁剪后的）子块。"""
+    b = BlockModel(
+        text="\n".join(l.text or "" for l in lines) if lines else "",
+        kind=base.kind,
+        x0=min(l.x0 for l in lines),
+        y0=min(l.y0 for l in lines),
+        x1=max(l.x1 for l in lines),
+        y1=max(l.y1 for l in lines),
+        lines=list(lines),
+    )
+    b.metadata = dict(base.metadata)
+    if provenance:
+        b.metadata["layout_split"] = True
+        b.metadata["layout_provenance"] = provenance
+    _annotate_block_style(b)
+    return b
 
 
 __all__ = [
     "GlyphModel", "SpanModel", "LineModel", "BlockModel", "PageModel",
     "build_page_model", "annotate_toc", "annotate_formulas", "annotate_style",
+    "apply_layout_splits",
 ]

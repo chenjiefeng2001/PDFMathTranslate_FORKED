@@ -75,14 +75,20 @@ class TestVersionManager(unittest.TestCase):
 class TestRuntimeEditUndo(unittest.TestCase):
     def test_edit_and_undo(self):
         from pdf2zh.v3.runtime_doc import DocumentRuntime
-        runtime = DocumentRuntime().open(build_model())
-        res = runtime.edit("p1_1", text="The kernel scheduler runs threads here.")
+        model = build_model()
+        # V1.23：Lv2 段拆把标题/正文拆开，正文段落下标不再固定为 p1_1。
+        tid = next(
+            ("p1_%d" % i for i, b in enumerate(model.pages[0].blocks)
+             if b.kind == "paragraph" and b.text), None)
+        self.assertIsNotNone(tid)
+        runtime = DocumentRuntime().open(model)
+        res = runtime.edit(tid, text="The kernel scheduler runs threads here.")
         self.assertTrue(res["ok"])
-        block = runtime._find_block("p1_1")
+        block = runtime._find_block(tid)
         self.assertEqual(block.text,
                          "The kernel scheduler runs threads here.")
         # undo 恢复
-        runtime.undo("p1_1")
+        runtime.undo(tid)
         self.assertEqual(block.text, "The kernel scheduler runs threads.")
         # 编辑触发同页缓存失效
         self.assertEqual(runtime.cache.stats().hits, 0)

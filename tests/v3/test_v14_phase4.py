@@ -153,7 +153,8 @@ class TestContextTranslation(unittest.TestCase):
         build_semantic_relations(model)
         from pdf2zh.v3.doc_passes import TranslationPolicyPass
         TranslationPolicyPass().run(model)
-        block = model.pages[0].blocks[1]  # 正文段
+        block = next(b for b in model.pages[0].blocks
+                     if b.kind == "paragraph")  # 正文段（V1.23 段拆后下标不定）
         ctx = document_context_for(model, block)
         self.assertEqual(ctx["type"], "paragraph")
         self.assertIn("domain", ctx)

@@ -120,7 +120,9 @@ class TestConfidenceModel(unittest.TestCase):
         model = build_model()
         annotate_confidence(model)
         p1 = model.pages[0]
-        body = p1.blocks[2]
+        # V1.23：Lv2 段拆已把标题（16pt）与正文（10pt）拆开，固定下标不稳；
+        # 取公式块（role_confidence 高 → base 高）验证置信度模型。
+        body = next(b for b in p1.blocks if b.kind == "formula")
         self.assertGreaterEqual(body.metadata["confidence"], 0.8)
         self.assertEqual(body.metadata["uncertainty"],
                          round(1.0 - body.metadata["confidence"], 3))

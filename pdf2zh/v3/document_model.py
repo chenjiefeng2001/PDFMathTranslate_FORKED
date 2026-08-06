@@ -157,7 +157,7 @@ class DocumentModel:
                     bbox=b.bbox,
                     text=b.text,
                     page_num=pno,
-                    font_size=b.font_size or 0.0,
+                    font_size=_node_font_size(b),
                     metadata=dict(b.metadata),
                 ))
         edge_map = {
@@ -183,6 +183,19 @@ def _number_prefix(a: str, b: str) -> bool:
     """a 是否为 b 的编号前缀（5.2 是 5.2.1 的前缀）。"""
     sa, sb = a.split("."), b.split(".")
     return len(sa) < len(sb) and sb[:len(sa)] == sa
+
+
+def _node_font_size(block) -> float:
+    """消费 Font Resolution 结果（major-font），无则回退原 font_size。
+
+    Layout/Render 取块字号时统一走这里，避免混入大字 span 把整块抬高
+    （font_size=max 的级联根因之一）。
+    """
+    md = block.metadata or {}
+    resolved = md.get("font_size")
+    if isinstance(resolved, (int, float)) and resolved > 0:
+        return round(float(resolved), 2)
+    return round(float(block.font_size or 0.0), 2) or 12.0
 
 
 class _NodeProxy:
@@ -305,7 +318,7 @@ def build_document_model(ltpages: Sequence,
     """
     from pdf2zh.v3.canonical_page import (
         annotate_formulas, annotate_style, annotate_toc, annotate_toc_scan,
-        build_page_model,
+        apply_layout_splits, build_page_model,
     )
     model = DocumentModel()
     for ltpage in ltpages or []:
@@ -315,9 +328,16 @@ def build_document_model(ltpages: Sequence,
         except Exception as e:  # noqa: BLE001
             log.debug("document_model: page %s failed: %s", pno, e)
             continue
+        # Lv3/Lv4：Font Resolution + 对齐标注 → Lv2 段内拆块（标题并入正文
+        # 的排版级联修复）。先于 Role 标注，使角色判定在拆分后的块上进行。
+        try:
+            annotate_style(page)
+            apply_layout_splits(page)
+        except Exception as e:  # noqa: BLE001
+            log.debug("document_model: layout passes page %s failed: %s",
+                      pno, e)
         annotate_roles(page, classifier=classifier)
         annotate_formulas(page)
-        annotate_style(page)
         try:
             from pdf2zh.v3.toc_analyzer import split_toc_blocks
             split_toc_blocks(page)
@@ -407,7 +427,7 @@ def render_plan_from_model(model: DocumentModel) -> List[dict]:
                     "render_path", "translate_refit"),
                 "src_box": [round(v, 2) for v in block.bbox],
                 "dst_box": [round(v, 2) for v in block.bbox],
-                "font_size": round(block.font_size, 2) or 12.0,
+                "font_size": _node_font_size(block),
             })
     return plan
 
