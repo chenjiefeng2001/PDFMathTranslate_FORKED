@@ -117,6 +117,14 @@ def translate_patch(
     render_takeover: bool = False,
     translation_qa: bool = False,
     geometry_cluster: bool = False,
+    # V1.17-3: 合并目录段按物理行重切（渲染路径，空列页码目录行逐行渲染）
+    toc_split: bool = True,
+    # 可观测层: 逐阶段 dump（Glyph/Line/Block/TOC/Translation/Layout）
+    pipeline_dump: bool = False,
+    # V11: 文档统一模型（多页树 + Relations，回传 v3_output["document_model"]）
+    document_model: bool = False,
+    # Phase D: 可观测层（Trace/Snapshot/Decision → v3_output["observability"]）
+    observability: bool = False,
 
     **kwarg: Any,
 ) -> None:
@@ -157,8 +165,17 @@ def translate_patch(
     device.translation_qa = bool(translation_qa)
     device.geometry_cluster = bool(geometry_cluster)
     device.geometry_adoptions = {}
+    device.toc_split = bool(toc_split)
+    device.toc_split_reports = {}
     device.render_plans = {}
     device.translation_qa_records = {}
+    device.pipeline_dump = bool(pipeline_dump)
+    device.pipeline_dumps = {}
+    device.document_model_enabled = bool(document_model)
+    device.document_model = None
+    # Phase D: 可观测会话（converter side-channel 写，本函数收尾回传）
+    device.observability = bool(observability)
+    device.obs_session = None
 
     assert device is not None
     obj_patch = {}
@@ -236,6 +253,14 @@ def translate_patch(
         v3_output["render_plans"] = dict(getattr(device, "render_plans", {}))
         v3_output["translation_qa_records"] = dict(getattr(device, "translation_qa_records", {}))
         v3_output["geometry_adoptions"] = dict(getattr(device, "geometry_adoptions", {}))
+        v3_output["pipeline_dumps"] = dict(getattr(device, "pipeline_dumps", {}))
+        dm = getattr(device, "document_model", None)
+        if dm is not None and hasattr(dm, "to_dict"):
+            v3_output["document_model"] = dm.to_dict()
+    if observability:
+        obs_extra = _collect_observability(device, v3_output)
+        if obs_extra and v3_output is None:
+            return {"__obs__": obs_extra, **obj_patch}
     return obj_patch
 
 
@@ -272,6 +297,50 @@ def _relink_translated_doc(doc_zh, v3_output: dict = None) -> dict:
     except Exception as e:
         logger.warning("link_remap failed at doc level: %s", str(e)[:160])
         return empty
+
+
+def _collect_observability(device, v3_output: dict = None) -> dict:
+    """Phase D: 收尾 ObsSession → bundle + 每页 Overlay SVG + Inspector HTML。
+
+    只在 ``device.obs_session`` 存在且 ``observability`` 开启时产出：
+    - v3_output 存在（串行路径）→ 写入 ``v3_output["observability"]``；
+    - v3_output 缺失（并行 worker）→ 返回 payload，由 translate_patch
+      挂 ``__obs__`` 私有键回传。
+    任何异常只进 debug 日志（side-channel 纪律）。
+    """
+    session = getattr(device, "obs_session", None)
+    if session is None:
+        return {}
+    try:
+        from pdf2zh.v3.inspector_view import build_inspector_html
+        from pdf2zh.v3.overlay_view import overlay_from_snapshot, render_svg
+        bundle = session.bundle()
+        snaps = (bundle.get("snapshots") or {}).get("snapshots") or {}
+        overlays = []
+        for pageid in sorted(session.page_dims or {}):
+            w, h = session.page_dims[pageid]
+            recs = overlay_from_snapshot(snaps.get(f"render_p{pageid}") or {})
+            if not recs:
+                continue
+            overlays.append({
+                "page": f"Page {pageid}",
+                "svg": render_svg(recs, float(w or 600.0), float(h or 800.0)),
+            })
+        inspector_html = build_inspector_html(
+            session.snapshot_store,
+            decisions=bundle.get("decisions"),
+            diagnostics=bundle.get("diagnostics"),
+            overlays=overlays,
+            title=f"Inspector {bundle.get('doc_id', 'doc')}")
+        payload = {"bundle": bundle, "overlays": overlays,
+                   "inspector_html": inspector_html}
+        if v3_output is not None:
+            v3_output["observability"] = payload
+            return {}
+        return payload
+    except Exception as e:  # noqa: BLE001 — 可观测层永不阻断主链路
+        logger.debug("observability collect failed: %s", str(e)[:160])
+        return {}
 
 
 def _collect_preservation_side_channel(
@@ -478,6 +547,14 @@ def translate_stream(
     translation_qa: bool = False,
     geometry_cluster: bool = False,
     image_render: bool = False,
+    # V1.17-3: 合并目录段按物理行重切（渲染路径，空列页码目录行逐行渲染）
+    toc_split: bool = True,
+    # 可观测层: 逐阶段 dump（Glyph/Line/Block/TOC/Translation/Layout）
+    pipeline_dump: bool = False,
+    # V11: 文档统一模型（多页树 + Relations）
+    document_model: bool = False,
+    # Phase D: 可观测框架（Trace/Snapshot/Decision/Overlay/Inspector，默认关）
+    observability: bool = False,
 
     **kwarg: Any,
 ):
@@ -602,6 +679,11 @@ def translate_stream(
                 obj_patch = translate_patch(fp, **dict(locals()))
     else:
         obj_patch = translate_patch(fp, **dict(locals()))
+
+    # Phase D: 并行路径的可观测 payload 经 __obs__ 私有键回传，这里并入 v3_output
+    if v3_output is not None and isinstance(obj_patch, dict) and \
+            "__obs__" in obj_patch:
+        v3_output["observability"] = obj_patch.pop("__obs__")
 
     total_objs = len(obj_patch)
     for idx, (obj_id, ops_new) in enumerate(obj_patch.items()):
@@ -870,6 +952,15 @@ def _translate_parallel_chunk(
     use_translation_cache: bool = True,
     envs_str: str = "{}",
     prompt_template: str = "",
+    # --- V9.0/V11 side-channel scalar params（与串行路径一致） ---
+    processor_channels: bool = True,
+    render_takeover: bool = False,
+    translation_qa: bool = False,
+    geometry_cluster: bool = False,
+    toc_split: bool = False,
+    pipeline_dump: bool = False,
+    document_model: bool = False,
+    observability: bool = False,
 ) -> dict:
     """Process a chunk of pages in a separate process (module-level for pickling).
 
@@ -928,7 +1019,7 @@ def _translate_parallel_chunk(
     # Reconstruct envs from JSON string
     envs = json.loads(envs_str) if isinstance(envs_str, str) else {}
 
-    return translate_patch(
+    result = translate_patch(
         _io.BytesIO(fp_bytes),
         pages=chunk_pages,
         doc_zh=doc_zh,
@@ -953,7 +1044,25 @@ def _translate_parallel_chunk(
         translation_cache=translation_cache_obj,
         page_xref_map=page_xref_map,
         apply_page_xrefs=False,
+        processor_channels=processor_channels,
+        render_takeover=render_takeover,
+        translation_qa=translation_qa,
+        geometry_cluster=geometry_cluster,
+        toc_split=toc_split,
+        pipeline_dump=pipeline_dump,
+        document_model=document_model,
+        observability=observability,
     )
+    return _translate_parallel_chunk_result(result)
+
+
+def _translate_parallel_chunk_result(result):
+    """拆分 chunk 返回值：obj_patch + 可观测 bundle（并行侧通道回传）。"""
+    obs = None
+    if isinstance(result, dict) and "__obs__" in result:
+        obs = result.pop("__obs__")
+        result = dict(result)
+    return result, obs
 
 
 def _translate_parallel(
@@ -1018,9 +1127,18 @@ def _translate_parallel(
         "use_translation_cache": locals_dict.get("use_translation_cache", True),
         "envs_str": json.dumps(locals_dict.get("envs", {})),
         "prompt_template": _serialize_prompt(locals_dict.get("prompt")),
+        "processor_channels": locals_dict.get("processor_channels", True),
+        "render_takeover": locals_dict.get("render_takeover", False),
+        "translation_qa": locals_dict.get("translation_qa", False),
+        "geometry_cluster": locals_dict.get("geometry_cluster", False),
+        "toc_split": locals_dict.get("toc_split", True),
+        "pipeline_dump": locals_dict.get("pipeline_dump", False),
+        "document_model": locals_dict.get("document_model", False),
+        "observability": locals_dict.get("observability", False),
     }
 
     obj_patch = {}
+    obs_bundles: list = []
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=workers, initializer=_init_worker_process,
     ) as executor:
@@ -1032,10 +1150,19 @@ def _translate_parallel(
             for chk in chunks
         ]
         for f in concurrent.futures.as_completed(futures):
-            chunk_result = f.result()
+            chunk_result, obs_bundle = f.result()
             if chunk_result:
                 obj_patch.update(chunk_result)
+            if obs_bundle:
+                obs_bundles.append(obs_bundle)
 
+    if obs_bundles:
+        merged = obs_bundles[0]
+        for extra in obs_bundles[1:]:
+            merged["bundle"]["snapshots"]["snapshots"].update(
+                (extra.get("bundle") or {}).get("snapshots", {}).get("snapshots", {}))
+            merged["overlays"].extend(extra.get("overlays", []))
+        obj_patch["__obs__"] = merged
     return obj_patch
 
 

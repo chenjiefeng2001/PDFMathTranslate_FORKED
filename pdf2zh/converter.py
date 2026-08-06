@@ -440,14 +440,18 @@ class TranslateConverter(PDFConverterEx):
         if getattr(self, "geometry_cluster", False):  # V8.3 P1：双轨一致才接管聚类
             from pdf2zh.v3.geometry_merge import adopt_geometry_cluster
             self.geometry_adoptions = {**getattr(self, "geometry_adoptions", {}), ltpage.pageid: adopt_geometry_cluster(self, ltpage, sstk, pstk, var, varl, varf, toc_track, vlen)}
+        if getattr(self, "toc_split", False):  # V1.17-3：合并目录段按物理行重切（side-channel，渲染路径）
+            from pdf2zh.v3.toc_analyzer import split_merged_toc_paragraphs
+            self.toc_split_reports = {**getattr(self, "toc_split_reports", {}), ltpage.pageid: split_merged_toc_paragraphs(self, ltpage, sstk, pstk, toc_track, page_width=float(getattr(ltpage, "width", 0.0) or 0.0))}
 
         # B. 段落翻译
         log.debug("\n==========[SSTACK]==========\n")
 
         # === 目录行结构感知（P0-1/P0-2）：识别"标题+点线+页码"，标题单独翻译，点线/页码原位渲染；V8.7 结构词走模板本地渲染 ===
         toc_specs: list = [None] * len(sstk)
+        _page_w = float(getattr(ltpage, "width", 0.0) or 0.0)
         for _ti, _ptxt in enumerate(sstk):
-            _spec = detect_toc_line(_ptxt, pstk[_ti].brk, toc_track[_ti], pstk[_ti].x1)
+            _spec = detect_toc_line(_ptxt, pstk[_ti].brk, toc_track[_ti], pstk[_ti].x1, page_width=_page_w)
             if _spec is not None:
                 toc_specs[_ti] = _spec
                 _ent = _spec["entry"] = parse_toc_entry(_spec["title"], page=_spec["page_digits"])

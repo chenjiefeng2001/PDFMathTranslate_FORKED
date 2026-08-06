@@ -60,6 +60,15 @@ def run_mainline_channels(conv, ltpage) -> None:
     # 阶段六/八: 置信度路由 + Review 复检 QA（读 gate 记录，不触碰渲染）
     if getattr(conv, "translation_qa", False) and conv._gate_records:
         run_translation_qa_channel(conv, ltpage)
+    # 可观测层: 逐阶段 dump（Glyph/Line/Block/TOC/Translation/Layout，side-channel）
+    if getattr(conv, "pipeline_dump", False):
+        run_pipeline_dump(conv, ltpage)
+    # V11: 文档统一模型（多页树 + Relations，累积到 conv.document_model）
+    if getattr(conv, "document_model_enabled", False):
+        run_document_model(conv, ltpage)
+    # Phase D: 可观测层（Trace/Snapshot/Decision side-channel，只采集不渲染）
+    if getattr(conv, "observability", False):
+        run_observability_channel(conv, ltpage)
     # V8.5: 超链接重定位需要逐段落的源/目标几何 —— 按页存档（页面级重置为
     # 空列表，_gate_records 在本页耗尽，存档需在 run_writeback_gate 之后、
     # _gate_records 尚未被下一页覆盖时立即做）。
@@ -307,4 +316,113 @@ def run_translation_qa_channel(conv, ltpage) -> None:
             })
     except Exception as e:
         log.debug("translation QA failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def run_pipeline_dump(conv, ltpage) -> None:
+    """可观测层: 单页全阶段 dump（Glyph/Line/Block/TOC/Translation/Layout）。
+
+    只存 ``conv.pipeline_dumps[pageid]``（JSON 可序列化），供排查字符流
+    损坏（� / (cid:N) / 标题丢失）发生在哪一层；不触碰主链路渲染。
+    """
+    try:
+        from pdf2zh.v3.pipeline_dump import dump_page
+        pageid = getattr(ltpage, "pageid", 0)
+        dumps = getattr(conv, "pipeline_dumps", {})
+        dumps[pageid] = dump_page(conv, ltpage)
+        conv.pipeline_dumps = dumps
+    except Exception as e:
+        log.debug("pipeline dump failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def run_document_model(conv, ltpage) -> None:
+    """V11: 文档统一模型累积（多页树 + Relations，side-channel）。
+
+    每页经 ``build_document_model`` 增量追加：结构恢复 + Role/Formula/
+    Style/TOC（scan + gate 记录匹配）/Render 标注；gate 目录记录存在时
+    用 ``toc_dump`` 条目做精确匹配标注。结果存 ``conv.document_model``
+    （DocumentModel 实例），由 high_level 回传 v3_output["document_model"]。
+    """
+    try:
+        from pdf2zh.v3.document_model import DocumentModel, build_document_model
+        from pdf2zh.v3.pipeline_dump import toc_dump
+        pageid = getattr(ltpage, "pageid", 0)
+        model = getattr(conv, "document_model", None)
+        if model is None or not isinstance(model, DocumentModel):
+            model = build_document_model([])
+            conv.document_model = model
+        entries = toc_dump(conv, pageid) if getattr(conv, "_gate_records", None) else []
+        page = build_document_model([ltpage],
+                                    annotate_toc_entries={pageid: entries}).pages[0]
+        # 译后文本写回模型（gate 记录 → Block.metadata.translated）
+        try:
+            from pdf2zh.v3.document_model import annotate_translation_from_records
+            annotate_translation_from_records(page, conv._gate_records)
+        except Exception as e:  # noqa: BLE001
+            log.debug("document model translation annotation failed p%s: %s",
+                      pageid, e)
+        model.add_page(page)
+        # Phase 2：Pass 流水线（Normalize/Semantic/Policy/Typography）
+        try:
+            from pdf2zh.v3.doc_passes import default_pass_manager
+            report = default_pass_manager().run(model)
+            model.metadata["pass_report"] = report.to_dict()
+        except Exception as e:  # noqa: BLE001
+            log.debug("document model pass pipeline failed p%s: %s",
+                      pageid, e)
+        # Phase 4.1：语义图（sections/belongs_to/mentions）
+        try:
+            from pdf2zh.v3.semantic_graph import build_semantic_relations
+            model.metadata["semantic_graph"] = build_semantic_relations(model)
+        except Exception as e:  # noqa: BLE001
+            log.debug("semantic graph failed p%s: %s", pageid, e)
+        # Phase 5：质量诊断 + 置信度模型（哪里错 / 多可信）
+        try:
+            from pdf2zh.v3.diagnostics import (
+                analyze_document, annotate_confidence,
+            )
+            model.metadata["diagnostics"] = analyze_document(model).to_dict()
+            model.metadata["confidence_stats"] = annotate_confidence(model)
+        except Exception as e:  # noqa: BLE001
+            log.debug("diagnostics failed p%s: %s", pageid, e)
+        conv.document_model = model
+    except Exception as e:
+        log.debug("document model failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def run_observability_channel(conv, ltpage) -> None:
+    """Phase D: 主链路可观测 side-channel（D0–D9 聚合到 ``conv.obs_session``）。
+
+    每页从同一 LTChar 流捕获节点级快照（NodeID 引用，不写裸字符串），
+    并把 gate 段落记录转成决策证据日志；全部只采集，不触碰主链路渲染。
+    结果由 high_level 回传 ``v3_output["observability"]``（含 Inspector HTML）。
+    """
+    try:
+        from pdf2zh.v3.canonical_page import build_page_model
+        from pdf2zh.v3.observability import ObsSession, capture_snapshot
+        pageid = getattr(ltpage, "pageid", 0)
+        session = getattr(conv, "obs_session", None)
+        if session is None or not isinstance(session, ObsSession):
+            session = ObsSession()
+            conv.obs_session = session
+        session.page_dims[pageid] = (
+            float(getattr(ltpage, "width", 0.0) or 0.0),
+            float(getattr(ltpage, "height", 0.0) or 0.0))
+        page = build_page_model(ltpage, page_num=pageid)
+        session.capture(page, "render")
+        doc = session.trace.doc_id
+        for i, rec in enumerate(getattr(conv, "_gate_records", []) or []):
+            session.record(
+                f"{doc}::P{pageid}::B{i}",
+                "render:paragraph",
+                evidence={"size": float(rec.get("size", 0.0) or 0.0),
+                          "translated": 1.0 if rec.get("translated") else 0.0,
+                          "node_type": 0.9 if rec.get("node_type") == "toc" else 0.1},
+                confidence=min(0.99, 0.5 + float(rec.get("size", 0.0) or 0.0) / 100.0),
+                source="gate", stage="render",
+                message="mainline gate record")
+    except Exception as e:  # noqa: BLE001 — 可观测层永不阻断主链路
+        log.debug("observability failed for page %s: %s",
                   getattr(ltpage, "pageid", 0), e)

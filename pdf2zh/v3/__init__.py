@@ -304,6 +304,125 @@ from pdf2zh.v3.mainline_qa import (
 from pdf2zh.v3.geometry_merge import (
     AdoptedParagraph, adopt_geometry_cluster,
 )
+from pdf2zh.v3.pipeline_dump import (
+    has_replacement, glyph_dump, run_dump, line_dump, block_dump,
+    toc_confidence, toc_dump, translation_dump, layout_dump,
+    dump_page, dump_pdf_pipeline, main as pipeline_dump_main,
+)
+from pdf2zh.v3.toc_tree import build_toc_tree
+from pdf2zh.v3.toc_analyzer import (
+    TOCEntry, parse_entry_text, split_merged_block, analyze_toc_blocks,
+    split_toc_blocks, rebuild_toc_page, analyze_toc_result,
+    render_toc_entry, split_merged_toc_paragraphs, _physical_rows,
+)
+from pdf2zh.v3.canonical_page import (
+    GlyphModel, SpanModel, LineModel, BlockModel, PageModel,
+    build_page_model, annotate_toc, annotate_toc_scan,
+    annotate_formulas, annotate_style,
+)
+from pdf2zh.v3.document_model import (
+    REL_FOLLOWS, REL_TOC_CHILD_OF, REL_CAPTION_OF,
+    block_id, Relation, DocumentModel,
+    annotate_roles, annotate_translation, annotate_render,
+    build_document_model, translate_document, render_plan_from_model,
+    toc_records_from_model, annotate_translation_from_records,
+)
+from pdf2zh.v3.mainline_wiring import (
+    run_document_model,
+)
+from pdf2zh.v3.doc_passes import (
+    DocumentPass, PassDiffEntry, PassResult, PassRunReport, PassManager,
+    normalize_text, NormalizePass, SemanticPass, detect_code_block,
+    detect_table_block, TranslationPolicyPass, translation_policy_for,
+    TypographyPass, default_pass_manager,
+)
+from pdf2zh.v3.document_inspector import inspect, inspect_all, inspect_toc
+from pdf2zh.v3.typography_engine import (
+    build_width_map, measure, line_break, justify_advances,
+    widow_orphan_flag,
+)
+from pdf2zh.v3.semantic_graph import (
+    REL_BELONGS_TO, REL_MENTIONS,
+    section_number, build_sections, detect_mentions,
+    resolve_mentions, build_semantic_relations,
+)
+from pdf2zh.v3.domain_glossary import (
+    DEFAULT_GLOSSARIES, detect_domain, DomainGlossary,
+)
+from pdf2zh.v3.context_translation import (
+    document_context_for, context_to_prompt,
+    translate_document_context_aware,
+)
+from pdf2zh.v3.references import resolve_references, renumber_references
+from pdf2zh.v3.figure_understanding import (
+    STRATEGY_MAP, figure_strategy, annotate_figures,
+)
+from pdf2zh.v3.incremental import node_hash, IncrementalEngine
+from pdf2zh.v3.diagnostics import (
+    CODE_SEVERITY, DiagnosticIssue, DiagnosticReport,
+    analyze_document, node_confidence, annotate_confidence,
+)
+from pdf2zh.v3.evidence import (
+    DEFAULT_WEIGHTS, fuse_evidence, FusedVerdict, fuse_verdict,
+)
+from pdf2zh.v3.repair_engine import (
+    RepairResult, RepairReport, RepairStrategy,
+    TOCSplitRepair, UnicodeRepair, MathRecoveryRepair, EmptyBlockRepair,
+    DEFAULT_STRATEGIES, RepairEngine, repair_loop,
+)
+from pdf2zh.v3.llm_planner import (
+    RULE_MAP, RepairPlanner, RuleRepairPlanner, LLMRepairPlanner,
+)
+from pdf2zh.v3.corpus_regression import (
+    expected_from_model, compare_expected,
+    RegressionResult, RegressionReport, run_regression,
+)
+from pdf2zh.v3.resources import FontResource, ImageResource, ResourceManager
+from pdf2zh.v3.query import DocumentQuery, query
+from pdf2zh.v3.cache import LayerCache, CacheStats, DocumentCache
+from pdf2zh.v3.exports import export_markdown, export_html, export_text
+from pdf2zh.v3.plugins import (
+    DocumentPlugin, PassPlugin, TranslatePlugin, ExportPlugin,
+    PluginRegistry,
+)
+from pdf2zh.v3.build_system import (
+    STAGE_ORDER, BuildPlan, DependencyGraph, BuildSystem,
+)
+from pdf2zh.v3.runtime_doc import NodeRevision, VersionManager, DocumentRuntime
+from pdf2zh.v3.mainline_wiring import (
+    run_pipeline_dump,
+)
+# Phase D (v1.18): Document Observability Framework（D0–D9）
+from pdf2zh.v3.observability import (
+    STAGES, ROLE_COLORS, new_document_id, DocumentID, NodeID,
+    TraceContext, SnapshotStore, capture_snapshot, DecisionLog,
+    DecisionRecord, DiagnosticEngine, ObsSession, make_session,
+)
+from pdf2zh.v3.pass_diff import (
+    FieldDiff, PassDiffReport, diff_snapshots, diff_json,
+    render_diff_report,
+)
+from pdf2zh.v3.layout_debug import (
+    LineMetrics, line_metrics_from_page, line_metrics_from_snapshot,
+    render_svg as layout_render_svg, render_html as layout_render_html,
+    metrics_json,
+)
+from pdf2zh.v3.overlay_view import (
+    OverlayRecord, overlay_for_page, overlay_from_snapshot,
+    render_svg as overlay_render_svg, render_html as overlay_render_html,
+    records_json,
+)
+from pdf2zh.v3.replay import (
+    StageInput, StageInputStore, TranslationMemo, ReplayStep,
+    ReplayReport, ReplaySystem,
+)
+from pdf2zh.v3.inspector_view import (
+    build_inspector_html, build_inspector_html_from_bundle,
+)
+from pdf2zh.v3.regression import (
+    canonical_json, snapshot_hash, record_for, build_baseline_dir,
+    diff_records, diff_baselines, run_snapshot_regression, record_session,
+)
 
 __all__ = [
     "RawBlock", "RawBlockType", "RawSpan", "PDFParser",
@@ -464,4 +583,71 @@ __all__ = [
     "WritebackBlock", "plan_writeback_takeover", "apply_render_plan",
     "QARecorder", "TranslationQAReport", "run_translation_qa",
     "AdoptedParagraph", "adopt_geometry_cluster",
+    "has_replacement", "glyph_dump", "run_dump", "line_dump", "block_dump",
+    "toc_confidence", "toc_dump", "translation_dump", "layout_dump",
+    "dump_page", "dump_pdf_pipeline", "pipeline_dump_main",
+    "build_toc_tree", "run_pipeline_dump",
+    "TOCEntry", "parse_entry_text", "split_merged_block",
+    "analyze_toc_blocks", "split_toc_blocks", "rebuild_toc_page",
+    "analyze_toc_result", "render_toc_entry",
+    "split_merged_toc_paragraphs", "_physical_rows",
+    "GlyphModel", "SpanModel", "LineModel", "BlockModel", "PageModel",
+    "build_page_model", "annotate_toc", "annotate_toc_scan",
+    "annotate_formulas", "annotate_style",
+    "REL_FOLLOWS", "REL_TOC_CHILD_OF", "REL_CAPTION_OF",
+    "block_id", "Relation", "DocumentModel",
+    "annotate_roles", "annotate_translation", "annotate_render",
+    "build_document_model", "translate_document", "render_plan_from_model",
+    "toc_records_from_model", "annotate_translation_from_records",
+    "run_document_model",
+    "DocumentPass", "PassDiffEntry", "PassResult", "PassRunReport",
+    "PassManager", "normalize_text", "NormalizePass",
+    "SemanticPass", "detect_code_block", "detect_table_block",
+    "TranslationPolicyPass", "translation_policy_for",
+    "TypographyPass", "default_pass_manager",
+    "inspect", "inspect_all", "inspect_toc",
+    "build_width_map", "measure", "line_break", "justify_advances",
+    "widow_orphan_flag",
+    "REL_BELONGS_TO", "REL_MENTIONS",
+    "section_number", "build_sections", "detect_mentions",
+    "resolve_mentions", "build_semantic_relations",
+    "DEFAULT_GLOSSARIES", "detect_domain", "DomainGlossary",
+    "document_context_for", "context_to_prompt",
+    "translate_document_context_aware",
+    "resolve_references", "renumber_references",
+    "STRATEGY_MAP", "figure_strategy", "annotate_figures",
+    "node_hash", "IncrementalEngine",
+    "CODE_SEVERITY", "DiagnosticIssue", "DiagnosticReport",
+    "analyze_document", "node_confidence", "annotate_confidence",
+    "DEFAULT_WEIGHTS", "fuse_evidence", "FusedVerdict", "fuse_verdict",
+    "RepairResult", "RepairReport", "RepairStrategy",
+    "TOCSplitRepair", "UnicodeRepair", "MathRecoveryRepair",
+    "EmptyBlockRepair", "DEFAULT_STRATEGIES", "RepairEngine", "repair_loop",
+    "RULE_MAP", "RepairPlanner", "RuleRepairPlanner", "LLMRepairPlanner",
+    "expected_from_model", "compare_expected",
+    "RegressionResult", "RegressionReport", "run_regression",
+    "FontResource", "ImageResource", "ResourceManager",
+    "DocumentQuery", "query",
+    "LayerCache", "CacheStats", "DocumentCache",
+    "export_markdown", "export_html", "export_text",
+    "DocumentPlugin", "PassPlugin", "TranslatePlugin", "ExportPlugin",
+    "PluginRegistry",
+    "STAGE_ORDER", "BuildPlan", "DependencyGraph", "BuildSystem",
+    "NodeRevision", "VersionManager", "DocumentRuntime",
+    # Phase D (v1.18): Document Observability Framework（D0–D9）
+    "STAGES", "ROLE_COLORS", "new_document_id", "DocumentID", "NodeID",
+    "TraceContext", "SnapshotStore", "capture_snapshot", "DecisionLog",
+    "DecisionRecord", "DiagnosticEngine", "ObsSession", "make_session",
+    "FieldDiff", "PassDiffReport", "diff_snapshots", "diff_json",
+    "render_diff_report",
+    "LineMetrics", "line_metrics_from_page", "line_metrics_from_snapshot",
+    "layout_render_svg", "layout_render_html", "metrics_json",
+    "OverlayRecord", "overlay_for_page", "overlay_from_snapshot",
+    "overlay_render_svg", "overlay_render_html", "records_json",
+    "StageInput", "StageInputStore", "TranslationMemo", "ReplayStep",
+    "ReplayReport", "ReplaySystem",
+    "build_inspector_html", "build_inspector_html_from_bundle",
+    "canonical_json", "snapshot_hash", "record_for", "build_baseline_dir",
+    "diff_records", "diff_baselines", "run_snapshot_regression",
+    "record_session",
 ]

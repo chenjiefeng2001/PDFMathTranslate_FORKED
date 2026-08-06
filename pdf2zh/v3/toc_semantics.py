@@ -103,8 +103,12 @@ _RE_CONTENTS = re.compile(r"^\s*(?:table\s+of\s+contents|contents)\s*$", re.IGNO
 _RE_INDEX = re.compile(r"^\s*index\s*$", re.IGNORECASE)
 # V8.7 P2：真实语料前缀变体 —— §N 小节、裸编号 "1." / "1.2.3"、中文"第X章/节"
 _RE_SECTION_SIGN = re.compile(r"^\s*[§§]\s*([0-9]+(?:\.[0-9]+)*)")
-_RE_BARE_NUMBERED = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)+|[0-9]+)\s*[.:、]")
-_RE_ZH_PREFIX = re.compile(r"^\s*第\s*([0-9零一二三四五六七八九十百千万]+)\s*([章节篇部卷])")
+# 多点编号 "7.13 标题"（编号后无分隔符，直接空格）—— 必须先于单点编号匹配
+_RE_BARE_NUMBERED_MULTI = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)+)\s+")
+# 单点编号 "1. 标题" / "1、标题"（需分隔符，避免吃掉 "1.5" 之类小数）
+_RE_BARE_NUMBERED = re.compile(r"^\s*([0-9]+)\s*[.:、]")
+_RE_ZH_PREFIX = re.compile(
+    r"^\s*第\s*([0-9]+(?:\.[0-9]+)*|[零一二三四五六七八九十百千万]+)\s*([章节篇部卷])")
 # v1.6 变体补充：中文枚举 "一、" / "1、"（中文目录常见）；右括号编号 "1)" / "（1）"
 _RE_ZH_ENUM = re.compile(r"^\s*[零一二三四五六七八九十百千万]+\s*[、.．]")
 _RE_CLOSE_PAREN = re.compile(r"^\s*\(?\s*([0-9]+(?:\.[0-9]+)*)\s*\)?[)）]\s+")
@@ -175,11 +179,19 @@ def parse_toc_entry(raw_title: str, page: str = "", leader: str = "") -> TOCEntr
         return entry
 
     # 裸编号目录行："1. 引言" / "1.2.3 方法"（层级随编号段数）
-    m = _RE_BARE_NUMBERED.match(text)
+    m = _RE_BARE_NUMBERED_MULTI.match(text)
     if m:
         entry.kind = TOCKind.SECTION
         entry.number = m.group(1).strip()
         entry.level = entry.number.count(".") + 1
+        entry.title = text[m.end():].strip(_NUMBER_SEPARATORS + " ")
+        entry.matched = True
+        return entry
+    m = _RE_BARE_NUMBERED.match(text)
+    if m:
+        entry.kind = TOCKind.SECTION
+        entry.number = m.group(1).strip()
+        entry.level = 2
         entry.title = text[m.end():].strip(_NUMBER_SEPARATORS + " ")
         entry.matched = True
         return entry
