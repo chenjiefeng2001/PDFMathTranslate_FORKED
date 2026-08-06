@@ -258,21 +258,21 @@ jobs:
       
       - name: Test - Translate a PDF file with plain text only (online mode)
         run: |
-          ./build/pdf2zh.exe ./test/file/translate.cli.plain.text.pdf -o ./test/file
+          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
 
       - name: Test - Translate a PDF file figure
         run: |
-          ./build/pdf2zh.exe ./test/file/translate.cli.text.with.figure.pdf -o ./test/file
+          ./build/pdf2zh.exe ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
 
       - name: Test - Translate without offline assets (online mode)
         run: |
-          ./build/pdf2zh.exe ./test/file/translate.cli.plain.text.pdf -o ./test/file
+          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
           
       - name: Upload test results
         uses: actions/upload-artifact@v7
         with:
           name: test-results
-          path: ./test/file/
+          path: ./tests/file/
           if-no-files-found: error
 
       - name: Setup uv with Python ${{ env.WIN_EXE_PYTHON_VERSION }}
@@ -303,14 +303,14 @@ jobs:
       - name: Test - Translate with offline assets (offline mode)
         run: |
           Write-Host "==== 测试离线资源包 ===="
-          New-Item -Path "./test/file/offline_result" -ItemType Directory -Force
-          ./build/pdf2zh.exe ./test/file/translate.cli.plain.text.pdf -o ./test/file/offline_result
+          New-Item -Path "./tests/file/offline_result" -ItemType Directory -Force
+          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file/offline_result
 
       - name: Upload offline test results
         uses: actions/upload-artifact@v7
         with:
           name: offline-test-results
-          path: ./test/file/offline_result/
+          path: ./tests/file/offline_result/
           if-no-files-found: error
 
       - name: Upload build with offline assets artifact

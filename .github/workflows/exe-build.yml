@@ -130,11 +130,11 @@ jobs:
       
       - name: Test - Translate a PDF file with plain text only
         run: |
-          ./build/pdf2zh.exe ./test/file/translate.cli.plain.text.pdf -o ./test/file
+          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
 
       - name: Test - Translate a PDF file figure
         run: |
-          ./build/pdf2zh.exe ./test/file/translate.cli.text.with.figure.pdf -o ./test/file
+          ./build/pdf2zh.exe ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
 
       - name: Delete offline assets and cache
         shell: pwsh
@@ -160,12 +160,12 @@ jobs:
 
       - name: Test - Translate without offline assets
         run: |
-          ./build/pdf2zh.exe ./test/file/translate.cli.plain.text.pdf -o ./test/file
+          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
           
       - name: Upload test results
         uses: actions/upload-artifact@v7
         with:
           name: test-results
-          path: ./test/file/
+          path: ./tests/file/
 
   
