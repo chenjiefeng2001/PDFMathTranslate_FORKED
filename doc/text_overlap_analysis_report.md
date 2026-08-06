@@ -423,8 +423,8 @@ if cls == 0 and child.linewidth >= 1.0:
 ### C.4 验证结果
 
 - `tests/test_converter_layout_fixes.py` + `tests/test_collision_resolver.py`：**27 passed**
-- `test/test_converter.py` + `tests/test_converter_vflag.py`：全部通过（无回归）
-- 全量 `tests/ + test/`：**1449 passed**；仅剩 3 个与本次修改无关的环境/顺序问题
+- `tests/test_converter.py` + `tests/test_converter_vflag.py`：全部通过（无回归）
+- 全量 `tests/`（含合并入的旧 `test/` 用例）：**1449 passed**；仅剩 3 个与本次修改无关的环境/顺序问题
   （Windows 路径断言、kernel 注册表状态、`test_cli` 混合运行顺序污染），均已在干净 HEAD 复现。
 
 ### C.5 剩余风险与后续工作
@@ -448,7 +448,7 @@ if cls == 0 and child.linewidth >= 1.0:
 
 ### D.1 问题现象与复现方法
 
-- **样本**：`test/file/2505.05427v1 (1).pdf`（arXiv 双栏英文论文，第 1–5 页）；
+- **样本**：`tests/file/2505.05427v1 (1).pdf`（arXiv 双栏英文论文，第 1–5 页）；
 - **复现管线**：`translate_stream` 端到端。Layout model 使用**空框 Mock**（所有像素 `cls=1`，
   即"整个页面归属同一个文本区域"的最坏情形），翻译服务用保留原文的 `FakeTranslator`；
 - **观测手段**：对输出的 mono PDF 做**内容流指令级**解析（Tf 字体 + hex-TJ 文本）与 **span 级**
@@ -539,7 +539,7 @@ and child.size < pstk[-1].size * 0.79
 
 ### D.6 回归验证与遗留风险
 
-- **回归**：`pytest tests/` **1376 passed**；`pytest test/test_converter.py test/test_cache.py` **14 passed**；
+- **回归**：`pytest tests/` **1376 passed**；`pytest tests/test_converter.py tests/test_cache.py` **14 passed**；
   `tests/test_converter_layout_fixes.py`、`tests/test_xobject_strip.py` 全部通过，S1–S6 行为未受扰动。
 - **遗留风险 1（段落合并）**：双栏/布局漏检场景下，两栏文本仍会因 `cls == xt_cls` 被合并为同一
   "伪段落"进行整段翻译，长段落翻译质量仍受影响——根除需依赖路线图**阶段零 Document IR** 的
