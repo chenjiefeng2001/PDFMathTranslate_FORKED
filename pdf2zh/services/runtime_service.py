@@ -23,7 +23,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +135,36 @@ MODE_LEGACY_KWARGS: Dict[str, Dict[str, Any]] = {
            "geometry_cluster": True},
 }
 
+# ── V1.24 工作量模型（Work Graph）─────────────────────────────────────────────
+#
+# 阶段权重（第六原则：Pipeline Progress）：进度 = 阶段权重 × 阶段内完成度，
+# 不再是魔法数字 10/30/40/50/70/85/95。各阶段累计值刻意与历史检查点一致：
+#
+#     parsing [0,10] analyzing [10,30] planning [30,40] translating [40,70]
+#     layouting [70,85] rendering [85,95] evaluating [95,100]
+#
+# 文档页数已知后（_update_aggregator_weights）会按页数重排 translating /
+# layouting / rendering 权重（页数越多翻译占比越高），进度始终来自工作量模型。
+_STAGE_WEIGHTS: Dict[str, float] = {
+    "parsing": 10.0,
+    "analyzing": 20.0,
+    "planning": 10.0,
+    "translating": 30.0,
+    "layouting": 15.0,
+    "rendering": 10.0,
+    "evaluating": 5.0,
+}
+
+#: 阶段顺序（决定累计区间）。
+_STAGE_ORDER: List[str] = list(_STAGE_WEIGHTS.keys())
+
+_STAGE_BOUNDS: Dict[str, Tuple[float, float]] = {}
+_cum = 0.0
+for _stage_name in _STAGE_ORDER:
+    _w = _STAGE_WEIGHTS[_stage_name]
+    _STAGE_BOUNDS[_stage_name] = (_cum, _cum + _w)
+    _cum += _w
+
 
 def resolve_mode_config(
     mode_choice: Optional[str], base: ServiceConfig,
@@ -232,6 +262,8 @@ class TaskProgressEvent:
     current_node_count: int = 0
     diagnostics_count: int = 0
     message: str = ""
+    #: V1.24：预计剩余秒数（ProgressAggregator 按已完工权重速率外推；0=未知）。
+    eta: float = 0.0
     timestamp: float = field(default_factory=time.time)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -242,6 +274,7 @@ class TaskProgressEvent:
             "current_node_count": self.current_node_count,
             "diagnostics_count": self.diagnostics_count,
             "message": self.message,
+            "eta": self.eta,
             "timestamp": self.timestamp,
         }
 
@@ -287,6 +320,8 @@ class TaskState:
     quality_scores: Optional[Dict[str, float]] = None
     node_overview: Optional[Dict[str, int]] = None
     """文档智能分析概况（pages/paragraphs/headings/figures/formulas 节点计数）。"""
+    eta: float = 0.0
+    """V1.24：预计剩余秒数（0 = 未知/已完成）。"""
     diagnostic_report: Optional[Dict[str, Any]] = None
     """结构化诊断报告：legacy 为 errors/warnings/admissible/issues，
     V4 为 evaluator 的 records/pass_rate 记录。"""
@@ -331,6 +366,7 @@ class TaskState:
             "diagnostic_summary": self.diagnostic_summary,
             "quality_scores": self.quality_scores,
             "node_overview": self.node_overview,
+            "eta": self.eta,
             "diagnostic_report": self.diagnostic_report,
             "heal_status": self.heal_status,
             "repair_records": self.repair_records,
@@ -497,6 +533,14 @@ class RuntimeService:
         #: Per-task last emitted progress (throttle for smooth parallel reports).
         self._last_progress: Dict[str, float] = {}
         self._progress_lock = threading.Lock()
+        #: V1.24：每个任务一个 ProgressAggregator（权重式工作量模型）。
+        #: 仅 submit_task 创建的真实任务启用；测试直连 _emit_event 的路径
+        #: 不经过聚合器，保持历史行为。
+        self._aggregators: Dict[str, Any] = {}
+        self._aggregator_lock = threading.Lock()
+        #: 每个任务当前的阶段权重表（文档页数已知后重排 translating 等）。
+        self._task_stage_weights: Dict[str, Dict[str, float]] = {}
+        self._stage_weights_lock = threading.Lock()
 
     # ── Event listener API (Worker -> EventBus bridge) ───────────────────────
 
@@ -537,6 +581,7 @@ class RuntimeService:
         )
         with self._progress_lock:
             self._last_progress[task_id] = -1.0
+        self._init_aggregator(task_id)
         files = request.resolved_files()
         if not files:
             self._store.update_task(
@@ -689,6 +734,7 @@ class RuntimeService:
                 return
             ctx.current_file = os.path.basename(path)
             # Reset to running state (a previous file may have ended in FAILED).
+            self._reset_aggregator(task_id)
             self._store.update_task(
                 task_id,
                 status=TaskStage.PARSING.value,
@@ -984,6 +1030,8 @@ class RuntimeService:
         node_overview = self._collect_node_overview(rt)
         if node_overview:
             self._store.update_task(task_id, node_overview=node_overview)
+        # V1.24：页数已知 -> 重排阶段权重（页数越多翻译占比越高）
+        self._update_aggregator_weights(task_id, node_overview or {})
         self._emit_event(task_id, TaskStage.PLANNING.value, 40.0, "Planning...")
         rt.plan()
         if self._store.is_cancelled(task_id):
@@ -1128,17 +1176,19 @@ class RuntimeService:
             file_bytes = f.read()
         if self._store.is_cancelled(task_id):
             return
+        # V1.24：按页数预置阶段权重（翻译占比随页数上调）
+        self._prime_legacy_weights(task_id, request.source_path)
         self._emit_event(task_id, TaskStage.TRANSLATING.value, 50.0, "Translating...")
         logger.info("[task=%s] Translation phase starting...", task_id)
         # V8.3/V8.4: 主链路 IR 产出 + 写回前门控（side-channel）
         v3_output: Dict[str, Any] = {}
         # 并行进度回调：translate_stream 按已完成的页面分块回报（0-100），
-        # 映射到翻译窗口 50→80；经 _emit_smooth 节流 + 单调不减后推给 UI，
-        # 避免并行下进度条跳变。
+        # 映射到翻译窗口 30→70（阶段权重 translating=[40,70]；经聚合器
+        # 按权重折算 + 指数平滑后推给 UI），避免并行下进度条跳变。
         def _progress_cb(pct: float, msg: str) -> None:
             self._emit_smooth(
                 task_id, TaskStage.TRANSLATING.value,
-                50.0 + max(0.0, min(100.0, float(pct))) * 0.30,
+                30.0 + max(0.0, min(100.0, float(pct))) * 0.40,
                 msg,
             )
 
@@ -1433,6 +1483,138 @@ class RuntimeService:
             margin=margin, threshold=0.05, max_passes=2,
         )
 
+    # ── V1.24 ProgressAggregator 集成（Work Graph 工作量模型） ────────────────
+
+    def _init_aggregator(self, task_id: str, alpha: float = 0.08) -> None:
+        """为任务创建 ProgressAggregator（失败时静默回退 legacy 进度）。
+
+        全量注册阶段任务（percentage 以全部阶段权重为分母，而非已见任务）；
+        阶段任务按需 lazy 注册的百分比会随已注册权重膨胀，故此处预先注册。
+        """
+        try:
+            from pdf2zh.v3.progress_aggregator import ProgressAggregator
+            agg = ProgressAggregator(alpha=alpha)
+            with self._stage_weights_lock:
+                self._task_stage_weights[task_id] = dict(_STAGE_WEIGHTS)
+            for name in _STAGE_ORDER:
+                agg.add_task(f"stage:{name}", _STAGE_WEIGHTS[name], stage=name)
+            with self._aggregator_lock:
+                self._aggregators[task_id] = agg
+        except Exception:
+            logger.debug("ProgressAggregator init skipped", exc_info=True)
+
+    def _reset_aggregator(self, task_id: str) -> None:
+        """清空聚合器（批次模式：每个文件处理前调用，避免阶段进度回退）。
+
+        批次整体进度由 ``_BatchContext`` 在事件层继续聚合，全局单调性不受影响。
+        """
+        with self._aggregator_lock:
+            agg = self._aggregators.get(task_id)
+            if agg is not None:
+                agg.reset()
+            self._task_stage_weights[task_id] = dict(_STAGE_WEIGHTS)
+
+    def _update_aggregator_weights(self, task_id: str, counts: Dict[str, int]) -> None:
+        """文档页数/节点数已知后重排阶段权重（页数越多翻译占比越高）。
+
+        权重表变更时重置聚合器并按新权重重注册阶段任务 —— 已完成的阶段
+        由后续事件的「隐含完成」逻辑自动补齐，进度不回退。
+        纯 side-channel：聚合器不存在或计数无效时静默跳过。
+        """
+        with self._stage_weights_lock:
+            weights = self._task_stage_weights.get(task_id)
+            if weights is None:
+                return
+        pages = int(counts.get("pages") or 0)
+        if pages <= 0:
+            return
+        w = dict(weights)
+        w["translating"] = min(60.0, max(20.0, 10.0 + pages * 1.0))
+        w["layouting"] = min(25.0, max(10.0, 5.0 + pages * 0.3))
+        w["rendering"] = min(20.0, max(6.0, 3.0 + pages * 0.2))
+        total = sum(w.values())
+        if total > 0:
+            w = {k: v / total * 100.0 for k, v in w.items()}
+        with self._stage_weights_lock:
+            self._task_stage_weights[task_id] = w
+        with self._aggregator_lock:
+            agg = self._aggregators.get(task_id)
+            if agg is not None:
+                agg.reset()
+                for name in _STAGE_ORDER:
+                    agg.add_task(f"stage:{name}", w.get(name, 0.0), stage=name)
+
+    def _prime_legacy_weights(self, task_id: str, source_path: str) -> None:
+        """legacy 路径：翻译前用页数预置阶段权重（fitz 快速只读页数）。"""
+        if task_id not in self._aggregators or not source_path:
+            return
+        try:
+            import fitz as _fitz
+            with _fitz.open(source_path) as src:
+                self._update_aggregator_weights(
+                    task_id, {"pages": int(src.page_count)}
+                )
+        except Exception:
+            pass
+
+    def _stage_bounds(self, task_id: str) -> Dict[str, Tuple[float, float]]:
+        """当前任务的阶段累计区间（按权重表计算）。"""
+        with self._stage_weights_lock:
+            weights = self._task_stage_weights.get(task_id, _STAGE_WEIGHTS)
+        bounds: Dict[str, Tuple[float, float]] = {}
+        cum = 0.0
+        for name in _STAGE_ORDER:
+            w = weights.get(name, 0.0)
+            bounds[name] = (cum, cum + w)
+            cum += w
+        return bounds
+
+    def _map_stage_progress(self, task_id: str, stage: str, progress: float):
+        """把绝对百分比映射到工作量模型：阶段权重 × 阶段内完成度。
+
+        - 阶段任务按需注册（ensure_task：权重只在该任务首次出现时生效）；
+        - 事件进度达到阶段区间终点 -> finish（权重全额入账）；
+        - 否则作为 Running 的局部进度（Partial Progress）按权重折算；
+        - 返回 (weighted_progress, eta)：weighted 已过指数平滑，eta 按
+          已完工权重速率外推（0 = 无法估计）。
+        """
+        from pdf2zh.v3.progress_aggregator import ProgressAggregator  # noqa: F401
+
+        with self._aggregator_lock:
+            agg = self._aggregators.get(task_id)
+        if agg is None:
+            return float(progress), 0.0
+        terminal = stage in (
+            TaskStage.COMPLETED.value,
+            TaskStage.FAILED.value,
+            TaskStage.CANCELLED.value,
+        )
+        if terminal:
+            if stage == TaskStage.COMPLETED.value:
+                return 100.0, 0.0
+            return float(progress), 0.0
+        task_key = f"stage:{stage}"
+        weights = self._task_stage_weights.get(task_id, _STAGE_WEIGHTS)
+        agg.ensure_task(task_key, weights.get(stage, 0.0), stage=stage)
+        bounds = self._stage_bounds(task_id)
+        start, end = bounds.get(stage, (0.0, 100.0))
+        p = max(0.0, min(100.0, float(progress)))
+        # 事件乱序/跳阶时进度不塌方（第一原则：进度来自 Work Graph，不是事件
+        # 顺序）：凡区间终点已 ≤ p 的阶段，一律视为已隐含完成。
+        for name, (s, e) in bounds.items():
+            if name == stage or e > p + 1e-9:
+                continue
+            agg.ensure_task(f"stage:{name}", weights.get(name, 0.0), stage=name)
+            agg.finish(f"stage:{name}")
+        if p >= end:
+            agg.finish(task_key)
+        else:
+            weight = max(end - start, 1e-9)
+            frac = min(max((p - start) / weight, 0.0), 1.0)
+            agg.update_partial(task_key, frac * 100.0)
+        state = agg.get_state()
+        return state.percentage, state.eta
+
     def _emit_smooth(
         self, task_id: str, stage: str, progress: float,
         message: str = "", min_delta: float = 1.0,
@@ -1470,6 +1652,11 @@ class RuntimeService:
         self, task_id: str, stage: str, progress: float,
         message: str = "", node_count: int = 0, diag_count: int = 0,
     ) -> None:
+        # V1.24：真实任务走 ProgressAggregator —— 绝对百分比先映射到
+        # 「阶段权重 × 阶段内完成度」的工作量模型，再经指数平滑输出。
+        eta = 0.0
+        if task_id in self._aggregators:
+            progress, eta = self._map_stage_progress(task_id, stage, progress)
         batch = self._batch_ctx.get(task_id)
         file_progress = progress
         # In batch mode, ``progress`` is the per-file progress; fold it into
@@ -1486,17 +1673,19 @@ class RuntimeService:
         event = TaskProgressEvent(
             task_id=task_id, stage=stage, progress=progress,
             current_node_count=node_count, diagnostics_count=diag_count,
-            message=message,
+            message=message, eta=eta,
         )
         self._store.add_event(task_id, event)
         if batch is not None:
             self._store.update_task(
-                task_id, stage=stage, progress=progress,
+                task_id, stage=stage, progress=progress, eta=eta,
                 total_progress=progress, file_progress=file_progress,
                 message=message,
             )
         else:
-            self._store.update_task(task_id, stage=stage, progress=progress, message=message)
+            self._store.update_task(
+                task_id, stage=stage, progress=progress, eta=eta, message=message,
+            )
         self._notify_event_listeners(event)
 
     def _notify_event_listeners(self, event: TaskProgressEvent) -> None:
