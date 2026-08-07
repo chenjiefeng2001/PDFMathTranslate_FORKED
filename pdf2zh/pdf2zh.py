@@ -160,6 +160,14 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parse_params.add_argument(
+        "--max-file-size",
+        type=int,
+        default=None,
+        help="WebUI upload size limit in MB (default 100). "
+        "Can also be set via the PDF2ZH_MAX_FILE_SIZE env var.",
+    )
+
+    parse_params.add_argument(
         "--dir",
         action="store_true",
         help="translate directory.",
@@ -289,12 +297,17 @@ def main(args: Optional[List[str]] = None) -> int:
     if parsed_args.interactive:
         from pdf2zh.gui.entry import setup_gui
 
+        max_file_size = getattr(parsed_args, "max_file_size", None)
         if parsed_args.serverport:
             setup_gui(
-                parsed_args.share, parsed_args.authorized, int(parsed_args.serverport)
+                parsed_args.share, parsed_args.authorized, int(parsed_args.serverport),
+                max_file_size=max_file_size,
             )
         else:
-            setup_gui(parsed_args.share, parsed_args.authorized)
+            setup_gui(
+                parsed_args.share, parsed_args.authorized,
+                max_file_size=max_file_size,
+            )
         return 0
 
     if parsed_args.flask:

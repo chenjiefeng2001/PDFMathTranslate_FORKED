@@ -7,9 +7,32 @@ but delegates to the modular pdf2zh.gui.app.create_gui().
 from __future__ import annotations
 
 import logging
+import os
+from typing import Optional
 
 
 logger = logging.getLogger(__name__)
+
+#: Default upload cap. The 5MB legacy default rejected real-world papers
+#: (e.g. MurrayII.pdf > 5MB); raised and made configurable via
+#: ``PDF2ZH_MAX_FILE_SIZE`` or the ``--max-file-size`` CLI flag.
+DEFAULT_MAX_FILE_SIZE = "100mb"
+
+
+def resolve_max_file_size(explicit: Optional[str] = None) -> str:
+    """Resolve the Gradio upload cap from explicit arg / env / default.
+
+    Precedence: explicit argument > ``PDF2ZH_MAX_FILE_SIZE`` env > default.
+    The value must be a gradio byte-string like ``"5mb"``/``"100mb"``;
+    plain integers are interpreted as megabytes for convenience.
+    """
+    raw = explicit or os.environ.get("PDF2ZH_MAX_FILE_SIZE") or DEFAULT_MAX_FILE_SIZE
+    raw = str(raw).strip()
+    if not raw:
+        return DEFAULT_MAX_FILE_SIZE
+    if raw.isdigit():
+        return f"{raw}mb"
+    return raw
 
 
 def setup_gui(
@@ -17,6 +40,7 @@ def setup_gui(
     auth_file: list[str] | None = None,
     server_port: int = 7860,
     debug: bool = False,
+    max_file_size: Optional[str] = None,
 ) -> None:
     """Launch the modular Gradio Web UI (V4/V5 capable).
 
@@ -25,6 +49,9 @@ def setup_gui(
         auth_file: List of [username, password] for authentication.
         server_port: Port to bind the server to (default 7860).
         debug: Enable Gradio debug mode (dev only; default False).
+        max_file_size: Upload size cap (gradio string like ``"100mb"``, or
+            a plain integer meaning megabytes). Falls back to the
+            ``PDF2ZH_MAX_FILE_SIZE`` env var, then ``100mb``.
     """
     from pdf2zh.gui.app import create_gui
     gui = create_gui()
@@ -42,7 +69,7 @@ def setup_gui(
             debug=debug,
             inbrowser=True,
             share=share,
-            max_file_size="5mb",
+            max_file_size=resolve_max_file_size(max_file_size),
             **akw,
         )
     except ValueError as exc:
@@ -56,6 +83,7 @@ def setup_gui(
                     debug=debug,
                     inbrowser=True,
                     share=True,
+                    max_file_size=resolve_max_file_size(max_file_size),
                     **akw,
                 )
             except Exception as exc2:
