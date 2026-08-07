@@ -54,9 +54,19 @@ class Task:
     retry_count: int = 0
     max_retries: int = 2
     metadata: dict = field(default_factory=dict)
+    #: V1.24 工作量模型：任务权重（默认 1.0 = 无差别计数；翻译/公式/OCR
+    #: 等重任务应设置更大的 weight，进度按权重而非任务数统计）。
+    weight: float = 1.0
+    #: Running 期间的局部完成度（0-100），供 ProgressAggregator 消费
+    #: （任务自己也可以上报进度，而不是只有 Done）。
+    partial: float = 0.0
 
     def depends_on(self, task_id: str) -> None:
         self.dependencies.add(task_id)
+
+    def update_partial(self, percent: float) -> None:
+        """上报局部完成度（0-100），由 Executor 透传给 progress_cb。"""
+        self.partial = min(max(float(percent), 0.0), 100.0)
 
     @property
     def is_ready(self) -> bool:
@@ -174,6 +184,12 @@ class Executor:
     Usage::
         executor = Executor(task_graph)
         results = executor.run_all()
+
+    ``progress_cb`` (V1.24) 在每个任务生命周期转折点被调用：::
+
+        progress_cb(task, "running", 0.0)
+        progress_cb(task, "partial", 40.0)
+        progress_cb(task, "finished")
     """
 
     def __init__(
@@ -181,14 +197,23 @@ class Executor:
         graph: TaskGraph,
         *,
         parallel: bool = False,
+        progress_cb: Optional[Callable[[Task, str, float], None]] = None,
     ):
         self._graph = graph
         self._parallel = parallel
         self._results: List[Tuple[str, Task]] = []
+        self._progress_cb = progress_cb
 
     @property
     def results(self) -> List[Tuple[str, Task]]:
         return list(self._results)
+
+    def _notify(self, task: Task, status: str, partial: float = 0.0) -> None:
+        if self._progress_cb is not None:
+            try:
+                self._progress_cb(task, status, partial)
+            except Exception:
+                logger.exception("Progress callback failed for task %s", task.id)
 
     def run_all(self) -> List[Tuple[str, Task]]:
         ordered = self._graph.topological_sort()
@@ -204,8 +229,10 @@ class Executor:
 
     def _execute_task(self, task: Task) -> Tuple[str, Task]:
         task.status = TaskStatus.RUNNING
+        self._notify(task, "running", task.partial)
         if task.handler is None:
             task.status = TaskStatus.DONE
+            self._notify(task, "finished")
             return (task.id, task)
         for attempt in range(task.max_retries + 1):
             try:
@@ -213,13 +240,16 @@ class Executor:
                 result = task.handler(task)
                 task.result = result
                 task.status = TaskStatus.DONE
+                self._notify(task, "finished")
                 return (task.id, task)
             except Exception as e:
                 task.error = str(e)
                 if attempt < task.max_retries:
                     task.status = TaskStatus.RETRY
+                    self._notify(task, "partial", task.partial)
                 else:
                     task.status = TaskStatus.FAILED
+                    self._notify(task, "failed")
         return (task.id, task)
 
     def run_selective(self, task_ids: Set[str]) -> List[Tuple[str, Task]]:
@@ -256,11 +286,12 @@ class Scheduler:
         priority: int = 50,
         dependencies: Optional[List[str]] = None,
         max_retries: int = 2,
+        weight: float = 1.0,
     ) -> Task:
         task = Task(
             id=task_id, name=name, module=module,
             priority=priority, handler=handler,
-            max_retries=max_retries,
+            max_retries=max_retries, weight=weight,
         )
         if dependencies:
             for dep in dependencies:
@@ -268,8 +299,12 @@ class Scheduler:
         self._graph.add_task(task)
         return task
 
-    def run(self, parallel: bool = False) -> List[Tuple[str, Task]]:
-        self._executor = Executor(self._graph, parallel=parallel)
+    def run(
+        self, parallel: bool = False,
+        progress_cb: Optional[Callable[[Task, str, float], None]] = None,
+    ) -> List[Tuple[str, Task]]:
+        self._executor = Executor(self._graph, parallel=parallel,
+                                  progress_cb=progress_cb)
         return self._executor.run_all()
 
     def run_selective(self, task_ids: Set[str]) -> List[Tuple[str, Task]]:

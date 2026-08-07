@@ -423,6 +423,27 @@ from pdf2zh.v3.regression import (
     canonical_json, snapshot_hash, record_for, build_baseline_dir,
     diff_records, diff_baselines, run_snapshot_regression, record_session,
 )
+# V1.24 Progress Aggregator — Work Graph 工作量模型 / 加权进度聚合 / ETA
+from pdf2zh.v3.progress_aggregator import (
+    TaskLifecycle,
+    ProgressState,
+    ProgressAggregator,
+    WorkGraphTask,
+    WorkGraph,
+    build_work_graph,
+    PassCostRegistration,
+    PassCostRegistry,
+    default_pass_registry,
+    register_pass,
+    estimate_pass_weight,
+    estimate_document_weight,
+    UNIT_WEIGHTS,
+    DEFAULT_SMOOTHING_ALPHA,
+    DEFAULT_ETA_WINDOW,
+    DEFAULT_PIPELINE_PASSES,
+    bind_taskgraph,
+    make_progress_cb,
+)
 
 __all__ = [
     "RawBlock", "RawBlockType", "RawSpan", "PDFParser",
@@ -650,4 +671,11 @@ __all__ = [
     "canonical_json", "snapshot_hash", "record_for", "build_baseline_dir",
     "diff_records", "diff_baselines", "run_snapshot_regression",
     "record_session",
+    # V1.24 Progress Aggregator
+    "TaskLifecycle", "ProgressState", "ProgressAggregator",
+    "WorkGraphTask", "WorkGraph", "build_work_graph",
+    "PassCostRegistration", "PassCostRegistry", "default_pass_registry",
+    "register_pass", "estimate_pass_weight", "estimate_document_weight",
+    "UNIT_WEIGHTS", "DEFAULT_SMOOTHING_ALPHA", "DEFAULT_ETA_WINDOW",
+    "DEFAULT_PIPELINE_PASSES", "bind_taskgraph", "make_progress_cb",
 ]
