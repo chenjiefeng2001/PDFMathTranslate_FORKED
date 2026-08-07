@@ -5,6 +5,9 @@ from pdf2zh.doclayout import (
     OnnxModel,
     YoloResult,
     YoloBox,
+    get_backend,
+    resolve_providers,
+    set_backend,
 )
 
 
@@ -99,6 +102,63 @@ class TestYoloBox(unittest.TestCase):
         self.assertEqual(box.xyxy, box_data[:4])
         self.assertEqual(box.conf, box_data[4])
         self.assertEqual(box.cls, box_data[5])
+
+class TestBackendResolution(unittest.TestCase):
+    """GPU 后端解析：DML provider 更名兼容 + 请求后端不可用时的回退。
+
+    背景：onnxruntime >= 1.20 将 DirectML provider 更名为
+    ``AzureExecutionProvider``。若解析逻辑仍只认旧名 ``DmlExecutionProvider``，
+    ``--backend dml`` 会在主进程静默退化为 CPU，而 spawn 出的 worker 进程
+    却自动探测到 GPU —— 这种主/worker 不一致正是并行翻译 BrokenProcessPool
+    的高发来源。
+    """
+
+    def _patch_available(self, providers):
+        import onnxruntime
+
+        patcher = patch.object(onnxruntime, "get_available_providers", return_value=providers)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_dml_uses_new_azure_name_when_available(self):
+        self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
+        providers = resolve_providers("dml")
+        self.assertEqual(providers, ["AzureExecutionProvider", "CPUExecutionProvider"])
+
+    def test_dml_falls_back_to_legacy_name(self):
+        self._patch_available(["DmlExecutionProvider", "CPUExecutionProvider"])
+        providers = resolve_providers("dml")
+        self.assertEqual(providers, ["DmlExecutionProvider", "CPUExecutionProvider"])
+
+    def test_cpu_backend_is_strictly_cpu(self):
+        self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
+        providers = resolve_providers("cpu")
+        self.assertEqual(providers, ["CPUExecutionProvider"])
+
+    def test_unavailable_gpu_backend_falls_back_to_auto(self):
+        # 请求 cuda 但环境只有 CPU/DML：不要静默产出“以为在用 GPU 实际跑 CPU”
+        # 的不一致状态，而是带警告回退到自动探测（可能含其他 GPU）。
+        self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
+        providers = resolve_providers("cuda")
+        self.assertNotIn("CUDAExecutionProvider", providers)
+        self.assertIn("CPUExecutionProvider", providers)
+
+    def test_auto_returns_all_available(self):
+        self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
+        providers = resolve_providers(None)
+        self.assertEqual(providers, ["AzureExecutionProvider", "CPUExecutionProvider"])
+
+    def test_set_get_backend_roundtrip(self):
+        old = get_backend()
+        try:
+            set_backend("dml")
+            self.assertEqual(get_backend(), "dml")
+            set_backend("auto")
+            self.assertIsNone(get_backend())
+            set_backend("cpu")
+            self.assertEqual(get_backend(), "cpu")
+        finally:
+            set_backend(old if old else "auto")
 
 
 if __name__ == "__main__":

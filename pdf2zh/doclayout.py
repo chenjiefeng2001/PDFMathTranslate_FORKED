@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 _BACKEND_PROVIDERS = {
     "cpu": ["CPUExecutionProvider"],
     "cuda": ["CUDAExecutionProvider", "CPUExecutionProvider"],
-    "dml": ["DmlExecutionProvider", "CPUExecutionProvider"],
+    "dml": ["AzureExecutionProvider", "DmlExecutionProvider", "CPUExecutionProvider"],
 }
 
 _preferred_backend: str | None = None
@@ -37,6 +37,39 @@ def set_backend(name: str) -> None:
     """
     global _preferred_backend
     _preferred_backend = None if name == "auto" else name
+
+
+def get_backend() -> str | None:
+    """Return the current backend override (``None`` means auto-detection).
+
+    供并行 worker 进程传播父进程的后端选择：``ProcessPoolExecutor`` 的
+    ``initargs`` 需要把该值传给 ``_init_worker_process``，避免 worker 在
+    父进程显式 ``--backend cpu`` 时仍自动探测出 DirectML/CUDA 等 GPU
+    provider，从而在 GPU 推理中把 worker 进程搞崩（BrokenProcessPool）。
+    """
+    return _preferred_backend
+
+
+def resolve_providers(backend: str | None) -> list[str]:
+    """把后端名解析为“实际可用”的 onnxruntime provider 列表。
+
+    显式请求的 providers 会与 ``onnxruntime.get_available_providers()``
+    求交集；若后端名过时/缺失（例如 DirectML 在 onnxruntime >= 1.20 更名为
+    ``AzureExecutionProvider``），不会静默退化为 CPU-only（这会导致父进程
+    跑 CPU、spawn 出的 worker 却自动探测到 GPU 的不一致状态），而是带警告
+    回退到自动探测。
+    """
+    available = onnxruntime.get_available_providers()
+    if backend and backend in _BACKEND_PROVIDERS:
+        usable = [p for p in _BACKEND_PROVIDERS[backend] if p in available]
+        if usable:
+            return usable
+        logger.warning(
+            "Backend '%s' requested but no matching provider is available "
+            "(available: %s); falling back to auto-detection.",
+            backend, available,
+        )
+    return available
 
 
 class DocLayoutModel(abc.ABC):
@@ -103,10 +136,7 @@ class OnnxModel(DocLayoutModel):
             onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
         )
 
-        if _preferred_backend and _preferred_backend in _BACKEND_PROVIDERS:
-            providers = _BACKEND_PROVIDERS[_preferred_backend]
-        else:
-            providers = onnxruntime.get_available_providers()
+        providers = resolve_providers(_preferred_backend)
 
         # Providers like CoreML generate compiled nodes that cannot be
         # serialized, so only cache the optimized graph for CPU-only.

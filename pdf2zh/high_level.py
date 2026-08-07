@@ -675,7 +675,9 @@ def translate_stream(
                 )
             except (Exception, SystemExit, KeyboardInterrupt) as parallel_err:
                 logger.warning(
-                    "Parallel page processing failed (%s), falling back to serial: %s",
+                    "Parallel page processing failed (%s), falling back to serial: %s "
+                    "(tip: fix the GPU backend or disable page parallelism with "
+                    "--backend cpu / parallel_pages=False)",
                     type(parallel_err).__name__, str(parallel_err)[:120],
                 )
                 # Serial fallback: use locals directly (all objects available in current process)
@@ -912,16 +914,26 @@ def convert_to_pdfa(input_path, output_path):
 
 
 
-def _init_worker_process():
+def _init_worker_process(backend: str = None):
     """Initialize worker process: load layout model once into global singleton.
 
     Called once per worker in ProcessPoolExecutor(initializer=...).
+    ``backend`` propagates the parent's execution-provider choice so spawned
+    workers do not silently re-detect a GPU provider (e.g. DirectML) while the
+    parent runs on CPU -- the classic cause of worker-process crashes
+    (BrokenProcessPool) on GPU machines.
     """
-    from pdf2zh.doclayout import ModelInstance, OnnxModel
+    from pdf2zh.doclayout import ModelInstance, OnnxModel, set_backend
+    if backend:
+        set_backend(backend)
     if ModelInstance.value is None:
         try:
             ModelInstance.value = OnnxModel.load_available()
-        except Exception:
+        except Exception as exc:
+            logger.warning(
+                "Worker model load failed (%s: %s), continuing without layout model.",
+                type(exc).__name__, str(exc)[:120],
+            )
             ModelInstance.value = None
 
 
@@ -1145,8 +1157,10 @@ def _translate_parallel(
     progress_cb = locals_dict.get("progress_cb")
     total_chunks = len(chunks) if chunks else 1
     done_chunks = 0
+    from pdf2zh.doclayout import get_backend
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=workers, initializer=_init_worker_process,
+        initargs=(get_backend(),),
     ) as executor:
         futures = [
             executor.submit(
