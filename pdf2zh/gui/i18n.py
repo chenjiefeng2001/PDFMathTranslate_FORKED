@@ -91,6 +91,7 @@ T: Dict[str, Tuple[str, str]] = {
     "progress_log_idle": ("[系统就绪]", "[System ready]"),
     "progress_log_title": ("执行日志", "Execution log"),
     "progress_aria": ("翻译进度", "Translation progress"),
+    "progress_eta": ("预计剩余", "ETA"),
 
     # ── preview panel ────────────────────────────────────────────────────
     "preview_output": ("输出文件", "Output File"),

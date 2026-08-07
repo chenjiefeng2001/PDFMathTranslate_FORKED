@@ -135,6 +135,7 @@ class TaskEventBridge:
                     progress=event.progress,
                     stage=stage,
                     message=event.message,
+                    eta=event.eta,
                 )
             )
             if event.message:

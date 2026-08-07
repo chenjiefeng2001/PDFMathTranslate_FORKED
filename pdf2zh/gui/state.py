@@ -45,6 +45,7 @@ class TaskState:
     preview_path: Optional[str] = None
     diagnostic_summary: Optional[str] = None
     quality_scores: Optional[Dict[str, float]] = None
+    eta: float = 0.0
     error_message: Optional[str] = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
@@ -79,6 +80,7 @@ class TaskState:
             "preview_path": self.preview_path,
             "diagnostic_summary": self.diagnostic_summary,
             "quality_scores": self.quality_scores,
+            "eta": self.eta,
             "error_message": self.error_message,
             "created_at": self.created_at,
             "updated_at": self.updated_at,

@@ -90,6 +90,8 @@ class TaskProgressChanged(TaskEvent):
     progress: float = 0.0
     stage: str = ""
     message: str = ""
+    eta: float = 0.0
+    """预计剩余秒数（0 = 未知）。"""
 
 
 @dataclass

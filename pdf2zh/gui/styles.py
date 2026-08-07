@@ -536,6 +536,10 @@ COMPONENT_CSS += r"""
 .progress-active.progress-done .progress-fill { background: var(--color-stage-done); }
 .progress-active.progress-error .progress-fill { background: var(--color-stage-error); }
 .progress-msg { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+.progress-eta {
+    margin-top: var(--space-1); font-size: var(--text-sm);
+    color: var(--color-text-secondary); font-variant-numeric: tabular-nums;
+}
 .status-text { padding: var(--space-1) 0; }
 .log-output {
     max-height: 300px; overflow-y: auto; padding: var(--space-2) var(--space-3);

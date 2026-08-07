@@ -437,7 +437,8 @@ def _render_progress_changed(
         "progress_bar",
         gr.update(
             value=build_progress_bar_html(
-                ev.stage or "running", ev.progress, ev.message or ""
+                ev.stage or "running", ev.progress, ev.message or "",
+                getattr(ev, "eta", 0.0),
             )
         ),
     )
@@ -703,7 +704,8 @@ def _fill_full_state(acc: _DeltaAccumulator, svc, tid: str) -> None:
     pct = ts.progress
 
     bar = build_progress_bar_html(
-        ts.stage or ts.status or "running", pct, ts.message or ""
+        ts.stage or ts.status or "running", pct, ts.message or "",
+        getattr(ts, "eta", 0.0),
     )
     st = (
         f"**{B('label_status')}**: {stage_text(ts.status)} | "

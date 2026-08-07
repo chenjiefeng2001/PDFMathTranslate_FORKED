@@ -109,12 +109,15 @@ def build_stepbar_html(status: str, progress: float = 0.0) -> str:
     )
 
 
-def build_progress_bar_html(stage: str, pct: float, msg: str) -> str:
+def build_progress_bar_html(stage: str, pct: float, msg: str, eta: float = 0.0) -> str:
     """Render the token-driven progress bar HTML.
 
     Replaces the legacy inline ``<div style=...>`` markup so the progress
     indicator re-skins automatically in dark mode. Exposes a semantic
     ``role="progressbar"`` with ``aria-valuenow`` for assistive tech.
+
+    ``eta`` (V1.24) 为 ProgressAggregator 外推的预计剩余秒数；大于 0 时
+    渲染一行「预计剩余 m:ss」，0 表示未知/已完成（不渲染）。
     """
     if stage == "completed" and pct >= 100:
         cls = "progress-active progress-done"
@@ -129,6 +132,12 @@ def build_progress_bar_html(stage: str, pct: float, msg: str) -> str:
         c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd" for c in (msg or "")
     )
     pct_clamped = max(0.0, min(100.0, float(pct)))
+    eta_html = ""
+    if eta and float(eta) > 0 and stage not in ("completed", "failed", "cancelled"):
+        eta_html = (
+            f"<div class='progress-eta'>{B('progress_eta')} "
+            f"{_format_eta(float(eta))}</div>"
+        )
     return (
         f'<div class="{cls}">'
         '<div class="progress-head"><span>'
@@ -139,8 +148,19 @@ def build_progress_bar_html(stage: str, pct: float, msg: str) -> str:
         f'aria-valuenow="{pct_clamped:.1f}" '
         f'aria-label="{B("progress_aria")}"></div>'
         "</div>"
-        f'<div class="progress-msg">{safe_msg}</div></div>'
+        f'<div class="progress-msg">{safe_msg}</div>'
+        f"{eta_html}</div>"
     )
+
+
+def _format_eta(seconds: float) -> str:
+    """Format seconds as ``m:ss``（<1 小时）或 ``h:mm:ss``。"""
+    seconds = max(0, int(seconds))
+    h, rem = divmod(seconds, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return f"{h}:{m:02d}:{s:02d}"
+    return f"{m}:{s:02d}"
 
 
 def create_progress_panel() -> dict:

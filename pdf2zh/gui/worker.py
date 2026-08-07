@@ -315,5 +315,6 @@ def get_task_state(task_id: str) -> Optional[TaskState]:
         preview_path=svc_state.preview_path,
         diagnostic_summary=svc_state.diagnostic_summary,
         quality_scores=svc_state.quality_scores,
+        eta=getattr(svc_state, "eta", 0.0),
         error_message=svc_state.error_message,
     )
