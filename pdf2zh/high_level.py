@@ -8,6 +8,7 @@ import sys
 import tempfile
 import logging
 from asyncio import CancelledError
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 from string import Template
 from typing import Any, BinaryIO, List, Optional, Dict
@@ -680,6 +681,9 @@ def translate_stream(
                     "--backend cpu / parallel_pages=False)",
                     type(parallel_err).__name__, str(parallel_err)[:120],
                 )
+                # 自动降级：worker 进程被终止（BrokenProcessPool）时把后端切到 CPU，
+                # 本次已回退串行，后续任务不再重复触发 GPU 并行崩溃。
+                _degrade_backend_on_crash(parallel_err)
                 # Serial fallback: use locals directly (all objects available in current process)
                 obj_patch = translate_patch(fp, **dict(locals()))
     else:
@@ -935,6 +939,29 @@ def _init_worker_process(backend: str = None):
                 type(exc).__name__, str(exc)[:120],
             )
             ModelInstance.value = None
+
+
+def _degrade_backend_on_crash(err: Exception) -> bool:
+    """BrokenProcessPool 自动降级到 CPU。
+
+    worker 进程被终止（BrokenProcessPool）通常源于 spawn 出的 worker 在
+    DirectML/CUDA 推理时进程级崩溃（原生崩溃或显存耗尽），Python 无法捕获
+    具体原因。本次任务已由调用方回退串行；这里把模块级后端降级为 CPU，
+    使后续翻译任务（GUI 连续操作、CLI 批处理、服务复用进程）不再重复触发
+    GPU 并行崩溃。
+    """
+    from pdf2zh.doclayout import ModelInstance, get_backend, set_backend
+    if isinstance(err, BrokenProcessPool) and get_backend() != "cpu":
+        set_backend("cpu")
+        # 主进程可能已缓存 GPU session（ModelInstance 全局单例），重置为 None，
+        # 使后续任何路径（worker spawn / 串行回退）都按 CPU provider 重新加载。
+        ModelInstance.value = None
+        logger.warning(
+            "GPU-backed parallel workers crashed; execution provider degraded "
+            "to CPU for subsequent translation tasks."
+        )
+        return True
+    return False
 
 
 def _serialize_prompt(prompt) -> str:
