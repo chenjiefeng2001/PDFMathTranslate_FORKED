@@ -58,6 +58,8 @@ class LegacyKernel:
             "skip_subset_fonts": request.skip_subset_fonts,
             "ignore_cache": request.ignore_cache,
             "compatible": request.compatible,
+            "parallel_pages": request.parallel_pages,
+            "parallel_workers": request.parallel_workers,
         }
 
         if request.pages and isinstance(request.pages, list):

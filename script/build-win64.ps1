@@ -250,33 +250,23 @@ if (Test-Path $pystandExe) {
 
 
 
-Write-Host "==== Enabling site-packages for embedded Python ===="
-
+Write-Host "==== Configuring site-packages and relative paths in embedded Python .pth ===="
 $pthFile = Get-ChildItem -Path $RuntimeDir -Force | Where-Object { $_.Name -like "*pth" } | Select-Object -First 1
-
 if ($pthFile) {
-
-    $pthContent = Get-Content $pthFile.FullName -Raw
-
-    if ($pthContent -match "(?m)^#import site") {
-
-        $pthContent = $pthContent -replace "(?m)^#import site", "import site"
-
-        Set-Content -Path $pthFile.FullName -Value $pthContent
-
-        Write-Host "  Enabled site import in $($pthFile.Name)"
-
-    }
-
+    # 显式声明包含 relative site-packages 路径，防止 Python 找不到依赖包
+    $pthLines = @(
+        "python312.zip",
+        ".",
+        "Lib\site-packages",
+        "..\site-packages",
+        "import site"
+    )
+    Set-Content -Path $pthFile.FullName -Value ($pthLines -join "`r`n")
+    Write-Host "  Updated $($pthFile.Name) rules successfully"
 } else {
-
     Write-Host "ERROR: .pth file not found! Python environment is broken." -ForegroundColor Red
-
     exit 1
-
 }
-
-
 
 Write-Host "==== Installing pip on embedded Python ===="
 
@@ -359,16 +349,39 @@ Write-Host "==== Pinning gradio >=5.20 <5.36 (avoids 'const in bool' schema bug 
 Write-Host "  gradio pinned"
 
 
-Write-Host "==== Patching gradio route_utils.py for Windows long path support (>260 char filenames) ===="
-
+Write-Host "==== Patching gradio route_utils.py for Windows long path support ===="
 $PatchScript = Join-Path $ScriptDir "patch_gradio_longpath.py"
 $RouteUtilsPath = Join-Path $RuntimeDir "Lib\site-packages\gradio\route_utils.py"
 
 if ((Test-Path $PatchScript) -and (Test-Path $RouteUtilsPath)) {
     & "$EmbeddedPython" $PatchScript $RouteUtilsPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "longpath patch FAILED (exit $LASTEXITCODE); refusing to ship an unpatched build."
+    }
     Write-Host "  Long path patch applied"
 } else {
     Write-Host "  WARNING: patch script or route_utils.py not found" -ForegroundColor Yellow
+}
+
+Write-Host "==== Patching gradio blocks.py: startup-events boot 502 tolerance (Windows) ===="
+
+# Windows boot race (gradio 5.20-5.36): launch() probes /gradio_api/startup-events
+# right after uvicorn binds; a transient 502 used to kill pdf2zh.exe with
+# "Couldn't start the app ..." even though the server becomes fully functional.
+# Patch rewrites the handshake into bounded retries that continue on failure
+# (queue self-heals on the next API hit). Idempotent: second run no-ops.
+$PatchScript2 = Join-Path $ScriptDir "patch_gradio_startup_events.py"
+$BlocksPyPath = Join-Path $RuntimeDir "Lib\site-packages\gradio\blocks.py"
+
+if ((Test-Path $PatchScript2) -and (Test-Path $BlocksPyPath)) {
+    & "$EmbeddedPython" $PatchScript2 $BlocksPyPath
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  startup-events patch applied"
+    } else {
+        throw "startup-events patch FAILED (exit $LASTEXITCODE); the installed gradio variant is not supported by $PatchScript2. Refusing to ship an unpatched build (unpatched gradio leaves the event queue dead on Windows boot 502)."
+    }
+} else {
+    throw "startup-events patch script or blocks.py not found ($PatchScript2 / $BlocksPyPath); refusing to ship an unpatched build."
 }
 
 

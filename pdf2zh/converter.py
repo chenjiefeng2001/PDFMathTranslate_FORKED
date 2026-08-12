@@ -1,5 +1,6 @@
 import concurrent.futures
 import logging
+import os
 import re
 import unicodedata
 from enum import Enum
@@ -13,9 +14,27 @@ from pdfminer.pdffont import PDFCIDFont, PDFUnicodeNotDefined
 from pdfminer.pdfinterp import PDFGraphicState, PDFResourceManager
 from pdfminer.utils import apply_matrix_pt, mult_matrix
 from pymupdf import Font
-from tenacity import retry, wait_fixed
+from tenacity import retry, stop_after_attempt, wait_fixed
 
-from pdf2zh.toc import TOC_LEADER_CHARS, detect_toc_line, char_adv
+
+def _translate_retry_attempts() -> int:
+    """Resolve the per-segment translate retry budget (env-overridable).
+
+    Unparseable / non-positive values fall back to the default of 3.
+    """
+    try:
+        val = int(os.environ.get("PDF2ZH_TRANSLATE_RETRY") or 0)
+    except (TypeError, ValueError):
+        val = 0
+    return val if val >= 1 else 3
+
+
+#: 单段翻译失败的最大重试次数。无下限重试会让失败网络/服务把任务
+#: 永久卡在 translating 阶段（progress 冻结、占用 GUI 并发槽位），
+#: 超限后由 _safe_worker 的 fallback 返回原文，整任务继续推进。
+_TRANSLATE_RETRY_ATTEMPTS = _translate_retry_attempts()
+
+from pdf2zh.toc import TOC_LEADER_CHARS, char_adv, detect_toc_line, looks_like_toc_text
 from pdf2zh.translator import (
     AnythingLLMTranslator,
     ArgosTranslator,
@@ -68,6 +87,7 @@ class PDFConverterEx(PDFConverter):
         self._rendered_obstacles = []
         self._overflow_flags = []
         self._page_rect = None
+        self._layout_violations = []
 
     def end_page(self, page):
         # 重载返回指令流
@@ -173,6 +193,10 @@ class TranslateConverter(PDFConverterEx):
         # V8.3/V8.4 side-channels（逻辑在 v3.mainline_wiring）
         self.emit_ir, self.relayout_gate = emit_ir, relayout_gate
         self.ir_snapshots, self.gate_verdicts = {}, {}
+        # P5–P10 side-channels（语义重建 + 公式几何 QA）
+        self.reconstruction_channel = False
+        self.reconstruction_records = {}
+        self.reconstruction_qa = {}
         # 2.0 modules
         self.text_metrics = text_metrics or {}
         self.font_resolver = font_resolver
@@ -185,6 +209,18 @@ class TranslateConverter(PDFConverterEx):
         # === 2.0: 溢出/避让失败 QA 标记（S5）与页面边界 ===
         self._overflow_flags: list = []
         self._page_rect = None  # 当前页边界（BoundingBox），供碰撞求解夹紧
+        # P3: 版面不变量验证（LayoutViolation 记录，只采集不阻断）。
+        # 记录 source_bbox → target_bbox 的完整几何轨迹，供 QA/报告定位
+        # 首个翻译块被推出页面顶部等系统性错位。
+        self._layout_violations: list = []
+
+        # F2: 接管段 display 公式垂直流标记（{vN} → 是否块级展示公式）
+        self._render_display_marks: dict = {}
+        # F3: 接管段源区域（{legacy_idx: source_bbox}，白底覆盖擦除旧图层）
+        self._render_source_bboxes: dict = {}
+
+        # V1.19: TOC 识别观察报告（每页 spec/置信度/mode），供 PDF2ZH_TOC_REPORT=1 落盘实证
+        self._toc_reports: list = []
 
         self.translator: BaseTranslator = None
         self.translator = build_translator(service, lang_in, lang_out, envs, prompt, ignore_cache)
@@ -211,6 +247,7 @@ class TranslateConverter(PDFConverterEx):
         xt_cls: int = -2                # 上一个字符所属段落。初始为 -2 哨兵值：布局缺失时 cls 回退为 -1，
         # 若此处也是 -1，首字符会误入同一段落分支并越界访问空 sstk/pstk
         toc_track: list = []            # 目录行字符记录：每段 [(点线字符或数字, x0, x1), ...]
+        pfkstk: list = [set()]          # 2.0-V1.19: 每段字体指纹（缓存 variant，多字体段分段隔离）
         vmax: float = ltpage.width / 4  # 行内公式最大宽度
         ops: str = ""                   # 渲染结果
         # === 2.0: 记录页面边界，供碰撞求解夹紧（S1）===
@@ -272,7 +309,9 @@ class TranslateConverter(PDFConverterEx):
         # A. 原文档解析
         cur_line_size = 0.0  # 当前行文字字号基准（同行角标判定），随行切换重置，避免标题→正文字号切换污染整个段落
 
-        for child in ltpage:
+        # V8.4-F3: 整页型 Form XObject 文字平铺（v3/figure_flatten.py，保持行数门禁）
+        from pdf2zh.v3.figure_flatten import flatten_page_children
+        for child in flatten_page_children(ltpage, _page_w, _page_h):
             if isinstance(child, LTChar):
                 cur_v = False
                 try:
@@ -346,6 +385,7 @@ class TranslateConverter(PDFConverterEx):
                         sstk.append("")
                         pstk.append(Paragraph(child.y0, child.x0, child.x0, child.x0, child.y0, child.y1, child.size, False))
                         toc_track.append([])
+                        pfkstk.append(set())
                 if not cur_v:                                               # 文字入栈
                     if (                                                    # 根据当前字符修正段落属性
                         child.size > pstk[-1].size                          # 1. 当前字符比段落字体大
@@ -358,6 +398,11 @@ class TranslateConverter(PDFConverterEx):
 
                     _tch = child.get_text()
                     sstk[-1] += _tch
+                    if isinstance(child, LTChar):
+                        try:
+                            pfkstk[-1].add(_extract_font_name(child.fontname))
+                        except Exception:
+                            pass
                     if _tch in TOC_LEADER_CHARS or _tch.isdigit():
                         toc_track[-1].append((_tch, child.x0, child.x1))
                 else:                                                       # 公式入栈
@@ -378,16 +423,27 @@ class TranslateConverter(PDFConverterEx):
                 xt_cls = cls
             elif isinstance(child, LTFigure):   # 图表
                 # === 2.0: 记录原文非文字元素 BBox 供碰撞检测使用 ===
-                # 图片、表格、公式块等非文字元素不参与翻译排版，
-                # 但译文段落必须避开其占据的空间，避免图文重叠
+                # P1: pdfminer 会把 Form XObject 背景/装饰层包装成整页 LTFigure，
+                # 若登记为障碍物则整页变"幽灵障碍物"，导致首翻译块被 push 出页面
+                # （用户 dual PDF 的 bbox.y0<0）。面积 >70% 视为装饰层并跳过。
                 try:
                     from pdf2zh.collision_resolver import BoundingBox
-                    self._rendered_obstacles.append(
-                        BoundingBox(
-                            float(child.x0), float(child.y0),
-                            float(child.x1), float(child.y1),
-                        )
-                    )
+                    page_area = float(ltpage.width) * float(ltpage.height)
+                    fig_area = max(float(child.x1 - child.x0), 0.0) * max(float(child.y1 - child.y0), 0.0)
+                    if page_area > 0.0 and fig_area > 0.7 * page_area:
+                        self._layout_violations.append({
+                            "page": ltpage.pageid,
+                            "kind": "skip-background-figure",
+                            "category": "BACKGROUND_LAYER",
+                            "source_bbox": [round(float(child.x0), 2), round(float(child.y0), 2),
+                                            round(float(child.x1), 2), round(float(child.y1), 2)],
+                            "reason": f"figure covers {100.0 * fig_area / page_area:.1f}% of page; "
+                                      "treated as background/decor layer",
+                        })
+                    else:
+                        self._rendered_obstacles.append(
+                            BoundingBox(float(child.x0), float(child.y0),
+                                        float(child.x1), float(child.y1)))
                 except Exception as e:
                     log.debug("Failed to record figure obstacle: %s", e)
             elif isinstance(child, LTLine):     # 线条
@@ -440,6 +496,12 @@ class TranslateConverter(PDFConverterEx):
         if getattr(self, "geometry_cluster", False):  # V8.3 P1：双轨一致才接管聚类
             from pdf2zh.v3.geometry_merge import adopt_geometry_cluster
             self.geometry_adoptions = {**getattr(self, "geometry_adoptions", {}), ltpage.pageid: adopt_geometry_cluster(self, ltpage, sstk, pstk, var, varl, varf, toc_track, vlen)}
+        # 阶段 3：P5–P10 主链路接管（渲染前；失败仅 debug 日志，adopt=False 也记报告）
+        if getattr(self, "reconstruction_channel", False):
+            from pdf2zh.v3.mainline_wiring import run_reconstruction_channel
+            run_reconstruction_channel(self, ltpage)
+            from pdf2zh.v3.reconstruction_adapter import adopt_reconstruction_cluster
+            self.reconstruction_adoptions = {**getattr(self, "reconstruction_adoptions", {}), ltpage.pageid: adopt_reconstruction_cluster(self, ltpage, sstk, pstk, var, varl, varf, vlen, toc_track, pfkstk=pfkstk)}
         if getattr(self, "toc_split", False):  # V1.17-3：合并目录段按物理行重切（side-channel，渲染路径）
             from pdf2zh.v3.toc_analyzer import split_merged_toc_paragraphs
             self.toc_split_reports = {**getattr(self, "toc_split_reports", {}), ltpage.pageid: split_merged_toc_paragraphs(self, ltpage, sstk, pstk, toc_track, page_width=float(getattr(ltpage, "width", 0.0) or 0.0))}
@@ -447,7 +509,8 @@ class TranslateConverter(PDFConverterEx):
         # B. 段落翻译
         log.debug("\n==========[SSTACK]==========\n")
 
-        # === 目录行结构感知（P0-1/P0-2）：识别"标题+点线+页码"，标题单独翻译，点线/页码原位渲染；V8.7 结构词走模板本地渲染 ===
+        # === 目录行结构感知（P0-1/P0-2）：识别"标题+点线+页码"，标题单独翻译，点线/页码原位渲染；V8.7 结构词走模板本地渲染
+        # V1.19：置信度双模式 —— full（结构化渲染）/ protect（保护性：标题单独翻译、点线/页码尾部原位保留）
         toc_specs: list = [None] * len(sstk)
         _page_w = float(getattr(ltpage, "width", 0.0) or 0.0)
         for _ti, _ptxt in enumerate(sstk):
@@ -455,9 +518,30 @@ class TranslateConverter(PDFConverterEx):
             if _spec is not None:
                 toc_specs[_ti] = _spec
                 _ent = _spec["entry"] = parse_toc_entry(_spec["title"], page=_spec["page_digits"])
-                sstk[_ti] = _ent.title if _ent.matched else _spec["title"]  # 结构化标题只送剩余部分（V8.7）
+                sstk[_ti] = _ent.title if _ent.matched else _spec["title"]  # 结构化标题只送剩余部分（V8.7）；两种模式都不送点线/页码
+            elif looks_like_toc_text(_ptxt) and not toc_track[_ti]:
+                # 文本形态疑似目录行但缺逐字符几何（track 缺失）→ 提示观察，避免"点线被翻译"复现无据
+                log.warning(
+                    "page %d: toc-like text without character track, leader/page not protected: %r",
+                    ltpage.pageid, _ptxt[:60],
+                )
+        # V1.19: 收集本页 TOC 观察记录（供 PDF2ZH_TOC_REPORT=1 落盘）
+        for _sp in toc_specs:
+            if _sp is None:
+                continue
+            _ent = _sp.get("entry")
+            self._toc_reports.append({
+                "page": ltpage.pageid,
+                "title": _sp["title"],
+                "page_digits": _sp["page_digits"],
+                "leader": _sp["leader_orig"][:40],
+                "score": _sp["score"],
+                "mode": _sp["mode"],
+                "entry_kind": getattr(getattr(_ent, "kind", None), "name", None)
+                if _ent and _ent.matched else None,
+            })
 
-        @retry(wait=wait_fixed(1))
+        @retry(wait=wait_fixed(1), stop=stop_after_attempt(_TRANSLATE_RETRY_ATTEMPTS))
         def worker(s: str):  # 多线程翻译
             if not s.strip() or re.match(r"^\{v\d+\}$", s):  # 空白和公式不翻译
                 return s
@@ -471,26 +555,51 @@ class TranslateConverter(PDFConverterEx):
                     log.exception(e, exc_info=False)
                 raise e
 
-        def _safe_worker(s: str):
-            """带 fallback + cache 的 worker (2.0 L3)"""
+        def _safe_worker(s: str, font_sig: str = ""):
+            """带 fallback + cache 的 worker (2.0 L3)；font_sig=多字体段指纹走缓存 variant（V1.19）"""
             if self.cache:
-                cached = self.cache.get(s, self.translator.lang_in, self.translator.lang_out)
+                cached = _cache_get_font(s, font_sig)
                 if cached is not None:
                     return cached
             try:
                 result = worker(s)
                 if self.cache:
-                    self.cache.set(s, self.translator.lang_in, self.translator.lang_out, result)
+                    _cache_set_font(s, result, font_sig)
                 return result
             except BaseException as e:
                 log.error("Translation worker exhausted retries, falling back to original: %s", str(e)[:120])
                 return s
 
+        def _cache_get_font(s: str, font_sig: str):
+            # 兼容旧缓存接口（无 variant 参数）
+            try:
+                return self.cache.get(s, self.translator.lang_in, self.translator.lang_out, variant=font_sig)
+            except TypeError:
+                return self.cache.get(s, self.translator.lang_in, self.translator.lang_out)
+
+        def _cache_set_font(s: str, result: str, font_sig: str):
+            try:
+                self.cache.set(s, self.translator.lang_in, self.translator.lang_out, result, variant=font_sig)
+            except TypeError:
+                self.cache.set(s, self.translator.lang_in, self.translator.lang_out, result)
+
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=max(1, self.thread or 4)  # thread<=0 时兜底为 4，避免 max_workers=0 崩溃
         ) as executor:
-            news = list(executor.map(_safe_worker, sstk))
+            _font_sigs = [
+                ("|fonts:" + "|".join(sorted(f)[:8])) if len(f) > 1 else ""
+                for f in pfkstk
+            ]
+            news = list(executor.map(_safe_worker, sstk, _font_sigs))
         news = [compose_toc_title(s.get("entry") if s else None, n, self.translator.lang_out) for s, n in zip(toc_specs, news)]
+
+        # === F2: 接管段真实译文求解（P4 render_bbox 真实化 + P2 display 垂直流标记）===
+        if getattr(self, "reconstruction_channel", False):
+            try:
+                from pdf2zh.v3.reconstruction_render import run_render_resolve
+                run_render_resolve(self, ltpage, sstk, pstk, news)
+            except Exception as _f2e:  # noqa: BLE001 — F2 失败回退 adapter 几何
+                log.debug("F2 render resolve failed: %s", _f2e)
 
         ############################################################
         # C. 新文档排版
@@ -530,16 +639,25 @@ class TranslateConverter(PDFConverterEx):
         def gen_op_line(x, y, xlen, ylen, linewidth):
             return f"ET q 1 0 0 1 {_safe_float(x)} {_safe_float(y)} cm [] 0 d 0 J {_safe_float(linewidth)} w 0 0 m {_safe_float(xlen)} {_safe_float(ylen)} l S Q BT "
 
+        _render_display = (getattr(self, "_render_display_marks", {}) or {}).get(
+            ltpage.pageid, {})                            # F2: display 公式标记 {vN}
+        _render_src = (getattr(self, "_render_source_bboxes", {}) or {}).get(
+            ltpage.pageid, {})                            # F3: 接管段源区域
+        _page_h = float(getattr(ltpage, "height", 0.0) or 0.0)
         for id, new in enumerate(news):
             x: float = pstk[id].x                       # 段落初始横坐标
             y: float = pstk[id].y                       # 段落初始纵坐标
             x0: float = pstk[id].x0                     # 段落左边界
+            display_marks = _render_display
+            vflow_extra = 0.0                            # F2: display 公式非均匀垂直推进累积
             x1: float = pstk[id].x1                     # 段落右边界
             height: float = pstk[id].y1 - pstk[id].y0   # 段落高度
             size: float = pstk[id].size                 # 段落字体大小
             brk: bool = pstk[id].brk                    # 段落换行标记
             spec = toc_specs[id] if toc_specs else None  # 目录行规格（None = 普通段落）
-            toc_mode = spec is not None                  # 目录行模式：禁折行、点线/页码原位渲染
+            _spec_mode = spec.get("mode", "full") if spec else None
+            toc_mode = _spec_mode == "full"              # 目录行模式：禁折行、点线/页码原位渲染
+            _toc_protect = _spec_mode == "protect"       # 保护模式：标题照常折行，点线/页码尾部原位保留
             x1_bound = float("inf") if toc_mode else x1  # 目录行标题不做右边界折行
             cstk: str = ""                              # 当前文字栈
             fcur: str = None                            # 当前字体 ID
@@ -644,6 +762,16 @@ class TranslateConverter(PDFConverterEx):
                                 "ylen": l.pts[1][1] - l.pts[0][1],
                                 "lidx": lidx
                             })
+                    # F2: display 公式独占一行，按公式物理高度推进垂直流
+                    # （非均匀推进累积到 vflow_extra，供行落位偏移；后续
+                    # 文本行必然绘制在公式块之下，杜绝文字叠在公式上）
+                    if display_marks.get(vid):
+                        _f_top = max(vch.y0 for vch in var[vid])
+                        _f_bot = min(vch.y1 for vch in var[vid])
+                        _f_h = max(0.0, _f_top - _f_bot) + 0.6 * size
+                        vflow_extra += _f_h
+                        lidx += 1
+                        x = x0
                 else:  # 插入文字缓冲区
                     if not cstk:  # 单行开头
                         tx = x
@@ -670,6 +798,33 @@ class TranslateConverter(PDFConverterEx):
                     "rtxt": raw_string(fcur, cstk),
                     "lidx": lidx
                 })
+
+            if _toc_protect:
+                # === 目录行保护排版（V1.19/P0）：点线+页码从翻译文本剥离后原样追加在尾部 ===
+                # 置信度 0.30~0.55 的弱形态（区间页码/弱结构开头）：不要求右对齐，
+                # 只保证"点线/页码永不进翻译器"，译文+原始引导结构按序原位追加。
+                _cx = x
+                _gap = char_adv(self, " ", size) or size * 0.5
+                _tail_txt = (spec["leader_orig"] or ".") + (
+                    " " + str(spec["page_digits"]) if spec.get("page_digits") else ""
+                )
+                for _tch in _tail_txt:
+                    if _tch == " ":
+                        _cx += _gap
+                        continue
+                    _a = char_adv(self, _tch, size)
+                    if not _a or _a <= 0:
+                        _a = size * 0.5
+                    ops_vals.append({
+                        "type": OpType.TEXT,
+                        "font": self.noto_name,
+                        "size": size,
+                        "x": _cx,
+                        "dy": 0,
+                        "rtxt": raw_string(self.noto_name, _tch),
+                        "lidx": lidx,
+                    })
+                    _cx += _a
 
             if toc_mode:
                 # === 目录行排版（P0-2）：标题已单独翻译，点线+页码原位渲染 ===
@@ -738,18 +893,18 @@ class TranslateConverter(PDFConverterEx):
             if not toc_mode and (
                 height > 0
                 and np.isfinite(height)
-                and (lidx + 1) * size * line_height > height
+                and (lidx + 1) * size * line_height + vflow_extra > height
             ):
                 max_iter = max(int((default_line_height - 0.5) / 0.05), 1)
                 iter_count = 0
                 while (
-                    (lidx + 1) * size * line_height > height
+                    (lidx + 1) * size * line_height + vflow_extra > height
                     and line_height > line_height_min
                     and iter_count < max_iter
                 ):
                     line_height = max(line_height - 0.05, line_height_min)
                     iter_count += 1
-                if (lidx + 1) * size * line_height > height:
+                if (lidx + 1) * size * line_height + vflow_extra > height:
                     self._overflow_flags.append(
                         {
                             "page": ltpage.pageid,
@@ -762,7 +917,8 @@ class TranslateConverter(PDFConverterEx):
                         }
                     )
             # === 2.0: Collision detection & resolution (M2, S1/S2/S3) ===
-            para_bottom = y - (lidx + 1) * size * line_height
+            para_bottom = y - (lidx + 1) * size * line_height - vflow_extra
+            strategy = "noop"  # P4: 本段碰撞求解策略（无碰撞/未启用即 noop）
             if self.collision_resolver:
                 from pdf2zh.collision_resolver import BoundingBox
                 pb = BoundingBox(x0, para_bottom, x1, y)
@@ -787,7 +943,36 @@ class TranslateConverter(PDFConverterEx):
                     # "当前段被推到所有重叠段之下"自动形成整页链式流式重排。
                     shift = ny - pb.y0
                     if shift:
-                        y += shift
+                        # P2（越界防护）：禁止把段落推出页面边界（用户观测的 bbox.y0<0）。
+                        # 越界时放弃该位移（不做 clamp），记录 QA；根因由 P1 消除。
+                        _cand = y + shift
+                        _para_top = _cand
+                        _para_bottom = _cand - (lidx + 1) * size * line_height
+                        _page_top = self._page_rect.y1 if self._page_rect else None
+                        _page_bottom = self._page_rect.y0 if self._page_rect else None
+                        _out_of_page = (
+                            _page_top is not None
+                            and (_para_top > _page_top - size
+                                 or (_page_bottom is not None
+                                     and _para_bottom < _page_bottom + size))
+                        )
+                        if _out_of_page:
+                            self._overflow_flags.append(
+                                {
+                                    "page": ltpage.pageid,
+                                    "kind": "collision-push-out-of-page",
+                                    "lidx": lidx,
+                                    "bbox": f"[{x0:.1f},{_para_bottom:.1f},{x1:.1f},{_para_top:.1f}]",
+                                    "text": new[:40],
+                                    "issue": (
+                                        f"vertical shift {shift:.1f} pushes text out "
+                                        "of page; shift dropped"
+                                    ),
+                                }
+                            )
+                            shift = 0.0
+                        else:
+                            y += shift
                     if nsize != size:  # S3: 字号缩减生效
                         size = nsize
                     if nx != x0 and not toc_mode:  # S3: 水平缩进生效，平移已生成行；目录行右对齐页码保持原位不动
@@ -809,12 +994,67 @@ class TranslateConverter(PDFConverterEx):
                         }
                     )
 
+            # === P3/P4: 版面不变量验证 + Source→Target 几何日志（只采集不阻断） ===
+            try:
+                _tgt_top = y
+                _tgt_bottom = y - (lidx + 1) * size * line_height - vflow_extra
+                _page_top = self._page_rect.y1 if self._page_rect else None
+                _page_bottom = self._page_rect.y0 if self._page_rect else None
+                _violation = None
+                if _page_top is not None and _tgt_top > _page_top + 0.5:
+                    _violation = "TOP_OVERFLOW"
+                elif _page_top is not None and _tgt_top > _page_top - size - 0.5:
+                    _violation = "TOP_MARGIN"
+                elif (_page_bottom is not None
+                      and _tgt_bottom < _page_bottom - size - 0.5):
+                    _violation = "BOTTOM_OVERFLOW"
+                if _violation:
+                    _src = pstk[id]
+                    _is_formula = bool(sstk[id].strip().startswith("{v"))
+                    self._layout_violations.append(
+                        {
+                            "page": ltpage.pageid,
+                            "block_id": id,
+                            "block_type": (
+                                "TOC" if toc_mode else
+                                "FORMULA" if _is_formula else "PARAGRAPH"
+                            ),
+                            "violation": _violation,
+                            "source_bbox": [
+                                round(_src.x0, 2), round(_src.y0, 2),
+                                round(_src.x1, 2), round(_src.y1, 2),
+                            ],
+                            "target_bbox": [
+                                round(x0, 2), round(_tgt_bottom, 2),
+                                round(x1, 2), round(_tgt_top, 2),
+                            ],
+                            "source_font_size": round(_src.size, 2),
+                            "target_font_size": round(size, 2),
+                            "layout_solver": strategy,
+                            "text": new[:40],
+                        }
+                    )
+            except Exception as _ve:
+                log.debug("layout violation check failed: %s", _ve)
             self._gate_records.append(_new_gate_record(x0, y, x1, size, sstk[id], new, toc_mode, lidx, line_height, pstk[id].y0, pstk[id].y1))
+            # F3: 接管段先擦除源区域（白底矩形，等价 redact 的物理擦除）——
+            # 源区域旧图层（原文文字/公式背景）先被白色覆盖，译文/公式字形
+            # 绘制在其上，杜绝「原文 / 公式背景与译文重叠」。
+            _src_bbox = _render_src.get(id)
+            if _src_bbox is not None and _page_h > 0:
+                _sw = float(_src_bbox[2]) - float(_src_bbox[0])
+                _sh = float(_src_bbox[3]) - float(_src_bbox[1])
+                if _sw >= 1.0 and _sh >= 1.0:
+                    ops_list.append(
+                        f"q 1 1 1 rg {_safe_float(float(_src_bbox[0]) - 1.0)} "
+                        f"{_safe_float(_page_h - float(_src_bbox[3]) - 1.0)} "
+                        f"{_safe_float(_sw + 2.0)} {_safe_float(_sh + 2.0)} "
+                        f"re f Q ")
             for vals in ops_vals:
                 if vals["type"] == OpType.TEXT:
-                    ops_list.append(gen_op_txt(vals["font"], vals["size"], vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height, vals["rtxt"]))
+                    ops_list.append(gen_op_txt(vals["font"], vals["size"], vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height - vflow_extra, vals["rtxt"]))
                 elif vals["type"] == OpType.LINE:
-                    ops_list.append(gen_op_line(vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height, vals["xlen"], vals["ylen"], vals["linewidth"]))
+                    ops_list.append(gen_op_line(vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height - vflow_extra, vals["xlen"], vals["ylen"], vals["linewidth"]))
 
         # === 2.0: QA 溢出标记（S5）→ 内容流注释 + debug 日志，供自动化回归解析 ===
         for flag in self._overflow_flags:

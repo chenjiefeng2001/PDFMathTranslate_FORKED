@@ -140,6 +140,9 @@ def on_translate(
         return "", gr.update(), last_inputs
     global _last_task_id
     _last_task_id = task_id
+    # 复位 Ctrl+C 旗标：新任务不应被上一次 Ctrl+C 的取消请求立即短路。
+    from pdf2zh.parallel.interrupt import reset_interrupt_flag
+    reset_interrupt_flag()
     saved = (
         client_id, file_type, file_input, link_input,
         service, lang_from, lang_to, page_range, page_input,
@@ -451,6 +454,7 @@ def _render_progress_changed(
                 f"**{B('label_status')}**: {stage_text(ev.stage or 'running')} | "
                 f"**{B('label_progress')}**: {ev.progress:.1f}%"
             )
+            + _active_notice_markdown(ev.task_id)
         ),
     )
     _render_logs(acc, ev.task_id)
@@ -471,7 +475,53 @@ def _render_message_changed(
         st += f" | **{B('label_progress')}**: {ts.progress:.1f}%"
     if ev.message:
         st += f"\n\n{ev.message}"
+    st += _active_notice_markdown(ev.task_id)
     acc.set("status_markdown", gr.update(value=st))
+    _render_logs(acc, ev.task_id)
+
+
+#: Per-task active notices (task_id -> markdown line). Set by the notice
+#: renderer; appended to the status text by the progress/message renderers so
+#: a degradation notice survives continued progress updates.
+_ACTIVE_NOTICES: Dict[str, str] = {}
+
+
+def _active_notice_markdown(task_id: str) -> str:
+    """Return the markdown suffix for an active notice ('' if none)."""
+    line = _ACTIVE_NOTICES.get(task_id)
+    return f"\n\n{line}" if line else ""
+
+
+def _render_notice_emitted(acc: _DeltaAccumulator, ev: "NoticeEmitted") -> None:
+    """Surface a structured runtime notice in the status area (not the bar).
+
+    Notices are process-health facts (backend degradation, fallback, cache
+    migration, ...) and are deliberately rendered outside the progress
+    channel -- exactly the message that was previously dropped by the
+    monotonic progress clamp (0% + message under the last progress value).
+    """
+    if not ev.task_id:
+        return
+    icon = {"error": "🚫", "warning": "⚠️"}.get(ev.severity, "ℹ️")
+    line = f"{icon} **{ev.title}**"
+    if ev.detail:
+        line += f" — {ev.detail}"
+    if ev.tip:
+        line += f"（{ev.tip}）"
+    _ACTIVE_NOTICES[ev.task_id] = line
+    stage = ""
+    svc = get_runtime_service()
+    ts = svc.get_task_state(ev.task_id) if ev.task_id else None
+    if ts is not None:
+        stage = ts.status or ""
+    acc.set(
+        "status_badge",
+        gr.update(value=build_status_badge_html(stage or "running", ev.title[:24])),
+    )
+    acc.set(
+        "status_markdown",
+        gr.update(value=line + _active_notice_markdown(ev.task_id)),
+    )
     _render_logs(acc, ev.task_id)
 
 
@@ -650,6 +700,7 @@ _EVENT_RENDERERS: Dict[str, Callable[[_DeltaAccumulator, Any], None]] = {
     "TaskFinished": _render_finished,
     "PreviewReady": _render_preview_ready,
     "FileGenerated": _render_file_generated,
+    "NoticeEmitted": _render_notice_emitted,
     "DiagnosticsUpdated": _render_diagnostics_updated,
 }
 
@@ -974,6 +1025,31 @@ def create_gui() -> gr.Blocks:
                 elem_id="theme-toggle-btn",
                 elem_classes="theme-toggle-btn",
             )
+            recover_gpu_btn = gr.Button(
+                B("header_recover_gpu"),
+                elem_id="recover-gpu-btn",
+                elem_classes="theme-toggle-btn",
+            )
+            recover_gpu_status = gr.Markdown(
+                value="", visible=False, elem_id="recover-gpu-status",
+            )
+
+        def _on_recover_gpu():
+            """恢复版面分析 GPU 后端：清降级标记，下次任务初始化重新尝试 GPU。"""
+            from pdf2zh.doclayout import set_backend
+            try:
+                set_backend("auto")
+                _hint = B("recover_gpu_ok")
+            except Exception as e:
+                _hint = f"⚠️ {B('recover_gpu_fail')}: {str(e)[:100]}"
+            return gr.update(visible=True, value=_hint)
+
+        recover_gpu_btn.click(
+            fn=_on_recover_gpu,
+            inputs=None,
+            outputs=[recover_gpu_status],
+            queue=False,
+        )
 
         # Theme hot-swap runs purely in the browser (localStorage persisted).
         theme_toggle.click(
@@ -1025,10 +1101,14 @@ def create_gui() -> gr.Blocks:
             outputs=[task_id_state, pc["translate_btn"], last_inputs_state],
         )
 
+        # S3: 控制/下载类操作全部 queue=False 直连（不占 Gradio 队列并发槽）。
+        # 翻译任务占满 default_concurrency_limit=2 时，取消/暂停/下载仍即时
+        # 生效，不会因排队被 max_size 丢弃或无限等待 —— 任务卡死时 UI 可救。
         pc["retry_btn"].click(
             fn=on_retry,
             inputs=[last_inputs_state],
             outputs=[task_id_state, pc["retry_btn"]],
+            queue=False,
         )
 
         pc["cancel_btn"].click(
@@ -1036,32 +1116,38 @@ def create_gui() -> gr.Blocks:
             js=CANCEL_CONFIRM_JS,
             inputs=[task_id_state],
             outputs=[task_id_state],
+            queue=False,
         )
         pc["pause_btn"].click(
             fn=on_pause,
             inputs=[task_id_state],
             outputs=[task_id_state],
+            queue=False,
         )
         pc["resume_btn"].click(
             fn=on_resume,
             inputs=[task_id_state],
             outputs=[task_id_state],
+            queue=False,
         )
         pc["skip_btn"].click(
             fn=on_skip,
             inputs=[task_id_state],
             outputs=[task_id_state],
+            queue=False,
         )
 
         prc["download_btn"].click(
             fn=on_download_single,
             inputs=[task_id_state],
             outputs=[prc["download_single"]],
+            queue=False,
         )
         prc["download_all_btn"].click(
             fn=on_download_all,
             inputs=[task_id_state],
             outputs=[prc["download_zip"]],
+            queue=False,
         )
 
         def _on_select(tid: str, val: str) -> None:
@@ -1112,6 +1198,7 @@ def create_gui() -> gr.Blocks:
             fn=_drain_events_flat,
             inputs=[task_id_state, event_seq_state],
             outputs=[*sync_outputs, event_seq_state],
+            queue=False,
         )
 
         def _on_page_load():
@@ -1214,8 +1301,15 @@ def _register_logs_route(gui: "gr.Blocks") -> None:
 
 
 def main() -> None:
+    from pdf2zh.parallel.interrupt import install_interrupt_guard
+
+    # Ctrl+C 语义（cancel_only=True）：第一次 Ctrl+C 只取消当前翻译任务、GUI 保持运行
+# 进入空闲（可看预览/重新提交/下载已完成任务）；第二次 Ctrl+C 才关闭应用。后台
+# 翻译线程经 coordinator 轮询/池崩短路感知旗标并落 CANCELLED，绝不进入整文档串行兜底。
+    install_interrupt_guard(cancel_only=True)
+
     gui = create_gui()
-    gui.queue(default_concurrency_limit=2, max_size=10, status_update_rate=0.1)
+    gui.queue(default_concurrency_limit=2, max_size=20, status_update_rate=0.1)
     gui.launch(
         server_name="0.0.0.0",
         server_port=7860,
@@ -1231,4 +1325,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    from pdf2zh.pdf2zh import spawn_child_yields_to
+
+    if spawn_child_yields_to():
+        raise SystemExit(0)
     main()

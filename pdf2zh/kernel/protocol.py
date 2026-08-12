@@ -19,6 +19,10 @@ class TranslateRequest:
     pages: Optional[list[int] | str] = None
     output: str = ""
     thread: int = 4
+    # 页级并行：None 表示跟随环境变量/默认（PDF2ZH_PARALLEL、PDF2ZH_NO_PARALLEL、
+    # PDF2ZH_PARALLEL_WORKERS），也可显式覆盖
+    parallel_pages: Optional[bool] = None
+    parallel_workers: Optional[int] = None
     vfont: str = ""
     vchar: str = ""
     prompt: Optional[str] = None

@@ -28,6 +28,15 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 
+def _env_float(name: str, default: float) -> float:
+    """Read a float env var with a safe fallback ('' / garbage -> default)."""
+    try:
+        rawnum = os.environ.get(name) or ""
+        return float(rawnum) if rawnum.strip() else default
+    except (TypeError, ValueError):
+        return default
+
+
 # 自愈策略映射：诊断 issue code -> 修复动作（与 v3/repair_engine 策略一致）。
 _HEAL_ACTIONS = {
     "unicode_error": "Unicode 修复 (OCR 计划)",
@@ -41,29 +50,33 @@ _HEAL_ACTIONS = {
 
 # ── 引擎翻译模式预设 ─────────────────────────────────────────────────────────
 #
-# GUI「引擎模式」下拉的 v0..v4 五种模式 → 具体管线。每个模式是 ServiceConfig
-# 字段的覆盖集合；"auto" 表示保持调用方配置（语义上等价于默认模式）。
-# 落地管线只有两条（都是已实现路径）：
-#   - legacy：``translate_stream`` 经典管线（v0/v1/v2）
-#   - V4：``_execute_v4``（RuntimeFacade 全流程，v3/v4）
+# GUI「引擎模式」下拉的每个模式 → 具体管线。每个模式是 ServiceConfig 字段的
+# 覆盖集合；"auto" 表示保持调用方配置（语义上等价于默认模式）。
+# 落地管线只有两条（都是完整实现、可验证的路径）：
+#   - legacy：``translate_stream`` 经典管线（auto / quick / standard / quality）
+#   - babeldoc：``_execute_babeldoc``（BabelDOC 排版引擎）
+# 不再暴露 V4 引擎模式（v3/v4）：V4 RuntimeFacade 仍是占位原型（placeholder
+# 翻译 + 占位渲染），且曾因 DocumentGraph 迭代死锁导致任务卡死、队列锁死。
 MODE_PRESETS: Dict[str, Dict[str, Any]] = {
-    # v0 基础：纯 legacy 经典路径，关闭全部现代 side-channel（最快、干预最少）
-    "v0": {
+    # auto 自动：保持调用方配置（默认完整 legacy 管线，见 ServiceConfig）
+    "auto": {},
+    # quick 快速：经典管线 + 关闭全部现代 side-channel（最快、干预最少）
+    "quick": {
         "use_v4_engine": False,
         "use_v4_translator": False,
         "use_v4_layout": False,
         "use_v4_repair": False,
         "use_v4_fix_validate_loop": False,
+        "use_v4_gate": False,
         "run_evaluation": False,
         "emit_ir": False,
-        "use_v4_gate": False,
         "relink_links": False,
         "image_engine": False,
         "content_preservation": False,
         "processor_channels": False,
     },
-    # v1 标准：legacy + 全部现代 side-channel + 文档模型（当前生产默认行为）
-    "v1": {
+    # standard 标准：经典管线 + 全部现代 side-channel + 文档模型（生产默认）
+    "standard": {
         "use_v4_engine": False,
         "use_v4_translator": False,
         "use_v4_layout": False,
@@ -77,8 +90,8 @@ MODE_PRESETS: Dict[str, Dict[str, Any]] = {
         "content_preservation": True,
         "processor_channels": True,
     },
-    # v2 高质量：legacy + 文档级评测 + 写回门控 + QA 侧通道
-    "v2": {
+    # quality 高质量：标准 + 文档级评测 + 写回门控 + QA/渲染接管/几何簇
+    "quality": {
         "use_v4_engine": False,
         "use_v4_translator": False,
         "use_v4_layout": False,
@@ -92,47 +105,43 @@ MODE_PRESETS: Dict[str, Dict[str, Any]] = {
         "content_preservation": True,
         "processor_channels": True,
     },
-    # v3 精准：V4 引擎 + 评测（自带 QualityEvaluator）+ 写回门控
-    "v3": {
-        "use_v4_engine": True,
-        "use_v4_translator": True,
-        "use_v4_layout": False,
-        "use_v4_repair": False,
-        "use_v4_fix_validate_loop": False,
-        "use_v4_gate": True,
-        "run_evaluation": False,  # V4 内部自带评测，不需文档级二次评测
-        "relink_links": True,
-        "image_engine": False,
-        "content_preservation": True,
-        "processor_channels": True,
-    },
-    # v4 布局优先：V4 引擎 + 布局/修复 + Fix-Validate 自愈循环
-    "v4": {
-        "use_v4_engine": True,
-        "use_v4_translator": True,
-        "use_v4_layout": True,
-        "use_v4_repair": True,
-        "use_v4_fix_validate_loop": True,
-        "max_repair_passes": 2,
-        "use_v4_gate": True,
-        "run_evaluation": False,
-        "relink_links": True,
-        "image_engine": False,
-        "content_preservation": True,
-        "processor_channels": True,
-    },
+    # babeldoc BabelDOC 排版引擎：独立执行路径（runtime_service._execute_babeldoc），
+    # 不叠加任何 legacy/V4 预设 —— 空 preset 使 resolve_mode_config 原样返回 base。
+    "babeldoc": {},
 }
 
-#: legacy 模式注入 translate_stream 的额外模态 kwargs（V4 模式不走此表）。
+#: 引擎模式 → 执行管线。所有模式都映射到完整实现的管线；V4 占位引擎
+#: （use_v4_engine）不再由任何 GUI 模式触发。
+MODE_PIPELINES: Dict[str, str] = {
+    "auto": "legacy",
+    "quick": "legacy",
+    "standard": "legacy",
+    "quality": "legacy",
+    "babeldoc": "babeldoc",
+}
+
+
+def resolve_pipeline(mode_choice: Optional[str]) -> str:
+    """Map a GUI engine-mode value to the concrete execution pipeline.
+
+    Returns ``"legacy"`` (``translate_stream``) or ``"babeldoc"``
+    (``_execute_babeldoc``). Unknown/empty modes fall back to ``"legacy"``
+    so a future flag never leaves a task without a working pipeline.
+    """
+    mode = (mode_choice or "auto").strip().lower() or "auto"
+    return MODE_PIPELINES.get(mode, "legacy")
+
+
+#: legacy 模式注入 translate_stream 的额外模态 kwargs（babeldoc 模式不走此表）。
 MODE_LEGACY_KWARGS: Dict[str, Dict[str, Any]] = {
-    "v0": {"document_model": False, "toc_split": True,
-           "render_takeover": False, "translation_qa": False,
-           "geometry_cluster": False, "observability": False,
-           "pipeline_dump": False},
-    "v1": {"document_model": True, "toc_split": True},
-    "v2": {"document_model": True, "toc_split": True,
-           "render_takeover": True, "translation_qa": True,
-           "geometry_cluster": True},
+    "quick": {"document_model": False, "toc_split": True,
+              "render_takeover": False, "translation_qa": False,
+              "geometry_cluster": False, "observability": False,
+              "pipeline_dump": False},
+    "standard": {"document_model": True, "toc_split": True},
+    "quality": {"document_model": True, "toc_split": True,
+                "render_takeover": True, "translation_qa": True,
+                "geometry_cluster": True},
 }
 
 # ── V1.24 工作量模型（Work Graph）─────────────────────────────────────────────
@@ -275,6 +284,37 @@ class TaskProgressEvent:
             "diagnostics_count": self.diagnostics_count,
             "message": self.message,
             "eta": self.eta,
+            "timestamp": self.timestamp,
+        }
+
+
+@dataclass
+class RuntimeNoticeEvent:
+    """Structured runtime notice (severity/title/detail/tip).
+
+    Orthogonal to the progress channel: notices describe *process-level*
+    health (backend degradation, cache migration, fallback decisions, ...)
+    and are never clamped/smoothed by the monotonic progress semantics.
+    Delivered through the same listener pipeline as ``TaskProgressEvent``.
+    """
+
+    task_id: str
+    severity: str = "info"
+    """info | warning | error"""
+    title: str = ""
+    detail: str = ""
+    tip: str = ""
+    message: str = ""
+    timestamp: float = field(default_factory=time.time)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "severity": self.severity,
+            "title": self.title,
+            "detail": self.detail,
+            "tip": self.tip,
+            "message": self.message,
             "timestamp": self.timestamp,
         }
 
@@ -486,6 +526,41 @@ class _TaskStore:
             self._events.pop(task_id, None)
             self._cancel_events.pop(task_id, None)
 
+    def get_cancel_event(self, task_id: str) -> Optional[threading.Event]:
+        """Return the per-task cancel Event (None when the task is unknown).
+
+        The event is signalled by ``cancel_task``/``skip_task`` and by the
+        stuck-task watchdog, giving the translation pipeline a real
+        interruptible cancellation hook (S4).
+        """
+        with self._lock:
+            return self._cancel_events.get(task_id)
+
+    def prune_terminated(self, max_age: float, now: float) -> int:
+        """Remove terminal-state tasks older than ``max_age`` seconds.
+
+        Bounds the in-memory task store, per-task event list and cancel
+        events so long-running service processes do not accumulate
+        unbounded memory across many translation jobs (S2).
+
+        Returns the number of removed tasks.
+        """
+        terminal = (
+            TaskStage.COMPLETED.value,
+            TaskStage.CANCELLED.value,
+            TaskStage.FAILED.value,
+        )
+        with self._lock:
+            stale = [
+                tid for tid, st in self._tasks.items()
+                if st.status in terminal and (now - st.updated_at) > max_age
+            ]
+            for tid in stale:
+                self._tasks.pop(tid, None)
+                self._events.pop(tid, None)
+                self._cancel_events.pop(tid, None)
+            return len(stale)
+
     def pause_task(self, task_id: str) -> None:
         with self._lock:
             state = self._tasks.get(task_id)
@@ -520,6 +595,13 @@ class RuntimeService:
     def __init__(self, config: Optional[ServiceConfig] = None) -> None:
         self.config = config or ServiceConfig()
         self._store = _TaskStore()
+        #: S2: 终态任务保留时长（秒）；超龄任务由 sweeper 定期清理。
+        self._retention_seconds = _env_float("PDF2ZH_TASK_RETENTION_SECONDS", 3600.0)
+        #: S4: 运行中任务"无任何状态更新"的护栏超时（秒）；超时任务自动
+        #: 取消并标记失败，防止悬挂任务永久占用 GUI 并发槽位。
+        self._stuck_timeout_seconds = _env_float("PDF2ZH_TASK_TIMEOUT_SECONDS", 7200.0)
+        #: S2/S4: 后台清扫线程间隔（秒）。
+        self._sweep_interval = max(10.0, _env_float("PDF2ZH_SWEEP_INTERVAL", 60.0))
         self._lock = threading.Lock()
         self._active_count = 0
         #: Per-task batch aggregation state (only for multi-file tasks).
@@ -541,6 +623,11 @@ class RuntimeService:
         #: 每个任务当前的阶段权重表（文档页数已知后重排 translating 等）。
         self._task_stage_weights: Dict[str, Dict[str, float]] = {}
         self._stage_weights_lock = threading.Lock()
+        #: S2/S4: 后台清扫线程（终态清理 + 悬挂任务看门狗；daemon 不阻塞退出）。
+        self._sweeper = threading.Thread(
+            target=self._sweeper_loop, name="pdf2zh-task-sweeper", daemon=True,
+        )
+        self._sweeper.start()
 
     # ── Event listener API (Worker -> EventBus bridge) ───────────────────────
 
@@ -699,12 +786,31 @@ class RuntimeService:
             task_config = resolve_mode_config(mode, self.config)
             self._sync_feature_flags(task_id, task_config)
             files = request.resolved_files()
-            if len(files) > 1:
-                self._execute_batch(task_id, request, files, task_config)
+            cancel_event = self._store.get_cancel_event(task_id)
+            if resolve_pipeline(mode) == "babeldoc":
+                # BabelDOC 布局引擎独立执行路径：单文件直跑，批量走 _execute_batch
+                # （其 per-file 分发同样识别 babeldoc 模式）。
+                if len(files) > 1:
+                    self._execute_batch(task_id, request, files, task_config, cancel_event)
+                else:
+                    self._execute_babeldoc(task_id, request, task_config)
+            elif len(files) > 1:
+                self._execute_batch(task_id, request, files, task_config, cancel_event)
             elif task_config.use_v4_engine:
                 self._execute_v4(task_id, request, task_config)
             else:
-                self._execute_legacy(task_id, request, task_config)
+                self._execute_legacy(task_id, request, task_config, cancel_event)
+        except KeyboardInterrupt:
+            # V3-4：Ctrl+C 中断（GUI 场景由 parallel.interrupt 旗标桥接，后台
+            # 翻译线程经 coordinator 短路抛 KeyboardInterrupt）。按“用户取消”
+            # 语义落终态 —— 绝不打印线程级未处理异常（threading.excepthook），
+            # 也绝不进入任何串行兜底（translate_stream 已 except KeyboardInterrupt: raise）。
+            logger.info("[task=%s] interrupted by Ctrl+C; task cancelled", task_id)
+            self._store.update_task(
+                task_id, status=TaskStage.CANCELLED.value,
+                error_message="Interrupted by user", message="Cancelled by user",
+            )
+            self._emit_event(task_id, TaskStage.CANCELLED.value, 100.0, "Cancelled by user")
         except Exception as exc:
             logger.error("Task %s failed: %s", task_id, exc, exc_info=True)
             self._store.update_task(
@@ -712,10 +818,28 @@ class RuntimeService:
                 error_message=str(exc), message=f"Error: {exc}",
             )
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {exc}")
+        finally:
+            # V3-5：任务已落终态（COMPLETED/CANCELLED/FAILED，含单/批量/v4 全路径）——
+            # 此后无活动任务。GUI cancel_only 模式下“下一次 Ctrl+C 即关闭应用”
+            # （翻译运行中的第一次 Ctrl+C 只取消任务、不退出；任务结束后空闲态
+            #  用户再按一次即视为主动关闭，无需连续按两次）。新任务提交时
+            # on_translate 会 reset_interrupt_flag() 清除该标记，恢复运行中语义。
+            state = self._store.get_task(task_id)
+            if state and state.status in (
+                TaskStage.COMPLETED.value,
+                TaskStage.CANCELLED.value,
+                TaskStage.FAILED.value,
+            ):
+                try:
+                    from pdf2zh.parallel.interrupt import mark_exit_pending
+
+                    mark_exit_pending()
+                except Exception:  # noqa: BLE001 -- 仅为标记，绝不干扰任务落终态
+                    pass
 
     def _execute_batch(
         self, task_id: str, request: TranslationRequest, files: List[str],
-        config: ServiceConfig,
+        config: ServiceConfig, cancel_event: Optional[threading.Event] = None,
     ) -> None:
         """Execute a multi-file batch sequentially, aggregating overall progress.
 
@@ -723,6 +847,7 @@ class RuntimeService:
         recorded per-file (task continues with the next file). The task only
         reaches a terminal stage once every file has been processed.
         """
+        mode = (request.extra_config or {}).get("mode_choice") or "auto"
         ctx = self._batch_ctx.get(task_id)
         if ctx is None:
             ctx = _BatchContext(total_files=len(files))
@@ -746,10 +871,12 @@ class RuntimeService:
             )
             sub_request = dataclasses.replace(request, source_path=path, files=[])
             try:
-                if config.use_v4_engine:
+                if resolve_pipeline(mode) == "babeldoc":
+                    self._execute_babeldoc(task_id, sub_request, config)
+                elif config.use_v4_engine:
                     self._execute_v4(task_id, sub_request, config)
                 else:
-                    self._execute_legacy(task_id, sub_request, config)
+                    self._execute_legacy(task_id, sub_request, config, cancel_event)
             except Exception as exc:
                 logger.error(
                     "[task=%s] file %s failed: %s", task_id, path, exc, exc_info=True,
@@ -847,6 +974,12 @@ class RuntimeService:
         batch tasks accumulate ``result_files`` and bump the aggregate progress.
         """
         if total_files <= 1 or task_id not in self._batch_ctx:
+            if self._store.is_cancelled(task_id):
+                # Single-file task cancelled (user or S4 watchdog): drop the
+                # late completion so a worker finishing after the cancel cannot
+                # resurrect the task (CANCELLED -> COMPLETED).
+                logger.info("[task=%s] cancelled; dropping late completion", task_id)
+                return
             # The ZIP is built from the stored result_files below; a caller
             # supplied result_zip (commonly a bare mono/dual PDF path) would
             # surface as a bogus "Download All (ZIP)" target, so drop it.
@@ -897,6 +1030,12 @@ class RuntimeService:
         """
         error = str(exc)
         if total_files <= 1 or task_id not in self._batch_ctx:
+            if self._store.is_cancelled(task_id):
+                # Single-file task cancelled (user or S4 watchdog): keep the
+                # terminal state set by the canceller instead of overwriting it
+                # with a failure report (CANCELLED -> FAILED).
+                logger.info("[task=%s] cancelled; dropping late failure report", task_id)
+                return
             self._store.update_task(
                 task_id, status=TaskStage.FAILED.value,
                 error_message=error, message=message or f"Error: {error}",
@@ -1041,7 +1180,12 @@ class RuntimeService:
             from pdf2zh.v3.translation_runtime import TranslationRuntime
             tr = TranslationRuntime()
             if rt.plans:
-                tr.execute(rt.graph, rt.plans)
+                # rt.plans 是 {node_id: TranslationPlan}，合并为单 plan 后执行；
+                # 不能把整个 dict 当作 TranslationPlan 传入
+                # （历史 bug：'dict' object has no attribute 'node_ids'）。
+                from pdf2zh.v3.planner import TranslationPlan
+                plan = TranslationPlan(node_ids=list(rt.plans.keys()))
+                tr.execute(rt.graph, plan)
         else:
             rt.translate()
         if self._store.is_cancelled(task_id):
@@ -1052,6 +1196,7 @@ class RuntimeService:
             return
         self._emit_event(task_id, TaskStage.RENDERING.value, 85.0, "Rendering...")
         output = rt.pipeline(request.source_path)
+
         self._emit_event(task_id, TaskStage.EVALUATING.value, 95.0, "Evaluating...")
         # -- V4 Diagnostic Data Collection --
         diagnostic_summary = ""
@@ -1128,7 +1273,7 @@ class RuntimeService:
             pages = 0
             counts: Dict[str, int] = {"paragraphs": 0, "headings": 0,
                                       "figures": 0, "formulas": 0}
-            for node in graph:
+            for node in getattr(graph, "nodes", None) or ():
                 kind = str(getattr(node, "kind", "") or "").lower()
                 ntype = str(getattr(node, "type", "") or "").lower()
                 tag = f"{kind}:{ntype}"
@@ -1151,7 +1296,8 @@ class RuntimeService:
             return None
 
     def _execute_legacy(self, task_id: str, request: TranslationRequest,
-                        config: Optional[ServiceConfig] = None) -> None:
+                        config: Optional[ServiceConfig] = None,
+                        cancel_event: Optional[threading.Event] = None) -> None:
         """Execute with Legacy translate_stream pipeline."""
         from pdf2zh.high_level import translate_stream
         from pdf2zh.doclayout import ModelInstance, OnnxModel
@@ -1160,6 +1306,32 @@ class RuntimeService:
         total_files = self._batch_total(task_id)
 
         # Ensure layout model is loaded before translation
+        from pdf2zh.doclayout import is_cpu_degraded, try_rearm_gpu
+        if is_cpu_degraded():
+            rearmed = try_rearm_gpu()
+            if rearmed:
+                logger.warning(
+                    "[task=%s] Process backend was CPU-degraded (previous GPU worker "
+                    "crash); auto-rearming GPU for this task (transient fault retry). "
+                    "A second crash will keep the backend on CPU for this session.",
+                    task_id,
+                )
+                ModelInstance.value = None  # GPU session 在崩溃后已重置，重载
+            else:
+                logger.warning(
+                    "[task=%s] Process backend is CPU-degraded (previous GPU worker crash); "
+                    "layout inference will run on CPU for this task. Restart the service or "
+                    "re-run with --backend auto (pdf2zh CLI) to retry GPU.",
+                    task_id,
+                )
+                self._emit_notice(
+                    task_id,
+                    "warning",
+                    "Process backend is CPU-degraded",
+                    "A previous GPU-backed parallel worker crash degraded layout inference "
+                    "to CPU for this task.",
+                    "Restart the service or re-run with --backend auto to retry GPU.",
+                )
         if ModelInstance.value is None:
             try:
                 ModelInstance.value = OnnxModel.load_available()
@@ -1207,6 +1379,7 @@ class RuntimeService:
                 skip_subset_fonts=request.skip_subset_fonts,
                 ignore_cache=request.ignore_cache,
                 model=ModelInstance.value,
+                cancellation_event=cancel_event,
                 emit_ir=config.emit_ir,
                 relayout_gate=(self._make_gate if config.use_v4_gate else None),
                 v3_output=v3_output,
@@ -1219,7 +1392,19 @@ class RuntimeService:
                 **legacy_mode_kwargs(mode),
                 **extra_config,
             )
+        except KeyboardInterrupt:
+            # V3-4：Ctrl+C 中断 —— 绝不当作“翻译失败”（不写 FAILED 终态），
+            # 传播给 _execute_task 统一按“用户取消”落终态。
+            raise
         except Exception as tx_exc:
+            if self._store.is_cancelled(task_id):
+                # User cancel / S4 watchdog: the pipeline raised CancelledError
+                # (or similar); keep the terminal state already set.
+                logger.info(
+                    "[task=%s] cancelled during translation; aborting pipeline",
+                    task_id,
+                )
+                return
             logger.error("[task=%s] translate_stream failed: %s", task_id, tx_exc, exc_info=True)
             self._fail_file(task_id, tx_exc, total_files=total_files)
             return
@@ -1347,6 +1532,127 @@ class RuntimeService:
             message="Completed (Legacy)",
         )
         logger.info("[task=%s] Output files written successfully", task_id)
+
+    def _execute_babeldoc(
+        self, task_id: str, request: TranslationRequest,
+        config: Optional[ServiceConfig] = None,
+    ) -> None:
+        """Execute with the BabelDOC (YADT) layout engine (mode='babeldoc').
+
+        Prefers the modified pdf2zh_next kernel pipeline (engine settings are
+        mapped onto a ``pdf2zh_next.SettingsModel`` and driven through
+        ``create_babeldoc_config`` + BabelDOC ``async_translate``). When the
+        kernel is missing or the selected engine has no kernel mapping, falls
+        back to the legacy ``build_translator``-wrapper pipeline. Progress
+        events are forwarded through the work-graph aggregator; cancellation
+        is cooperative (BabelDOC aborts at its next checkpoint).
+        """
+        import asyncio
+
+        from pdf2zh.babeldoc_adapter import (
+            BabeldocNotInstalledError,
+            run_babeldoc_translation,
+        )
+        try:
+            from pdf2zh.babeldoc_next_adapter import (
+                BabeldocNextUnavailableError,
+                run_babeldoc_next_translation,
+            )
+        except Exception:  # noqa: BLE001 -- next-kernel import is best effort
+            BabeldocNextUnavailableError = None
+            run_babeldoc_next_translation = None
+
+        config = config or self.config
+        total_files = self._batch_total(task_id)
+        self._emit_event(task_id, TaskStage.PARSING.value, 5.0,
+                         "BabelDOC engine starting...")
+        if self._store.is_cancelled(task_id):
+            return
+
+        extra = request.extra_config or {}
+        envs = dict(extra.get("envs") or {})
+        prompt = extra.get("prompt")
+        out_dir = config.output_dir or os.path.dirname(request.source_path)
+        def _forward_progress(stage: str, pct: float, msg: str) -> None:
+            # _emit_smooth throttles the 0.2s BabelDOC event cadence into
+            # monotone progress steps while still forwarding stage msgs.
+            self._emit_smooth(task_id, stage, pct, msg)
+
+        try:
+            result_files = None
+            engine_label = "BabelDOC (pdf2zh_next kernel)"
+            if run_babeldoc_next_translation is not None:
+                try:
+                    result_files = run_babeldoc_next_translation(
+                        source_path=request.source_path,
+                        lang_in=request.source_lang,
+                        lang_out=request.target_lang,
+                        service=request.engine,
+                        pages=request.page_range or None,
+                        envs=envs,
+                        prompt=prompt,
+                        ignore_cache=request.ignore_cache,
+                        qps=request.threads or 4,
+                        output_dir=out_dir,
+                        progress_cb=_forward_progress,
+                        cancelled_check=lambda: self._store.is_cancelled(task_id),
+                        debug=bool(getattr(config, "debug", False)),
+                    )
+                except BabeldocNextUnavailableError as exc:
+                    logger.info(
+                        "[task=%s] pdf2zh_next kernel unavailable for engine "
+                        "%r (%s); falling back to the legacy BabelDOC pipeline",
+                        task_id, request.engine, exc,
+                    )
+                    result_files = None
+            if result_files is None:
+                engine_label = "BabelDOC (legacy layout engine)"
+                result_files = run_babeldoc_translation(
+                    source_path=request.source_path,
+                    lang_in=request.source_lang,
+                    lang_out=request.target_lang,
+                    service=request.engine,
+                    pages=request.page_range or None,
+                    envs=envs,
+                    prompt=prompt,
+                    ignore_cache=request.ignore_cache,
+                    qps=request.threads or 4,
+                    output_dir=out_dir,
+                    progress_cb=_forward_progress,
+                    cancelled_check=lambda: self._store.is_cancelled(task_id),
+                    debug=bool(getattr(config, "debug", False)),
+                )
+        except BabeldocNotInstalledError as exc:
+            self._fail_file(task_id, exc, total_files=total_files)
+            return
+        except asyncio.CancelledError:
+            return  # cooperative cancel already left the task in CANCELLED
+        except Exception as exc:
+            if self._store.is_cancelled(task_id):
+                return  # user cancelled during the run; keep terminal state
+            logger.error("[task=%s] BabelDOC failed: %s", task_id, exc,
+                         exc_info=True)
+            self._fail_file(task_id, exc, total_files=total_files)
+            return
+        if self._store.is_cancelled(task_id):
+            return
+        if not result_files:
+            self._fail_file(
+                task_id, "BabelDOC produced no output files",
+                total_files=total_files,
+            )
+            return
+        dual = next(
+            (f["path"] for f in result_files if "dual" in f["name"]),
+            result_files[0]["path"],
+        )
+        self._complete_file(
+            task_id, result_files, total_files=total_files,
+            selected_file=result_files[0]["name"],
+            preview_path=dual if os.path.exists(dual) else result_files[0]["path"],
+            diagnostic_summary=engine_label,
+            message="Completed (BabelDOC)",
+        )
 
     def _collect_legacy_overview(
         self, v3_output: Dict[str, Any], source_path: str,
@@ -1642,11 +1948,40 @@ class RuntimeService:
             visible = self._agg(batch, raw)
         with self._progress_lock:
             prev = self._last_progress.get(task_id, -1.0)
+            if visible < prev:
+                # 进度不允许倒退（前端进度条单调），但消息必须透传：
+                # 否则降级通知/阶段说明等低进度或同进度消息会被直接丢弃，
+                # 前端停留在旧进度上以为任务卡死 —— 前后端数据断层。
+                if message:
+                    self._emit_message_event(task_id, stage, message)
+                return
             if prev < 0 or terminal or visible - prev >= min_delta:
-                if visible < prev:
-                    return
                 self._last_progress[task_id] = visible
                 self._emit_event(task_id, stage, raw, message)
+
+    def _emit_message_event(self, task_id: str, stage: str, message: str) -> None:
+        """仅透传消息的进度事件：进度沿用当前已入账值，不倒退、不重映射。
+
+        用于进度被 ``_emit_smooth`` 钳制（前进度 > 新进度）但内容仍需
+        到达前端的场景（并行降级、阶段切换说明等）。事件携带当前
+        store 里的 progress/stage/eta，前端进度条保持单调，消息正常渲染。
+        """
+        state = self._store.get_task(task_id)
+        current = float(self._last_progress.get(task_id, -1.0))
+        if current < 0:
+            current = float(getattr(state, "progress", 0.0) or 0.0)
+        cur_stage = getattr(state, "stage", "") or stage
+        cur_eta = float(getattr(state, "eta", 0.0) or 0.0)
+        event = TaskProgressEvent(
+            task_id=task_id,
+            stage=cur_stage,
+            progress=current,
+            message=message,
+            eta=cur_eta,
+        )
+        self._store.add_event(task_id, event)
+        self._store.update_task(task_id, message=message)
+        self._notify_event_listeners(event)
 
     def _emit_event(
         self, task_id: str, stage: str, progress: float,
@@ -1700,6 +2035,119 @@ class RuntimeService:
                     "Event listener error for task %s", event.task_id
                 )
 
+    # ── S2/S4 后台清扫（内存上限 + 悬挂任务看门狗） ──────────────────────────
+
+    def _sweep_stale(self, now: float) -> int:
+        """S2: prune terminal tasks older than the retention window.
+
+        Also drops the per-task aggregator / batch / weight / progress maps
+        whose owner task no longer exists -- these grew unboundedly with
+        every finished job in long-running service processes.
+        """
+        removed = self._store.prune_terminated(self._retention_seconds, now)
+        if removed:
+            logger.info(
+                "Pruned %d terminated task(s) older than %.0fs",
+                removed, self._retention_seconds,
+            )
+        with self._batch_ctx_lock:
+            for tid in list(self._batch_ctx):
+                if self._store.get_task(tid) is None:
+                    self._batch_ctx.pop(tid, None)
+        with self._progress_lock:
+            for tid in list(self._last_progress):
+                if self._store.get_task(tid) is None:
+                    self._last_progress.pop(tid, None)
+        with self._aggregator_lock:
+            for tid in list(self._aggregators):
+                if self._store.get_task(tid) is None:
+                    self._aggregators.pop(tid, None)
+        with self._stage_weights_lock:
+            for tid in list(self._task_stage_weights):
+                if self._store.get_task(tid) is None:
+                    self._task_stage_weights.pop(tid, None)
+        return removed
+
+    def _sweep_stuck(self, now: float) -> int:
+        """S4: auto-cancel tasks with NO state updates for a long time.
+
+        Guards against pipeline hangs (unbounded waits, native stalls) that
+        would otherwise occupy the GUI concurrency slots forever. Terminal
+        or unknown tasks are skipped. Returns the number of tasks aborted.
+        """
+        killed = 0
+        for tid in self._store.list_task_ids():
+            state = self._store.get_task(tid)
+            if state is None or state.status in (
+                TaskStage.COMPLETED.value,
+                TaskStage.CANCELLED.value,
+                TaskStage.FAILED.value,
+            ):
+                continue
+            if (now - state.updated_at) <= self._stuck_timeout_seconds:
+                continue
+            logger.error(
+                "[task=%s] no state update for %.0fs; auto-cancelling as stuck (S4 watchdog)",
+                tid, self._stuck_timeout_seconds,
+            )
+            # Signal the pipeline's cancellation hook, then flip to FAILED.
+            self._store.cancel_task(tid)
+            self._store.update_task(
+                tid,
+                status=TaskStage.FAILED.value,
+                message=(
+                    f"Timed out: no progress for "
+                    f"{int(self._stuck_timeout_seconds)}s"
+                ),
+                error_message=(
+                    f"Task made no progress for {int(self._stuck_timeout_seconds)}s "
+                    "and was auto-cancelled by the watchdog"
+                ),
+            )
+            self._emit_notice(
+                tid, "error", "Task timed out",
+                "The task made no progress for a long time and was auto-cancelled.",
+                "Check the network / translation service status.",
+            )
+            killed += 1
+        return killed
+
+    def _sweeper_loop(self) -> None:
+        """Daemon background loop: bounded-memory cleanup + stuck-task watchdog."""
+        while True:
+            time.sleep(self._sweep_interval)
+            try:
+                self._sweep_stale(time.time())
+                self._sweep_stuck(time.time())
+            except Exception:  # noqa: BLE001 -- the sweeper must never die
+                logger.exception("task sweeper iteration failed")
+
+    def _emit_notice(
+        self,
+        task_id: str,
+        severity: str,
+        title: str,
+        detail: str = "",
+        tip: str = "",
+    ) -> None:
+        """Emit a structured runtime notice (independent of the progress stream).
+
+        Notices ride the same listener pipeline so the GUI bridge can forward
+        them, but they never clamp against the monotonic progress channel (see
+        the CPU-degrade case which produced a 0%-progress + message event and
+        was previously swallowed by the smooth-progress guard).
+        """
+        event = RuntimeNoticeEvent(
+            task_id=task_id,
+            severity=severity,
+            title=title,
+            detail=detail,
+            tip=tip,
+            message=f"[{severity}] {title}",
+        )
+        self._store.add_event(task_id, event)
+        self._notify_event_listeners(event)
+
 
 
 __all__ = [
@@ -1707,6 +2155,7 @@ __all__ = [
     "TranslationRequest",
     "TaskState",
     "TaskProgressEvent",
+    "RuntimeNoticeEvent",
     "TaskStage",
     "ServiceConfig",
 ]

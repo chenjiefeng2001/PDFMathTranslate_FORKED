@@ -100,6 +100,20 @@ def create_parser() -> argparse.ArgumentParser:
         help="The number of threads to execute translation.",
     )
     parse_params.add_argument(
+        "--parallel-workers",
+        type=int,
+        default=None,
+        help="Number of parallel page-processing worker processes (default 4). "
+        "Lower it (e.g. 2) on memory-constrained machines; also honored via "
+        "the PDF2ZH_PARALLEL_WORKERS env var.",
+    )
+    parse_params.add_argument(
+        "--no-parallel",
+        action="store_true",
+        help="Disable parallel page processing (serial fallback). Also set via "
+        "PDF2ZH_NO_PARALLEL=1; PDF2ZH_PARALLEL=1 forces it on.",
+    )
+    parse_params.add_argument(
         "--interactive",
         "-i",
         action="store_true",
@@ -157,6 +171,14 @@ def create_parser() -> argparse.ArgumentParser:
         "--serverport",
         type=int,
         help="custom WebUI port.",
+    )
+
+    parse_params.add_argument(
+        "--proxy",
+        type=str,
+        default="",
+        help="HTTP(S) proxy for translation requests, e.g. http://127.0.0.1:7890. "
+        "Also honored via the PDF2ZH_PROXY env var or the WebUI environment box.",
     )
 
     parse_params.add_argument(
@@ -236,6 +258,38 @@ def parse_args(args: Optional[List[str]]) -> argparse.Namespace:
     return parsed_args
 
 
+# Spawn 子进程会在 argv 中携带的进程级标志（Python spawn / 冻结启动器都会
+# 把入口脚本作为 __main__ 重新执行并把这些参数连同原始声明一起传入）。
+# 若入口不加保护，argparse 会在子进程中以 "-I --multiprocessing-fork ..."
+# 二次解析而崩溃（"unrecognized arguments"），导致
+# ProcessPoolExecutor 全部子进程启动即死 -> BrokenProcessPool。
+_SPAWN_FORK_FLAG = "--multiprocessing-fork"
+
+
+def is_spawn_child(argv: Optional[List[str]] = None) -> bool:
+    """当前进程是否为 multiprocessing spawn 子进程（依据 argv 中的 fork 标志）。"""
+    return _SPAWN_FORK_FLAG in (argv if argv is not None else sys.argv)
+
+
+def spawn_child_yields_to(args: Optional[List[str]] = None) -> bool:
+    """spawn 子进程将控制权让渡给 multiprocessing bootstrap；返回 True 表示不要再运行 argparse。
+
+    标准/冻结形态（argv[1] == '--multiprocessing-fork'）交给
+    ``multiprocessing.freeze_support()``（其内部会调用 ``spawn_main()`` 并
+    ``sys.exit``）；其余启动器形态（如 ``-I --multiprocessing-fork`` 混在
+    argv 中）此时由 spawn machinery 驱动，入口只需静默让路。
+    """
+    if not is_spawn_child(args):
+        return False
+    try:
+        import multiprocessing
+
+        multiprocessing.freeze_support()
+    except Exception:  # noqa: BLE001 - 入口保护函数不允许让任何异常逃逸
+        pass
+    return True
+
+
 def find_all_files_in_directory(directory_path):
     """
     Recursively search all PDF files in the given directory and return their paths as a list.
@@ -261,7 +315,16 @@ def find_all_files_in_directory(directory_path):
 
 
 def main(args: Optional[List[str]] = None) -> int:
+    if spawn_child_yields_to(args):
+        # spawn 子进程再入口：控制权已归还 bootstrap，本进程不会再启动应用。
+        return 0
     parsed_args = parse_args(args)
+
+    from pdf2zh.parallel.interrupt import install_interrupt_guard
+
+    # Ctrl+C 旗标：CLI 主线程仍按默认语义收到 KeyboardInterrupt；旗标供
+    # coordinator 在 chunk 运行期间轮询感知，实现"立即短路、不进串行兜底"。
+    install_interrupt_guard()
 
     from rich.logging import RichHandler
 
@@ -281,6 +344,10 @@ def main(args: Optional[List[str]] = None) -> int:
         from pdf2zh.config import ConfigManager
 
         ConfigManager.custome_config(parsed_args.config)
+
+    if getattr(parsed_args, "proxy", None):
+        # 统一入口：--proxy 覆盖为标准变量，配合 PDF2ZH_PROXY 兜底（见 translator.py）
+        os.environ.setdefault("PDF2ZH_PROXY", parsed_args.proxy)
 
     if parsed_args.debug:
         log.setLevel(logging.DEBUG)
@@ -376,6 +443,8 @@ def main(args: Optional[List[str]] = None) -> int:
         lang_out=parsed_args.lang_out,
         service=parsed_args.service,
         thread=parsed_args.thread,
+        parallel_pages=None if not parsed_args.no_parallel else False,
+        parallel_workers=parsed_args.parallel_workers,
         vfont=parsed_args.vfont,
         vchar=parsed_args.vchar,
         envs={},
@@ -390,10 +459,11 @@ def main(args: Optional[List[str]] = None) -> int:
 
 
 def yadt_main(parsed_args) -> int:
-    from babeldoc.high_level import async_translate as yadt_translate
-    from babeldoc.high_level import init as yadt_init
+    from babeldoc.format.pdf.high_level import async_translate as yadt_translate
+    from babeldoc.format.pdf.high_level import init as yadt_init
     from babeldoc.main import create_progress_handler
-    from babeldoc.translation_config import TranslationConfig as YadtConfig
+    from babeldoc.format.pdf.translation_config import TranslationConfig as YadtConfig
+    from pdf2zh.babeldoc_adapter import make_babeldoc_translator
     from pdf2zh.high_level import download_remote_fonts
 
     if parsed_args.dir:
@@ -489,6 +559,12 @@ def yadt_main(parsed_args) -> int:
             break
     else:
         raise ValueError("Unsupported translation service")
+    # Bridge the pdf2zh engine into BabelDOC's translator interface so the
+    # BabelDOC layout pipeline can call translate(text, rate_limit_params=...).
+    babeldoc_translator = make_babeldoc_translator(
+        translator, lang_in, lang_out, ignore_cache,
+    )
+
     import asyncio
 
     for file in untranlate_file:
@@ -503,7 +579,7 @@ def yadt_main(parsed_args) -> int:
             pages=",".join((str(x) for x in getattr(parsed_args, "raw_pages", []))),
             output_dir=outputdir,
             doc_layout_model=None,
-            translator=translator,
+            translator=babeldoc_translator,
             debug=parsed_args.debug,
             lang_in=lang_in,
             lang_out=lang_out,

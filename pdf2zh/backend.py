@@ -209,4 +209,8 @@ def get_translate_result(id: str, format: str):
 
 
 if __name__ == "__main__":
+    from pdf2zh.pdf2zh import spawn_child_yields_to
+
+    if spawn_child_yields_to():
+        raise SystemExit(0)
     flask_app.run()

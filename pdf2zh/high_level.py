@@ -2,10 +2,12 @@
 
 import asyncio
 import io
+import json
 import os
 import re
 import sys
 import tempfile
+import time
 import logging
 from asyncio import CancelledError
 from concurrent.futures.process import BrokenProcessPool
@@ -78,6 +80,57 @@ def check_files(files: List[str]) -> List[str]:
     return missing_files
 
 
+def _int_env(name: str, default: int) -> int:
+    """读取整数环境变量，非法值回落默认（防御用户手写非数字）。"""
+    try:
+        raw = os.environ.get(name, "").strip()
+        return int(raw) if raw else default
+    except ValueError:
+        return default
+
+
+class _LayoutBatchPredictor:
+    """批量版面推理封装（动态 Batch 并行，V3 iteration）。
+
+    基于 DocLayout-YOLO 的动态轴导出（``['batch', 3, 'height', 'width']``），
+    由调用方（translate_patch 页循环）攒够 batch 页后调用 ``predict_images``，
+    内部把 N 页图片 stack 成单张 ``[N, 3, H, W]`` 一次 ``session.run``（经
+    ``OnnxModel.predict_batch``），相比逐页推理减少 Python/ORT 调度开销；模型
+    不支持动态 batch 时自动退化为逐页 ``predict``（行为与现状完全等价）。
+
+    注意（本机 CPU 实测）：ORT 对动态 batch 不做批量融合，compute 为相加，
+    CPU 上 batch 反而略慢（~0.9x）；建议仅在 GPU/DML 后端或批量融合导出的
+    模型上开启。默认关闭，``PDF2ZH_LAYOUT_BATCH``（≥2）开启并设定批大小。
+    """
+
+    def __init__(self, model, batch_size: int = 8):
+        self.model = model
+        self.batch_size = max(2, int(batch_size))
+        self._flush_count = 0
+        self._predicted_pages = 0
+        self._infer_secs = 0.0
+
+    def predict_images(self, images) -> list:
+        """批量推理 ``images``，返回 ``List[YoloResult]``（顺序一一对应）。"""
+        if not images:
+            return []
+        t0 = time.perf_counter()
+        if hasattr(self.model, "predict_batch"):
+            results = self.model.predict_batch(images)
+        else:
+            # 防御：无 batch 能力的模型逐张预测
+            results = [self.model.predict(im)[0] for im in images]
+        self._infer_secs += time.perf_counter() - t0
+        self._flush_count += 1
+        self._predicted_pages += len(images)
+        return results
+
+    def stats(self) -> tuple:
+        """(ONNX 调度次数, 预测页数, 推理总耗时秒数)"""
+        return self._flush_count, self._predicted_pages, self._infer_secs
+
+
+
 def translate_patch(
     inf: BinaryIO,
     pages: Optional[list[int]] = None,
@@ -126,6 +179,14 @@ def translate_patch(
     document_model: bool = False,
     # Phase D: 可观测层（Trace/Snapshot/Decision → v3_output["observability"]）
     observability: bool = False,
+    # P5–P10: 语义文本重建 + 公式几何重构（→ v3_output["reconstruction"]）
+    # 默认 True：真实运行必须产出重建 QA（此前默认 False 且服务层未透传，
+    # 实际运行中通道全程关闭 → 「测试全过、实际无产物」的假象）。side-channel
+    # 纪律保证失败只进 debug 日志，绝不干扰主链路渲染。
+    reconstruction_channel: bool = True,
+    # 阶段 3 主链路接线：渲染前以 P5–P10 SolvedUnit 几何接管 legacy 段落
+    # （文本集一致才接管；公式锚点经旧 {vN} 机制逐字形还原 → 零漂移）。
+    reconstruction_adopt: bool = True,
 
     **kwarg: Any,
 ) -> None:
@@ -177,6 +238,14 @@ def translate_patch(
     # Phase D: 可观测会话（converter side-channel 写，本函数收尾回传）
     device.observability = bool(observability)
     device.obs_session = None
+    # P5–P10: 语义重建 + 公式几何 side-channel
+    device.reconstruction_channel = bool(reconstruction_channel)
+    device.reconstruction_records = {}
+    device.reconstruction_qa = {}
+    # 阶段 3 主链路接线容器（渲染前接管 + 完整对象存档）
+    device.reconstruction_adopt = bool(reconstruction_adopt)
+    device.reconstruction_results = {}
+    device.reconstruction_adoptions = {}
 
     assert device is not None
     obj_patch = {}
@@ -188,25 +257,34 @@ def translate_patch(
 
     parser = PDFParser(inf)
     doc = PDFDocument(parser)
+    # 动态 Batch 版面推理（可选，V3 iteration）：PDF2ZH_LAYOUT_BATCH ≥ 2 时开启。
+    # CPU 上 ORT 对动态 batch 不做批量融合（实测略慢），默认关闭；GPU/DML 后端
+    # 或批量融合导出的模型受益。模型未加载（model=None）时自动回落逐页 predict。
+    _layout_batch = _int_env("PDF2ZH_LAYOUT_BATCH", 0)
+    _layout_predictor = None
+    if model is not None and _layout_batch >= 2:
+        try:
+            _layout_predictor = _LayoutBatchPredictor(model, batch_size=_layout_batch)
+            logger.info(
+                "Layout batch inference enabled (batch_size=%d, supports_batch=%s)",
+                _layout_batch,
+                bool(getattr(model, "supports_batch", False)),
+            )
+        except Exception as batch_err:  # noqa: BLE001 -- 初始化失败逐页兜底
+            logger.warning(
+                "Layout batch predictor init failed (%s); per-page predict",
+                batch_err,
+            )
+            _layout_predictor = None
     with tqdm.tqdm(total=total_pages) as progress:
-        for pageno, page in enumerate(PDFPage.create_pages(doc)):
-            if cancellation_event and cancellation_event.is_set():
-                raise CancelledError("task cancelled")
-            if pages and (pageno not in pages):
-                continue
-            progress.update()
-            if callback:
-                callback(progress)
-            page.pageno = pageno
-            pix = doc_zh[page.pageno].get_pixmap()
-            image = np.frombuffer(pix.samples, np.uint8).reshape(
-                pix.height, pix.width, 3
-            )[:, :, ::-1]
-            page_layout = model.predict(image, imgsz=int(pix.height / 32) * 32)[0]
+        _pd_n, _pd_secs = 0, 0.0  # L2: 每页推理耗时聚合（布局阶段观测）
+        vcls = ["abandon", "figure", "table", "isolate_formula", "formula_caption"]
+
+        def _process_page_layout(page, pix, page_layout) -> None:
+            """版面掩码 + 新内容流 xref + 逐页渲染（逐页/批量两路径共用）。"""
             # kdtree 是不可能 kdtree 的，不如直接渲染成图片，用空间换时间
             box = np.ones((pix.height, pix.width))
             h, w = box.shape
-            vcls = ["abandon", "figure", "table", "isolate_formula", "formula_caption"]
             for i, d in enumerate(page_layout.boxes):
                 if page_layout.names[int(d.cls)] not in vcls:
                     x0, y0, x1, y1 = d.xyxy.squeeze()
@@ -229,10 +307,10 @@ def translate_patch(
                     box[y0:y1, x0:x1] = 0
             layout[page.pageno] = box
             # 新建一个 xref 存放新指令流
-            if page_xref_map and pageno in page_xref_map:
+            if page_xref_map and page.pageno in page_xref_map:
                 # 并行模式：page_xref 由调用方（主进程）预创建，worker 与主进程编号一致；
                 # worker 进程中该对象不存在，故跳过 update_object/update_stream/set_contents
-                page.page_xref = page_xref_map[pageno]
+                page.page_xref = page_xref_map[page.pageno]
                 if apply_page_xrefs:
                     doc_zh[page.pageno].set_contents(page.page_xref)
             else:
@@ -241,7 +319,91 @@ def translate_patch(
                 doc_zh.update_stream(page.page_xref, b"")
                 doc_zh[page.pageno].set_contents(page.page_xref)
             interpreter.process_page(page)
+        if _layout_predictor is not None:
+            # 批量路径（可选，PDF2ZH_LAYOUT_BATCH ≥ 2）：攒够 batch 页后一次
+            # ONNX 调度批量推理，再逐页执行版面处理（进度/取消语义与逐页一致）。
+            _pending = []  # (page, pix, image)
+            for pageno, page in enumerate(PDFPage.create_pages(doc)):
+                if cancellation_event and cancellation_event.is_set():
+                    raise CancelledError("task cancelled")
+                if pages and (pageno not in pages):
+                    continue
+                progress.update()
+                if callback:
+                    callback(progress)
+                page.pageno = pageno
+                pix = doc_zh[page.pageno].get_pixmap()
+                image = np.frombuffer(pix.samples, np.uint8).reshape(
+                    pix.height, pix.width, 3
+                )[:, :, ::-1]
+                _pending.append((page, pix, image))
+                if len(_pending) >= _layout_batch:
+                    _t_predict = time.perf_counter()
+                    results = _layout_predictor.predict_images(
+                        [im for _, _, im in _pending]
+                    )
+                    _d_predict = time.perf_counter() - _t_predict
+                    _pd_n += len(_pending)
+                    _pd_secs += _d_predict
+                    if _pd_n % 25 == 0 or _pd_n == total_pages:
+                        logger.info(
+                            "layout predict so far: %d pages, avg %.3fs/page (last %.3fs)",
+                            _pd_n, _pd_secs / max(_pd_n, 1), _d_predict,
+                        )
+                    for (pg, px, _im), res in zip(_pending, results):
+                        logger.debug(
+                            "page %d layout predict boxes=%d",
+                            pg.pageno, len(res.boxes),
+                        )
+                        _process_page_layout(pg, px, res)
+                    _pending = []
+        else:
+            for pageno, page in enumerate(PDFPage.create_pages(doc)):
+                if cancellation_event and cancellation_event.is_set():
+                    raise CancelledError("task cancelled")
+                if pages and (pageno not in pages):
+                    continue
+                progress.update()
+                if callback:
+                    callback(progress)
+                page.pageno = pageno
+                pix = doc_zh[page.pageno].get_pixmap()
+                image = np.frombuffer(pix.samples, np.uint8).reshape(
+                    pix.height, pix.width, 3
+                )[:, :, ::-1]
+                _t_predict = time.perf_counter()
+                page_layout = model.predict(image, imgsz=int(pix.height / 32) * 32)[0]
+                _d_predict = time.perf_counter() - _t_predict
+                _pd_n, _pd_secs = _pd_n + 1, _pd_secs + _d_predict
+                logger.debug(
+                    "page %d layout predict %.3fs boxes=%d",
+                    page.pageno, _d_predict, len(page_layout.boxes),
+                )
+                if _pd_n % 25 == 0 or _pd_n == total_pages:
+                    logger.info(
+                        "layout predict so far: %d pages, avg %.3fs/page (last %.3fs)",
+                        _pd_n, _pd_secs / max(_pd_n, 1), _d_predict,
+                    )
+                _process_page_layout(page, pix, page_layout)
 
+    # 批量路径：处理未满批的剩余页
+    if _layout_predictor is not None and _pending:
+        _t_predict = time.perf_counter()
+        results = _layout_predictor.predict_images([im for _, _, im in _pending])
+        _d_predict = time.perf_counter() - _t_predict
+        for (pg, px, _im), res in zip(_pending, results):
+            _process_page_layout(pg, px, res)
+        logger.info(
+            "Layout batch remainder: %d page(s) in %.3fs",
+            len(_pending), _d_predict,
+        )
+    if _layout_predictor is not None:
+        _f, _p, _secs = _layout_predictor.stats()
+        if _p:
+            logger.info(
+                "Layout batch inference: %d ONNX call(s) for %d page(s) in %.3fs",
+                _f, _p, _secs,
+            )
     device.close()
     # V8.3–V9.0: 主链路 side-channel 数据回传（IR 快照 + 门控裁决 +
     # 超链接重定位桥 + Processor 语义通道）
@@ -255,6 +417,15 @@ def translate_patch(
         v3_output["translation_qa_records"] = dict(getattr(device, "translation_qa_records", {}))
         v3_output["geometry_adoptions"] = dict(getattr(device, "geometry_adoptions", {}))
         v3_output["pipeline_dumps"] = dict(getattr(device, "pipeline_dumps", {}))
+        v3_output["layout_violations"] = dict(
+            getattr(device, "layout_violations_by_page", {})
+        )
+        v3_output["reconstruction"] = dict(
+            getattr(device, "reconstruction_records", {})
+        )
+        v3_output["reconstruction_qa"] = dict(
+            getattr(device, "reconstruction_qa", {})
+        )
         dm = getattr(device, "document_model", None)
         if dm is not None and hasattr(dm, "to_dict"):
             v3_output["document_model"] = dm.to_dict()
@@ -511,6 +682,30 @@ def _apply_bookmarks(
         logger.warning("bookmarks: set_toc dual failed: %s", str(e)[:120])
 
 
+def _resolve_parallel_settings(
+    parallel_pages: Optional[bool], parallel_workers: Optional[int], default_pages: bool
+):
+    """统一并行设置解析：显式参数 > PDF2ZH_PARALLEL / PDF2ZH_NO_PARALLEL /
+    PDF2ZH_PARALLEL_WORKERS 环境变量 > 默认值。
+
+    内存不足的机器可用 PDF2ZH_PARALLEL_WORKERS=2 或 CLI --parallel-workers 降压，
+    或 PDF2ZH_NO_PARALLEL=1 / --no-parallel 完全关闭并行。
+    """
+    pages = default_pages if parallel_pages is None else parallel_pages
+    if not pages and os.environ.get("PDF2ZH_PARALLEL", "") in ("1", "true", "True"):
+        pages = True
+    if pages and os.environ.get("PDF2ZH_NO_PARALLEL", "") in ("1", "true", "True"):
+        pages = False
+    if parallel_workers is None:
+        try:
+            parallel_workers = int(os.environ.get("PDF2ZH_PARALLEL_WORKERS") or 0)
+        except (TypeError, ValueError):
+            parallel_workers = 0
+    if not parallel_workers or parallel_workers < 1:
+        parallel_workers = 4
+    return pages, parallel_workers
+
+
 def translate_stream(
     stream: bytes,
     pages: Optional[list[int]] = None,
@@ -559,6 +754,9 @@ def translate_stream(
     # 并行进度回调：progress_cb(percent: float, message: str)，percent ∈ [0, 100]
     # 只由主进程调用（并行路径按 chunk 完成回报；串行路径不回报）。
     progress_cb: object = None,
+    # P5–P10 主链路接管（阶段 3）：与 reconstruction_channel 配套，经
+    # **dict(locals()) 透传到 translate_patch / 并行 worker。默认 True。
+    reconstruction_adopt: bool = True,
 
     **kwarg: Any,
 ):
@@ -566,6 +764,9 @@ def translate_stream(
     # TranslateConverter 内部 ThreadPoolExecutor(max_workers=0) 会抛 ValueError，
     # 导致整页翻译失败（并行路径中表现为 worker 崩溃、串行路径中整份 PDF 空白）。
     thread = thread if thread and thread > 0 else 4
+    parallel_pages, parallel_workers = _resolve_parallel_settings(
+        parallel_pages, parallel_workers, default_pages=True
+    )
 
     font_list = [("tiro", None)]
 
@@ -582,6 +783,36 @@ def translate_stream(
     doc_zh = Document(stream=stream)
     page_count = doc_zh.page_count
     logger.info("translate_stream: loaded %d pages, starting patch phase...", page_count)
+
+    # V3 passthrough: 全文档无可提取文本（扫描件 / 纯矢量 / 纯图片）时跳过
+    # 字体嵌入、翻译与补丁，直接压缩写出。原路径会把全量 SourceHanSerif 字体
+    # （~9-14MB）嵌入到没有任何文本使用的输出中，导致体积膨胀 10-20 倍
+    # （实测 603KB -> 9.6MB，xref 中单个字体流解压后 14MB）。
+    if page_count > 0 and not any(
+        _page.get_text().strip() for _page in doc_en
+    ):
+        logger.warning(
+            "translate_stream: no extractable text across %d page(s); "
+            "running passthrough mode (no translation, output mirrors input)",
+            page_count,
+        )
+        _pt_start = time.perf_counter()
+        try:
+            doc_dual = doc_zh.write(deflate=True, garbage=3, use_objstms=1)
+            doc_mono = doc_en.write(deflate=True, garbage=3, use_objstms=1)
+        finally:
+            doc_en.close()
+            doc_zh.close()
+        if callable(progress_cb):
+            try:
+                progress_cb(100.0, f"No extractable text ({page_count} page(s)); passthrough")
+            except Exception:
+                pass
+        logger.info(
+            "translate_stream: passthrough complete (mono=%d bytes, dual=%d bytes, %.1fs)",
+            len(doc_mono), len(doc_dual), time.perf_counter() - _pt_start,
+        )
+        return (doc_dual, doc_mono)
     import sys as _sys_init; _sys_init.stdout.flush()
     # Phase 1: Document-level font cache
     font_cache = DocumentFontCache(doc_zh)
@@ -653,39 +884,115 @@ def translate_stream(
     # === 2.0: Parallel page processing (L2) ===
     page_xref_map = None
     if parallel_pages and page_count > 5:
-        # 主进程预创建所有页面的新内容流 xref：worker 进程从共享 fp_bytes 各自打开文档后，
-        # get_new_xref() 会从相同的起始编号分配，导致跨 worker 编号冲突，且这些对象只存在于
-        # worker 进程内；主进程 update_stream(page_xref) 会因此报 bad xref / object is no PDF dict。
-        try:
-            page_xref_map = {}
-            for pageno in range(page_count):
-                xref = doc_zh.get_new_xref()
-                doc_zh.update_object(xref, "<<>>")
-                doc_zh.update_stream(xref, b"")
-                page_xref_map[pageno] = xref
-        except Exception as px_err:
-            logger.warning("Failed to pre-create page xrefs (%s), falling back to serial", str(px_err)[:120])
-            page_xref_map = None
+        # P2（V3）：主进程单写者预热 —— 确保 doclayout 模型与 optimized 缓存就绪，
+        # worker 的 OnnxModel 加载直接命中 cached，绝无并发写竞争；预热失败时记录
+        # 并跳过并行（等价于整体串行兜底），不让预热异常重复进 worker 初始化。
+        from pdf2zh.doclayout import DocLayoutModel
+        from pdf2zh.parallel.errors import ParallelError
+        if not DocLayoutModel.ensure_model_prewarmed():
+            logger.warning(
+                "Layout model prewarm failed; skipping page parallelism "
+                "(serial fallback)."
+            )
             obj_patch = translate_patch(fp, **dict(locals()))
         else:
+            # 主进程预创建所有页面的新内容流 xref：worker 进程从共享 fp_bytes 各自打开文档后，
+            # get_new_xref() 会从相同的起始编号分配，导致跨 worker 编号冲突，且这些对象只存在于
+            # worker 进程内；主进程 update_stream(page_xref) 会因此报 bad xref / object is no PDF dict。
             try:
-                obj_patch = _translate_parallel(
-                    fp, dict(locals()),
-                    workers=parallel_workers,
-                    page_xref_map=page_xref_map,
-                )
-            except (Exception, SystemExit, KeyboardInterrupt) as parallel_err:
+                page_xref_map = {}
+                for pageno in range(page_count):
+                    xref = doc_zh.get_new_xref()
+                    doc_zh.update_object(xref, "<<>>")
+                    doc_zh.update_stream(xref, b"")
+                    page_xref_map[pageno] = xref
+            except Exception as px_err:
                 logger.warning(
-                    "Parallel page processing failed (%s), falling back to serial: %s "
-                    "(tip: fix the GPU backend or disable page parallelism with "
-                    "--backend cpu / parallel_pages=False)",
-                    type(parallel_err).__name__, str(parallel_err)[:120],
+                    "Failed to pre-create page xrefs (%s), falling back to serial",
+                    str(px_err)[:120],
                 )
-                # 自动降级：worker 进程被终止（BrokenProcessPool）时把后端切到 CPU，
-                # 本次已回退串行，后续任务不再重复触发 GPU 并行崩溃。
-                _degrade_backend_on_crash(parallel_err)
-                # Serial fallback: use locals directly (all objects available in current process)
+                page_xref_map = None
                 obj_patch = translate_patch(fp, **dict(locals()))
+            else:
+                try:
+                    obj_patch = _translate_parallel(
+                        fp, dict(locals()),
+                        workers=parallel_workers,
+                        page_xref_map=page_xref_map,
+                    )
+                except KeyboardInterrupt:
+                    # V3（§5.4/§5.5）：Ctrl+C 绝不进入串行兜底 —— 直接传播给上层
+                    # 关闭流程（GUI 优雅关闭 / CLI 退出），由上层负责 worker 回收。
+                    raise
+                except ParallelError as parallel_err:
+                    # V3（§5.5）语义化兜底：池整体不可用（bootstrap / 协议违例）
+                    # 才整文档串行重跑；chunk 级失败已在 coordinator 内增量补跑。
+                    logger.warning(
+                        "Parallel engine degraded cleanly (%s: %s); "
+                        "full serial fallback",
+                        type(parallel_err).__name__,
+                        str(parallel_err)[:120],
+                    )
+                    obj_patch = translate_patch(fp, **dict(locals()))
+                except (Exception, SystemExit) as parallel_err:
+                    logger.warning(
+                        "Parallel page processing failed (%s), falling back to serial: %s "
+                        "(tip: fix the GPU backend or disable page parallelism with "
+                        "--backend cpu / parallel_pages=False)",
+                        type(parallel_err).__name__, str(parallel_err)[:120],
+                    )
+                    # 并发 GPU session 冲突（多 worker 同时建 DirectML/CUDA session）
+                    # 是 worker 原生崩溃最常见的诱因；在真正降级 CPU 之前，先用更少
+                    # 的 worker 重试一次整个翻译（仍然并行架构，只是并发度减半）。
+                    if isinstance(parallel_err, BrokenProcessPool):
+                        try:
+                            retry_workers = max(1, (parallel_workers or 4) // 2)
+                            logger.info(
+                                "Parallel crash detected; retrying the whole task "
+                                "with %d worker(s) before degrading to CPU...",
+                                retry_workers,
+                            )
+                            obj_patch = _translate_parallel(
+                                fp, dict(locals()),
+                                workers=retry_workers,
+                                page_xref_map=page_xref_map,
+                            )
+                            parallel_err = None
+                            logger.info(
+                                "Reduced-worker parallel retry succeeded; "
+                                "continuing without CPU degradation."
+                            )
+                        except (Exception, SystemExit) as retry_err:
+                            parallel_err = retry_err
+                            logger.warning(
+                                "Reduced-worker retry also failed (%s), degrading to CPU.",
+                                type(retry_err).__name__,
+                            )
+                    if parallel_err is not None:
+                        # 自动降级：worker 进程被终止（BrokenProcessPool）时把后端切到 CPU，
+                        # 并让本次串行回退也按 CPU provider 重新加载模型，保证
+                        # "降级即生效"，且崩溃后的 GPU session 不再参与本任务。
+                        degraded = _degrade_backend_on_crash(
+                            parallel_err,
+                            progress_cb=dict(locals()).get("progress_cb"),
+                            context=f"pages={page_count} workers={parallel_workers}",
+                        )
+                        if degraded:
+                            from pdf2zh.doclayout import ModelInstance as _RemodelInst
+                            from pdf2zh.doclayout import OnnxModel as _RemodelOnnx
+                            try:
+                                _RemodelInst.value = _RemodelOnnx.load_available()
+                            except Exception as _remodel_err:
+                                logger.warning(
+                                    "CPU model reload after degradation failed: %s",
+                                    str(_remodel_err)[:120],
+                                )
+                            # 覆盖本次的 model local，让串行回退使用 CPU 模型；
+                            # 若重新加载失败，退回原 model（可能仍可用），
+                            # 总比 model=None 在 translate_patch 里崩溃强。
+                            model = _RemodelInst.value or locals().get("model")
+                        # Serial fallback: use locals directly (all objects available in current process)
+                        obj_patch = translate_patch(fp, **dict(locals()))
     else:
         obj_patch = translate_patch(fp, **dict(locals()))
 
@@ -861,6 +1168,22 @@ def translate_stream(
         logger.error("translate_stream: doc_en write failed: %s", write_err)
         raise
     logger.info("translate_stream: write complete (mono=%d bytes, dual=%d bytes, total=%.1fs)", len(doc_mono), len(doc_dual), _merge_time.time() - _merge_start)
+    # V1.19: TOC 观察报告落盘（PDF2ZH_TOC_REPORT=1；无环境变量时零开销）
+    if os.environ.get("PDF2ZH_TOC_REPORT", "") == "1":
+        try:
+            _toc_reports = getattr(device, "_toc_reports", None) or []
+            if _toc_reports:
+                _reports_path = stream.name if hasattr(stream, "name") and stream.name else None
+                if _reports_path:
+                    _dump_base = os.path.splitext(_reports_path)[0]
+                else:
+                    _dump_base = "pdf2zh_toc_report"
+                _dump_path = f"{_dump_base}.toc_report.json"
+                with open(_dump_path, "w", encoding="utf-8") as _rf:
+                    json.dump(_toc_reports, _rf, ensure_ascii=False, indent=1)
+                logger.info("translate_stream: TOC report written (%d entries) -> %s", len(_toc_reports), _dump_path)
+        except Exception as _dump_err:
+            logger.warning("translate_stream: TOC report dump failed: %s", str(_dump_err)[:120])
     doc_en.close()
     doc_zh.close()
     logger.info("translate_stream: documents closed")
@@ -926,40 +1249,54 @@ def _init_worker_process(backend: str = None):
     workers do not silently re-detect a GPU provider (e.g. DirectML) while the
     parent runs on CPU -- the classic cause of worker-process crashes
     (BrokenProcessPool) on GPU machines.
+
+    V3 iteration: 实现已迁移至 ``pdf2zh.parallel.worker.init_worker_process``
+    （增补 ORT 线程门控、DLL 预注册与 bootstrap 失败语义化）；此处保留兼容
+    外壳，供现有 executor / 旧测试继续按原签名引用。
     """
-    from pdf2zh.doclayout import ModelInstance, OnnxModel, set_backend
-    if backend:
-        set_backend(backend)
-    if ModelInstance.value is None:
-        try:
-            ModelInstance.value = OnnxModel.load_available()
-        except Exception as exc:
-            logger.warning(
-                "Worker model load failed (%s: %s), continuing without layout model.",
-                type(exc).__name__, str(exc)[:120],
-            )
-            ModelInstance.value = None
+    from pdf2zh.parallel.worker import init_worker_process
+
+    return init_worker_process(backend)
 
 
-def _degrade_backend_on_crash(err: Exception) -> bool:
-    """BrokenProcessPool 自动降级到 CPU。
+def _degrade_backend_on_crash(
+    err: Exception,
+    progress_cb: object = None,
+    context: str = "",
+) -> bool:
+    """BrokenProcessPool 自动降级到 CPU（幂等，可经 set_backend("auto") 恢复）。
 
     worker 进程被终止（BrokenProcessPool）通常源于 spawn 出的 worker 在
     DirectML/CUDA 推理时进程级崩溃（原生崩溃或显存耗尽），Python 无法捕获
     具体原因。本次任务已由调用方回退串行；这里把模块级后端降级为 CPU，
     使后续翻译任务（GUI 连续操作、CLI 批处理、服务复用进程）不再重复触发
     GPU 并行崩溃。
+
+    注意：降级是"一次性"的——只在第一次 BrokenProcessPool 时生效；之后用户
+    显式 ``set_backend("auto"/"dml"/"cuda")`` 会清除标记重新尝试 GPU。
+    降级事件会经 ``progress_cb`` 上报给上层（GUI 进度/日志面板），
+    而不是只写在 log 里。
     """
-    from pdf2zh.doclayout import ModelInstance, get_backend, set_backend
-    if isinstance(err, BrokenProcessPool) and get_backend() != "cpu":
-        set_backend("cpu")
+    from pdf2zh.doclayout import ModelInstance, get_backend, mark_cpu_degraded
+    prev_backend = get_backend()
+    if isinstance(err, BrokenProcessPool) and mark_cpu_degraded():
         # 主进程可能已缓存 GPU session（ModelInstance 全局单例），重置为 None，
-        # 使后续任何路径（worker spawn / 串行回退）都按 CPU provider 重新加载。
+        # 使后续任何路径（worker spawn / 串行回退 / 新任务）都按 CPU provider
+        # 重新加载。
         ModelInstance.value = None
-        logger.warning(
+        msg = (
             "GPU-backed parallel workers crashed; execution provider degraded "
-            "to CPU for subsequent translation tasks."
+            "to CPU for this and subsequent translation tasks "
+            "(fix the GPU backend, or re-run with --backend auto to retry GPU)."
         )
+        if context:
+            msg = f"{msg} context: {context}"
+        logger.warning("%s previous backend: %s", msg, prev_backend)
+        if callable(progress_cb):
+            try:
+                progress_cb(0.0, msg)
+            except Exception:
+                pass
         return True
     return False
 
@@ -994,15 +1331,19 @@ def _translate_parallel_chunk(
     use_translation_cache: bool = True,
     envs_str: str = "{}",
     prompt_template: str = "",
+    cancel_event: object = None,
     # --- V9.0/V11 side-channel scalar params（与串行路径一致） ---
     processor_channels: bool = True,
     render_takeover: bool = False,
     translation_qa: bool = False,
     geometry_cluster: bool = False,
-    toc_split: bool = False,
+    toc_split: bool = True,
     pipeline_dump: bool = False,
     document_model: bool = False,
     observability: bool = False,
+    # P5–P10 主链路接管（阶段 3）：渲染前接管 + 完整对象存档（标量透传）
+    reconstruction_channel: bool = True,
+    reconstruction_adopt: bool = True,
 ) -> dict:
     """Process a chunk of pages in a separate process (module-level for pickling).
 
@@ -1010,63 +1351,19 @@ def _translate_parallel_chunk(
     Heavy C-extension objects (fitz.Document, OnnxModel, FontResolver, etc.)
     are reconstructed inside the worker process from fp_bytes and the
     global ModelInstance singleton. This avoids SwigPyObject pickle errors.
+
+    V3 iteration: 实现已迁移至 ``pdf2zh.parallel.worker.execute_chunk``；
+    此处保留原签名兼容外壳（供既有调用方 / 旧测试直接引用）。
     """
-    import io as _io
-    import json
-    import fitz as _fitz
-    from pdf2zh.high_level import translate_patch
-    from pdf2zh.doclayout import ModelInstance
-    from pdf2zh.collision_resolver import CollisionResolver
-    from pdf2zh.layout_graph import LayoutGraph
-    from pdf2zh.font_resolver import FontResolver
-    from string import Template
+    from pdf2zh.parallel.chunk import ChunkTask
+    from pdf2zh.parallel.errors import PageProcessingError
+    from pdf2zh.parallel.worker import execute_chunk
 
-    # Reconstruct document from bytes (pickle-safe: open inside worker)
-    doc_zh = _fitz.open(stream=fp_bytes, filetype="pdf")
-    doc_en = _fitz.open(stream=fp_bytes, filetype="pdf")
-
-    # Load model from singleton (set by _init_worker_process via initializer)
-    model = ModelInstance.value
-
-    # Reconstruct utility objects (each worker gets fresh instances)
-    collision_resolver = CollisionResolver()
-    layout_graph = LayoutGraph()
-    font_resolver = FontResolver(lang_out)
-
-    # Reconstruct font handle from path
-    noto = _fitz.Font(noto_name, font_path) if font_path else None
-
-    # Reconstruct TextMetrics (if available)
-    text_metrics = {}
-    if use_text_metrics and font_path:
-        try:
-            from pdf2zh.text_metrics import TextMetrics as _TM
-            tm = _TM(font_path)
-            text_metrics[noto_name] = tm
-        except Exception:
-            pass
-
-    # Reconstruct translation cache
-    translation_cache_obj = None
-    if use_translation_cache and not ignore_cache:
-        try:
-            from pdf2zh.translation_cache import TranslationCache
-            translation_cache_obj = TranslationCache()
-        except Exception:
-            pass
-
-    # Reconstruct prompt from template string
-    prompt = Template(prompt_template) if prompt_template else None
-
-    # Reconstruct envs from JSON string
-    envs = json.loads(envs_str) if isinstance(envs_str, str) else {}
-
-    result = translate_patch(
-        _io.BytesIO(fp_bytes),
-        pages=chunk_pages,
-        doc_zh=doc_zh,
-        doc_en=doc_en,
-        model=model,
+    task = ChunkTask(
+        chunk_pages=tuple(chunk_pages),
+        fp_bytes=fp_bytes,
+        page_xref_map=page_xref_map,
+        cancel_event=cancel_event,
         lang_in=lang_in,
         lang_out=lang_out,
         service=service,
@@ -1074,18 +1371,13 @@ def _translate_parallel_chunk(
         vfont=vfont,
         vchar=vchar,
         noto_name=noto_name,
-        noto=noto,
-        envs=envs,
-        prompt=prompt,
-        ignore_cache=ignore_cache,
+        font_path=font_path,
         skip_subset_fonts=skip_subset_fonts,
-        text_metrics=text_metrics,
-        font_resolver=font_resolver,
-        layout_graph=layout_graph,
-        collision_resolver=collision_resolver,
-        translation_cache=translation_cache_obj,
-        page_xref_map=page_xref_map,
-        apply_page_xrefs=False,
+        ignore_cache=ignore_cache,
+        use_text_metrics=use_text_metrics,
+        use_translation_cache=use_translation_cache,
+        envs_str=envs_str,
+        prompt_template=prompt_template,
         processor_channels=processor_channels,
         render_takeover=render_takeover,
         translation_qa=translation_qa,
@@ -1094,8 +1386,13 @@ def _translate_parallel_chunk(
         pipeline_dump=pipeline_dump,
         document_model=document_model,
         observability=observability,
+        reconstruction_channel=reconstruction_channel,
+        reconstruction_adopt=reconstruction_adopt,
     )
-    return _translate_parallel_chunk_result(result)
+    result = execute_chunk(task)
+    if not result.ok:
+        raise PageProcessingError(result.error_message)
+    return _translate_parallel_chunk_result(result.obj_patch)
 
 
 def _translate_parallel_chunk_result(result):
@@ -1177,49 +1474,108 @@ def _translate_parallel(
         "pipeline_dump": locals_dict.get("pipeline_dump", False),
         "document_model": locals_dict.get("document_model", False),
         "observability": locals_dict.get("observability", False),
+        "reconstruction_channel": locals_dict.get("reconstruction_channel", True),
+        "reconstruction_adopt": locals_dict.get("reconstruction_adopt", True),
     }
 
     obj_patch = {}
     obs_bundles: list = []
     progress_cb = locals_dict.get("progress_cb")
-    total_chunks = len(chunks) if chunks else 1
-    done_chunks = 0
     from pdf2zh.doclayout import get_backend
-    with concurrent.futures.ProcessPoolExecutor(
-        max_workers=workers, initializer=_init_worker_process,
-        initargs=(get_backend(),),
-    ) as executor:
-        futures = [
-            executor.submit(
-                _translate_parallel_chunk, chk, fp_bytes,
-                page_xref_map=page_xref_map, **scalar_args,
-            )
-            for chk in chunks
-        ]
-        for f in concurrent.futures.as_completed(futures):
-            chunk_result, obs_bundle = f.result()
-            if chunk_result:
-                obj_patch.update(chunk_result)
-            if obs_bundle:
-                obs_bundles.append(obs_bundle)
-            # 并行统计口径：已完成的页面分块 / 总分块（单调不减，天然平滑）
-            done_chunks += 1
-            if callable(progress_cb):
-                try:
-                    progress_cb(
-                        done_chunks * 100.0 / total_chunks,
-                        f"Translating {done_chunks}/{total_chunks} chunk(s)",
-                    )
-                except Exception:
-                    pass
+    # S4: 跨进程取消桥 —— threading.Event / mp.Event 均不可 pickle
+    # （Python 3.12+ spawn 下报 "Condition objects should only be shared..."），
+    # 取消信号改用 pickle-safe 的 CancelToken（临时目录标记文件）：父进程起一个
+    # 轻量 daemon 线程轮询调用方 cancellation_event，触发后 set() 写标记文件，
+    # 各 worker 的页循环经 is_set()（每页一次 stat）感知，≤0.5s 内到达。
+    from pdf2zh.parallel.chunk import CancelToken
+    _cancel_event_arg = locals_dict.get("cancellation_event")
+    if _cancel_event_arg is not None:
+        import threading as _thr
+        _shared_cancel = CancelToken()
+        _bridge_stop = _thr.Event()
 
-    if obs_bundles:
-        merged = obs_bundles[0]
-        for extra in obs_bundles[1:]:
-            merged["bundle"]["snapshots"]["snapshots"].update(
-                (extra.get("bundle") or {}).get("snapshots", {}).get("snapshots", {}))
-            merged["overlays"].extend(extra.get("overlays", []))
-        obj_patch["__obs__"] = merged
+        def _cancel_bridge() -> None:
+            try:
+                while not _bridge_stop.is_set():
+                    if _cancel_event_arg.is_set():
+                        _shared_cancel.set()
+                        break
+                    _bridge_stop.wait(0.5)
+            except Exception:  # noqa: BLE001 -- bridge failure never blocks spawn
+                pass
+
+        _bridge = _thr.Thread(target=_cancel_bridge, daemon=True)
+        _bridge.start()
+    else:
+        _shared_cancel = None
+        _bridge_stop = None
+        _bridge = None
+
+    # V3 iteration: Bounded in-flight 窗口调度 + 有限重试 + 增量降级（P3）。
+    from pdf2zh.parallel.chunk import ChunkTask
+    from pdf2zh.parallel.coordinator import TaskCoordinator
+    from pdf2zh.parallel.errors import PageProcessingError
+
+    chunk_tasks = [
+        ChunkTask(
+            chunk_pages=tuple(chk),
+            fp_bytes=fp_bytes,
+            page_xref_map=page_xref_map,
+            cancel_event=_shared_cancel,
+            **scalar_args,
+        )
+        for chk in chunks
+    ]
+    coordinator = TaskCoordinator(max_workers=workers)
+    obj_patch, obs_bundles, serial_indices = coordinator.run(
+        chunk_tasks,
+        progress_cb=progress_cb,
+        initializer=_init_worker_process,
+        initargs=(get_backend(),),
+    )
+
+    # 增量降级：只有失败 chunk 走串行补跑，绝不整文档重跑（V3 §5.4）
+    try:
+        if serial_indices:
+            logger.warning(
+                "Incremental serial fallback for %d chunk(s): %s",
+                len(serial_indices), serial_indices,
+            )
+            for idx in serial_indices:
+                try:
+                    chunk_result, obs_bundle = _translate_parallel_chunk(
+                        chunks[idx], fp_bytes,
+                        page_xref_map=page_xref_map, cancel_event=_shared_cancel,
+                        **scalar_args,
+                    )
+                except KeyboardInterrupt:
+                    raise
+                except Exception as serial_err:
+                    logger.error(
+                        "Serial fallback for chunk %d failed (%s); deferring to "
+                        "outer full-serial fallback",
+                        idx, str(serial_err)[:160],
+                    )
+                    raise PageProcessingError(
+                        f"chunk {idx} serial fallback failed: {serial_err}"
+                    ) from serial_err
+                if chunk_result:
+                    obj_patch.update(chunk_result)
+                if obs_bundle:
+                    obs_bundles.append(obs_bundle)
+
+        if obs_bundles:
+            merged = obs_bundles[0]
+            for extra in obs_bundles[1:]:
+                merged["bundle"]["snapshots"]["snapshots"].update(
+                    (extra.get("bundle") or {}).get("snapshots", {}).get("snapshots", {}))
+                merged["overlays"].extend(extra.get("overlays", []))
+            obj_patch["__obs__"] = merged
+    finally:
+        if _bridge_stop is not None:
+            _bridge_stop.set()  # stop the cancellation mirror (daemon, best effort)
+        if isinstance(_shared_cancel, CancelToken):
+            _shared_cancel.clear()  # 清理取消标记文件（尽力而为；异常传播时也执行）
     return obj_patch
 
 
@@ -1243,14 +1599,18 @@ def translate(
     skip_subset_fonts: bool = False,
     ignore_cache: bool = False,
     # 2.0 additions
-    parallel_pages: bool = False,
-    parallel_workers: int = 4,
+    parallel_pages: Optional[bool] = None,
+    parallel_workers: Optional[int] = None,
     use_text_metrics: bool = True,
     use_translation_cache: bool = True,
     **kwarg: Any,
 ):
     if not files:
         raise PDFValueError("No files to process.")
+
+    parallel_pages, parallel_workers = _resolve_parallel_settings(
+        parallel_pages, parallel_workers, default_pages=False
+    )
 
     missing_files = check_files(files)
 
@@ -1268,7 +1628,7 @@ def translate(
         ):
             print("Online files detected, downloading...")
             try:
-                r = requests.get(file, allow_redirects=True)
+                r = requests.get(file, allow_redirects=True, timeout=(15, 60))
                 if r.status_code == 200:
                     with tempfile.NamedTemporaryFile(
                         suffix=".pdf", delete=False
@@ -1322,6 +1682,8 @@ def translate(
             s_raw,
             **locals(),
         )
+        if output:
+            os.makedirs(output, exist_ok=True)
         file_mono = Path(output) / f"{filename}-mono.pdf"
         file_dual = Path(output) / f"{filename}-dual.pdf"
         doc_mono = open(file_mono, "wb")

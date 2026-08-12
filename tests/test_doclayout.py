@@ -1,10 +1,13 @@
 import unittest
 from unittest.mock import patch, MagicMock
 import numpy as np
+import os
+import tempfile
 from pdf2zh.doclayout import (
     OnnxModel,
     YoloResult,
     YoloBox,
+    _OptimizedCache,
     get_backend,
     resolve_providers,
     set_backend,
@@ -159,6 +162,90 @@ class TestBackendResolution(unittest.TestCase):
             self.assertEqual(get_backend(), "cpu")
         finally:
             set_backend(old if old else "auto")
+
+
+class TestOptimizedCacheLock(unittest.TestCase):
+    """.optimized 缓存跨进程写锁：并发安全 + 损坏兜底。
+
+    背景：并行 worker 同一时刻同时缺失缓存时会把同一路径并发写入，
+    互相截断后 ORT 读损坏文件直接原生崩溃（worker 瞬死 → BrokenProcessPool）。
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="opt_cache_")
+        self.final = os.path.join(self._tmp, "model_opt_bce.onnx.optimized")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self._tmp, ignore_errors=True)
+
+    def _write_cache(self, content=b"valid-graph"):
+        with open(self.final, "wb") as f:
+            f.write(content)
+
+    @patch("onnx.load")
+    def test_single_generator_publishes_atomically(self, mock_load):
+        mock_load.return_value = MagicMock()
+        cache = _OptimizedCache(self.final)
+        self.assertIsNone(cache.acquire())       # 获得锁 → 生成
+        self.assertEqual(cache.state, "busy")
+        self.assertTrue(os.path.exists(cache.lock_path))
+        with open(cache.tmp_path, "wb") as f:
+            f.write(b"optimized")
+        cache.publish()                          # 原子发布
+        self.assertTrue(os.path.exists(self.final))
+        self.assertFalse(os.path.exists(cache.lock_path))
+        self.assertFalse(os.path.exists(cache.tmp_path))
+
+    @patch("onnx.load")
+    def test_locked_waiter_reuses_published_cache(self, mock):
+        mock.return_value = MagicMock()
+        first = _OptimizedCache(self.final)
+        self.assertIsNone(first.acquire())       # 持锁者
+        # 模拟另一进程已发布成品缓存且锁尚在（>=1KB 且可被 onnx 解析）
+        self._write_cache(b"x" * 2048)
+        second = _OptimizedCache(self.final)
+        resolved = second.acquire()
+        self.assertEqual(resolved, self.final)
+        self.assertEqual(second.state, "cached")
+
+    @patch("onnx.load")
+    def test_waiter_never_touches_owner_lock(self, mock):
+        mock.return_value = MagicMock()
+        owner = _OptimizedCache(self.final)
+        self.assertIsNone(owner.acquire())
+        self._write_cache(b"x" * 2048)
+        waiter = _OptimizedCache(self.final)
+        self.assertEqual(waiter.acquire(), self.final)  # state == "cached"
+        waiter.publish()                                 # 非持有者：必须是无操作
+        waiter.abort()
+        self.assertTrue(os.path.exists(self.final + ".lock"))  # 持有者锁还在
+
+    def test_corrupt_cache_is_detected(self):
+        self._write_cache(b"garbage-not-a-protobuf" * 100)  # >1024B but invalid
+        mock = MagicMock()
+        mock.side_effect = Exception("corrupt")
+        with patch("onnx.load", mock):
+            cache = _OptimizedCache(self.final)
+            self.assertIsNone(cache.acquire())   # 损坏 → 不作为缓存返回
+
+    def test_stale_lock_is_reclaimed(self):
+        # 死进程残留的锁文件：内容指向不存在的 pid
+        with open(self.final + ".lock", "wb") as f:
+            f.write(b"999999999")
+        cache = _OptimizedCache(self.final)
+        self.assertIsNone(cache.acquire())       # 成功拿到锁（残锁被清除）
+        self.assertEqual(cache.state, "busy")
+
+    def test_abort_cleans_tmp_and_lock(self):
+        cache = _OptimizedCache(self.final)
+        cache.acquire()
+        with open(cache.tmp_path, "wb") as f:
+            f.write(b"partial")
+        cache.abort()
+        self.assertFalse(os.path.exists(cache.tmp_path))
+        self.assertFalse(os.path.exists(cache.lock_path))
+        self.assertFalse(os.path.exists(self.final))
 
 
 if __name__ == "__main__":

@@ -1,29 +1,84 @@
 import sys
-import pdf2zh.pdf2zh
 import os
-import babeldoc.assets.assets
 import pathlib
+import traceback
+import time
+import multiprocessing
 
-WAIT_FOR_INPUT = False
+# ===== frozen-app multiprocessing bootstrap =====
+if not hasattr(sys, "frozen"):
+    sys.frozen = True
+
+multiprocessing.freeze_support()
+for _i, _arg in enumerate(sys.argv):
+    if _arg == "-c" and _i + 1 < len(sys.argv) and "spawn_main" in sys.argv[_i + 1]:
+        exec(compile(sys.argv[_i + 1], "<spawn-main>", "exec"))
+        sys.exit(0)
+
+# 正确检测是否开启了 WebUI / GUI 模式
+IS_GUI_MODE = False
 if len(sys.argv) == 1:
-    sys.argv.append("-i")  # 无参数时自动添加 -i 参数
-    WAIT_FOR_INPUT = True
-
-files = os.listdir(os.path.dirname(__file__))
-for file in files:
-    if file.endswith(".zip") and file.startswith("offline_assets_"):
-        print('find offline_assets_zip file: ', file, ' try restore...')
-        babeldoc.assets.assets.restore_offline_assets_package(pathlib.Path(os.path.dirname(__file__)))
+    sys.argv.append("-i")
+    IS_GUI_MODE = True
+elif any(arg in sys.argv for arg in ["-i", "--gui", "gui"]):
+    IS_GUI_MODE = True
 
 try:
+    # 1. 修正路径，获取程序根目录 (避免 os.path.dirname(__file__) 返回空字符串)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    SITE_PACKAGES = os.path.join(BASE_DIR, "site-packages")
+
+    # 2. 将 site-packages 提升到 sys.path 优先级最前
+    if SITE_PACKAGES not in sys.path:
+        sys.path.insert(0, SITE_PACKAGES)
+
+    # 3. 自动注册所有 C 扩展 DLL 路径 (解决 fitz/onnxruntime/torch DLL load failed 问题)
+    if hasattr(os, "add_dll_directory"):
+        for root, dirs, files in os.walk(SITE_PACKAGES):
+            if any(f.endswith(".pyd") or f.endswith(".dll") for f in files):
+                try:
+                    os.add_dll_directory(root)
+                except Exception:
+                    pass
+
+    # 4. 在 try 块内部导入核心模块，确保 ImportError 能被捕获并停留在控制台
+    import pdf2zh.pdf2zh
+    import babeldoc.assets.assets
+
+    # 5. 安全地检测并还原离线资源包
+    for file in os.listdir(BASE_DIR):
+        if file.endswith(".zip") and file.startswith("offline_assets_"):
+            print('find offline_assets_zip file: ', file, ' try restore...')
+            babeldoc.assets.assets.restore_offline_assets_package(pathlib.Path(BASE_DIR))
+
+    # 6. 多进程 Spawn 检查与主程序启动
+    if __name__ != "__main__" or pdf2zh.pdf2zh.spawn_child_yields_to():
+        raise SystemExit(0)
+
     code = pdf2zh.pdf2zh.main()
     print(f"pdf2zh.pdf2zh.main() return code: {code}")
-    if WAIT_FOR_INPUT:
+
+    # 7. 核心修复：如果是 GUI/WebUI 模式且启动成功，主线程绝对不能 exit，必须死循环挂起维持服务！
+    if IS_GUI_MODE and code == 0:
+        try:
+            print("[pdf2zh] WebUI Service is running in background.")
+            print("[pdf2zh] Keep this console window open. Press Ctrl+C to stop the server.")
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("[pdf2zh] WebUI Service stopped by user.")
+            sys.exit(0)
+
+    if code != 0 and len(sys.argv) == 1:
         input("Press Enter to continue...")
+
     sys.exit(code)
+
+except SystemExit:
+    raise
 except Exception:
-    import traceback
+    # 捕获所有启动异常并打印堆栈，保证窗口暂停供排查
     traceback.print_exc()
-    if WAIT_FOR_INPUT:
+    if len(sys.argv) == 1:
         input("Press Enter to continue...")
     sys.exit(1)
