@@ -204,3 +204,119 @@ line_height = max(ascent - descent, 1.0) if np.isfinite(ascent) and np.isfinite(
 完整分析见 `doc/text_overlap_analysis_report.md` 附录 C。新增回归测试：
 `tests/test_converter_layout_fixes.py`（6 项）与 `tests/test_collision_resolver.py`（扩展 7 项）。
 
+---
+
+## 八、会话续修（2026-08）：入口进程崩溃链与事件通道语义
+
+> 本轮针对 **Windows 打包程序 GPU 并行翻译回退** 的用户日志做了链路分析，
+> 根因不在 GPU 后端而在 **spawn 子进程再入口**；同时补了事件通道的语义修复。
+
+### 8.1 问题现象（用户日志）
+
+```
+[INFO] Got device count 1 ...
+[tqdm] INFO: 256it [14:33, ...] ...  -- translate failed: 0it ...
+[ERROR] ProcessPoolExecutor-0: BrokenProcessPool
+[INFO] Applying docx fallback due to error: BrokenProcessPool
+[INFO] Translation done, output: ... (CPU degraded)
+```
+
+关键线索：`pdf2zh.int: error: unrecognized arguments: -I --multiprocessing-fork`
+出现在 worker 进程 stderr 顶部——**CPU 降级任务仍带相同 argparse 崩溃**，
+证明降级不是设备问题，而是 worker 启动即失败、触发回退链。
+
+### 8.2 根因（F10：spawn 子进程再入口 argparse 崩溃）
+
+| # | 文件 | 严重性 | 类别 | 触发条件 | 修复方式 |
+|---|------|--------|------|----------|----------|
+| F10 | script/build/pdf2zh.int + pdf2zh.py + gui/entry.py + backend.py + mcp_server.py | 🔴 高 | 进程启动 | `multiprocessing` spawn 启动器把 `-I --multiprocessing-fork` 交给入口脚本，顶层 `main()` 被再次执行 | 入口识别 spawn 标记后让位给 bootstrap |
+
+机制链（Python 3.8+/Windows spawn）：
+
+1. `ProcessPoolExecutor` 用 spawn 生成 worker：`spawn.get_command_line()`
+   产出 `[sys.executable, '--multiprocessing-fork', 'parent.py', '-I', '--multiprocessing-fork', '-c', ...]`
+   （`-I` 来自 `util._args_from_interpreter_flags()`）。
+2. 打包/脚本入口 **没有 `if __name__ == "__main__"` 守卫**，
+   把启动器参数原样转发给 `argparse` → 子进程 stderr 出现
+   `unrecognized arguments: -I --multiprocessing-fork` → 崩。
+3. 每个 worker 都失败 → `BrokenProcessPool` → 触发 docx 回退 →
+   最终走 CPU 路径，且后续每次任务继续重演。
+
+修复（pdf2zh.py:244-256 新增两个入口辅助函数）：
+
+```python
+_SPAWN_FORK_FLAG = "--multiprocessing-fork"
+
+def is_spawn_child(argv: Optional[List[str]] = None) -> bool:
+    # 全参数扫描（启动器可能把它放在 argv 任意位置）
+    return _SPAWN_FORK_FLAG in (argv if argv is not None else sys.argv)
+
+def spawn_child_yields_to(args: Optional[List[str]] = None) -> bool:
+    if is_spawn_child(args):
+        try:
+            multiprocessing.freeze_support()
+        except Exception:
+            pass
+        return True   # 让位给 multiprocessing bootstrap，不再碰 argparse
+    return False
+```
+
+- `pdf2zh.py main()` 开头：`if spawn_child_yields_to(args): return 0`；
+- `gui/entry.py`、`gui/app.py`、`backend.py`、`mcp_server.py` 的
+  `__main__` 块均加 `raise SystemExit(0)` 守卫；
+- `script/build/pdf2zh.int` 顶层逻辑改为
+  `if __name__ != "__main__" or pdf2zh.pdf2zh.spawn_child_yields_to(): raise SystemExit(0)`，
+  且 `except SystemExit: raise` 保持退出码语义。
+
+回归测试：`tests/test_spawn_entry.py`（5 项，含 wrapper 脚本守卫断言）。
+
+### 8.3 F11：事件通道语义修复
+
+| # | 文件 | 严重性 | 类别 | 触发条件 | 修复方式 |
+|---|------|--------|------|----------|----------|
+| F11 | gui/app.py | 🟡 中 | 事件语义 | 单调进度钳制下，进度不变时新 message 落在旧进度值之下被吞；裸 message 渲染会静默丢掉状态/进度标签 | `_render_message_changed` 改为全量重渲染状态（app.py:487），消息与进度/状态同帧呈现 |
+
+### 8.4 验证与回归
+
+| 项目 | 结果 |
+|------|------|
+| 全量 pytest（tests/） | 2061 passed / 1 skipped ✅ |
+| 新增测试 | test_spawn_entry（5）、test_event_bus（+3）、test_gui_modules（+3 通知通道） |
+| py_compile | 全部入口文件 ✅ |
+
+### 8.5 F12：GUI 入口 `launch()` 阻塞主线程，自定义路由永不注册（前端完全无法通信）
+
+> **用户症状**：页面能打开，但"完全没法正常工作，甚至没法和后端通信"。
+> **2006-08 实测复现**：`python script/build/pdf2zh.int -i`（用户真实入口）启动后：
+> `/` 200、`/gradio_api/info` 200，但 `/gui/events`、`/gui/logs`、`/pdf-preview` 全部 **404**，
+> 日志停在 `TaskEventBridge attached`，且无 `Registered /gui/events SSE stream` 行。
+
+**根因链**：
+
+1. `pdf2zh.gui.entry.setup_gui()` 调用 `gui.launch(...)` 时**未传
+   `prevent_thread_lock=True`**（`app.main()` 有传，所以 `python -m pdf2zh.gui.app`
+   的调试路径正常、掩盖了问题）；
+2. `launch()` 内部 `block_thread()` **永久阻塞主线程**，函数不返回；
+3. 后面的 `_register_custom_routes(gui)` 永不执行 → `/gui/events`（SSE）、`/gui/logs`、
+   `/pdf-preview` 全部未注册（Gradio 5 在 launch 内重建 ASGI app，预先注册也会被丢弃）;
+4. 浏览器 `EventSource` 连 404 → 事件驱动前端失去推送 → 页面看起来"死"的。
+
+**修复（entry.py）**：
+
+- `launch(..., prevent_thread_lock=True)`，成功后 `_register_custom_routes(gui)`，
+  再 `gui.block_thread()` 手动阻塞——与 `app.main()` 流程对齐；
+- 附带修复：端口被旧实例占用时不再抛 `OSError` 崩溃，`_find_free_port()`
+  自动顺延到下一个空闲端口并输出 WARNING（实测 7860 被占 → 7862 接管）；
+- PyStand 每次启动会用 `script/_pystand_static.int` **重新生成**
+  `script/build/pdf2zh.int`，因此把 spawn 守卫（F10）同步进了模板，
+  否则打包应用会静默丢失 spawn 修复（该问题已二次复现）。
+
+验证（真实入口 `pdf2zh.int -i` + 无头浏览器 E2E）：上传 PDF → 点击翻译 →
+SSE 收到 24 个事件（`seq=24`）→ 状态 100% 完成呈现，浏览器 0 个 JS 报错。
+
+| 项目 | 结果 |
+|------|------|
+| 全量 pytest（tests/） | **2069 passed / 1 skipped** ✅ |
+| 新增测试 | test_gui_entry（_find_free_port、max_file_size ×4）、test_spawn_entry（+模板守卫） |
+
+
