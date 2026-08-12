@@ -83,7 +83,7 @@ class TestConverterStrangulation:
         p=os.path.join(os.path.dirname(__file__),'..','..','pdf2zh','converter.py')
         if os.path.exists(p):
             with open(p,encoding='utf-8') as f: l=len(f.readlines())
-            assert 0 < l < 900  # strangulation 死线放宽：允许在 849 附近浮动（~50 行余量），核心逻辑仍在 v3/ 侧通道
+            assert 0 < l < 1095  # strangulation 死线：V1.19 浮动至 ~949；F2/F3（接管段真实译文求解/display 垂直流/白底擦除旧图层）逻辑外移 v3/reconstruction_render.py，converter 仅含渲染循环内嵌接线（~15 行），浮动至 ~1091；余量留 ~4 行；核心逻辑仍在 v3/ 侧通道
         else: pytest.skip('nf')
     def test_has_strangler(self):
         from pdf2zh.v3.legacy_adapter import TranslateConverterStrangler

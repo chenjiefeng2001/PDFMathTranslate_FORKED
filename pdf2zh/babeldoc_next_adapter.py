@@ -1,0 +1,511 @@
+"""pdf2zh_next-kernel adapter for the BabelDOC layout engine (GUI path).
+
+The Gradio GUI's BabelDOC mode historically ran on the *legacy* pipeline:
+``RuntimeService._execute_babeldoc`` wrapped a ``pdf2zh.build_translator``
+instance in a BabelDOC ``BaseTranslator`` shim (see
+:mod:`pdf2zh.babeldoc_adapter`) and drove BabelDOC's layout engine directly.
+That meant BabelDOC mode never exercised the *modified* pdf2zh_next kernel
+shipped in ``pdf2zh/kernel/PDFMathTranslate-next.git`` (fonts, layout,
+rendering fixes), so BabelDOC jobs silently bypassed the new pipeline.
+
+This module bridges that gap: it maps the GUI engine selection (``service``
+plus the KEY=VALUE env lines) onto a ``pdf2zh_next.SettingsModel`` and drives
+the exact pipeline the modified kernel uses --
+``pdf2zh_next.high_level.create_babeldoc_config`` + BabelDOC ``async_translate``.
+
+The public entry point :func:`run_babeldoc_next_translation` mirrors the
+signature and result contract of
+``babeldoc_adapter.run_babeldoc_translation`` so the runtime service can prefer
+the new kernel and fall back to the legacy shim only when the kernel is
+genuinely unavailable.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import importlib.util
+import logging
+import os
+import sys
+import threading
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+#: Bundled modified pdf2zh_next kernel directory (relative to this module).
+_NEXT_KERNEL_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "kernel", "PDFMathTranslate-next.git",
+)
+
+_KERNEL_INSERTED = False
+_KERNEL_LOCK = threading.Lock()
+
+
+class BabeldocNextUnavailableError(RuntimeError):
+    """Raised when the modified pdf2zh_next kernel cannot be loaded.
+
+    The runtime service treats this as a *soft* failure and falls back to the
+    legacy BabelDOC pipeline instead of aborting the task.
+    """
+
+
+class _BabeldocNextCancelledError(Exception):
+    """Internal: the user cancelled a running BabelDOC-next task."""
+
+
+def _ensure_next_kernel() -> str:
+    """Idempotently expose the bundled pdf2zh_next kernel on ``sys.path``.
+
+    Prefers the fork's modified kernel directory over any PyPI-installed
+    ``pdf2zh_next`` package; falls back to an installed package when the
+    bundled kernel is missing (zipapp / packaged builds).
+    """
+    global _KERNEL_INSERTED
+    with _KERNEL_LOCK:
+        if _KERNEL_INSERTED:
+            return _NEXT_KERNEL_DIR
+        if os.path.isdir(os.path.join(_NEXT_KERNEL_DIR, "pdf2zh_next")):
+            if _NEXT_KERNEL_DIR not in sys.path:
+                sys.path.insert(0, _NEXT_KERNEL_DIR)
+            _KERNEL_INSERTED = True
+            return _NEXT_KERNEL_DIR
+        if importlib.util.find_spec("pdf2zh_next") is not None:
+            _KERNEL_INSERTED = True
+            return "<installed>"
+        raise BabeldocNextUnavailableError(
+            "pdf2zh_next kernel not found: bundled kernel missing at "
+            f"{_NEXT_KERNEL_DIR!r} and no installed pdf2zh_next package."
+        )
+
+
+def _env_get(
+    envs: Optional[Dict[str, Any]],
+    *names: str,
+    default: Optional[str] = None,
+) -> Optional[str]:
+    """Case-insensitive env lookup against request envs, then ``os.environ``.
+
+    The GUI lower-cases every KEY=VALUE env line (see
+    ``gui.worker._parse_env_lines``), so lookups must tolerate ``OpenAI_API_Key``
+    as well as ``OPENAI_API_KEY``.
+    """
+    if envs:
+        wanted = {name.lower() for name in names}
+        for key, value in envs.items():
+            if str(key).lower() in wanted and value not in (None, ""):
+                return str(value)
+    for name in names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return default
+
+
+def _resolve_prompt_text(prompt: Any) -> Optional[str]:
+    """Normalise a GUI/CLI prompt into a plain string (or None)."""
+    if prompt is None:
+        return None
+    if isinstance(prompt, dict):
+        text = prompt.get("prompt") or prompt.get("PROMPT") or ""
+    else:
+        text = str(prompt)
+    text = text.strip()
+    if text.startswith("PROMPT="):
+        text = text[len("PROMPT="):].strip()
+    return text or None
+
+
+def _build_engine_settings(service: str, envs: Optional[Dict[str, Any]]) -> Any:
+    """Map a GUI ``service`` selection onto a pdf2zh_next engine settings.
+
+    Unknown engines raise :class:`BabeldocNextUnavailableError` so the runtime
+    service can fall back to the legacy pipeline for engines the modified
+    kernel does not implement.
+    """
+    from pdf2zh_next.config.translate_engine_model import (
+        AnythingLLMSettings,
+        AzureOpenAISettings,
+        AzureSettings,
+        BingSettings,
+        ClaudeCodeSettings,
+        DeepLSettings,
+        DeepSeekSettings,
+        DifySettings,
+        GeminiSettings,
+        GoogleSettings,
+        GrokSettings,
+        GroqSettings,
+        ModelScopeSettings,
+        OllamaSettings,
+        OpenAISettings,
+        OpenAICompatibleSettings,
+        QwenMtSettings,
+        SiliconFlowSettings,
+        TencentSettings,
+        XinferenceSettings,
+        ZhipuSettings,
+    )
+
+    name, sep, model = (service or "google").strip().partition(":")
+    name = name.strip().lower()
+    model = (model.strip() or None) if sep else None
+
+    if name == "google":
+        return GoogleSettings()
+    if name == "bing":
+        return BingSettings()
+    if name == "deepl":
+        return DeepLSettings(
+            deepl_auth_key=_env_get(envs, "DEEPL_AUTH_KEY"),
+        )
+    if name == "ollama":
+        return OllamaSettings(
+            ollama_host=_env_get(envs, "OLLAMA_HOST") or "http://localhost:11434",
+            ollama_model=model or _env_get(envs, "OLLAMA_MODEL") or "gemma2",
+        )
+    if name == "xinference":
+        return XinferenceSettings(
+            xinference_host=_env_get(envs, "XINFERENCE_HOST"),
+            xinference_model=model or _env_get(envs, "XINFERENCE_MODEL") or "gemma-2-it",
+        )
+    if name == "openai":
+        return OpenAISettings(
+            openai_api_key=_env_get(envs, "OPENAI_API_KEY"),
+            openai_model=model or _env_get(envs, "OPENAI_MODEL") or "gpt-4o-mini",
+            openai_base_url=_env_get(envs, "OPENAI_BASE_URL"),
+        )
+    if name in ("azure_openai", "azureopenai"):
+        return AzureOpenAISettings(
+            azure_openai_api_key=_env_get(envs, "AZURE_OPENAI_API_KEY"),
+            azure_openai_model=model or _env_get(envs, "AZURE_OPENAI_MODEL")
+            or "gpt-4o-mini",
+            azure_openai_base_url=_env_get(envs, "AZURE_OPENAI_BASE_URL"),
+            azure_openai_api_version=(
+                _env_get(envs, "AZURE_OPENAI_API_VERSION") or "2024-06-01"
+            ),
+        )
+    if name in ("microsoft", "azure"):
+        # GUI "Microsoft" = Azure Translator service.
+        return AzureSettings(
+            azure_api_key=_env_get(envs, "AZURE_API_KEY"),
+            azure_endpoint=(
+                _env_get(envs, "AZURE_ENDPOINT")
+                or "https://api.translator.azure.cn"
+            ),
+        )
+    if name == "gemini":
+        return GeminiSettings(
+            gemini_api_key=_env_get(envs, "GEMINI_API_KEY"),
+            gemini_model=model or _env_get(envs, "GEMINI_MODEL") or "gemini-1.5-flash",
+        )
+    if name == "deepseek":
+        return DeepSeekSettings(
+            deepseek_api_key=_env_get(envs, "DEEPSEEK_API_KEY"),
+            deepseek_model=model or _env_get(envs, "DEEPSEEK_MODEL") or "deepseek-chat",
+        )
+    if name == "zhipu":
+        return ZhipuSettings(
+            zhipu_api_key=_env_get(envs, "ZHIPU_API_KEY"),
+            zhipu_model=model or _env_get(envs, "ZHIPU_MODEL") or "glm-4-flash",
+        )
+    if name == "modelscope":
+        return ModelScopeSettings(
+            modelscope_api_key=_env_get(envs, "MODELSCOPE_API_KEY"),
+            modelscope_model=model or _env_get(envs, "MODELSCOPE_MODEL")
+            or "Qwen/Qwen2.5-32B-Instruct",
+        )
+    if name in ("silicon", "siliconflow"):
+        return SiliconFlowSettings(
+            siliconflow_api_key=_env_get(
+                envs, "SILICONFLOW_API_KEY", "SILICON_API_KEY",
+            ),
+            siliconflow_model=model or _env_get(
+                envs, "SILICONFLOW_MODEL", "SILICON_MODEL",
+            ) or "Qwen/Qwen2.5-7B-Instruct",
+            siliconflow_base_url=_env_get(envs, "SILICONFLOW_BASE_URL"),
+        )
+    if name == "tencent":
+        return TencentSettings(
+            tencentcloud_secret_id=_env_get(envs, "TENCENT_SECRET_ID"),
+            tencentcloud_secret_key=_env_get(envs, "TENCENT_SECRET_KEY"),
+        )
+    if name == "dify":
+        return DifySettings(
+            dify_url=_env_get(envs, "DIFY_API_URL"),
+            dify_apikey=_env_get(envs, "DIFY_API_KEY"),
+        )
+    if name == "anythingllm":
+        return AnythingLLMSettings(
+            anythingllm_url=_env_get(envs, "ANYTHINGLLM_API_URL"),
+            anythingllm_apikey=_env_get(envs, "ANYTHINGLLM_API_KEY"),
+        )
+
+    if name == "grok":
+        return GrokSettings(
+            grok_api_key=_env_get(envs, "GROK_API_KEY"),
+            grok_model=model or _env_get(envs, "GROK_MODEL") or "grok-2-1212",
+        )
+    if name == "groq":
+        return GroqSettings(
+            groq_api_key=_env_get(envs, "GROQ_API_KEY"),
+            groq_model=model or _env_get(envs, "GROQ_MODEL")
+            or "llama-3-3-70b-versatile",
+        )
+    if name == "qwen":
+        # GUI "Qwen" maps onto the QwenMT engine (ALI_* legacy env names too).
+        return QwenMtSettings(
+            qwenmt_api_key=_env_get(envs, "QWENMT_API_KEY", "ALI_API_KEY"),
+            qwenmt_model=model or _env_get(envs, "QWENMT_MODEL", "ALI_MODEL")
+            or "qwen-mt-plus",
+            qwenmt_base_url=_env_get(envs, "QWENMT_BASE_URL", "ALI_BASE_URL"),
+        )
+    if name in ("aliyun", "aliyun-dashscope"):
+        from pdf2zh_next.config.translate_engine_model import AliyunDashScopeSettings
+        return AliyunDashScopeSettings(
+            aliyun_dashscope_api_key=_env_get(
+                envs, "ALIYUN_DASHSCOPE_API_KEY", "ALI_API_KEY",
+            ),
+            aliyun_dashscope_model=model or _env_get(
+                envs, "ALIYUN_DASHSCOPE_MODEL", "ALI_MODEL",
+            ) or "qwen-plus-latest",
+            aliyun_dashscope_base_url=_env_get(
+                envs, "ALIYUN_DASHSCOPE_BASE_URL", "ALI_BASE_URL",
+            ),
+        )
+    if name == "claude":
+        # pdf2zh_next implements Claude through the `claude` Code CLI.
+        return ClaudeCodeSettings(
+            claude_code_path=_env_get(envs, "CLAUDE_CODE_PATH") or "claude",
+            claude_code_model=model or _env_get(envs, "CLAUDE_CODE_MODEL") or "sonnet",
+        )
+    if name == "openai-compatible":
+        return OpenAICompatibleSettings(
+            openai_compatible_api_key=_env_get(
+                envs, "OPENAI_COMPATIBLE_API_KEY",
+            ),
+            openai_compatible_base_url=_env_get(
+                envs, "OPENAI_COMPATIBLE_BASE_URL",
+            ),
+            openai_compatible_model=model or _env_get(
+                envs, "OPENAI_COMPATIBLE_MODEL",
+            ) or "gpt-4o-mini",
+        )
+
+    raise BabeldocNextUnavailableError(
+        f"Engine {name!r} has no pdf2zh_next kernel mapping"
+    )
+
+
+def build_next_settings(
+    service: str,
+    lang_in: str,
+    lang_out: str,
+    envs: Optional[Dict[str, Any]] = None,
+    prompt: Optional[Any] = None,
+    pages: Optional[str] = None,
+    qps: int = 4,
+    output_dir: Optional[str] = None,
+    ignore_cache: bool = False,
+    debug: bool = False,
+) -> Any:
+    """Assemble a ``pdf2zh_next.SettingsModel`` from GUI request fields.
+
+    Mirrors the flags pdf2zh_next's CLI applies for a PDF job: no watermark,
+    auto term extraction disabled, table text translation left off (avoids
+    loading the RapidOCR model on the GUI path), and ``basic.debug`` enabled so
+    the async stream runs in-process (no subprocess spawn under Gradio).
+    """
+    from pdf2zh_next.config.model import (
+        BasicSettings,
+        PDFSettings,
+        SettingsModel,
+        TranslationSettings,
+    )
+
+    engine_settings = _build_engine_settings(service, envs)
+
+    return SettingsModel(
+        basic=BasicSettings(debug=bool(debug), input_files=set()),
+        translation=TranslationSettings(
+            lang_in=lang_in or "en",
+            lang_out=lang_out or "zh",
+            qps=max(1, int(qps or 4)),
+            ignore_cache=bool(ignore_cache),
+            output=output_dir,
+            custom_system_prompt=_resolve_prompt_text(prompt),
+            no_auto_extract_glossary=True,
+        ),
+        pdf=PDFSettings(
+            pages=pages or None,
+            watermark_output_mode="no_watermark",
+            translate_table_text=False,
+            # 双语 PDF 使用交替页模式：原文页、译文页各自独立成页并交替排列，
+            # 而不是把原文+译文合并到同一页（BabelDOC 默认 side-by-side 合并）。
+            use_alternating_pages_dual=True,
+            # 扫描版 PDF 自动启用 OCR workaround 继续翻译，而不是直接抛
+            # "Scanned PDF detected" 失败（BabelDOC 默认行为会导致任务报错）。
+            auto_enable_ocr_workaround=True,
+        ),
+        translate_engine_settings=engine_settings,
+    )
+
+
+def run_babeldoc_next_translation(
+    source_path: str,
+    lang_in: str,
+    lang_out: str,
+    service: str,
+    pages: Optional[str] = None,
+    envs: Optional[Dict[str, Any]] = None,
+    prompt: Optional[Any] = None,
+    ignore_cache: bool = False,
+    qps: int = 4,
+    output_dir: Optional[str] = None,
+    progress_cb: Optional[Callable[[str, float, str], None]] = None,
+    cancelled_check: Optional[Callable[[], bool]] = None,
+    debug: bool = False,
+) -> List[Dict[str, str]]:
+    """Translate a document with the modified pdf2zh_next kernel pipeline.
+
+    This is the drop-in counterpart of
+    :func:`babeldoc_adapter.run_babeldoc_translation` with the same arguments
+    and return contract (``[{"name": ..., "path": ...}]``), but it drives the
+    *modified* kernel: engine settings -> ``SettingsModel`` ->
+    ``create_babeldoc_config`` -> BabelDOC ``async_translate`` event stream.
+
+    Raises:
+        BabeldocNextUnavailableError: the pdf2zh_next kernel (or a required
+            BabelDOC import) is unavailable; callers fall back to the legacy
+            pipeline.
+        _BabeldocNextCancelledError: the user cancelled the task (internal).
+    """
+    _ensure_next_kernel()
+    try:
+        from babeldoc.format.pdf.high_level import (
+            async_translate as babeldoc_translate,
+        )
+        from pdf2zh_next.high_level import create_babeldoc_config
+    except Exception as exc:  # noqa: BLE001 -- surface an actionable message
+        raise BabeldocNextUnavailableError(
+            "pdf2zh_next kernel / BabelDOC engine not available: "
+            f"{exc}"
+        ) from exc
+
+    try:
+        from pdf2zh.babeldoc_adapter import (
+            _collect_result_files,
+            _map_babeldoc_stage,
+        )
+    except Exception:  # noqa: BLE001 -- keep the adapter self-contained
+        from pdf2zh.babeldoc_adapter import _map_babeldoc_stage  # noqa: F401
+
+        def _collect_result_files(result: Any) -> List[Dict[str, str]]:
+            files: List[Dict[str, str]] = []
+            seen: set = set()
+            for attr in (
+                "mono_pdf_path",
+                "dual_pdf_path",
+                "no_watermark_mono_pdf_path",
+                "no_watermark_dual_pdf_path",
+            ):
+                path = getattr(result, attr, None)
+                if not path:
+                    continue
+                path = os.fspath(path)
+                if path in seen or not os.path.exists(path):
+                    continue
+                seen.add(path)
+                files.append({"name": os.path.basename(path), "path": path})
+            return files
+
+    from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+
+    cleanup_paths: List[str] = []
+    result = None
+    cancelled = False
+
+    try:
+        # BabelDOC only ingests PDF; convert DOCX/DOC via LibreOffice when needed.
+        work_path = source_path
+        if is_convertible(work_path):
+            work_path = convert_to_pdf(work_path)
+            cleanup_paths.append(work_path)
+
+        out_dir = output_dir or os.path.dirname(os.path.abspath(work_path))
+
+        settings = build_next_settings(
+            service=service,
+            lang_in=lang_in,
+            lang_out=lang_out,
+            envs=envs,
+            prompt=prompt,
+            pages=pages,
+            qps=qps,
+            output_dir=out_dir,
+            ignore_cache=ignore_cache,
+            debug=debug,
+        )
+        settings.validate_settings()
+        config = create_babeldoc_config(settings, Path(work_path))
+
+        async def _drive() -> Optional[Any]:
+            nonlocal cancelled
+            async for event in babeldoc_translate(config):
+                if cancelled_check and cancelled_check() and not cancelled:
+                    cancelled = True
+                    try:
+                        # Cooperatively cancel: BabelDOC's pipeline raises at its
+                        # next cancellation checkpoint; keep consuming until then.
+                        config.cancel_translation()
+                    except Exception:  # noqa: BLE001 -- best effort
+                        logger.debug("babeldoc-next cancel failed", exc_info=True)
+                ev_type = event.get("type")
+                if ev_type == "error":
+                    if cancelled:
+                        break  # terminal event emitted by the cancellation path
+                    raise RuntimeError(
+                        event.get("error") or "BabelDOC-next translation failed"
+                    )
+                if ev_type == "finish":
+                    return event.get("translate_result")
+                if ev_type in ("progress_start", "progress_update", "progress_end"):
+                    stage_name = event.get("stage") or ""
+                    overall = float(event.get("overall_progress") or 0.0)
+                    if progress_cb:
+                        try:
+                            progress_cb(
+                                _map_babeldoc_stage(stage_name), overall, stage_name,
+                            )
+                        except Exception:  # noqa: BLE001 -- progress never fatal
+                            logger.debug(
+                                "babeldoc-next progress callback failed", exc_info=True
+                            )
+            return None
+
+        result = asyncio.run(_drive())
+    except asyncio.CancelledError:
+        cancelled = True
+    finally:
+        # NOTE: We deliberately do NOT call ``babeldoc.const.close_process_pool``
+        # here. BabelDOC keeps a *process-global* multiprocessing pool that all
+        # concurrent translations share, and it closes it itself after the
+        # layout stage (``babeldoc/format/pdf/high_level.py``). If one task
+        # fails (or finishes) while another task is still using the pool, an
+        # explicit close here would hang / break the surviving task -- which
+        # manifested as "translation stopped working after an error".
+        for path in cleanup_paths:
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+
+    if cancelled:
+        raise _BabeldocNextCancelledError()
+    if result is None:
+        return []
+    return _collect_result_files(result)
+
+
+
