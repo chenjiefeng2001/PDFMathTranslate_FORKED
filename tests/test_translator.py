@@ -6,7 +6,14 @@ from ollama import ResponseError as OllamaResponseError
 
 from pdf2zh import cache
 from pdf2zh.config import ConfigManager
-from pdf2zh.translator import BaseTranslator, OllamaTranslator, OpenAIlikedTranslator
+from pdf2zh.translator import (
+    BaseTranslator,
+    HTTP_TIMEOUT,
+    GoogleTranslator,
+    OllamaTranslator,
+    OpenAIlikedTranslator,
+    _resolve_translator_proxy,
+)
 
 # Since it is necessary to test whether the functionality meets the expected requirements,
 # private functions and private methods are allowed to be called.
@@ -218,6 +225,41 @@ class TestOllamaTranslator(unittest.TestCase):
         self.assertEqual(
             excepted_not_retain_cot_content, only_removed_cot_content.strip()
         )
+
+    def test_resolve_translator_proxy_precedence(self):
+        with mock.patch.dict(
+            "os.environ",
+            {
+                "PDF2ZH_PROXY": "http://pdf2zh.proxy:3128",
+                "HTTP_PROXY": "http://http.proxy:8080",
+            },
+            clear=False,
+        ):
+            proxies = _resolve_translator_proxy()
+            self.assertEqual(
+                proxies, {"http": "http://pdf2zh.proxy:3128", "https": "http://pdf2zh.proxy:3128"}
+            )
+
+        with mock.patch.dict("os.environ", {}, clear=True):
+            proxies = _resolve_translator_proxy({"PDF2ZH_PROXY": "http://ui.proxy:7890"})
+            self.assertEqual(
+                proxies, {"http": "http://ui.proxy:7890", "https": "http://ui.proxy:7890"}
+            )
+            self.assertIsNone(_resolve_translator_proxy())
+
+    def test_google_session_proxy_and_bounded_timeout(self):
+        with mock.patch.dict("os.environ", {"PDF2ZH_PROXY": "http://127.0.0.1:7890"}, clear=False):
+            t = GoogleTranslator("en", "zh", None, True)
+        self.assertEqual(
+            t.session.proxies, {"http": "http://127.0.0.1:7890", "https": "http://127.0.0.1:7890"}
+        )
+        with mock.patch.object(t.session, "get") as m_get:
+            m_get.return_value = mock.Mock(
+                status_code=200, text='<div class="result-container">Hallo</div>'
+            )
+            t.do_translate("hello")
+            kwargs = m_get.call_args.kwargs
+            self.assertEqual(kwargs["timeout"], HTTP_TIMEOUT)
 
 
 if __name__ == "__main__":

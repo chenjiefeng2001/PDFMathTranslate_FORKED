@@ -494,6 +494,26 @@ class TestServicesLayer:
         svc._emit_smooth("t3", TaskStage.TRANSLATING.value, 100.0)
         assert emitted == [25.0, 40.0, 50.0]
 
+    def test_emit_smooth_forwards_message_on_backward_dip(self):
+        # 回归：进度回退被钳制时，消息（如降级通知）必须仍透传到前端，
+        # 否则前端停留在旧进度且看不到任何更新 —— 前后端数据断层。
+        from pdf2zh.services.runtime_service import RuntimeService, TaskStage
+
+        svc = RuntimeService()
+        svc._store.create_task("tdc")
+        events = []
+        svc.add_event_listener(lambda ev: events.append(ev))
+        svc._emit_smooth("tdc", TaskStage.TRANSLATING.value, 55.0, "Translating 2/2")
+        svc._emit_smooth("tdc", TaskStage.TRANSLATING.value, 30.0, "degraded to CPU")
+        # 进度单调（第二个事件克隆当前进度，不倒退），消息送达
+        assert [e.progress for e in events] == [55.0, 55.0]
+        assert events[-1].message == "degraded to CPU"
+        state = svc.get_task_state("tdc")
+        assert state.message == "degraded to CPU"
+        # 消息事件后仍可继续正常前进
+        svc._emit_smooth("tdc", TaskStage.RENDERING.value, 80.0, "Merging pages...")
+        assert [e.progress for e in events] == [55.0, 55.0, 80.0]
+
     def test_worker_parse_env_lines(self):
         from pdf2zh.gui.worker import _parse_env_lines
 
@@ -583,37 +603,31 @@ class TestServicesLayer:
             resolve_mode_config, ServiceConfig,
         )
         base = ServiceConfig()
-        # v0 基础：纯 legacy 回路，关闭全部现代 side-channel
-        c0 = resolve_mode_config("v0", base)
+        # quick 快速：经典管线 + 关闭全部现代 side-channel
+        c0 = resolve_mode_config("quick", base)
         assert c0.use_v4_engine is False
         assert c0.processor_channels is False
         assert c0.relink_links is False
         assert c0.use_v4_gate is False
         assert c0.run_evaluation is False
-        # v1 标准 —— 当前生产默认行为
-        c1 = resolve_mode_config("v1", base)
+        assert c0.emit_ir is False
+        # standard 标准 —— 经典管线 + 全部现代 side-channel（生产默认质量）
+        c1 = resolve_mode_config("standard", base)
         assert c1.use_v4_engine is False
         assert c1.processor_channels is True
         assert c1.relink_links is True
         assert c1.emit_ir is True
-        # v2 高质量 —— legacy + 文档级评测 + 写回门控
-        c2 = resolve_mode_config("v2", base)
+        assert c1.use_v4_gate is False
+        assert c1.run_evaluation is False
+        # quality 高质量 —— legacy + 文档级评测 + 写回门控 + QA
+        c2 = resolve_mode_config("quality", base)
         assert c2.use_v4_engine is False
         assert c2.run_evaluation is True
         assert c2.use_v4_gate is True
         assert c2.processor_channels is True
-        # v3 精准 —— V4 引擎 + 集评评测
-        c3 = resolve_mode_config("v3", base)
-        assert c3.use_v4_engine is True
-        assert c3.use_v4_translator is True
-        assert c3.use_v4_gate is True
-        # v4 布局优先 —— V4 + 布局/修复 + Fix-Validate 自愈
-        c4 = resolve_mode_config("v4", base)
-        assert c4.use_v4_engine is True
-        assert c4.use_v4_layout is True
-        assert c4.use_v4_repair is True
-        assert c4.use_v4_fix_validate_loop is True
-        assert c4.max_repair_passes >= 1
+        # babeldoc 独立引擎 —— 保持调用方配置（空 preset）
+        cb = resolve_mode_config("babeldoc", base)
+        assert cb == base
 
     def test_mode_auto_and_unknown_preserve_base(self):
         from pdf2zh.services.runtime_service import (
@@ -627,14 +641,24 @@ class TestServicesLayer:
 
     def test_legacy_mode_kwargs_mapping(self):
         from pdf2zh.services.runtime_service import legacy_mode_kwargs
-        assert legacy_mode_kwargs("v0")["document_model"] is False
-        assert legacy_mode_kwargs("v1")["document_model"] is True
-        k2 = legacy_mode_kwargs("v2")
+        assert legacy_mode_kwargs("quick")["document_model"] is False
+        assert legacy_mode_kwargs("standard")["document_model"] is True
+        k2 = legacy_mode_kwargs("quality")
         assert k2["translation_qa"] is True
         assert k2["render_takeover"] is True
-        assert legacy_mode_kwargs("v3") == {}
+        assert legacy_mode_kwargs("babeldoc") == {}
         assert legacy_mode_kwargs("auto") == {}
         assert legacy_mode_kwargs(None) == {}
+
+    def test_resolve_pipeline_maps_every_mode_to_working_pipeline(self):
+        from pdf2zh.services.runtime_service import resolve_pipeline
+        assert resolve_pipeline("auto") == "legacy"
+        assert resolve_pipeline("quick") == "legacy"
+        assert resolve_pipeline("standard") == "legacy"
+        assert resolve_pipeline("quality") == "legacy"
+        assert resolve_pipeline("babeldoc") == "babeldoc"
+        assert resolve_pipeline(None) == "legacy"
+        assert resolve_pipeline("bogus") == "legacy"
 
     def test_submit_task_records_mode_choice(self, monkeypatch):
         import tempfile
@@ -648,11 +672,11 @@ class TestServicesLayer:
             tmp = f.name
         tid = svc.submit_task(TranslationRequest(
             source_path=tmp, files=[tmp], target_lang="zh-CN",
-            extra_config={"mode_choice": "v2"},
+            extra_config={"mode_choice": "standard"},
         ))
         state = svc.get_task_state(tid)
         assert state is not None
-        assert state.mode_choice == "v2"
+        assert state.mode_choice == "standard"
         default_tid = svc.submit_task(TranslationRequest(
             source_path=tmp, files=[tmp], target_lang="en",
         ))
@@ -1294,9 +1318,87 @@ class TestEventNotifier:
             return payload
 
         payload = asyncio.run(run())
-        assert '"t1"' in payload
-        assert '"seq":' in payload
+        # full payload frame: SSE id cursor + complete JSON event
+        assert payload.startswith("id: 1\n")
+        assert "data: {" in payload
+        assert '"task_id": "t1"' in payload
+        assert '"seq": 1' in payload
+        assert '"event_type": "TaskStarted"' in payload
         notifier.stop()
+
+    def test_notifier_frame_carries_full_event_payload(self):
+        import json
+        from pdf2zh.gui.events import EventBus, TaskProgressChanged
+        from pdf2zh.gui.notifier import _format_frame
+
+        bus = EventBus()
+        ev = bus.publish(
+            TaskProgressChanged(task_id="t1", progress=42.5, stage="render", message="hi")
+        )
+        frame = _format_frame(ev)
+        lines = frame.splitlines()
+        assert lines[0] == "id: 1"
+        assert lines[1].startswith("data: ")
+        data = json.loads(lines[1][len("data: "):])
+        assert data["event_type"] == "TaskProgressChanged"
+        assert data["task_id"] == "t1"
+        assert data["seq"] == 1
+        assert data["progress"] == 42.5
+        assert data["stage"] == "render"
+        assert data["message"] == "hi"
+        assert frame.endswith("\n\n")
+
+    def test_notifier_replay_frames_after_last_event_id(self):
+        import json
+
+        from pdf2zh.gui.events import EventBus, TaskMessageChanged, TaskProgressChanged
+        from pdf2zh.gui.notifier import _replay_frames
+
+        bus = EventBus()
+        bus.publish(TaskProgressChanged(task_id="t1", progress=10.0))  # seq 1
+        bus.publish(TaskMessageChanged(task_id="t1", message="first"))  # seq 2
+        bus.publish(TaskProgressChanged(task_id="t2", progress=50.0))  # seq 3
+        bus.publish(TaskMessageChanged(task_id="t2", message="second"))  # seq 4
+        frames = _replay_frames(bus.events_after(2))
+        assert len(frames) == 2
+        seen = []
+        for frame in frames:
+            lines = frame.splitlines()
+            seen.append((int(lines[0].split(":")[1].strip()),
+                         json.loads(lines[1][len("data: "):])["event_type"]))
+        assert seen == [(3, "TaskProgressChanged"), (4, "TaskMessageChanged")]
+
+    def test_sse_stream_replays_missed_events_on_reconnect(self):
+        import asyncio
+        from types import SimpleNamespace
+
+        from pdf2zh.gui.events import EventBus, TaskMessageChanged, TaskStarted
+        from pdf2zh.gui.notifier import EventNotifier
+
+        bus = EventBus()
+        notifier = EventNotifier(bus)
+
+        async def run():
+            bus.publish(TaskStarted(task_id="t1"))  # seq 1 published while "offline"
+            bus.publish(TaskMessageChanged(task_id="t1", message="old"))  # seq 2
+            resp = await notifier.sse_stream(
+                SimpleNamespace(headers={"last-event-id": "1"})
+            )
+            stream = resp.body_iterator
+            chunks = []
+            try:
+                while len(chunks) < 2:
+                    chunks.append(await anext(stream))
+            except StopAsyncIteration:
+                pass
+            finally:
+                await stream.aclose()
+            return chunks
+
+        chunks = asyncio.run(run())
+        assert chunks[0] == "retry: 1000\n\n"
+        assert chunks[1].startswith("id: 2\n")  # missed event replayed
+        assert '"message": "old"' in chunks[1]
 
     def test_notifier_disconnect_stops_delivery(self):
         import asyncio
@@ -1329,3 +1431,99 @@ class TestEventNotifier:
         assert notifier._sub_id is not None
         notifier.stop()
         assert notifier._sub_id is None
+
+
+# =============================================================================
+# 13b. Notice channel (runtime -> bridge -> domain event -> renderer) Tests
+# =============================================================================
+
+
+class TestNoticeChannel:
+    def _stub_service(self):
+        class StubService:
+            def __init__(self):
+                self.listeners = []
+
+            def add_event_listener(self, cb):
+                self.listeners.append(cb)
+
+            def remove_event_listener(self, cb):
+                if cb in self.listeners:
+                    self.listeners.remove(cb)
+
+            def get_task_state(self, tid):
+                return None
+
+        return StubService()
+
+    def test_bridge_maps_runtime_notice_to_notice_emitted(self):
+        from pdf2zh.gui.event_bridge import TaskEventBridge
+        from pdf2zh.gui.events import EventBus
+        from pdf2zh.services.runtime_service import (
+            RuntimeNoticeEvent,
+            TaskProgressEvent,
+            TaskStage,
+        )
+
+        bus = EventBus()
+        stub = self._stub_service()
+        bridge = TaskEventBridge(bus=bus, service=stub)
+        bridge.start()
+        got = []
+        bus.subscribe(got.append)
+
+        stub.listeners[0](
+            RuntimeNoticeEvent(
+                task_id="t1", severity="warning", title="CPU degraded",
+                detail="worker crashed", tip="retry --backend auto",
+            )
+        )
+        stub.listeners[0](
+            TaskProgressEvent(
+                task_id="t1", stage=TaskStage.TRANSLATING.value,
+                progress=20.0, message="hi",
+            )
+        )
+        types = [e.event_type for e in got]
+        assert "NoticeEmitted" in types
+        assert "TaskProgressChanged" in types
+        notice = next(e for e in got if e.event_type == "NoticeEmitted")
+        assert notice.task_id == "t1"
+        assert notice.severity == "warning"
+        assert notice.title == "CPU degraded"
+        assert notice.detail == "worker crashed"
+        assert notice.tip == "retry --backend auto"
+        bridge.stop()
+
+    def test_notice_emitted_is_registered_event_type(self):
+        from pdf2zh.gui.events import ALL_EVENT_TYPES
+
+        assert "NoticeEmitted" in {t.__name__ for t in ALL_EVENT_TYPES}
+
+    def test_renderer_surfaces_and_persists_notice(self):
+        import pdf2zh.gui.app as app
+        from pdf2zh.gui.events import NoticeEmitted, TaskMessageChanged
+
+        app._ACTIVE_NOTICES.clear()
+        try:
+            acc = app._DeltaAccumulator()
+            app._render_notice_emitted(
+                acc,
+                NoticeEmitted(
+                    task_id="t9", severity="warning",
+                    title="CPU degraded", tip="restart --backend auto",
+                ),
+            )
+            assert "⚠️" in app._ACTIVE_NOTICES.get("t9", "")
+            assert "status_badge" in acc._updates
+            md = acc._updates["status_markdown"]["value"]
+            assert "CPU degraded" in md
+
+            # A later plain message render keeps the notice visible.
+            acc2 = app._DeltaAccumulator()
+            app._render_message_changed(
+                acc2, TaskMessageChanged(task_id="t9", message="busy")
+            )
+            assert "⚠️" in acc2._updates["status_markdown"]["value"]
+        finally:
+            app._ACTIVE_NOTICES.clear()

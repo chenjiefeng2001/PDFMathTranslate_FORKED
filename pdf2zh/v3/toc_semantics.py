@@ -99,12 +99,16 @@ _RE_SECTION = re.compile(r"^\s*(?:section|sec\.)\s*([0-9]+(?:\.[0-9]+)*)", re.IG
 _RE_SUBSECTION = re.compile(r"^\s*(?:subsection|subsec\.)\s*([0-9]+(?:\.[0-9]+)*)", re.IGNORECASE)
 _RE_PART = re.compile(r"^\s*part\s*([0-9IVXLC]+)", re.IGNORECASE)
 _RE_APPENDIX = re.compile(r"^\s*(?:appendix|appx\.)\s*([A-Z0-9]+)", re.IGNORECASE)
+# V1.19：附录中文/Annex 变体
+_RE_ZH_APPENDIX = re.compile(r"^\s*附录\s*([A-Z0-9]+)")
+_RE_ANNEX = re.compile(r"^\s*annex\s*([A-Z0-9]+)", re.IGNORECASE)
 _RE_CONTENTS = re.compile(r"^\s*(?:table\s+of\s+contents|contents)\s*$", re.IGNORECASE)
 _RE_INDEX = re.compile(r"^\s*index\s*$", re.IGNORECASE)
 # V8.7 P2：真实语料前缀变体 —— §N 小节、裸编号 "1." / "1.2.3"、中文"第X章/节"
 _RE_SECTION_SIGN = re.compile(r"^\s*[§§]\s*([0-9]+(?:\.[0-9]+)*)")
-# 多点编号 "7.13 标题"（编号后无分隔符，直接空格）—— 必须先于单点编号匹配
-_RE_BARE_NUMBERED_MULTI = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)+)\s+")
+# 多点编号 "7.13 标题"（编号后无分隔符，直接空格）—— 必须先于单点编号匹配；
+# V1.19：容忍编号尾随点（"3.2. Rough Sketches"）
+_RE_BARE_NUMBERED_MULTI = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)+)\.?\s+")
 # 单点编号 "1. 标题" / "1、标题"（需分隔符，避免吃掉 "1.5" 之类小数）
 _RE_BARE_NUMBERED = re.compile(r"^\s*([0-9]+)\s*[.:、]")
 _RE_ZH_PREFIX = re.compile(
@@ -120,6 +124,8 @@ _STRUCTURED_RE: List[Tuple[TOCKind, re.Pattern, int]] = [
     (TOCKind.SUBSECTION, _RE_SUBSECTION, 3),
     (TOCKind.PART, _RE_PART, 1),
     (TOCKind.APPENDIX, _RE_APPENDIX, 1),
+    (TOCKind.APPENDIX, _RE_ZH_APPENDIX, 1),
+    (TOCKind.APPENDIX, _RE_ANNEX, 1),
     (TOCKind.SECTION, _RE_SECTION_SIGN, 2),   # §2 / §3.2 → 节
 ]
 

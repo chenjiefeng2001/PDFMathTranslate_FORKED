@@ -56,13 +56,15 @@ LANGUAGES = [
 
 #: Pipeline mode choices surfaced in the Service group. Display labels are
 #: user-facing quality levels; values remain the internal pipeline selector.
+#: Every value maps to a working pipeline (legacy ``translate_stream`` or the
+#: independent BabelDOC layout engine) - see MODE_PRESETS / resolve_pipeline
+#: in ``pdf2zh.services.runtime_service``.
 MODE_CHOICES = [
     (B("config_mode_auto"), "auto"),
-    (B("config_mode_v0"), "v0"),
-    (B("config_mode_v1"), "v1"),
-    (B("config_mode_v2"), "v2"),
-    (B("config_mode_v3"), "v3"),
-    (B("config_mode_v4"), "v4"),
+    (B("config_mode_quick"), "quick"),
+    (B("config_mode_standard"), "standard"),
+    (B("config_mode_quality"), "quality"),
+    (B("config_mode_babeldoc"), "babeldoc"),
 ]
 
 

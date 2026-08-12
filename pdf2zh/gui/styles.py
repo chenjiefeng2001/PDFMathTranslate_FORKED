@@ -717,9 +717,13 @@ SESSION_JS = """<script>
         }
     });
 
-    // ---- event-driven sync (SSE push, no polling Timer) ----
-    // The server pushes a JSON stub per published domain event; each message
-    // wakes the hidden sync-trigger button which pulls one delta sync. If the
+    // ---- event-driven sync (SSE push + auto replay, no polling Timer) ----
+    // The server pushes the FULL JSON payload per published domain event and
+    // embeds each frame with an SSE "id:" cursor. On reconnect, EventSource
+    // automatically sends the browser's Last-Event-ID, so the server replays
+    // every missed event before resuming the live stream -- a dropped
+    // connection loses nothing. Each message wakes the hidden sync-trigger
+    // button which pulls one delta sync (rendering stays server-side). If the
     // stream is down, a browser-side fallback polls at low frequency until
     // EventSource reconnects (the backend itself never polls).
     function wakeSync() {
@@ -741,6 +745,7 @@ SESSION_JS = """<script>
             try {
                 var data = JSON.parse(ev.data);
                 if (data && data.task_id) { window.__pdf2zh_last_task_id = data.task_id; }
+                window.__pdf2zh_last_event_seq = (data && data.seq) || 0;
             } catch (e) {}
             wakeSync();
         };

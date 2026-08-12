@@ -190,6 +190,11 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
 if __name__ == "__main__":
     import argparse
 
+    from pdf2zh.pdf2zh import spawn_child_yields_to
+
+    if spawn_child_yields_to():
+        raise SystemExit(0)
+
     mcp = create_mcp_app()
     mcp_server = mcp._mcp_server
     parser = argparse.ArgumentParser(description="Run MCP SSE-based PDF2ZH server")

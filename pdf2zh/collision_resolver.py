@@ -169,7 +169,7 @@ class CollisionResolver:
         if y_down is not None:
             return y_down
         # ---- Priority 2: push UP (y 增大) ----
-        return self._push_up(text_bbox, colliding, height, page_rect)
+        return self._push_up(text_bbox, colliding, height, font_size, page_rect)
 
     def _bbox_at(self, text_bbox: BoundingBox, y0: float) -> BoundingBox:
         return BoundingBox(text_bbox.x0, y0, text_bbox.x1, y0 + text_bbox.height)
@@ -203,7 +203,7 @@ class CollisionResolver:
                 - 0.01
             )
             if page_rect is not None:
-                new_y = max(new_y, page_rect.y0)
+                new_y = max(new_y, page_rect.y0 + font_size)
             if new_y >= y_candidate:
                 # 无法继续向下推进（已到页面底部 / 数值异常）
                 return None
@@ -215,6 +215,7 @@ class CollisionResolver:
         text_bbox: BoundingBox,
         colliding: List[BoundingBox],
         height: float,
+        font_size: float,
         page_rect: Optional[BoundingBox],
     ) -> Optional[float]:
         """Greedy upward placement above every blocking obstacle."""
@@ -227,7 +228,9 @@ class CollisionResolver:
             highest_bottom = min(obs.y1 for obs in blocking)
             new_y = highest_bottom + 2 * self.margin + 0.01
             if page_rect is not None:
-                new_y = min(new_y, page_rect.y1 - height)
+                # P2：顶部夹紧保留一个字号空间，避免字形 ascent 把 bbox 顶出页面
+                # （否则 push_up 到 page_rect.y1 时 pymupdf bbox.y0 < 0）
+                new_y = min(new_y, page_rect.y1 - height - font_size)
             if new_y <= y_candidate:
                 return None
             y_candidate = new_y

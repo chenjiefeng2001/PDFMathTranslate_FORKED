@@ -151,6 +151,24 @@ class PreviewReady(TaskEvent):
 
 
 @dataclass
+class NoticeEmitted(TaskEvent):
+    """Structured runtime notice (severity / title / detail / tip).
+
+    A first-class, progress-independent channel for *process health* events:
+    backend degradation, cache migration, fallback decisions, worker crashes.
+    Never clamped by the monotonic progress semantics; the UI surfaces it in
+    the status area/badge instead of the progress bar.
+    """
+
+    severity: str = "info"
+    """info | warning | error"""
+    title: str = ""
+    detail: str = ""
+    tip: str = ""
+    message: str = ""
+
+
+@dataclass
 class DiagnosticsUpdated(TaskEvent):
     """V4 diagnostics / quality scores were refreshed."""
 
@@ -181,6 +199,7 @@ ALL_EVENT_TYPES: Tuple[type, ...] = (
     TaskFinished,
     FileGenerated,
     PreviewReady,
+    NoticeEmitted,
     DiagnosticsUpdated,
 )
 
@@ -305,6 +324,31 @@ class EventBus:
                 return []
             return [e for e in history if e.sequence > last_sequence]
 
+    def events_after(self, sequence: int) -> List[TaskEvent]:
+        """All events across *all* tasks with ``sequence > sequence``, in order.
+
+        Global (cross-task) delta cursor used by the SSE transport to replay
+        a subscriber's missed events after a reconnect (browser sends
+        ``Last-Event-ID``; the transport resumes from it). The global
+        ``_seq_counter`` is shared across tasks, so replaying by global
+        sequence preserves the exact publication order the client saw.
+
+        Note: the per-task history is a bounded ``deque``, so only events
+        still retained by the bus can be replayed; anything older than the
+        window is irretrievably gone (the client performs a full state sync
+        on refresh anyway).
+        """
+        with self._lock:
+            collected: List[TaskEvent] = []
+            for history in self._history.values():
+                for ev in history:
+                    if ev.sequence > sequence:
+                        collected.append(ev)
+            if not collected:
+                return []
+            collected.sort(key=lambda e: e.sequence)
+            return collected
+
     def has_events(self, task_id: str, last_sequence: int) -> bool:
         """True when at least one event is available past the given cursor."""
         with self._lock:
@@ -365,6 +409,7 @@ __all__ = [
     "TaskFinished",
     "FileGenerated",
     "PreviewReady",
+    "NoticeEmitted",
     "DiagnosticsUpdated",
     "ALL_EVENT_TYPES",
     "EventBus",

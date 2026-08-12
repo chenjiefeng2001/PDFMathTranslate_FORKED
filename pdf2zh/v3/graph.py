@@ -207,6 +207,15 @@ class DocumentGraph:
     def __len__(self) -> int:
         return len(self.nodes)
 
+    def __iter__(self):
+        # 必须显式迭代 nodes：__getitem__ 以 node_id(str) 为键且永不抛
+        # IndexError，若无 __iter__，Python 会退回按整型索引迭代
+        # (graph[0], graph[1], ...) 并因永不终止而无限循环，导致上层
+        # `for node in graph` 死锁（曾使 _collect_node_overview 挂起，
+        # 整个任务卡在 analyzing、任务队列被锁死）。
+        return iter(self.nodes)
+
+
     def __getitem__(self, node_id: str) -> Optional[DocumentNode]:
         return self._node_map.get(node_id)
 

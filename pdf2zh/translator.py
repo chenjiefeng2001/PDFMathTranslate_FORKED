@@ -40,6 +40,31 @@ from tenacity import wait_exponential
 
 logger = logging.getLogger(__name__)
 
+#: 所有翻译 HTTP 请求的 (connect, read) 超时。Google/Bing 等在 443 不可达时
+#: 若不设超时，requests 会卡到系统级 TCP 超时（可长达数分钟），导致停止/退出
+#: 流程被拖死（“卡死在重试阶段”）。connect 5s 快速失败，read 20s 覆盖慢速代理。
+HTTP_TIMEOUT = (5, 20)
+
+
+def _resolve_translator_proxy(envs=None) -> dict | None:
+    """解析翻译请求的 HTTP(S) 代理。
+
+    优先级: PDF2ZH_PROXY(env) > PDF2ZH_PROXY(GUI 环境变量行) > HTTPS_PROXY > HTTP_PROXY。
+    返回 requests 的 ``proxies`` 风格 dict，未配置时返回 None。
+    """
+    candidates = [
+        os.environ.get("PDF2ZH_PROXY"),
+        (envs or {}).get("PDF2ZH_PROXY"),
+        os.environ.get("HTTPS_PROXY"),
+        os.environ.get("https_proxy"),
+        os.environ.get("HTTP_PROXY"),
+        os.environ.get("http_proxy"),
+    ]
+    for c in candidates:
+        if c:
+            return {"http": c, "https": c}
+    return None
+
 
 def remove_control_characters(s):
     return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
@@ -176,9 +201,12 @@ class GoogleTranslator(BaseTranslator):
     name = "google"
     lang_map = {"zh": "zh-CN"}
 
-    def __init__(self, lang_in, lang_out, model, ignore_cache=False, **kwargs):
+    def __init__(self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs):
         super().__init__(lang_in, lang_out, model, ignore_cache)
         self.session = requests.Session()
+        proxy = _resolve_translator_proxy(envs)
+        if proxy:
+            self.session.proxies.update(proxy)
         self.endpoint = "https://translate.google.com/m"
         self.headers = {
             "User-Agent": "Mozilla/4.0 (compatible;MSIE 6.0;Windows NT 5.1;SV1;.NET CLR 1.1.4322;.NET CLR 2.0.50727;.NET CLR 3.0.04506.30)"  # noqa: E501
@@ -190,6 +218,7 @@ class GoogleTranslator(BaseTranslator):
             self.endpoint,
             params={"tl": self.lang_out, "sl": self.lang_in, "q": text},
             headers=self.headers,
+            timeout=HTTP_TIMEOUT,
         )
         re_result = re.findall(
             r'(?s)class="(?:t0|result-container)">(.*?)<', response.text
@@ -216,16 +245,19 @@ class BingTranslator(BaseTranslator):
     name = "bing"
     lang_map = {"zh": "zh-Hans"}
 
-    def __init__(self, lang_in, lang_out, model, ignore_cache=False, **kwargs):
+    def __init__(self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs):
         super().__init__(lang_in, lang_out, model, ignore_cache)
         self.session = requests.Session()
+        proxy = _resolve_translator_proxy(envs)
+        if proxy:
+            self.session.proxies.update(proxy)
         self.endpoint = "https://www.bing.com/translator"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",  # noqa: E501
         }
 
     def find_sid(self):
-        response = self.session.get(self.endpoint)
+        response = self.session.get(self.endpoint, timeout=HTTP_TIMEOUT)
         response.raise_for_status()
         url = response.url[:-10]
         ig = re.findall(r"\"ig\":\"(.*?)\"", response.text)[0]
@@ -248,6 +280,7 @@ class BingTranslator(BaseTranslator):
                 "key": key,
             },
             headers=self.headers,
+            timeout=HTTP_TIMEOUT,
         )
         response.raise_for_status()
         return response.json()[0]["translations"][0]["text"]
@@ -292,6 +325,9 @@ class DeepLXTranslator(BaseTranslator):
         super().__init__(lang_in, lang_out, model, ignore_cache)
         self.endpoint = self.envs["DEEPLX_ENDPOINT"]
         self.session = requests.Session()
+        proxy = _resolve_translator_proxy(envs)
+        if proxy:
+            self.session.proxies.update(proxy)
         auth_key = self.envs["DEEPLX_ACCESS_TOKEN"]
         if auth_key:
             self.endpoint = f"{self.endpoint}?token={auth_key}"
@@ -305,6 +341,7 @@ class DeepLXTranslator(BaseTranslator):
                 "text": text,
             },
             verify=False,  # noqa: S506
+            timeout=HTTP_TIMEOUT,
         )
         response.raise_for_status()
         return response.json()["data"]
@@ -859,7 +896,11 @@ class AnythingLLMTranslator(BaseTranslator):
         }
 
         response = requests.post(
-            self.api_url, headers=self.headers, data=json.dumps(payload)
+            self.api_url,
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=(15, 60),
+            proxies=_resolve_translator_proxy(),
         )
         response.raise_for_status()
         data = response.json()
@@ -901,7 +942,11 @@ class DifyTranslator(BaseTranslator):
 
         # 向 Dify 服务器发送请求
         response = requests.post(
-            self.api_url, headers=headers, data=json.dumps(payload)
+            self.api_url,
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=(15, 60),
+            proxies=_resolve_translator_proxy(),
         )
         response.raise_for_status()
         response_data = response.json()

@@ -199,6 +199,27 @@ class TestEventBus:
         assert len(bus.events_since("t1", 0)) == 1
         assert len(bus.events_since("t2", 0)) == 1
 
+    def test_events_after_global_cursor_crosses_tasks(self):
+        bus = EventBus()
+        bus.publish(TaskStarted(task_id="t1"))  # seq 1
+        bus.publish(TaskStarted(task_id="t2"))  # seq 2
+        bus.publish(TaskProgressChanged(task_id="t1", progress=10.0))  # seq 3
+        bus.publish(TaskMessageChanged(task_id="t2", message="x"))  # seq 4
+        after = bus.events_after(1)
+        assert [e.sequence for e in after] == [2, 3, 4]
+        assert [e.task_id for e in after] == ["t2", "t1", "t2"]
+        # publication order preserved, not per-task order
+        assert after[1].event_type == "TaskProgressChanged"
+        assert bus.events_after(4) == []
+        assert bus.events_after(0)[0].sequence == 1
+
+    def test_events_after_respects_bounded_history(self):
+        bus = EventBus(max_history_per_task=2)
+        for i in range(4):
+            bus.publish(TaskProgressChanged(task_id="t1", progress=float(i)))
+        # seqs 1,2 rolled off; global cursor still returns surviving events
+        assert [e.sequence for e in bus.events_after(2)] == [3, 4]
+
     def test_replay_chronological_order(self):
         bus = EventBus()
         for pct in (10, 20, 30):

@@ -77,6 +77,16 @@ def run_mainline_channels(conv, ltpage) -> None:
         gate_recs = getattr(conv, "gate_records_by_page", {})
         gate_recs[pageid] = [dict(r) for r in conv._gate_records]
         conv.gate_records_by_page = gate_recs
+    # P3: 版面不变量验证记录（LayoutViolation，页面级重置 → 按页存档，side-channel）
+    if getattr(conv, "_layout_violations", None) is not None:
+        pageid = getattr(ltpage, "pageid", 0)
+        lv = getattr(conv, "layout_violations_by_page", {})
+        lv.setdefault(pageid, []).extend([dict(r) for r in conv._layout_violations])
+        conv.layout_violations_by_page = lv
+    # P5–P10: 语义文本重建 + 公式几何重构（Glyph→StyleRun→Line→Paragraph→
+    # Formula→TranslationUnit→LayoutSolve→DualPatch QA，side-channel 采集）
+    if getattr(conv, "reconstruction_channel", False):
+        run_reconstruction_channel(conv, ltpage)
 
 
 def emit_page_ir(conv, ltpage) -> None:
@@ -425,4 +435,122 @@ def run_observability_channel(conv, ltpage) -> None:
                 message="mainline gate record")
     except Exception as e:  # noqa: BLE001 — 可观测层永不阻断主链路
         log.debug("observability failed for page %s: %s",
+                  getattr(ltpage, "pageid", 0), e)
+
+
+def _mark_reconstruction_render_source(conv, pageid: int, records: dict) -> None:
+    """依据接管报告标注本页渲染数据源。
+
+    阶段 3 接管成功 → ``render_source=reconstructed`` / ``legacy_renderer``；
+    否则保持 ``legacy`` / ``none`` 并附 ``adopt_reason`` —— 让 QA 报告直接
+    暴露「已计算、已接线 / 已计算、未接线」的真实状态。
+    """
+    rec = records.get(pageid)
+    if not isinstance(rec, dict):
+        return
+    adopt = (getattr(conv, "reconstruction_adoptions", {}) or {}).get(pageid) or {}
+    if adopt.get("adopted"):
+        rec["render_source"] = "reconstructed"
+        rec["render_consumer"] = "legacy_renderer"
+        rec["adopt_level"] = adopt.get("level")
+        rec["adopt_merged_paragraphs"] = adopt.get("merged_paragraphs", 0)
+    else:
+        rec["render_source"] = "legacy"
+        rec["render_consumer"] = "none"
+        rec["adopt_reason"] = adopt.get("reason") or "adopt_disabled"
+
+
+def _is_page_level(ltpage) -> bool:
+    """判断是否页面级 LTPage（vs LTFigure/LTTextBox 等子容器）。"""
+    try:
+        from pdfminer.layout import LTPage as _LTPage
+        return isinstance(ltpage, _LTPage)
+    except Exception:  # noqa: BLE001
+        return type(ltpage).__name__ == "LTPage"
+
+
+def run_reconstruction_channel(conv, ltpage) -> None:
+    """P5–P10 语义文本重建与公式几何重构 side-channel。
+
+    消费 legacy 解析器遍历的同一 LTChar 流，跑完整链路：
+    Glyph → StyleRun → VisualLine → LogicalParagraph → FormulaObject
+    → TranslationUnit → LayoutSolver（三阶段坐标）→ DualPatch QA。
+    结果存入 ``conv.reconstruction_records[pageid]``（ReconstructionResult
+    dict），完整对象存入 ``conv.reconstruction_results[pageid]``（阶段 3
+    主链路接管消费）。
+
+    **LTFigure 占位修复**：interpreter 对 LTFigure 与 LTPage 都调
+    receive_layout（pageid 相同），LTFigure 先到达时仅含 figure 内字符
+    （实测 font.unknown.pdf 为 0），会占位空结果并短路掉页面级完整结果。
+    → 重建**只在页面级 LTPage 执行并覆盖** figure 级占位；LTFigure 级跳过。
+    失败只进 debug 日志，绝不干扰主链路。
+    """
+    pageid = getattr(ltpage, "pageid", 0)
+    records = getattr(conv, "reconstruction_records", {})
+    page_level = _is_page_level(ltpage)
+    if not page_level:
+        # LTFigure 等子容器：重建只由页面级 LTPage 执行（覆盖占位）
+        if pageid in records:
+            _mark_reconstruction_render_source(conv, pageid, records)
+        return
+    existing = records.get(pageid) or {}
+    if existing.get("page_level") and existing.get("glyph_count", 0) > 0:
+        # 已有页面级非空结果（幂等）：只更新渲染数据源标注
+        _mark_reconstruction_render_source(conv, pageid, records)
+        return
+    try:
+        from pdf2zh.v3.reconstruction_pipeline import ReconstructionPipeline
+        from pdf2zh.v3.layout_class import layout_mask_class_fn
+
+        def _page_rect(_pid):
+            return (
+                float(getattr(ltpage, "x0", 0.0) or 0.0),
+                float(getattr(ltpage, "y0", 0.0) or 0.0),
+                float(getattr(ltpage, "x1", 0.0) or 0.0),
+                float(getattr(ltpage, "y1", 0.0) or 0.0),
+            )
+
+        pipe = ReconstructionPipeline(
+            page_rect_fn=_page_rect,
+            layout_class_fn=layout_mask_class_fn(conv, ltpage),
+        )
+        result = pipe.run(ltpage, page_id=pageid)
+        rec = result.to_dict()
+        # 完整对象存档（阶段 3 接管适配器消费：SolvedUnit/LayoutParagraph 几何）
+        results = getattr(conv, "reconstruction_results", None)
+        if results is None:
+            results = {}
+            conv.reconstruction_results = results
+        results[pageid] = result
+        # 失效点 1 可观测性：标注渲染数据源。真实状态由接管报告决定 ——
+        # 该字段让 QA 报告直接暴露「已计算、已接线 / 已计算、未接线」。
+        rec["render_source"] = "legacy"       # 渲染前由 _mark_reconstruction_render_source 校正
+        rec["render_consumer"] = "none"
+        rec["channel_enabled"] = True
+        rec["page_level"] = True             # 页面级完整结果（覆盖 LTFigure 占位）
+        records[pageid] = rec
+        conv.reconstruction_records = records
+        # §9.1/§9.2 QA 快照（供报告直接消费）
+        if result.paragraphs:
+            try:
+                from pdf2zh.patch.dual_patcher import DualPatcher
+                patcher = DualPatcher()
+                switches = patcher.count_font_switches(result.paragraphs)
+                qa = patcher.synthesize(
+                    result.solved_units,
+                    translated_text="".join(u.text for u in result.translation_units),
+                    formula_map={
+                        k: v for u in result.translation_units
+                        for k, v in u.formula_map.items()
+                    })
+                qa.qa["text"]["font_switch_count"] = switches
+                ratio = (len(result.translation_units) / switches
+                         if switches > 0 else 1.0)
+                qa.qa["text"]["font_switch_ratio"] = round(ratio, 4)
+                conv.reconstruction_qa[pageid] = qa.to_dict()
+            except Exception:  # noqa: BLE001
+                pass
+        _mark_reconstruction_render_source(conv, pageid, records)
+    except Exception as e:
+        log.debug("P5-P10 reconstruction failed for page %s: %s",
                   getattr(ltpage, "pageid", 0), e)

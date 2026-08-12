@@ -148,6 +148,32 @@ class TestCollisionResolver(unittest.TestCase):
             shifted = BoundingBox(100, new_y, 300, new_y + 30)
             self.assertTrue(shifted.overlaps(obstacle))
 
+    def test_push_down_keeps_font_margin_at_bottom(self):
+        """P2: 底部钳制保留一个字号空间（page.y0 + font_size）。
+        下推计算值低于 page.y0 + font_size 时应被钳制到字号空间上沿，
+        避免字形 descent 把 bbox 顶出页面底边（bbox.y1 < 0）。"""
+        page_rect = BoundingBox(0, 0, 500, 700)
+        text = BoundingBox(100, 30, 300, 50)
+        # obstacle 顶部较低，使下推目标 new_y = 36-20-2*2-10*0.3-0.01 = 8.99 < 10，
+        # 且下移后 bbox(10..30) 与 obstacle(34.5..36) 间隔 > 2*margin → 可一次到位
+        obstacle = BoundingBox(100, 34.5, 300, 36)
+        new_y = self.resolver._try_vertical_shift(text, [obstacle], 10.0, page_rect)
+        self.assertIsNotNone(new_y)
+        self.assertGreaterEqual(new_y, page_rect.y0 + 10.0 - 1e-6)
+        self.assertLess(new_y, text.y0)  # 发生了下移
+
+    def test_push_up_keeps_font_margin_at_top(self):
+        """P2: 顶部钳制保留一个字号空间（page.y1 - height - font_size），
+        避免字形 ascent 把 bbox 顶出页面顶部（修复后 pymupdf bbox.y0 < 0 不再出现）。"""
+        page_rect = BoundingBox(0, 0, 500, 700)
+        text = BoundingBox(100, 600, 300, 640)
+        down_ob = BoundingBox(100, 0, 300, 610)  # 占满下方 → 下推不可行
+        up_ob = BoundingBox(100, 635, 300, 645)  # 与 text 顶部重叠 → 触发上推
+        new_y = self.resolver._try_vertical_shift(text, [down_ob, up_ob], 10.0, page_rect)
+        self.assertIsNotNone(new_y)
+        self.assertLessEqual(new_y, page_rect.y1 - text.height - 10.0 + 1e-6)
+        self.assertGreater(new_y, text.y0)  # 发生了上移
+
     def test_resolve_return_strategy_vertical(self):
         """return_strategy=True 时返回 4 元组，垂直避让应标记为 vertical。"""
         obstacle = BoundingBox(100, 102, 200, 104)

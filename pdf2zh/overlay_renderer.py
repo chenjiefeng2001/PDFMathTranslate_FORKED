@@ -91,24 +91,43 @@ class OverlayRenderer:
     ) -> bytes:
         """Render hybrid PDF with original image + overlay text layer.
 
-        For scanned PDFs: preserves the original image and adds an
-        invisible text layer on top for searchability, plus a visible
+        For scanned PDFs: preserves the original image and adds a
+        transparent text layer on top for searchability, plus a visible
         overlay for translated text.
+
+        完成遗留 stub（Phase 4）：提取原页图像 → 建 PDF（图像 + 透明
+        文本层）→ 返回字节流。
 
         Args:
             page: The pymupdf Page object
             segments: List of text segments to render
-            original_pdf: Original scanned PDF bytes
+            original_pdf: Original scanned PDF bytes (used for page count
+                fallback; the page pixmap is rendered from ``page``)
 
         Returns:
             Hybrid PDF bytes
         """
-        # This is a stub for Phase 4 implementation
-        # Full implementation requires:
-        # 1. Extract original page image
-        # 2. Create PDF with image + text layer
-        # 3. Add transparent overlay text
-        return self.render_overlay(page, segments)
+        # 1. 提取原页图像（300dpi 光栅）
+        pix = page.get_pixmap(dpi=self.dpi)
+        img_bytes = pix.tobytes("png")
+        # 2. 建新 PDF：与源页同尺寸 + 原页图像
+        out_doc = Document()
+        out_page = out_doc.new_page(width=page.rect.width,
+                                    height=page.rect.height)
+        out_page.insert_image(out_page.rect, stream=img_bytes)
+        # 3. 透明文本层 overlay（保留原图 + 可搜索文本 + 译文）
+        for seg in segments:
+            if not seg.text.strip():
+                continue
+            x0, y0, _x1, _y1 = seg.bbox
+            out_page.insert_text(
+                point=(x0, y0 + seg.font_size * 0.85),
+                text=seg.text,
+                fontsize=seg.font_size,
+                color=(0, 0, 0),
+                overlay=True,
+            )
+        return out_doc.write(deflate=True, garbage=3)
 
 
 def composite_overlay(

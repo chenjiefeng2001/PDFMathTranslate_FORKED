@@ -18,6 +18,7 @@ import threading
 from typing import Dict, Optional
 
 from pdf2zh.services.runtime_service import (
+    RuntimeNoticeEvent,
     RuntimeService,
     TaskProgressEvent,
     TaskStage,
@@ -27,6 +28,7 @@ from pdf2zh.gui.events import (
     DiagnosticsUpdated,
     EventBus,
     FileGenerated,
+    NoticeEmitted,
     PreviewReady,
     TaskCancelled,
     TaskFailed,
@@ -89,7 +91,7 @@ class TaskEventBridge:
         with self._lock:
             if self._listening:
                 return
-            self.service.add_event_listener(self._on_progress_event)
+            self.service.add_event_listener(self._on_event_record)  # 统一分流 progress/notice
             self._listening = True
             logger.info("TaskEventBridge attached to RuntimeService event stream")
 
@@ -99,13 +101,41 @@ class TaskEventBridge:
             if not self._listening:
                 return
             try:
-                self.service.remove_event_listener(self._on_progress_event)
+                self.service.remove_event_listener(self._on_event_record)
             except Exception:
                 logger.exception("Failed to detach TaskEventBridge")
             self._listening = False
             logger.info("TaskEventBridge detached from RuntimeService")
 
     # ── worker side: one low-level record -> N domain events ────────────────
+
+    def _on_event_record(self, event: Any) -> None:
+        """Dispatch a runtime record: notices to a dedicated channel, the
+        remaining low-level records to the domain-event translation."""
+        if isinstance(event, RuntimeNoticeEvent):
+            self._on_notice_event(event)
+        else:
+            self._on_progress_event(event)
+
+    def _on_notice_event(self, event: RuntimeNoticeEvent) -> None:
+        """Translate a structured runtime notice into the ``NoticeEmitted``
+        domain event (severity/title/detail/tip), independent of progress."""
+        try:
+            self._bus.publish(
+                NoticeEmitted(
+                    task_id=event.task_id,
+                    severity=event.severity,
+                    title=event.title,
+                    detail=event.detail,
+                    tip=event.tip,
+                    message=event.message,
+                )
+            )
+        except Exception:
+            logger.exception(
+                "TaskEventBridge failed to publish notice for task %s",
+                getattr(event, "task_id", "?"),
+            )
 
     def _on_progress_event(self, event: TaskProgressEvent) -> None:
         """Translate a low-level progress record into domain events."""

@@ -22,9 +22,12 @@ from typing import Dict, Tuple
 #: hard-code UI strings in components.
 T: Dict[str, Tuple[str, str]] = {
     # ── brand / shell ────────────────────────────────────────────────────
-    "brand_title": ("PDFMathTranslate", "PDFMathTranslate"),
     "brand_subtitle": ("文档智能运行时", "Document Intelligence Runtime"),
     "stepbar_aria": ("翻译流程", "Translation pipeline"),
+    "header_recover_gpu": ("恢复 GPU 后端", "Recover GPU backend"),
+    "recover_gpu_ok": ("已发出 GPU 后端恢复请求（set_backend auto），适配器将在下次任务初始化时重新尝试 GPU。",
+                       "GPU backend recovery requested (set_backend auto); the adapter will retry GPU on the next task init."),
+    "recover_gpu_fail": ("GPU 后端恢复失败", "GPU backend recovery failed"),
 
     # ── sections ─────────────────────────────────────────────────────────
     "section_upload": ("文件上传", "File Upload"),
@@ -48,14 +51,13 @@ T: Dict[str, Tuple[str, str]] = {
     "config_lang_target": ("目标语言", "Target"),
     "config_mode": ("引擎模式", "Engine Mode"),
     "config_mode_auto": ("自动", "Auto"),
-    "config_mode_v0": ("基础", "Basic"),
-    "config_mode_v1": ("标准", "Standard"),
-    "config_mode_v2": ("高质量", "High Quality"),
-    "config_mode_v3": ("精准", "Precision"),
-    "config_mode_v4": ("布局优先", "Layout-first"),
+    "config_mode_quick": ("快速", "Quick"),
+    "config_mode_standard": ("标准", "Standard"),
+    "config_mode_quality": ("高质量", "High Quality"),
+    "config_mode_babeldoc": ("BabelDOC", "BabelDOC"),
     "config_mode_info": (
-        "v0: 基础 | v1: 标准 | v2: 高质量 | v3: 精准 | v4: 布局优先",
-        "v0: Basic | v1: Standard | v2: High Quality | v3: Precision | v4: Layout-first",
+        "auto: 自动 | quick: 快速（经典引擎）| standard: 标准（生产默认）| quality: 高质量（评测+门控）| babeldoc: BabelDOC 排版引擎",
+        "auto: Auto | quick: Quick (classic engine) | standard: Standard (production default) | quality: High Quality (evaluation+gate) | babeldoc: BabelDOC layout engine",
     ),
     "config_advanced": ("高级选项", "Advanced Options"),
     "config_threads": ("线程数", "Threads"),
