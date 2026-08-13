@@ -38,6 +38,8 @@
 - 📊 保留公式、图表、目录和注释 *([预览效果](#preview))*
 - 🌐 支持 [多种语言](./ADVANCED.md#language) 和 [诸多翻译服务](./ADVANCED.md#services)
 - 🤖 提供 [命令行工具](#usage)，[图形交互界面](#gui)，以及 [容器化部署](#docker)
+- 🛡️ 长时间运行可靠性：任务自愈看门狗、有限重试、队列活性看门狗、按线程隔离的连接池，保证大文档翻译不悬挂、不连接风暴
+- ⚡ 并行页面处理：worker 进程隔离、GPU 后端传播、worker 崩溃自动降级 CPU
 
 欢迎在 [GitHub Issues](https://github.com/Byaidu/PDFMathTranslate/issues) 或 [Telegram 用户群](https://t.me/+Z9_SgnxmsmA5NzBl)
 
@@ -45,6 +47,10 @@
 
 <h2 id="updates">更新</h2>
 
+- [2026年8月13日] 可靠性加固：翻译重试止损（`PDF2ZH_TRANSLATE_RETRY`）、任务自愈看门狗（无进度超时自动取消 `PDF2ZH_TASK_TIMEOUT_SECONDS`、终态任务自动清理 `PDF2ZH_TASK_RETENTION_SECONDS`）、GUI 队列活性看门狗、控制按钮直连（取消/暂停/继续/跳过/下载不再排队）
+- [2026年8月13日] 并行引擎：worker 进程隔离 + GPU 后端传播（`--backend`）、worker 崩溃自动降级 CPU、失败分块增量重试 + 串行补跑、主进程模型预热 + 原子化优化缓存发布
+- [2026年8月13日] 翻译传输层加固：按线程连接池（32）消除 "Connection pool is full" 连接风暴；Google 429/CAPTCHA 快速失败并给出可操作提示；超长文本（>4000 字符）分段翻译，修复静默截断；请求超时防黑洞悬挂
+- [2026年8月13日] 无文本文档透传：扫描件/纯矢量/纯图片 PDF 直接透传，不再嵌入数 MB 字体（此前 603KB 输入膨胀至 ~10MB 输出）；CLI 自动创建输出目录并正确支持并行参数
 
 - [2026年3月23日] 实验性支持 v2.0 翻译内核，使用隔离环境运行（`--mode precise`）。（由[@reycn](https://github.com/reycn) 提交）
 
@@ -131,6 +137,8 @@ pip install pdf2zh
    ```
 
    <img src="./images/gui.gif" width="500"/>
+
+GUI 支持基于 SSE 的实时事件流（`Last-Event-ID` 断线重连恢复）、带 ETA 的实时进度、多文件队列与逐个文件的暂停/继续/跳过，上传大小限制可配置（`--max-file-size`，默认 100 MB）。
 
 有关更多详细信息，请参阅 [GUI 文档](./README_GUI.md)。
 
@@ -252,8 +260,36 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 | `--serverport` | [自定义 gradio 服务器端口]                                                                                 | `pdf2zh --serverport 7860`                     |
 | `--mode`   | 翻译模式：`fast`（默认，v1）或 `precise`（v2，实验性，需要 pdf2zh_next 子模块）                                | `pdf2zh --mode precise example.pdf`            |
 | `--babeldoc`| 使用实验性后端 [BabelDOC](https://funstory-ai.github.io/BabelDOC/) 翻译 |`pdf2zh --babeldoc` -s openai example.pdf|
+| `--mcp`     | 启用 MCP STDIO 模式                                                                                            | `pdf2zh --mcp`                                 |
+| `--sse`     | 启用 MCP SSE 模式                                                                                              | `pdf2zh --mcp --sse`                           |
+| `--parallel-workers` | 并行页面处理 worker 进程数（默认 4），内存受限机器可调低                             | `pdf2zh example.pdf --parallel-workers 2`      |
+| `--no-parallel` | 禁用并行页面处理（串行兜底）                                                                                | `pdf2zh example.pdf --no-parallel`             |
+| `--backend` | ONNX Runtime 执行提供方：`auto`、`cpu`、`cuda`、`dml`                                                          | `pdf2zh example.pdf --backend cpu`             |
+| `--proxy`   | 翻译请求使用的 HTTP(S) 代理，如 `http://127.0.0.1:7890`                                                         | `pdf2zh example.pdf --proxy http://127.0.0.1:7890` |
+| `--max-file-size` | WebUI 上传大小限制（MB，默认 100）                                                                        | `pdf2zh -i --max-file-size 200`                |
 
 有关详细说明，请参阅我们的文档 [高级用法](./ADVANCED.md)，以获取每个选项的完整列表。
+
+<h2 id="reliability">可靠性配置</h2>
+
+长时间运行的任务由多个自愈机制保护，所有开关均为环境变量：
+
+| 变量 | 默认值 | 作用 |
+| ---- | ------ | ---- |
+| `PDF2ZH_TRANSLATE_RETRY` | `3` | 每次翻译调用的有限重试次数（非正数或非法值回退为 3）。防止无限重试导致任务永久卡住。 |
+| `PDF2ZH_TASK_TIMEOUT_SECONDS` | `7200` | 任务超过该时长无状态更新时，由看门狗自动取消并标记为 `Timed out`。 |
+| `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | 终态任务（已完成/已取消/失败）超过该时长后从内存中清理。 |
+| `PDF2ZH_SWEEP_INTERVAL` | `60` | 看门狗清扫间隔（最小 10）秒。 |
+| `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | 对应 `--parallel-workers` / `--no-parallel` 的环境变量形式。 |
+| `PDF2ZH_PROXY` | — | 对应 `--proxy` 的环境变量形式。 |
+| `PDF2ZH_MAX_FILE_SIZE` | — | 对应 `--max-file-size`（MB）的环境变量形式。 |
+| `HF_ENDPOINT` | — | 模型下载的 HuggingFace 镜像（如 `https://hf-mirror.com`）。 |
+
+**并行引擎。** 超过 5 页的文档由隔离的 worker 进程处理（`--parallel-workers`，默认 4）。每个 worker 只加载一次布局模型，并使用 `--backend` 指定的执行提供方；若 worker 崩溃（如 GPU session 冲突），引擎自动先用一半 worker 重试，必要时降级到 CPU 而不是让整个文档失败。失败的分块会增量重试，仅剩余分块走串行补跑——已完成页面绝不重复翻译。
+
+**翻译传输层。** 连接池按 worker 线程隔离（32）以避免 "discarding connection" 连接风暴，每个线程持有独立的 `requests.Session`。Google 429/CAPTCHA 封禁快速失败并给出可操作提示（更换代理/IP 或稍后重试），不再空耗重试；瞬时网络错误仍按指数退避重试。超过 4000 字符的文本按自然边界分段翻译，同时修复了原先 5000 字符静默截断的问题。
+
+**无文本文档。** 扫描件/纯矢量/纯图片 PDF（无可提取文本）会被提前识别并原样透传——不嵌入字体、不翻译，输出体积与输入相当，不再膨胀 10–20 倍。
 
 <h2 id="downstream">二次开发 (API)</h2>
 

@@ -55,6 +55,8 @@ Scientific PDF document translation preserving layouts.
 - 📊 Preserve formulas, charts, table of contents, and annotations.
 - 🌐 Support [multiple languages](#usage), and diverse [translation services](#usage).
 - 🤖 Provides [commandline tool](#usage), [interactive user interface](#install), and [Docker](#install)
+- 🛡️ Long-running reliability: task self-healing watchdogs, bounded retries, queue liveness watchdog, and per-thread connection pools keep big documents translating without hanging or connection storms.
+- ⚡ Parallel page processing with worker-process isolation, GPU backend propagation, and automatic CPU degradation on worker crashes.
 
 <div align="center">
 <img src="./docs/images/preview.gif" width="80%"/>
@@ -62,6 +64,10 @@ Scientific PDF document translation preserving layouts.
 
 <h2 id="updates">2. Recent Updates</h2>
 
+- [August 13, 2026] Reliability hardening: bounded translate retries (`PDF2ZH_TRANSLATE_RETRY`), task self-healing watchdogs (stuck-task auto-cancel via `PDF2ZH_TASK_TIMEOUT_SECONDS`, terminal-task pruning via `PDF2ZH_TASK_RETENTION_SECONDS`), GUI queue liveness watchdog, and direct (queue-less) control buttons for cancel/pause/resume/skip/download.
+- [August 13, 2026] Parallel engine: isolated worker processes with GPU backend propagation (`--backend`), automatic CPU degradation after worker crashes, incremental per-chunk retry with serial patch fallback, and main-process model warm-up with atomic optimized-cache publishing.
+- [August 13, 2026] Translator transport hardening: per-thread connection pools (32) that eliminate "Connection pool is full" connection storms, fast-fail on Google 429/CAPTCHA blocks with an actionable error, long-text chunking (>4000 chars) that fixes silent truncation, and request timeouts to prevent blackhole hangs.
+- [August 13, 2026] No-text passthrough: scanned/vector/image-only PDFs are detected and passed through without embedding multi-MB fonts (previously 603KB input ballooned to ~10MB output); CLI now creates missing output directories and supports parallel settings properly.
 - [March 23, 2026] Experimental support for v2.0 translation kernel using isolated environment (`--mode precise`). (by [@reycn](https://github.com/reycn))
 - [March 22, 2026] Supporting MiniMax (PR by [@octo-patch](https://github.com/octo-patch))
 - [March 22, 2026] Fixing OpenAI-related issues (PR by [@samqin123](https://github.com/samqin123))
@@ -151,6 +157,8 @@ For different use cases, we provide distinct methods to use our program:
    ```
 
    <img src="./docs/images/gui.gif" width="500"/>
+
+The GUI features a live event stream (SSE with `Last-Event-ID` reconnect recovery), real-time progress with ETA, multi-file queueing with per-file pause/resume/skip, and a configurable upload size limit (`--max-file-size`, default 100 MB).
 
 See [documentation for GUI](./docs/README_GUI.md) for more details.
 
@@ -329,16 +337,42 @@ In the following table, we list all advanced options for reference:
 | `--babeldoc`          | Use Experimental backend [BabelDOC](https://funstory-ai.github.io/BabelDOC/) to translate                     | `pdf2zh --babeldoc` -s openai example.pdf      |
 | `--mcp`               | Enable MCP STDIO mode                                                                                         | `pdf2zh --mcp`                                 |
 | `--sse`               | Enable MCP SSE mode                                                                                           | `pdf2zh --mcp --sse`                           |
+| `--parallel-workers`  | Number of parallel page-processing worker processes (default 4); lower it on memory-constrained machines       | `pdf2zh example.pdf --parallel-workers 2`      |
+| `--no-parallel`       | Disable parallel page processing (serial fallback)                                                            | `pdf2zh example.pdf --no-parallel`             |
+| `--backend`           | ONNX Runtime execution provider: `auto`, `cpu`, `cuda`, `dml`                                                  | `pdf2zh example.pdf --backend cpu`             |
+| `--proxy`             | HTTP(S) proxy for translation requests, e.g. `http://127.0.0.1:7890`                                          | `pdf2zh example.pdf --proxy http://127.0.0.1:7890` |
+| `--max-file-size`     | WebUI upload size limit in MB (default 100)                                                                   | `pdf2zh -i --max-file-size 200`                |
 
 For detailed explanations, please refer to our document about [Advanced Usage](./docs/ADVANCED.md) for a full list of each option.
 
-<h3 id="downstream">4.2 Downstream Development</h3>
+<h3 id="reliability">4.2 Reliability & Operations</h3>
+
+Long-running tasks are guarded by several self-healing mechanisms; all knobs are environment variables:
+
+| Variable | Default | Purpose |
+| -------- | ------- | ------- |
+| `PDF2ZH_TRANSLATE_RETRY` | `3` | Bounded retries per translation call (a non-positive or invalid value falls back to 3). Prevents infinite retry loops that previously stalled tasks forever. |
+| `PDF2ZH_TASK_TIMEOUT_SECONDS` | `7200` | A task that reports no state update for this long is auto-cancelled by the watchdog and marked `Timed out`. |
+| `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | Terminal tasks (completed/cancelled/failed) older than this are pruned from memory. |
+| `PDF2ZH_SWEEP_INTERVAL` | `60` | Seconds between watchdog sweeps (minimum 10). |
+| `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | Env-var equivalents of `--parallel-workers` / `--no-parallel`. |
+| `PDF2ZH_PROXY` | — | Env-var equivalent of `--proxy`. |
+| `PDF2ZH_MAX_FILE_SIZE` | — | Env-var equivalent of `--max-file-size` (MB). |
+| `HF_ENDPOINT` | — | HuggingFace mirror for model downloads (e.g. `https://hf-mirror.com`). |
+
+**Parallel engine.** Documents with more than 5 pages are processed by isolated worker processes (`--parallel-workers`, default 4). Each worker loads the layout model once and runs with `--backend`-selected providers; if a worker crashes (e.g. GPU session conflict), the engine automatically retries with half the workers and, if needed, degrades to CPU instead of failing the whole document. Failed page chunks are retried incrementally and only the remaining chunks run serially — completed pages are never re-translated.
+
+**Translator transport.** Connection pools are sized per worker thread (32) to avoid connection-storm "discarding connection" behavior; each thread gets its own `requests.Session`. Google 429/CAPTCHA blocks fail fast with an actionable message (switch proxy/IP or retry later) instead of burning retries; transient network errors still retry with exponential backoff. Texts longer than 4000 characters are split at natural boundaries and translated in parts, which also fixes the previous silent truncation at 5000 chars.
+
+**No-text documents.** Scanned/vector/image-only PDFs (no extractable text) are detected early and passed through as-is — no font embedding, no translation, output size mirrors the input instead of ballooning 10–20×.
+
+<h3 id="downstream">4.3 Downstream Development</h3>
 For downstream applications, please refer to our document about [API Details](./docs/APIS.md) for further information about:
 
 - [Python API](./docs/APIS.md#api-python), how to use the program in other Python programs
 - [HTTP API](./docs/APIS.md#api-http), how to communicate with a server with the program installed
 
-<h3 id="downstream">4.3 Differences between two major forks</h3>
+<h3 id="downstream">4.4 Differences between two major forks</h3>
 
 - [Byaidu/PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate): The present and the original project for stable release.
 
