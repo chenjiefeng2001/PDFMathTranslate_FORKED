@@ -120,6 +120,37 @@ MODE_PIPELINES: Dict[str, str] = {
     "babeldoc": "babeldoc",
 }
 
+# ── 引擎健康熔断 ─────────────────────────────────────────────────────────────
+#
+# BabelDOC 每次任务（或批量任务的每个文件）都会做一次 translator 健康检查
+# （next 内核 ``get_translator`` → ``translate("Hello")``）。当翻译服务被限流
+# （HTTP 429 / reCAPTCHA 挑战，例如 Google 对某些 IP/代理的临时封锁）时，健康
+# 检查会持续失败数分钟；若不做熔断，批量任务会对每一个文件重复 health check
+# 并反复失败，表现为"任务一直刷屏失败 / 看似卡死"。这里用一个进程级冷却表：
+# 限流类失败后，冷却期内同一 (engine, lang_in, lang_out, envs) 的 BabelDOC
+# 任务直接快速失败，不再重复探测，直到冷却期结束再尝试。
+_ENGINE_COOLDOWN_SECONDS = 60.0
+
+
+def _is_rate_limited_error(exc: Any) -> bool:
+    """Heuristic: is this a translation-service rate-limit / CAPTCHA failure?
+
+    BabelDOC fast-fails deterministic service blocks (HTTP 429 / reCAPTCHA
+    challenge) through ``TranslateEngineSettingError`` / ``RateLimitedError``
+    with self-describing messages. We match on the message so both the
+    next-kernel and the legacy adapter error paths are covered without
+    importing their internals.
+    """
+    text = str(exc)
+    lowered = text.lower()
+    return (
+        "rate-limited" in lowered
+        or "rate limited" in lowered
+        or "captcha" in lowered
+        or "http 429" in lowered
+    )
+
+
 
 def resolve_pipeline(mode_choice: Optional[str]) -> str:
     """Map a GUI engine-mode value to the concrete execution pipeline.
@@ -623,6 +654,13 @@ class RuntimeService:
         #: 每个任务当前的阶段权重表（文档页数已知后重排 translating 等）。
         self._task_stage_weights: Dict[str, Dict[str, float]] = {}
         self._stage_weights_lock = threading.Lock()
+        #: 引擎健康熔断：限流类失败（HTTP 429 / CAPTCHA）后进入冷却期；冷却期
+        #: 内同一引擎组合的 BabelDOC 任务直接快速失败，避免批量任务对每个文件
+        #: 重复 health check 反复失败刷屏。见 ``_ENGINE_COOLDOWN_SECONDS``。
+        self._engine_cooldown_until: Dict[Tuple[Any, ...], float] = {}
+        self._engine_cooldown_error_cache: Dict[Tuple[Any, ...], str] = {}
+        self._engine_cooldown_lock = threading.Lock()
+
         #: S2/S4: 后台清扫线程（终态清理 + 悬挂任务看门狗；daemon 不阻塞退出）。
         self._sweeper = threading.Thread(
             target=self._sweeper_loop, name="pdf2zh-task-sweeper", daemon=True,
@@ -1533,6 +1571,42 @@ class RuntimeService:
         )
         logger.info("[task=%s] Output files written successfully", task_id)
 
+    # ── 引擎健康熔断辅助 ───────────────────────────────────────────────────────
+
+    def _engine_key(self, request: TranslationRequest) -> Tuple[Any, ...]:
+        """Identity key for the engine-cooldown table.
+
+        Includes the env overrides so a user switching API keys / proxies (e.g.
+        a per-task env line) is not blocked by an unrelated recent failure.
+        """
+        envs = sorted((request.extra_config or {}).get("envs", {}).items())
+        return (
+            (request.engine or "google").lower(),
+            request.source_lang or "auto",
+            request.target_lang or "zh-CN",
+            tuple(envs),
+        )
+
+    def _engine_cooldown_error(self, key: Tuple[Any, ...]) -> Optional[str]:
+        """Return the cached rate-limit error while an engine is cooling down.
+
+        ``None`` means the engine is not in cooldown (healthy or past the
+        cooldown window) and a normal health-check attempt may proceed.
+        """
+        with self._engine_cooldown_lock:
+            until = self._engine_cooldown_until.get(key, 0.0)
+            if until > time.time():
+                return self._engine_cooldown_error_cache.get(
+                    key, "translation service is temporarily unavailable"
+                )
+        return None
+
+    def _mark_engine_unavailable(self, key: Tuple[Any, ...], error: Any) -> None:
+        """Enter engine cooldown after a rate-limit / CAPTCHA failure."""
+        with self._engine_cooldown_lock:
+            self._engine_cooldown_until[key] = time.time() + _ENGINE_COOLDOWN_SECONDS
+            self._engine_cooldown_error_cache[key] = str(error)
+
     def _execute_babeldoc(
         self, task_id: str, request: TranslationRequest,
         config: Optional[ServiceConfig] = None,
@@ -1564,6 +1638,25 @@ class RuntimeService:
 
         config = config or self.config
         total_files = self._batch_total(task_id)
+        engine_key = self._engine_key(request)
+        cooldown_error = self._engine_cooldown_error(engine_key)
+        if cooldown_error is not None:
+            # 引擎正处于限流冷却期：直接快速失败，不再重复 health check。
+            # 批量任务因此只失败一次（首个文件触发冷却），后续文件秒级跳过。
+            logger.warning(
+                "[task=%s] engine %s recently rate-limited (%s); fast-failing "
+                "instead of re-running the translator health check",
+                task_id, request.engine, cooldown_error,
+            )
+            self._fail_file(
+                task_id,
+                "Translation engine is temporarily unavailable "
+                f"({cooldown_error}). Please retry later or switch to another "
+                "translation engine / proxy.",
+                total_files=total_files,
+            )
+            return
+
         self._emit_event(task_id, TaskStage.PARSING.value, 5.0,
                          "BabelDOC engine starting...")
         if self._store.is_cancelled(task_id):
@@ -1630,8 +1723,17 @@ class RuntimeService:
         except Exception as exc:
             if self._store.is_cancelled(task_id):
                 return  # user cancelled during the run; keep terminal state
-            logger.error("[task=%s] BabelDOC failed: %s", task_id, exc,
-                         exc_info=True)
+            if _is_rate_limited_error(exc):
+                # 确定性服务端封锁（HTTP 429 / CAPTCHA）：进入冷却期，后续
+                # 文件/任务直接快速失败，不再逐文件重复 health check 刷屏。
+                self._mark_engine_unavailable(engine_key, exc)
+                logger.warning(
+                    "[task=%s] BabelDOC engine %s rate-limited: %s",
+                    task_id, request.engine, exc,
+                )
+            else:
+                logger.error("[task=%s] BabelDOC failed: %s", task_id, exc,
+                             exc_info=True)
             self._fail_file(task_id, exc, total_files=total_files)
             return
         if self._store.is_cancelled(task_id):

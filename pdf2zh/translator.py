@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import re
+import threading
 import unicodedata
 from copy import copy
 from string import Template
@@ -37,6 +38,68 @@ from pdf2zh.config import ConfigManager
 from tenacity import retry, retry_if_exception_type
 from tenacity import stop_after_attempt
 from tenacity import wait_exponential
+
+# 并发翻译（thread=4+）与重试突发下，默认 10 连接的池会被打满导致
+# urllib3 每请求"丢弃重建"TCP+TLS 连接（Connection pool is full,
+# discarding connection）。统一放大池容量，并按线程隔离 Session，
+# 避免 requests.Session（非线程安全）被多线程共享。
+_TRANSPORT_POOL_SIZE = 32
+# Google /m 端点单请求长度上限（官网 ~5000）；留余量，超长文本分段翻译
+# 后再拼接，避免整段截断丢尾部内容、以及长请求长期占住代理连接。
+_LONG_TEXT_CHUNK = 4000
+
+
+def _make_transport_session() -> "requests.Session":
+    """Build a Session with a connection pool sized for parallel workers."""
+    import requests.adapters
+
+    session = requests.Session()
+    adapter = requests.adapters.HTTPAdapter(
+        pool_connections=_TRANSPORT_POOL_SIZE,
+        pool_maxsize=_TRANSPORT_POOL_SIZE,
+        max_retries=0,  # 重试统一交给 tenacity / 外层策略，requests 不静默重试
+    )
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+def _thread_local_session(owner) -> "requests.Session":
+    """Per-thread Session kept on ``owner._session_local`` (threading.local)."""
+    local = getattr(owner, "_session_local", None)
+    if local is None:
+        local = owner._session_local = threading.local()
+    session = getattr(local, "session", None)
+    if session is None:
+        session = _make_transport_session()
+        local.session = session
+    return session
+
+
+def _split_long_text(text: str, limit: int = _LONG_TEXT_CHUNK):
+    """Split text into chunks of at most ``limit`` chars at natural boundaries.
+
+    Prefers newline breaks, then sentence boundaries, then hard splits.
+    Single-chunk texts are returned untouched (unchanged behavior).
+    """
+    if len(text) <= limit:
+        return [text]
+    chunks: list[str] = []
+    rest = text
+    while len(rest) > limit:
+        head = rest[: limit + 1]
+        # newline boundary
+        nl = head.rfind("\n")
+        # sentence boundary
+        sent = max(head.rfind(". "), head.rfind("! "), head.rfind("? "))
+        split = max(nl, sent)
+        if split <= 0:
+            split = limit
+        chunks.append(rest[:split].strip())
+        rest = rest[split:].lstrip()
+    if rest:
+        chunks.append(rest)
+    return chunks
 
 logger = logging.getLogger(__name__)
 
@@ -203,16 +266,33 @@ class GoogleTranslator(BaseTranslator):
 
     def __init__(self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs):
         super().__init__(lang_in, lang_out, model, ignore_cache)
-        self.session = requests.Session()
+        self._session_local = threading.local()
         proxy = _resolve_translator_proxy(envs)
         if proxy:
-            self.session.proxies.update(proxy)
+            self._proxy = proxy
+        else:
+            self._proxy = None
         self.endpoint = "https://translate.google.com/m"
         self.headers = {
             "User-Agent": "Mozilla/4.0 (compatible;MSIE 6.0;Windows NT 5.1;SV1;.NET CLR 1.1.4322;.NET CLR 2.0.50727;.NET CLR 3.0.04506.30)"  # noqa: E501
         }
 
+    @property
+    def session(self) -> "requests.Session":
+        session = _thread_local_session(self)
+        if self._proxy:
+            session.proxies.update(self._proxy)
+        return session
+
     def do_translate(self, text):
+        if len(text) > _LONG_TEXT_CHUNK:
+            parts = [
+                self._translate_once(chunk) for chunk in _split_long_text(text)
+            ]
+            return " ".join(p for p in parts if p)
+        return self._translate_once(text)
+
+    def _translate_once(self, text):
         text = text[:5000]  # google translate max length
         response = self.session.get(
             self.endpoint,
@@ -247,14 +327,19 @@ class BingTranslator(BaseTranslator):
 
     def __init__(self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs):
         super().__init__(lang_in, lang_out, model, ignore_cache)
-        self.session = requests.Session()
-        proxy = _resolve_translator_proxy(envs)
-        if proxy:
-            self.session.proxies.update(proxy)
+        self._session_local = threading.local()
+        self._proxy = _resolve_translator_proxy(envs)
         self.endpoint = "https://www.bing.com/translator"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",  # noqa: E501
         }
+
+    @property
+    def session(self) -> "requests.Session":
+        session = _thread_local_session(self)
+        if self._proxy:
+            session.proxies.update(self._proxy)
+        return session
 
     def find_sid(self):
         response = self.session.get(self.endpoint, timeout=HTTP_TIMEOUT)
@@ -324,13 +409,18 @@ class DeepLXTranslator(BaseTranslator):
         self.set_envs(envs)
         super().__init__(lang_in, lang_out, model, ignore_cache)
         self.endpoint = self.envs["DEEPLX_ENDPOINT"]
-        self.session = requests.Session()
-        proxy = _resolve_translator_proxy(envs)
-        if proxy:
-            self.session.proxies.update(proxy)
+        self._session_local = threading.local()
+        self._proxy = _resolve_translator_proxy(envs)
         auth_key = self.envs["DEEPLX_ACCESS_TOKEN"]
         if auth_key:
             self.endpoint = f"{self.endpoint}?token={auth_key}"
+
+    @property
+    def session(self) -> "requests.Session":
+        session = _thread_local_session(self)
+        if self._proxy:
+            session.proxies.update(self._proxy)
+        return session
 
     def do_translate(self, text):
         response = self.session.post(
