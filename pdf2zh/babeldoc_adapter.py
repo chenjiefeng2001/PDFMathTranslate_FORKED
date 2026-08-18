@@ -176,6 +176,31 @@ def make_babeldoc_translator(
 
 
 
+def _build_doclayout_model(pdf_path: Optional[str] = None) -> Any:
+    """Build the fused layout model for BabelDOC.
+
+    Combines BabelDOC's default doclayout model with an ``algorithm`` detector
+    (PP-DocLayoutV2, or MinerU VLM when ``pdf_path`` is given and
+    magic-pdf/MinerU is available -- Step 1.2) so that algorithm blocks are
+    skipped during translation (see :mod:`pdf2zh.doclayout_pseudocode`). Any
+    failure degrades to ``None``, which makes BabelDOC fall back to its own
+    default model -- the engine keeps working either way.
+    """
+    try:
+        from pdf2zh.doclayout_pseudocode import (
+            build_pseudo_code_protected_layout_model,
+        )
+
+        return build_pseudo_code_protected_layout_model(pdf_path=pdf_path)
+    except Exception:  # noqa: BLE001 -- never break the BabelDOC pipeline
+        logger.warning(
+            "pseudo-code protection model unavailable; "
+            "using BabelDOC default layout model",
+            exc_info=True,
+        )
+        return None
+
+
 def run_babeldoc_translation(
     source_path: str,
     lang_in: str,
@@ -190,6 +215,7 @@ def run_babeldoc_translation(
     progress_cb: Optional[Callable[[str, float, str], None]] = None,
     cancelled_check: Optional[Callable[[], bool]] = None,
     debug: bool = False,
+    ocr_mode: Optional[str] = None,
 ) -> List[Dict[str, str]]:
     """Translate a document with the BabelDOC layout engine.
 
@@ -209,6 +235,10 @@ def run_babeldoc_translation(
         output_dir: Output directory (defaults to the input file's directory).
         progress_cb: ``(gui_stage, overall_progress_0_100, babeldoc_stage)``.
         cancelled_check: Optional predicate; when it returns True the task is
+        ocr_mode: Scanned-PDF / OCR handling mode (``auto``/``on``/``off``,
+            see :mod:`pdf2zh.babeldoc_ocr_mode`). ``None`` falls back to the
+            ``PDF2ZH_BABELDOC_OCR`` env var, then ``auto``.
+
             cancelled cooperatively through BabelDOC's own cancellation.
         debug: Forward to BabelDOC's TranslationConfig for verbose logging.
 
@@ -233,7 +263,28 @@ def run_babeldoc_translation(
             "use the BabelDOC layout mode."
         ) from exc
 
+    # 把后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）同步到 BabelDOC 内部
+    # ONNX 会话（幂等）：显式 cuda/dml 时版面分析也走 GPU，而不是硬编码 CPU。
+    from pdf2zh.babeldoc_onnx_backend import apply_babeldoc_backend
+
+    apply_babeldoc_backend()
+
+    # 数字编号列表项（1. XXX / 2. XXX）段落拆分（幂等）：避免整个列表被合并
+    # 成单一段落整体翻译导致排版错乱。PDF2ZH_BABELDOC_SPLIT_LIST_ITEMS=0 关闭。
+    from pdf2zh.babeldoc_list_split import apply_babeldoc_list_split
+
+    apply_babeldoc_list_split()
+
+    # 目录（TOC）行"点线引导 + 页码"公式保护（幂等）：复用 pdf2zh.toc 识别，
+    # 把点线/页码拆成公式占位符，使其不参与翻译、重排时原位保留。
+    # PDF2ZH_BABELDOC_TOC_PROTECT=0 关闭。
+    from pdf2zh.babeldoc_toc_protect import apply_babeldoc_toc_protect
+
+    apply_babeldoc_toc_protect()
+
     from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+
+
     from pdf2zh.high_level import download_remote_fonts
     from pdf2zh.translator import build_translator
 
@@ -264,14 +315,22 @@ def run_babeldoc_translation(
             pdf2zh_translator, lang_in, lang_out, ignore_cache,
         )
 
+        # 把 OCR 模式开关解析成 BabelDOC 的三个互斥扫描版开关。
+        from pdf2zh.babeldoc_ocr_mode import resolve_ocr_flags
+
+        ocr_workaround, auto_enable_ocr_workaround, skip_scanned_detection = (
+            resolve_ocr_flags(ocr_mode, source_path=work_path)
+        )
+
         out_dir = output_dir or os.path.dirname(os.path.abspath(work_path))
+
         yadt_config = YadtConfig(
             translator=yadt_translator,
             input_file=work_path,
             font=font_path,
             pages=pages or None,
             output_dir=out_dir,
-            doc_layout_model=None,
+            doc_layout_model=_build_doclayout_model(pdf_path=work_path),
             debug=debug,
             lang_in=lang_in,
             lang_out=lang_out,
@@ -287,7 +346,13 @@ def run_babeldoc_translation(
             use_alternating_pages_dual=True,
             # 扫描版 PDF 自动启用 OCR workaround 继续翻译，而不是直接抛
             # "Scanned PDF detected" 失败（BabelDOC 默认行为会导致任务报错）。
-            auto_enable_ocr_workaround=True,
+            # 扫描版 / 无文本层 PDF 的 OCR 处理由 OCR 模式开关决定（不是
+            # 硬编码）：auto 自动检测扫描并启用 OCR / on 强制 OCR / off
+            # 跳过扫描检测，避免无文本层 PDF 直接抛 "Scanned PDF detected"
+            # 失败。环境变量 PDF2ZH_BABELDOC_OCR 可覆盖 GUI/CLI 显式选择。
+            ocr_workaround=ocr_workaround,
+            auto_enable_ocr_workaround=auto_enable_ocr_workaround,
+            skip_scanned_detection=skip_scanned_detection,
             # pdf2zh engines are mostly non-LLM; skip LLM-only term extraction.
             auto_extract_glossary=False,
             report_interval=0.2,

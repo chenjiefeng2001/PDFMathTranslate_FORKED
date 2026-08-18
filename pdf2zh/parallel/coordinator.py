@@ -74,6 +74,11 @@ class TaskCoordinator:
         initargs: tuple = (),
         executor_factory: Optional[Callable[..., Any]] = None,
         task_fn: Optional[Callable[[ChunkTask], ChunkResult]] = None,
+        # 8.2.1 Warm Process Pool：reuse_executor=True 时任务结束后不
+        # shutdown 池（常驻复用）；pool_owner 收到中断/异常后标记 broken
+        # 供下次重建（worker 被硬杀后池内部状态已不可信）。
+        reuse_executor: bool = False,
+        pool_owner: Optional[Any] = None,
     ) -> Tuple[dict, list, List[int]]:
         """窗口调度执行全部 chunk，返回 ``(obj_patch, obs_bundles, serial_indices)``。
 
@@ -225,10 +230,23 @@ class TaskCoordinator:
                     self._force_terminate_workers(executor)
                 except Exception:  # noqa: BLE001 -- 清理不阻塞主流程
                     pass
-            try:
-                executor.shutdown(wait=False, cancel_futures=True)
-            except Exception:  # noqa: BLE001 -- 清理不阻塞主流程
-                pass
+                if pool_owner is not None:
+                    try:
+                        pool_owner.mark_broken()  # 硬杀后共享池内部状态不可信
+                    except Exception:  # noqa: BLE001
+                        pass
+            elif pool_owner is not None and sys.exc_info()[0] is not None:
+                # 异常传播（非中断，如 bootstrap/protocol 失败）：保守标记
+                # 共享池失效，下次任务重建（成本仅一次 spawn）。
+                try:
+                    pool_owner.mark_broken()
+                except Exception:  # noqa: BLE001
+                    pass
+            if not reuse_executor:
+                try:
+                    executor.shutdown(wait=False, cancel_futures=True)
+                except Exception:  # noqa: BLE001 -- 清理不阻塞主流程
+                    pass
 
         return obj_patch, obs_bundles, serial_indices
 

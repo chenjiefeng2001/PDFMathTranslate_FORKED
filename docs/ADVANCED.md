@@ -14,6 +14,8 @@
 - [Custom configuration file](#cofig)
 - [Fonts Subseting](#fonts-subset)
 - [Translation cache](#cache)
+- [Parse engine (MinerU / magic-pdf)](#parse-engine)
+- [GPU backend](#gpu-backend)
 
 ---
 
@@ -370,3 +372,61 @@ To test if the mcp server works, you can open claude desktop and tell
 ```
 find the `test.pdf` in my Document folder and translate it to Chinese
 ```
+[⬆️ Back to top](#toc)
+
+---
+
+<h3 id="parse-engine">Parse engine (MinerU / magic-pdf)</h3>
+
+pdf2zh can use **MinerU / magic-pdf** as the PDF *parsing* layer instead of the built-in BabelDOC / legacy (pdfminer) engines, while translation, layout and rendering still run on pdf2zh's own v3 pipeline.
+
+**Installation.**
+
+```bash
+pip install pdf2zh[magicpdf]
+```
+
+The extra installs both `mineru>=2.0` and `magic-pdf>=1.3.12,<2`. Python 3.10–3.12 prefers MinerU 2.x, Python 3.13 falls back to magic-pdf 1.3.12 (decided by `pdf2zh.engine_env`). Do **not** install both packages manually — they conflict on PyPI.
+
+**Models.** magic-pdf does not auto-download its PDF-Extract-Kit weights. Download them once to `~/.cache/magic-pdf/models`:
+
+```bash
+pip install modelscope
+python -c "from modelscope import snapshot_download; snapshot_download('opendatalab/PDF-Extract-Kit-1.0', local_dir=r'~/.cache/magic-pdf/models')"
+```
+
+pdf2zh pre-checks the `doclayout_yolo`, `yolo_v8_mfd` and `unimernet_small` weights before parsing and fails fast with this hint instead of running empty batches.
+
+**CLI.**
+
+```bash
+# auto keeps historical behaviour (--babeldoc → YADT, otherwise legacy kernel)
+pdf2zh --parse-engine magicpdf example.pdf                     # MinerU/magic-pdf parse + mono PDF render
+pdf2zh --parse-engine magicpdf --magicpdf-ocr scan.pdf         # force OCR (magic-pdf 1.x pipe_ocr_merge)
+pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf  # JSON dumps only
+```
+
+If the engine or its models are unavailable, pdf2zh logs the reason and falls back to the legacy kernel automatically.
+
+**GUI / Service.** The GUI config panel exposes a parse-engine radio (`auto`/`legacy`/`babeldoc`/`magicpdf`), a MagicPDF OCR checkbox, a backend radio, and a live ONNX backend-status panel. The runtime service routes the same field through `TranslationRequest.parse_engine`.
+
+[⬆️ Back to top](#toc)
+
+---
+
+<h3 id="gpu-backend">GPU backend</h3>
+
+Layout inference runs on ONNX Runtime. `--backend {auto,cpu,cuda,dml}` selects the execution provider:
+
+```bash
+pip install pdf2zh[cuda]        # onnxruntime-gpu, for NVIDIA GPUs
+pip install pdf2zh[dml]         # onnxruntime-directml, for Windows DirectML
+pdf2zh example.pdf --backend cuda
+```
+
+- **BabelDOC's internal doclayout ONNX session** is controlled independently via `PDF2ZH_BABELDOC_BACKEND` (`auto`/`cpu`/`cuda`/`dml`). Default `auto` keeps BabelDOC's native CPU behaviour; setting `cuda`/`dml` lets BabelDOC run its layout analysis on the GPU even when the main pipeline uses CPU.
+- **Auto fallback.** When a requested provider cannot actually initialize (e.g. missing CUDA runtime DLLs such as `onnxruntime_providers_cuda.dll` failing to load with error 126), ONNX Runtime falls back to `['CPUExecutionProvider']` and logs a warning. pdf2zh's status panel shows registered vs. effective providers so silent CPU fallback stays visible.
+- **CPU-only builds.** `onnxruntime-gpu` does not ship the DirectML provider; `AzureExecutionProvider`/`DmlExecutionProvider` only appear when `onnxruntime-directml` is installed. Install the package matching your target hardware.
+- **Backend propagation.** `--backend` is propagated to the parallel page-processing worker processes so the whole pipeline uses the same providers.
+
+[⬆️ Back to top](#toc)

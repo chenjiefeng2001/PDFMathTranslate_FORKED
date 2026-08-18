@@ -7,7 +7,7 @@ import threading
 import unicodedata
 from copy import copy
 from string import Template
-from typing import cast
+from typing import Any, Dict, Optional, Tuple, cast
 import deepl
 import ollama
 import openai
@@ -47,6 +47,68 @@ _TRANSPORT_POOL_SIZE = 32
 # Google /m 端点单请求长度上限（官网 ~5000）；留余量，超长文本分段翻译
 # 后再拼接，避免整段截断丢尾部内容、以及长请求长期占住代理连接。
 _LONG_TEXT_CHUNK = 4000
+
+# === 8.2.2 LLM Client 单例化（连接池 + SSL 上下文复用） ===
+# 每次 ``build_translator`` 构造 ``openai.OpenAI`` 都会新建 httpx 客户端
+# （实测每个 client 建 3 个 SSL 上下文 + 证书加载 ≈1.59s）；单次运行可能
+# 调用 2–3 次（translate_patch / _apply_bookmarks / 串行回退）。
+# 以 (base_url, api_key) 为 key 缓存 client，复用底层 Keep-Alive 连接池；
+# maxsize 上限防多租户切换时无限增长；线程锁保证并发构造安全。
+# 注意：openai-python 的 ``OpenAI``/``AzureOpenAI`` 实例线程安全且可复用。
+_OPENAI_CLIENT_CACHE_MAX = 8
+_openai_client_cache: Dict[Tuple[str, str], Any] = {}
+_openai_client_cache_lock = threading.Lock()
+
+
+def _get_openai_client(base_url, api_key):
+    """按 ``(base_url, api_key)`` 复用 ``openai.OpenAI`` client（8.2.2）。
+
+    Returns:
+        共享的 client 实例（同一 base_url+api_key 只会构造一次）。
+    """
+    import openai as _openai  # noqa: PLC0415
+
+    key = (str(base_url or ""), str(api_key or ""))
+    with _openai_client_cache_lock:
+        client = _openai_client_cache.get(key)
+        if client is None:
+            if len(_openai_client_cache) >= _OPENAI_CLIENT_CACHE_MAX:
+                _openai_client_cache.clear()  # 多租户切换：整表清理防泄漏
+            client = _openai.OpenAI(base_url=base_url, api_key=api_key)
+            _openai_client_cache[key] = client
+        return client
+
+
+def _get_azure_openai_client(base_url, model, api_version, api_key):
+    """按 ``(base_url, model, api_version, api_key)`` 复用 AzureOpenAI client。"""
+    import openai as _openai  # noqa: PLC0415
+
+    key = (
+        str(base_url or ""),
+        str(model or ""),
+        str(api_version or ""),
+        str(api_key or ""),
+    )
+    with _openai_client_cache_lock:
+        client = _openai_client_cache.get(key)
+        if client is None:
+            if len(_openai_client_cache) >= _OPENAI_CLIENT_CACHE_MAX:
+                _openai_client_cache.clear()
+            client = _openai.AzureOpenAI(
+                azure_endpoint=base_url,
+                azure_deployment=model,
+                api_version=api_version,
+                api_key=api_key,
+            )
+            _openai_client_cache[key] = client
+        return client
+
+
+def clear_openai_client_cache() -> None:
+    """清空 client 缓存（测试隔离 / 服务热更新时调用）。"""
+    with _openai_client_cache_lock:
+        _openai_client_cache.clear()
+
 
 
 def _make_transport_session() -> "requests.Session":
@@ -589,7 +651,7 @@ class OpenAITranslator(BaseTranslator):
             self.options["stop"] = stop_tokens
         if max_tokens > 0:
             self.options["max_tokens"] = max_tokens
-        self.client = openai.OpenAI(
+        self.client = _get_openai_client(
             base_url=base_url or self.envs["OPENAI_BASE_URL"],
             api_key=api_key or self.envs["OPENAI_API_KEY"],
         )
@@ -675,9 +737,9 @@ class AzureOpenAITranslator(BaseTranslator):
             api_key = self.envs["AZURE_OPENAI_API_KEY"]
         super().__init__(lang_in, lang_out, model, ignore_cache)
         self.options = {"temperature": 0}
-        self.client = openai.AzureOpenAI(
-            azure_endpoint=base_url,
-            azure_deployment=model,
+        self.client = _get_azure_openai_client(
+            base_url=base_url,
+            model=model,
             api_version=api_version,
             api_key=api_key,
         )

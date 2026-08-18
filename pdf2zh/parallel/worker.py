@@ -99,9 +99,9 @@ def init_worker_process(backend: Optional[str] = None) -> None:
         set_backend(backend)
     _providers: list[str] = []
     try:
-        import onnxruntime as _ort  # noqa: PLC0415
+        from pdf2zh.doclayout import _ort_available_providers  # noqa: PLC0415
 
-        _providers = list(_ort.get_available_providers())
+        _providers = list(_ort_available_providers())
     except Exception as exc:  # noqa: BLE001 -- bootstrap 失败必须可见
         _emit_worker_fatal(
             f"onnxruntime import failed: {type(exc).__name__}: {str(exc)[:200]}"
@@ -149,6 +149,18 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
 
     t0 = time.perf_counter()
     chunk_pages = list(task.chunk_pages)
+    # 8.1.2: pages 第二道防线 —— 与 chunk_pages 取交集；交集为空直接返回
+    # 空结果（绝不回落成全量翻译：translate_patch 的 `if pages and` 会把空
+    # 列表当“未过滤”，旧代码在 pages=[] 时会全量处理）。
+    if task.pages is not None:
+        pages_set = set(task.pages)
+        chunk_pages = [p for p in chunk_pages if p in pages_set]
+    if not chunk_pages:
+        return ChunkResult(
+            obj_patch={},
+            obs_bundle=None,
+            elapsed=time.perf_counter() - t0,
+        )
     try:
         # 从共享字节流重建文档（pickle-safe：worker 内打开）
         doc_zh = _fitz.open(stream=task.fp_bytes, filetype="pdf")

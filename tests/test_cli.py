@@ -22,7 +22,7 @@ class TestCliVersion(unittest.TestCase):
         before = set(sys.modules)
         pkg = importlib.import_module("pdf2zh")
 
-        self.assertEqual(pkg.__version__, "1.9.11")
+        self.assertEqual(pkg.__version__, "1.9.12")
         # diff-based: assert importing pdf2zh introduces no heavy modules,
         # regardless of what earlier tests already imported into sys.modules
         newly_imported = set(sys.modules) - before

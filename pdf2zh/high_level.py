@@ -89,6 +89,20 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _prefetch_predict(model, image, imgsz):
+    """8.3.2 预取线程目标：后台执行单页版面推理。
+
+    返回 ``(layout, elapsed)``；异常封装为异常对象返回（主线程检测后同步
+    兜底 predict，绝不把预取失败传播为整页失败）。
+    """
+    try:
+        _t = time.perf_counter()
+        result = model.predict(image, imgsz=imgsz)[0]
+        return result, time.perf_counter() - _t
+    except Exception as exc:  # noqa: BLE001 -- 失败由主线程同步兜底
+        return exc
+
+
 class _LayoutBatchPredictor:
     """批量版面推理封装（动态 Batch 并行，V3 iteration）。
 
@@ -163,6 +177,10 @@ def translate_patch(
     emit_ir: bool = False,
     relayout_gate: object = None,
     v3_output: dict = None,
+# 文本层质量预检 gate（扫描损坏检测长期实现，scan_damaged 报告 §6.2）：
+# 开启时翻译启动前对源 PDF 跑多信号融合预检，命中损坏信号 → 写入
+# v3_output["text_quality"] 并输出强警告（legacy 无 OCR 兜底）。
+    text_quality_gate: bool = False,
 # V8.5: 采集逐篇段落源/目标几何（link_remap 桥接数据）
     link_remap: bool = False,
     # V9.0: Processor 层语义通道（RAW/SEMANTIC + TOC 结构化记录，side-channel）
@@ -246,6 +264,13 @@ def translate_patch(
     device.reconstruction_adopt = bool(reconstruction_adopt)
     device.reconstruction_results = {}
     device.reconstruction_adoptions = {}
+
+    # 文本层质量预检 gate（side-channel，异常只进日志）：复用
+    # pdf2zh.scanned_detection 的多信号融合判定（scan_damaged 报告 §6.2/§6.3），
+    # 把判定结果写入 v3_output["text_quality"]；legacy 无 OCR 能力，命中时
+    # 输出强警告并建议切换 --parse-engine magicpdf --magicpdf-ocr。
+    if text_quality_gate and v3_output is not None:
+        _run_text_quality_gate(inf, v3_output)
 
     assert device is not None
     obj_patch = {}
@@ -358,33 +383,84 @@ def translate_patch(
                         _process_page_layout(pg, px, res)
                     _pending = []
         else:
-            for pageno, page in enumerate(PDFPage.create_pages(doc)):
-                if cancellation_event and cancellation_event.is_set():
-                    raise CancelledError("task cancelled")
-                if pages and (pageno not in pages):
+            # 8.3.2 预测预取流水线（PDF2ZH_LAYOUT_PREFETCH=1 启用，默认关闭）：
+            # 下一页版面推理在线程中与当前页翻译（网络等待）/渲染重叠执行，
+            # 把串行「推理 0.36s → 翻译 1-2s → 渲染 0.10s」压掉推理墙钟。
+            # 严格顺序边界保留：process_page 永远串行（TOC/书签/公式组跨页
+            # 依赖不受影响）；预取失败自动同步兜底。
+            _prefetch = model is not None and _int_env("PDF2ZH_LAYOUT_PREFETCH", 0) >= 1
+            _pf_executor = (
+                concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                if _prefetch else None
+            )
+            _pf_future = None
+            _page_records = []
+            for _pn, _pg in enumerate(PDFPage.create_pages(doc)):
+                _pg.pageno = _pn
+                if pages and (_pn not in pages):
                     continue
-                progress.update()
-                if callback:
-                    callback(progress)
-                page.pageno = pageno
-                pix = doc_zh[page.pageno].get_pixmap()
-                image = np.frombuffer(pix.samples, np.uint8).reshape(
-                    pix.height, pix.width, 3
-                )[:, :, ::-1]
-                _t_predict = time.perf_counter()
-                page_layout = model.predict(image, imgsz=int(pix.height / 32) * 32)[0]
-                _d_predict = time.perf_counter() - _t_predict
-                _pd_n, _pd_secs = _pd_n + 1, _pd_secs + _d_predict
-                logger.debug(
-                    "page %d layout predict %.3fs boxes=%d",
-                    page.pageno, _d_predict, len(page_layout.boxes),
-                )
-                if _pd_n % 25 == 0 or _pd_n == total_pages:
-                    logger.info(
-                        "layout predict so far: %d pages, avg %.3fs/page (last %.3fs)",
-                        _pd_n, _pd_secs / max(_pd_n, 1), _d_predict,
+                _page_records.append((_pn, _pg))
+            try:
+                for _idx, (_pageno, page) in enumerate(_page_records):
+                    if cancellation_event and cancellation_event.is_set():
+                        raise CancelledError("task cancelled")
+                    progress.update()
+                    if callback:
+                        callback(progress)
+                    pix = doc_zh[page.pageno].get_pixmap()
+                    image = np.frombuffer(pix.samples, np.uint8).reshape(
+                        pix.height, pix.width, 3
+                    )[:, :, ::-1]
+                    if _pf_future is not None:
+                        _pf_res = _pf_future.result()
+                        if isinstance(_pf_res, Exception):
+                            # 预取失败 → 同步兜底（绝不带病使用旧布局）
+                            _t_predict = time.perf_counter()
+                            page_layout = model.predict(
+                                image, imgsz=int(pix.height / 32) * 32
+                            )[0]
+                            _d_predict = time.perf_counter() - _t_predict
+                        else:
+                            page_layout, _d_predict = _pf_res
+                    else:
+                        _t_predict = time.perf_counter()
+                        page_layout = model.predict(
+                            image, imgsz=int(pix.height / 32) * 32
+                        )[0]
+                        _d_predict = time.perf_counter() - _t_predict
+                    _pd_n, _pd_secs = _pd_n + 1, _pd_secs + _d_predict
+                    logger.debug(
+                        "page %d layout predict %.3fs boxes=%d",
+                        page.pageno, _d_predict, len(page_layout.boxes),
                     )
-                _process_page_layout(page, pix, page_layout)
+                    if _pd_n % 25 == 0 or _pd_n == total_pages:
+                        logger.info(
+                            "layout predict so far: %d pages, avg %.3fs/page (last %.3fs)",
+                            _pd_n, _pd_secs / max(_pd_n, 1), _d_predict,
+                        )
+                    # 预取下一页（主线程渲染 pixmap 保证顺序，后台只做推理）
+                    _pf_future = None
+                    if _pf_executor is not None and _idx + 1 < len(_page_records):
+                        _nxt_pageno = _page_records[_idx + 1][0]
+                        _nxt_pix = None
+                        try:
+                            _nxt_pix = doc_zh[_nxt_pageno].get_pixmap()
+                        except Exception:  # noqa: BLE001 -- 预取失败同步兜底
+                            pass
+                        if _nxt_pix is not None:
+                            _nxt_image = np.frombuffer(
+                                _nxt_pix.samples, np.uint8
+                            ).reshape(_nxt_pix.height, _nxt_pix.width, 3)[:, :, ::-1]
+                            _pf_future = _pf_executor.submit(
+                                _prefetch_predict,
+                                model, _nxt_image,
+                                int(_nxt_pix.height / 32) * 32,
+                            )
+                    _process_page_layout(page, pix, page_layout)
+            finally:
+                if _pf_executor is not None:
+                    _pf_executor.shutdown(wait=False, cancel_futures=True)
+
 
     # 批量路径：处理未满批的剩余页
     if _layout_predictor is not None and _pending:
@@ -438,6 +514,41 @@ def translate_patch(
 
 # ---------------------------------------------------------------------------
 # Marker: translate_stream start
+def _run_text_quality_gate(inf: BinaryIO, v3_output: dict) -> None:
+    """翻译前文本层质量预检 gate（scan_damaged 报告 §6.2 长期实现）。
+
+    在翻译启动前对源 PDF 跑 :func:`pdf2zh.scanned_detection.preflight_scan_check`
+    多信号融合预检，把判定写入 ``v3_output["text_quality"]``。legacy 内核无
+    OCR 兜底：命中损坏信号时输出强警告并建议切换 magicpdf / BabelDOC OCR。
+    任何异常仅记 debug 日志（side-channel 纪律），绝不阻断翻译。
+    """
+    path = getattr(inf, "name", "") or ""
+    if not path or not os.path.exists(path) or not path.lower().endswith(".pdf"):
+        v3_output["text_quality"] = {"preflight": None, "scanned": False,
+                                     "reasons": []}
+        return
+    try:
+        from pdf2zh.scanned_detection import preflight_scan_check
+
+        decision = preflight_scan_check(path)
+        v3_output["text_quality"] = {
+            "preflight": decision.to_dict(),
+            "scanned": decision.is_scanned,
+            "reasons": decision.reasons,
+        }
+        if decision.is_scanned:
+            logger.warning(
+                "文本层质量预检命中扫描/损坏信号（%s）。legacy 内核无 OCR 兜底，"
+                "译文可能基于乱码输出。建议改用 --parse-engine magicpdf "
+                "--magicpdf-ocr，或 --babeldoc-ocr on。",
+                "; ".join(decision.reasons) or "unknown",
+            )
+    except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断翻译
+        v3_output["text_quality"] = {"preflight": None, "scanned": False,
+                                     "reasons": [], "error": str(exc)}
+        logger.debug("text quality gate skipped: %s", exc)
+
+
 def _relink_translated_doc(doc_zh, v3_output: dict = None) -> dict:
     """V8.5: 用 converter side-channel 的段落源→目标几何重定位译文页超链接。
 
@@ -798,8 +909,8 @@ def translate_stream(
         )
         _pt_start = time.perf_counter()
         try:
-            doc_dual = doc_zh.write(deflate=True, garbage=3, use_objstms=1)
-            doc_mono = doc_en.write(deflate=True, garbage=3, use_objstms=1)
+            doc_dual = doc_zh.write(deflate=True, garbage=4, clean=True, use_objstms=1)
+            doc_mono = doc_en.write(deflate=True, garbage=4, clean=True, use_objstms=1)
         finally:
             doc_en.close()
             doc_zh.close()
@@ -818,10 +929,43 @@ def translate_stream(
     font_cache = DocumentFontCache(doc_zh)
     registered_font_name = font_cache.register(font_path)
     # font_list = [("GoNotoKurrent-Regular.ttf", font_path), ("tiro", None)]
+    # === 8.1.1 字体嵌入重构：O(N×F) → O(F) ===
+    # 旧实现逐页 `insert_font`（`for page in doc_zh: for font in font_list`），
+    # 每页从磁盘重载同一字体文件（`fz_new_font_from_file`）并嵌入一份副本，
+    # 1918 次调用累计 18.5s（其中 7.5s 磁盘重载 14MB 字体 + 9.66s 逐副本嵌入）。
+    # 重构要点：
+    #   1) `fontbuffer` 一次读入内存，避开按路径重载（`fz_new_font_from_file`）；
+    #   2) `insert_font` 只在文档第一页调用一次，拿到唯一 font_id；
+    #   3) 保留下方 xref 共享广播循环（把字体引用写入各页 `Resources/Font`）。
+    # 空文档（page_count==0）跳过嵌入；xref 广播循环此时因 font_id 为空由
+    # `except Exception` 兜底（与旧行为一致）。
     font_id = {}
-    for page in doc_zh:
-        for font in font_list:
-            font_id[font[0]] = page.insert_font(font[0], font[1])
+    if doc_zh.page_count > 0:
+        _font_buffer = None
+        try:
+            with open(font_path, "rb") as _fb:
+                _font_buffer = _fb.read()
+        except OSError:
+            _font_buffer = None
+        _first_page = doc_zh[0]
+        for _fname, _fpath in font_list:
+            if _fpath:
+                # 有真实字体文件 → 优先 fontbuffer 单次嵌入
+                if _font_buffer is not None:
+                    try:
+                        font_id[_fname] = _first_page.insert_font(
+                            _fname, fontbuffer=_font_buffer
+                        )
+                        continue
+                    except Exception:  # noqa: BLE001 -- buffer 路径失败回退路径加载
+                        logger.debug(
+                            "insert_font(fontbuffer=) failed for %s; retry via path",
+                            _fname,
+                        )
+                font_id[_fname] = _first_page.insert_font(_fname, _fpath)
+            else:
+                # 内置字体（tiro）按名称嵌入
+                font_id[_fname] = _first_page.insert_font(_fname, None)
     xreflen = doc_zh.xref_length()
     for xref in range(1, xreflen):
         for label in ["Resources/", ""]:  # 可能是基于 xobj 的 res
@@ -1154,7 +1298,7 @@ def translate_stream(
     logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
     try:
         _write_start = _merge_time.time()
-        doc_dual = doc_zh.write(deflate=True, garbage=3, use_objstms=1)
+        doc_dual = doc_zh.write(deflate=True, garbage=4, clean=True, use_objstms=1)
         logger.info("translate_stream: doc_zh write OK (size=%d bytes, %.1fs)", len(doc_dual), _merge_time.time() - _write_start)
     except Exception as write_err:
         logger.error("translate_stream: doc_zh write failed: %s", write_err)
@@ -1162,7 +1306,7 @@ def translate_stream(
     logger.info("translate_stream: writing doc_en (mono) PDF bytes...")
     try:
         _write_start = _merge_time.time()
-        doc_mono = doc_en.write(deflate=True, garbage=3, use_objstms=1)
+        doc_mono = doc_en.write(deflate=True, garbage=4, clean=True, use_objstms=1)
         logger.info("translate_stream: doc_en write OK (size=%d bytes, %.1fs)", len(doc_mono), _merge_time.time() - _write_start)
     except Exception as write_err:
         logger.error("translate_stream: doc_en write failed: %s", write_err)
@@ -1344,6 +1488,8 @@ def _translate_parallel_chunk(
     # P5–P10 主链路接管（阶段 3）：渲染前接管 + 完整对象存档（标量透传）
     reconstruction_channel: bool = True,
     reconstruction_adopt: bool = True,
+    # 8.1.2: pages 子集透传（worker 侧与 chunk_pages 取交集）
+    pages: tuple = None,
 ) -> dict:
     """Process a chunk of pages in a separate process (module-level for pickling).
 
@@ -1388,6 +1534,7 @@ def _translate_parallel_chunk(
         observability=observability,
         reconstruction_channel=reconstruction_channel,
         reconstruction_adopt=reconstruction_adopt,
+        pages=pages,
     )
     result = execute_chunk(task)
     if not result.ok:
@@ -1439,8 +1586,22 @@ def _translate_parallel(
         return translate_patch(fp, **locals_dict)
 
     all_pages = list(range(doc_zh.page_count))
-    chunk_size = max(1, len(all_pages) // workers)
-    chunks = [all_pages[i:i + chunk_size] for i in range(0, len(all_pages), chunk_size)]
+    # === 8.1.2 并行路径 pages 过滤修复 ===
+    # 旧实现按 `range(doc_zh.page_count)` 全量切分 chunk，`pages` 子集过滤只在
+    # 串行 `translate_patch` 生效 → 并行下请求 `--pages 0-19` 会翻译整本 959 页
+    # （实测 926s）。此处按调用方 `pages` 参数预过滤后再切分 chunk，并透传给
+    # worker（scalar_args["pages"]）作为第二道防线（ChunkTask.pages 交集过滤）。
+    target_pages = locals_dict.get("pages")
+    valid_pages = (
+        [p for p in target_pages if 0 <= p < doc_zh.page_count]
+        if target_pages is not None
+        else list(range(doc_zh.page_count))
+    )
+    chunk_size = max(1, len(valid_pages) // workers)
+    chunks = [
+        valid_pages[i:i + chunk_size]
+        for i in range(0, len(valid_pages), chunk_size)
+    ]
 
     # Snapshot fp bytes once (pickle-safe bytestring)
     fp_bytes = fp.getvalue()
@@ -1476,6 +1637,8 @@ def _translate_parallel(
         "observability": locals_dict.get("observability", False),
         "reconstruction_channel": locals_dict.get("reconstruction_channel", True),
         "reconstruction_adopt": locals_dict.get("reconstruction_adopt", True),
+        # 8.1.2: pages 子集透传（worker 与 chunk_pages 取交集，防御其他路径丢失）
+        "pages": tuple(valid_pages) if target_pages is not None else None,
     }
 
     obj_patch = {}
@@ -1527,12 +1690,38 @@ def _translate_parallel(
         for chk in chunks
     ]
     coordinator = TaskCoordinator(max_workers=workers)
-    obj_patch, obs_bundles, serial_indices = coordinator.run(
-        chunk_tasks,
-        progress_cb=progress_cb,
-        initializer=_init_worker_process,
-        initargs=(get_backend(),),
-    )
+    # 8.2.1 Warm Process Pool（PDF2ZH_WARM_POOL=1）：复用进程级常驻池，
+    # 避免每次任务重新 spawn + 模型加载（实测 8.2s，约占总耗时 29%）。
+    # reuse_executor=True 令协调器任务结束后不 shutdown 共享池；中断/异常
+    # 时由 pool_owner 标记 broken，下次任务自动重建。未启用时行为与旧实现
+    # 完全一致（每次任务新建池）。
+    shared_pool = None
+    try:
+        from pdf2zh.parallel.pool import get_shared_pool  # noqa: PLC0415
+        shared_pool = get_shared_pool(workers, get_backend())
+    except Exception as pool_init_err:  # noqa: BLE001 -- 池初始化失败回落新建池
+        logger.warning("Warm pool unavailable (%s); falling back to per-task pool",
+                       str(pool_init_err)[:120])
+        shared_pool = None
+
+    if shared_pool is not None:
+        def _shared_pool_factory(_mw, _initializer, _initargs):  # noqa: ANN001
+            return shared_pool.get()
+
+        obj_patch, obs_bundles, serial_indices = coordinator.run(
+            chunk_tasks,
+            progress_cb=progress_cb,
+            executor_factory=_shared_pool_factory,
+            reuse_executor=True,
+            pool_owner=shared_pool,
+        )
+    else:
+        obj_patch, obs_bundles, serial_indices = coordinator.run(
+            chunk_tasks,
+            progress_cb=progress_cb,
+            initializer=_init_worker_process,
+            initargs=(get_backend(),),
+        )
 
     # 增量降级：只有失败 chunk 走串行补跑，绝不整文档重跑（V3 §5.4）
     try:

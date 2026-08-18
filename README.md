@@ -56,14 +56,15 @@ Scientific PDF document translation preserving layouts.
 - 🌐 Support [multiple languages](#usage), and diverse [translation services](#usage).
 - 🤖 Provides [commandline tool](#usage), [interactive user interface](#install), and [Docker](#install)
 - 🛡️ Long-running reliability: task self-healing watchdogs, bounded retries, queue liveness watchdog, and per-thread connection pools keep big documents translating without hanging or connection storms.
-- ⚡ Parallel page processing with worker-process isolation, GPU backend propagation, and automatic CPU degradation on worker crashes.
+- 🔄 Switchable PDF parse engine: BabelDOC / legacy (pdfminer) built in, plus optional MinerU/magic-pdf (`--parse-engine magicpdf`) for scanned or damaged-text PDFs — auto-falls back to the legacy kernel when the engine is unavailable.
+- ⚡ Parallel page processing with worker-process isolation, GPU backend propagation (`--backend cuda`/`dml` also accelerates BabelDOC's internal layout ONNX inference via `PDF2ZH_BABELDOC_BACKEND`), and automatic CPU degradation on worker crashes.
 
 <div align="center">
 <img src="./docs/images/preview.gif" width="80%"/>
 </div>
 
 <h2 id="updates">2. Recent Updates</h2>
-
+- [August 17, 2026] Switchable parse engine: MinerU/magic-pdf as an optional PDF parsing layer (`--parse-engine magicpdf`, `--magicpdf-ocr`, `--magicpdf-render`), with automatic config generation, weight pre-check, and legacy-kernel fallback; BabelDOC OCR tri-state (`--babeldoc-ocr`), and GPU backend propagation to BabelDOC's internal doclayout ONNX session (`PDF2ZH_BABELDOC_BACKEND`).
 - [August 13, 2026] Reliability hardening: bounded translate retries (`PDF2ZH_TRANSLATE_RETRY`), task self-healing watchdogs (stuck-task auto-cancel via `PDF2ZH_TASK_TIMEOUT_SECONDS`, terminal-task pruning via `PDF2ZH_TASK_RETENTION_SECONDS`), GUI queue liveness watchdog, and direct (queue-less) control buttons for cancel/pause/resume/skip/download.
 - [August 13, 2026] Parallel engine: isolated worker processes with GPU backend propagation (`--backend`), automatic CPU degradation after worker crashes, incremental per-chunk retry with serial patch fallback, and main-process model warm-up with atomic optimized-cache publishing.
 - [August 13, 2026] Translator transport hardening: per-thread connection pools (32) that eliminate "Connection pool is full" connection storms, fast-fail on Google 429/CAPTCHA blocks with an actionable error, long-text chunking (>4000 chars) that fixes silent truncation, and request timeouts to prevent blackhole hangs.
@@ -267,6 +268,7 @@ If you have cloned the repository and want to build and install from source (e.g
    >   pip install -e .[cuda]     # for NVIDIA CUDA support
    >   pip install -e .[dml]      # for DirectML (Windows)
    >   pip install -e .[backend]  # for Flask + Celery backend
+   >   pip install -e .[magicpdf] # for the optional MinerU/magic-pdf parse engine
    >   ```
 
 4. **Verify installation**:
@@ -335,6 +337,10 @@ In the following table, we list all advanced options for reference:
 | `--serverport`        | [custom gradio server port]                                                                                   | `pdf2zh --serverport 7860`                     |
 | `--mode`              | Translation mode: `fast` (default, v1) or `precise` (v2, experimental, requires pdf2zh_next submodule)         | `pdf2zh --mode precise example.pdf`            |
 | `--babeldoc`          | Use Experimental backend [BabelDOC](https://funstory-ai.github.io/BabelDOC/) to translate                     | `pdf2zh --babeldoc` -s openai example.pdf      |
+| `--parse-engine`      | PDF parse/layout engine: `auto` (default), `legacy`, `babeldoc`, `magicpdf` (MinerU/magic-pdf as parse layer; auto-falls back to legacy when the engine is unavailable) | `pdf2zh --parse-engine magicpdf example.pdf`   |
+| `--magicpdf-ocr`      | Force OCR in the magicpdf parse engine (magic-pdf 1.x `pipe_ocr_merge`) — recommended for scanned PDFs        | `pdf2zh --parse-engine magicpdf --magicpdf-ocr scan.pdf` |
+| `--magicpdf-render` / `--no-magicpdf-render` | Render the magicpdf parse result into a translated mono PDF (default: on); disable to keep JSON dumps only   | `pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf` |
+| `--babeldoc-ocr`      | Scanned-PDF / OCR handling for the BabelDOC layout engine: `auto` (default), `on`, `off`                       | `pdf2zh --babeldoc-ocr on example.pdf`         |
 | `--mcp`               | Enable MCP STDIO mode                                                                                         | `pdf2zh --mcp`                                 |
 | `--sse`               | Enable MCP SSE mode                                                                                           | `pdf2zh --mcp --sse`                           |
 | `--parallel-workers`  | Number of parallel page-processing worker processes (default 4); lower it on memory-constrained machines       | `pdf2zh example.pdf --parallel-workers 2`      |
@@ -377,6 +383,39 @@ For downstream applications, please refer to our document about [API Details](./
 - [Byaidu/PDFMathTranslate](https://github.com/Byaidu/PDFMathTranslate): The present and the original project for stable release.
 
 - [PDFMathTranslate/PDFMathTranslate-next](https://github.com/PDFMathTranslate/PDFMathTranslate-next): A fork with web-ui and additional features. This fork handles a large number of marginal cases, improves PDF compatibility, and optimizes cross-column and cross-page semantic consistency, dynamic scaling, and dynamic scaling consistency, among many other translation quality improvements. However, this fork is intended solely for development and does not address compatibility issues and is not designed for community-contributions.
+
+<h3 id="parse-engine">4.5 Optional parse engines (MinerU / magic-pdf)</h3>
+
+Beyond the built-in BabelDOC / legacy (pdfminer) engines, pdf2zh can use **MinerU / magic-pdf** as the PDF *parsing* layer while translation, layout and rendering still run on pdf2zh's own v3 pipeline:
+
+```bash
+# Install the optional engines (mineru 2.x is preferred on Python 3.10–3.12; magic-pdf 1.3.12 is the Python 3.13 fallback)
+pip install pdf2zh[magicpdf]
+
+# Parse with MinerU/magic-pdf and render a translated mono PDF (default)
+pdf2zh --parse-engine magicpdf example.pdf
+
+# Force OCR during magic-pdf parsing (magic-pdf 1.x pipe_ocr_merge) — recommended for scans
+pdf2zh --parse-engine magicpdf --magicpdf-ocr scanned.pdf
+
+# Keep JSON dumps only (no rendering)
+pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf
+```
+
+How it works:
+
+- **`--parse-engine {auto,legacy,babeldoc,magicpdf}`** — `auto` keeps the historical behaviour (`--babeldoc` → YADT, otherwise the legacy kernel); `magicpdf` routes through the `MagicPdfAdapter` → v3 IR bridge → translate → RenderTakeover mono PDF. If the engine or its models are unavailable, it automatically falls back to the legacy kernel.
+- **Models.** magic-pdf does not auto-download its PDF-Extract-Kit weights. On first use, download them to `~/.cache/magic-pdf/models`:
+
+  ```
+  pip install modelscope
+  python -c "from modelscope import snapshot_download; snapshot_download('opendatalab/PDF-Extract-Kit-1.0', local_dir=r'~/.cache/magic-pdf/models')"
+  ```
+
+  pdf2zh pre-checks the layout/MFD/MFR weights before parsing and fails fast with this hint instead of running dozens of empty batches.
+- **Scanned / damaged text layers.** When the text-layer quality pre-check (multi-signal fusion) hits a scan/damage signal, pdf2zh can automatically switch to `--parse-engine magicpdf --magicpdf-ocr`; if magic-pdf is not usable, it degrades back to the legacy engine.
+- **GPU.** `--backend {auto,cpu,cuda,dml}` selects the ONNX execution provider for pdf2zh's layout inference and — via `PDF2ZH_BABELDOC_BACKEND` — for BabelDOC's internal doclayout ONNX session (`auto` keeps BabelDOC's native CPU behaviour). `cuda` needs `pip install pdf2zh[cuda]` (`onnxruntime-gpu`); `dml` needs `pip install pdf2zh[dml]` (`onnxruntime-directml`). When a requested provider cannot actually initialize (e.g. missing CUDA runtime DLLs), the session falls back to CPU and logs a warning.
+- **GUI.** The config panel exposes the parse-engine radio (`auto`/`legacy`/`babeldoc`/`magicpdf`), the MagicPDF OCR checkbox, the backend radio (`auto`/`cpu`/`cuda`/`dml`), the BabelDOC OCR-mode radio, and a live ONNX backend-status panel.
 
 <h2 id="information">5. Project Information</h2>
 <h3 id="citation">5.1 Citation</h3>

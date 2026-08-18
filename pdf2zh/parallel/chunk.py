@@ -86,6 +86,9 @@ class ChunkTask:
     fp_bytes: bytes = b""
     page_xref_map: Optional[dict] = None
     cancel_event: Optional[object] = None  # 仅 CancelToken 或 None
+    # 8.1.2: 调用方 pages 子集（None=全部）。worker 侧与 chunk_pages 取交集，
+    # 防御 chunk 切分层以外再次丢失 pages 过滤。
+    pages: Optional[Tuple[int, ...]] = None
     # --- 与现有 _translate_parallel_chunk 一致的标量参数集 ---
     lang_in: str = ""
     lang_out: str = ""

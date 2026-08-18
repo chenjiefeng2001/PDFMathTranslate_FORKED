@@ -10,7 +10,6 @@ import logging
 import os
 import sys
 from string import Template
-from typing import List, Optional
 
 from pdf2zh import __version__, log
 from pdf2zh.converter_docx import convert_to_pdf, is_convertible
@@ -217,6 +216,45 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parse_params.add_argument(
+        "--parse-engine",
+        type=str,
+        choices=["auto", "legacy", "babeldoc", "magicpdf"],
+        default="auto",
+        help="PDF parse engine (Stage 2.3): auto (default; babeldoc iff "
+        "--babeldoc), legacy (pdfminer kernel), babeldoc (YADT), magicpdf "
+        "(MinerU/magic-pdf as parse layer, bridged into the v3 canonical "
+        "model; falls back to legacy when the engine is unavailable).",
+    )
+
+    parse_params.add_argument(
+        "--magicpdf-ocr",
+        action="store_true",
+        help="Enable OCR in the magicpdf parse engine (magic-pdf 1.x "
+        "pipe_ocr_merge).",
+    )
+
+    parse_params.add_argument(
+        "--magicpdf-render",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Render the magicpdf parse result into a translated mono PDF "
+        "(default: on). Use --no-magicpdf-render to keep JSON dumps only.",
+    )
+
+
+    parse_params.add_argument(
+        "--babeldoc-ocr",
+        type=str,
+        choices=["auto", "on", "off"],
+        default="auto",
+        help="Scanned-PDF / OCR handling for the BabelDOC layout engine: "
+        "auto auto-detects heavily-scanned pages and enables OCR; on forces "
+        "OCR for every PDF (best for textless PDFs); off skips scan "
+        "detection (no OCR). Can also be set via the PDF2ZH_BABELDOC_OCR "
+        "env var.",
+    )
+
+    parse_params.add_argument(
         "--skip-subset-fonts",
         action="store_true",
         help="Skip font subsetting. "
@@ -241,7 +279,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_args(args: Optional[List[str]]) -> argparse.Namespace:
+def parse_args(args: list[str] | None) -> argparse.Namespace:
     parsed_args = create_parser().parse_args(args=args)
 
     if parsed_args.pages:
@@ -266,12 +304,12 @@ def parse_args(args: Optional[List[str]]) -> argparse.Namespace:
 _SPAWN_FORK_FLAG = "--multiprocessing-fork"
 
 
-def is_spawn_child(argv: Optional[List[str]] = None) -> bool:
+def is_spawn_child(argv: list[str] | None = None) -> bool:
     """当前进程是否为 multiprocessing spawn 子进程（依据 argv 中的 fork 标志）。"""
     return _SPAWN_FORK_FLAG in (argv if argv is not None else sys.argv)
 
 
-def spawn_child_yields_to(args: Optional[List[str]] = None) -> bool:
+def spawn_child_yields_to(args: list[str] | None = None) -> bool:
     """spawn 子进程将控制权让渡给 multiprocessing bootstrap；返回 True 表示不要再运行 argparse。
 
     标准/冻结形态（argv[1] == '--multiprocessing-fork'）交给
@@ -314,7 +352,7 @@ def find_all_files_in_directory(directory_path):
     return file_paths
 
 
-def main(args: Optional[List[str]] = None) -> int:
+def main(args: list[str] | None = None) -> int:
     if spawn_child_yields_to(args):
         # spawn 子进程再入口：控制权已归还 bootstrap，本进程不会再启动应用。
         return 0
@@ -348,6 +386,13 @@ def main(args: Optional[List[str]] = None) -> int:
     if getattr(parsed_args, "proxy", None):
         # 统一入口：--proxy 覆盖为标准变量，配合 PDF2ZH_PROXY 兜底（见 translator.py）
         os.environ.setdefault("PDF2ZH_PROXY", parsed_args.proxy)
+
+    # 系统代理（WinINET 注册表 Clash/VPN）导入环境变量 + NO_PROXY 构建。必须在任何
+    # 翻译 HTTP 请求发出前执行：仅设置 NO_PROXY 会使 urllib/requests 放弃注册表
+    # 代理回退，翻译直连被墙站点而 ConnectTimeout（如 translate.google.com）。
+    from pdf2zh.networking import sanitize_loopback_proxy
+
+    sanitize_loopback_proxy()
 
     if parsed_args.debug:
         log.setLevel(logging.DEBUG)
@@ -413,9 +458,91 @@ def main(args: Optional[List[str]] = None) -> int:
 
     print(parsed_args)
 
-    if parsed_args.babeldoc:
+    # 解析引擎路由（Stage 2.3）：auto 时维持历史语义（--babeldoc → YADT，
+    # 否则 legacy kernel）；显式 magicpdf 走 MinerU/magic-pdf 解析链路。
+    parse_engine = resolve_parse_engine(parsed_args)
+    if parse_engine == "babeldoc":
         return yadt_main(parsed_args)
 
+    if parse_engine == "magicpdf":
+        from pdf2zh.magicpdf_cli import run_magicpdf_main
+
+        return run_magicpdf_main(parsed_args)
+
+    return _run_legacy_kernel(parsed_args)
+
+
+def resolve_parse_engine(parsed_args) -> str:
+    """解析引擎路由决策（Stage 2.3）。
+
+    ``--parse-engine auto``（缺省）维持历史语义：``--babeldoc`` → YADT，
+    否则 legacy kernel；显式指定值直接生效。
+    """
+    engine = getattr(parsed_args, "parse_engine", "auto")
+    if engine == "auto" and parsed_args.babeldoc:
+        return "babeldoc"
+    return engine
+
+
+def _try_auto_switch_magicpdf(parsed_args) -> bool:
+    """legacy 内核的文本层预检 + magicpdf 自动切换（报告 §6.1）。
+
+    对每个输入 PDF 跑多信号融合预检（preflight_scan_check）：命中扫描/损坏
+    信号且 magic-pdf/MinerU 可用时自动切换 ``--parse-engine magicpdf`` 并
+    开启 OCR；否则输出强警告并继续 legacy。环境变量
+    ``PDF2ZH_AUTO_SWITCH_MAGICPDF=0`` 关闭自动切换；``parsed_args."
+    "_auto_switch_attempted`` 防重入（自动切换失败回退 legacy 时不再循环）。
+
+    Returns:
+        True 表示已切换并交给 magicpdf 引擎；False 表示继续 legacy。
+    """
+    if getattr(parsed_args, "_auto_switch_attempted", False):
+        return False
+    parsed_args._auto_switch_attempted = True
+    if os.environ.get("PDF2ZH_AUTO_SWITCH_MAGICPDF", "1") == "0":
+        return False
+    files = list(parsed_args.files or [])
+    if not files:
+        return False
+    from pdf2zh.scanned_detection import preflight_scan_check
+
+    for f in files:
+        if not f.lower().endswith(".pdf"):
+            continue
+        try:
+            decision = preflight_scan_check(f)
+        except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断
+            logger.debug("legacy preflight skipped %s: %s", f, exc)
+            continue
+        if not decision.is_scanned:
+            continue
+        reasons = "; ".join(decision.reasons) or "unknown"
+        try:
+            from pdf2zh.engine_env import available_backend
+
+            backend, ok = available_backend()
+        except Exception:  # noqa: BLE001
+            backend, ok = None, False
+        if ok:
+            logger.warning(
+                "%s 文本层质量预检命中扫描/损坏信号（%s）；magic-pdf/MinerU "
+                "可用，已自动切换 --parse-engine magicpdf --magicpdf-ocr。",
+                f, reasons,
+            )
+            parsed_args.parse_engine = "magicpdf"
+            parsed_args.magicpdf_ocr = True
+            return True
+        logger.warning(
+            "%s 文本层质量预检命中扫描/损坏信号（%s）。legacy 内核无 OCR "
+            "兜底，译文可能基于乱码输出；建议改用 --parse-engine magicpdf "
+            "--magicpdf-ocr 或 --babeldoc-ocr on。",
+            f, reasons,
+        )
+    return False
+
+
+def _run_legacy_kernel(parsed_args) -> int:
+    """既有内核路由（fast/precise，不涉及 magicpdf/babeldoc）。"""
     # Unified kernel routing — both fast and precise modes go through the registry
     from pdf2zh.kernel import KernelRegistry
     from pdf2zh.kernel.protocol import TranslateRequest
@@ -425,6 +552,14 @@ def main(args: Optional[List[str]] = None) -> int:
 
     if parsed_args.dir:
         parsed_args.files = find_all_files_in_directory(parsed_args.files[0])
+
+    # 文本层质量预检（scan_damaged 报告 §6.1 长期实现）：legacy 内核无 OCR
+    # 兜底，命中扫描/损坏信号时若 magic-pdf/MinerU 可用则自动切换 magicpdf
+    # 引擎并开启 OCR（PDF2ZH_AUTO_SWITCH_MAGICPDF=0 关闭）；否则输出强警告。
+    if _try_auto_switch_magicpdf(parsed_args):
+        from pdf2zh.magicpdf_cli import run_magicpdf_main
+
+        return run_magicpdf_main(parsed_args)
 
     # Extract prompt text (may be a Template object from file reading above)
     prompt_text = None
@@ -459,11 +594,35 @@ def main(args: Optional[List[str]] = None) -> int:
 
 
 def yadt_main(parsed_args) -> int:
+    # 把后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）同步到 BabelDOC 内部
+    # ONNX 会话（幂等）：显式 cuda/dml 时 BabelDOC 版面分析也走 GPU，而不是
+    # 其硬编码的 CPU-only。
+    from pdf2zh.babeldoc_onnx_backend import apply_babeldoc_backend
+
+    apply_babeldoc_backend()
+
+    # 数字编号列表项（1. XXX / 2. XXX）段落拆分（幂等）：避免整个列表被合并
+    # 成单一段落整体翻译导致排版错乱。PDF2ZH_BABELDOC_SPLIT_LIST_ITEMS=0 关闭。
+    from pdf2zh.babeldoc_list_split import apply_babeldoc_list_split
+
+    apply_babeldoc_list_split()
+
+    # 目录（TOC）行"点线引导 + 页码"公式保护（幂等）：复用 pdf2zh.toc 识别，
+    # 把点线/页码拆成公式占位符，使其不参与翻译、重排时原位保留。
+    # PDF2ZH_BABELDOC_TOC_PROTECT=0 关闭。
+    from pdf2zh.babeldoc_toc_protect import apply_babeldoc_toc_protect
+
+    apply_babeldoc_toc_protect()
+
+    # 扫描版 / 无文本层 PDF 的 OCR 模式开关（auto/on/off，见
+    # pdf2zh.babeldoc_ocr_mode）：解析出 BabelDOC 的三个互斥扫描版字段。
     from babeldoc.format.pdf.high_level import async_translate as yadt_translate
     from babeldoc.format.pdf.high_level import init as yadt_init
-    from babeldoc.main import create_progress_handler
     from babeldoc.format.pdf.translation_config import TranslationConfig as YadtConfig
-    from pdf2zh.babeldoc_adapter import make_babeldoc_translator
+    from babeldoc.main import create_progress_handler
+
+    from pdf2zh.babeldoc_adapter import _build_doclayout_model, make_babeldoc_translator
+    from pdf2zh.babeldoc_ocr_mode import resolve_ocr_flags
     from pdf2zh.high_level import download_remote_fonts
 
     if parsed_args.dir:
@@ -497,29 +656,29 @@ def yadt_main(parsed_args) -> int:
             raise ValueError("prompt error.")
 
     from pdf2zh.translator import (
+        AnythingLLMTranslator,
+        ArgosTranslator,
         AzureOpenAITranslator,
-        GoogleTranslator,
+        AzureTranslator,
         BingTranslator,
         DeepLTranslator,
         DeepLXTranslator,
-        OllamaTranslator,
-        OpenAITranslator,
-        ZhipuTranslator,
-        ModelScopeTranslator,
-        SiliconTranslator,
-        GeminiTranslator,
-        AzureTranslator,
-        TencentTranslator,
+        DeepseekTranslator,
         DifyTranslator,
-        AnythingLLMTranslator,
-        XinferenceTranslator,
-        ArgosTranslator,
+        GeminiTranslator,
+        GoogleTranslator,
         GrokTranslator,
         GroqTranslator,
-        DeepseekTranslator,
+        ModelScopeTranslator,
+        OllamaTranslator,
         OpenAIlikedTranslator,
+        OpenAITranslator,
         QwenMtTranslator,
+        SiliconTranslator,
+        TencentTranslator,
         X302AITranslator,
+        XinferenceTranslator,
+        ZhipuTranslator,
     )
 
     for translator in [
@@ -576,9 +735,9 @@ def yadt_main(parsed_args) -> int:
         yadt_config = YadtConfig(
             input_file=file,
             font=font_path,
-            pages=",".join((str(x) for x in getattr(parsed_args, "raw_pages", []))),
+            pages=",".join(str(x) for x in getattr(parsed_args, "raw_pages", [])),
             output_dir=outputdir,
-            doc_layout_model=None,
+            doc_layout_model=_build_doclayout_model(),
             translator=babeldoc_translator,
             debug=parsed_args.debug,
             lang_in=lang_in,
@@ -586,6 +745,15 @@ def yadt_main(parsed_args) -> int:
             no_dual=False,
             no_mono=False,
             qps=parsed_args.thread,
+            # 扫描版 / 无文本层 PDF 的 OCR 处理由 --babeldoc-ocr / 环境变量
+            # PDF2ZH_BABELDOC_OCR 决定（auto 自动检测扫描并启用 OCR / on
+            # 强制 OCR / off 跳过扫描检测），而不是保持 BabelDOC 默认的
+            # 扫描检测失败行为。
+            **dict(zip(
+                ("ocr_workaround", "auto_enable_ocr_workaround",
+                 "skip_scanned_detection"),
+                resolve_ocr_flags(parsed_args.babeldoc_ocr),
+            )),
         )
 
         async def yadt_translate_coro(yadt_config):

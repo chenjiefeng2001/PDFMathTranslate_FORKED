@@ -1,3 +1,5 @@
+import glob
+import time
 import unittest
 from unittest.mock import patch, MagicMock
 import numpy as np
@@ -117,20 +119,24 @@ class TestBackendResolution(unittest.TestCase):
     """
 
     def _patch_available(self, providers):
-        import onnxruntime
-
-        patcher = patch.object(onnxruntime, "get_available_providers", return_value=providers)
+        patcher = patch(
+            "pdf2zh.doclayout._ort_available_providers", return_value=list(providers)
+        )
         patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_dml_uses_new_azure_name_when_available(self):
         self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
-        providers = resolve_providers("dml")
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"AzureExecutionProvider"}):
+            providers = resolve_providers("dml")
         self.assertEqual(providers, ["AzureExecutionProvider", "CPUExecutionProvider"])
 
     def test_dml_falls_back_to_legacy_name(self):
         self._patch_available(["DmlExecutionProvider", "CPUExecutionProvider"])
-        providers = resolve_providers("dml")
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"DmlExecutionProvider"}):
+            providers = resolve_providers("dml")
         self.assertEqual(providers, ["DmlExecutionProvider", "CPUExecutionProvider"])
 
     def test_cpu_backend_is_strictly_cpu(self):
@@ -148,8 +154,42 @@ class TestBackendResolution(unittest.TestCase):
 
     def test_auto_returns_all_available(self):
         self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
-        providers = resolve_providers(None)
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()):
+            providers = resolve_providers(None)
         self.assertEqual(providers, ["AzureExecutionProvider", "CPUExecutionProvider"])
+
+    def test_auto_filters_degraded_compiled_provider(self):
+        # TensorRT 已注册但缺运行库（执行级探测不可用）：auto 必须过滤，
+        # 否则 ORT 每次创建会话都尝试加载缺失库并打印 EP Error 噪音。
+        self._patch_available([
+            "TensorrtExecutionProvider",
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ])
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"CUDAExecutionProvider"}):
+            providers = resolve_providers(None)
+        self.assertEqual(
+            providers,
+            ["CUDAExecutionProvider", "CPUExecutionProvider"],
+        )
+
+    def test_auto_keeps_exec_usable_compiled_provider(self):
+        # TensorRT 执行级可用（运行库就绪）时 auto 原样保留，不误伤。
+        self._patch_available([
+            "TensorrtExecutionProvider",
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ])
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"TensorrtExecutionProvider",
+                                 "CUDAExecutionProvider"}):
+            providers = resolve_providers(None)
+        self.assertEqual(
+            providers,
+            ["TensorrtExecutionProvider", "CUDAExecutionProvider",
+             "CPUExecutionProvider"],
+        )
 
     def test_set_get_backend_roundtrip(self):
         old = get_backend()
@@ -162,6 +202,503 @@ class TestBackendResolution(unittest.TestCase):
             self.assertEqual(get_backend(), "cpu")
         finally:
             set_backend(old if old else "auto")
+
+    def test_cuda_missing_warns_and_returns_cpu_only(self):
+        # 请求 cuda 但环境无 CUDA：CPU 兜底项使交集非空，必须记录明确警告，
+        # 而不是“选 GPU 却静默跑 CPU”。（此前该场景完全静默。）
+        self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
+        with patch("pdf2zh.doclayout.logger.warning") as mock_warn:
+            providers = resolve_providers("cuda")
+        self.assertEqual(providers, ["CPUExecutionProvider"])
+        self.assertTrue(mock_warn.called, "cuda missing must log a warning")
+        fmt, args = mock_warn.call_args.args[0], mock_warn.call_args.args[1:]
+        self.assertIn("no GPU provider is available", fmt)
+        self.assertTrue(any("onnxruntime-gpu" in str(p) for p in args))
+        self.assertTrue(any("cuda" in str(p) for p in args))
+
+    def test_get_runtime_provider_status(self):
+        from pdf2zh.doclayout import get_runtime_provider_status
+
+        self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"AzureExecutionProvider"}), \
+             patch("pdf2zh.doclayout._runtime_provider_status_cache", None):
+            status = get_runtime_provider_status()
+        self.assertIn("onnxruntime", status)
+        self.assertEqual(status["available"], ["AzureExecutionProvider", "CPUExecutionProvider"])
+        self.assertFalse(status["cuda"])
+        self.assertTrue(status["dml"])
+        self.assertEqual(status["effective"], ["AzureExecutionProvider", "CPUExecutionProvider"])
+
+    def test_get_runtime_provider_status_cuda_true(self):
+        from pdf2zh.doclayout import get_runtime_provider_status
+
+        self._patch_available(["CUDAExecutionProvider", "CPUExecutionProvider"])
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"CUDAExecutionProvider"}), \
+             patch("pdf2zh.doclayout._runtime_provider_status_cache", None):
+            status = get_runtime_provider_status()
+        self.assertTrue(status["cuda"])
+        self.assertFalse(status["dml"])
+
+    def test_warn_gpu_unavailable_logs_hint(self):
+        from pdf2zh.doclayout import warn_gpu_unavailable
+
+        with patch("pdf2zh.doclayout.logger.warning") as mock_warn:
+            warn_gpu_unavailable("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"], ["CPUExecutionProvider"])
+        fmt, args = mock_warn.call_args.args[0], mock_warn.call_args.args[1:]
+        self.assertIn("requested but no GPU provider", fmt)
+        self.assertTrue(any("cuda" in str(p) for p in args))
+        self.assertTrue(any("onnxruntime-gpu" in str(p) for p in args))
+
+    def test_warn_gpu_unavailable_hint_distinguishes_installed_runtime(self):
+        from pdf2zh.doclayout import warn_gpu_unavailable
+
+        with patch("pdf2zh.doclayout.logger.warning") as mock_warn:
+            warn_gpu_unavailable("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"], ["CUDAExecutionProvider", "CPUExecutionProvider"])
+        args = mock_warn.call_args.args[1:]
+        self.assertTrue(any("cublasLt" in str(p) for p in args))
+
+    def test_warn_gpu_session_fallback_logs_hint(self):
+        from pdf2zh.doclayout import warn_gpu_session_fallback
+
+        with patch("pdf2zh.doclayout.logger.warning") as mock_warn:
+            warn_gpu_session_fallback("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"], ["CPUExecutionProvider"])
+        fmt, args = mock_warn.call_args.args[0], mock_warn.call_args.args[1:]
+        self.assertIn("fell back to CPU", fmt)
+        self.assertTrue(any("onnxruntime-gpu" in str(p) for p in args))
+
+    def test_has_gpu_provider(self):
+        from pdf2zh.doclayout import has_gpu_provider
+
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"CUDAExecutionProvider", "AzureExecutionProvider"}):
+            self.assertTrue(has_gpu_provider("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"]))
+            self.assertFalse(has_gpu_provider("cuda", ["CPUExecutionProvider"]))
+            self.assertTrue(has_gpu_provider("dml", ["AzureExecutionProvider"]))
+            self.assertTrue(has_gpu_provider("auto", ["AzureExecutionProvider", "CPUExecutionProvider"]))
+            self.assertFalse(has_gpu_provider("cpu", ["AzureExecutionProvider"]))
+            self.assertFalse(has_gpu_provider("cuda", []))
+
+    def test_has_gpu_provider_false_when_registered_but_ineffective(self):
+        # DML 已注册但执行级探测判定无效（ORT 静默回退 CPU）：必须判无 GPU。
+        from pdf2zh.doclayout import has_gpu_provider
+
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()):
+            self.assertFalse(has_gpu_provider("dml", ["AzureExecutionProvider"]))
+            self.assertFalse(has_gpu_provider("auto", ["AzureExecutionProvider"]))
+
+    def test_check_session_fallback_warns_on_silent_cpu(self):
+        from pdf2zh.doclayout import _check_session_fallback
+
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()), \
+             patch("pdf2zh.doclayout.warn_gpu_session_fallback") as mock_warn:
+            _check_session_fallback("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"], ["CPUExecutionProvider"])
+        self.assertTrue(mock_warn.called)
+
+        # effective 含 CUDA 且执行级探测有效 → 不警告
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"CUDAExecutionProvider"}), \
+             patch("pdf2zh.doclayout.warn_gpu_session_fallback") as mock_warn2:
+            _check_session_fallback("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"], ["CUDAExecutionProvider", "CPUExecutionProvider"])
+        self.assertFalse(mock_warn2.called)
+
+        # effective 含 CUDA 但执行级探测判定无效（静默回退）→ 仍必须警告
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()), \
+             patch("pdf2zh.doclayout.warn_gpu_session_fallback") as mock_warn3:
+            _check_session_fallback("cuda", ["CUDAExecutionProvider", "CPUExecutionProvider"], ["CUDAExecutionProvider", "CPUExecutionProvider"])
+        self.assertTrue(mock_warn3.called, "get_providers() 掩盖静默回退时必须警告")
+
+    def test_provider_status_detects_silent_cpu_fallback(self):
+        """注册表有 CUDAExecutionProvider 但实际创建会话回退 CPU（缺
+        cublasLt/cuDNN DLL 的典型场景）：诊断必须显示 CUDA 不可用。"""
+        from pdf2zh.doclayout import get_runtime_provider_status
+
+        self._patch_available(["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"])
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()), \
+             patch("pdf2zh.doclayout._runtime_provider_status_cache", None):
+            status = get_runtime_provider_status()
+        self.assertIn("CUDAExecutionProvider", status["available"])
+        self.assertFalse(status["cuda"])
+        self.assertFalse(status["dml"])
+
+    def test_dml_registered_but_ineffective_falls_back_to_cpu(self):
+        # provider 已注册（available 含 Azure）但执行级探测判定 DML 无效：必须
+        # 回退 CPU-only 并记录明确警告（此前 get_providers() 掩盖了静默回退）。
+        self._patch_available(["AzureExecutionProvider", "CPUExecutionProvider"])
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()), \
+             patch("pdf2zh.doclayout.warn_gpu_session_fallback") as mock_warn:
+            providers = resolve_providers("dml")
+        self.assertEqual(providers, ["CPUExecutionProvider"])
+        self.assertTrue(mock_warn.called, "DML 无效必须给出会话级回退警告")
+
+
+
+class TestExecutionLevelProbe(unittest.TestCase):
+    """执行级探测：ORT 静默回退时 get_providers() 失真 → 用 profiling 判定。"""
+
+    def test_parse_profile_providers_extracts_node_providers(self):
+        import json
+        from pdf2zh.doclayout import _parse_profile_providers
+
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "probe.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump({
+                    "traceEvents": [
+                        {"cat": "Node", "name": "Conv",
+                         "args": {"provider": "CPUExecutionProvider"}},
+                        {"cat": "Node", "name": "Add",
+                         "args": {"provider": "AzureExecutionProvider"}},
+                        {"cat": "Kernel", "name": "x", "args": {}},
+                    ]
+                }, fh)
+            result = _parse_profile_providers(path)
+        self.assertEqual(result, {"CPUExecutionProvider", "AzureExecutionProvider"})
+        self.assertFalse(os.path.exists(path), "profile 临时文件应被清理")
+
+    def test_parse_profile_providers_missing_file_returns_empty(self):
+        from pdf2zh.doclayout import _parse_profile_providers
+
+        self.assertEqual(
+            _parse_profile_providers(r"C:\nonexistent\probe.json"), set()
+        )
+
+    def test_probe_providers_returns_only_executing_providers(self):
+        # 请求 [Azure, CPU] 但 profile 显示只有 CPU 执行 → 结果仅含 CPU。
+        import json
+        from pdf2zh.doclayout import _probe_providers
+
+        sess = MagicMock()
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "probe.json")
+            with open(path, "w", encoding="utf-8") as fh:
+                json.dump({
+                    "traceEvents": [
+                        {"cat": "Node", "args": {"provider": "CPUExecutionProvider"}},
+                    ]
+                }, fh)
+            sess.end_profiling.return_value = path
+            with patch("onnxruntime.InferenceSession", return_value=sess):
+                result = _probe_providers(
+                    ["AzureExecutionProvider", "CPUExecutionProvider"]
+                )
+        self.assertEqual(result, ["CPUExecutionProvider"])
+
+    def test_probe_gpu_provider_false_when_cpu_only(self):
+        import onnxruntime
+        from pdf2zh.doclayout import _probe_gpu_provider
+
+        with patch("pdf2zh.doclayout._ort_available_providers",
+                   return_value=["AzureExecutionProvider", "CPUExecutionProvider"]), \
+             patch("pdf2zh.doclayout._probe_providers",
+                   return_value=["CPUExecutionProvider"]):
+            self.assertFalse(_probe_gpu_provider("AzureExecutionProvider"))
+
+    def test_probe_gpu_provider_true_when_executing(self):
+        import onnxruntime
+        from pdf2zh.doclayout import _probe_gpu_provider
+
+        with patch("pdf2zh.doclayout._ort_available_providers",
+                   return_value=["AzureExecutionProvider", "CPUExecutionProvider"]), \
+             patch("pdf2zh.doclayout._probe_providers",
+                   return_value=["AzureExecutionProvider", "CPUExecutionProvider"]):
+            self.assertTrue(_probe_gpu_provider("AzureExecutionProvider"))
+
+    def test_exec_gpu_providers_caches_result(self):
+        import onnxruntime
+        import pdf2zh.doclayout as dl
+        from pdf2zh.doclayout import _exec_gpu_providers
+
+        saved = dl._EXEC_GPU_PROVIDERS
+        try:
+            # 自包含：忽略前序（OnnxModel 初始化）可能已写入的真实探测缓存。
+            # 注意必须写模块全局（dl._EXEC_GPU_PROVIDERS），仅改局部绑定无效。
+            dl._EXEC_GPU_PROVIDERS = None
+            with patch("pdf2zh.doclayout._ort_available_providers",
+                       return_value=["CUDAExecutionProvider", "CPUExecutionProvider"]), \
+                 patch("pdf2zh.doclayout._probe_gpu_provider", return_value=True):
+                first = _exec_gpu_providers()
+                second = _exec_gpu_providers()
+            self.assertEqual(first, {"CUDAExecutionProvider"})
+            self.assertIs(first, second)  # 进程级缓存命中（同一对象）
+        finally:
+            dl._EXEC_GPU_PROVIDERS = saved
+
+
+
+class TestOptimizedCacheIsolation(unittest.TestCase):
+    """.optimized 缓存按 backend/优化级别隔离（避免 CPU NCHWc 图污染 GPU 会话）。"""
+
+    @staticmethod
+    def _reset_probe_cache():
+        import pdf2zh.doclayout as dl
+
+        dl._EXEC_GPU_PROVIDERS = None
+
+    def _restore_backend(self):
+        old = get_backend()
+        self.addCleanup(self._reset_probe_cache)
+        self.addCleanup(set_backend, old if old else "auto")
+        set_backend("auto")
+
+    def test_cache_path_cpu_fingerprinted(self):
+        from pdf2zh.doclayout import _optimized_cache_path
+
+        self._restore_backend()
+        set_backend("cpu")
+        self.assertRegex(
+            _optimized_cache_path("m.onnx"), r"^m\.onnx\.cpu-[0-9a-f]{12}\.optimized$"
+        )
+
+    def test_cache_path_cuda_fingerprinted(self):
+        from pdf2zh.doclayout import _optimized_cache_path
+
+        self._restore_backend()
+        set_backend("cuda")
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"CUDAExecutionProvider"}):
+            self.assertRegex(
+                _optimized_cache_path("m.onnx"), r"^m\.onnx\.cuda-[0-9a-f]{12}\.optimized$"
+            )
+
+    def test_cache_path_dml_effective_fingerprinted(self):
+        from pdf2zh.doclayout import _optimized_cache_path
+
+        self._restore_backend()
+        set_backend("dml")
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"AzureExecutionProvider"}):
+            self.assertRegex(
+                _optimized_cache_path("m.onnx"), r"^m\.onnx\.dml-basic-[0-9a-f]{12}\.optimized$"
+            )
+
+    def test_cache_path_dml_ineffective_uses_cpu_fingerprint(self):
+        from pdf2zh.doclayout import _optimized_cache_path
+
+        self._restore_backend()
+        set_backend("dml")
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()):
+            self.assertRegex(
+                _optimized_cache_path("m.onnx"), r"^m\.onnx\.cpu-[0-9a-f]{12}\.optimized$"
+            )
+
+    def test_cache_fingerprint_stable_within_environment(self):
+        from pdf2zh.doclayout import _cache_fingerprint_key
+
+        self._restore_backend()
+        set_backend("cpu")
+        self.assertEqual(_cache_fingerprint_key(), _cache_fingerprint_key())
+
+    def test_cache_fingerprint_differs_across_backends(self):
+        from pdf2zh.doclayout import _cache_fingerprint_key
+
+        self._restore_backend()
+        set_backend("cpu")
+        cpu_fp = _cache_fingerprint_key()
+        set_backend("cuda")
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"CUDAExecutionProvider"}):
+            cuda_fp = _cache_fingerprint_key()
+        self.assertNotEqual(cpu_fp, cuda_fp)
+
+    def test_should_generate_cache_false_for_explicit_gpu(self):
+        from pdf2zh.doclayout import _should_generate_optimized_cache
+
+        self._restore_backend()
+        set_backend("cuda")
+        self.assertFalse(_should_generate_optimized_cache())
+        set_backend("dml")
+        self.assertFalse(_should_generate_optimized_cache())
+        set_backend("cpu")
+        self.assertTrue(_should_generate_optimized_cache())
+        set_backend("auto")
+        self.assertTrue(_should_generate_optimized_cache())
+
+    def test_session_options_dml_effective_uses_basic(self):
+        import onnxruntime
+        from pdf2zh.doclayout import _configure_session_options
+
+        self._restore_backend()
+        set_backend("dml")
+        with patch("pdf2zh.doclayout._exec_gpu_providers",
+                   return_value={"AzureExecutionProvider"}):
+            opts = _configure_session_options()
+        self.assertEqual(
+            opts.graph_optimization_level,
+            onnxruntime.GraphOptimizationLevel.ORT_ENABLE_BASIC,
+        )
+
+    def test_session_options_dml_ineffective_uses_all(self):
+        import onnxruntime
+        from pdf2zh.doclayout import _configure_session_options
+
+        self._restore_backend()
+        set_backend("dml")
+        with patch("pdf2zh.doclayout._exec_gpu_providers", return_value=set()):
+            opts = _configure_session_options()
+        self.assertEqual(
+            opts.graph_optimization_level,
+            onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL,
+        )
+
+    def test_session_options_cpu_uses_all(self):
+        import onnxruntime
+        from pdf2zh.doclayout import _configure_session_options
+
+        self._restore_backend()
+        set_backend("cpu")
+        opts = _configure_session_options()
+        self.assertEqual(
+            opts.graph_optimization_level,
+            onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL,
+        )
+
+
+
+class TestStaleOptimizedTmpCleanup(unittest.TestCase):
+    """孤儿 <model>.*optimized.*.tmp 清理：过期且生成进程已亡才删除。"""
+
+    def setUp(self):
+        self._tmp = tempfile.mkdtemp(prefix="opt_tmp_clean_")
+        self.model = os.path.join(self._tmp, "m.onnx")
+
+    def tearDown(self):
+        import shutil
+
+        shutil.rmtree(self._tmp, ignore_errors=True)
+
+    def _make_tmp(self, name, mtime_age):
+        p = os.path.join(self._tmp, name)
+        with open(p, "wb") as fh:
+            fh.write(b"x" * 1024)
+        os.utime(p, (time.time() - mtime_age, time.time() - mtime_age))
+        return p
+
+    @patch("pdf2zh.doclayout._pid_alive", return_value=False)
+    def test_cleans_orphan_tmp_older_than_60s(self, _):
+        from pdf2zh.doclayout import cleanup_stale_optimized_cache_tmp
+
+        self._make_tmp("m.onnx.optimized.12345.tmp", mtime_age=3600)
+        self._make_tmp(
+            "m.onnx.cpu-abc123def456.optimized.99999.tmp", mtime_age=7200
+        )
+        n = cleanup_stale_optimized_cache_tmp(self.model)
+        self.assertEqual(n, 2)
+        self.assertEqual(glob.glob(os.path.join(self._tmp, "*.tmp")), [])
+
+    def test_keeps_fresh_tmp_and_live_owner(self):
+        from pdf2zh.doclayout import cleanup_stale_optimized_cache_tmp
+
+        fresh = self._make_tmp("m.onnx.optimized.11111.tmp", mtime_age=10)
+        with patch("pdf2zh.doclayout._pid_alive", return_value=True):
+            live = self._make_tmp("m.onnx.optimized.22222.tmp", mtime_age=3600)
+            n = cleanup_stale_optimized_cache_tmp(self.model)
+        self.assertEqual(n, 0)
+        self.assertTrue(os.path.exists(fresh))
+        self.assertTrue(os.path.exists(live))
+
+    def test_ignores_cached_and_lock_files(self):
+        from pdf2zh.doclayout import cleanup_stale_optimized_cache_tmp
+
+        with open(self.model + ".optimized", "wb") as fh:
+            fh.write(b"x" * 2048)
+        with open(self.model + ".optimized.lock", "wb") as fh:
+            fh.write(b"12345")
+        n = cleanup_stale_optimized_cache_tmp(self.model)
+        self.assertEqual(n, 0)
+        self.assertTrue(os.path.exists(self.model + ".optimized"))
+
+
+class TestOnnxModelGpuNoDiskCache(unittest.TestCase):
+    """GPU 显式后端在无同指纹缓存时不落盘，直接在线优化。"""
+
+    def setUp(self):
+        import pdf2zh.doclayout as dl
+
+        self._dl = dl
+        fake_model = MagicMock()
+        fake_model.metadata_props = [
+            MagicMock(key="stride", value="32"),
+            MagicMock(key="names", value="['a']"),
+        ]
+        self._onnx_load = patch.object(dl.onnx, "load", return_value=fake_model)
+        self._sess = patch.object(
+            dl.onnxruntime,
+            "InferenceSession",
+            return_value=MagicMock(
+                get_providers=lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"]
+            ),
+        )
+        self._fallback = patch.object(dl, "_check_session_fallback")
+        self._onnx_load.start()
+        self._sess.start()
+        self._fallback.start()
+        self._probe_cache = dl._EXEC_GPU_PROVIDERS
+        dl._EXEC_GPU_PROVIDERS = None
+
+    def tearDown(self):
+        self._fallback.stop()
+        self._sess.stop()
+        self._onnx_load.stop()
+        self._dl._EXEC_GPU_PROVIDERS = self._probe_cache
+        old = get_backend()
+        set_backend(old if old else "auto")
+
+    def _busy_cache(self):
+        holder = MagicMock()
+        holder.acquire.return_value = None
+        holder.state = "busy"
+        holder.tmp_path = os.path.join(tempfile.gettempdir(), "x.tmp")
+        return holder
+
+    def _patch_opts(self):
+        captured = {}
+        real = self._dl._configure_session_options
+
+        def fake_opts():
+            o = real()
+            captured["opts"] = o
+            return o
+
+        return (
+            patch.object(self._dl, "_configure_session_options", side_effect=fake_opts),
+            captured,
+        )
+
+    def test_cuda_busy_aborts_and_skips_disk_cache(self):
+        set_backend("cuda")
+        holder = self._busy_cache()
+        opts_patch, captured = self._patch_opts()
+        with opts_patch, patch.object(self._dl, "_OptimizedCache", return_value=holder):
+            model = self._dl.OnnxModel("fake_model_path.onnx")
+        self.assertEqual(captured["opts"].optimized_model_filepath, "")
+        holder.abort.assert_called_once()
+        holder.publish.assert_not_called()
+        self.assertEqual(model.model_path, "fake_model_path.onnx")
+
+    def test_dml_busy_aborts_and_skips_disk_cache(self):
+        set_backend("dml")
+        holder = self._busy_cache()
+        opts_patch, captured = self._patch_opts()
+        with patch.object(
+            self._dl,
+            "_exec_gpu_providers",
+            return_value={"AzureExecutionProvider"},
+        ), opts_patch, patch.object(self._dl, "_OptimizedCache", return_value=holder):
+            self._dl.OnnxModel("fake_model_path.onnx")
+        self.assertEqual(captured["opts"].optimized_model_filepath, "")
+        holder.abort.assert_called_once()
+        holder.publish.assert_not_called()
+
+    def test_cpu_busy_still_writes_disk_cache(self):
+        set_backend("cpu")
+        holder = self._busy_cache()
+        opts_patch, captured = self._patch_opts()
+        with opts_patch, patch.object(self._dl, "_OptimizedCache", return_value=holder):
+            self._dl.OnnxModel("fake_model_path.onnx")
+        self.assertEqual(captured["opts"].optimized_model_filepath, holder.tmp_path)
+        holder.publish.assert_called_once()
 
 
 class TestOptimizedCacheLock(unittest.TestCase):

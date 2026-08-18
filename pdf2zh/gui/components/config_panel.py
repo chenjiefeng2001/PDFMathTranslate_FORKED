@@ -68,6 +68,72 @@ MODE_CHOICES = [
 ]
 
 
+def _available_backend_choices() -> list:
+    """按执行级探测结果过滤不可用的 GPU 后端选项。
+
+    DirectML/CUDA provider 即使已注册也可能因设备/运行库初始化失败而无法真正
+    执行（ORT 静默回退 CPU，``get_providers()`` 仍返回 GPU 名）。据此在 UI 层
+    直接隐藏不可用后端，避免用户选到一个"看似可用实则跑 CPU"的选项。
+    状态面板（:func:`backend_status_markdown`）仍会显示缺失原因与修复提示。
+    """
+    from pdf2zh.doclayout import get_runtime_provider_status
+
+    choices = [
+        (B("config_backend_auto"), "auto"),
+        (B("config_backend_cpu"), "cpu"),
+    ]
+    try:
+        status = get_runtime_provider_status()
+    except Exception:  # noqa: BLE001 -- 探测失败只保留 CPU 选项
+        import logging  # noqa: PLC0415
+
+        logging.getLogger(__name__).warning(
+            "backend availability probe failed", exc_info=True
+        )
+        return choices
+    if status.get("cuda"):
+        choices.append((B("config_backend_cuda"), "cuda"))
+    if status.get("dml"):
+        choices.append((B("config_backend_dml"), "dml"))
+    return choices
+
+
+def backend_status_markdown() -> str:
+    """Build a one-shot diagnostics Markdown of available ONNX backends."""
+    from pdf2zh.doclayout import get_runtime_provider_status
+
+    status = get_runtime_provider_status()
+    ok = B("backend_status_ok")
+    missing = B("backend_status_missing")
+    lines = [
+        f"**{B('config_backend_status')}**  ·  ONNX Runtime {status['onnxruntime']}",
+        f"- {B('config_backend_cuda')}: {ok if status['cuda'] else missing}",
+        f"- {B('config_backend_dml')}: {ok if status['dml'] else missing}",
+        f"- {B('config_backend_cpu')}: {ok}",
+        "",
+        f"- 已注册 / registered: `{'、'.join(status['available']) or '-'}`",
+        f"- 实际生效 / effective: `{'、'.join(status['effective']) or '-'}`",
+    ]
+    if not status["cuda"]:
+        if "CUDAExecutionProvider" in status["available"]:
+            # 已装 onnxruntime-gpu 但创建会话时 CUDA 运行库初始化失败
+            lines.append(f"  › {B('backend_status_cuda_runtime_hint')}")
+        else:
+            lines.append(f"  › {B('backend_status_cuda_hint')}")
+    if not status["dml"]:
+        if not any(
+            p in ("AzureExecutionProvider", "DmlExecutionProvider")
+            for p in status["available"]
+        ):
+            # 当前发行版不含 DirectML provider（如 onnxruntime-gpu）
+            lines.append(f"  › {B('backend_status_dml_hint_gpu')}")
+        else:
+            lines.append(f"  › {B('backend_status_dml_hint')}")
+    if not (status["cuda"] or status["dml"]):
+        lines.append(B("backend_status_gpu_hidden"))
+    return "\n".join(lines)
+
+
 def create_config_panel() -> dict:
     """Create translation configuration form panel.
 
@@ -109,6 +175,54 @@ def create_config_panel() -> dict:
             info=B("config_mode_info"),
         )
 
+
+        # 版面分析（BabelDOC / doclayout ONNX）推理后端开关。auto 保持原有
+        # 默认行为（CPU 优先）；cuda / dml 开启 GPU 加速，GPU 不可用/崩溃时
+        # 自动回退 CPU（由 doclayout.resolve_providers + 降级机制保证）。
+        backend = gr.Radio(
+            choices=_available_backend_choices(),
+            value="auto",
+            label=B("config_backend"),
+            info=B("config_backend_info"),
+        )
+        backend_status = gr.Markdown(
+            value=backend_status_markdown(),
+            elem_classes="backend-status",
+        )
+
+        # 扫描版 / 无文本层 PDF 的 OCR 处理开关。auto 保持默认（BabelDOC
+        # 自动检测扫描并启用 OCR workaround）；on 强制对所有 PDF 执行 OCR；
+        # off 跳过扫描检测（不做 OCR）。对应环境变量 PDF2ZH_BABELDOC_OCR。
+        ocr_mode = gr.Radio(
+            choices=[
+                (B("config_ocr_mode_auto"), "auto"),
+                (B("config_ocr_mode_on"), "on"),
+                (B("config_ocr_mode_off"), "off"),
+            ],
+            value="auto",
+            label=B("config_ocr_mode"),
+            info=B("config_ocr_mode_info"),
+        )
+
+        # 解析引擎切换（--parse-engine 语义）：auto 保持历史行为（引擎模式决定
+        # legacy/BabelDOC）；babeldoc 显式走 BabelDOC 排版引擎；magicpdf 走
+        # MinerU/magic-pdf 解析链路（引擎未安装时自动熔断降级 legacy）。
+        parse_engine = gr.Radio(
+            choices=[
+                (B("config_parse_engine_auto"), "auto"),
+                (B("config_parse_engine_legacy"), "legacy"),
+                (B("config_parse_engine_babeldoc"), "babeldoc"),
+                (B("config_parse_engine_magicpdf"), "magicpdf"),
+            ],
+            value="auto",
+            label=B("config_parse_engine"),
+            info=B("config_parse_engine_info"),
+        )
+        magicpdf_ocr = gr.Checkbox(
+            value=False,
+            label=B("config_magicpdf_ocr"),
+            info=B("config_magicpdf_ocr_info"),
+        )
         # ---- 高级选项 / Advanced ----
         with gr.Accordion(B("config_advanced"), open=False):
             with gr.Row():
@@ -167,6 +281,11 @@ def create_config_panel() -> dict:
         "lang_from": lang_from,
         "lang_to": lang_to,
         "mode_choice": mode_choice,
+        "backend": backend,
+        "ocr_mode": ocr_mode,
+        "parse_engine": parse_engine,
+        "magicpdf_ocr": magicpdf_ocr,
+        "backend_status": backend_status,
         "threads": threads,
         "skip_subset_fonts": skip_subset_fonts,
         "ignore_cache": ignore_cache,

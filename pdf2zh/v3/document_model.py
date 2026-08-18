@@ -287,7 +287,8 @@ def annotate_render(page) -> int:
     返回标注块数。
     """
     overlay = {"toc", "header", "footer"}
-    preserve = {"figure", "image", "table", "formula", "formula_inline"}
+    preserve = {"figure", "image", "table", "formula", "formula_inline",
+                "code"}
     hits = 0
     for block in page.blocks:
         kind = block.kind
@@ -355,7 +356,7 @@ def build_document_model(ltpages: Sequence,
 # ── 模型消费：Translation / Render Plan / TOC 记录 ───────────────────────
 
 
-_KEEP_KINDS = frozenset({"formula", "figure", "image", "table",
+_KEEP_KINDS = frozenset({"formula", "figure", "image", "table", "code",
                          "header", "footer"})
 
 

@@ -309,6 +309,8 @@ def build_next_settings(
     output_dir: Optional[str] = None,
     ignore_cache: bool = False,
     debug: bool = False,
+    ocr_mode: Optional[str] = None,
+    source_path: Optional[str] = None,
 ) -> Any:
     """Assemble a ``pdf2zh_next.SettingsModel`` from GUI request fields.
 
@@ -316,12 +318,22 @@ def build_next_settings(
     auto term extraction disabled, table text translation left off (avoids
     loading the RapidOCR model on the GUI path), and ``basic.debug`` enabled so
     the async stream runs in-process (no subprocess spawn under Gradio).
+
+    ``ocr_mode`` (``auto``/``on``/``off``) controls BabelDOC's scanned-PDF
+    handling: ``auto`` auto-detects heavily-scanned pages and enables OCR,
+    ``on`` forces OCR for every PDF, ``off`` skips scan detection entirely.
     """
     from pdf2zh_next.config.model import (
         BasicSettings,
         PDFSettings,
         SettingsModel,
         TranslationSettings,
+    )
+
+    from pdf2zh.babeldoc_ocr_mode import resolve_ocr_flags
+
+    ocr_workaround, auto_enable_ocr_workaround, skip_scanned_detection = (
+        resolve_ocr_flags(ocr_mode, source_path=source_path)
     )
 
     engine_settings = _build_engine_settings(service, envs)
@@ -344,12 +356,17 @@ def build_next_settings(
             # 双语 PDF 使用交替页模式：原文页、译文页各自独立成页并交替排列，
             # 而不是把原文+译文合并到同一页（BabelDOC 默认 side-by-side 合并）。
             use_alternating_pages_dual=True,
-            # 扫描版 PDF 自动启用 OCR workaround 继续翻译，而不是直接抛
-            # "Scanned PDF detected" 失败（BabelDOC 默认行为会导致任务报错）。
-            auto_enable_ocr_workaround=True,
+            # 扫描版 / 无文本层 PDF 的 OCR 处理由 OCR 模式开关决定（不是
+            # 硬编码）：auto 自动检测扫描并启用 OCR / on 强制 OCR / off
+            # 跳过扫描检测，避免无文本层 PDF 直接抛 "Scanned PDF detected"
+            # 失败。环境变量 PDF2ZH_BABELDOC_OCR 可覆盖 GUI/CLI 显式选择。
+            ocr_workaround=ocr_workaround,
+            auto_enable_ocr_workaround=auto_enable_ocr_workaround,
+            skip_scanned_detection=skip_scanned_detection,
         ),
         translate_engine_settings=engine_settings,
     )
+
 
 
 def run_babeldoc_next_translation(
@@ -366,6 +383,8 @@ def run_babeldoc_next_translation(
     progress_cb: Optional[Callable[[str, float, str], None]] = None,
     cancelled_check: Optional[Callable[[], bool]] = None,
     debug: bool = False,
+    ocr_mode: Optional[str] = None,
+
 ) -> List[Dict[str, str]]:
     """Translate a document with the modified pdf2zh_next kernel pipeline.
 
@@ -421,6 +440,24 @@ def run_babeldoc_next_translation(
             return files
 
     from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+    # 把后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）同步到 BabelDOC 内部
+    # ONNX 会话（幂等）：显式 cuda/dml 时版面分析也走 GPU，而不是硬编码 CPU。
+    from pdf2zh.babeldoc_onnx_backend import apply_babeldoc_backend
+
+    apply_babeldoc_backend()
+
+    # 数字编号列表项（1. XXX / 2. XXX）段落拆分（幂等）：避免整个列表被合并
+    # 成单一段落整体翻译导致排版错乱。PDF2ZH_BABELDOC_SPLIT_LIST_ITEMS=0 关闭。
+    from pdf2zh.babeldoc_list_split import apply_babeldoc_list_split
+
+    apply_babeldoc_list_split()
+
+    # 目录（TOC）行"点线引导 + 页码"公式保护（幂等）：复用 pdf2zh.toc 识别，
+    # 把点线/页码拆成公式占位符，使其不参与翻译、重排时原位保留。
+    # PDF2ZH_BABELDOC_TOC_PROTECT=0 关闭。
+    from pdf2zh.babeldoc_toc_protect import apply_babeldoc_toc_protect
+
+    apply_babeldoc_toc_protect()
 
     cleanup_paths: List[str] = []
     result = None
@@ -446,9 +483,28 @@ def run_babeldoc_next_translation(
             output_dir=out_dir,
             ignore_cache=ignore_cache,
             debug=debug,
+            ocr_mode=ocr_mode,
+            source_path=work_path,
         )
         settings.validate_settings()
         config = create_babeldoc_config(settings, Path(work_path))
+        # Fuse the default doclayout model with a PP-DocLayoutV2 pseudo-code
+        # (``algorithm``) detector so algorithm blocks survive translation
+        # untouched. Falls back to the kernel default (``None``) on any error.
+        try:
+            from pdf2zh.doclayout_pseudocode import (
+                build_pseudo_code_protected_layout_model,
+            )
+
+            config.doc_layout_model = build_pseudo_code_protected_layout_model(
+                pdf_path=work_path
+            )
+        except Exception:  # noqa: BLE001 -- never break the BabelDOC pipeline
+            logger.warning(
+                "pseudo-code protection model unavailable; "
+                "using kernel default layout model",
+                exc_info=True,
+            )
 
         async def _drive() -> Optional[Any]:
             nonlocal cancelled

@@ -39,6 +39,7 @@
 - 🌐 支持 [多种语言](./ADVANCED.md#language) 和 [诸多翻译服务](./ADVANCED.md#services)
 - 🤖 提供 [命令行工具](#usage)，[图形交互界面](#gui)，以及 [容器化部署](#docker)
 - 🛡️ 长时间运行可靠性：任务自愈看门狗、有限重试、队列活性看门狗、按线程隔离的连接池，保证大文档翻译不悬挂、不连接风暴
+- 🔄 可切换解析引擎：内置 BabelDOC / legacy（pdfminer），可选 MinerU/magic-pdf（`--parse-engine magicpdf`）用于扫描件与损坏文本层，引擎不可用时自动降级 legacy 内核
 - ⚡ 并行页面处理：worker 进程隔离、GPU 后端传播、worker 崩溃自动降级 CPU
 
 欢迎在 [GitHub Issues](https://github.com/Byaidu/PDFMathTranslate/issues) 或 [Telegram 用户群](https://t.me/+Z9_SgnxmsmA5NzBl)
@@ -46,7 +47,7 @@
 有关如何贡献的详细信息，请查阅 [贡献指南](https://github.com/Byaidu/PDFMathTranslate/wiki/Contribution-Guide---%E8%B4%A1%E7%8C%AE%E6%8C%87%E5%8D%97)
 
 <h2 id="updates">更新</h2>
-
+- [2026年8月17日] 可切换解析引擎：以 MinerU/magic-pdf 作为可选 PDF 解析层（`--parse-engine magicpdf`、`--magicpdf-ocr`、`--magicpdf-render`），自动生成配置 + 权重预检 + legacy 熔断降级；BabelDOC OCR 三态开关（`--babeldoc-ocr`）；GPU 后端传播到 BabelDOC 内部 doclayout ONNX 会话（`PDF2ZH_BABELDOC_BACKEND`）
 - [2026年8月13日] 可靠性加固：翻译重试止损（`PDF2ZH_TRANSLATE_RETRY`）、任务自愈看门狗（无进度超时自动取消 `PDF2ZH_TASK_TIMEOUT_SECONDS`、终态任务自动清理 `PDF2ZH_TASK_RETENTION_SECONDS`）、GUI 队列活性看门狗、控制按钮直连（取消/暂停/继续/跳过/下载不再排队）
 - [2026年8月13日] 并行引擎：worker 进程隔离 + GPU 后端传播（`--backend`）、worker 崩溃自动降级 CPU、失败分块增量重试 + 串行补跑、主进程模型预热 + 原子化优化缓存发布
 - [2026年8月13日] 翻译传输层加固：按线程连接池（32）消除 "Connection pool is full" 连接风暴；Google 429/CAPTCHA 快速失败并给出可操作提示；超长文本（>4000 字符）分段翻译，修复静默截断；请求超时防黑洞悬挂
@@ -260,11 +261,15 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 | `--serverport` | [自定义 gradio 服务器端口]                                                                                 | `pdf2zh --serverport 7860`                     |
 | `--mode`   | 翻译模式：`fast`（默认，v1）或 `precise`（v2，实验性，需要 pdf2zh_next 子模块）                                | `pdf2zh --mode precise example.pdf`            |
 | `--babeldoc`| 使用实验性后端 [BabelDOC](https://funstory-ai.github.io/BabelDOC/) 翻译 |`pdf2zh --babeldoc` -s openai example.pdf|
+| `--parse-engine` | PDF 解析/排版引擎：`auto`（默认）、`legacy`、`babeldoc`、`magicpdf`（以 MinerU/magic-pdf 作为解析层；引擎不可用时自动降级 legacy） | `pdf2zh --parse-engine magicpdf example.pdf` |
+| `--magicpdf-ocr` | 在 magicpdf 解析引擎中强制开启 OCR（magic-pdf 1.x `pipe_ocr_merge`），扫描件推荐 | `pdf2zh --parse-engine magicpdf --magicpdf-ocr scan.pdf` |
+| `--magicpdf-render` / `--no-magicpdf-render` | 将 magicpdf 解析结果渲染为译后 mono PDF（默认开启）；`--no-magicpdf-render` 仅保留 JSON 转储 | `pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf` |
+| `--babeldoc-ocr` | BabelDOC 排版引擎的扫描件/OCR 处理三态开关：`auto`（默认）、`on`、`off` | `pdf2zh --babeldoc-ocr on example.pdf` |
 | `--mcp`     | 启用 MCP STDIO 模式                                                                                            | `pdf2zh --mcp`                                 |
 | `--sse`     | 启用 MCP SSE 模式                                                                                              | `pdf2zh --mcp --sse`                           |
 | `--parallel-workers` | 并行页面处理 worker 进程数（默认 4），内存受限机器可调低                             | `pdf2zh example.pdf --parallel-workers 2`      |
 | `--no-parallel` | 禁用并行页面处理（串行兜底）                                                                                | `pdf2zh example.pdf --no-parallel`             |
-| `--backend` | ONNX Runtime 执行提供方：`auto`、`cpu`、`cuda`、`dml`                                                          | `pdf2zh example.pdf --backend cpu`             |
+| `--backend` | ONNX Runtime 执行提供方：`auto`、`cpu`、`cuda`、`dml`；同时作用于 pdf2zh 与 BabelDOC 内部版面 ONNX 推理| `pdf2zh example.pdf --backend cuda`            |
 | `--proxy`   | 翻译请求使用的 HTTP(S) 代理，如 `http://127.0.0.1:7890`                                                         | `pdf2zh example.pdf --proxy http://127.0.0.1:7890` |
 | `--max-file-size` | WebUI 上传大小限制（MB，默认 100）                                                                        | `pdf2zh -i --max-file-size 200`                |
 
@@ -283,6 +288,8 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | 对应 `--parallel-workers` / `--no-parallel` 的环境变量形式。 |
 | `PDF2ZH_PROXY` | — | 对应 `--proxy` 的环境变量形式。 |
 | `PDF2ZH_MAX_FILE_SIZE` | — | 对应 `--max-file-size`（MB）的环境变量形式。 |
+| `PDF2ZH_BABELDOC_BACKEND` | 跟随 `--backend` | BabelDOC 内部 ONNX 推理（版面分析）的独立后端开关：`auto`/`cpu`/`cuda`/`dml`。默认 `auto` 保持 BabelDOC 原生 CPU 行为；设 `cuda`/`dml` 时即使 pdf2zh 主链路用 CPU 也可单独让 BabelDOC 走 GPU（需安装 `onnxruntime-gpu`/`onnxruntime-directml`）。 |
+| PDF2ZH_BABELDOC_SPLIT_LIST_ITEMS | 1 | BabelDOC 数字编号列表项（`1. XXX` / `2. XXX`…）段落拆分开关：默认 1 开启，把 doclayout 误并为单一段落的连续列表项拆成独立段落、逐项翻译排版；设 0/off 关闭并恢复 BabelDOC 原生行为。 |
 | `HF_ENDPOINT` | — | 模型下载的 HuggingFace 镜像（如 `https://hf-mirror.com`）。 |
 
 **并行引擎。** 超过 5 页的文档由隔离的 worker 进程处理（`--parallel-workers`，默认 4）。每个 worker 只加载一次布局模型，并使用 `--backend` 指定的执行提供方；若 worker 崩溃（如 GPU session 冲突），引擎自动先用一半 worker 重试，必要时降级到 CPU 而不是让整个文档失败。失败的分块会增量重试，仅剩余分块走串行补跑——已完成页面绝不重复翻译。
@@ -290,6 +297,40 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 **翻译传输层。** 连接池按 worker 线程隔离（32）以避免 "discarding connection" 连接风暴，每个线程持有独立的 `requests.Session`。Google 429/CAPTCHA 封禁快速失败并给出可操作提示（更换代理/IP 或稍后重试），不再空耗重试；瞬时网络错误仍按指数退避重试。超过 4000 字符的文本按自然边界分段翻译，同时修复了原先 5000 字符静默截断的问题。
 
 **无文本文档。** 扫描件/纯矢量/纯图片 PDF（无可提取文本）会被提前识别并原样透传——不嵌入字体、不翻译，输出体积与输入相当，不再膨胀 10–20 倍。
+
+<h3 id="parse-engine">4.3 可选解析引擎（MinerU / magic-pdf）</h3>
+
+除了内置的 BabelDOC / legacy（pdfminer）引擎外，pdf2zh 还可以用 **MinerU / magic-pdf** 作为 PDF *解析层*，翻译、排版与渲染仍走 pdf2zh 自有的 v3 管线：
+
+```bash
+# 安装可选引擎（Python 3.10–3.12 优先 mineru 2.x；Python 3.13 兜底 magic-pdf 1.3.12）
+pip install pdf2zh[magicpdf]
+
+# 用 MinerU/magic-pdf 解析并渲染译后 mono PDF（默认开启渲染）
+pdf2zh --parse-engine magicpdf example.pdf
+
+# 解析时强制 OCR（magic-pdf 1.x pipe_ocr_merge），扫描件推荐
+pdf2zh --parse-engine magicpdf --magicpdf-ocr scan.pdf
+
+# 仅保留 JSON 转储，不渲染
+pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf
+```
+
+工作原理：
+
+- **`--parse-engine {auto,legacy,babeldoc,magicpdf}`**——`auto` 保持历史行为（`--babeldoc` → YADT，否则 legacy 内核）；`magicpdf` 走 `MagicPdfAdapter` → v3 IR 桥接 → 翻译 → RenderTakeover 渲染 mono PDF。引擎或模型不可用时自动降级 legacy 内核。
+- **模型下载。** magic-pdf 不会自动下载 PDF-Extract-Kit 权重，首次使用请下载到 `~/.cache/magic-pdf/models`：
+
+  ```
+  pip install modelscope
+  python -c "from modelscope import snapshot_download; snapshot_download('opendatalab/PDF-Extract-Kit-1.0', local_dir=r'~/.cache/magic-pdf/models')"
+  ```
+
+  pdf2zh 在解析前会预检 layout/MFD/MFR 权重，缺失时秒级报错并给出上述提示，而不是空跑数十个空批次。
+- **扫描件 / 损坏文本层。** 当文本层质量预检（多信号融合）命中扫描/损坏信号时，pdf2zh 可自动切换到 `--parse-engine magicpdf --magicpdf-ocr`；若 magic-pdf 不可用，则降级回 legacy 引擎。
+- **GPU 加速。** `--backend {auto,cpu,cuda,dml}` 选择 pdf2zh 版面推理的 ONNX 执行提供方，并通过 `PDF2ZH_BABELDOC_BACKEND` 同步作用于 BabelDOC 内部 doclayout ONNX 会话（`auto` 保持 BabelDOC 原生 CPU 行为）。`cuda` 需 `pip install pdf2zh[cuda]`（`onnxruntime-gpu`）；`dml` 需 `pip install pdf2zh[dml]`（`onnxruntime-directml`）。当请求的提供方无法真正初始化（如缺少 CUDA 运行库 DLL）时会回退 CPU 并记录告警。
+- **GUI。** 配置面板提供「解析引擎」单选（auto/legacy/babeldoc/magicpdf）、MagicPDF OCR 复选框、后端单选（auto/cpu/cuda/dml）、BabelDOC OCR 模式单选，以及实时 ONNX 后端状态面板。
+
 
 <h2 id="downstream">二次开发 (API)</h2>
 

@@ -1,4 +1,3 @@
-import concurrent.futures
 import logging
 import os
 import re
@@ -34,6 +33,7 @@ def _translate_retry_attempts() -> int:
 #: 超限后由 _safe_worker 的 fallback 返回原文，整任务继续推进。
 _TRANSLATE_RETRY_ATTEMPTS = _translate_retry_attempts()
 
+from pdf2zh.v3.paragraph_batch import batch_translate_paragraphs
 from pdf2zh.toc import TOC_LEADER_CHARS, char_adv, detect_toc_line, looks_like_toc_text
 from pdf2zh.translator import (
     AnythingLLMTranslator,
@@ -583,14 +583,14 @@ class TranslateConverter(PDFConverterEx):
             except TypeError:
                 self.cache.set(s, self.translator.lang_in, self.translator.lang_out, result)
 
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=max(1, self.thread or 4)  # thread<=0 时兜底为 4，避免 max_workers=0 崩溃
-        ) as executor:
-            _font_sigs = [
-                ("|fonts:" + "|".join(sorted(f)[:8])) if len(f) > 1 else ""
-                for f in pfkstk
-            ]
-            news = list(executor.map(_safe_worker, sstk, _font_sigs))
+        _font_sigs = [
+            ("|fonts:" + "|".join(sorted(f)[:8])) if len(f) > 1 else ""
+            for f in pfkstk
+        ]
+        # 8.3.1 段落级 Batch（实现外移 v3/paragraph_batch.py；开关在模块内部）
+        news = batch_translate_paragraphs(
+            sstk, _font_sigs, toc_specs, _safe_worker,
+        )
         news = [compose_toc_title(s.get("entry") if s else None, n, self.translator.lang_out) for s, n in zip(toc_specs, news)]
 
         # === F2: 接管段真实译文求解（P4 render_bbox 真实化 + P2 display 垂直流标记）===

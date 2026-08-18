@@ -85,6 +85,10 @@ def submit_translation_task(
     env1: str = "",
     env2: str = "",
     prompt_env: str = "",
+    backend: str = "auto",
+    ocr_mode: str = "auto",
+    parse_engine: str = "auto",
+    magicpdf_ocr: bool = False,
     callback: Optional[Callable] = None,
 ) -> str:
     """Submit a translation task to RuntimeService.
@@ -122,6 +126,7 @@ def submit_translation_task(
     # Build typed request
     extra_config = {
         "mode_choice": mode_choice,
+        "ocr_mode": ocr_mode,
         "prompt": prompt_env,
     }
     envs = _parse_env_lines(env0, env1, env2)
@@ -140,6 +145,9 @@ def submit_translation_task(
         skip_subset_fonts=skip_subset_fonts,
         ignore_cache=ignore_cache,
         extra_config=extra_config,
+        backend=backend,
+        parse_engine=parse_engine,
+        magicpdf_ocr=magicpdf_ocr,
     )
 
     # Submit via RuntimeService

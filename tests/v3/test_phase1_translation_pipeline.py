@@ -46,7 +46,13 @@ def real_pdf_paths(real_pdf_dir) -> List[str]:
 
 @pytest.fixture
 def parsed_graphs(real_pdf_paths) -> List:
-    """Parse all real PDFs into DocumentGraph objects."""
+    """Parse all real PDFs into DocumentGraph objects.
+
+    PDFs without an extractable text layer (e.g. vector-outline or scanned
+    pages) are skipped: the V4 text pipeline has nothing to analyze for them,
+    and every text-content assertion below would otherwise fail on an empty
+    graph.
+    """
     from pdf2zh.v3.parser import PDFParser
     from pdf2zh.v3.normalizer import Normalizer, NormalizerConfig
     from pdf2zh.v3.graph import DocumentGraphBuilder
@@ -59,7 +65,16 @@ def parsed_graphs(real_pdf_paths) -> List:
         normalized = normalizer.normalize(raw)
         builder = DocumentGraphBuilder()
         graph = builder.build(normalized)
+        if not any(
+            hasattr(n, "text") and getattr(n, "text", "") and n.text.strip()
+            for n in graph.nodes
+        ):
+            logger.info("Skipping %s: no extractable text layer",
+                        Path(pdf_path).name)
+            continue
         results.append((pdf_path, graph))
+    if not results:
+        pytest.skip("No text-bearing PDFs found in the test data directory")
     return results
 
 

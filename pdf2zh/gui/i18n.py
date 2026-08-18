@@ -81,6 +81,94 @@ T: Dict[str, Tuple[str, str]] = {
         "Engine credentials or parameters as KEY=VALUE (case-insensitive, injected "
         "into the engine), e.g. OPENAI_API_KEY=sk-xxx / OPENAI_API_BASE=https://...",
     ),
+    "config_backend": ("ONNX 加速后端", "ONNX Acceleration Backend"),
+    "config_backend_info": (
+        "版面分析（BabelDOC / doclayout ONNX）推理后端。auto 保持默认（CPU 优先）；"
+        "cuda / dml 开启 GPU 加速；GPU 不可用或崩溃时自动回退 CPU。",
+        "Inference backend for layout analysis (BabelDOC / doclayout ONNX). "
+        "auto keeps the default (CPU-first); cuda / dml enable GPU acceleration; "
+        "falls back to CPU automatically if the GPU is unavailable or crashes.",
+    ),
+    "config_backend_auto": ("自动（默认）", "Auto (default)"),
+    "config_backend_cpu": ("仅 CPU", "CPU only"),
+    "config_backend_cuda": ("CUDA（NVIDIA GPU）", "CUDA (NVIDIA GPU)"),
+    "config_ocr_mode": ("扫描版 PDF OCR", "Scanned-PDF OCR"),
+    "config_ocr_mode_info": (
+        "BabelDOC 对扫描版 / 无文本层 PDF 的 OCR 处理。auto 自动检测扫描并启用 OCR；"
+        "on 强制对所有 PDF 执行 OCR（无文本层 PDF 首选）；off 跳过扫描检测（不做 OCR）。",
+        "OCR handling for scanned / textless PDFs in BabelDOC. auto auto-detects "
+        "scanned pages and enables OCR; on forces OCR for every PDF (best for "
+        "textless PDFs); off skips scan detection (no OCR).",
+    ),
+    "config_ocr_mode_auto": ("自动（检测到扫描时启用）", "Auto (enable when scanned)"),
+    "config_ocr_mode_on": ("强制开启（所有 PDF 均 OCR）", "Force on (OCR every PDF)"),
+    "config_ocr_mode_off": ("关闭（跳过扫描检测）", "Off (skip scan detection)"),
+    "config_parse_engine": ("解析引擎", "Parse Engine"),
+    "config_parse_engine_info": (
+        "PDF 解析/排版引擎切换：auto 保持历史行为（引擎模式决定）；babeldoc 走 "
+        "BabelDOC 排版引擎；magicpdf 走 MinerU/magic-pdf 解析链路（未安装时自动"
+        "降级回 legacy）。",
+        "Switch the PDF parsing/layout engine: auto keeps historical behaviour "
+        "(determined by engine mode); babeldoc uses the BabelDOC layout engine; "
+        "magicpdf uses the MinerU/magic-pdf parse pipeline (auto-falls back to "
+        "legacy when not installed).",
+    ),
+    "config_parse_engine_auto": ("自动（默认）", "Auto (default)"),
+    "config_parse_engine_legacy": ("Legacy 内核", "Legacy kernel"),
+    "config_parse_engine_babeldoc": ("BabelDOC 排版", "BabelDOC layout"),
+    "config_parse_engine_magicpdf": ("Magic-PDF/MinerU", "Magic-PDF/MinerU"),
+    "config_magicpdf_ocr": ("MagicPDF OCR", "MagicPDF OCR"),
+    "config_magicpdf_ocr_info": (
+        "magicpdf 解析强制 OCR：开启后对扫描版 / 无文本层 PDF 执行 OCR（对应 "
+        "CLI --magicpdf-ocr）；关闭时由解析预检自动决定。",
+        "Force OCR in magicpdf parsing for scanned / textless PDFs "
+        "(equivalent to CLI --magicpdf-ocr); when off, the preflight decides.",
+    ),
+    "config_backend_dml": ("DirectML（Windows GPU）", "DirectML (Windows GPU)"),
+    "config_backend_status": (
+        "当前环境推理后端诊断",
+        "Inference backend diagnostics",
+    ),
+    "backend_status_ok": ("可用", "available"),
+    "backend_status_missing": ("不可用", "unavailable"),
+    "backend_status_cuda_hint": (
+        "未检测到 CUDAExecutionProvider。如需 CUDA 加速：先 pip uninstall "
+        "onnxruntime，再安装与 CUDA/cuDNN 版本匹配的 onnxruntime-gpu，重启服务；"
+        "Windows 上也可选用 DirectML 后端获得 GPU 加速（无需 CUDA 工具链）。",
+        "CUDAExecutionProvider not found. For CUDA acceleration: pip uninstall "
+        "onnxruntime, then install onnxruntime-gpu matching your CUDA/cuDNN, "
+        "and restart; on Windows you may use the DirectML backend for GPU "
+        "acceleration without a CUDA toolkit.",
+    ),
+    "backend_status_cuda_runtime_hint": (
+        "已安装 onnxruntime-gpu 但 CUDA 运行库初始化失败（缺少 cublasLt/cuDNN DLL）。"
+        "请安装与 onnxruntime-gpu 版本匹配的 CUDA + cuDNN 并加入 PATH，或降级 "
+        "onnxruntime-gpu 以匹配现有 CUDA；也可改用 DirectML 后端获得 GPU 加速。",
+        "onnxruntime-gpu is installed but the CUDA runtime failed to initialize "
+        "(missing cublasLt/cuDNN DLLs). Install matching CUDA + cuDNN and add "
+        "them to PATH, or downgrade onnxruntime-gpu to match your CUDA; you may "
+        "also use the DirectML backend for GPU acceleration.",
+    ),
+    "backend_status_dml_hint": (
+        "DirectML 不可用。可安装 onnxruntime-directml 或检查显卡驱动；"
+        "NVIDIA 显卡也可安装 onnxruntime-gpu 使用 CUDA。",
+        "DirectML unavailable. Install onnxruntime-directml or check your GPU "
+        "driver; on NVIDIA GPUs you can install onnxruntime-gpu for CUDA.",
+    ),
+    "backend_status_dml_hint_gpu": (
+        "当前 onnxruntime 为 GPU 发行版，不含 DirectML provider。如需 DirectML："
+        "pip uninstall onnxruntime-gpu 后安装 onnxruntime-directml "
+        "（含 AzureExecutionProvider），即可用 DirectML 后端驱动 NVIDIA GPU。",
+        "The installed onnxruntime is a GPU build without the DirectML provider. "
+        "To use DirectML: pip uninstall onnxruntime-gpu, then install "
+        "onnxruntime-directml (includes AzureExecutionProvider) to drive your "
+        "NVIDIA GPU.",
+    ),
+    "backend_status_gpu_hidden": (
+        "当前环境下 CUDA 与 DirectML 均不可用（已从后端选项隐藏），将使用 CPU。",
+        "Neither CUDA nor DirectML is usable in this environment (hidden from "
+        "the backend options); the CPU backend will be used.",
+    ),
 
     # ── progress panel ───────────────────────────────────────────────────
     "progress_translate": ("开始翻译", "Translate"),

@@ -1,0 +1,726 @@
+{
+  "synthetic": {
+    "result": {
+      "page_id": 1,
+      "glyph_count": 36,
+      "line_count": 2,
+      "paragraph_count": 1,
+      "formula_count": 5,
+      "ambiguous_count": 0,
+      "translation_units": [
+        {
+          "unit_id": "formula_unit_P1_0",
+          "page_id": 1,
+          "source_text_with_anchors": "Let <formula_0><formula_1>x2<formula_2>1 be con\nThe sum <formula_3>x dx <formula_4>2",
+          "formula_ids": [
+            "<formula_0>",
+            "<formula_1>",
+            "<formula_2>",
+            "<formula_3>",
+            "<formula_4>"
+          ],
+          "source_bbox": [
+            0.0,
+            81.4,
+            248.0,
+            111.2
+          ],
+          "inline_object_count": 16
+        }
+      ],
+      "solved_units": [
+        {
+          "unit_id": "formula_unit_P1_0",
+          "source_bbox": [
+            0.0,
+            81.4,
+            248.0,
+            111.2
+          ],
+          "translated_bbox": [
+            0.0,
+            81.4,
+            248.0,
+            111.82
+          ],
+          "render_bbox": [
+            0.0,
+            81.4,
+            248.0,
+            111.82
+          ],
+          "font_size": 14,
+          "line_count": 2,
+          "drift_dx": 0.0,
+          "drift_dy": 0.0,
+          "lines": [
+            {
+              "text": "Let f(x)=x2+1 be con",
+              "width": 152.56,
+              "master_baseline": 100.13,
+              "segments": [
+                {
+                  "kind": "text",
+                  "text": "Let ",
+                  "width": 24.92,
+                  "formula_id": null,
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "formula",
+                  "text": "f(x)",
+                  "width": 47.0,
+                  "formula_id": "formula_4800",
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "formula",
+                  "text": "=",
+                  "width": 8.4,
+                  "formula_id": "formula_10400",
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "text",
+                  "text": "x2",
+                  "width": 14.0,
+                  "formula_id": null,
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "formula",
+                  "text": "+",
+                  "width": 8.4,
+                  "formula_id": "formula_14400",
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "text",
+                  "text": "1 be con",
+                  "width": 49.84,
+                  "formula_id": null,
+                  "baseline_offset": 0.0
+                }
+              ]
+            },
+            {
+              "text": "The sum ∫x dx =2",
+              "width": 103.08,
+              "master_baseline": 85.0,
+              "segments": [
+                {
+                  "kind": "text",
+                  "text": "The sum ",
+                  "width": 49.84,
+                  "formula_id": null,
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "formula",
+                  "text": "∫",
+                  "width": 9.0,
+                  "formula_id": "formula_9600",
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "text",
+                  "text": "x dx ",
+                  "width": 28.84,
+                  "formula_id": null,
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "formula",
+                  "text": "=",
+                  "width": 8.4,
+                  "formula_id": "formula_17800",
+                  "baseline_offset": 0.0
+                },
+                {
+                  "kind": "text",
+                  "text": "2",
+                  "width": 7.0,
+                  "formula_id": null,
+                  "baseline_offset": 0.0
+                }
+              ]
+            }
+          ],
+          "formula_placements": [
+            {
+              "formula_id": "formula_4800",
+              "anchor": "<formula_0>",
+              "source_bbox": [
+                48.0,
+                97.2,
+                95.0,
+                111.2
+              ],
+              "render_bbox": [
+                48.0,
+                97.33,
+                95.0,
+                111.33
+              ],
+              "baseline": 100.12698412698413,
+              "collision_evaded": false
+            },
+            {
+              "formula_id": "formula_10400",
+              "anchor": "<formula_1>",
+              "source_bbox": [
+                104.0,
+                97.2,
+                111.0,
+                111.2
+              ],
+              "render_bbox": [
+                104.0,
+                97.33,
+                112.4,
+                111.33
+              ],
+              "baseline": 100.12698412698413,
+              "collision_evaded": false
+            },
+            {
+              "formula_id": "formula_14400",
+              "anchor": "<formula_2>",
+              "source_bbox": [
+                144.0,
+                97.2,
+                151.0,
+                111.2
+              ],
+              "render_bbox": [
+                144.0,
+                97.33,
+                152.4,
+                111.33
+              ],
+              "baseline": 100.12698412698413,
+              "collision_evaded": false
+            },
+            {
+              "formula_id": "formula_9600",
+              "anchor": "<formula_3>",
+              "source_bbox": [
+                96.0,
+                81.4,
+                105.0,
+                99.4
+              ],
+              "render_bbox": [
+                96.0,
+                81.4,
+                105.0,
+                99.4
+              ],
+              "baseline": 85.0,
+              "collision_evaded": false
+            },
+            {
+              "formula_id": "formula_17800",
+              "anchor": "<formula_4>",
+              "source_bbox": [
+                178.0,
+                82.2,
+                185.0,
+                96.2
+              ],
+              "render_bbox": [
+                178.0,
+                82.2,
+                186.4,
+                96.2
+              ],
+              "baseline": 85.0,
+              "collision_evaded": false
+            }
+          ]
+        }
+      ],
+      "paragraphs": [
+        {
+          "paragraph_id": "P1_0",
+          "page_id": 1,
+          "text": "Let f(x)=x2+1 be con\nThe sum ∫x dx =2",
+          "bbox": [
+            0.0,
+            81.4,
+            248.0,
+            111.2
+          ],
+          "master_baseline": 91.62,
+          "line_count": 2,
+          "lines": [
+            {
+              "line_id": "L1_0",
+              "text": "Let f(x)=x2+1 be con",
+              "bbox": [
+                0.0,
+                97.2,
+                248.0,
+                111.2
+              ],
+              "master_baseline": 100.13,
+              "is_math_line": false,
+              "glyph_count": 20,
+              "style_runs": [
+                {
+                  "start_index": 0,
+                  "end_index": 3,
+                  "font_name": "Helv",
+                  "font_size": 12,
+                  "bbox": [
+                    0.0,
+                    97.6,
+                    42.0,
+                    109.6
+                  ]
+                },
+                {
+                  "start_index": 4,
+                  "end_index": 7,
+                  "font_name": "CMMI10",
+                  "font_size": 14,
+                  "bbox": [
+                    48.0,
+                    97.2,
+                    95.0,
+                    111.2
+                  ]
+                },
+                {
+                  "start_index": 8,
+                  "end_index": 8,
+                  "font_name": "CMSY10",
+                  "font_size": 14,
+                  "bbox": [
+                    104.0,
+                    97.2,
+                    111.0,
+                    111.2
+                  ]
+                },
+                {
+                  "start_index": 9,
+                  "end_index": 9,
+                  "font_name": "CMMI10",
+                  "font_size": 14,
+                  "bbox": [
+                    120.0,
+                    97.2,
+                    127.0,
+                    111.2
+                  ]
+                },
+                {
+                  "start_index": 10,
+                  "end_index": 10,
+                  "font_name": "CMR10",
+                  "font_size": 8,
+                  "bbox": [
+                    132.0,
+                    102.4,
+                    136.0,
+                    110.4
+                  ]
+                },
+                {
+                  "start_index": 11,
+                  "end_index": 11,
+                  "font_name": "CMSY10",
+                  "font_size": 14,
+                  "bbox": [
+                    144.0,
+                    97.2,
+                    151.0,
+                    111.2
+                  ]
+                },
+                {
+                  "start_index": 12,
+                  "end_index": 12,
+                  "font_name": "CMR10",
+                  "font_size": 14,
+                  "bbox": [
+                    158.0,
+                    97.2,
+                    165.0,
+                    111.2
+                  ]
+                },
+                {
+                  "start_index": 13,
+                  "end_index": 19,
+                  "font_name": "Helv",
+                  "font_size": 12,
+                  "bbox": [
+                    170.0,
+                    97.6,
+                    248.0,
+                    109.6
+                  ]
+                }
+              ]
+            },
+            {
+              "line_id": "L1_1",
+              "text": "The sum ∫x dx =2",
+              "bbox": [
+                0.0,
+                81.4,
+                199.0,
+                99.4
+              ],
+              "master_baseline": 85.0,
+              "is_math_line": false,
+              "glyph_count": 16,
+              "style_runs": [
+                {
+                  "start_index": 0,
+                  "end_index": 7,
+                  "font_name": "Helv",
+                  "font_size": 12,
+                  "bbox": [
+                    0.0,
+                    82.6,
+                    90.0,
+                    94.6
+                  ]
+                },
+                {
+                  "start_index": 8,
+                  "end_index": 8,
+                  "font_name": "CMSY10",
+                  "font_size": 18,
+                  "bbox": [
+                    96.0,
+                    81.4,
+                    105.0,
+                    99.4
+                  ]
+                },
+                {
+                  "start_index": 9,
+                  "end_index": 9,
+                  "font_name": "CMMI10",
+                  "font_size": 14,
+                  "bbox": [
+                    118.0,
+                    82.2,
+                    125.0,
+                    96.2
+                  ]
+                },
+                {
+                  "start_index": 10,
+                  "end_index": 10,
+                  "font_name": "Helv",
+                  "font_size": 12,
+                  "bbox": [
+                    130.0,
+                    82.6,
+                    136.0,
+                    94.6
+                  ]
+                },
+                {
+                  "start_index": 11,
+                  "end_index": 12,
+                  "font_name": "CMMI10",
+                  "font_size": 14,
+                  "bbox": [
+                    142.0,
+                    82.2,
+                    161.0,
+                    96.2
+                  ]
+                },
+                {
+                  "start_index": 13,
+                  "end_index": 13,
+                  "font_name": "Helv",
+                  "font_size": 12,
+                  "bbox": [
+                    166.0,
+                    82.6,
+                    172.0,
+                    94.6
+                  ]
+                },
+                {
+                  "start_index": 14,
+                  "end_index": 14,
+                  "font_name": "CMSY10",
+                  "font_size": 14,
+                  "bbox": [
+                    178.0,
+                    82.2,
+                    185.0,
+                    96.2
+                  ]
+                },
+                {
+                  "start_index": 15,
+                  "end_index": 15,
+                  "font_name": "CMR10",
+                  "font_size": 14,
+                  "bbox": [
+                    192.0,
+                    82.2,
+                    199.0,
+                    96.2
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "qa": {
+      "source_path": "",
+      "target_path": "",
+      "patch_count": 1,
+      "solved_unit_count": 1,
+      "qa": {
+        "text": {
+          "unit_count": 1,
+          "font_switch_count": 14,
+          "font_switch_ratio": 0.0714,
+          "ratio_ok": false,
+          "source_chars": 29,
+          "translated_chars": 29,
+          "lost_chars": 0,
+          "duplicated_chars": 0,
+          "loss_rate": 0.0,
+          "retention_ok": true
+        },
+        "formula": {
+          "drift_tolerance": 0.5,
+          "max_dx": 0.0,
+          "max_dy": 0.127,
+          "drift_ok": true,
+          "formula_unit_count": 5,
+          "anchor": {
+            "expected_anchors": 5,
+            "found_anchors": 5,
+            "missing": [],
+            "unknown": [],
+            "anchor_score": 1.0,
+            "anchor_ok": true,
+            "anchor_matcher": "loose"
+          }
+        },
+        "summary": "TEXT_OK|DRIFT_OK|ANCHOR_OK"
+      }
+    }
+  },
+  "patch_apply": {
+    "latex_approx": {
+      "<formula_0>": "f(x)",
+      "<formula_1>": "=",
+      "<formula_2>": "+",
+      "<formula_3>": "\\int",
+      "<formula_4>": "="
+    },
+    "patch_count": 1,
+    "inserted": 2,
+    "hybrid_bytes": 15597
+  },
+  "real_pdf_smoke": {
+    "page_id": 0,
+    "glyph_count": 89,
+    "line_count": 3,
+    "paragraph_count": 1,
+    "formula_count": 0,
+    "ambiguous_count": 3,
+    "translation_units": [
+      {
+        "unit_id": "formula_unit_P0_0",
+        "page_id": 0,
+        "source_text_with_anchors": "Letf(x)=x^2+1beacontinuousfunction.\nThesumoftheseriesconvergesto2.\nHerexdenotesarealnumber.",
+        "formula_ids": [],
+        "source_bbox": [
+          72.0,
+          627.4,
+          298.43,
+          681.52
+        ],
+        "inline_object_count": 3
+      }
+    ],
+    "solved_units": [
+      {
+        "unit_id": "formula_unit_P0_0",
+        "source_bbox": [
+          72.0,
+          627.4,
+          298.43,
+          681.52
+        ],
+        "translated_bbox": [
+          72.0,
+          627.4,
+          298.43,
+          681.52
+        ],
+        "render_bbox": [
+          72.0,
+          627.4,
+          298.43,
+          681.52
+        ],
+        "font_size": 12.0,
+        "line_count": 3,
+        "drift_dx": 0.0,
+        "drift_dy": 0.0,
+        "lines": [
+          {
+            "text": "Letf(x)=x^2+1beacontinuousfunction.",
+            "width": 210.0,
+            "master_baseline": 672.52,
+            "segments": [
+              {
+                "kind": "text",
+                "text": "Letf(x)=x^2+1beacontinuousfunction.",
+                "width": 210.0,
+                "formula_id": null,
+                "baseline_offset": 0.0
+              }
+            ]
+          },
+          {
+            "text": "Thesumoftheseriesconvergesto2.",
+            "width": 180.0,
+            "master_baseline": 652.52,
+            "segments": [
+              {
+                "kind": "text",
+                "text": "Thesumoftheseriesconvergesto2.",
+                "width": 180.0,
+                "formula_id": null,
+                "baseline_offset": 0.0
+              }
+            ]
+          },
+          {
+            "text": "Herexdenotesarealnumber.",
+            "width": 144.0,
+            "master_baseline": 630.4,
+            "segments": [
+              {
+                "kind": "text",
+                "text": "Herexdenotesarealnumber.",
+                "width": 144.0,
+                "formula_id": null,
+                "baseline_offset": 0.0
+              }
+            ]
+          }
+        ],
+        "formula_placements": []
+      }
+    ],
+    "paragraphs": [
+      {
+        "paragraph_id": "P0_0",
+        "page_id": 0,
+        "text": "Letf(x)=x^2+1beacontinuousfunction.\nThesumoftheseriesconvergesto2.\nHerexdenotesarealnumber.",
+        "bbox": [
+          72.0,
+          627.4,
+          298.43,
+          681.52
+        ],
+        "master_baseline": 651.81,
+        "line_count": 3,
+        "lines": [
+          {
+            "line_id": "L0_0",
+            "text": "Letf(x)=x^2+1beacontinuousfunction.",
+            "bbox": [
+              72.0,
+              669.52,
+              298.43,
+              681.52
+            ],
+            "master_baseline": 672.52,
+            "is_math_line": false,
+            "glyph_count": 35,
+            "style_runs": [
+              {
+                "start_index": 0,
+                "end_index": 34,
+                "font_name": "Helvetica",
+                "font_size": 12.0,
+                "bbox": [
+                  72.0,
+                  669.52,
+                  298.43,
+                  681.52
+                ]
+              }
+            ]
+          },
+          {
+            "line_id": "L0_1",
+            "text": "Thesumoftheseriesconvergesto2.",
+            "bbox": [
+              72.0,
+              649.52,
+              286.74,
+              661.52
+            ],
+            "master_baseline": 652.52,
+            "is_math_line": false,
+            "glyph_count": 30,
+            "style_runs": [
+              {
+                "start_index": 0,
+                "end_index": 29,
+                "font_name": "Helvetica-Bold",
+                "font_size": 12.0,
+                "bbox": [
+                  72.0,
+                  649.52,
+                  286.74,
+                  661.52
+                ]
+              }
+            ]
+          },
+          {
+            "line_id": "L0_2",
+            "text": "Herexdenotesarealnumber.",
+            "bbox": [
+              72.0,
+              627.4,
+              215.95,
+              639.4
+            ],
+            "master_baseline": 630.4,
+            "is_math_line": false,
+            "glyph_count": 24,
+            "style_runs": [
+              {
+                "start_index": 0,
+                "end_index": 23,
+                "font_name": "Times-Roman",
+                "font_size": 12.0,
+                "bbox": [
+                  72.0,
+                  627.4,
+                  215.95,
+                  639.4
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

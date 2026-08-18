@@ -104,6 +104,10 @@ def on_translate(
     ignore_cache: bool, vfont: str, vchar: str, mode_choice: str,
     recaptcha_response: str, fl_state: List[str],
     env0: str, env1: str, env2: str, prompt_env: str,
+    backend: str,
+    ocr_mode: str,
+    parse_engine: str,
+    magicpdf_ocr: bool,
     current_task_id: str, last_inputs: Any = None,
 ) -> tuple:
     """Handle translate button with double-click prevention.
@@ -134,6 +138,10 @@ def on_translate(
             recaptcha_response=recaptcha_response,
             fl_state=fl_state, env0=env0, env1=env1, env2=env2,
             prompt_env=prompt_env,
+            backend=backend,
+            ocr_mode=ocr_mode,
+            parse_engine=parse_engine,
+            magicpdf_ocr=magicpdf_ocr,
         )
     except Exception as exc:
         logger.error("Failed to submit task: %s", exc)
@@ -149,13 +157,16 @@ def on_translate(
         threads, skip_subset_fonts, ignore_cache, vfont, vchar,
         mode_choice, recaptcha_response, fl_state,
         env0, env1, env2, prompt_env,
+        backend, ocr_mode, parse_engine, magicpdf_ocr,
     )
     return task_id, gr.update(interactive=False), saved
 
 
 def on_retry(last_inputs: Any) -> tuple:
     """Resubmit the last translation request after a failure."""
-    if not isinstance(last_inputs, tuple) or len(last_inputs) < 21:
+    # 25 元素快照为当前版本；<25 元素来自旧版会话（缺少 parse_engine /
+    # magicpdf_ocr 等），视为无效。
+    if not isinstance(last_inputs, tuple) or len(last_inputs) < 25:
         return "", gr.update(visible=False)
     result = on_translate(*last_inputs, "", None)
     return result[0], gr.update(visible=True, interactive=False)
@@ -1090,6 +1101,8 @@ def create_gui() -> gr.Blocks:
             cc["ignore_cache"], cc["vfont"], cc["vchar"],
             cc["mode_choice"], gr.State(""), file_state,
             cc["env0"], cc["env1"], cc["env2"], cc["prompt_env"],
+            cc["backend"], cc["ocr_mode"],
+            cc["parse_engine"], cc["magicpdf_ocr"],
             task_id_state,
         ]
         # Snapshot of the last submitted request (powers the Retry button).
@@ -1308,20 +1321,18 @@ def main() -> None:
 # 翻译线程经 coordinator 轮询/池崩短路感知旗标并落 CANCELLED，绝不进入整文档串行兜底。
     install_interrupt_guard(cancel_only=True)
 
-    gui = create_gui()
-    gui.queue(default_concurrency_limit=2, max_size=20, status_update_rate=0.1)
-    gui.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        show_error=True,
-        prevent_thread_lock=True,
-    )
-    # Register custom routes AFTER launch (Gradio 5 rebuilds the FastAPI app
-    # inside launch(), dropping pre-launch routes).
-    _register_preview_route(gui)
-    _register_events_route(gui)
-    _register_logs_route(gui)
-    gui.block_thread()
+    # Unified entry through entry.setup_gui() (same as CLI interactive).
+    # Direct gui.launch() here hits two fixed boot bugs:
+    #   1) Clash/VPN system proxies hijack the loopback startup-events handshake,
+    #      turning http://localhost:7860/gradio_api/startup-events into an empty
+    #      502 (entry._sanitize_loopback_proxy sets NO_PROXY before launch);
+    #   2) gradio 5.20-5.35 has a transient handshake-failure race
+    #      (entry._launch tolerates it after probing the live port), and a stale
+    #      instance holding the port slides to a free one.
+    # entry also registers /pdf-preview /gui/events /gui/logs and opens the browser.
+    from pdf2zh.gui.entry import setup_gui
+
+    setup_gui()
 
 
 if __name__ == "__main__":

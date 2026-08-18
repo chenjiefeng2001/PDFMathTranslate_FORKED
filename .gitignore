@@ -197,3 +197,8 @@ config.local.yaml
 /_probe_*.py
 /_repro*.py
 /_p1_region.png
+
+# Diagnostic / debug artifacts (not part of the release)
+diag_*.py
+_TestPDF_render.png
+tools/

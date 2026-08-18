@@ -1527,3 +1527,77 @@ class TestNoticeChannel:
             assert "⚠️" in acc2._updates["status_markdown"]["value"]
         finally:
             app._ACTIVE_NOTICES.clear()
+
+
+# =============================================================================
+# 9. backend Radio 依据执行级探测过滤不可用 GPU（P0-2）
+# =============================================================================
+
+
+class TestBackendChoicesFilter:
+    """GUI backend Radio 只展示真正可用的后端（DirectML/CUDA 静默回退时隐藏）。"""
+
+    def test_only_cpu_when_no_gpu_usable(self, monkeypatch):
+        from pdf2zh.gui.components.config_panel import _available_backend_choices
+
+        monkeypatch.setattr(
+            "pdf2zh.doclayout.get_runtime_provider_status",
+            lambda: {
+                "onnxruntime": "1.28.0",
+                "cuda": False,
+                "dml": False,
+                "available": ["AzureExecutionProvider", "CPUExecutionProvider"],
+                "effective": ["CPUExecutionProvider"],
+            },
+        )
+        labels = [value for _, value in _available_backend_choices()]
+        assert labels == ["auto", "cpu"]
+
+    def test_cuda_included_when_usable(self, monkeypatch):
+        from pdf2zh.gui.components.config_panel import _available_backend_choices
+
+        monkeypatch.setattr(
+            "pdf2zh.doclayout.get_runtime_provider_status",
+            lambda: {
+                "onnxruntime": "1.28.0",
+                "cuda": True,
+                "dml": False,
+                "available": ["CUDAExecutionProvider", "CPUExecutionProvider"],
+                "effective": ["CUDAExecutionProvider", "CPUExecutionProvider"],
+            },
+        )
+        labels = [value for _, value in _available_backend_choices()]
+        assert labels == ["auto", "cpu", "cuda"]
+
+    def test_dml_included_when_usable(self, monkeypatch):
+        from pdf2zh.gui.components.config_panel import _available_backend_choices
+
+        monkeypatch.setattr(
+            "pdf2zh.doclayout.get_runtime_provider_status",
+            lambda: {
+                "onnxruntime": "1.28.0",
+                "cuda": False,
+                "dml": True,
+                "available": ["AzureExecutionProvider", "CPUExecutionProvider"],
+                "effective": ["AzureExecutionProvider", "CPUExecutionProvider"],
+            },
+        )
+        labels = [value for _, value in _available_backend_choices()]
+        assert labels == ["auto", "cpu", "dml"]
+
+    def test_status_markdown_mentions_hidden_backends(self, monkeypatch):
+        from pdf2zh.gui.components.config_panel import backend_status_markdown
+
+        monkeypatch.setattr(
+            "pdf2zh.doclayout.get_runtime_provider_status",
+            lambda: {
+                "onnxruntime": "1.28.0",
+                "cuda": False,
+                "dml": False,
+                "available": ["AzureExecutionProvider", "CPUExecutionProvider"],
+                "effective": ["CPUExecutionProvider"],
+            },
+        )
+        md = backend_status_markdown()
+        assert "不可用" in md or "unavailable" in md
+        assert "已从后端选项隐藏" in md

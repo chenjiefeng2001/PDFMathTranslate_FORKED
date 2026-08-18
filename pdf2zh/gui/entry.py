@@ -63,17 +63,21 @@ def resolve_max_file_size(explicit: Optional[str] = None) -> str:
 
 
 def _sanitize_loopback_proxy() -> None:
-    """Make loopback bypass env proxies (Clash/mihomo/corporate VPN export
-    HTTP(S)_PROXY; without NO_PROXY the startup-events handshake and browser
-    requests to 127.0.0.1 can be hijacked into an empty-body 502)."""
-    import os
+    """Prepare env proxy settings for the GUI + translation workers.
 
-    hosts = [h.strip() for h in os.environ.get("NO_PROXY", "").split(",") if h.strip()]
-    for h in ("127.0.0.1", "localhost", "::1"):
-        if h not in hosts:
-            hosts.append(h)
-    if hosts:
-        os.environ["NO_PROXY"] = ",".join(hosts)
+    Delegates to ``pdf2zh.networking.sanitize_loopback_proxy()`` which does
+    two things:
+      1. imports the WinINET system proxy (Clash/VPN) into HTTP(S)_PROXY so
+         translator requests actually use it -- setting NO_PROXY without this
+         drops urllib's registry fallback and every request goes direct
+         (ConnectTimeout on blocked hosts like translate.google.com);
+      2. makes loopback bypass env proxies; without NO_PROXY the
+         startup-events handshake and browser requests to 127.0.0.1 can be
+         hijacked into an empty-body 502.
+    """
+    from pdf2zh.networking import sanitize_loopback_proxy as _do
+
+    _do()
 
 
 def _startup_events_ok(port: int, timeout: float = 10.0) -> bool:

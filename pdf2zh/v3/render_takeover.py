@@ -18,7 +18,9 @@ IR 侧通道（V8.3 快照）+ 写回门控（V8.4 裁决）已就位，但**渲
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
+import math
+import unicodedata
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from pdf2zh.v3.render_advisor import (
     PATH_BLOCK,
@@ -123,7 +125,102 @@ def apply_render_plan(plan: Optional[dict],
     return out
 
 
+def fixup_render_plan(
+    plan: Optional[Sequence[dict]],
+    page_height: Optional[Dict[int, float]] = None,
+) -> Tuple[List[dict], dict]:
+    """RenderTakeover 渲染计划修正（Step 3.x / magicpdf RenderTakeover）。
+
+    对 :func:`pdf2zh.v3.document_model.render_plan_from_model` 产出的逐块渲染
+    计划做两件事：
+
+    - **preserve_float 保持**：``code``/``formula``/``figure``/``table`` 等
+      保留块 ``dst_box`` 强制等于 ``src_box``（原样原位，不参与重排）；
+    - **溢出下移**：翻译文本显著变长导致估算行数超出 ``dst_box`` 高度时，
+      在页面剩余空间内整体下移（``shift_down``），空间不足则原地保持并打
+      ``overflowed`` 标记（交给后续渲染器决定截断/换页）。
+
+    纯数据进出，无 I/O；输入/输出 dict 结构不变（仅修正 ``dst_box`` 与附加
+    ``render_fixup`` 键），单元测试可直接驱动。
+
+    Returns:
+        ``(fixed_plan, stats)``，``stats`` 含 ``preserved`` / ``shifted`` /
+        ``overflowed`` 计数与明细。
+    """
+    fixed: List[dict] = []
+    stats: Dict[str, Any] = {
+        "preserved": 0, "shifted": 0, "overflowed": 0, "fixed": [],
+    }
+    page_heights = dict(page_height or {})
+    for item in list(plan or []):
+        item = dict(item)
+        src = list(item.get("src_box") or [0, 0, 0, 0])
+        dst = list(item.get("dst_box") or list(src))
+        path = item.get("render_path", "translate_refit")
+        kind = item.get("kind", "")
+
+        if path == "preserve_float" or kind in _PRESERVE_KINDS:
+            # 保留块：dst 恒等于 src，不做任何位移。
+            item["dst_box"] = [round(v, 2) for v in src]
+            item["render_fixup"] = "preserve"
+            item["render_path"] = path
+            fixed.append(item)
+            stats["preserved"] += 1
+            continue
+
+        translated = item.get("translated") or item.get("text") or ""
+        font_size = float(item.get("font_size") or 12.0)
+        box_w = max(0.1, float(dst[2] - dst[0]))
+        box_h = max(0.1, float(dst[3] - dst[1]))
+        line_h = max(2.0, font_size * 1.4)
+        # 行数估算：全角（CJK/宽字符）按 1.0em、半角按 0.5em 计宽，
+        # 避免把大量全角文本低估成一行。
+        est_width = sum(
+            font_size * (1.0 if unicodedata.east_asian_width(ch) in "WF"
+                         else 0.5)
+            for ch in translated
+        )
+        est_lines = max(1.0, math.ceil(est_width / box_w))
+        est_height = est_lines * line_h
+        if est_height <= box_h * 1.25:
+            item["render_fixup"] = "keep"
+            fixed.append(item)
+            continue
+
+        pno = int(item.get("page") or 0)
+        # 页面下边界：从调用方传入或从本页最大 y1 推断。
+        page_bottom = page_heights.get(pno) or 0.0
+        if page_bottom <= 0.0:
+            page_bottom = max(
+                (float(f["dst_box"][3]) for f in fixed
+                 if int(f.get("page") or 0) == pno),
+                default=float(dst[3]),
+            )
+        overflow_lines = (est_height - box_h) / line_h
+        shift = max(1.0, overflow_lines) * line_h
+        if float(dst[3]) + shift <= page_bottom + 1.0:
+            item["dst_box"] = [
+                round(dst[0], 2), round(dst[1] + shift, 2),
+                round(dst[2], 2), round(dst[3] + shift, 2),
+            ]
+            item["render_fixup"] = "shift_down"
+            item["render_path"] = PATH_SHIFT_DOWN
+            stats["shifted"] += 1
+        else:
+            item["overflowed"] = True
+            item["render_fixup"] = "keep_overflow"
+            stats["overflowed"] += 1
+        fixed.append(item)
+    return fixed, stats
+
+
+#: 渲染时原样保留的 kind（与 document_model.annotate_render 的 preserve 集合
+#: 对齐，此处独立成集以免循环导入）。
+_PRESERVE_KINDS = frozenset({"figure", "image", "table", "formula",
+                             "formula_inline", "code"})
+
+
 __all__ = [
     "WritebackBlock", "plan_writeback_takeover",
-    "apply_render_plan",
+    "apply_render_plan", "fixup_render_plan",
 ]

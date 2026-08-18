@@ -268,6 +268,24 @@ class TranslationRequest:
     threads: int = 4
     skip_subset_fonts: bool = False
     ignore_cache: bool = False
+    backend: str = "auto"
+    """ONNX 版面分析推理后端（auto/cpu/cuda/dml），每次任务开始时按此值应用。
+
+    与 CLI ``--backend`` 语义一致：``auto`` 保持调用方/默认行为（CPU 优先），
+    ``cuda``/``dml`` 显式开启 GPU 加速，GPU 不可用或崩溃时自动回退 CPU。
+    """
+    parse_engine: str = "auto"
+    """解析引擎（auto/legacy/babeldoc/magicpdf），与 CLI ``--parse-engine`` 一致。
+
+    ``auto`` 保持历史语义（mode_choice 决定 legacy/babeldoc）；``magicpdf``
+    走 MinerU/magic-pdf 解析链路（引擎缺失时自动熔断降级 legacy）。
+    """
+
+    magicpdf_ocr: bool = False
+    """magicpdf 解析是否强制开启 OCR（对应 CLI ``--magicpdf-ocr``）。"""
+
+
+
     extra_config: Dict[str, Any] = field(default_factory=dict)
 
     def resolved_files(self) -> List[str]:
@@ -813,19 +831,68 @@ class RuntimeService:
                 break
             time.sleep(poll_interval)
 
+    def _apply_request_backend(self, task_id: str, request: TranslationRequest) -> None:
+        """Apply the requested ONNX layout-inference backend for this task.
+
+        The backend preference is process-global (the same knob as the CLI
+        ``--backend`` flag). When the requested value differs from the currently
+        active one we call ``set_backend`` (which also syncs the choice to
+        BabelDOC's internal ONNX sessions) and reset the cached ``ModelInstance``
+        singleton so the next load rebuilds the session with the new providers
+        (``resolve_providers`` auto-falls-back to CPU when a GPU provider is
+        unavailable, so an explicit cuda/dml request never hard-fails).
+        """
+        from pdf2zh.doclayout import ModelInstance, get_backend, set_backend
+
+        wanted = (request.backend or "auto").strip().lower() or "auto"
+        if wanted not in ("auto", "cpu", "cuda", "dml"):
+            wanted = "auto"
+        current = get_backend() or "auto"
+        if current != wanted:
+            logger.info(
+                "[task=%s] ONNX backend switch: %s -> %s (applied on next model load)",
+                task_id, current, wanted,
+            )
+            set_backend(wanted)
+            # 全局已缓存的 ONNX session 基于旧 provider 构建；重置后
+            # _execute_legacy/_execute_babeldoc 会按新后端重新加载模型。
+            ModelInstance.value = None
+            # 8.2.1 Warm Process Pool：worker 后端在建池时固定（initializer
+            # 只在建池时执行一次）；后端切换后旧池的 worker 仍持有旧 provider，
+            # 必须重建池。未启用时 shutdown 为幂等空操作。
+            try:
+                from pdf2zh.parallel.pool import shutdown_shared_pool  # noqa: PLC0415
+
+                shutdown_shared_pool()
+            except Exception:  # noqa: BLE001 -- 池清理失败不阻断任务
+                logger.debug(
+                    "[task=%s] warm pool shutdown on backend switch failed", task_id,
+                )
+
     def _execute_task(self, task_id: str, request: TranslationRequest) -> None:
         """Internal: run translation in background thread."""
         try:
             self._emit_event(task_id, TaskStage.PARSING.value, 5.0, "Starting...")
             if self._store.is_cancelled(task_id):
                 return
+            # 按用户选择的 ONNX 推理后端初始化版面分析（auto/cpu/cuda/dml）。
+            # 必须在模型加载（ModelInstance）之前生效：后端变化时重置全局单例，
+            # 使本任务按新 provider 重建 ONNX session（GPU 不可用自动回退 CPU）。
+            self._apply_request_backend(task_id, request)
+
             mode = (request.extra_config or {}).get("mode_choice") or "auto"
             self._store.update_task(task_id, mode_choice=mode)
             task_config = resolve_mode_config(mode, self.config)
             self._sync_feature_flags(task_id, task_config)
             files = request.resolved_files()
             cancel_event = self._store.get_cancel_event(task_id)
-            if resolve_pipeline(mode) == "babeldoc":
+            # 解析引擎路由（--parse-engine 语义）：magicpdf 优先于 mode_choice；
+            # babeldoc 显式值等价 mode_choice=babeldoc，保持历史行为不变。
+            parse_engine = (getattr(request, "parse_engine", "auto") or "auto").lower()
+            if parse_engine == "magicpdf":
+                # MinerU/magic-pdf 解析引擎独立执行路径（引擎缺失熔断降级 legacy）。
+                self._execute_magicpdf(task_id, request, task_config)
+            elif parse_engine == "babeldoc" or resolve_pipeline(mode) == "babeldoc":
                 # BabelDOC 布局引擎独立执行路径：单文件直跑，批量走 _execute_batch
                 # （其 per-file 分发同样识别 babeldoc 模式）。
                 if len(files) > 1:
@@ -1571,6 +1638,79 @@ class RuntimeService:
         )
         logger.info("[task=%s] Output files written successfully", task_id)
 
+    def _execute_magicpdf(
+        self, task_id: str, request: TranslationRequest,
+        config: Optional[ServiceConfig] = None,
+    ) -> None:
+        """MinerU/magic-pdf 解析引擎执行路径（--parse-engine magicpdf）。
+
+        把 TranslationRequest 映射为 CLI 风格 Namespace（用 pdf2zh.parse_args
+        补齐全部默认字段，保证引擎缺失时 run_magicpdf_main 的熔断降级
+        ``_run_legacy_kernel`` 拿到完整字段）：解析→桥接→翻译→转储。
+        进度经事件流上报；异常落 FAILED 终态。
+        """
+        from pdf2zh.magicpdf_cli import run_magicpdf_main
+        from pdf2zh.pdf2zh import parse_args
+
+        files = request.resolved_files()
+        total = len(files)
+        if not files:
+            self._fail_file(task_id, "No source file provided", total_files=0)
+            return
+        try:
+            ns = parse_args([files[0]])
+        except Exception as exc:  # noqa: BLE001 -- 参数构造失败直接落失败
+            logger.error("[task=%s] magicpdf args build failed: %s", task_id, exc)
+            self._fail_file(task_id, f"magicpdf args error: {exc}", total_files=total)
+            return
+        ns.files = files
+        out_dir = (config.output_dir if config and config.output_dir
+                   else os.path.dirname(os.path.abspath(files[0])))
+        ns.output = out_dir
+        ns.backend = request.backend or "auto"
+        ns.magicpdf_ocr = bool(request.magicpdf_ocr)
+        ns.service = request.engine or "google"
+        ns.lang_in = request.source_lang or "auto"
+        ns.lang_out = request.target_lang or "zh-CN"
+        ns.pages = request.page_range
+        ns.thread = request.threads
+        ns.vfont = request.vfont or ""
+        ns.vchar = request.vchar or ""
+        ns.skip_subset_fonts = request.skip_subset_fonts
+        ns.ignore_cache = request.ignore_cache
+        extra = request.extra_config or {}
+        ns.prompt = extra.get("prompt") or ""
+        self._emit_event(task_id, TaskStage.PARSING.value, 10.0,
+                         "magic-pdf/MinerU parsing...")
+        try:
+            rc = run_magicpdf_main(ns)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("[task=%s] magicpdf engine failed: %s",
+                          task_id, exc, exc_info=True)
+            self._fail_file(task_id, f"magicpdf engine failed: {exc}",
+                           total_files=total)
+            return
+        if rc != 0:
+            self._fail_file(task_id, f"magicpdf engine returned {rc}",
+                           total_files=total)
+            return
+        # magicpdf 产物为 {output}/magicpdf/*.json 转储；收集为结果文件供下载。
+        result_files: List[Dict[str, str]] = []
+        try:
+            magic_dir = os.path.join(out_dir, "magicpdf")
+            if os.path.isdir(magic_dir):
+                for name in sorted(os.listdir(magic_dir)):
+                    if name.endswith(".json"):
+                        path = os.path.join(magic_dir, name)
+                        result_files.append({"name": name, "path": path})
+        except Exception:  # noqa: BLE001 -- 结果收集失败不影响落终态
+            pass
+        self._complete_file(
+            task_id, result_files, total_files=total,
+            message="Completed (MagicPDF)",
+        )
+        logger.info("[task=%s] magicpdf engine complete", task_id)
+
     # ── 引擎健康熔断辅助 ───────────────────────────────────────────────────────
 
     def _engine_key(self, request: TranslationRequest) -> Tuple[Any, ...]:
@@ -1665,6 +1805,7 @@ class RuntimeService:
         extra = request.extra_config or {}
         envs = dict(extra.get("envs") or {})
         prompt = extra.get("prompt")
+        ocr_mode = extra.get("ocr_mode")
         out_dir = config.output_dir or os.path.dirname(request.source_path)
         def _forward_progress(stage: str, pct: float, msg: str) -> None:
             # _emit_smooth throttles the 0.2s BabelDOC event cadence into
@@ -1690,6 +1831,7 @@ class RuntimeService:
                         progress_cb=_forward_progress,
                         cancelled_check=lambda: self._store.is_cancelled(task_id),
                         debug=bool(getattr(config, "debug", False)),
+                        ocr_mode=ocr_mode,
                     )
                 except BabeldocNextUnavailableError as exc:
                     logger.info(
@@ -1714,6 +1856,7 @@ class RuntimeService:
                     progress_cb=_forward_progress,
                     cancelled_check=lambda: self._store.is_cancelled(task_id),
                     debug=bool(getattr(config, "debug", False)),
+                    ocr_mode=ocr_mode,
                 )
         except BabeldocNotInstalledError as exc:
             self._fail_file(task_id, exc, total_files=total_files)

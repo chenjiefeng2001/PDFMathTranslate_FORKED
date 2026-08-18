@@ -702,7 +702,8 @@ SESSION_JS = """<script>
     } catch (e) { window.__pdf2zh_last_results = []; }
 
     // ---- persist config panel values to localStorage when changed ----
-    var configKeys = ["service","lang_from","lang_to","mode_choice","threads",
+    var configKeys = ["service","lang_from","lang_to","mode_choice","backend","parse_engine","magicpdf_ocr","threads",
+        "ocr_mode",
         "skip_subset_fonts","ignore_cache","vfont","vchar","page_range",
         "prompt_env","env0","env1","env2"];
     document.addEventListener("change", function (e) {

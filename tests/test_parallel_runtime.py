@@ -407,7 +407,7 @@ class TestWorkerHardening:
         def raiser():
             raise ImportError("DLL load failed")
 
-        monkeypatch.setattr(ort, "get_available_providers", raiser)
+        monkeypatch.setattr("pdf2zh.doclayout._ort_available_providers", raiser)
         monkeypatch.setattr(parallel_worker, "_register_ort_dll_dir", lambda: None)
         with pytest.raises(WorkerBootstrapError):
             parallel_worker.init_worker_process("cpu")
@@ -515,21 +515,56 @@ class TestHighLevelDelegation:
 
         import pdf2zh.high_level as hl
         import pdf2zh.parallel.coordinator as coord_mod
+        import pdf2zh.parallel.pool as pool_mod
+
+        seen = {}
+        shared = {"broken": 0}
+
+        class FakeSharedPool:
+            def get(self):
+                return object()
+
+            def mark_broken(self):
+                shared["broken"] += 1
+
+        monkeypatch.setenv("PDF2ZH_WARM_POOL", "1")
+        monkeypatch.setattr(
+            pool_mod, "get_shared_pool", lambda *a, **k: FakeSharedPool()
+        )
 
         class FakeCoordinator:
             def __init__(self, max_workers=4, **kw):
                 self.max_workers = max_workers
 
-            def run(self, tasks, progress_cb=None, initializer=None, initargs=()):
+            def run(
+                self,
+                tasks,
+                progress_cb=None,
+                initializer=None,
+                initargs=(),
+                executor_factory=None,
+                task_fn=None,
+                reuse_executor=False,
+                pool_owner=None,
+            ):
+                # 8.2.1 Warm Pool：调用方需显式声明复用池 + 注入 executor 工厂
+                seen["reuse"] = reuse_executor
+                seen["factory"] = executor_factory is not None
+                seen["owner"] = pool_owner is not None
                 return ({100: "patch"}, [{"bundle": "obs"}], [])
 
         monkeypatch.setattr(coord_mod, "TaskCoordinator", FakeCoordinator)
-        fp = io.BytesIO(b"pdf")
-        locs = {"doc_zh": type("D", (), {"page_count": 6})(), "thread": 4}
-        obj_patch = hl._translate_parallel(fp, locs, workers=2)
+        try:
+            fp = io.BytesIO(b"pdf")
+            locs = {"doc_zh": type("D", (), {"page_count": 6})(), "thread": 4}
+            obj_patch = hl._translate_parallel(fp, locs, workers=2)
+        finally:
+            pool_mod.shutdown_shared_pool()
         # 6 页 / 2 worker → chunk_size=3 → chunks=[[0,1,2],[3,4,5]]
         assert obj_patch[100] == "patch"
         assert "__obs__" in obj_patch
+        assert seen["reuse"] is True
+        assert seen["factory"] and seen["owner"]
 
     def test_init_worker_process_delegates(self, monkeypatch):
         import pdf2zh.high_level as hl
