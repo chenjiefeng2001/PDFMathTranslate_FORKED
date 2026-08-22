@@ -6,7 +6,6 @@
 import {
   Alert,
   Button,
-  Collapse,
   Divider,
   Drawer,
   Input,
@@ -19,16 +18,20 @@ import {
   Upload,
   message,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import {
   glossaryDownloadUrl,
+  getDoclayoutModelStatus,
+  downloadDoclayoutModel,
   getEngines,
   getEngineEnvs,
   importGlossary,
   listGlossaries,
+  selftestMagicpdf,
   updateEngineEnvs,
+  type DoclayoutModelStatus,
   type EngineEnvStatus,
 } from "../api/endpoints";
 import type { EngineInfo, GlossaryInfo } from "../api/types";
@@ -76,6 +79,7 @@ function AppearanceSection() {
 function EnginesSection({ active }: { active: boolean }) {
   const { t } = useTranslation();
   const [engines, setEngines] = useState<EngineInfo[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
@@ -93,47 +97,38 @@ function EnginesSection({ active }: { active: boolean }) {
     };
   }, [active, refreshKey]);
 
+  // 仅展示需要凭据的引擎；免凭据引擎（google/bing 等）无需设置。
+  const credEngines = engines.filter((e) => e.envs.length > 0);
+  const current =
+    credEngines.find((e) => e.name === selected) ?? credEngines[0] ?? null;
+
   if (engines.length === 0) {
     return <Typography.Text type="secondary">{t("ui.waiting_task")}</Typography.Text>;
   }
 
-  // 仅展示需要凭据的引擎；免凭据引擎（google/bing 等）无需设置。
-  const credEngines = engines.filter((e) => e.envs.length > 0);
-
   return (
-    <Collapse
-      size="small"
-      ghost
-      items={credEngines.map((e) => {
-        const allConfigured = e.envs.every((env) => env.configured);
-        return {
-          key: e.name,
-          label: (
-            <Space size={6} wrap>
-              <span>{e.label || e.name}</span>
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {e.name}
-              </Typography.Text>
-              {allConfigured ? (
-                <Tag color="green" style={{ marginInlineEnd: 0 }}>
-                  {t("ui.backend_status_ok")}
-                </Tag>
-              ) : (
-                <Tag color="warning" style={{ marginInlineEnd: 0 }}>
-                  {t("ui.backend_status_missing")}
-                </Tag>
-              )}
-            </Space>
-          ),
-          children: (
-            <EngineCredentialForm
-              engine={e}
-              onSaved={() => setRefreshKey((k) => k + 1)}
-            />
-          ),
-        };
-      })}
-    />
+    <Space direction="vertical" size={10} style={{ width: "100%" }}>
+      <Select
+        style={{ width: "100%" }}
+        placeholder={t("ui.settings_engines")}
+        value={current?.name}
+        onChange={(name) => setSelected(name)}
+        showSearch
+        optionFilterProp="value"
+        options={credEngines.map((e) => ({
+          value: e.name,
+          label:
+            e.label && e.label !== e.name ? `${e.label} (${e.name})` : e.name,
+        }))}
+      />
+      {current && (
+        <EngineCredentialForm
+          key={current.name}
+          engine={current}
+          onSaved={() => setRefreshKey((k) => k + 1)}
+        />
+      )}
+    </Space>
   );
 }
 
@@ -330,6 +325,80 @@ function GlossariesSection({ active }: { active: boolean }) {
   );
 }
 
+/** doclayout ONNX 版面模型：状态查询 + 按需下载（轮询进度）。 */
+function ModelsSection({ active }: { active: boolean }) {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<DoclayoutModelStatus | null>(null);
+  const [starting, setStarting] = useState(false);
+
+  async function refresh() {
+    try {
+      setStatus(await getDoclayoutModelStatus());
+    } catch {
+      /* 服务未就绪时静默 */
+    }
+  }
+
+  useEffect(() => {
+    if (active) void refresh();
+  }, [active]);
+
+  useEffect(() => {
+    if (!status?.downloading) return;
+    const timer = window.setInterval(() => void refresh(), 2000);
+    return () => window.clearInterval(timer);
+  }, [status?.downloading]);
+
+  async function start() {
+    setStarting(true);
+    try {
+      await downloadDoclayoutModel();
+      await refresh();
+    } catch (err) {
+      message.error(String(err));
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  let tag = <Tag>{t("ui.settings_models_missing")}</Tag>;
+  if (status?.downloading) tag = <Tag color="processing">{t("ui.settings_models_downloading")}</Tag>;
+  else if (status?.last_error) tag = <Tag color="red">{t("ui.settings_models_failed")}</Tag>;
+  else if (status?.exists && status.sha_ok)
+    tag = <Tag color="green">{t("ui.settings_models_ready")}</Tag>;
+  else if (status?.exists && !status.sha_ok)
+    tag = <Tag color="warning">{t("ui.settings_models_invalid")}</Tag>;
+
+  return (
+    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+        {t("ui.settings_models_hint")}
+      </Typography.Paragraph>
+      <Space wrap size={8}>
+        {tag}
+        {status?.exists && (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {(status.size_bytes / 1048576).toFixed(1)} MB
+          </Typography.Text>
+        )}
+        {status?.last_error && (
+          <Typography.Text type="danger" style={{ fontSize: 12 }}>
+            {status.last_error}
+          </Typography.Text>
+        )}
+      </Space>
+      <Button
+        icon={<DownloadOutlined />}
+        loading={starting}
+        disabled={!!status?.downloading}
+        onClick={() => void start()}
+      >
+        {status?.downloading ? t("ui.settings_models_downloading") : t("ui.settings_models_download")}
+      </Button>
+    </Space>
+  );
+}
+
 function ConnectionSection() {
   const { t } = useTranslation();
   const [value, setValue] = useState("");
@@ -399,6 +468,10 @@ export default function SettingsDrawer({ open, onClose }: Props) {
           </Typography.Paragraph>
           <EnginesSection active={open} />
         </Space>,
+      )}
+      {section(
+        t("ui.settings_models"),
+        <ModelsSection active={open} />,
       )}
       {section(
         t("ui.settings_glossaries"),

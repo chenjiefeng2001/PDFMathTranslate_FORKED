@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <div>
             <strong style={{ fontSize: 16 }}>PDFMathTranslate</strong>
-            <div style={{ fontSize: 12, opacity: 0.6 }}>{t("ui.app_subtitle")}</div>
+            <div style={{ fontSize: 12, opacity: 0.6 }}>{t("ui.brand_subtitle")}</div>
           </div>
           <span style={{ flex: 1 }} />
           <Space size={8}>

@@ -111,6 +111,29 @@ export function updateEngineEnvs(
   return api().request("PUT", `/api/engines/${encodeURIComponent(engineName)}/envs`, { envs });
 }
 
+/* ── 模型管理 / 可用性探测 ───────────────────────────────────────── */
+
+export interface DoclayoutModelStatus {
+  path: string;
+  exists: boolean;
+  size_bytes: number;
+  sha_ok: boolean;
+  downloading: boolean;
+  last_error: string | null;
+}
+
+export function getDoclayoutModelStatus(): Promise<DoclayoutModelStatus> {
+  return api().get("/api/models/doclayout");
+}
+
+export function downloadDoclayoutModel(): Promise<{ started: boolean; reason?: string }> {
+  return api().request("POST", "/api/models/doclayout/download");
+}
+
+export function selftestMagicpdf(): Promise<{ ok: boolean; backend: string }> {
+  return api().get("/api/selftest/magicpdf");
+}
+
 /** 结果文件下载地址（浏览器原生 GET，尊重 apiBase 解析链）。 */
 export function artifactUrl(taskId: string, index: number): string {
   const base = resolveApiBaseForHref();

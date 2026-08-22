@@ -25,6 +25,7 @@ import {
   getTask,
   listGlossaries,
   listTasks,
+  selftestMagicpdf,
 } from "../api/endpoints";
 import type { ResultFile, TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
@@ -71,6 +72,7 @@ export default function Dashboard() {
   const [glossaryOptions, setGlossaryOptions] = useState<
     { value: string; label: string }[]
   >([]);
+  const [magicpdfOk, setMagicpdfOk] = useState<boolean | null>(null);
 
   useEffect(() => {
     listGlossaries()
@@ -87,6 +89,9 @@ export default function Dashboard() {
       .catch(() => {
         /* 服务未就绪时静默 */
       });
+    selftestMagicpdf()
+      .then((r) => setMagicpdfOk(r.ok))
+      .catch(() => setMagicpdfOk(null));
   }, []);
 
   useEffect(() => {
@@ -244,7 +249,15 @@ export default function Dashboard() {
                             { value: "auto", label: t("ui.config_parse_engine_auto") },
                             { value: "legacy", label: t("ui.config_parse_engine_legacy") },
                             { value: "babeldoc", label: t("ui.config_parse_engine_babeldoc") },
-                            { value: "magicpdf", label: t("ui.config_parse_engine_magicpdf") },
+                            {
+                              value: "magicpdf",
+                              disabled: magicpdfOk === false,
+                              label:
+                                t("ui.config_parse_engine_magicpdf") +
+                                (magicpdfOk === false
+                                  ? ` · ${t("ui.parse_engine_unavailable")}`
+                                  : ""),
+                            },
                           ]}
                         />
                       </Form.Item>
