@@ -133,6 +133,8 @@ def create_api_app(
         ocr_mode: str = Form(default="auto"),
         ignore_cache: bool = Form(default=False),
         extra_config: str = Form(default=""),
+        glossaries: Optional[List[UploadFile]] = File(default=None),
+        glossary_files: str = Form(default=""),
     ) -> Dict[str, str]:
         resolved_path = source_path.strip()
         if file is not None and file.filename:
@@ -156,6 +158,44 @@ def create_api_app(
         if ocr_mode and ocr_mode != "auto":
             extra.setdefault("ocr_mode", ocr_mode)
 
+        # 专业词表：multipart 直传（glossaries）和/或服务端已有路径
+        # （glossary_files，JSON 数组或逗号分隔；支持词表库内名称）。
+        resolved_glossaries: List[str] = []
+        for gf in glossaries or []:
+            if not gf.filename:
+                continue
+            glossary_dir = (
+                Path(tempfile.gettempdir()) / "pdf2zh_api_glossaries"
+            )
+            glossary_dir.mkdir(parents=True, exist_ok=True)
+            gdest = glossary_dir / f"{uuid.uuid4().hex[:8]}_{Path(gf.filename).name}"
+            with gdest.open("wb") as fh:
+                while chunk := await gf.read(1024 * 1024):
+                    fh.write(chunk)
+            resolved_glossaries.append(str(gdest))
+        if glossary_files.strip():
+            from pdf2zh.glossary_store import resolve_store_names
+
+            raw = [
+                p.strip().strip('"')
+                for p in (
+                    json.loads(glossary_files)
+                    if glossary_files.lstrip().startswith("[")
+                    else glossary_files.split(",")
+                )
+                if p and p.strip()
+            ]
+            for p in raw:
+                if Path(p).is_file():
+                    resolved_glossaries.append(p)
+                else:  # 词表库内名称
+                    try:
+                        resolved_glossaries.extend(resolve_store_names([p]))
+                    except Exception as exc:
+                        raise HTTPException(
+                            400, f"glossary file not found: {p} ({exc})"
+                        )
+
         request = TranslationRequest(
             source_path=resolved_path,
             target_lang=target_lang,
@@ -165,9 +205,55 @@ def create_api_app(
             page_range=page_range or None,
             parse_engine=parse_engine,
             ignore_cache=bool(ignore_cache),
+            glossary_files=resolved_glossaries,
             extra_config=extra,
         )
         return _submit(request)
+
+    # ── glossary store ────────────────────────────────────────────────────
+    @app.get("/api/glossaries")
+    def list_glossaries() -> List[Dict[str, Any]]:
+        from pdf2zh.glossary_store import list_store
+
+        return list_store()
+
+    @app.post("/api/glossaries")
+    async def import_glossary(
+        file: UploadFile = File(...),
+        name: str = Form(default=""),
+    ) -> Dict[str, Any]:
+        from pdf2zh.glossary_store import GlossaryError, import_to_store, parse_csv
+
+        if not file.filename:
+            raise HTTPException(400, "empty upload")
+        tmp_dir = Path(tempfile.gettempdir()) / "pdf2zh_api_glossaries"
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        tmp = tmp_dir / f"{uuid.uuid4().hex[:8]}_{Path(file.filename).name}"
+        with tmp.open("wb") as fh:
+            while chunk := await file.read(1024 * 1024):
+                fh.write(chunk)
+        try:
+            entries = parse_csv(tmp)
+            dest = import_to_store(tmp, name=name or None)
+        except GlossaryError as exc:
+            raise HTTPException(400, str(exc))
+        return {"name": dest.stem, "path": str(dest), "entries": len(entries)}
+
+    @app.get("/api/glossaries/{name}/download")
+    def download_glossary(name: str) -> FileResponse:
+        from pdf2zh.glossary_store import export_from_store
+
+        export_tmp = Path(tempfile.gettempdir()) / (
+            f"pdf2zh_glossary_export_{uuid.uuid4().hex[:8]}.csv"
+        )
+        try:
+            export_from_store(name, export_tmp)
+        except Exception as exc:
+            raise HTTPException(404, str(exc))
+        return FileResponse(
+            export_tmp, filename=f"{name}.csv",
+            media_type="text/csv",
+        )
 
     # ── query / control ───────────────────────────────────────────────────
     def _require_state(task_id: str):
