@@ -115,6 +115,7 @@ def on_translate(
     ocr_mode: str,
     parse_engine: str,
     magicpdf_ocr: str,
+    glossary_files: Any,
     current_task_id: str, last_inputs: Any = None,
 ) -> tuple:
     """Handle translate button with double-click prevention.
@@ -149,6 +150,7 @@ def on_translate(
             ocr_mode=ocr_mode,
             parse_engine=parse_engine,
             magicpdf_ocr=magicpdf_ocr,
+            glossary_files=glossary_files,
         )
     except Exception as exc:
         logger.error("Failed to submit task: %s", exc)
@@ -164,16 +166,16 @@ def on_translate(
         threads, skip_subset_fonts, ignore_cache, vfont, vchar,
         mode_choice, recaptcha_response, fl_state,
         env0, env1, env2, prompt_env,
-        backend, ocr_mode, parse_engine, magicpdf_ocr,
+        backend, ocr_mode, parse_engine, magicpdf_ocr, glossary_files,
     )
     return task_id, gr.update(interactive=False), saved
 
 
 def on_retry(last_inputs: Any) -> tuple:
     """Resubmit the last translation request after a failure."""
-    # 25 元素快照为当前版本；<25 元素来自旧版会话（缺少 parse_engine /
-    # magicpdf_ocr 等），视为无效。
-    if not isinstance(last_inputs, tuple) or len(last_inputs) < 25:
+    # 26 元素快照为当前版本；<26 元素来自旧版会话（缺少 parse_engine /
+    # magicpdf_ocr / glossary_files 等），视为无效。
+    if not isinstance(last_inputs, tuple) or len(last_inputs) < 26:
         return "", gr.update(visible=False)
     result = on_translate(*last_inputs, "", None)
     return result[0], gr.update(visible=True, interactive=False)
@@ -1110,6 +1112,7 @@ def create_gui() -> gr.Blocks:
             cc["env0"], cc["env1"], cc["env2"], cc["prompt_env"],
             cc["backend"], cc["ocr_mode"],
             cc["parse_engine"], cc["magicpdf_ocr"],
+            cc["glossary_files"],
             task_id_state,
         ]
         # Snapshot of the last submitted request (powers the Retry button).

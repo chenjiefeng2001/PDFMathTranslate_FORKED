@@ -9,7 +9,8 @@ from __future__ import annotations
 import logging
 import os
 import threading
-from typing import Any, Callable, Dict, Optional
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
 
 from pdf2zh.services.runtime_service import (
     RuntimeService,
@@ -91,6 +92,7 @@ def submit_translation_task(
     ocr_mode: str = "auto",
     parse_engine: str = "auto",
     magicpdf_ocr: str = "auto",
+    glossary_files: Any = None,
     callback: Optional[Callable] = None,
 ) -> str:
     """Submit a translation task to RuntimeService.
@@ -151,6 +153,7 @@ def submit_translation_task(
         parse_engine=parse_engine,
         magicpdf_ocr=_magicpdf_ocr_bool(magicpdf_ocr),
         magicpdf_ocr_mode=_magicpdf_ocr_mode(magicpdf_ocr),
+        glossary_files=_resolve_glossary_paths(glossary_files),
     )
 
     # Submit via RuntimeService
@@ -178,6 +181,30 @@ def _magicpdf_ocr_mode(value: Any) -> str:
 def _magicpdf_ocr_bool(value: Any) -> bool:
     """把 MagicPDF OCR 三态值映射为历史 bool 字段（仅 ``on`` 为 True）。"""
     return _magicpdf_ocr_mode(value) == "on"
+
+
+def _resolve_glossary_paths(glossary_files: Any) -> List[str]:
+    """把 gr.Files 上传值规整为 CSV 绝对路径列表。
+
+    Gradio 5 的 ``gr.Files`` 产出 ``list[str]``（临时副本路径）；兼容
+    dict（含 ``name`` 键）与 Path 形态，空项静默剔除。
+    """
+    if not glossary_files:
+        return []
+    if isinstance(glossary_files, (str, Path)):
+        glossary_files = [glossary_files]
+    paths: List[str] = []
+    for item in glossary_files:
+        if isinstance(item, dict):
+            item = item.get("name") or item.get("path")
+        if not item:
+            continue
+        p = Path(str(item))
+        if p.is_file():
+            paths.append(str(p))
+        else:
+            logger.warning("Glossary upload not found, skipped: %s", item)
+    return paths
 
 
 def _parse_env_lines(*lines: str) -> Dict[str, str]:

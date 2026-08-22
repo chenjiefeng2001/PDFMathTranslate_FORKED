@@ -272,6 +272,18 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parse_params.add_argument(
+        "--glossary-files",
+        nargs="+",
+        metavar="CSV",
+        default=[],
+        help="Professional-term glossary CSV files (columns: "
+        "source,target[,tgt_lng]; tgt_lng filters entries by target "
+        "language). Applied on the BabelDOC parse engine (--parse-engine "
+        "babeldoc / --babeldoc); ignored with a warning on other engines. "
+        "Manage the glossary store via `python -m pdf2zh.glossary_store`.",
+    )
+
+    parse_params.add_argument(
         "--skip-subset-fonts",
         action="store_true",
         help="Skip font subsetting. "
@@ -503,6 +515,12 @@ def main(args: list[str] | None = None) -> int:
     # 解析引擎路由（Stage 2.3）：auto 时维持历史语义（--babeldoc → YADT，
     # 否则 legacy kernel）；显式 magicpdf 走 MinerU/magic-pdf 解析链路。
     parse_engine = resolve_parse_engine(parsed_args)
+    if parse_engine != "babeldoc" and getattr(parsed_args, "glossary_files", None):
+        logger.warning(
+            "--glossary-files 仅在 --parse-engine babeldoc 链路生效，"
+            "当前引擎 %s 将忽略词表（legacy 链支持见 roadmap Phase 3）",
+            parse_engine,
+        )
     if parse_engine == "babeldoc":
         return yadt_main(parsed_args)
 
@@ -728,6 +746,15 @@ def yadt_main(parsed_args) -> int:
     yadt_init()
     font_path = download_remote_fonts(lang_out.lower())
 
+    # 专业词表（--glossary-files）：预检 + 装载，坏文件在翻译前快速失败。
+    from pdf2zh.glossary_store import load_babeldoc_glossaries
+
+    glossaries = load_babeldoc_glossaries(
+        getattr(parsed_args, "glossary_files", None), lang_out,
+    )
+    if glossaries:
+        logger.info("Loaded %d glossary file(s)", len(glossaries))
+
     param = parsed_args.service.split(":", 1)
     service_name = param[0]
     service_model = param[1] if len(param) > 1 else None
@@ -848,6 +875,7 @@ def yadt_main(parsed_args) -> int:
                  "skip_scanned_detection"),
                 resolve_ocr_flags(parsed_args.babeldoc_ocr),
             )),
+            glossaries=glossaries or None,
         )
 
         async def yadt_translate_coro(yadt_config):

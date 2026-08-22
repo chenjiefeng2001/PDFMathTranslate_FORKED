@@ -131,6 +131,15 @@ T: Dict[str, Tuple[str, str]] = {
     "config_magicpdf_ocr_auto": ("自动（预检决定）", "Auto (preflight)"),
     "config_magicpdf_ocr_on": ("强制 OCR", "Force OCR"),
     "config_magicpdf_ocr_off": ("关闭 OCR", "Disable OCR"),
+    "config_glossary_files": ("专业词表（CSV）", "Glossaries (CSV)"),
+    "config_glossary_files_info": (
+        "专业术语固定翻译（babeldoc 解析引擎生效）。CSV 表头："
+        "source,target[,tgt_lng]，tgt_lng 按目标语过滤词条；"
+        "例：kernel,内核。对应 CLI --glossary-files。",
+        "Pin professional-term translations (applies on the babeldoc parse "
+        "engine). CSV header: source,target[,tgt_lng]; tgt_lng filters "
+        "entries by target language. Equivalent to CLI --glossary-files.",
+    ),
     "config_backend_dml": ("DirectML（Windows GPU）", "DirectML (Windows GPU)"),
     "config_backend_status": (
         "当前环境推理后端诊断",

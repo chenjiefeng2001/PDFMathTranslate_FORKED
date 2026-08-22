@@ -85,6 +85,8 @@
     "config_env": "自定义环境变量",
     "config_env_info": "提供引擎所需的密钥或参数，按 KEY=VALUE 填写（键名不区分大小写，自动注入引擎），例如 OPENAI_API_KEY=sk-xxx / OPENAI_API_BASE=https://...。",
     "config_env_label": "环境变量 {num} (KEY=VALUE)",
+    "config_glossary_files": "专业词表（CSV）",
+    "config_glossary_files_info": "专业术语固定翻译（babeldoc 解析引擎生效）。CSV 表头：source,target[,tgt_lng]，tgt_lng 按目标语过滤词条；例：kernel,内核。对应 CLI --glossary-files。",
     "config_ignore_cache": "忽略缓存",
     "config_lang_source": "源语言",
     "config_lang_target": "目标语言",

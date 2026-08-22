@@ -85,6 +85,8 @@
     "config_env": "Custom Env Var",
     "config_env_info": "Engine credentials or parameters as KEY=VALUE (case-insensitive, injected into the engine), e.g. OPENAI_API_KEY=sk-xxx / OPENAI_API_BASE=https://...",
     "config_env_label": "Env Var {num} (KEY=VALUE)",
+    "config_glossary_files": "Glossaries (CSV)",
+    "config_glossary_files_info": "Pin professional-term translations (applies on the babeldoc parse engine). CSV header: source,target[,tgt_lng]; tgt_lng filters entries by target language. Equivalent to CLI --glossary-files.",
     "config_ignore_cache": "Ignore Cache",
     "config_lang_source": "Source",
     "config_lang_target": "Target",

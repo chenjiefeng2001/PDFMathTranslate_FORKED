@@ -248,6 +248,13 @@ def create_config_panel() -> dict:
             label=B("config_magicpdf_ocr"),
             info=B("config_magicpdf_ocr_info"),
         )
+        # 专业词表（babeldoc 链路生效）：CSV 多选上传，逐任务透传。
+        glossary_files = gr.Files(
+            file_count="multiple",
+            file_types=[".csv"],
+            label=B("config_glossary_files"),
+            info=B("config_glossary_files_info"),
+        )
         # ---- 高级选项 / Advanced ----
         with gr.Accordion(B("config_advanced"), open=False):
             with gr.Row():
@@ -310,6 +317,7 @@ def create_config_panel() -> dict:
         "ocr_mode": ocr_mode,
         "parse_engine": parse_engine,
         "magicpdf_ocr": magicpdf_ocr,
+        "glossary_files": glossary_files,
         "backend_status": backend_status,
         "threads": threads,
         "skip_subset_fonts": skip_subset_fonts,
