@@ -1,13 +1,18 @@
-from flask import Flask, request, send_file
+﻿from flask import Flask, request, send_file
 from celery import Celery, Task
 from celery.result import AsyncResult
 from pdf2zh import translate_stream
 import tqdm
 import json
 import io
+import os
 from string import Template
 from pdf2zh.doclayout import ModelInstance
 from pdf2zh.config import ConfigManager
+
+# v2 端点必须共享同一 RuntimeService 实例：任务存储为内存 dict，
+# 每请求新建实例会导致任务状态跨请求不可见（历史缺陷）。
+from pdf2zh.services.runtime_singleton import get_runtime_service
 
 flask_app = Flask("pdf2zh")
 flask_app.config.from_mapping(
@@ -102,7 +107,7 @@ def create_translate_task_v2():
     Returns:
         {"task_id": "task_abc123"}
     """
-    from pdf2zh.services.runtime_service import RuntimeService, TranslationRequest
+    from pdf2zh.services.runtime_service import TranslationRequest
 
     file = request.files.get("file")
     form_data = request.form.get("data", "{}")
@@ -126,7 +131,7 @@ def create_translate_task_v2():
         page_range=args.get("pages"),
     )
 
-    svc = RuntimeService()
+    svc = get_runtime_service()
     task_id = svc.submit_task(req)
     return {"task_id": task_id}
 
@@ -146,9 +151,8 @@ def get_translate_task_v2(task_id: str):
             "quality_scores": null
         }
     """
-    from pdf2zh.services.runtime_service import RuntimeService
 
-    svc = RuntimeService()
+    svc = get_runtime_service()
     state = svc.get_task_state(task_id)
     if state is None:
         return {"error": "task not found"}, 404
@@ -158,9 +162,8 @@ def get_translate_task_v2(task_id: str):
 @flask_app.route("/v2/translate/<task_id>", methods=["DELETE"])
 def cancel_translate_task_v2(task_id: str):
     """Cancel a running translation task."""
-    from pdf2zh.services.runtime_service import RuntimeService
 
-    svc = RuntimeService()
+    svc = get_runtime_service()
     ok = svc.cancel_task(task_id)
     return {"cancelled": ok}
 
@@ -168,9 +171,8 @@ def cancel_translate_task_v2(task_id: str):
 @flask_app.route("/v2/translate/<task_id>/artifacts/<format>")
 def get_translate_artifact_v2(task_id: str, format: str):
     """Download translation result by format (pdf, mono, dual)."""
-    from pdf2zh.services.runtime_service import RuntimeService
 
-    svc = RuntimeService()
+    svc = get_runtime_service()
     state = svc.get_task_state(task_id)
     if state is None:
         return {"error": "task not found"}, 404

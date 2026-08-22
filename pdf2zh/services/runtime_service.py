@@ -282,7 +282,16 @@ class TranslationRequest:
     """
 
     magicpdf_ocr: bool = False
-    """magicpdf 解析是否强制开启 OCR（对应 CLI ``--magicpdf-ocr``）。"""
+    """magicpdf 解析是否强制开启 OCR（对应 CLI ``--magicpdf-ocr``，等价
+    ``magicpdf_ocr_mode="on"``）。保留以兼容旧调用方。"""
+
+    magicpdf_ocr_mode: str = "auto"
+    """magicpdf 解析的 OCR 三态（auto/on/off，对应 CLI ``--magicpdf-ocr-mode``）。
+
+    ``auto``（默认）预检命中扫描/损坏信号才自动开启 OCR；``on`` 强制开启；
+    ``off`` 用户显式关闭 OCR，预检命中也绝不强制开启。``magicpdf_ocr``
+    （bool）为 ``True`` 时等价 ``on`` 并优先于本字段。
+    """
 
 
 
@@ -578,9 +587,8 @@ class _TaskStore:
     def get_cancel_event(self, task_id: str) -> Optional[threading.Event]:
         """Return the per-task cancel Event (None when the task is unknown).
 
-        The event is signalled by ``cancel_task``/``skip_task`` and by the
-        stuck-task watchdog, giving the translation pipeline a real
-        interruptible cancellation hook (S4).
+        The event is signalled by ``cancel_task``/``skip_task``, giving the
+        translation pipeline a real interruptible cancellation hook.
         """
         with self._lock:
             return self._cancel_events.get(task_id)
@@ -646,10 +654,7 @@ class RuntimeService:
         self._store = _TaskStore()
         #: S2: 终态任务保留时长（秒）；超龄任务由 sweeper 定期清理。
         self._retention_seconds = _env_float("PDF2ZH_TASK_RETENTION_SECONDS", 3600.0)
-        #: S4: 运行中任务"无任何状态更新"的护栏超时（秒）；超时任务自动
-        #: 取消并标记失败，防止悬挂任务永久占用 GUI 并发槽位。
-        self._stuck_timeout_seconds = _env_float("PDF2ZH_TASK_TIMEOUT_SECONDS", 7200.0)
-        #: S2/S4: 后台清扫线程间隔（秒）。
+        #: S2: 后台清扫线程间隔（秒）。
         self._sweep_interval = max(10.0, _env_float("PDF2ZH_SWEEP_INTERVAL", 60.0))
         self._lock = threading.Lock()
         self._active_count = 0
@@ -679,7 +684,7 @@ class RuntimeService:
         self._engine_cooldown_error_cache: Dict[Tuple[Any, ...], str] = {}
         self._engine_cooldown_lock = threading.Lock()
 
-        #: S2/S4: 后台清扫线程（终态清理 + 悬挂任务看门狗；daemon 不阻塞退出）。
+        #: S2: 后台清扫线程（终态任务内存清理；daemon 不阻塞退出）。
         self._sweeper = threading.Thread(
             target=self._sweeper_loop, name="pdf2zh-task-sweeper", daemon=True,
         )
@@ -831,6 +836,14 @@ class RuntimeService:
                 break
             time.sleep(poll_interval)
 
+    def get_task_events(self, task_id: str, since: int = 0) -> List[TaskProgressEvent]:
+        """按游标读取任务事件（REST/SSE 层 Last-Event-ID 断线续传用）。
+
+        ``since`` 为已消费事件数；返回 ``events[since:]``。与
+        ``subscribe_events`` 的内部游标语义一致。
+        """
+        return self._store.get_events(task_id, since=since)
+
     def _apply_request_backend(self, task_id: str, request: TranslationRequest) -> None:
         """Apply the requested ONNX layout-inference backend for this task.
 
@@ -976,7 +989,16 @@ class RuntimeService:
             )
             sub_request = dataclasses.replace(request, source_path=path, files=[])
             try:
-                if resolve_pipeline(mode) == "babeldoc":
+                # 路由必须与 _execute_task 完全一致：parse_engine 显式值优先，
+                # 否则按 mode_choice 的管线预设。此前这里只看 mode_choice——
+                # 批量任务默认 mode_choice="auto" 时，即使 GUI/CLI 显式选择了
+                # parse_engine="babeldoc"，逐文件也会被错误路由到 legacy 管线，
+                # 导致扫描 PDF 的 OCR 走了 legacy/magic-pdf 而不是 BabelDOC
+                # 本身的扫描检测 + OCR workaround 管线。
+                parse_engine = (
+                    getattr(request, "parse_engine", "auto") or "auto"
+                ).lower()
+                if parse_engine == "babeldoc" or resolve_pipeline(mode) == "babeldoc":
                     self._execute_babeldoc(task_id, sub_request, config)
                 elif config.use_v4_engine:
                     self._execute_v4(task_id, sub_request, config)
@@ -1080,9 +1102,9 @@ class RuntimeService:
         """
         if total_files <= 1 or task_id not in self._batch_ctx:
             if self._store.is_cancelled(task_id):
-                # Single-file task cancelled (user or S4 watchdog): drop the
-                # late completion so a worker finishing after the cancel cannot
-                # resurrect the task (CANCELLED -> COMPLETED).
+                # Single-file task cancelled by the user: drop the late completion
+                # so a worker finishing after the cancel cannot resurrect the
+                # task (CANCELLED -> COMPLETED).
                 logger.info("[task=%s] cancelled; dropping late completion", task_id)
                 return
             # The ZIP is built from the stored result_files below; a caller
@@ -1136,9 +1158,9 @@ class RuntimeService:
         error = str(exc)
         if total_files <= 1 or task_id not in self._batch_ctx:
             if self._store.is_cancelled(task_id):
-                # Single-file task cancelled (user or S4 watchdog): keep the
-                # terminal state set by the canceller instead of overwriting it
-                # with a failure report (CANCELLED -> FAILED).
+                # Single-file task cancelled by the user: keep the terminal state
+                # set by the canceller instead of overwriting it with a failure
+                # report (CANCELLED -> FAILED).
                 logger.info("[task=%s] cancelled; dropping late failure report", task_id)
                 return
             self._store.update_task(
@@ -1503,8 +1525,8 @@ class RuntimeService:
             raise
         except Exception as tx_exc:
             if self._store.is_cancelled(task_id):
-                # User cancel / S4 watchdog: the pipeline raised CancelledError
-                # (or similar); keep the terminal state already set.
+                # User cancel: the pipeline raised CancelledError (or similar);
+                # keep the terminal state already set.
                 logger.info(
                     "[task=%s] cancelled during translation; aborting pipeline",
                     task_id,
@@ -1669,6 +1691,7 @@ class RuntimeService:
         ns.output = out_dir
         ns.backend = request.backend or "auto"
         ns.magicpdf_ocr = bool(request.magicpdf_ocr)
+        ns.magicpdf_ocr_mode = getattr(request, "magicpdf_ocr_mode", "auto") or "auto"
         ns.service = request.engine or "google"
         ns.lang_in = request.source_lang or "auto"
         ns.lang_out = request.target_lang or "zh-CN"
@@ -1694,19 +1717,32 @@ class RuntimeService:
             self._fail_file(task_id, f"magicpdf engine returned {rc}",
                            total_files=total)
             return
-        # magicpdf 产物为 {output}/magicpdf/*.json 转储；收集为结果文件供下载。
+        # magicpdf 产物为 {output}/magicpdf/ 下的 JSON 转储 + 译后 mono PDF
+        # （run_magicpdf_main 默认渲染 {stem}_mono.pdf）。二者都作为结果文件
+        # 收集供下载，且译后 PDF 优先作为选中/预览对象 —— 否则用户只能下载
+        # 到一堆 JSON，看不到翻译产物。
         result_files: List[Dict[str, str]] = []
+        pdf_entry: Optional[Dict[str, str]] = None
         try:
             magic_dir = os.path.join(out_dir, "magicpdf")
             if os.path.isdir(magic_dir):
                 for name in sorted(os.listdir(magic_dir)):
-                    if name.endswith(".json"):
-                        path = os.path.join(magic_dir, name)
-                        result_files.append({"name": name, "path": path})
+                    if not (name.endswith(".json") or name.endswith(".pdf")):
+                        continue
+                    path = os.path.join(magic_dir, name)
+                    entry = {"name": name, "path": path}
+                    result_files.append(entry)
+                    if name.endswith(".pdf") and pdf_entry is None:
+                        pdf_entry = entry
         except Exception:  # noqa: BLE001 -- 结果收集失败不影响落终态
             pass
         self._complete_file(
             task_id, result_files, total_files=total,
+            selected_file=(
+                pdf_entry["name"] if pdf_entry is not None
+                else (result_files[0]["name"] if result_files else None)
+            ),
+            preview_path=(pdf_entry["path"] if pdf_entry is not None else None),
             message="Completed (MagicPDF)",
         )
         logger.info("[task=%s] magicpdf engine complete", task_id)
@@ -2280,7 +2316,7 @@ class RuntimeService:
                     "Event listener error for task %s", event.task_id
                 )
 
-    # ── S2/S4 后台清扫（内存上限 + 悬挂任务看门狗） ──────────────────────────
+    # ── S2 后台清扫（内存上限） ──────────────────────────
 
     def _sweep_stale(self, now: float) -> int:
         """S2: prune terminal tasks older than the retention window.
@@ -2313,57 +2349,12 @@ class RuntimeService:
                     self._task_stage_weights.pop(tid, None)
         return removed
 
-    def _sweep_stuck(self, now: float) -> int:
-        """S4: auto-cancel tasks with NO state updates for a long time.
-
-        Guards against pipeline hangs (unbounded waits, native stalls) that
-        would otherwise occupy the GUI concurrency slots forever. Terminal
-        or unknown tasks are skipped. Returns the number of tasks aborted.
-        """
-        killed = 0
-        for tid in self._store.list_task_ids():
-            state = self._store.get_task(tid)
-            if state is None or state.status in (
-                TaskStage.COMPLETED.value,
-                TaskStage.CANCELLED.value,
-                TaskStage.FAILED.value,
-            ):
-                continue
-            if (now - state.updated_at) <= self._stuck_timeout_seconds:
-                continue
-            logger.error(
-                "[task=%s] no state update for %.0fs; auto-cancelling as stuck (S4 watchdog)",
-                tid, self._stuck_timeout_seconds,
-            )
-            # Signal the pipeline's cancellation hook, then flip to FAILED.
-            self._store.cancel_task(tid)
-            self._store.update_task(
-                tid,
-                status=TaskStage.FAILED.value,
-                message=(
-                    f"Timed out: no progress for "
-                    f"{int(self._stuck_timeout_seconds)}s"
-                ),
-                error_message=(
-                    f"Task made no progress for {int(self._stuck_timeout_seconds)}s "
-                    "and was auto-cancelled by the watchdog"
-                ),
-            )
-            self._emit_notice(
-                tid, "error", "Task timed out",
-                "The task made no progress for a long time and was auto-cancelled.",
-                "Check the network / translation service status.",
-            )
-            killed += 1
-        return killed
-
     def _sweeper_loop(self) -> None:
-        """Daemon background loop: bounded-memory cleanup + stuck-task watchdog."""
+        """Daemon background loop: bounded-memory cleanup of terminal tasks."""
         while True:
             time.sleep(self._sweep_interval)
             try:
                 self._sweep_stale(time.time())
-                self._sweep_stuck(time.time())
             except Exception:  # noqa: BLE001 -- the sweeper must never die
                 logger.exception("task sweeper iteration failed")
 

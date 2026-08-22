@@ -1,12 +1,11 @@
-﻿"""Robustness regression tests for the S1/S2/S4 long-run protections.
+﻿"""Robustness regression tests for the S1/S2 long-run protections.
 
 S1: converter translation retry must be bounded (no infinite retry loops
     that stall a task in the "translating" stage forever).
 S2: terminated-task store / aggregator / batch / progress maps must be
     pruned so long-running service processes do not accumulate memory.
-S4: the stale-task watchdog must auto-cancel tasks that make no progress,
-    and cancel requests must be plumbed to the pipeline's cancellation
-    hook (late completions must not resurrect a cancelled task).
+Also: cancel requests must be plumbed to the pipeline's cancellation
+hook (late completions must not resurrect a cancelled task).
 
 NOTE: tasks are created directly through the store (no background worker
 thread) so the tests are deterministic and thread-race-free.
@@ -110,37 +109,7 @@ class TestS2StorePruning:
             svc._sweeper = None
 
 
-class TestS4StuckTaskWatchdog:
-    def test_sweep_stuck_cancels_silent_running_task(self):
-        svc = _service()
-        try:
-            svc._stuck_timeout_seconds = 60.0
-            tid = _terminal_task(svc, status=TaskStage.TRANSLATING.value)
-            state = svc._store.get_task(tid)
-            state.updated_at = time.time() - 7200  # stale but not terminal
-            killed = svc._sweep_stuck(time.time())
-            assert killed == 1
-            final = svc.get_task_state(tid)
-            assert final.status == TaskStage.FAILED.value
-            assert "Timed out" in ((final.error_message or "") + (final.message or ""))
-            assert svc._store.is_cancelled(tid)  # cancellation hook signalled
-        finally:
-            svc._sweeper = None
-
-    def test_sweep_stuck_skips_recent_and_terminal(self):
-        svc = _service()
-        try:
-            svc._stuck_timeout_seconds = 3600.0
-            recent = _terminal_task(svc, status=TaskStage.TRANSLATING.value)
-            finished = _terminal_task(svc, status=TaskStage.COMPLETED.value)
-            state = svc._store.get_task(finished)
-            state.updated_at = time.time() - 7200  # old but terminal
-            assert svc._sweep_stuck(time.time()) == 0
-            assert svc.get_task_state(recent) is not None
-            assert svc.get_task_state(finished) is not None
-        finally:
-            svc._sweeper = None
-
+class TestTaskCancellation:
     def test_late_completion_after_cancel_is_dropped(self):
         svc = _service()
         try:
