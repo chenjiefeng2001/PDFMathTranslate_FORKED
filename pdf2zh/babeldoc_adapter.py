@@ -216,6 +216,7 @@ def run_babeldoc_translation(
     cancelled_check: Optional[Callable[[], bool]] = None,
     debug: bool = False,
     ocr_mode: Optional[str] = None,
+    glossary_files: Optional[List[str]] = None,
 ) -> List[Dict[str, str]]:
     """Translate a document with the BabelDOC layout engine.
 
@@ -241,6 +242,11 @@ def run_babeldoc_translation(
 
             cancelled cooperatively through BabelDOC's own cancellation.
         debug: Forward to BabelDOC's TranslationConfig for verbose logging.
+        glossary_files: Professional-term glossary CSV paths (columns
+            ``source,target[,tgt_lng]``, see :mod:`pdf2zh.glossary_store`).
+            Loaded via ``Glossary.from_csv`` and forwarded to BabelDOC's
+            ``TranslationConfig.glossaries``. Invalid files raise before any
+            translation work starts.
 
     Raises:
         BabeldocNotInstalledError: ``babeldoc`` is not importable.
@@ -324,6 +330,11 @@ def run_babeldoc_translation(
 
         out_dir = output_dir or os.path.dirname(os.path.abspath(work_path))
 
+        # 专业词表：预检 + 装载（坏文件在翻译开始前快速失败）。
+        from pdf2zh.glossary_store import load_babeldoc_glossaries
+
+        glossaries = load_babeldoc_glossaries(glossary_files, lang_out)
+
         yadt_config = YadtConfig(
             translator=yadt_translator,
             input_file=work_path,
@@ -355,6 +366,8 @@ def run_babeldoc_translation(
             skip_scanned_detection=skip_scanned_detection,
             # pdf2zh engines are mostly non-LLM; skip LLM-only term extraction.
             auto_extract_glossary=False,
+            # 用户词表（CSV）注入 BabelDOC 的 hyperscan 术语管线。
+            glossaries=glossaries or None,
             report_interval=0.2,
         )
 

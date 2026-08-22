@@ -293,6 +293,14 @@ class TranslationRequest:
     （bool）为 ``True`` 时等价 ``on`` 并优先于本字段。
     """
 
+    glossary_files: List[str] = field(default_factory=list)
+    """专业词表 CSV 路径列表（babeldoc 解析链路生效，格式 source,target[,tgt_lng]）。
+
+    与 CLI ``--glossary-files`` / API ``glossaries`` 上传字段一致；批量任务
+    经 ``dataclasses.replace`` 自动携带到每个子请求。legacy/magicpdf 链路
+    当前忽略该字段（Phase 3 接入 legacy 后处理钉死）。
+    """
+
 
 
     extra_config: Dict[str, Any] = field(default_factory=dict)
@@ -1842,6 +1850,7 @@ class RuntimeService:
         envs = dict(extra.get("envs") or {})
         prompt = extra.get("prompt")
         ocr_mode = extra.get("ocr_mode")
+        glossary_files = list(request.glossary_files or [])
         out_dir = config.output_dir or os.path.dirname(request.source_path)
         def _forward_progress(stage: str, pct: float, msg: str) -> None:
             # _emit_smooth throttles the 0.2s BabelDOC event cadence into
@@ -1868,6 +1877,7 @@ class RuntimeService:
                         cancelled_check=lambda: self._store.is_cancelled(task_id),
                         debug=bool(getattr(config, "debug", False)),
                         ocr_mode=ocr_mode,
+                        glossary_files=glossary_files,
                     )
                 except BabeldocNextUnavailableError as exc:
                     logger.info(
@@ -1893,6 +1903,7 @@ class RuntimeService:
                     cancelled_check=lambda: self._store.is_cancelled(task_id),
                     debug=bool(getattr(config, "debug", False)),
                     ocr_mode=ocr_mode,
+                    glossary_files=glossary_files,
                 )
         except BabeldocNotInstalledError as exc:
             self._fail_file(task_id, exc, total_files=total_files)

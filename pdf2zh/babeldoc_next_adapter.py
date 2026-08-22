@@ -311,6 +311,7 @@ def build_next_settings(
     debug: bool = False,
     ocr_mode: Optional[str] = None,
     source_path: Optional[str] = None,
+    glossary_files: Optional[List[str]] = None,
 ) -> Any:
     """Assemble a ``pdf2zh_next.SettingsModel`` from GUI request fields.
 
@@ -322,7 +323,13 @@ def build_next_settings(
     ``ocr_mode`` (``auto``/``on``/``off``) controls BabelDOC's scanned-PDF
     handling: ``auto`` auto-detects heavily-scanned pages and enables OCR,
     ``on`` forces OCR for every PDF, ``off`` skips scan detection entirely.
+
+    ``glossary_files`` maps onto the kernel's ``translation.glossaries``
+    (comma-separated CSV paths; consumed by ``pdf2zh_next.high_level
+    ._get_glossaries`` → ``Glossary.from_csv``, filtered by target language).
+    Paths are pre-validated here so bad files fail before the kernel spins up.
     """
+    _ensure_next_kernel()
     from pdf2zh_next.config.model import (
         BasicSettings,
         PDFSettings,
@@ -338,6 +345,15 @@ def build_next_settings(
 
     engine_settings = _build_engine_settings(service, envs)
 
+    # 专业词表：内核 translation.glossaries 为逗号分隔 CSV 路径串。
+    glossary_csvs: Optional[str] = None
+    if glossary_files:
+        from pdf2zh.glossary_store import parse_csv
+
+        for p in glossary_files:
+            parse_csv(p)  # 预检：坏文件在进入内核前给出可读错误
+        glossary_csvs = ",".join(str(p) for p in glossary_files)
+
     return SettingsModel(
         basic=BasicSettings(debug=bool(debug), input_files=set()),
         translation=TranslationSettings(
@@ -348,6 +364,7 @@ def build_next_settings(
             output=output_dir,
             custom_system_prompt=_resolve_prompt_text(prompt),
             no_auto_extract_glossary=True,
+            glossaries=glossary_csvs,
         ),
         pdf=PDFSettings(
             pages=pages or None,
@@ -384,6 +401,7 @@ def run_babeldoc_next_translation(
     cancelled_check: Optional[Callable[[], bool]] = None,
     debug: bool = False,
     ocr_mode: Optional[str] = None,
+    glossary_files: Optional[List[str]] = None,
 
 ) -> List[Dict[str, str]]:
     """Translate a document with the modified pdf2zh_next kernel pipeline.
@@ -485,6 +503,7 @@ def run_babeldoc_next_translation(
             debug=debug,
             ocr_mode=ocr_mode,
             source_path=work_path,
+            glossary_files=glossary_files,
         )
         settings.validate_settings()
         config = create_babeldoc_config(settings, Path(work_path))
