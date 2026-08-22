@@ -23,6 +23,7 @@ ENGINES = [
     ("DeepL", "deepl"),
     ("OpenAI", "openai"),
     ("Claude", "claude"),
+    ("OpenCode", "opencode"),
     ("Gemini", "gemini"),
     ("DeepSeek", "deepseek"),
     ("Qwen", "qwen"),
@@ -131,6 +132,25 @@ def backend_status_markdown() -> str:
             lines.append(f"  › {B('backend_status_dml_hint')}")
     if not (status["cuda"] or status["dml"]):
         lines.append(B("backend_status_gpu_hidden"))
+    # magic-pdf 解析引擎的执行设备独立于 BabelDOC 的 ONNX 后端：受 torch CUDA
+    # 可用性与 ~/magic-pdf.json 的 device-mode 共同决定。magic-pdf 已安装时补
+    # 一行诊断，避免"后端选了 CUDA、magic-pdf 仍在 CPU 解析"的排障盲区。
+    try:
+        from pdf2zh.magicpdf_adapter import get_magicpdf_device_status
+
+        mp_status = get_magicpdf_device_status()
+    except Exception:  # noqa: BLE001 -- 诊断失败不影响状态面板
+        mp_status = None
+    if mp_status and mp_status.get("installed"):
+        lines.append(
+            f"- {B('backend_status_magicpdf_device')}: "
+            f"`{mp_status.get('effective')}` · torch "
+            f"{mp_status.get('torch') or '-'} · "
+            f"cuda={bool(mp_status.get('torch_cuda'))}"
+        )
+        if mp_status.get("hint"):
+            lines.append(f"  › {mp_status['hint']}")
+
     return "\n".join(lines)
 
 
@@ -218,8 +238,13 @@ def create_config_panel() -> dict:
             label=B("config_parse_engine"),
             info=B("config_parse_engine_info"),
         )
-        magicpdf_ocr = gr.Checkbox(
-            value=False,
+        magicpdf_ocr = gr.Radio(
+            choices=[
+                (B("config_magicpdf_ocr_auto"), "auto"),
+                (B("config_magicpdf_ocr_on"), "on"),
+                (B("config_magicpdf_ocr_off"), "off"),
+            ],
+            value="auto",
             label=B("config_magicpdf_ocr"),
             info=B("config_magicpdf_ocr_info"),
         )

@@ -42,6 +42,9 @@ class TestTranslationRequestParseEngine:
             assert req.parse_engine == value
         req = TranslationRequest(source_path="/tmp/test.pdf", magicpdf_ocr=True)
         assert req.magicpdf_ocr is True
+        assert req.magicpdf_ocr_mode == "auto"
+        req = TranslationRequest(source_path="/tmp/test.pdf", magicpdf_ocr_mode="off")
+        assert req.magicpdf_ocr_mode == "off"
 
 
 class TestExecuteTaskRouting:
@@ -78,6 +81,54 @@ class TestExecuteTaskRouting:
 
     def test_legacy_routes_to_legacy(self):
         assert self._run("legacy") == ["legacy"]
+
+
+class TestExecuteBatchRouting:
+    """批量任务 per-file 路由必须与 ``_execute_task`` 完全一致（parse_engine 优先）。
+
+    回归：此前 ``_execute_batch`` 只按 ``mode_choice`` 路由，批量任务默认
+    ``mode_choice="auto"`` 时，即使显式选择了 ``parse_engine="babeldoc"``，
+    逐文件也被错误路由到 legacy 管线——扫描 PDF 的 OCR 走了 legacy /
+    magic-pdf 而不是 BabelDOC 本身的扫描检测 + OCR workaround 管线。
+    """
+
+    def _run_batch(self, parse_engine: str = "auto", mode_choice: str = "auto") -> list:
+        svc = RuntimeService()
+        svc._sweeper = None
+        tid = "t_batch_route"
+        svc._store.create_task(tid)
+        calls: list = []
+        files = ["/tmp/a.pdf", "/tmp/b.pdf"]
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(svc, "_execute_legacy", lambda *a, **k: calls.append("legacy"))
+            mp.setattr(svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc"))
+            mp.setattr(svc, "_execute_v4", lambda *a, **k: calls.append("v4"))
+            svc._execute_batch(
+                tid,
+                TranslationRequest(
+                    source_path=files[0], files=files, parse_engine=parse_engine,
+                    extra_config={"mode_choice": mode_choice},
+                ),
+                files,
+                svc.config,
+            )
+        return calls
+
+    def test_babeldoc_batch_routes_per_file_to_babeldoc(self):
+        # 回归：parse_engine=babeldoc + mode_choice=auto（默认）时，批量逐文件
+        # 必须走 _execute_babeldoc（BabelDOC 本身管线），而不是 legacy。
+        calls = self._run_batch(parse_engine="babeldoc", mode_choice="auto")
+        assert calls == ["babeldoc", "babeldoc"]
+
+    def test_mode_babeldoc_batch_routes_to_babeldoc(self):
+        # mode_choice=babeldoc 时批量逐文件走 BabelDOC（原行为保持）。
+        calls = self._run_batch(parse_engine="auto", mode_choice="babeldoc")
+        assert calls == ["babeldoc", "babeldoc"]
+
+    def test_auto_batch_routes_to_legacy(self):
+        # 默认 auto：批量逐文件保持 legacy。
+        calls = self._run_batch(parse_engine="auto", mode_choice="auto")
+        assert calls == ["legacy", "legacy"]
 
 
 class TestExecuteMagicpdf:
@@ -121,6 +172,7 @@ class TestExecuteMagicpdf:
         ns = captured["ns"]
         assert ns.files == [str(src)]
         assert ns.magicpdf_ocr is True
+        assert ns.magicpdf_ocr_mode == "auto"
         assert ns.backend == "cpu"
         assert ns.pages == "1-3"
         assert ns.service == "google"
@@ -176,11 +228,12 @@ class TestGuiWorkerPassThrough:
                 mode_choice="auto", recaptcha_response="", fl_state=None,
                 env0="", env1="", env2="", prompt_env="",
                 backend="auto", ocr_mode="auto",
-                parse_engine="magicpdf", magicpdf_ocr=True,
+                parse_engine="magicpdf", magicpdf_ocr="on",
             )
         assert task_id == "tid_1"
         req = fake_svc.submit_task.call_args[0][0]
         assert isinstance(req, TranslationRequest)
         assert req.parse_engine == "magicpdf"
         assert req.magicpdf_ocr is True
+        assert req.magicpdf_ocr_mode == "on"
 

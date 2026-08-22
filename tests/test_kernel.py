@@ -654,13 +654,15 @@ class TestV2BridgeEndToEnd(unittest.TestCase):
 class TestCLIKernelPipeline(unittest.TestCase):
     """Test that CLI args correctly flow through the kernel layer."""
 
+    @patch("os.path.isfile", return_value=True)
     @patch("pdf2zh.kernel.registry.KernelRegistry.switch")
     @patch("pdf2zh.kernel.registry.KernelRegistry.get")
     @patch("pdf2zh.doclayout.set_backend")
     @patch("pdf2zh.doclayout.OnnxModel")
     @patch("pdf2zh.doclayout.ModelInstance")
     def test_cli_fast_mode_routes_through_kernel(
-        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch
+        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch,
+        mock_isfile
     ):
         """Verify --mode fast goes through KernelRegistry."""
         mock_kernel = MagicMock()
@@ -675,13 +677,15 @@ class TestCLIKernelPipeline(unittest.TestCase):
         mock_switch.assert_called_once_with("fast")
         mock_kernel.translate.assert_called_once()
 
+    @patch("os.path.isfile", return_value=True)
     @patch("pdf2zh.kernel.registry.KernelRegistry.switch")
     @patch("pdf2zh.kernel.registry.KernelRegistry.get")
     @patch("pdf2zh.doclayout.set_backend")
     @patch("pdf2zh.doclayout.OnnxModel")
     @patch("pdf2zh.doclayout.ModelInstance")
     def test_cli_precise_mode_routes_through_kernel(
-        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch
+        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch,
+        mock_isfile
     ):
         """Verify --mode precise goes through KernelRegistry."""
         mock_kernel = MagicMock()
@@ -696,13 +700,15 @@ class TestCLIKernelPipeline(unittest.TestCase):
         mock_switch.assert_called_once_with("precise")
         mock_kernel.translate.assert_called_once()
 
+    @patch("os.path.isfile", return_value=True)
     @patch("pdf2zh.kernel.registry.KernelRegistry.switch")
     @patch("pdf2zh.kernel.registry.KernelRegistry.get")
     @patch("pdf2zh.doclayout.set_backend")
     @patch("pdf2zh.doclayout.OnnxModel")
     @patch("pdf2zh.doclayout.ModelInstance")
     def test_cli_service_model_syntax_passed_through(
-        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch
+        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch,
+        mock_isfile
     ):
         """Verify 'openai:gpt-4' service syntax is passed to TranslateRequest."""
         mock_kernel = MagicMock()

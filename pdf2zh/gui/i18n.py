@@ -119,16 +119,38 @@ T: Dict[str, Tuple[str, str]] = {
     "config_parse_engine_magicpdf": ("Magic-PDF/MinerU", "Magic-PDF/MinerU"),
     "config_magicpdf_ocr": ("MagicPDF OCR", "MagicPDF OCR"),
     "config_magicpdf_ocr_info": (
-        "magicpdf 解析强制 OCR：开启后对扫描版 / 无文本层 PDF 执行 OCR（对应 "
-        "CLI --magicpdf-ocr）；关闭时由解析预检自动决定。",
-        "Force OCR in magicpdf parsing for scanned / textless PDFs "
-        "(equivalent to CLI --magicpdf-ocr); when off, the preflight decides.",
+        "magicpdf 解析的 OCR 处理：auto 预检命中扫描/损坏信号才自动开启 OCR；"
+        "on 强制对所有 PDF 执行 OCR；off 显式关闭 OCR（预检命中也绝不强制开启，"
+        "适合有文本层的扫描版）。对应 CLI --magicpdf-ocr-mode。",
+        "OCR handling in magicpdf parsing: auto auto-enables OCR when the "
+        "preflight flags scanned/damaged signals; on forces OCR for every "
+        "PDF; off explicitly disables OCR (never auto-enables even when the "
+        "preflight hits — best for scanned PDFs that still have a text "
+        "layer). Equivalent to CLI --magicpdf-ocr-mode.",
     ),
+    "config_magicpdf_ocr_auto": ("自动（预检决定）", "Auto (preflight)"),
+    "config_magicpdf_ocr_on": ("强制 OCR", "Force OCR"),
+    "config_magicpdf_ocr_off": ("关闭 OCR", "Disable OCR"),
     "config_backend_dml": ("DirectML（Windows GPU）", "DirectML (Windows GPU)"),
     "config_backend_status": (
         "当前环境推理后端诊断",
         "Inference backend diagnostics",
     ),
+    "backend_status_magicpdf_device": (
+        "MagicPDF 解析设备",
+        "MagicPDF parse device",
+    ),
+    "backend_status_magicpdf_hint": (
+        "magic-pdf 的 torch 模型需要 CUDA 版 PyTorch 才能走 GPU：python -m pip "
+        "install -U \"torch\" --index-url https://download.pytorch.org/whl/cu126，"
+        "然后使用 --backend cuda / GUI 后端选 CUDA。DirectML 仅加速 ONNX，对 "
+        "magic-pdf 的 torch 模型无效。",
+        "magic-pdf torch models need CUDA PyTorch to run on GPU: python -m pip "
+        "install -U \"torch\" --index-url https://download.pytorch.org/whl/cu126, "
+        "then use --backend cuda / pick CUDA in the GUI backend radio. DirectML "
+        "only accelerates ONNX and does not apply to magic-pdf torch models.",
+    ),
+
     "backend_status_ok": ("可用", "available"),
     "backend_status_missing": ("不可用", "unavailable"),
     "backend_status_cuda_hint": (

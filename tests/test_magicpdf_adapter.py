@@ -10,7 +10,7 @@ import json
 import os
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from pdf2zh.magicpdf_adapter import (
     MagicPdfAdapter,
@@ -77,6 +77,143 @@ class TestNormalization(unittest.TestCase):
         results = MagicPdfAdapter.from_middle_json(middle, pages=[1])
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].page_num, 1)
+
+    def test_magicpdf_1312_page_dict_structure(self):
+        """magic-pdf 1.3.12 输出结构兼容：pdf_info 元素为页面 dict（含
+        para_blocks / page_size），无顶层 page_info。"""
+        middle = {
+            "pdf_info": [
+                {
+                    "page_idx": 0,
+                    "page_size": [595.32, 841.92],
+                    "preproc_blocks": [],
+                    "para_blocks": [
+                        {
+                            "type": "text",
+                            "bbox": [0, 0, 300, 24],
+                            "lines": [
+                                {
+                                    "bbox": [0, 0, 300, 24],
+                                    "spans": [
+                                        {
+                                            "bbox": [0, 0, 180, 24],
+                                            "content": "magic-pdf ",
+                                            "type": "text",
+                                        },
+                                        {
+                                            "bbox": [180, 0, 300, 24],
+                                            "content": "1.3.12",
+                                            "type": "text",
+                                        },
+                                    ],
+                                }
+                            ],
+                            "index": 0,
+                        },
+                        {
+                            "type": "interline_equation",
+                            "bbox": [0, 30, 200, 50],
+                            "lines": [
+                                {
+                                    "bbox": [0, 30, 200, 50],
+                                    "spans": [
+                                        {
+                                            "bbox": [0, 30, 200, 50],
+                                            "content": "dY=u'(b dt+dW)",
+                                            "type": "equation",
+                                        }
+                                    ],
+                                }
+                            ],
+                            "index": 1,
+                        },
+                    ],
+                }
+            ],
+            "_parse_type": "txt",
+            "_version_name": "1.3.12",
+        }
+        results = MagicPdfAdapter.from_middle_json(middle)
+        self.assertEqual(len(results), 1)
+        res = results[0]
+        self.assertEqual(res.page_num, 0)
+        self.assertAlmostEqual(res.width, 595.32)
+        self.assertAlmostEqual(res.height, 841.92)
+        self.assertEqual(len(res.blocks), 2)
+        self.assertEqual(res.blocks[0]["text"], "magic-pdf 1.3.12")
+        self.assertEqual(res.blocks[1]["type"], "interline_equation")
+
+    def test_magicpdf_1312_falls_back_to_preproc_blocks(self):
+        """页面 dict 无 para_blocks 时回退 preproc_blocks。"""
+        middle = {
+            "pdf_info": [
+                {
+                    "page_idx": 0,
+                    "page_size": [100, 200],
+                    "preproc_blocks": [
+                        {
+                            "type": "text",
+                            "bbox": [0, 0, 50, 10],
+                            "content": "fallback",
+                        }
+                    ],
+                }
+            ]
+        }
+        res = MagicPdfAdapter.from_middle_json(middle)[0]
+        self.assertEqual(len(res.blocks), 1)
+        self.assertEqual(res.blocks[0]["text"], "fallback")
+
+
+class TestLegacyCacheCompat(unittest.TestCase):
+    """transformers>=4.50 DynamicCache/EncoderDecoderCache → legacy tuple 转换。"""
+
+    def test_none_and_tuple_passthrough(self):
+        from pdf2zh.magicpdf_adapter import _to_legacy_past_key_values
+
+        self.assertIsNone(_to_legacy_past_key_values(None))
+        tup = (((1, 2),),)
+        self.assertIs(_to_legacy_past_key_values(tup), tup)
+
+    def test_empty_dynamic_cache_to_none(self):
+        try:
+            from transformers import DynamicCache
+        except Exception:
+            self.skipTest("transformers 未安装")
+        from pdf2zh.magicpdf_adapter import _to_legacy_past_key_values
+
+        self.assertIsNone(_to_legacy_past_key_values(DynamicCache()))
+
+    def test_empty_encoder_decoder_cache_to_none(self):
+        try:
+            from transformers import DynamicCache, EncoderDecoderCache
+        except Exception:
+            self.skipTest("transformers 未安装")
+        from pdf2zh.magicpdf_adapter import _to_legacy_past_key_values
+
+        edc = EncoderDecoderCache(DynamicCache(), DynamicCache())
+        self.assertIsNone(_to_legacy_past_key_values(edc))
+
+    def test_patch_is_idempotent(self):
+        """transformers>=4.50 时补丁可重复应用且标记正确；否则静默跳过。"""
+        try:
+            import transformers  # noqa: F401  # 仅作可用性探测
+        except Exception:
+            self.skipTest("transformers 未安装")
+        import logging
+
+        # logging.disable 是全局开关：必须用 try/finally 恢复，否则会静默抑制
+        # 后续所有测试的日志（导致 TestV120DetailedLogs 的 ring buffer 为空）。
+        prev_disable = logging.root.manager.disable
+        logging.disable(logging.CRITICAL)
+        try:
+            from pdf2zh.magicpdf_adapter import _patch_magicpdf_transformers_compat
+
+            _patch_magicpdf_transformers_compat()
+            _patch_magicpdf_transformers_compat()  # 第二次调用不得抛错
+            self.assertTrue(True)
+        finally:
+            logging.disable(prev_disable)
 
     def test_missing_file(self):
         with self.assertRaises(MagicPdfParseError):
@@ -236,11 +373,16 @@ class TestMagicPdfConfig(unittest.TestCase):
         """模型缺失时 parse() 秒级抛带下载指引的 MagicPdfParseError。
 
         验证修复 5 的熔断路径：预检命中后不再进入 doc_analyze 空跑数十秒。
+        magic_pdf 的重量级 import 以 fake 模块注入——本测试只关心预检逻辑，
+        与真实 torch/DLL 环境健康度解耦（全量套件下 cudnn DLL 冲突会让
+        真实 import 抛 MagicPdfNotInstalledError，掩盖被测路径）。
         """
         try:
             import magic_pdf  # noqa: F401
         except Exception:
             self.skipTest("magic-pdf 未安装，跳过模型预检熔断测试")
+        import sys
+
         import pdf2zh.magicpdf_adapter as mpa
 
         tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
@@ -253,13 +395,19 @@ class TestMagicPdfConfig(unittest.TestCase):
                     os.environ,
                     {"MINERU_TOOLS_CONFIG_JSON": cfg_path},
                     clear=False,
+                ), patch.dict(
+                    sys.modules,
+                    {
+                        "magic_pdf.data.dataset": MagicMock(),
+                        "magic_pdf.model.doc_analyze_by_custom_model": MagicMock(),
+                    },
+                    clear=False,
+                ), patch.object(
+                    mpa, "_ensure_magicpdf_models", return_value=["MFD/YOLO/yolo_v8_ft.pt"]
                 ):
-                    with patch.object(
-                        mpa, "_ensure_magicpdf_models", return_value=["MFD/YOLO/yolo_v8_ft.pt"]
-                    ):
-                        adapter = MagicPdfAdapter(device="cpu", models_dir="")
-                        with self.assertRaises(MagicPdfParseError) as ctx:
-                            adapter.parse(tmp.name)
+                    adapter = MagicPdfAdapter(device="cpu", models_dir="")
+                    with self.assertRaises(MagicPdfParseError) as ctx:
+                        adapter.parse(tmp.name)
             self.assertIn("PDF-Extract-Kit", str(ctx.exception))
         finally:
             os.unlink(tmp.name)
@@ -275,11 +423,116 @@ class TestMagicPdfConfig(unittest.TestCase):
             with patch.dict(
                 os.environ, {"MINERU_TOOLS_CONFIG_JSON": cfg_path}, clear=False
             ):
-                _ensure_magicpdf_config(device="cuda")
+                # 请求 cuda 但 torch 无 CUDA：不得改写用户配置（保持 mtime 不变）
+                with patch(
+                    "pdf2zh.magicpdf_adapter._torch_cuda_available",
+                    return_value=False,
+                ):
+                    _ensure_magicpdf_config(device="cuda")
             with open(cfg_path, encoding="utf-8") as fh:
                 cfg = json.load(fh)
             self.assertEqual(cfg.get("custom"), True)
             self.assertEqual(os.path.getmtime(cfg_path), before)
+
+
+class TestMagicPdfDevice(unittest.TestCase):
+    """magic-pdf device-mode 归一化 / 配置同步 / 状态诊断。
+
+    覆盖修复：magic-pdf 之前"看着配了 cuda、实际全链路 CPU"。根因是 torch 为
+    CPU 版（torch.cuda.is_available()=False）+ 已有配置 device-mode 永不更新。
+    """
+
+    def test_auto_with_cuda_returns_cuda(self):
+        from pdf2zh.magicpdf_adapter import _normalize_magicpdf_device
+
+        with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=True):
+            self.assertEqual(_normalize_magicpdf_device("auto"), "cuda")
+
+    def test_auto_without_cuda_returns_cpu(self):
+        from pdf2zh.magicpdf_adapter import _normalize_magicpdf_device
+
+        with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=False):
+            self.assertEqual(_normalize_magicpdf_device("auto"), "cpu")
+
+    def test_cuda_without_torch_falls_back_cpu(self):
+        from pdf2zh.magicpdf_adapter import _normalize_magicpdf_device
+
+        with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=False):
+            with patch("pdf2zh.magicpdf_adapter.logger") as mock_logger:
+                result = _normalize_magicpdf_device("cuda")
+        self.assertEqual(result, "cpu")
+        mock_logger.warning.assert_called_once()
+
+    def test_dml_falls_back_cpu(self):
+        from pdf2zh.magicpdf_adapter import _normalize_magicpdf_device
+
+        self.assertEqual(_normalize_magicpdf_device("dml"), "cpu")
+
+    def test_sync_upgrades_existing_cpu_to_cuda(self):
+        """请求 cuda 且 torch CUDA 可用：把已存在配置的 device-mode 补写为 cuda。"""
+        from pdf2zh.magicpdf_adapter import _sync_magicpdf_device_mode
+
+        with tempfile.TemporaryDirectory() as td:
+            cfg_path = os.path.join(td, "magic-pdf.json")
+            with open(cfg_path, "w", encoding="utf-8") as fh:
+                json.dump({"device-mode": "cpu", "custom": True}, fh)
+            with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=True):
+                result = _sync_magicpdf_device_mode(cfg_path, "cuda")
+            self.assertEqual(result, "cuda")
+            with open(cfg_path, encoding="utf-8") as fh:
+                cfg = json.load(fh)
+            self.assertEqual(cfg["device-mode"], "cuda")
+            self.assertEqual(cfg.get("custom"), True)  # 其他键保留
+
+    def test_sync_keeps_user_cpu_on_auto(self):
+        """请求 auto：不主动改写用户手动设置的 cpu。"""
+        from pdf2zh.magicpdf_adapter import _sync_magicpdf_device_mode
+
+        with tempfile.TemporaryDirectory() as td:
+            cfg_path = os.path.join(td, "magic-pdf.json")
+            with open(cfg_path, "w", encoding="utf-8") as fh:
+                json.dump({"device-mode": "cpu"}, fh)
+            with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=True):
+                result = _sync_magicpdf_device_mode(cfg_path, "auto")
+            self.assertEqual(result, "cpu")
+            with open(cfg_path, encoding="utf-8") as fh:
+                self.assertEqual(json.load(fh)["device-mode"], "cpu")
+
+    def test_sync_cuda_config_without_torch_falls_back_cpu(self):
+        """配置 device-mode=cuda 但 torch 无 CUDA：本次按 cpu 运行且保留配置。"""
+        from pdf2zh.magicpdf_adapter import _sync_magicpdf_device_mode
+
+        with tempfile.TemporaryDirectory() as td:
+            cfg_path = os.path.join(td, "magic-pdf.json")
+            with open(cfg_path, "w", encoding="utf-8") as fh:
+                json.dump({"device-mode": "cuda"}, fh)
+            with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=False):
+                with patch("pdf2zh.magicpdf_adapter.logger"):
+                    result = _sync_magicpdf_device_mode(cfg_path, "auto")
+            self.assertEqual(result, "cpu")
+            with open(cfg_path, encoding="utf-8") as fh:
+                self.assertEqual(json.load(fh)["device-mode"], "cuda")
+
+    def test_get_magicpdf_device_status_fields(self):
+        from pdf2zh.magicpdf_adapter import get_magicpdf_device_status
+
+        with tempfile.TemporaryDirectory() as td:
+            cfg_path = os.path.join(td, "magic-pdf.json")
+            with open(cfg_path, "w", encoding="utf-8") as fh:
+                json.dump({"device-mode": "cpu"}, fh)
+            with patch.dict(
+                os.environ, {"MINERU_TOOLS_CONFIG_JSON": cfg_path}, clear=False
+            ):
+                status = get_magicpdf_device_status(requested="cuda")
+        for key in (
+            "installed", "torch", "torch_cuda", "requested", "config_file",
+            "device_mode", "effective", "hint",
+        ):
+            self.assertIn(key, status)
+        self.assertEqual(status["device_mode"], "cpu")
+        self.assertEqual(status["requested"], "cuda")
+        self.assertIsInstance(status["effective"], str)
+        self.assertIsInstance(status["torch_cuda"], bool)
 
 
 if __name__ == "__main__":

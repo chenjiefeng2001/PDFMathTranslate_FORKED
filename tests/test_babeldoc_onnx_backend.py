@@ -313,7 +313,30 @@ def test_patched_init_warns_when_session_falls_back_to_cpu(monkeypatch):
     assert captured == ["cuda"]
 
 
-def test_patched_init_auto_delegates_to_original(monkeypatch):
+def test_patched_init_auto_uses_gpu_when_available(monkeypatch):
+    """auto 语义与主链路一致：CUDA 注册且执行级可用 → BabelDOC 内部也走 GPU。
+
+    修复前 auto 一律回退 BabelDOC 原生 CPU-only 初始化，导致 GUI 默认后端
+    （auto）下"主链路 doclayout 走 GPU、BabelDOC 内部 doclayout 仍 CPU"的
+    撕裂；修复后 auto 复用 pdf2zh.doclayout.resolve_providers(None) 的
+    执行级探测结果。
+    """
+    _install_fake_onnx(monkeypatch)
+    _patch_providers(monkeypatch, ["CUDAExecutionProvider", "CPUExecutionProvider"])
+    set_backend("auto")
+    assert bobe.apply_babeldoc_backend() is True
+
+    obj = _Dummy()
+    bobe._patched_init(obj, "fake.onnx")
+    assert obj.model.providers_arg == [
+        "CUDAExecutionProvider",
+        "CPUExecutionProvider",
+    ]
+
+
+def test_patched_init_auto_delegates_to_original_when_no_gpu(monkeypatch):
+    """无可执行 GPU 时 auto 回退 BabelDOC 原生初始化（保持 CPU / CoreML 行为）。"""
+    _patch_providers(monkeypatch, ["CPUExecutionProvider"])
     set_backend("auto")
     assert bobe.apply_babeldoc_backend() is True
 

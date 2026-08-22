@@ -19,20 +19,22 @@ from pdf2zh.gui.state import GLOBAL_TASK_STORE, TaskState
 
 logger = logging.getLogger(__name__)
 
-# Singleton service instance
-_runtime_service: Optional[RuntimeService] = None
-
 # ── Double-click prevention lock ──────────────────────────────────────────────
 _SUBMIT_LOCK = threading.Lock()
 _IN_FLIGHT: Dict[str, str] = {}  # client_id -> task_id
 
 
 def get_runtime_service() -> RuntimeService:
-    """Get or create the global RuntimeService singleton."""
-    global _runtime_service
-    if _runtime_service is None:
-        _runtime_service = RuntimeService()
-    return _runtime_service
+    """Get or create the process-wide RuntimeService singleton.
+
+    委托给 services.runtime_singleton：保证 GUI / REST API / Flask backend
+    共享同一个实例（Phase A 解耦的前提）。
+    """
+    from pdf2zh.services.runtime_singleton import (
+        get_runtime_service as _shared_get_runtime_service,
+    )
+
+    return _shared_get_runtime_service()
 
 
 # ── Stale in-flight task cleanup ───────────────────────────────────────────
@@ -88,7 +90,7 @@ def submit_translation_task(
     backend: str = "auto",
     ocr_mode: str = "auto",
     parse_engine: str = "auto",
-    magicpdf_ocr: bool = False,
+    magicpdf_ocr: str = "auto",
     callback: Optional[Callable] = None,
 ) -> str:
     """Submit a translation task to RuntimeService.
@@ -147,7 +149,8 @@ def submit_translation_task(
         extra_config=extra_config,
         backend=backend,
         parse_engine=parse_engine,
-        magicpdf_ocr=magicpdf_ocr,
+        magicpdf_ocr=_magicpdf_ocr_bool(magicpdf_ocr),
+        magicpdf_ocr_mode=_magicpdf_ocr_mode(magicpdf_ocr),
     )
 
     # Submit via RuntimeService
@@ -159,6 +162,22 @@ def submit_translation_task(
         _IN_FLIGHT[client_id] = task_id
 
     return task_id
+
+
+def _magicpdf_ocr_mode(value: Any) -> str:
+    """归一化 MagicPDF OCR 三态值（auto/on/off）。
+
+    兼容旧 GUI/调用方传入的 bool：``True`` → ``on``，``False`` → ``auto``。
+    """
+    if isinstance(value, bool):
+        return "on" if value else "auto"
+    v = str(value or "").strip().lower()
+    return v if v in ("auto", "on", "off") else "auto"
+
+
+def _magicpdf_ocr_bool(value: Any) -> bool:
+    """把 MagicPDF OCR 三态值映射为历史 bool 字段（仅 ``on`` 为 True）。"""
+    return _magicpdf_ocr_mode(value) == "on"
 
 
 def _parse_env_lines(*lines: str) -> Dict[str, str]:

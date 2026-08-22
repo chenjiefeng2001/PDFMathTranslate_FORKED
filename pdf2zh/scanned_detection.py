@@ -42,7 +42,8 @@ _NOISE_SYMBOLS = frozenset("\xa5\xa6\xff\x00\x01\x02\x03\x7f\xad\u0378\u0379")
 TEXT_BROKEN_RATIO_THRESHOLD = 0.10
 #: 页面级损坏阈值：≥30% 的采样页含损坏信号即命中（报告 §6.1）。
 PAGE_BROKEN_THRESHOLD = 0.30
-#: 字体 ToUnicode CMap 缺失率阈值（缺失 > 60% 判定解码不可信）。
+#: 字体 ToUnicode CMap 缺失率阈值（仅统计复合/CID 字体：缺失 > 60% 判定
+#: 解码不可信；简单字体靠内建编码即可解码，缺 ToUnicode 属常态不计入）。
 TO_UNICODE_MISSING_THRESHOLD = 0.60
 #: 页面图像面积占比阈值（≥60% 判定为扫描页面）。
 IMAGE_RATIO_THRESHOLD = 0.60
@@ -466,6 +467,76 @@ def fused_scan_decision(
 # ── 预检：PDF 文件 → 融合判定 ────────────────────────────────────────────────
 
 
+def _ps_name(value) -> str:
+    """把 pdfminer 的名称值规整为纯文本名。
+
+    pdfminer.six 解析产物里名称可能是 ``bytes``（PDFName）、
+    ``PSLiteral``（关键字，``.name`` 为 str）或 str，三种形态都可能出现。
+    """
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("latin-1", "ignore")
+    name = getattr(value, "name", None)
+    if isinstance(name, bytes):
+        return name.decode("latin-1", "ignore")
+    if isinstance(name, str) and name:
+        return name
+    return str(value).lstrip("/")
+
+
+def _dict_get(d: dict, name: str):
+    """bytes/str 双形态键的容错读取（pdfminer 不同版本键形态不一）。"""
+    if name in d:
+        return d[name]
+    return d.get(name.encode("latin-1"))
+
+
+def _page_font_table(page) -> Dict[str, Dict[str, bool]]:
+    """解析页面 ``/Resources/Font`` → {资源名/BaseFont 名: 字体信息}。
+
+    返回值形如 ``{"F1": {"tounicode": True, "cid": False}, "ABCDEF+SimSun":
+    {...}}``——资源名与 BaseFont 名两个键指向同一 entry。
+
+    背景（2026-08-22 根因修复）：pdfminer.six 的 LTChar 只暴露 ``fontname``
+    （无字体对象引用），此前代码调用的 ``font.get_toUnicode()`` API 并不存在，
+    异常被吞后所有字形恒计为「不可信」，该信号对任何 PDF 恒输出 1.000 →
+    预检恒触发自动 OCR。正确做法是从页面字体字典直接判读：
+
+    - 复合字体（Type0/CIDFontType*）缺 ToUnicode ⇒ 解码不可信（真损坏信号）；
+    - 简单字体（Type1/TrueType/Type3）缺 ToUnicode 属常态（内建编码可信）。
+
+    解析失败返回空表（调用方按 None 保守计数，不阻断预检）。
+    """
+    table: Dict[str, Dict[str, bool]] = {}
+    try:
+        from pdfminer.pdftypes import resolve1
+
+        resources = resolve1(getattr(page, "resources", None))
+        fonts = (
+            resolve1(_dict_get(resources, "Font"))
+            if isinstance(resources, dict) else None
+        )
+        if not isinstance(fonts, dict):
+            return table
+        for key, ref in fonts.items():
+            fd = resolve1(ref)
+            if not isinstance(fd, dict):
+                continue
+            subtype = _ps_name(_dict_get(fd, "Subtype"))
+            entry = {
+                "tounicode": _dict_get(fd, "ToUnicode") is not None,
+                "cid": subtype == "Type0" or subtype.startswith("CIDFontType"),
+            }
+            table[_ps_name(key)] = entry
+            base = _ps_name(_dict_get(fd, "BaseFont"))
+            if base:
+                table[base] = entry
+    except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断翻译
+        logger.debug("preflight font table build failed: %s", exc)
+    return table
+
+
 def _extract_pdf_samples(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
     """轻量提取 PDF 前 ``max_pages`` 页的文本与 glyph 记录。
 
@@ -505,14 +576,18 @@ def _extract_pdf_samples(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
             chars = [o for o in getattr(cur, "_objs", []) if
                      o.__class__.__name__ == "LTChar"]
             page_texts.append("".join(c.get_text() or "" for c in chars))
+            font_table = _page_font_table(page)
             for ch in chars:
-                font_obj = getattr(ch, "font", None)
-                has_to_unicode = None
-                if font_obj is not None:
-                    try:
-                        has_to_unicode = font_obj.get_toUnicode() is not None
-                    except Exception:  # noqa: BLE001
-                        has_to_unicode = None
+                finfo = font_table.get(_ps_name(getattr(ch, "fontname", None)))
+                if finfo is None:
+                    # 字体无法定位（资源解析失败/字体名不匹配）：保守计「不可信」
+                    has_to_unicode = None
+                elif finfo["cid"]:
+                    # 复合字体：ToUnicode 是可靠解码的唯一来源，缺失即损坏信号
+                    has_to_unicode = finfo["tounicode"]
+                else:
+                    # 简单字体：内建编码即可解码，缺 ToUnicode 属常态非损坏
+                    has_to_unicode = True
                 char = ch.get_text() or ""
                 glyph_records.append({
                     "char": char,

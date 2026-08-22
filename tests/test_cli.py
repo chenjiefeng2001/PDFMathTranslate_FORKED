@@ -1,6 +1,7 @@
 import importlib
 import sys
 import unittest
+from unittest.mock import Mock, patch
 
 
 class TestCliVersion(unittest.TestCase):
@@ -40,6 +41,74 @@ class TestCliVersion(unittest.TestCase):
         newly_imported = set(sys.modules) - before
         self.assertNotIn("pdf2zh.high_level", newly_imported)
         self.assertNotIn("pdf2zh.doclayout", newly_imported)
+
+
+class TestCliInputValidation(unittest.TestCase):
+    """CLI 输入存在性校验：引擎路由前给出明确错误而非下游 open() 混乱栈。"""
+
+    def test_missing_pdf_raises_file_not_found(self):
+        from pdf2zh.pdf2zh import main
+
+        with patch("pdf2zh.doclayout.set_backend"), self.assertRaises(
+            FileNotFoundError
+        ) as ctx:
+            main(["definitely_missing_input.pdf", "--parse-engine", "legacy"])
+        self.assertIn("definitely_missing_input.pdf", str(ctx.exception))
+
+    def test_directory_as_input_raises_file_not_found(self):
+        # 非 --dir 模式下目录输入同样是无效 PDF（曾表现为 PermissionError）
+        from pdf2zh.pdf2zh import main
+
+        with patch("pdf2zh.doclayout.set_backend"), patch(
+            "pdf2zh.doclayout.ModelInstance"
+        ), self.assertRaises(FileNotFoundError):
+            main([".", "--parse-engine", "legacy"])
+
+
+class TestDoclayoutModelLazyLoad(unittest.TestCase):
+    """版面分析模型懒加载：从 CLI 全局入口下沉到 legacy/babeldoc 轨。"""
+
+    def test_loads_only_when_singleton_empty(self):
+        from pdf2zh import doclayout
+        from pdf2zh.pdf2zh import _ensure_doclayout_model
+
+        ns = Mock(onnx="")
+        saved = doclayout.ModelInstance.value
+        try:
+            doclayout.ModelInstance.value = None
+            with patch(
+                "pdf2zh.doclayout.OnnxModel.load_available",
+                return_value=Mock(name="model"),
+            ) as load_avail:
+                _ensure_doclayout_model(ns)
+            load_avail.assert_called_once()
+
+            # 幂等：单例已有值时不得重复加载
+            with patch(
+                "pdf2zh.doclayout.OnnxModel.load_available"
+            ) as load_avail2:
+                _ensure_doclayout_model(ns)
+            load_avail2.assert_not_called()
+        finally:
+            doclayout.ModelInstance.value = saved
+
+    def test_explicit_onnx_rebuilds(self):
+        from pdf2zh import doclayout
+        from pdf2zh.pdf2zh import _ensure_doclayout_model
+
+        saved = doclayout.ModelInstance.value
+        try:
+            existing = Mock(name="existing")
+            doclayout.ModelInstance.value = existing
+            explicit = Mock(name="explicit")
+            with patch(
+                "pdf2zh.doclayout.OnnxModel", return_value=explicit
+            ) as ctor:
+                _ensure_doclayout_model(Mock(onnx="layout.onnx"))
+            ctor.assert_called_once_with("layout.onnx")
+            self.assertIs(doclayout.ModelInstance.value, explicit)
+        finally:
+            doclayout.ModelInstance.value = saved
 
 
 if __name__ == "__main__":

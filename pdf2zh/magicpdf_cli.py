@@ -30,11 +30,35 @@ def _output_dir(parsed_args) -> str:
 
 
 def _fallback_legacy(parsed_args, reason: str) -> int:
-    """熔断降级：记录原因后按 legacy 内核重跑（Step 3.3）。"""
+    """熔断降级：记录原因后按 legacy 内核重跑（Step 3.3）。
+
+    打 ``_magicpdf_fallback`` 防重入标记：legacy 内核的文本层预检看到该
+    标记后不再自动切回 magicpdf 引擎（本进程中 magic-pdf 已被证实不可用），
+    避免 magicpdf → legacy → (auto-switch) → magicpdf 的乒乓循环。
+    """
+    parsed_args._magicpdf_fallback = True
     logger.warning("[magicpdf] %s —— 自动降级回 legacy 内核重试。", reason)
     from pdf2zh.pdf2zh import _run_legacy_kernel
 
     return _run_legacy_kernel(parsed_args)
+
+
+def _preload_torch() -> bool:
+    """torch 预载（Windows DLL 加载顺序防御），返回是否导入成功。
+
+    onnxruntime 的 CUDA/TensorRT 执行级探测会先加载 ORT 自带的 cuDNN
+    DLL；之后同一进程再 ``import torch`` 时，Windows 加载器解析到已驻留
+    的冲突 DLL，``cudnn_cnn64_9.dll`` 报 WinError 127。magic-pdf 1.x 全部
+    子模型为 PyTorch 实现，这里在解析前先把 torch 导入 ``sys.modules``
+    即可规避顺序冲突；失败不阻断（后续按既有降级路径处理）。
+    """
+    try:
+        import torch  # noqa: F401 -- 提前驻留 sys.modules 防 DLL 冲突
+
+        return True
+    except Exception as exc:  # noqa: BLE001 -- torch 缺失/损坏交由上层降级
+        logger.debug("[magicpdf] torch preload failed: %s", exc)
+        return False
 
 
 def _prompt_text(parsed_args) -> str | None:
@@ -78,11 +102,31 @@ def _write_dumps(
 
 def run_magicpdf_main(parsed_args) -> int:
     """magicpdf 解析引擎主流程（引擎不可用时自动降级 legacy）。"""
+    # torch 必须先于任何 onnxruntime CUDA 会话导入（DLL 加载顺序，见
+    # _preload_torch docstring）；CLI 全局入口已不再无条件加载 doclayout
+    # 模型，此处预载兜底覆盖 API/GUI 服务进程复用等其它进入形态。
+    _preload_torch()
     from pdf2zh.magicpdf_adapter import MagicPdfAdapter
     from pdf2zh.v3.document_model import render_plan_from_model, translate_document
     from pdf2zh.v3.magicpdf_bridge import MagicPdfBridge
 
     adapter = MagicPdfAdapter(device=parsed_args.backend)
+    # 解析前打印 magic-pdf 实际执行设备（torch CUDA 状态 + 配置 device-mode），
+    # 避免"选 cuda 实际跑 cpu"的排障盲区；未走 GPU 时给出安装指引。
+    try:
+        from pdf2zh.magicpdf_adapter import get_magicpdf_device_status
+
+        status = get_magicpdf_device_status(requested=parsed_args.backend)
+        logger.info(
+            "[magicpdf] device status: requested=%s torch=%s torch_cuda=%s "
+            "device-mode=%s effective=%s",
+            status["requested"], status["torch"] or "-", status["torch_cuda"],
+            status["device_mode"], status["effective"],
+        )
+        if status.get("hint"):
+            logger.warning("[magicpdf] %s", status["hint"])
+    except Exception as exc:  # noqa: BLE001 -- 诊断失败不阻断解析
+        logger.debug("[magicpdf] device status probe skipped: %s", exc)
     if not adapter.is_available():
         return _fallback_legacy(parsed_args, "magic-pdf/MinerU 未安装")
 
@@ -94,14 +138,26 @@ def run_magicpdf_main(parsed_args) -> int:
 
     bridge = MagicPdfBridge(default_font="")
     magic_dir = _output_dir(parsed_args)
-    ocr = bool(getattr(parsed_args, "magicpdf_ocr", False))
+    # magicpdf OCR 三态（auto/on/off，见 pdf2zh.pdf2zh.resolve_magicpdf_ocr_mode）：
+    #   auto：预检命中扫描/损坏信号才自动开启 OCR（历史行为，默认）；
+    #   on  ：强制对所有 PDF 执行 OCR；
+    #   off ：用户显式关闭 OCR，预检命中也绝不强制开启。
+    from pdf2zh.pdf2zh import resolve_magicpdf_ocr_mode
+
+    ocr_mode = resolve_magicpdf_ocr_mode(parsed_args)
     prompt_text = _prompt_text(parsed_args)
     from pdf2zh.scanned_detection import preflight_scan_check
 
     for path in files:
-        # 文本层质量预检（多信号融合）：auto 模式且未显式指定 --magicpdf-ocr
-        # 时，若预检命中扫描/损坏信号，自动开启 OCR，避免乱码被直接翻译。
-        if not ocr:
+        # 文本层质量预检（多信号融合）：auto 模式下且用户未显式关闭 OCR 时，
+        # 若预检命中扫描/损坏信号，自动开启 OCR，避免乱码被直接翻译。off
+        # 模式下尊重用户选择，预检命中也不强制开启。
+        if ocr_mode == "on":
+            ocr = True
+        elif ocr_mode == "off":
+            ocr = False
+        else:  # auto
+            ocr = False
             try:
                 decision = preflight_scan_check(path)
                 if decision.is_scanned:

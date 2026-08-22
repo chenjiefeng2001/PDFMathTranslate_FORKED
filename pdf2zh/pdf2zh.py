@@ -129,6 +129,11 @@ def create_parser() -> argparse.ArgumentParser:
         help="flask",
     )
     parse_params.add_argument(
+        "--api",
+        action="store_true",
+        help="Run the REST/SSE API server (FastAPI) for SPA / third-party clients.",
+    )
+    parse_params.add_argument(
         "--celery",
         action="store_true",
         help="celery",
@@ -230,8 +235,20 @@ def create_parser() -> argparse.ArgumentParser:
         "--magicpdf-ocr",
         action="store_true",
         help="Enable OCR in the magicpdf parse engine (magic-pdf 1.x "
-        "pipe_ocr_merge).",
+        "pipe_ocr_merge). Equivalent to --magicpdf-ocr-mode on.",
     )
+    parse_params.add_argument(
+        "--magicpdf-ocr-mode",
+        type=str,
+        choices=["auto", "on", "off"],
+        default="auto",
+        help="OCR mode for the magicpdf parse engine: auto (default) "
+        "auto-enables OCR when the text-layer quality preflight flags "
+        "scanned/damaged signals; on forces OCR for every PDF; off "
+        "disables OCR entirely (the preflight never overrides it). "
+        "--magicpdf-ocr is equivalent to --magicpdf-ocr-mode on.",
+    )
+
 
     parse_params.add_argument(
         "--magicpdf-render",
@@ -397,14 +414,14 @@ def main(args: list[str] | None = None) -> int:
     if parsed_args.debug:
         log.setLevel(logging.DEBUG)
 
-    from pdf2zh.doclayout import ModelInstance, OnnxModel, set_backend
+    from pdf2zh.doclayout import set_backend
 
+    # 版面分析模型不在全局入口加载（改由 legacy/babeldoc 轨按需懒加载）：
+    # ``OnnxModel.load_available()`` 会立即创建 onnxruntime CUDA/TensorRT
+    # 会话，Windows 上 ORT 先加载自带的 cuDNN DLL 后，同一进程再导入
+    # torch 会因 DLL 冲突报 WinError 127（cudnn_cnn64_9.dll），导致全
+    # PyTorch 实现的 magic-pdf 引擎必然失败。magicpdf 轨不消费该模型。
     set_backend(parsed_args.backend)
-
-    if parsed_args.onnx:
-        ModelInstance.value = OnnxModel(parsed_args.onnx)
-    else:
-        ModelInstance.value = OnnxModel.load_available()
 
     if parsed_args.interactive:
         from pdf2zh.gui.entry import setup_gui
@@ -426,6 +443,19 @@ def main(args: list[str] | None = None) -> int:
         from pdf2zh.backend import flask_app
 
         flask_app.run(port=11008)
+        return 0
+
+    if parsed_args.api:
+        import uvicorn
+
+        from pdf2zh.services.api import create_api_app
+        from pdf2zh.services.runtime_singleton import get_runtime_service
+
+        # 默认放开 CORS：SPA 开发服务器（如 Vite 5173）跨域联调即开即用。
+        api_app = create_api_app(
+            service=get_runtime_service(), allow_origins=["*"]
+        )
+        uvicorn.run(api_app, host="127.0.0.1", port=11009)
         return 0
 
     if parsed_args.celery:
@@ -458,6 +488,18 @@ def main(args: list[str] | None = None) -> int:
 
     print(parsed_args)
 
+    # 输入存在性校验（--dir 模式的首项是待扫描目录，跳过）：不存在或不是
+    # 普通文件的输入在引擎路由前给出明确错误，而不是等到下游 open() 时抛出
+    # 令人困惑的 PermissionError/IsADirectoryError 调用栈。
+    if not parsed_args.dir:
+        invalid = [
+            f for f in (parsed_args.files or []) if not os.path.isfile(f)
+        ]
+        if invalid:
+            raise FileNotFoundError(
+                "Input PDF not found or not a regular file: " + ", ".join(invalid)
+            )
+
     # 解析引擎路由（Stage 2.3）：auto 时维持历史语义（--babeldoc → YADT，
     # 否则 legacy kernel）；显式 magicpdf 走 MinerU/magic-pdf 解析链路。
     parse_engine = resolve_parse_engine(parsed_args)
@@ -484,6 +526,19 @@ def resolve_parse_engine(parsed_args) -> str:
     return engine
 
 
+def resolve_magicpdf_ocr_mode(parsed_args) -> str:
+    """解析 magicpdf 引擎的 OCR 模式（auto/on/off）。
+
+    ``--magicpdf-ocr``（历史 bool 开关）等价 ``--magicpdf-ocr-mode on``；
+    二者都未指定时默认 ``auto``（预检命中扫描/损坏信号才自动开启 OCR）。
+    ``off`` 表示用户显式关闭 OCR——预检命中也绝不强制开启。
+    """
+    if getattr(parsed_args, "magicpdf_ocr", False):
+        return "on"
+    mode = getattr(parsed_args, "magicpdf_ocr_mode", "auto") or "auto"
+    return mode if mode in ("auto", "on", "off") else "auto"
+
+
 def _try_auto_switch_magicpdf(parsed_args) -> bool:
     """legacy 内核的文本层预检 + magicpdf 自动切换（报告 §6.1）。
 
@@ -498,8 +553,21 @@ def _try_auto_switch_magicpdf(parsed_args) -> bool:
     """
     if getattr(parsed_args, "_auto_switch_attempted", False):
         return False
+    # 刚从 magicpdf 引擎熔断降级回来：本次运行中 magic-pdf 已被证实不可用
+    # （解析异常 / 未安装），不再自动切回，避免 magicpdf → legacy → magicpdf
+    # 的乒乓循环与重复的引擎冷启动开销。
+    if getattr(parsed_args, "_magicpdf_fallback", False):
+        return False
     parsed_args._auto_switch_attempted = True
     if os.environ.get("PDF2ZH_AUTO_SWITCH_MAGICPDF", "1") == "0":
+        return False
+    # 用户显式关闭 OCR（--magicpdf-ocr-mode off）时，即使预检命中扫描/损坏
+    # 信号也不自动切换 magicpdf 引擎并强制开启 OCR——尊重用户的显式选择。
+    if resolve_magicpdf_ocr_mode(parsed_args) == "off":
+        logger.info(
+            "MagicPDF OCR mode is 'off'; skipping auto-switch to "
+            "--parse-engine magicpdf with OCR."
+        )
         return False
     files = list(parsed_args.files or [])
     if not files:
@@ -541,8 +609,26 @@ def _try_auto_switch_magicpdf(parsed_args) -> bool:
     return False
 
 
+def _ensure_doclayout_model(parsed_args) -> None:
+    """版面分析模型懒加载（legacy / babeldoc 轨入口调用，幂等）。
+
+    ``--onnx`` 显式指定模型路径时始终重建；否则仅在全局单例为空时加载。
+    从 CLI 全局入口下沉到此处的原因见 :func:`main` 中 set_backend 处注释
+    （onnxruntime CUDA 会话会污染进程 DLL 环境，阻断后续 torch 导入）。
+    """
+    from pdf2zh.doclayout import ModelInstance, OnnxModel
+
+    if parsed_args.onnx:
+        ModelInstance.value = OnnxModel(parsed_args.onnx)
+        return
+    if ModelInstance.value is None:
+        ModelInstance.value = OnnxModel.load_available()
+
+
 def _run_legacy_kernel(parsed_args) -> int:
     """既有内核路由（fast/precise，不涉及 magicpdf/babeldoc）。"""
+    _ensure_doclayout_model(parsed_args)
+
     # Unified kernel routing — both fast and precise modes go through the registry
     from pdf2zh.kernel import KernelRegistry
     from pdf2zh.kernel.protocol import TranslateRequest
@@ -594,6 +680,8 @@ def _run_legacy_kernel(parsed_args) -> int:
 
 
 def yadt_main(parsed_args) -> int:
+    _ensure_doclayout_model(parsed_args)
+
     # 把后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）同步到 BabelDOC 内部
     # ONNX 会话（幂等）：显式 cuda/dml 时 BabelDOC 版面分析也走 GPU，而不是
     # 其硬编码的 CPU-only。
@@ -673,6 +761,7 @@ def yadt_main(parsed_args) -> int:
         OllamaTranslator,
         OpenAIlikedTranslator,
         OpenAITranslator,
+        OpenCodeTranslator,
         QwenMtTranslator,
         SiliconTranslator,
         TencentTranslator,
@@ -705,6 +794,7 @@ def yadt_main(parsed_args) -> int:
         OpenAIlikedTranslator,
         QwenMtTranslator,
         X302AITranslator,
+        OpenCodeTranslator,
     ]:
         if service_name == translator.name:
             translator = translator(
@@ -745,6 +835,10 @@ def yadt_main(parsed_args) -> int:
             no_dual=False,
             no_mono=False,
             qps=parsed_args.thread,
+            # 双语 PDF 使用交替页模式（与 RuntimeService 的
+            # babeldoc_adapter 路由保持一致）：原文页、译文页各自独立成页
+            # 并交替排列，而不是 BabelDOC 默认的原文+译文 side-by-side 合并。
+            use_alternating_pages_dual=True,
             # 扫描版 / 无文本层 PDF 的 OCR 处理由 --babeldoc-ocr / 环境变量
             # PDF2ZH_BABELDOC_OCR 决定（auto 自动检测扫描并启用 OCR / on
             # 强制 OCR / off 跳过扫描检测），而不是保持 BabelDOC 默认的

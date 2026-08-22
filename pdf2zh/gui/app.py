@@ -5,9 +5,15 @@ Usage:
 """
 
 from __future__ import annotations
+# --- 优先加载 PyTorch 解决 Windows 环境下 DLL 顺序冲突（副作用导入，勿删）---
+try:
+    import torch  # noqa: F401
+except Exception:
+    pass
+# -----------------------------------------------------
 
-import logging
 import os
+import logging
 from typing import Any, Callable, Dict, List, Tuple
 
 import gradio as gr
@@ -43,6 +49,7 @@ from pdf2zh.gui.events import (
     EVENT_BUS,
     DiagnosticsUpdated,
     FileGenerated,
+    NoticeEmitted,
     PreviewReady,
     TaskCancelled,
     TaskFailed,
@@ -107,7 +114,7 @@ def on_translate(
     backend: str,
     ocr_mode: str,
     parse_engine: str,
-    magicpdf_ocr: bool,
+    magicpdf_ocr: str,
     current_task_id: str, last_inputs: Any = None,
 ) -> tuple:
     """Handle translate button with double-click prevention.

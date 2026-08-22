@@ -245,8 +245,11 @@ def _session_has_gpu(backend: str, effective: list[str]) -> bool:
 def _patched_init(self, model_path: str) -> None:
     """替换后的 ``OnnxModel.__init__``。
 
-    - ``auto`` → 直接走原始 ``__init__``（保持 BabelDOC 原生 CPU / macOS
-      CoreML 行为，不做任何干预）；
+    - ``auto`` → 复用 pdf2zh 主链路的 auto 语义（:func:`pdf2zh.doclayout
+      .resolve_providers` 的执行级探测）：GPU（CUDA/DML/CoreML）真正可用时
+      自动启用，避免"主链路 doclayout 已走 GPU、BabelDOC 内部 ONNX 仍 CPU"
+      的撕裂；无可执行 GPU 时回退原始 ``__init__``（保持 BabelDOC 原生
+      CPU / macOS CoreML 行为）；
     - 显式 ``cuda``/``dml``/``cpu`` → 按开关解析 provider 创建会话；
       任何异常（如 CUDA 会话创建失败）自动回退原始 CPU 初始化，绝不抛出。
     """
@@ -256,8 +259,17 @@ def _patched_init(self, model_path: str) -> None:
         )
     backend = get_babeldoc_backend()
     if backend is None or backend == "auto":
-        return _ORIGINAL_INIT(self, model_path)
-    providers = resolve_babeldoc_providers(backend)
+        try:
+            from pdf2zh.doclayout import resolve_providers as _main_resolve  # noqa: PLC0415
+
+            providers = list(_main_resolve(None))
+        except Exception:  # noqa: BLE001 -- 主链路解析失败按原生 CPU 兜底
+            providers = resolve_babeldoc_providers("auto")
+        if not any(p != "CPUExecutionProvider" for p in providers):
+            # 无执行级可用 GPU：保持 BabelDOC 原生行为（含 macOS CoreML 特判）。
+            return _ORIGINAL_INIT(self, model_path)
+    else:
+        providers = resolve_babeldoc_providers(backend)
     try:
         _init_with_providers(self, model_path, providers)
     except Exception as exc:  # noqa: BLE001 -- GPU 不可用/损坏时回退 CPU
