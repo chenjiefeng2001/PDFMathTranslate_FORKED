@@ -32,7 +32,7 @@ dependencies = [
     "onnxruntime",
     "opencv-python-headless",
     "tencentcloud-sdk-python-tmt",
-    "pdfminer-six==20250416",
+    "pdfminer-six>=20250416,<20250507",
     "gradio_pdf>=0.0.21",
     "pikepdf",
     "peewee>=3.17.8",
@@ -53,6 +53,12 @@ argostranslate = [
 mcp = [
     "mcp>=1.6.0",
 ]
+# `pdf2zh --api`（pdf2zh.services.api）与 Tauri sidecar（deploy/pdf2zh_sidecar.py）所需；
+# 核心 CLI/GUI 不依赖，故为可选 extra
+api = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
 cuda = [
     "onnxruntime-gpu",
 ]
@@ -61,10 +67,10 @@ dml = [
 ]
 magicpdf = [
     # MinerU 2.x（Py3.10-3.12 优先）或 magic-pdf 1.3.12（Py3.13 兜底）。
-    # 由 pdf2zh.engine_env 自动选择；二者装其一即可。
-    # 注意：两个包在 PyPI 上互相依赖冲突，不要同时安装。
-    "mineru>=2.0",
-    "magic-pdf>=1.3.12,<2",
+    # 由 pdf2zh.engine_env 自动选择；二者互斥（在 PyPI 上互相依赖冲突），
+    # 故用 environment marker 按 Python 版本拆分支，避免解析器同时解析两个引擎。
+    "mineru>=2.0; python_version < '3.13'",
+    "magic-pdf>=1.3.12,<2; python_version >= '3.13'",
 ]
 
 precise = []  # marker — run `pdf2zh-setup-precise` after install to provision the isolated venv
@@ -89,6 +95,16 @@ build-backend = "hatchling.build"
 [project.scripts]
 pdf2zh = "pdf2zh.pdf2zh:main"
 pdf2zh-setup-precise = "pdf2zh.kernel.precise:setup_precise_cli"
+
+[tool.uv]
+# magic-pdf 1.x 的 PyMuPDF<1.25.0 pin 属历史遗留（1.3.12 在 pymupdf 1.28 下实测正常），
+# 而 babeldoc>=0.6.4 依赖 pymupdf>=1.26.7，二者严格解析必冲突。
+# 用依赖覆写强制 pymupdf 高版本，保证 `uv sync`（CI 解析全部 extras）可解析
+# `pdf2zh[magicpdf]`；pip 安装若报 pymupdf 冲突，见 docs/ADVANCED.md。
+override-dependencies = [
+    "pymupdf>=1.26.7",
+]
+
 
 [tool.flake8]
 ignore = ["E203", "E261", "E501", "W503", "E741"]
