@@ -10,6 +10,8 @@ TaskProgressEvent / RuntimeNoticeEvent（客户端无关，见 gui/events.py）�
 端点一览：
     GET  /api/health                        健康检查
     GET  /api/engines                       引擎列表（envs 只回显是否已配置，不回显值）
+    GET  /api/engines/{name}/envs           引擎凭据明细（脱敏回显）
+    PUT  /api/engines/{name}/envs           写入/清除用户级凭据（空串=清除）
     POST /api/tasks                         提交任务（multipart 上传或 JSON source_path）
     GET  /api/tasks                         任务列表
     GET  /api/tasks/{task_id}               任务状态
@@ -34,6 +36,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
+from pydantic import BaseModel
 
 from pdf2zh.services.runtime_service import RuntimeService, TranslationRequest
 from pdf2zh.services.runtime_singleton import get_runtime_service
@@ -42,6 +45,25 @@ logger = logging.getLogger(__name__)
 
 _TERMINAL_STATUSES = {"completed", "cancelled", "failed"}
 _SSE_KEEPALIVE_SECONDS = 15.0
+
+
+class EngineEnvsPayload(BaseModel):
+    """PUT /api/engines/{name}/envs 请求体：KEY → 新值；空串表示清除该凭据。"""
+
+    envs: Dict[str, Optional[str]]
+
+
+def _mask_secret(value: str) -> str:
+    """凭据回显脱敏：只暴露首尾少量字符，供用户确认已配置内容。
+
+    掩码用 ASCII ``*``（非 ``•``）：部分 HTTP 客户端对无 charset 的
+    JSON 响应按 Latin-1 解码，多字节掩码符会乱码。
+    """
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return "****"
+    return f"{value[:3]}****{value[-4:]}"
 
 
 def _sse_frame(event: str, data: Any) -> str:
@@ -113,6 +135,108 @@ def create_api_app(
                 envs.append({"key": key, "configured": bool(value)})
             out.append({"name": cls.name, "label": cls.__name__, "envs": envs})
         return out
+
+    def _engine_cls(name: str):
+        from pdf2zh.translator import build_translator_registry
+
+        cls = next(
+            (c for c in build_translator_registry() if c.name == name), None
+        )
+        if cls is None:
+            raise HTTPException(404, f"engine not found: {name}")
+        return cls
+
+    @app.get("/api/engines/{name}/envs")
+    def get_engine_envs(name: str) -> Dict[str, Any]:
+        """引擎凭据明细（值脱敏回显，供设置界面确认已配置内容）。"""
+        from pdf2zh.config import ConfigManager
+
+        cls = _engine_cls(name)
+        stored = ConfigManager.get_translator_by_name(name) or {}
+        envs = []
+        for key in cls.envs:
+            value = str(stored.get(key) or "")
+            envs.append(
+                {
+                    "key": key,
+                    "configured": bool(value),
+                    "masked": _mask_secret(value),
+                }
+            )
+        return {"name": name, "envs": envs}
+
+    @app.put("/api/engines/{name}/envs")
+    def update_engine_envs(name: str, payload: EngineEnvsPayload) -> Dict[str, Any]:
+        """写入/清除用户级凭据（ConfigManager 持久化，下次任务实例化即生效）。
+
+        语义：值非空 → 设置；值为空串/null → 清除该键。仅接受引擎声明的键。
+        """
+        from pdf2zh.config import ConfigManager
+
+        cls = _engine_cls(name)
+        valid = set(cls.envs)
+        unknown = sorted(k for k in payload.envs if k not in valid)
+        if unknown:
+            raise HTTPException(400, f"unknown env keys: {', '.join(unknown)}")
+
+        stored = {
+            k: v
+            for k, v in (ConfigManager.get_translator_by_name(name) or {}).items()
+            if k in valid
+        }
+        cleared = []
+        for key, value in payload.envs.items():
+            text = str(value or "").strip()
+            if text:
+                stored[key] = text
+            elif stored.pop(key, None) is not None:
+                cleared.append(key)
+        ConfigManager.set_translator_by_name(name, stored)
+        logger.info(
+            "engine credentials updated: %s (set=%s cleared=%s)",
+            name,
+            sorted(k for k in payload.envs if not cleared or k not in cleared),
+            cleared,
+        )
+        envs = [
+            {
+                "key": key,
+                "configured": bool(str(stored.get(key) or "")),
+                "masked": _mask_secret(str(stored.get(key) or "")),
+            }
+            for key in cls.envs
+        ]
+        return {"name": name, "envs": envs}
+
+    # ── selftest（frozen 分发诊断） ─────────────────────────────────────
+    @app.get("/api/selftest/babeldoc")
+    def selftest_babeldoc() -> Dict[str, Any]:
+        """尝试完整导入 BabelDOC 引擎链路，返回真实异常。
+
+        frozen 打包环境中 babeldoc_adapter 会把任何 ImportError 包装成
+        "engine not available"；该端点用于直接暴露缺失模块，便于定位打包缺件。
+        """
+        try:
+            from babeldoc.format.pdf.high_level import (  # noqa: F401 PLC0415
+                async_translate,
+                init,
+            )
+            from babeldoc.format.pdf.translation_config import (  # noqa: F401 PLC0415
+                TranslationConfig,
+                WatermarkOutputMode,
+            )
+            # tiktoken 的编码插件经 entry_points 动态加载（frozen 环境常见
+            # 缺件点），导入成功不等于运行时可用，这里按 babeldoc 实际用法
+            # 直接实例化一次 o200k_base。
+            import tiktoken  # noqa: PLC0415
+
+            tiktoken.get_encoding("o200k_base")
+            return {"ok": True, "error": None}
+        except Exception as exc:  # noqa: BLE001 -- 诊断端点的职责就是回显
+            return {
+                "ok": False,
+                "error": f"{type(exc).__name__}: {exc}",
+            }
 
     # ── submit ────────────────────────────────────────────────────────────
     def _submit(request: TranslationRequest) -> Dict[str, str]:
