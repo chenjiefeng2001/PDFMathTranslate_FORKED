@@ -1,7 +1,7 @@
 /** 类型化端点封装：业务代码只依赖这些函数与 types.ts。 */
 
 import { api } from "./client";
-import type { EngineInfo, TaskState } from "./types";
+import type { EngineInfo, GlossaryInfo, TaskState } from "./types";
 
 export function getHealth(): Promise<{ status: string; tasks: number }> {
   return api().get("/api/health");
@@ -29,7 +29,9 @@ export interface SubmitParams {
   pageRange?: string;
   parseEngine?: string;
   modeChoice?: string;
+  ocrMode?: string;
   ignoreCache?: boolean;
+  glossaryNames?: string[];
 }
 
 export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
@@ -45,7 +47,11 @@ export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
   if (params.modeChoice && params.modeChoice !== "auto") {
     form.append("mode_choice", params.modeChoice);
   }
+  if (params.ocrMode) form.append("ocr_mode", params.ocrMode);
   form.append("ignore_cache", String(!!params.ignoreCache));
+  if (params.glossaryNames?.length) {
+    form.append("glossary_files", params.glossaryNames.join(","));
+  }
   return api().postForm("/api/tasks", form);
 }
 
@@ -60,6 +66,49 @@ export function controlTask(
 
 export function cancelTask(taskId: string): Promise<{ cancelled: boolean }> {
   return api().request("DELETE", `/api/tasks/${taskId}`);
+}
+
+/* ── 词表库（设置界面） ──────────────────────────────────────────── */
+
+export function listGlossaries(): Promise<GlossaryInfo[]> {
+  return api().get("/api/glossaries");
+}
+
+export function importGlossary(
+  file: File,
+  name?: string,
+): Promise<GlossaryInfo> {
+  const form = new FormData();
+  form.append("file", file);
+  if (name) form.append("name", name);
+  return api().postForm("/api/glossaries", form);
+}
+
+export function glossaryDownloadUrl(name: string): string {
+  return `${resolveApiBaseForHref()}/api/glossaries/${encodeURIComponent(name)}/download`;
+}
+
+/* ── 引擎凭据（设置界面） ────────────────────────────────────────── */
+
+export interface EngineEnvStatus {
+  key: string;
+  configured: boolean;
+  /** 脱敏回显（如 "sk-••••ab12"），未配置为空串 */
+  masked: string;
+}
+
+export function getEngineEnvs(engineName: string): Promise<{
+  name: string;
+  envs: EngineEnvStatus[];
+}> {
+  return api().get(`/api/engines/${encodeURIComponent(engineName)}/envs`);
+}
+
+export function updateEngineEnvs(
+  engineName: string,
+  envs: Record<string, string>,
+): Promise<{ name: string; envs: EngineEnvStatus[] }> {
+  return api().request("PUT", `/api/engines/${encodeURIComponent(engineName)}/envs`, { envs });
 }
 
 /** 结果文件下载地址（浏览器原生 GET，尊重 apiBase 解析链）。 */

@@ -23,6 +23,8 @@ interface AppState {
   connected: boolean;
   submitting: boolean;
   error: string | null;
+  /** 每任务执行日志（ProgressPanel 渲染），环形上限 200 条 */
+  logs: Record<string, string[]>;
   /** 当前活动任务的取消订阅句柄 */
   _unsub: (() => void) | null;
 
@@ -33,6 +35,20 @@ interface AppState {
   submit(params: Parameters<typeof submitTask>[0]): Promise<string | null>;
   control(action: "pause" | "resume" | "skip"): Promise<void>;
   cancelActive(): Promise<void>;
+}
+
+const LOG_CAP = 200;
+
+function appendLog(
+  logs: Record<string, string[]>,
+  taskId: string,
+  line: string,
+): Record<string, string[]> {
+  if (!line.trim()) return logs;
+  const prev = logs[taskId] ?? [];
+  const next = [...prev, line];
+  if (next.length > LOG_CAP) next.splice(0, next.length - LOG_CAP);
+  return { ...logs, [taskId]: next };
 }
 
 function applyEventToState(
@@ -56,6 +72,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   connected: false,
   submitting: false,
   error: null,
+  logs: {},
   _unsub: null,
 
   async bootstrap() {
@@ -98,6 +115,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       });
     };
 
+    const log = (line: string) =>
+      set({ logs: appendLog(get().logs, taskId, line) });
+
     const unsub = api().openEvents(`/api/tasks/${taskId}/events`, {
       onOpen: () => set({ connected: true }),
       onError: () => set({ connected: false }),
@@ -110,19 +130,25 @@ export const useAppStore = create<AppState>((set, get) => ({
             });
             if (isTerminal(frame.data.status)) set({ _unsub: null });
             break;
-          case "progress":
+          case "progress": {
+            const current = get().tasks[taskId];
+            if (frame.data.message) log(frame.data.message);
+            if (current) upsert(applyEventToState(current, frame.data));
+            break;
+          }
           case "notice": {
             const current = get().tasks[taskId];
+            const { severity, title, message } = frame.data;
+            log(`[${severity}] ${title || ""} ${message || ""}`.trim());
             if (current) {
-              upsert(
-                frame.event === "progress"
-                  ? applyEventToState(current, frame.data)
-                  : { message: `${frame.data.title || ""} ${frame.data.message || ""}`.trim() },
-              );
+              upsert({
+                message: `${title || ""} ${message || ""}`.trim(),
+              });
             }
             break;
           }
           case "done": {
+            log(`[${frame.data.status}]`);
             // 终态后拉一次全量（获取 result_files 等）
             import("../api/endpoints")
               .then(({ getTask }) => getTask(taskId))

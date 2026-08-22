@@ -21,8 +21,8 @@ export interface ApiTransport {
   get<T>(path: string): Promise<T>;
   /** multipart 表单提交，返回 JSON */
   postForm<T>(path: string, form: FormData): Promise<T>;
-  /** 其余 JSON 方法（DELETE 等） */
-  request<T>(method: string, path: string): Promise<T>;
+  /** 其余方法（PUT/DELETE 等），body 为可选 JSON 载荷 */
+  request<T>(method: string, path: string, body?: unknown): Promise<T>;
   /** 打开 SSE 流，返回取消订阅函数。onError 后由实现方自动重连。 */
   openEvents(
     path: string,
@@ -94,8 +94,12 @@ export class HttpTransport implements ApiTransport {
     return (await resp.json()) as T;
   }
 
-  async request<T>(method: string, path: string): Promise<T> {
-    const resp = await fetch(this.url(path), { method });
+  async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const resp = await fetch(this.url(path), {
+      method,
+      headers: body === undefined ? undefined : { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
     if (!resp.ok) {
       // 404 同样抛错（如任务已被移除后的 pause/resume/cancel），
       // 由调用方按 status 决定呈现方式

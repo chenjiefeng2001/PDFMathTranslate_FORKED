@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --brand-gradient: linear-gradient(135deg, #165dff, #7a5cff);
   --color-accent: #165dff;
   --color-accent-hover: #0e42d2;
@@ -51,4 +52,29 @@
   --text-weight-regular: 400;
   --text-xl: 20px;
   --text-xs: 12px;
+}
+
+/* 暗色主题：AppShell 在 <html> 上切换 data-theme，antd darkAlgorithm 只覆盖
+   antd 组件；页面级背景/文字/边框必须由这些变量接管才能整体变暗。 */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-accent-soft: rgba(22, 93, 255, 0.2);
+  --color-bg: #14161b;
+  --color-border: #2f333b;
+  --color-border-strong: #414750;
+  --color-danger: #f25555;
+  --color-on-accent: #ffffff;
+  --color-stage-done: #23c343;
+  --color-stage-error: #f25555;
+  --color-stage-pending: #7a8290;
+  --color-stage-running: #4080ff;
+  --color-success: #23c343;
+  --color-surface: #1d2026;
+  --color-surface-raised: #23262e;
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #a2a9b5;
+  --color-text-tertiary: #7a8290;
+  --color-warning: #f7ba1e;
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
 }

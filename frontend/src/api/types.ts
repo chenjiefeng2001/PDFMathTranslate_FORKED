@@ -14,6 +14,14 @@ export interface EngineInfo {
   envs: EngineEnv[];
 }
 
+/** 词表库条目（GET /api/glossaries）。 */
+export interface GlossaryInfo {
+  name: string;
+  path: string;
+  entries: number | null;
+  error?: string;
+}
+
 export interface ResultFile {
   index?: string;
   path?: string;

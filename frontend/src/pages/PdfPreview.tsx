@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Space, Spin } from "antd";
 import { LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { useTranslation } from "react-i18next";
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function PdfPreview({ url }: Props) {
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const docRef = useRef<pdfjsLib.PDFDocumentProxy | null>(null);
   const [page, setPage] = useState(1);
@@ -91,7 +93,7 @@ export default function PdfPreview({ url }: Props) {
       <div style={{ position: "relative", minHeight: 120 }}>
         {loading && <Spin style={{ position: "absolute", inset: 0, margin: "auto" }} />}
         {failed ? (
-          <div style={{ opacity: 0.6 }}>预览不可用（文件缺失或非 PDF）</div>
+          <div style={{ opacity: 0.6 }}>{t("ui.preview_unavailable")}</div>
         ) : (
           <canvas
             ref={canvasRef}

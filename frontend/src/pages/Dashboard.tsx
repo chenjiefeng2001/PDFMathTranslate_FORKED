@@ -1,55 +1,93 @@
-/** 仪表盘主页：上传/配置 → 提交 → SSE 进度 → 控制 → 结果下载。 */
+/** 仪表盘主页：上传 → 配置（基础+高级） → 提交 → 执行状态（ProgressPanel） → 结果下载与预览。 */
 
 import {
   Alert,
   Button,
   Card,
-  Descriptions,
+  Collapse,
   Form,
   Input,
   InputNumber,
   List,
-  Progress,
+  Progress as MiniProgress,
   Select,
   Space,
+  Switch,
   Tag,
   Upload,
-  UploadFile,
-  message,
+  Typography,
 } from "antd";
-import { InboxOutlined, DownloadOutlined } from "@ant-design/icons";
-import { useEffect } from "react";
+import { DownloadOutlined, InboxOutlined } from "@ant-design/icons";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { artifactUrl, getTask, listTasks } from "../api/endpoints";
+import {
+  artifactUrl,
+  getTask,
+  listGlossaries,
+  listTasks,
+} from "../api/endpoints";
 import type { ResultFile, TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
 import { useAppStore } from "../stores/taskStore";
 import PdfPreview from "./PdfPreview";
 import DiagnosticsPanel from "./DiagnosticsPanel";
+import ProgressPanel, { statusLabelKey } from "./ProgressPanel";
 
 const LANGS = [
   "auto", "zh-CN", "zh-TW", "en", "ja", "ko",
   "fr", "de", "ru", "es", "it", "pt", "ar", "hi",
 ];
 
-function stageLabel(t: (k: string) => string, s: TaskState): string {
-  const key = s.stage || s.status;
-  return t(`stage.${key}`);
+function StatusTag({ status }: { status: string }) {
+  const { t } = useTranslation();
+  const key = statusLabelKey(status);
+  const color =
+    status === "completed"
+      ? "green"
+      : status === "failed" || status === "cancelled"
+        ? "red"
+        : status === "paused"
+          ? "orange"
+          : "blue";
+  return <Tag color={color}>{key ? t(key) : status}</Tag>;
 }
 
 export default function Dashboard() {
   const { t } = useTranslation();
   const [form] = Form.useForm();
+
   const engines = useAppStore((s) => s.engines);
   const tasks = useAppStore((s) => s.tasks);
   const activeId = useAppStore((s) => s.activeId);
   const connected = useAppStore((s) => s.connected);
   const submitting = useAppStore((s) => s.submitting);
   const error = useAppStore((s) => s.error);
+  const logs = useAppStore((s) => s.logs);
   const bootstrap = useAppStore((s) => s.bootstrap);
   const submit = useAppStore((s) => s.submit);
   const control = useAppStore((s) => s.control);
   const cancelActive = useAppStore((s) => s.cancelActive);
+
+  const [glossaryOptions, setGlossaryOptions] = useState<
+    { value: string; label: string }[]
+  >([]);
+
+  useEffect(() => {
+    listGlossaries()
+      .then((items) =>
+        setGlossaryOptions(
+          items
+            .filter((g) => !g.error)
+            .map((g) => ({
+              value: g.name,
+              label: `${g.name} · ${g.entries ?? 0}`,
+            })),
+        ),
+      )
+      .catch(() => {
+        /* 服务未就绪时静默 */
+      });
+  }, []);
 
   useEffect(() => {
     void bootstrap();
@@ -57,19 +95,32 @@ export default function Dashboard() {
 
   const active: TaskState | null = activeId ? tasks[activeId] ?? null : null;
 
-  async function onSubmit(values: Record<string, unknown>) {
-    const files: UploadFile[] = (values.file as UploadFile[]) || [];
-    const file = files[0]?.originFileObj ?? null;
-    await submit({
-      file,
-      targetLang: (values.target_lang as string) || "zh-CN",
-      sourceLang: (values.source_lang as string) || "auto",
-      engine: (values.engine as string) || "google",
-      threads: values.threads as number,
-      pageRange: (values.page_range as string) || undefined,
-      parseEngine: (values.parse_engine as string) || "auto",
-      ignoreCache: !!values.ignore_cache,
-    });
+  // 历史任务：新任务在前；至少一条即展示。
+  const history: TaskState[] = useMemo(
+    () =>
+      Object.values(tasks).sort(
+        (a, b) => (b.created_at ?? 0) - (a.created_at ?? 0),
+      ),
+    [tasks],
+  );
+
+  useEffect(() => {
+    void refreshHistory();
+    const timer = window.setInterval(() => void refreshHistory(), 15000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  async function refreshHistory() {
+    try {
+      const list = await listTasks();
+      useAppStore.setState((s) => {
+        const merged = { ...s.tasks };
+        for (const task of list) merged[task.task_id] = task;
+        return { tasks: merged };
+      });
+    } catch {
+      /* ignore */
+    }
   }
 
   async function refreshArtifacts() {
@@ -89,164 +140,214 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.status]);
 
-  const artifacts: ResultFile[] = active?.result_files ?? [];
-
-  // 历史任务列表（终态/活动均可点击切换）
-  const history: TaskState[] = useAppStore((s) => s.refreshTasks) ? Object.values(tasks).sort((a, b) => b.created_at - a.created_at) : [];
-
-  async function refreshHistory() {
-    try {
-      await listTasks().then((list) =>
-        useAppStore.setState((s) => {
-          const merged = { ...s.tasks };
-          for (const t of list) merged[t.task_id] = t;
-          return { tasks: merged };
-        }),
-      );
-    } catch {
-      /* ignore */
-    }
+  async function onSubmit(values: Record<string, unknown>) {
+    const file = values.file;
+    const raw = Array.isArray(file) ? file[0] : undefined;
+    const blob = raw?.originFileObj ?? null;
+    if (!blob) return;
+    await submit({
+      file: blob,
+      targetLang: (values.target_lang as string) || "zh-CN",
+      sourceLang: (values.source_lang as string) || "auto",
+      engine: (values.engine as string) || "google",
+      threads: values.threads as number,
+      pageRange: (values.page_range as string) || undefined,
+      parseEngine: (values.parse_engine as string) || "auto",
+      modeChoice: (values.mode_choice as string) || "auto",
+      ocrMode: (values.ocr_mode as string) || "auto",
+      ignoreCache: !!values.ignore_cache,
+      glossaryNames: (values.glossary_names as string[]) || [],
+    });
   }
 
-  useEffect(() => {
-    void refreshHistory();
-    const timer = window.setInterval(() => void refreshHistory(), 15000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const artifacts: ResultFile[] = active?.result_files ?? [];
+  const selectedName = Form.useWatch("file", form)?.[0]?.name as string | undefined;
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24, display: "grid", gap: 16 }}>
       {error && <Alert type="error" showIcon message={error} />}
 
-      <Card title={t("ui.section_config")}>
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={onSubmit}
-          initialValues={{
-            target_lang: "zh-CN",
-            source_lang: "auto",
-            engine: "google",
-            threads: 4,
-            parse_engine: "auto",
-          }}
-        >
-          <Form.Item label={t("ui.upload_title")} name="file" valuePropName="fileList">
-            <Upload.Dragger multiple={false} maxCount={1} beforeUpload={() => false}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onSubmit}
+        initialValues={{
+          target_lang: "zh-CN",
+          source_lang: "auto",
+          engine: "google",
+          threads: 4,
+          parse_engine: "auto",
+          mode_choice: "auto",
+          ocr_mode: "auto",
+        }}
+      >
+        {/* 文件上传 */}
+        <Card title={t("ui.section_upload")}>
+          <Form.Item name="file" valuePropName="fileList" getValueFromEvent={(e) => e?.fileList}>
+            <Upload.Dragger
+              multiple={false}
+              maxCount={1}
+              accept=".pdf,.docx"
+              beforeUpload={() => false}
+              disabled={submitting}
+            >
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p className="ant-upload-text">{t("ui.upload_drag")}</p>
+              <p className="ant-upload-text">{t("ui.upload_label_file")}</p>
+              <p className="ant-upload-hint">{t("ui.upload_formats_hint")}</p>
             </Upload.Dragger>
           </Form.Item>
+        </Card>
 
+        {/* 翻译配置 */}
+        <Card title={t("ui.section_config")} style={{ marginTop: 16 }}>
           <Space wrap size={12}>
             <Form.Item label={t("ui.config_lang_target")} name="target_lang">
-              <Select style={{ width: 130 }} options={LANGS.map((l) => ({ value: l, label: l }))} />
+              <Select style={{ width: 140 }} options={LANGS.map((l) => ({ value: l, label: l }))} />
             </Form.Item>
             <Form.Item label={t("ui.config_lang_source")} name="source_lang">
-              <Select style={{ width: 130 }} options={LANGS.map((l) => ({ value: l, label: l }))} />
+              <Select style={{ width: 140 }} options={LANGS.map((l) => ({ value: l, label: l }))} />
             </Form.Item>
             <Form.Item label={t("ui.config_engine")} name="engine">
               <Select
-                style={{ width: 220 }}
+                style={{ width: 240 }}
                 showSearch
-                options={engines.map((e) => ({ value: e.name, label: e.name }))}
-              />
-            </Form.Item>
-            <Form.Item label="Threads" name="threads">
-              <InputNumber min={1} max={32} />
-            </Form.Item>
-            <Form.Item label="Pages" name="page_range">
-              <Input placeholder="e.g. 1-5" style={{ width: 110 }} />
-            </Form.Item>
-            <Form.Item label="Parse" name="parse_engine">
-              <Select
-                style={{ width: 120 }}
-                options={["auto", "legacy", "babeldoc", "magicpdf"].map((v) => ({ value: v, label: v }))}
+                optionFilterProp="value"
+                options={engines.map((e) => ({
+                  value: e.name,
+                  label: e.label && e.label !== e.name ? `${e.label} (${e.name})` : e.name,
+                }))}
               />
             </Form.Item>
           </Space>
 
-          <Button type="primary" htmlType="submit" loading={submitting} block>
-            {t("ui.btn_translate")}
-          </Button>
-        </Form>
-      </Card>
+          <Collapse
+            ghost
+            items={[
+              {
+                key: "advanced",
+                label: t("ui.config_advanced"),
+                children: (
+                  <Space direction="vertical" size={12} style={{ width: "100%" }}>
+                    <Space wrap size={12}>
+                      <Form.Item label={t("ui.config_threads")} name="threads">
+                        <InputNumber min={1} max={32} />
+                      </Form.Item>
+                      <Form.Item label={t("ui.config_pages")} name="page_range">
+                        <Input placeholder="1-5, 8" style={{ width: 120 }} allowClear />
+                      </Form.Item>
+                      <Form.Item label={t("ui.config_parse_engine")} name="parse_engine" tooltip={t("ui.config_parse_engine_info")}>
+                        <Select
+                          style={{ width: 180 }}
+                          options={[
+                            { value: "auto", label: t("ui.config_parse_engine_auto") },
+                            { value: "legacy", label: t("ui.config_parse_engine_legacy") },
+                            { value: "babeldoc", label: t("ui.config_parse_engine_babeldoc") },
+                            { value: "magicpdf", label: t("ui.config_parse_engine_magicpdf") },
+                          ]}
+                        />
+                      </Form.Item>
+                    </Space>
+                    <Space wrap size={12}>
+                      <Form.Item label={t("ui.config_mode")} name="mode_choice" tooltip={t("ui.config_mode_info")}>
+                        <Select
+                          style={{ width: 160 }}
+                          options={[
+                            { value: "auto", label: t("ui.config_mode_auto") },
+                            { value: "quick", label: t("ui.config_mode_quick") },
+                            { value: "standard", label: t("ui.config_mode_standard") },
+                            { value: "quality", label: t("ui.config_mode_quality") },
+                            { value: "babeldoc", label: t("ui.config_mode_babeldoc") },
+                          ]}
+                        />
+                      </Form.Item>
+                      <Form.Item label={t("ui.config_ocr_mode")} name="ocr_mode" tooltip={t("ui.config_ocr_mode_info")}>
+                        <Select
+                          style={{ width: 220 }}
+                          options={[
+                            { value: "auto", label: t("ui.config_ocr_mode_auto") },
+                            { value: "on", label: t("ui.config_ocr_mode_on") },
+                            { value: "off", label: t("ui.config_ocr_mode_off") },
+                          ]}
+                        />
+                      </Form.Item>
+                      <Form.Item label={t("ui.config_ignore_cache")} name="ignore_cache" valuePropName="checked">
+                        <Switch />
+                      </Form.Item>
+                    </Space>
+                    {glossaryOptions.length > 0 && (
+                      <Form.Item
+                        label={t("ui.config_glossary_files")}
+                        name="glossary_names"
+                        tooltip={t("ui.config_glossary_files_info")}
+                      >
+                        <Select
+                          mode="multiple"
+                          allowClear
+                          placeholder={t("ui.settings_glossary_empty")}
+                          options={glossaryOptions}
+                          style={{ width: "100%" }}
+                        />
+                      </Form.Item>
+                    )}
+                  </Space>
+                ),
+              },
+            ]}
+          />
 
+          <Button type="primary" htmlType="submit" loading={submitting} disabled={!selectedName} block size="large">
+            {t("ui.progress_translate")}
+          </Button>
+        </Card>
+      </Form>
+
+      {/* 执行状态（进度条 / 阶段 / 控制按钮 / 日志） */}
       {active && (
-        <Card
-          title={
-            <Space>
-              <span>{t("stage.translating")}</span>
-              <Tag color={isTerminal(active.status) ? (active.status === "completed" ? "green" : "red") : "blue"}>
-                {active.status}
-              </Tag>
-              {!isTerminal(active.status) && (
-                <Tag color={connected ? "cyan" : "orange"}>
-                  SSE {connected ? "live" : "reconnecting"}
-                </Tag>
-              )}
-            </Space>
-          }
-          extra={
-            !isTerminal(active.status) && (
-              <Space>
-                <Button size="small" onClick={() => void control("pause")}>⏸</Button>
-                <Button size="small" onClick={() => void control("resume")}>▶️</Button>
-                <Button size="small" onClick={() => void control("skip")}>⏭</Button>
-                <Button size="small" danger onClick={() => void cancelActive()}>✖</Button>
-              </Space>
-            )
-          }
-        >
-          <Progress percent={Math.round(active.progress)} status={isTerminal(active.status) ? undefined : "active"} />
-          <Descriptions size="small" column={2} style={{ marginTop: 8 }}>
-            <Descriptions.Item label="Stage">{stageLabel(t, active)}</Descriptions.Item>
-            <Descriptions.Item label="ETA">
-              {active.eta > 0 ? `${Math.ceil(active.eta)}s` : "-"}
-            </Descriptions.Item>
-            {active.total_files > 1 && (
-              <>
-                <Descriptions.Item label="Files">
-                  {active.completed_files}/{active.total_files}
-                  {active.failed_files > 0 ? ` (${active.failed_files} failed)` : ""}
-                </Descriptions.Item>
-                <Descriptions.Item label="Current">{active.current_file_name || "-"}</Descriptions.Item>
-              </>
-            )}
-          </Descriptions>
-          {active.message && <div style={{ opacity: 0.7 }}>{active.message}</div>}
-          {active.error_message && (
-            <Alert type="error" message={active.error_message} style={{ marginTop: 8 }} />
-          )}
+        <Card title={t("ui.section_progress")}>
+          <ProgressPanel
+            task={active}
+            connected={connected}
+            logs={logs[active.task_id] ?? []}
+            onPause={() => void control("pause")}
+            onResume={() => void control("resume")}
+            onSkip={() => void control("skip")}
+            onCancel={() => void cancelActive()}
+          />
         </Card>
       )}
 
-      {/* 任务历史（点击切换活动任务） */}
-      {history.length > 1 && (
-        <Card size="small" title="Tasks">
+      {/* 任务历史 */}
+      {history.length > 0 && (
+        <Card size="small" title={t("ui.task_history")}>
           <List
             size="small"
             dataSource={history.slice(0, 10)}
             renderItem={(item) => (
               <List.Item
-                style={{ cursor: "pointer", fontWeight: item.task_id === activeId ? 700 : 400 }}
+                style={{
+                  cursor: "pointer",
+                  background: item.task_id === activeId ? "var(--color-accent-soft)" : undefined,
+                  borderRadius: 6,
+                  paddingInline: 8,
+                }}
                 onClick={() => useAppStore.getState().setActive(item.task_id)}
               >
-                <Space>
-                  <Tag
-                    color={
-                      isTerminal(item.status)
-                        ? item.status === "completed" ? "green" : "red"
-                        : "blue"
-                    }
-                  >
-                    {item.status}
-                  </Tag>
-                  <span>
-                    {item.task_id} · {Math.round(item.progress)}% ·{" "}
-                    {new Date(item.created_at * 1000).toLocaleTimeString()}
+                <Space wrap size={10} style={{ width: "100%" }}>
+                  <StatusTag status={item.status} />
+                  <span style={{ fontFamily: "var(--text-font-mono)", fontSize: 12 }}>{item.task_id}</span>
+                  <MiniProgress
+                    percent={Math.round(item.progress)}
+                    size="small"
+                    style={{ width: 110, margin: 0 }}
+                    showInfo={false}
+                  />
+                  <span style={{ fontSize: 12, opacity: 0.7 }}>
+                    {Math.round(item.progress)}%
+                  </span>
+                  <span style={{ fontSize: 12, opacity: 0.55 }}>
+                    {new Date(item.created_at * 1000).toLocaleString()}
                   </span>
                 </Space>
               </List.Item>
@@ -257,7 +358,7 @@ export default function Dashboard() {
 
       {/* 诊断与质量评分（深度面板） */}
       {active && (active.diagnostic_summary || active.diagnostic_report || active.heal_status || active.confidence_stats) && (
-        <Card size="small" title="Diagnostics">
+        <Card size="small" title={t("ui.section_diagnostics")}>
           <Space direction="vertical" style={{ width: "100%" }}>
             {active.diagnostic_summary && <div>{active.diagnostic_summary}</div>}
             {active.quality_scores && (
@@ -274,24 +375,32 @@ export default function Dashboard() {
         </Card>
       )}
 
+      {/* 预览与下载 */}
       {artifacts.length > 0 && (
-        <Card title={t("ui.result_files")}>
-          <Space direction="vertical" style={{ width: "100%" }}>
-            {artifacts.map((f, i) => (
-              <Button key={i} icon={<DownloadOutlined />} href={artifactUrl(activeId!, i)} target="_blank">
-                {f.name || `artifact-${i}`}
-              </Button>
-            ))}
+        <Card title={t("ui.section_preview")}>
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <div>
+              <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+                {t("ui.preview_output")}
+              </Typography.Text>
+              <Space wrap>
+                {artifacts.map((f, i) => (
+                  <Button key={i} icon={<DownloadOutlined />} href={artifactUrl(activeId!, i)} target="_blank">
+                    {f.name || `artifact-${i}`}
+                  </Button>
+                ))}
+              </Space>
+            </div>
+            <div>
+              <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+                {t("ui.preview_title")}
+              </Typography.Text>
+              <PdfPreview url={artifactUrl(activeId!, 0)} />
+            </div>
           </Space>
-        </Card>
-      )}
-
-      {/* 内嵌 PDF 预览（首个产物） */}
-      {artifacts.length > 0 && (
-        <Card size="small" title="Preview">
-          <PdfPreview url={artifactUrl(activeId!, 0)} />
         </Card>
       )}
     </div>
   );
 }
+
