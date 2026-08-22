@@ -263,10 +263,15 @@ def run_babeldoc_translation(
             WatermarkOutputMode,
         )
     except Exception as exc:  # noqa: BLE001 -- surface an actionable message
+        # 携带底层异常类型与缺失模块名：frozen 分发中该 ImportError 几乎
+        # 都是打包缺件（而非真的没装），只有暴露 ModuleNotFoundError: No
+        # module named 'X' 才能定位。
         raise BabeldocNotInstalledError(
-            "BabelDOC engine not available. Install it with "
-            "`pip install babeldoc` (or `pip install pdf2zh[babeldoc]`) to "
-            "use the BabelDOC layout mode."
+            "BabelDOC engine not available "
+            f"({type(exc).__name__}: {exc}). If this is a frozen/packaged "
+            "build, the bundle is missing a dependency — report which module. "
+            "For source installs: `pip install babeldoc` "
+            "(or `pip install pdf2zh[babeldoc]`)."
         ) from exc
 
     # 把后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）同步到 BabelDOC 内部
