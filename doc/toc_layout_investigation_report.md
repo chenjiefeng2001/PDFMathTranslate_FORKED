@@ -1,9 +1,11 @@
 # 书籍目录（TOC）排版处理现状调查与根因分析报告
 
-> 版本：v1.0
-> 日期：2026-08-04
+> 版本：v1.1
+> 日期：2026-08-19
 > 范围：全仓库 PDF 处理代码（排除 `kernel/PDFMathTranslate-next.git` 子模块）中与"书籍目录"相关的所有路径
-> 验证方式：代码静态分析（`rg` 全仓检索 outline / bookmark / toc / catalog / 目录）+ 主链路排版算法级推演
+> 验证方式：代码静态分析（`rg` 全仓检索 outline / bookmark / toc / catalog / 目录）+ 主链路排版算法级推演 + 用户运行日志取证 + 单测回归
+>
+> v1.1 变更：新增第 9 章 —— BabelDOC 链路的「一行多目录条目合并」根因（v1.0 报告落地实现的 TOC protect 在该场景下只保护最后一个条目，前 N-1 个条目点线/页码仍被整体翻译 → 排版错乱），并记录 V1.24 修复实现与验证。
 
 ---
 
@@ -123,3 +125,76 @@ P0/P1 已按本报告落地实现，P2（v3 目录语义接线）保持待办（
 - 新增回归测试：`tests/test_converter_toc.py`（检测 + 标题单独翻译 + 禁折行/页码右对齐/不压缩，10 例）、`tests/test_high_level_bookmarks.py`（outline 读写与 mono/dual 页码映射，4 例）。
 - 全量回归：**1483 passed, 1 skipped, 8 warnings, 0 failed**（基线 1469）。
 - 未实现 P2（v3 CatalogChannel 目录语义 LLM 翻译与排版约束），留待 v3 引擎接入主链路时一并落地。
+---
+
+## 9. V1.24：BabelDOC 链路「一行多目录条目合并」根因与修复（2026-08-19）
+
+### 9.1 症状与取证
+
+用户运行 BabelDOC 引擎翻译带紧凑目录的书籍 PDF（Matrix Algebra），TOC protect 日志显示"识别到了"，但输出 PDF 目录排版依旧错乱。关键运行日志：
+
+```
+BabelDOC TOC protect: split line
+  '13.62 Symmetry: implicit treatment . . . .. . 388
+   13.63 Symmetry: explicit treatment . . . .. . 389
+   13.64 Treatment of positive definiteness . . . .. . 389
+   *13.65 Information matrix . . . .. . 390'
+  -> title='13.62 Symmetry: implicit treatment . . . .. . 388
+            13.63 Symmetry: explicit treatment . . . .. . 389
+            13.64 Treatment of positive definiteness . . . .. . 389
+            *13.65 Information matrix '
+     formula='. . . .. . 390'
+  (score=0.8359)
+```
+
+**一条 `PdfLine` 里塞了 4 个目录条目**（同一物理行被 BabelDOC 的 `ParagraphFinder` 合并成一条行），而 protect 只把**最后一个**条目的点线+页码拆成公式，前 3 个条目的标题、点线、页码全部留在 `title` 中被当作一整段送进翻译器。
+
+### 9.2 根因链
+
+1. **BabelDOC 行合并**：`ParagraphFinder.process_page` 把同一物理行上的多个文本 span 合并为一个 `PdfLine`（紧凑型目录、多列目录拍平后常见），其 `pdf_character` 文本形如
+   `13.62 ... 388 13.63 ... 389 13.64 ... 389 *13.65 ... 390`。
+2. **`toc.py` 单条目检测的行尾锚定**：`TOC_LEADER_RE`（`pdf2zh/toc.py:35-37`）以 `$` 锚定行尾，
+   `detect_toc_line` 到 `_detect_leader` 用 `.search()` 只能命中**最后一个** `点线+页码`（只有它后面是行尾）；
+   `babeldoc_toc_protect._toc_split_index` 同样返回最后一个匹配位置。
+3. **拆分错位**：`_try_protect_line` 按该索引切分，`title` = 行首到最后一个点线前（**包含前 N-1 个条目的点线与页码**），`formula` = 只有最后一个条目的点线+页码。
+4. **排版破坏**：前 N-1 个条目的点线/页码作为普通文本进翻译器，点线被改写、页码与标题的对齐信息丢失、4 个条目被译成一段连续文本，重排时折行/挤压，目录列结构瓦解。
+
+> legacy 主链路不受此 bug 影响：`receive_layout` 逐物理行建 sstk，且已有 `v3/toc_analyzer.split_merged_toc_paragraphs`（V1.17-3）处理「无点线目录行被并块」场景；v3 引擎未在主链路接线。本问题专属于 **BabelDOC 保护链路**（`pdf2zh/babeldoc_toc_protect.py`）。
+
+### 9.3 修复实现（V1.24，`pdf2zh/babeldoc_toc_protect.py`）
+
+在单条目保护之前新增**多条目合并行检测与逐条拆分**：
+
+| 新增 | 作用 |
+| :-: | :-- |
+| `_MERGED_ENTRY_HEAD` | 宽泛条目标题头（允许 `*`/`#` 等前缀 + 章节编号 + 空白 + 文本），比 `toc.py._TOC_HEAD_RE` 多覆盖 `*13.60` 这类星号标记条目 |
+| `_merged_entry_re()` | 非行尾锚定的「点线 + 页码」多匹配正则（字符集与 `toc.py` 同步，延迟构建缓存） |
+| `_build_offset_track()` | 带文本偏移的点线/数字字符几何记录（`char_unicode` 可能为空串，字符与文本索引非一一对应） |
+| `_char_offsets()` / `_offset_to_char()` | 文本偏移与字符索引映射（二分） |
+| `_split_merged_toc_line()` | 一行内所有「点线+页码」候选，逐条验证（编号标题头 + 几何页码 + `_score_toc` 置信度不低于 0.30），返回条数不少于 2 才拆分 |
+| `_try_protect_merged_line()` | 把合并行的字符按条目区间切成多条 `[标题 PdfLine, 点线+页码 PdfFormula]`（复用假 `formula_layout_id` / 假 `line_id` 防转回文本、防误合并） |
+
+接线：`_protect_toc_lines_in_page` 对每个 `PdfLine` composition 先尝试 `_try_protect_merged_line`，未命中再回退原 `_try_protect_line`（单条目逻辑零改动）。
+
+### 9.4 验证
+
+- **修复前后对比**（真实日志文本 `13.62 ... 388 13.63 ... 389 13.64 ... 389 *13.65 ... 390` 复现）：
+
+  ```
+  修复前：title='13.62 Symmetry: implicit treatment ... 388 13.63 ... 389 13.64 ... 389 *13.65 Information matrix '
+          formula='. . . .. . 390'          <-- 前 3 条点线/页码进翻译器
+  修复后：title='13.62 Symmetry: implicit treatment'  page=388
+          title='13.63 Symmetry: explicit treatment'  page=389
+          title='13.64 Treatment of positive definiteness'  page=389
+          title='*13.65 Information matrix'            page=390
+  ```
+
+- 新增回归测试 `tests/test_babeldoc_toc_protect.py::TestMergedTocLine`（5 例）：多条目逐条切分、单条目不误拆、正文行不误拆、页级段落拆分、假 formula_layout_id 标记。
+- 全量 TOC/babeldoc 相关回归：`test_babeldoc_toc_protect` + `test_converter_toc` + `test_v17_toc_analyzer` + `test_v18_toc_render_split` + `test_babeldoc_list_split` + `test_babeldoc_ocr_mode` + `test_babeldoc_onnx_backend` + `test_onnx_backend_switch` = **121 passed, 1 skipped, 0 failed**。
+
+### 9.5 残留风险与后续建议
+
+- 多条目拆分的条目标题头验证要求「章节编号开头」；个别无编号目录条目（如纯文本章节名 + 点线页码）在合并行中会被跳过，该行回退单条目逻辑（仍只保护最后一个）。此类目录建议后续在 `_MERGED_ENTRY_HEAD` 中补充结构词（chapter/section 等）分支。
+- 双栏目录被拍平成单行时，左栏条目与右栏条目可能共享同一物理行；本修复按「编号标题 + 点线 + 页码」逐条切分，若左右栏条目都满足结构则均可正确拆分，但页码右缘几何验证依赖 `visual_bbox`（`_build_offset_track`），OCR 无几何字符仍会保守跳过。
+- P2（v3 CatalogChannel 目录语义接线）维持待办，与本修复无重叠。
+

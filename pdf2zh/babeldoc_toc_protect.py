@@ -20,6 +20,14 @@ pdf2zh 的 legacy 转换器已有独立的目录行识别（:mod:`pdf2zh.toc`：
    BabelDOC 的"单元扁平化重排"把跨行的标题/公式挤到同一行；
 4. 标题部分仍作为普通文本行参与翻译。
 
+多条目合并行（V1.24）：BabelDOC 的 ``ParagraphFinder`` 会把同一物理行的
+**多个目录条目**合并成一个 ``PdfLine``（紧凑型书籍目录常见，如
+``13.62 ... 388 13.63 ... 389``）。``detect_toc_line`` 基于行尾锚定的正则
+只匹配最后一个条目，前 N-1 个条目的点线/页码会留在标题文本中被整体翻译、
+破坏目录列结构。本模块因此先做**多条目检测**（非行尾锚定的点线+页码多匹配
++ 编号标题头验证 + 几何页码验证 + 置信度评分），命中时把该行逐条拆成
+``[标题 PdfLine, 点线+页码 PdfFormula]`` 的序列，再走与单条目相同的保护链路。
+
 保护对 BabelDOC 后续流程透明：公式 composition 会经过
 ``process_page_formulas``（原样保留）、``process_translatable_formulas``
 （通过假 ``formula_layout_id`` 避免被转回普通文本）、``process_page_offsets``
@@ -40,6 +48,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import threading
 from typing import List, Optional
 
@@ -115,6 +124,221 @@ def _toc_split_index(text: str) -> Optional[int]:
     if sm is not None and _TOC_SPACE_HEAD.match(sm.group("title")):
         return sm.start("page")
     return None
+
+
+# ---------------------------------------------------------------------------
+# 多条目合并行拆分（V1.24）
+# ---------------------------------------------------------------------------
+
+#: 目录条目标题头（多条目拆分用）：可选星号/井号等前缀 + 章节编号 + 空白 + 文本。
+#: 比 ``toc.py._TOC_HEAD_RE`` 多允许 ``*`` 前缀（如 ``*13.60 Quadratic estimation``）。
+_MERGED_ENTRY_HEAD = re.compile(r"^\s*[*×#†‡§]?\s*\d+(?:\.\d+)*[\.、:]?\s+\S")
+
+#: 非行尾锚定的\"点线 + 页码\"多匹配正则（延迟构建，字符集与 toc.py 同步）。
+_MERGED_ENTRY_RE: Optional[re.Pattern] = None
+
+
+def _merged_entry_re() -> re.Pattern:
+    """构建/取多条目\"点线+页码\"匹配正则（模块级缓存）。"""
+    global _MERGED_ENTRY_RE
+    if _MERGED_ENTRY_RE is None:
+        from pdf2zh.toc import TOC_LEADER_CHARS  # noqa: PLC0415
+
+        _MERGED_ENTRY_RE = re.compile(
+            rf"(?P<lead>(?:[{TOC_LEADER_CHARS}])[\s{TOC_LEADER_CHARS}]*)?"
+            rf"(?P<page>\d{{1,4}}(?:\s*[-–—]\s*\d{{1,4}})?|[ivxlcdmIVXLCDM]{{1,4}})"
+        )
+    return _MERGED_ENTRY_RE
+
+
+def _build_offset_track(chars: List[object]) -> list:
+    """构建带文本偏移的点线/数字字符几何记录。
+
+    与 ``_build_track`` 的差异：额外记录每个字符在拼接文本中的起始偏移
+    （``char_unicode`` 可能为空串，字符与文本索引非一一对应），供
+    多条目拆分的几何页码验证与字符区间切分使用。
+
+    Returns:
+        ``[(text_offset, char, x0, x1), ...]``（几何缺失时 x0/x1 为 None）。
+    """
+    from pdf2zh.toc import TOC_LEADER_CHARS  # noqa: PLC0415
+
+    out: list = []
+    pos = 0
+    for ch in chars:
+        unicode_ = ch.char_unicode or ""
+        if unicode_ in TOC_LEADER_CHARS or unicode_.isdigit():
+            try:
+                bbox = ch.visual_bbox.box
+            except Exception:  # noqa: BLE001 -- 几何缺失时记录占位
+                out.append((pos, unicode_, None, None))
+            else:
+                out.append((pos, unicode_, float(bbox.x), float(bbox.x2)))
+        pos += len(unicode_)
+    return out
+
+
+def _char_offsets(chars: List[object]) -> List[int]:
+    """每个字符在拼接文本中的起始偏移（``text[pos_i]`` 对应 ``chars[i]``）。"""
+    offsets: List[int] = []
+    pos = 0
+    for ch in chars:
+        offsets.append(pos)
+        pos += len(ch.char_unicode or "")
+    return offsets
+
+
+def _offset_to_char(offsets: List[int], pos: int) -> int:
+    """文本偏移 → 字符索引（二分；pos 在字符间隙时归入左侧字符）。"""
+    lo, hi = 0, len(offsets)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if offsets[mid] <= pos:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo - 1
+
+
+def _split_merged_toc_line(text: str, offset_track: list,
+                           page_width) -> List[tuple]:
+    """一行含多个目录条目时逐条拆分。
+
+    对一行文本找所有\"点线 + 页码\"匹配（非行尾锚定），逐条验证：
+      1. 标题头以章节编号开头（``_MERGED_ENTRY_HEAD``）且长度 >= 2；
+      2. 页码数字在几何 track 中有对应（缺几何保守跳过）；
+      3. 置信度评分 >= ``TOC_PROTECT_THRESHOLD``。
+
+    返回 ``[(title, leader, page, title_start, lead_start, lead_end), ...]``，
+    仅当有效条目 >= 2 时返回列表；否则返回空列表（调用方回退单条目逻辑）。
+    """
+    from pdf2zh.toc import (  # noqa: PLC0415
+        TOC_LEADER_CHARS,
+        TOC_PROTECT_THRESHOLD,
+        _score_toc,
+    )
+
+    matches = []
+    for m in _merged_entry_re().finditer(text):
+        lead = m.group("lead") or ""
+        if sum(lead.count(c) for c in TOC_LEADER_CHARS) < 2:
+            continue
+        page = (m.group("page") or "").strip()
+        if not page:
+            continue
+        matches.append((m.start("lead"), m.end("page"), lead, page))
+    if len(matches) < 2:
+        return []
+
+    entries: List[tuple] = []
+    prev_end = 0
+    for lead_start, lead_end, lead, page in matches:
+        title = text[prev_end:lead_start].strip()
+        if len(title) < 2 or not _MERGED_ENTRY_HEAD.match(title):
+            prev_end = lead_end
+            continue
+        # 页码数字几何（右缘验证与置信度评分用）
+        page_geo = None
+        for pos, ch, x0, x1 in offset_track:
+            if lead_start <= pos < lead_end and ch.isdigit() and x0 is not None:
+                page_geo = (float(x0), float(x1))
+        if page_geo is None:
+            prev_end = lead_end
+            continue
+        score = _score_toc(title, lead, page, page_geo[0], page_geo[1], page_width)
+        if score < TOC_PROTECT_THRESHOLD:
+            prev_end = lead_end
+            continue
+        entries.append((title, lead, page, prev_end, lead_start, lead_end))
+        prev_end = lead_end
+    return entries if len(entries) >= 2 else []
+
+
+def _try_protect_merged_line(self, page, comp, line_no: int):
+    """多条目合并行逐条保护：把一行含 ≥2 个目录条目的 PdfLine 拆成多条。
+
+    Returns:
+        每个目录条目一组 ``[标题 PdfLine composition, 点线+页码 PdfFormula
+        composition]`` 的列表；非合并行或不可拆分时返回 None（调用方回退
+        单条目 ``_try_protect_line``）。
+    """
+    line = comp.pdf_line
+    if line is None or not line.pdf_character:
+        return None
+    chars = line.pdf_character
+    text = "".join((c.char_unicode or "") for c in chars)
+    if len(text) < 8:
+        return None
+
+    page_box = getattr(page, "box", None)
+    if page_box is None:
+        # BabelDOC 的 Page 没有 .box，页面几何在 cropbox / mediabox 上。
+        for holder in ("cropbox", "mediabox"):
+            box = getattr(page, holder, None)
+            if box is not None and getattr(box, "box", None) is not None:
+                page_box = box.box
+                break
+    page_width = None
+    if page_box is not None:
+        page_width = float(page_box.x2 - page_box.x)
+
+    offset_track = _build_offset_track(chars)
+    if not offset_track:
+        return None
+    entries = _split_merged_toc_line(text, offset_track, page_width)
+    if len(entries) < 2:
+        return None
+
+    from babeldoc.format.pdf.document_il import (  # noqa: PLC0415
+        PdfLine,
+        PdfParagraphComposition,
+    )
+    from babeldoc.format.pdf.document_il.il_version_1 import (  # noqa: PLC0415
+        PdfFormula,
+    )
+    from babeldoc.format.pdf.document_il.utils.formular_helper import (  # noqa: PLC0415
+        update_formula_data,
+    )
+
+    offsets = _char_offsets(chars)
+    blocks = []
+    for (title, lead, page, title_start, lead_start, lead_end) in entries:
+        ci_title = _offset_to_char(offsets, title_start)
+        ci_lead = _offset_to_char(offsets, lead_start)
+        ci_end = _offset_to_char(offsets, lead_end - 1) + 1
+        if not (0 <= ci_title <= ci_lead < ci_end <= len(chars)):
+            continue
+        # 标题 → 独立 PdfLine；点线+页码 → 假公式（防转回普通文本、防误合并）
+        title_line = PdfLine(pdf_character=chars[ci_title:ci_lead])
+        try:
+            self.update_line_data(title_line)
+        except Exception:  # noqa: BLE001 -- box 刷新失败不影响翻译主流程
+            pass
+        formula = PdfFormula(
+            pdf_character=chars[ci_lead:ci_end],
+            line_id=_FAKE_LINE_ID_BASE - line_no,
+        )
+        fake_layout_id = _FAKE_FORMULA_LAYOUT_BASE - line_no
+        for ch in formula.pdf_character:
+            try:
+                ch.formula_layout_id = fake_layout_id
+            except Exception:  # noqa: BLE001 -- 只读对象等极端情况，跳过标记
+                pass
+        update_formula_data(formula)
+        blocks.append([
+            PdfParagraphComposition(pdf_line=title_line),
+            PdfParagraphComposition(pdf_formula=formula),
+        ])
+        line_no += 1
+        logger.info(
+            "BabelDOC TOC protect (merged): entry %d/%d %r -> title=%r formula=%r",
+            len(blocks), len(entries), title,
+            "".join((c.char_unicode or "") for c in chars[ci_title:ci_lead]),
+            "".join((c.char_unicode or "") for c in chars[ci_lead:ci_end]),
+        )
+    if not blocks:
+        return None
+    return blocks
 
 
 def _try_protect_line(self, page, comp, line_no: int) -> Optional[List[object]]:
@@ -203,6 +427,8 @@ def _protect_toc_lines_in_page(self, page) -> None:
     """扫描页面所有段落，对命中的目录行做点线/页码公式保护。
 
     命中时该行被拆成两条 composition：``[原标题行（仅标题）, 点线+页码公式]``。
+    （多条目合并行 —— 一行含 ≥2 个目录条目 —— 会被逐条拆成多组这样的
+    composition，见 ``_try_protect_merged_line``。）
     为了让 BabelDOC 重排阶段能独立定位这些行，命中行与相邻非目录行会被拆成
     独立段落（复用原段落的 ``layout_id``/``layout_label``，保持原始顺序）；
     否则整页合段后，BabelDOC 的"单元扁平化重排"会把跨行的目录标题/公式挤到
@@ -227,6 +453,14 @@ def _protect_toc_lines_in_page(self, page) -> None:
         kept: list = []
         for comp in comps:
             if comp.pdf_line is not None:
+                merged_blocks = _try_protect_merged_line(self, page, comp, line_no)
+                if merged_blocks:
+                    if kept:
+                        blocks.append(kept)
+                        kept = []
+                    blocks.extend(merged_blocks)
+                    line_no += len(merged_blocks)
+                    continue
                 result = _try_protect_line(self, page, comp, line_no)
                 line_no += 1
                 if result is not None:

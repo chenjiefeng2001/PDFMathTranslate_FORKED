@@ -14,6 +14,10 @@ Covers:
   3. ``get_babeldoc_toc_protect_enabled``: env switch parsing (default on).
   4. ``apply_babeldoc_toc_protect``: idempotent patch install/restore on the real
      BabelDOC ``ParagraphFinder`` (skipped when babeldoc is absent).
+  5. V1.24 merged-line split: when BabelDOC merges several TOC entries that share
+     one physical row into a single ``PdfLine`` (``13.62 ... 388 13.63 ... 389``),
+     every entry is split into its own title line + dot-leader/page formula
+     (``_split_merged_toc_line`` / ``_try_protect_merged_line``).
 """
 
 from __future__ import annotations
@@ -81,6 +85,124 @@ def _mk_page(*comps, width=600.0):
             )
         ],
     )
+
+
+def _mk_chars(text, *, y=120.0, char_w=8.0):
+    """按字符顺序构造 PdfCharacter 列表（每字符 char_w 宽，行宽 = char_w*len）。"""
+    return [_mk_char(ch, 72.0 + i * char_w, y) for i, ch in enumerate(text)]
+
+
+class TestMergedTocLine:
+    """V1.24：BabelDOC 把同一物理行的多个目录条目合并成一条 PdfLine 时逐条拆分。"""
+
+    MERGED = (
+        "13.62 Symmetry: implicit treatment . . . .. 388 "
+        "13.63 Symmetry: explicit treatment . . . .. 389 "
+        "13.64 Treatment of positive definiteness . . . .. 389 "
+        "*13.65 Information matrix . . . .. 390"
+    )
+
+    def test_split_merged_toc_line_returns_all_entries(self):
+        chars = _mk_chars(self.MERGED)
+        track = btp._build_offset_track(chars)
+        entries = btp._split_merged_toc_line(self.MERGED, track, 600.0)
+        assert len(entries) == 4
+        titles = [e[0] for e in entries]
+        assert titles[0].startswith("13.62 Symmetry")
+        assert titles[1].startswith("13.63 Symmetry")
+        assert titles[2].startswith("13.64 Treatment")
+        assert titles[3].startswith("*13.65 Information matrix")
+        assert [e[2] for e in entries] == ["388", "389", "389", "390"]
+
+    def test_single_entry_line_not_merged(self):
+        chars = _mk_chars("1 G. Müller .......... 27")
+        track = btp._build_offset_track(chars)
+        assert btp._split_merged_toc_line(
+            "1 G. Müller .......... 27", track, 600.0
+        ) == []
+
+    def test_prose_line_not_merged(self):
+        chars = _mk_chars("This is a normal sentence with 12 words and 3 numbers.")
+        track = btp._build_offset_track(chars)
+        assert btp._split_merged_toc_line(
+            "This is a normal sentence with 12 words and 3 numbers.",
+            track,
+            600.0,
+        ) == []
+
+    def test_try_protect_merged_line_splits_every_entry(self):
+        comp = _mk_comp(self.MERGED)
+        page = _mk_page(comp)
+        finder = SimpleNamespace(
+            update_line_data=lambda *a, **k: None,
+        )
+        blocks = btp._try_protect_merged_line(finder, page, comp, 0)
+        assert blocks is not None
+        assert len(blocks) == 4
+        for blk in blocks:
+            assert len(blk) == 2
+            assert blk[0].pdf_line is not None
+            assert blk[1].pdf_formula is not None
+        # 每条标题不再含点线/页码残留；公式以点线开头
+        joined = ""
+        for blk in blocks:
+            title = "".join(
+                c.char_unicode or "" for c in blk[0].pdf_line.pdf_character
+            )
+            formula = "".join(
+                c.char_unicode or "" for c in blk[1].pdf_formula.pdf_character
+            )
+            joined += " " + title
+            assert formula.lstrip().startswith(".")
+            assert all(
+                c.formula_layout_id for c in blk[1].pdf_formula.pdf_character
+            )
+        assert "388" not in joined and "389" not in joined and "390" not in joined
+
+    def test_merged_line_page_level_split(self):
+        from babeldoc.format.pdf.document_il import Box
+
+        comp = _mk_comp(self.MERGED)
+        page = _mk_page(comp)
+
+        def update_line_data(line):
+            chars = line.pdf_character
+            line.box = Box(
+                min(c.visual_bbox.box.x for c in chars),
+                min(c.visual_bbox.box.y for c in chars),
+                max(c.visual_bbox.box.x2 for c in chars),
+                max(c.visual_bbox.box.y2 for c in chars),
+            )
+
+        def update_paragraph_data(paragraph, update_unicode=False):
+            chars = []
+            for c in paragraph.pdf_paragraph_composition:
+                if c.pdf_line:
+                    chars.extend(c.pdf_line.pdf_character)
+                elif c.pdf_formula:
+                    chars.extend(c.pdf_formula.pdf_character)
+            if chars:
+                paragraph.box = Box(
+                    min(c.visual_bbox.box.x for c in chars),
+                    min(c.visual_bbox.box.y for c in chars),
+                    max(c.visual_bbox.box.x2 for c in chars),
+                    max(c.visual_bbox.box.y2 for c in chars),
+                )
+
+        btp._protect_toc_lines_in_page(
+            SimpleNamespace(
+                update_line_data=update_line_data,
+                update_paragraph_data=update_paragraph_data,
+            ),
+            page,
+        )
+        paras = page.pdf_paragraph
+        assert len(paras) == 4
+        for p in paras:
+            comps = p.pdf_paragraph_composition
+            assert len(comps) == 2
+            assert comps[0].pdf_line is not None
+            assert comps[1].pdf_formula is not None
 
 
 class TestTocSplitIndex:
