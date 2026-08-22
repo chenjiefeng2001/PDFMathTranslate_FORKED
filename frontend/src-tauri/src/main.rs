@@ -36,16 +36,25 @@ fn wait_for_api(port: u16, timeout_secs: u64) -> bool {
 
 fn spawn_api_server(port: u16) -> Child {
     // 优先级：
-    // 1. 捆绑 sidecar（tauri externalBin：与主程序同目录的
-    //    pdf2zh-api-sidecar[-triple].exe）—— 生产/分发形态；
-    // 2. PDF2ZH_PYTHON 显式解释器 → `python -m pdf2zh.pdf2zh --api` —— 开发后备。
+    // 1. 捆绑 sidecar onedir 资源（tauri resources：安装目录下
+    //    pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe）—— 生产/分发形态；
+    // 2. 兼容旧便携布局（与主程序同目录的 sidecar 单文件）；
+    // 3. PDF2ZH_PYTHON 显式解释器 → `python -m pdf2zh.pdf2zh --api` —— 开发后备。
     if let Ok(current_exe) = std::env::current_exe() {
-        let sidecar = current_exe.with_file_name("pdf2zh-api-sidecar.exe");
-        if sidecar.exists() {
-            return Command::new(&sidecar)
-                .args(["--port", &port.to_string()])
-                .spawn()
-                .expect("failed to spawn bundled api sidecar");
+        let exe_dir = current_exe.parent().expect("exe has no parent dir");
+        for rel in [
+            "pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe",
+            "binaries/pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe",
+            "pdf2zh-api-sidecar.exe",
+            "pdf2zh-api-sidecar-x86_64-pc-windows-msvc.exe",
+        ] {
+            let candidate = exe_dir.join(rel);
+            if candidate.exists() {
+                return Command::new(&candidate)
+                    .args(["--port", &port.to_string()])
+                    .spawn()
+                    .unwrap_or_else(|e| panic!("failed to spawn bundled api sidecar: {e}"));
+            }
         }
     }
     let python =

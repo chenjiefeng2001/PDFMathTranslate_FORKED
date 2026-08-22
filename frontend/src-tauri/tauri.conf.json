@@ -28,6 +28,8 @@
         "installMode": "currentUser"
       }
     },
-    "externalBin": ["binaries/pdf2zh-api-sidecar"]
+    "resources": {
+      "binaries/pdf2zh-api-sidecar/": "pdf2zh-api-sidecar/"
+    }
   }
 }
