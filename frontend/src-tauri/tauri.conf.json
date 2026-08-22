@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PDFMathTranslate",
+  "version": "0.1.0",
+  "identifier": "ai.pdf2zh.desktop",
+  "build": {
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:* ws://localhost:*"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "shortDescription": "PDF 文档翻译工具",
+    "longDescription": "PDFMathTranslate 桌面版：基于 pdf2zh 引擎的 PDF 学术文档翻译工具，内置解析/翻译/渲染全链路与本地 API 服务。",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "languages": ["SimpChinese", "English"],
+        "displayLanguageSelector": false,
+        "installMode": "currentUser"
+      }
+    },
+    "externalBin": ["binaries/pdf2zh-api-sidecar"]
+  }
+}

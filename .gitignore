@@ -202,3 +202,7 @@ config.local.yaml
 diag_*.py
 _TestPDF_render.png
 tools/
+
+# PyInstaller sidecar local build workspace (intermediates + exe output)
+deploy/_build_sidecar/
+!deploy/pdf2zh-api-sidecar.spec

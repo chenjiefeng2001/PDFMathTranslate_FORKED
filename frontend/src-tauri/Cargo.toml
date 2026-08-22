@@ -1,0 +1,19 @@
+[package]
+name = "pdf2zh-desktop"
+version = "0.1.0"
+description = "PDFMathTranslate desktop shell (Tauri v2 PoC)"
+edition = "2021"
+
+# PoC 阶段不发布 crate
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+strip = true
+lto = true
