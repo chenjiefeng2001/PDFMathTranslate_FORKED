@@ -102,6 +102,38 @@ class OpenAIProvider(LLMProvider):
             finish_reason=choice.finish_reason or "stop")
 
 
+class OpenCodeProvider(LLMProvider):
+    """LLMProvider backed by the opencode CLI / `opencode serve` HTTP API.
+
+    Delegates to legacy OpenCodeTranslator for transport (subprocess JSONL
+    parsing + serve-mode session lifecycle), so both modes stay in sync.
+    """
+
+    def __init__(self, model=None, envs=None):
+        self._default_model = model
+        self._envs = envs
+        self._translator = None
+
+    def _lazy_init(self):
+        if self._translator is None:
+            from pdf2zh.translator import OpenCodeTranslator
+
+            self._translator = OpenCodeTranslator(
+                "auto", "auto", self._default_model,
+                envs=self._envs, ignore_cache=True,
+            )
+
+    def complete(self, messages, **kwargs):
+        self._lazy_init()
+        start = time.time()
+        text = self._translator.complete_raw(list(messages))
+        elapsed = (time.time() - start) * 1000
+        return LLMResponse(text=text,
+            model=kwargs.get("model", self._default_model or "opencode"),
+            provider="opencode", latency_ms=round(elapsed, 1),
+            finish_reason="stop")
+
+
 @dataclass
 class PostProcessResult:
     text: str

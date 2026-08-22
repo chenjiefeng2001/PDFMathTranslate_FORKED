@@ -19,13 +19,15 @@ def create_mcp_app() -> FastMCP:
 
     @mcp.tool()
     async def translate_pdf(
-        file: str, lang_in: str, lang_out: str, ctx: Context
+        file: str, lang_in: str, lang_out: str, ctx: Context, engine: str = "google"
     ) -> str:
         """
         translate given pdf or word document. Argument `file` is absolute path
         of input pdf/doc/docx, `lang_in` and `lang_out` is translate from and
         to language, and should be like google translate lang_code. `lang_in`
-        can be `auto` if you can't determine input language.
+        can be `auto` if you can't determine input language. `engine` selects
+        the translation service (e.g. google, openai, deepl, opencode); engine
+        credentials are resolved from config.json / environment variables.
         """
 
         _converted_pdf = None
@@ -38,13 +40,13 @@ def create_mcp_app() -> FastMCP:
 
         with open(file, "rb") as f:
             file_bytes = f.read()
-        await ctx.log(level="info", message=f"start translate {file}")
+        await ctx.log(level="info", message=f"start translate {file} with {engine}")
         with contextlib.redirect_stdout(io.StringIO()):
             doc_mono_bytes, doc_dual_bytes = translate_stream(
                 file_bytes,
                 lang_in=lang_in,
                 lang_out=lang_out,
-                service="google",
+                service=engine,
                 model=ModelInstance.value,
                 thread=4,
             )

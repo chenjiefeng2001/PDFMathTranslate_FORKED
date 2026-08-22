@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import re
+import shutil
+import subprocess
 import threading
 import unicodedata
 from copy import copy
@@ -1418,6 +1420,211 @@ class QwenMtTranslator(OpenAITranslator):
         return response.choices[0].message.content.strip()
 
 
+class OpenCodeTranslator(BaseTranslator):
+    # https://opencode.ai/docs/cli/  https://opencode.ai/docs/server/
+    name = "opencode"
+    envs = {
+        "OPENCODE_PATH": "opencode",
+        "OPENCODE_MODEL": "",  # provider/model，如 opencode/gpt-5；留空用 CLI 默认模型
+        "OPENCODE_AGENT": "",  # 可选 agent 名；留空用默认 agent
+        "OPENCODE_TIMEOUT": "300",  # 单次请求超时（秒）
+        # 设置后走 `opencode serve` HTTP API（常驻服务，免去每段翻译的
+        # CLI 冷启动）。留空则每次调用 `opencode run` 子进程。
+        "OPENCODE_SERVER_URL": "",
+    }
+    CustomPrompt = True
+
+    def __init__(
+        self, lang_in, lang_out, model, envs=None, prompt=None, ignore_cache=False
+    ):
+        self.set_envs(envs)
+        if not model:
+            model = self.envs.get("OPENCODE_MODEL") or "default"
+        super().__init__(lang_in, lang_out, model, ignore_cache)
+        self.prompttext = prompt
+        self.add_cache_impact_parameters("prompt", self.prompt("", self.prompttext))
+        # Windows 下 npm/bun 安装的 CLI 是 .cmd shim，subprocess 需要完整路径
+        self.opencode_path = (
+            shutil.which(self.envs["OPENCODE_PATH"]) or self.envs["OPENCODE_PATH"]
+        )
+        if self.server_url:
+            self._test_server()
+        else:
+            self._test_opencode()
+
+    @property
+    def server_url(self) -> str:
+        return (self.envs.get("OPENCODE_SERVER_URL") or "").rstrip("/")
+
+    def _request_timeout(self) -> float:
+        return float(self.envs.get("OPENCODE_TIMEOUT") or 300)
+
+    def _test_opencode(self):
+        try:
+            result = subprocess.run(
+                [self.opencode_path, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            if result.returncode != 0:
+                raise ValueError(f"OpenCode CLI error: {result.stderr}")
+        except FileNotFoundError as e:
+            raise ValueError(
+                f"OpenCode CLI not found at '{self.envs['OPENCODE_PATH']}'"
+            ) from e
+
+    def _test_server(self):
+        try:
+            resp = _thread_local_session(self).get(
+                f"{self.server_url}/global/health", timeout=(5, 10)
+            )
+            resp.raise_for_status()
+        except requests.RequestException as e:
+            raise ValueError(
+                f"OpenCode server not reachable at '{self.server_url}' "
+                f"(先执行 `opencode serve` 启动常驻服务): {e}"
+            ) from e
+
+    @retry(
+        retry=retry_if_exception_type(
+            (
+                subprocess.CalledProcessError,
+                subprocess.TimeoutExpired,
+                requests.RequestException,
+                ValueError,
+            )
+        ),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=2, max=15),
+        reraise=True,
+        before_sleep=lambda retry_state: logger.warning(
+            f"OpenCode failed, retrying... (Attempt {retry_state.attempt_number}/3)"
+        ),
+    )
+    def do_translate(self, text) -> str:
+        messages = self.prompt(text, self.prompttext)
+        input_data = "\n".join(message["content"] for message in messages)
+        if self.server_url:
+            return self._translate_via_server(input_data).strip()
+        return self._translate_via_cli(input_data).strip()
+
+    def complete_raw(self, messages) -> str:
+        """发送原始对话消息（不经翻译提示词包装），供 v3 LLMProvider 复用。"""
+        input_data = "\n\n".join(
+            f"{m.get('role', 'user')}: {m.get('content', '')}" for m in messages
+        )
+        send = (
+            self._translate_via_server if self.server_url else self._translate_via_cli
+        )
+        return send(input_data).strip()
+
+    # ---- 模式一：`opencode run` 子进程 ----
+
+    def _translate_via_cli(self, input_data: str) -> str:
+        cmd = [self.opencode_path, "run", "--format", "json"]
+        if self.envs.get("OPENCODE_MODEL"):
+            cmd += ["--model", self.envs["OPENCODE_MODEL"]]
+        if self.envs.get("OPENCODE_AGENT"):
+            cmd += ["--agent", self.envs["OPENCODE_AGENT"]]
+        process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+        )
+        try:
+            stdout, stderr = process.communicate(
+                input=input_data, timeout=self._request_timeout()
+            )
+        except subprocess.TimeoutExpired:
+            process.kill()
+            raise
+        if process.returncode != 0:
+            logger.error(f"OpenCode failed: {stderr}")
+            raise subprocess.CalledProcessError(process.returncode, cmd, stderr)
+        return self._parse_output(stdout)
+
+    # ---- 模式二：`opencode serve` HTTP API ----
+
+    def _server_model_field(self) -> dict | None:
+        model = self.envs.get("OPENCODE_MODEL")
+        if not model or "/" not in model:
+            return None
+        provider_id, model_id = model.split("/", 1)
+        return {"providerID": provider_id, "modelID": model_id}
+
+    def _translate_via_server(self, input_data: str) -> str:
+        session = _thread_local_session(self)
+        timeout = self._request_timeout()
+        created = session.post(
+            f"{self.server_url}/session",
+            json={"title": "pdf2zh"},
+            timeout=(5, 10),
+        )
+        created.raise_for_status()
+        sid = created.json()["id"]
+        try:
+            body: dict = {"parts": [{"type": "text", "text": input_data}]}
+            model_field = self._server_model_field()
+            if model_field:
+                body["model"] = model_field
+            resp = session.post(
+                f"{self.server_url}/session/{sid}/message",
+                json=body,
+                timeout=(5, timeout),
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        finally:
+            try:
+                session.delete(f"{self.server_url}/session/{sid}", timeout=(5, 10))
+            except requests.RequestException:
+                logger.debug("OpenCode session cleanup failed: %s", sid)
+        info = data.get("info") or {}
+        result = "".join(
+            part.get("text", "")
+            for part in data.get("parts") or []
+            if part.get("type") == "text"
+        ).strip()
+        if not result:
+            # 服务端对不可用的显式模型会静默返回空响应（finish=None）
+            raise ValueError(
+                "No translation received from OpenCode server "
+                f"(finish={info.get('finish')!r}; 若配置了 OPENCODE_MODEL，"
+                "该模型可能不被服务端支持，可清空该配置改用服务端默认模型)"
+            )
+        return result
+
+    @staticmethod
+    def _parse_output(output: str) -> str:
+        full_text = []
+        for line in output.strip().split("\n"):
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            part = event.get("part") or {}
+            if event.get("type") == "text" and part.get("type") == "text":
+                full_text.append(part.get("text", ""))
+        result = "".join(full_text).strip()
+        if not result:
+            raise ValueError("No translation received from OpenCode")
+        return result
+
+
+def build_translator_registry() -> list:
+    """全部已注册翻译器类（build_translator / API / GUI 共用的单一事实来源）。"""
+    return [GoogleTranslator, BingTranslator, DeepLTranslator, DeepLXTranslator, OllamaTranslator, XinferenceTranslator, AzureOpenAITranslator,
+            OpenAITranslator, ZhipuTranslator, ModelScopeTranslator, SiliconTranslator, GeminiTranslator, AzureTranslator, TencentTranslator, DifyTranslator, AnythingLLMTranslator, ArgosTranslator, GrokTranslator, GroqTranslator, DeepseekTranslator, MiniMaxTranslator, OpenAIlikedTranslator, QwenMtTranslator, X302AITranslator, OpenCodeTranslator]
+
+
 def build_translator(service, lang_in, lang_out, envs=None, prompt=None, ignore_cache=False):
     """按 service 名构造翻译器实例（如 "google"、"ollama:model"）。
 
@@ -1429,8 +1636,7 @@ def build_translator(service, lang_in, lang_out, envs=None, prompt=None, ignore_
     service_model = param[1] if len(param) > 1 else None
     if not envs:
         envs = {}
-    for translator in [GoogleTranslator, BingTranslator, DeepLTranslator, DeepLXTranslator, OllamaTranslator, XinferenceTranslator, AzureOpenAITranslator,
-                       OpenAITranslator, ZhipuTranslator, ModelScopeTranslator, SiliconTranslator, GeminiTranslator, AzureTranslator, TencentTranslator, DifyTranslator, AnythingLLMTranslator, ArgosTranslator, GrokTranslator, GroqTranslator, DeepseekTranslator, MiniMaxTranslator, OpenAIlikedTranslator, QwenMtTranslator, X302AITranslator]:
+    for translator in build_translator_registry():
         if service_name == translator.name:
             return translator(lang_in, lang_out, service_model, envs=envs, prompt=prompt, ignore_cache=ignore_cache)
     raise ValueError("Unsupported translation service")
