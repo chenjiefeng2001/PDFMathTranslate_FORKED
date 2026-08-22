@@ -12,6 +12,10 @@ TaskProgressEvent / RuntimeNoticeEvent（客户端无关，见 gui/events.py）�
     GET  /api/engines                       引擎列表（envs 只回显是否已配置，不回显值）
     GET  /api/engines/{name}/envs           引擎凭据明细（脱敏回显）
     PUT  /api/engines/{name}/envs           写入/清除用户级凭据（空串=清除）
+    GET  /api/models/doclayout              版面模型状态（存在/校验/下载中）
+    POST /api/models/doclayout/download     后台下载版面模型
+    GET  /api/selftest/babeldoc             BabelDOC 导入链路自检
+    GET  /api/selftest/magicpdf             magic-pdf/MinerU 可用性探测
     POST /api/tasks                         提交任务（multipart 上传或 JSON source_path）
     GET  /api/tasks                         任务列表
     GET  /api/tasks/{task_id}               任务状态
@@ -64,6 +68,10 @@ def _mask_secret(value: str) -> str:
     if len(value) <= 8:
         return "****"
     return f"{value[:3]}****{value[-4:]}"
+
+
+#: doclayout 模型后台下载状态（create_api_app 内的端点共享）
+_model_download_state: Dict[str, Any] = {"running": False, "error": None}
 
 
 def _sse_frame(event: str, data: Any) -> str:
@@ -237,6 +245,75 @@ def create_api_app(
                 "ok": False,
                 "error": f"{type(exc).__name__}: {exc}",
             }
+
+    # ── models（GPU 版面模型按需下载，不随安装包分发） ─────────────────
+    _model_download_lock = threading.Lock()
+
+    @app.get("/api/models/doclayout")
+    def doclayout_model_status() -> Dict[str, Any]:
+        """doclayout ONNX 模型状态：存在性 / 大小 / SHA3-256 校验。"""
+        import hashlib
+
+        from babeldoc.assets.assets import get_cache_file_path
+        from babeldoc.assets.embedding_assets_metadata import (
+            DOCLAYOUT_YOLO_DOCSTRUCTBENCH_IMGSZ1024ONNX_SHA3_256,
+        )
+
+        path = get_cache_file_path(
+            "doclayout_yolo_docstructbench_imgsz1024.onnx", "models"
+        )
+        exists = path.is_file()
+        size = path.stat().st_size if exists else 0
+        sha_ok = False
+        if exists:
+            digest = hashlib.sha3_256()
+            with path.open("rb") as fh:
+                for chunk in iter(lambda: fh.read(1 << 20), b""):
+                    digest.update(chunk)
+            sha_ok = digest.hexdigest() == DOCLAYOUT_YOLO_DOCSTRUCTBENCH_IMGSZ1024ONNX_SHA3_256
+        return {
+            "path": str(path),
+            "exists": exists,
+            "size_bytes": size,
+            "sha_ok": sha_ok,
+            "downloading": _model_download_state["running"],
+            "last_error": _model_download_state["error"],
+        }
+
+    @app.post("/api/models/doclayout/download")
+    def download_doclayout_model() -> Dict[str, Any]:
+        """后台线程下载 doclayout ONNX 模型；进度经轮询 status 获取。"""
+        if not _model_download_lock.acquire(blocking=False):
+            return {"started": False, "reason": "already running"}
+        if _model_download_state["running"]:
+            _model_download_lock.release()
+            return {"started": False, "reason": "already running"}
+
+        def _run() -> None:
+            _model_download_state.update(running=True, error=None)
+            try:
+                from babeldoc.assets.assets import get_doclayout_onnx_model_path
+
+                # 下载完成后内部会做 SHA3-256 校验，失败抛异常。
+                get_doclayout_onnx_model_path()
+                logger.info("doclayout onnx model download finished")
+            except Exception as exc:  # noqa: BLE001 -- 状态回显给前端
+                logger.warning("doclayout model download failed: %s", exc)
+                _model_download_state["error"] = f"{type(exc).__name__}: {exc}"
+            finally:
+                _model_download_state["running"] = False
+                _model_download_lock.release()
+
+        threading.Thread(target=_run, name="model-download", daemon=True).start()
+        return {"started": True}
+
+    @app.get("/api/selftest/magicpdf")
+    def selftest_magicpdf() -> Dict[str, Any]:
+        """magic-pdf/MinerU 解析链路可用性探测（frozen 包内默认不可用）。"""
+        from pdf2zh.engine_env import available_backend
+
+        backend, ok = available_backend()
+        return {"ok": bool(ok), "backend": backend}
 
     # ── submit ────────────────────────────────────────────────────────────
     def _submit(request: TranslationRequest) -> Dict[str, str]:
