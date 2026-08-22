@@ -92,7 +92,9 @@ class TestRenderPlanToPdf(unittest.TestCase):
         hit = [w for w in words if "你好" in w[4]]
         self.assertTrue(hit, words)
         # bbox: x0, y0, x1, y1 —— 文本应位于页面底部区域（从顶部算 y≈72-95）。
-        self.assertGreaterEqual(hit[0][1], 70)
+        # CJK 字形 ascent（约 1.04em）会略超出 rect 顶（基线 = y0 + 0.85em），
+        # 实测 y0 ≈ 69.7，下界取 65 留出字体度量余量，仍能验证翻转正确落位。
+        self.assertGreaterEqual(hit[0][1], 65)
         self.assertLessEqual(hit[0][1], 100)
         doc.close()
 

@@ -70,8 +70,15 @@ def _insert_text_wrapped(
     bottom = float(rect.y1)
     import pymupdf
 
+    # pymupdf 内置 CJK 字体对拉丁字符的 advance 偏宽，提取文本时会在字符间
+    # 插入多余空格（"x = a" → "x  =  a"）。纯拉丁行回退默认字体（helv），
+    # 既保证提取保真；含 CJK 的行仍用中文字体保证显示。
+    effective_font = fontname or "helv"
+    if effective_font == "china-ss" and all(ord(ch) < 0x2E80 for ch in text):
+        effective_font = "helv"
+
     def _width(s: str) -> float:
-        if fontname is None:
+        if effective_font == "helv":
             return pymupdf.get_text_length(s, fontsize=font_size)
         # CJK 内置字体（china-ss）对全角/拉丁均近似 1em 等宽，逐字符估算。
         return len(s) * font_size
@@ -82,7 +89,9 @@ def _insert_text_wrapped(
         sep = " " if cur else ""
         trial = f"{cur}{sep}{tok}"
         if cur and _width(trial) > max_w:
-            page.insert_text((x, y), cur, fontsize=font_size, fontname=fontname)
+            page.insert_text(
+                (x, y), cur, fontsize=font_size, fontname=effective_font
+            )
             y += line_h
             if y > bottom:
                 return
@@ -90,7 +99,7 @@ def _insert_text_wrapped(
         else:
             cur = trial
     if cur:
-        page.insert_text((x, y), cur, fontsize=font_size, fontname=fontname)
+        page.insert_text((x, y), cur, fontsize=font_size, fontname=effective_font)
 
 
 def render_plan_to_pdf(

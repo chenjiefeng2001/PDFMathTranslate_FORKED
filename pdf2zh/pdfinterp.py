@@ -161,10 +161,30 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
 
     ############################################################
     # 重载返回调用参数（SCN）
+
+    def _stroking_cs(self):
+        """当前描边色空间（兼容 pdfminer 新旧 API）。
+
+        pdfminer 20250506 起 ``scs``/``ncs`` 移到 ``graphicstate`` 上，
+        旧版本则是解释器级属性。
+        """
+        cs = getattr(self.graphicstate, "scs", None)
+        if cs is None:
+            cs = getattr(self, "scs", None)
+        return cs
+
+    def _nonstroking_cs(self):
+        """当前非描边色空间（兼容 pdfminer 新旧 API）。"""
+        cs = getattr(self.graphicstate, "ncs", None)
+        if cs is None:
+            cs = getattr(self, "ncs", None)
+        return cs
+
     def do_SCN(self) -> None:
         """Set color for stroking operations."""
-        if self.scs:
-            n = self.scs.ncomponents
+        scs = self._stroking_cs()
+        if scs:
+            n = scs.ncomponents
         else:
             if settings.STRICT:
                 raise PDFInterpreterError("No colorspace specified!")
@@ -175,8 +195,9 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
 
     def do_scn(self) -> None:
         """Set color for nonstroking operations"""
-        if self.ncs:
-            n = self.ncs.ncomponents
+        ncs = self._nonstroking_cs()
+        if ncs:
+            n = ncs.ncomponents
         else:
             if settings.STRICT:
                 raise PDFInterpreterError("No colorspace specified!")
@@ -224,8 +245,24 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
                 [xobj],
                 ctm=ctm,
             ) or ""  # 空内容流返回 None，避免生成非法 PDF 指令串
-            self.ncs = interpreter.ncs
-            self.scs = interpreter.scs
+            # 同步子解释器的色空间（兼容 pdfminer 新旧 API：
+            # 20250506 起 ncs/scs 位于 graphicstate，旧版为解释器属性）
+            sub_ncs = getattr(interpreter.graphicstate, "ncs", None) or getattr(
+                interpreter, "ncs", None
+            )
+            sub_scs = getattr(interpreter.graphicstate, "scs", None) or getattr(
+                interpreter, "scs", None
+            )
+            if hasattr(self.graphicstate, "ncs"):
+                if sub_ncs is not None:
+                    self.graphicstate.ncs = sub_ncs
+                if sub_scs is not None:
+                    self.graphicstate.scs = sub_scs
+            else:
+                if sub_ncs is not None:
+                    self.ncs = sub_ncs
+                if sub_scs is not None:
+                    self.scs = sub_scs
             try:  # 有的时候 form 字体加不上这里会烂掉
                 self.device.fontid = interpreter.fontid
                 self.device.fontmap = interpreter.fontmap

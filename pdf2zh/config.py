@@ -63,6 +63,11 @@ class ConfigManager:
         """递归移除循环引用"""
         if seen is None:
             seen = set()
+        # 仅容器类型可能构成循环引用；字符串/数字等不可变对象会被
+        # CPython 驻留共享（同一字面量是同一对象），若一并跟踪 id 会把
+        # 重复出现的相同值误判为循环引用而改写为 null。
+        if not isinstance(obj, (dict, list)):
+            return obj
         obj_id = id(obj)
         if obj_id in seen:
             return None  # 遇到已处理过的对象，视为循环引用
@@ -72,9 +77,7 @@ class ConfigManager:
             return {
                 k: self._remove_circular_references(v, seen) for k, v in obj.items()
             }
-        elif isinstance(obj, list):
-            return [self._remove_circular_references(i, seen) for i in obj]
-        return obj
+        return [self._remove_circular_references(i, seen) for i in obj]
 
     @classmethod
     def custome_config(cls, file_path):

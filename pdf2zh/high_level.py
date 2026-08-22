@@ -909,8 +909,11 @@ def translate_stream(
         )
         _pt_start = time.perf_counter()
         try:
-            doc_dual = doc_zh.write(deflate=True, garbage=4, clean=True, use_objstms=1)
-            doc_mono = doc_en.write(deflate=True, garbage=4, clean=True, use_objstms=1)
+            # clean=True 会触发 MuPDF 内容流消毒器，实测会把 converter 生成的
+            # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
+            # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
+            doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
+            doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
         finally:
             doc_en.close()
             doc_zh.close()
@@ -1298,7 +1301,10 @@ def translate_stream(
     logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
     try:
         _write_start = _merge_time.time()
-        doc_dual = doc_zh.write(deflate=True, garbage=4, clean=True, use_objstms=1)
+        # clean=True 会触发 MuPDF 内容流消毒器，实测会把 converter 生成的
+        # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
+        # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
+        doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
         logger.info("translate_stream: doc_zh write OK (size=%d bytes, %.1fs)", len(doc_dual), _merge_time.time() - _write_start)
     except Exception as write_err:
         logger.error("translate_stream: doc_zh write failed: %s", write_err)
@@ -1306,7 +1312,7 @@ def translate_stream(
     logger.info("translate_stream: writing doc_en (mono) PDF bytes...")
     try:
         _write_start = _merge_time.time()
-        doc_mono = doc_en.write(deflate=True, garbage=4, clean=True, use_objstms=1)
+        doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
         logger.info("translate_stream: doc_en write OK (size=%d bytes, %.1fs)", len(doc_mono), _merge_time.time() - _write_start)
     except Exception as write_err:
         logger.error("translate_stream: doc_en write failed: %s", write_err)
