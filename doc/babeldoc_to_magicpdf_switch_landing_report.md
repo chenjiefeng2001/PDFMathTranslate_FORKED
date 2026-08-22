@@ -248,7 +248,7 @@ _write_dumps() → {output}/magicpdf/{stem}_magicpdf.json /
 | `~/magic-pdf.json` | ❌ 缺失 | 需创建（§5 模板） |
 | 模型文件 | ❌ 缺失 | 无 `~/.cache/modelscope`，需下载（§5） |
 | OCR 依赖（PaddleOCR） | ⚠️ 需核验 | magic-pdf OCR 模式依赖 `paddleocr`/`rapidocr`，本机是否就绪未验证 |
-| pdfminer-six 版本 | ✅ 已规避 | 本项目锁 `==20250416`；magicpdf 路径在独立调用内复用同一解释器，经 `_parse_magicpdf` 惰性导入触发（相关风险评估见 8-16 报告 §12.4，维持“暂不宽松化”结论） |
+| pdfminer-six 版本 | ✅ 已落地宽松化 | 本项目约束 `>=20250416,<20250507`；另经 `[tool.uv] override-dependencies` 强制 `pymupdf>=1.26.7`，`uv lock` 通过（8-16 报告 §12.4 结论已更新） |
 | GPU | ⚠️ 仅 DML | 选 `dml` 后端可用 DirectML 加速；`cuda` 无效 |
 
 ---
@@ -390,7 +390,7 @@ pdf2zh --parse-engine magicpdf --output C:\temp\out C:\path\to\test.pdf
 | **字符级坐标缺失** | magic-pdf 的 span 只有行/块级 bbox，无逐字符 bbox；重排精度低于 BabelDOC 字符级 IR（8-16 报告 §3.3 已指出） | magicpdf 产物定位为“旁路解析/自渲染 mono PDF”，不与 BabelDOC 主链路做同指标对比 |
 | **公式 LaTeX 质量** | UniMerNet 小模型对复杂多行公式仍有误差 | 公式侧通道 + fixup 已可诊断；正式采用前建议跑 20+ 样例视觉评测 |
 | **OCR 依赖** | magic-pdf OCR 模式依赖 PaddleOCR/RapidOCR，本机未核验 | 落地步骤 §5.2 注明；先以非 OCR 文档验证 |
-| **pdfminer-six 冲突面** | 已评估，维持 `==20250416` 锁定（8-16 报告 §12.4） | magicpdf 与 legacy 共用同一解释器内同一 pdfminer |
+| **pdfminer-six 冲突面** | 已宽松化（`>=20250416,<20250507`）+ pymupdf override 落地，`uv lock` 通过（8-16 报告 §12.4） | magicpdf 与 legacy 共用同一解释器内同一 pdfminer |
 | **Py3.13 锁定 magic-pdf 1.x** | mineru 2.x 在 Windows 仅 3.10-3.12 | 本机无解，除非换 Python 3.12 解释器装 mineru |
 | **gradio 缓存目录（已实测）** | 上传文件生命周期归 gradio 管，任务不应依赖其持久性 | §6.2 每任务快照 |
 | **大量 1035 页文档** | magic-pdf 首批就渲染 200 页图像，CPU 下耗时/内存高（本次峰值 13.7GB） | 建议先 `--pages` 子集验证；或选用 `layoutlmv3` 等轻量版面模型 |

@@ -48,7 +48,7 @@
 
 <h2 id="updates">更新</h2>
 - [2026年8月17日] 可切换解析引擎：以 MinerU/magic-pdf 作为可选 PDF 解析层（`--parse-engine magicpdf`、`--magicpdf-ocr`、`--magicpdf-render`），自动生成配置 + 权重预检 + legacy 熔断降级；BabelDOC OCR 三态开关（`--babeldoc-ocr`）；GPU 后端传播到 BabelDOC 内部 doclayout ONNX 会话（`PDF2ZH_BABELDOC_BACKEND`）
-- [2026年8月13日] 可靠性加固：翻译重试止损（`PDF2ZH_TRANSLATE_RETRY`）、任务自愈看门狗（无进度超时自动取消 `PDF2ZH_TASK_TIMEOUT_SECONDS`、终态任务自动清理 `PDF2ZH_TASK_RETENTION_SECONDS`）、GUI 队列活性看门狗、控制按钮直连（取消/暂停/继续/跳过/下载不再排队）
+- [2026年8月13日] 可靠性加固：翻译重试止损（`PDF2ZH_TRANSLATE_RETRY`）、终态任务自动清理（`PDF2ZH_TASK_RETENTION_SECONDS`）、GUI 队列活性看门狗、控制按钮直连（取消/暂停/继续/跳过/下载不再排队）
 - [2026年8月13日] 并行引擎：worker 进程隔离 + GPU 后端传播（`--backend`）、worker 崩溃自动降级 CPU、失败分块增量重试 + 串行补跑、主进程模型预热 + 原子化优化缓存发布
 - [2026年8月13日] 翻译传输层加固：按线程连接池（32）消除 "Connection pool is full" 连接风暴；Google 429/CAPTCHA 快速失败并给出可操作提示；超长文本（>4000 字符）分段翻译，修复静默截断；请求超时防黑洞悬挂
 - [2026年8月13日] 无文本文档透传：扫描件/纯矢量/纯图片 PDF 直接透传，不再嵌入数 MB 字体（此前 603KB 输入膨胀至 ~10MB 输出）；CLI 自动创建输出目录并正确支持并行参数
@@ -282,9 +282,8 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 | 变量 | 默认值 | 作用 |
 | ---- | ------ | ---- |
 | `PDF2ZH_TRANSLATE_RETRY` | `3` | 每次翻译调用的有限重试次数（非正数或非法值回退为 3）。防止无限重试导致任务永久卡住。 |
-| `PDF2ZH_TASK_TIMEOUT_SECONDS` | `7200` | 任务超过该时长无状态更新时，由看门狗自动取消并标记为 `Timed out`。 |
 | `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | 终态任务（已完成/已取消/失败）超过该时长后从内存中清理。 |
-| `PDF2ZH_SWEEP_INTERVAL` | `60` | 看门狗清扫间隔（最小 10）秒。 |
+| `PDF2ZH_SWEEP_INTERVAL` | `60` | 后台内存清扫间隔（最小 10）秒。 |
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | 对应 `--parallel-workers` / `--no-parallel` 的环境变量形式。 |
 | `PDF2ZH_PROXY` | — | 对应 `--proxy` 的环境变量形式。 |
 | `PDF2ZH_MAX_FILE_SIZE` | — | 对应 `--max-file-size`（MB）的环境变量形式。 |
@@ -304,7 +303,7 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 
 ```bash
 # 安装可选引擎（Python 3.10–3.12 优先 mineru 2.x；Python 3.13 兜底 magic-pdf 1.3.12）
-pip install pdf2zh[magicpdf]
+uv pip install -e ".[magicpdf]"   # 推荐 uv（仓库内置依赖覆写，自动化解 pymupdf 冲突）；pip 用法见 docs/ADVANCED.md
 
 # 用 MinerU/magic-pdf 解析并渲染译后 mono PDF（默认开启渲染）
 pdf2zh --parse-engine magicpdf example.pdf
@@ -329,6 +328,16 @@ pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf
   pdf2zh 在解析前会预检 layout/MFD/MFR 权重，缺失时秒级报错并给出上述提示，而不是空跑数十个空批次。
 - **扫描件 / 损坏文本层。** 当文本层质量预检（多信号融合）命中扫描/损坏信号时，pdf2zh 可自动切换到 `--parse-engine magicpdf --magicpdf-ocr`；若 magic-pdf 不可用，则降级回 legacy 引擎。
 - **GPU 加速。** `--backend {auto,cpu,cuda,dml}` 选择 pdf2zh 版面推理的 ONNX 执行提供方，并通过 `PDF2ZH_BABELDOC_BACKEND` 同步作用于 BabelDOC 内部 doclayout ONNX 会话（`auto` 保持 BabelDOC 原生 CPU 行为）。`cuda` 需 `pip install pdf2zh[cuda]`（`onnxruntime-gpu`）；`dml` 需 `pip install pdf2zh[dml]`（`onnxruntime-directml`）。当请求的提供方无法真正初始化（如缺少 CUDA 运行库 DLL）时会回退 CPU 并记录告警。
+- **magic-pdf GPU（独立执行设备）。** magic-pdf 解析引擎的设备与 BabelDOC 的 ONNX 后端相互独立：其 torch 模型（MFD/MFR/OCR/layoutreader）与 ONNX 模型（doclayout_yolo）统一读取 `~/magic-pdf.json` 的 `device-mode`。启用 GPU 的**硬前提是安装 CUDA 版 PyTorch**（光装 `onnxruntime-gpu` 不够）：
+
+  ```bash
+  python -m pip install -U "torch" --index-url https://download.pytorch.org/whl/cu126  # 按本机 CUDA 选 cu121/cu124/cu126
+  python -c "import torch; print(torch.cuda.is_available())"                            # 必须输出 True
+  pdf2zh --parse-engine magicpdf --backend cuda example.pdf
+  ```
+
+  torch 为 CPU 版时 `torch.cuda.is_available()` 为 `False`，pdf2zh 会把 `device-mode` 回退 `cpu`（日志告警说明缺失项）。装好 CUDA torch 后，`--backend cuda`（或 GUI 后端选 CUDA）会自动把已存在的 `~/magic-pdf.json` 的 `device-mode` 升级为 `cuda`（其余用户设置保留）。`dml`（DirectML）只加速 ONNX，对 magic-pdf 的 torch 模型无效。CLI 解析前会打印 `[magicpdf] device status: ...`，GUI 状态面板也会显示「MagicPDF 解析设备」一行，一眼看出实际执行设备。
+
 - **GUI。** 配置面板提供「解析引擎」单选（auto/legacy/babeldoc/magicpdf）、MagicPDF OCR 复选框、后端单选（auto/cpu/cuda/dml）、BabelDOC OCR 模式单选，以及实时 ONNX 后端状态面板。
 
 

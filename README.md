@@ -65,7 +65,7 @@ Scientific PDF document translation preserving layouts.
 
 <h2 id="updates">2. Recent Updates</h2>
 - [August 17, 2026] Switchable parse engine: MinerU/magic-pdf as an optional PDF parsing layer (`--parse-engine magicpdf`, `--magicpdf-ocr`, `--magicpdf-render`), with automatic config generation, weight pre-check, and legacy-kernel fallback; BabelDOC OCR tri-state (`--babeldoc-ocr`), and GPU backend propagation to BabelDOC's internal doclayout ONNX session (`PDF2ZH_BABELDOC_BACKEND`).
-- [August 13, 2026] Reliability hardening: bounded translate retries (`PDF2ZH_TRANSLATE_RETRY`), task self-healing watchdogs (stuck-task auto-cancel via `PDF2ZH_TASK_TIMEOUT_SECONDS`, terminal-task pruning via `PDF2ZH_TASK_RETENTION_SECONDS`), GUI queue liveness watchdog, and direct (queue-less) control buttons for cancel/pause/resume/skip/download.
+- [August 13, 2026] Reliability hardening: bounded translate retries (`PDF2ZH_TRANSLATE_RETRY`), terminal-task pruning via `PDF2ZH_TASK_RETENTION_SECONDS`, GUI queue liveness watchdog, and direct (queue-less) control buttons for cancel/pause/resume/skip/download.
 - [August 13, 2026] Parallel engine: isolated worker processes with GPU backend propagation (`--backend`), automatic CPU degradation after worker crashes, incremental per-chunk retry with serial patch fallback, and main-process model warm-up with atomic optimized-cache publishing.
 - [August 13, 2026] Translator transport hardening: per-thread connection pools (32) that eliminate "Connection pool is full" connection storms, fast-fail on Google 429/CAPTCHA blocks with an actionable error, long-text chunking (>4000 chars) that fixes silent truncation, and request timeouts to prevent blackhole hangs.
 - [August 13, 2026] No-text passthrough: scanned/vector/image-only PDFs are detected and passed through without embedding multi-MB fonts (previously 603KB input ballooned to ~10MB output); CLI now creates missing output directories and supports parallel settings properly.
@@ -358,9 +358,8 @@ Long-running tasks are guarded by several self-healing mechanisms; all knobs are
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
 | `PDF2ZH_TRANSLATE_RETRY` | `3` | Bounded retries per translation call (a non-positive or invalid value falls back to 3). Prevents infinite retry loops that previously stalled tasks forever. |
-| `PDF2ZH_TASK_TIMEOUT_SECONDS` | `7200` | A task that reports no state update for this long is auto-cancelled by the watchdog and marked `Timed out`. |
 | `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | Terminal tasks (completed/cancelled/failed) older than this are pruned from memory. |
-| `PDF2ZH_SWEEP_INTERVAL` | `60` | Seconds between watchdog sweeps (minimum 10). |
+| `PDF2ZH_SWEEP_INTERVAL` | `60` | Seconds between memory-cleanup sweeps (minimum 10). |
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | Env-var equivalents of `--parallel-workers` / `--no-parallel`. |
 | `PDF2ZH_PROXY` | — | Env-var equivalent of `--proxy`. |
 | `PDF2ZH_MAX_FILE_SIZE` | — | Env-var equivalent of `--max-file-size` (MB). |
@@ -415,6 +414,7 @@ How it works:
   pdf2zh pre-checks the layout/MFD/MFR weights before parsing and fails fast with this hint instead of running dozens of empty batches.
 - **Scanned / damaged text layers.** When the text-layer quality pre-check (multi-signal fusion) hits a scan/damage signal, pdf2zh can automatically switch to `--parse-engine magicpdf --magicpdf-ocr`; if magic-pdf is not usable, it degrades back to the legacy engine.
 - **GPU.** `--backend {auto,cpu,cuda,dml}` selects the ONNX execution provider for pdf2zh's layout inference and — via `PDF2ZH_BABELDOC_BACKEND` — for BabelDOC's internal doclayout ONNX session (`auto` keeps BabelDOC's native CPU behaviour). `cuda` needs `pip install pdf2zh[cuda]` (`onnxruntime-gpu`); `dml` needs `pip install pdf2zh[dml]` (`onnxruntime-directml`). When a requested provider cannot actually initialize (e.g. missing CUDA runtime DLLs), the session falls back to CPU and logs a warning.
+- **magic-pdf GPU.** The magic-pdf parse engine has its own independent device: its torch models (MFD/MFR/OCR/layoutreader) and its ONNX models (doclayout_yolo) all read `device-mode` from `~/magic-pdf.json` (or `MINERU_TOOLS_CONFIG_JSON`). To run magic-pdf on the GPU you must first install a **CUDA build of PyTorch** (`python -m pip install -U "torch" --index-url https://download.pytorch.org/whl/cu126`, pick cu121/cu124/cu126 to match your CUDA) — a CPU torch makes `torch.cuda.is_available()` false and pdf2zh falls back to `cpu` with a log hint. After that, request `--backend cuda` (or GUI backend CUDA); pdf2zh upgrades the existing `~/magic-pdf.json` `device-mode` to `cuda` automatically. `dml` does **not** apply to magic-pdf's torch models. The CLI prints a `[magicpdf] device status:` line and the GUI status panel shows a `MagicPDF parse device` row for one-glance diagnosis.
 - **GUI.** The config panel exposes the parse-engine radio (`auto`/`legacy`/`babeldoc`/`magicpdf`), the MagicPDF OCR checkbox, the backend radio (`auto`/`cpu`/`cuda`/`dml`), the BabelDOC OCR-mode radio, and a live ONNX backend-status panel.
 
 <h2 id="information">5. Project Information</h2>

@@ -383,10 +383,19 @@ pdf2zh can use **MinerU / magic-pdf** as the PDF *parsing* layer instead of the 
 **Installation.**
 
 ```bash
-pip install pdf2zh[magicpdf]
+uv pip install -e ".[magicpdf]"   # uv recommended: the repo ships a [tool.uv] override below
 ```
 
-The extra installs both `mineru>=2.0` and `magic-pdf>=1.3.12,<2`. Python 3.10–3.12 prefers MinerU 2.x, Python 3.13 falls back to magic-pdf 1.3.12 (decided by `pdf2zh.engine_env`). Do **not** install both packages manually — they conflict on PyPI.
+The extra resolves to `mineru>=2.0` on Python 3.10–3.12 and `magic-pdf>=1.3.12,<2` on Python 3.13+ (decided by `pdf2zh.engine_env`). The two engines are mutually exclusive on PyPI, so they are split by an environment marker — do **not** install both manually.
+
+
+> **Resolver note.** `magic-pdf` pins `pdfminer-six==20250506` and (stale) `pymupdf<1.25.0`, while `babeldoc>=0.6.4` needs `pymupdf>=1.26.7`. pdf2zh now declares `pdfminer-six>=20250416,<20250507` and ships `[tool.uv] override-dependencies = ["pymupdf>=1.26.7"]` (magic-pdf 1.3.12 verified running on pymupdf 1.28). **uv** handles this automatically. With **pip**, if the resolver rejects the install, add the engine without its stale pins:
+>
+> ```bash
+> pip install "magic-pdf[full]==1.3.12" --no-deps
+> pip install "pdfminer-six>=20250416,<20250507" "pymupdf>=1.26.7"
+> ```
+>
 
 **Models.** magic-pdf does not auto-download its PDF-Extract-Kit weights. Download them once to `~/.cache/magic-pdf/models`:
 
@@ -407,6 +416,19 @@ pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf  # JSON dumps on
 ```
 
 If the engine or its models are unavailable, pdf2zh logs the reason and falls back to the legacy kernel automatically.
+
+**GPU.** magic-pdf runs its own independent execution device (separate from the BabelDOC ONNX backend): its torch models (MFD/MFR/OCR/layoutreader) and its ONNX models (doclayout_yolo) all read `device-mode` from `~/magic-pdf.json` (or `MINERU_TOOLS_CONFIG_JSON`). Enabling GPU requires a **CUDA build of PyTorch** first:
+
+```bash
+python -m pip install -U "torch" --index-url https://download.pytorch.org/whl/cu126  # cu121/cu124/cu126 to match your CUDA
+python -c "import torch; print(torch.cuda.is_available())"                            # must print True
+pdf2zh --parse-engine magicpdf --backend cuda example.pdf
+```
+
+- With a CPU-only torch, `torch.cuda.is_available()` is `False` and pdf2zh falls back `device-mode` to `cpu` (a log warning names the missing piece) — installing `onnxruntime-gpu` alone is **not** enough for magic-pdf.
+- Once CUDA torch is installed, `--backend cuda` (or GUI backend CUDA) automatically upgrades the `device-mode` of an existing `~/magic-pdf.json` to `cuda`; existing user settings are otherwise preserved.
+- `dml` (DirectML) accelerates only ONNX and does **not** apply to magic-pdf's torch models.
+- The CLI prints a `[magicpdf] device status: ...` line before parsing, and the GUI status panel shows a `MagicPDF parse device` row, so "requested cuda, actually running cpu" is visible at a glance.
 
 **GUI / Service.** The GUI config panel exposes a parse-engine radio (`auto`/`legacy`/`babeldoc`/`magicpdf`), a MagicPDF OCR checkbox, a backend radio, and a live ONNX backend-status panel. The runtime service routes the same field through `TranslationRequest.parse_engine`.
 

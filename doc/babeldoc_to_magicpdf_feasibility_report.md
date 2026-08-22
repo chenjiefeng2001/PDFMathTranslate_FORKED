@@ -351,15 +351,15 @@ m.predict(pdf_path)
 |---|---|
 | 排版对比评测（原 Step 3.2） | 已具备 dumps（`{output}/magicpdf/*_magicpdf.json`、`*_document.json`、`*_render_plan.json`、`*_formula_channel.json`）+ **译后 mono PDF**；需真实引擎 + 20+ 样例 OmniDocBench 类视觉对比，评估接管比例 |
 | RenderTakeover 渲染接管 | **已完成**：`v3/magicpdf_renderer.py` 的 `render_plan_to_pdf` 把 `fixup_render_plan` 修正后的渲染计划渲染为 PDF（v3 坐标翻转、逐块换行插入、CJK 内置字体、空 plan 兜底）；CLI 默认产出 `{stem}_mono.pdf`（`--no-magicpdf-render` 关闭）；新增 `--magicpdf-render` 参数（BooleanOptionalAction，默认开） |
-| 依赖冲突宽松化 | `pdfminer-six` 保持 `==20250416` 锁；宽松化 `>=20250416,<=20250506` 的回归面评估见 §12.4 |
+| 依赖冲突宽松化 | **已落地**：`pdfminer-six` 放宽为 `>=20250416,<20250507`（§12.4）；新增 `[tool.uv] override-dependencies` 强制 `pymupdf>=1.26.7` 化解与 babeldoc 的硬冲突；`uv lock` 全量解析通过（270 包） |
 
-### 12.4 pdfminer-six 版本冲突评估（结论：暂不宽松化）
+### 12.4 依赖冲突处理（已落地：pdfminer-six 宽松化 + pymupdf override）
 
-可行性报告 §4 记录了本项目锁 `pdfminer-six==20250416`、magic-pdf 要求 `==20250506` 的冲突。评估如下：
+可行性报告 §4 记录了本项目锁 `pdfminer-six==20250416`、magic-pdf 要求 `==20250506` 的冲突；落地阶段又发现 `babeldoc>=0.6.4` 依赖 `pymupdf>=1.26.7`，与 magic-pdf 的 `pymupdf<1.25.0`（历史 pin）在严格解析器下硬冲突。处理如下：
 
 1. **同一进程双版本不可共存**：magic-pdf 1.x 在 `import magic_pdf` 时即 `import pdfminer`，若已装本项目锁定版本会因版本断言失败（或行为差异）而中断，因此 magicpdf 路径与 legacy/BabelDOC 主链路**必须在同一解释器内复用同一份 pdfminer-six**。
 2. **宽松化的收益有限**：magic-pdf 的 pdfminer 使用集中在解析层的 `PDFParser`/`PDFDocument` 文本提取，与本项目 legacy 内核的 `pdfminer.high_level`/`converter` 消费路径不同；`20250416→20250506` 差异属安全修复与 bugfix，API 面兼容（`extract_pages`、`LT*` 对象结构未变）。
-3. **结论**：**暂不宽松化**。保持 `==20250416` 锁，magicpdf 路径经 `MagicPdfAdapter.from_middle_json` 离线兜底 + 引擎缺失熔断降级，已规避冲突触发面；若后续需要 magicpdf 在线解析与 legacy 同进程并存，再评估 `>=20250416,<=20250506` 的回归面（预期仅需重跑 `tests/test_pdfminer*` 相关子集）。
+3. **结论（已落地）**：`pdfminer-six` 放宽为 `>=20250416,<20250507`（20250506 属安全修复 + bugfix，`extract_pages`/`LT*` API 兼容，回归面仅 pdfminer 消费子集）；pymupdf 通过 `[tool.uv] override-dependencies = ["pymupdf>=1.26.7"]` 强制高版本（magic-pdf 1.3.12 在 pymupdf 1.28 下实测正常）。`uv lock` / `uv sync --dry-run` 均通过（270 包），CI `uv sync` 解析问题解决；pip 用户如遇冲突按 `docs/ADVANCED.md` 的 `--no-deps` 指引安装引擎。
 
 ---
 
