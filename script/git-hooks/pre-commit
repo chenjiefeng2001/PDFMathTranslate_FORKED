@@ -1,0 +1,48 @@
+#!/bin/sh
+# 版本化 pre-commit 守卫（经 `git config core.hooksPath script/git-hooks` 启用）。
+#
+# 拦截三类事故，全部给出明确原因与豁免方式：
+#   1. 超大文件（>20MB）——历史上一个 2.2GB 对象曾把 .git 撑到 2.3GB；
+#   2. 打包产物扩展名——*.exe/*.dll/*.pyd/*.onnx/*.pth 一律不入库；
+#   3. 明显的凭据模式——AWS / 私钥 / GitHub / Slack / OpenAI key。
+#
+# 确属需要提交时：git commit --no-verify 并在提交说明中注明体积与来源。
+
+MAX_BYTES=20971520
+
+fail=0
+
+for f in $(git diff --cached --name-only --diff-filter=ACMR); do
+    [ -f "$f" ] || continue
+
+    size=$(wc -c <"$f" | tr -d ' ')
+    if [ "$size" -gt "$MAX_BYTES" ]; then
+        echo "BLOCKED: '$f' is $size bytes (limit ${MAX_BYTES})." >&2
+        echo "         Build outputs must stay out of git; see .gitignore." >&2
+        fail=1
+    fi
+
+    case "$f" in
+        *.exe|*.dll|*.pyd|*.onnx|*.pth)
+            echo "BLOCKED: '$f' matches banned artifact extension." >&2
+            echo "         If truly required: git add -f + document size/source." >&2
+            fail=1
+            ;;
+    esac
+done
+
+if git diff --cached --unified=0 | grep '^+' | grep -inE \
+    'AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY|ghp_[A-Za-z0-9]{36}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-[A-Za-z0-9]{32,}' \
+    >/dev/null; then
+    echo "BLOCKED: staged diff looks like it contains a credential." >&2
+    echo "         Review the added lines; rotate the key if it is real." >&2
+    fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+    echo "" >&2
+    echo "Commit refused by script/git-hooks/pre-commit." >&2
+    echo "Genuine exception: re-run with --no-verify and explain in the message." >&2
+    exit 1
+fi
+exit 0

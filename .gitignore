@@ -188,7 +188,6 @@ script/build/
 script/dep_build/
 script/*.exe
 script/*.zip
-script
 # User configuration override
 config.local.json
 config.local.yaml
@@ -206,3 +205,18 @@ tools/
 # PyInstaller sidecar local build workspace (intermediates + exe output)
 deploy/_build_sidecar/
 !deploy/pdf2zh-api-sidecar.spec
+
+# ── Desktop (Tauri) packaging payloads ─────────────────────────────
+# sidecar onedir（~1.4GB）由 deploy/pdf2zh-api-sidecar.spec 重建，
+# 永不入库；目录本身用 .gitkeep 占位。
+frontend/src-tauri/binaries/*
+!frontend/src-tauri/binaries/.gitkeep
+
+# ── 大体积二进制安全网 ────────────────────────────────────────────
+# 历史上一个 2.2GB 悬空对象曾把 .git 撑到 2.3GB。以下扩展名的产物一律
+# 不入库；确需提交时用 git add -f 并在 PR 说明中附体积与来源。
+*.exe
+*.dll
+*.pyd
+*.onnx
+*.pth
