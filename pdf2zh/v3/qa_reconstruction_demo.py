@@ -149,9 +149,9 @@ def demo_real_pdf(tmpdir: str) -> dict:
     print("=" * 72)
     print("[2/2] 真实 PDF smoke：fitz 生成混合字体页面 → pdfminer LTChar")
     print("=" * 72)
-    import fitz
+    import pymupdf
     pdf_path = os.path.join(tmpdir, "demo_math.pdf")
-    doc = fitz.open()
+    doc = pymupdf.open()
     page = doc.new_page(width=612, height=792)
     page.insert_text((72, 120), "Let f(x) = x^2 + 1 be a continuous function.",
                      fontname="helv", fontsize=12)

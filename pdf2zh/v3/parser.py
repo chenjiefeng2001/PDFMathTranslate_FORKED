@@ -253,7 +253,7 @@ class PDFParser:
             import pymupdf as pm
         except ImportError:
             try:
-                import fitz as pm
+                import pymupdf as pm
             except ImportError:
                 logger.warning("pymupdf not available; layout disabled")
                 return None

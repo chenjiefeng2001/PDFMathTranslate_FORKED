@@ -131,7 +131,7 @@ def init_worker_process(backend: Optional[str] = None) -> None:
 def execute_chunk(task: ChunkTask) -> ChunkResult:
     """在 worker 进程内执行一个 chunk（迁移自 ``_translate_parallel_chunk``）。
 
-    重对象（fitz.Document / OnnxModel / FontResolver / TextMetrics 等）在
+    重对象（pymupdf.Document / OnnxModel / FontResolver / TextMetrics 等）在
     worker 内从 ``fp_bytes`` 与全局 ``ModelInstance`` 单例重建，规避
     SwigPyObject pickle 错误。单 chunk 异常封装进 ``ChunkResult.error_message``
     （``KeyboardInterrupt`` 除外 —— 它是取消信号，必须传播给 coordinator 短路）。
@@ -140,7 +140,7 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
     import json
     from string import Template
 
-    import fitz as _fitz
+    import pymupdf as _fitz
 
     from pdf2zh.collision_resolver import CollisionResolver  # noqa: PLC0415
     from pdf2zh.doclayout import ModelInstance  # noqa: PLC0415

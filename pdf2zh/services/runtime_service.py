@@ -2163,14 +2163,14 @@ class RuntimeService:
             if counts:
                 return counts
             if source_path and os.path.exists(source_path):
-                import fitz as _fitz
+                import pymupdf as _fitz
                 with _fitz.open(source_path) as src:
                     return {"pages": src.page_count}
             return None
         except Exception:
             try:
                 if source_path and os.path.exists(source_path):
-                    import fitz as _fitz
+                    import pymupdf as _fitz
                     with _fitz.open(source_path) as src:
                         return {"pages": src.page_count}
             except Exception:
@@ -2335,7 +2335,7 @@ class RuntimeService:
         if task_id not in self._aggregators or not source_path:
             return
         try:
-            import fitz as _fitz
+            import pymupdf as _fitz
             with _fitz.open(source_path) as src:
                 self._update_aggregator_weights(
                     task_id, {"pages": int(src.page_count)}

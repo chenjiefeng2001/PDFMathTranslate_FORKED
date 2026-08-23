@@ -747,8 +747,8 @@ def _apply_bookmarks(
     - 任一步失败仅记 warning，不回退整个翻译任务
     """
     try:
-        import fitz
-        reader = fitz.open(stream=stream_bytes, filetype="pdf")
+        import pymupdf
+        reader = pymupdf.open(stream=stream_bytes, filetype="pdf")
         toc = reader.get_toc()
         reader.close()
     except Exception as e:
@@ -1500,7 +1500,7 @@ def _translate_parallel_chunk(
     """Process a chunk of pages in a separate process (module-level for pickling).
 
     Only lightweight scalar parameters are passed across process boundary.
-    Heavy C-extension objects (fitz.Document, OnnxModel, FontResolver, etc.)
+    Heavy C-extension objects (pymupdf.Document, OnnxModel, FontResolver, etc.)
     are reconstructed inside the worker process from fp_bytes and the
     global ModelInstance singleton. This avoids SwigPyObject pickle errors.
 
@@ -1570,7 +1570,7 @@ def _translate_parallel(
 
     ARCHITECTURE: Only lightweight scalar parameters are passed across the
     process boundary (str, int, bool, bytes). Heavy C-extension objects
-    (fitz.Document, OnnxModel, FontResolver, TextMetrics, etc.) are
+    (pymupdf.Document, OnnxModel, FontResolver, TextMetrics, etc.) are
     reconstructed inside each worker process. The layout model is loaded
     once per worker via ProcessPoolExecutor(initializer=...), stored in
     the global ModelInstance singleton.

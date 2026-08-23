@@ -100,11 +100,11 @@ def _is_cjk_char(ch: str) -> bool:
 def build_profile(path: str, target_lang: str = "zh-CN",
                   max_pages: Optional[int] = None) -> DocumentProfile:
     """从 PDF 文件构建 DocumentProfile（几何 + 结构 + 统计）。"""
-    import fitz
+    import pymupdf
     engine = GeometryEngine()
     classifier = StructureClassifier()
     prof = DocumentProfile(path=path)
-    doc = fitz.open(path)
+    doc = pymupdf.open(path)
     try:
         prof.page_count = doc.page_count
         pages = []

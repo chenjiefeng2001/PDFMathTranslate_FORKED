@@ -146,7 +146,7 @@ def compute_link_updates(
     and a matched source paragraph are returned (unchanged links are omitted).
 
     ``links`` may be fitz link dicts (with a ``from`` key) or any dict with a
-    ``("from")`` tuple. Nothing here imports fitz.
+    ``("from")`` tuple. Nothing here imports pymupdf.
     """
     updates: List[Tuple[dict, Rect]] = []
     if not links or not src_boxes or len(src_boxes) != len(dst_boxes):
@@ -303,8 +303,8 @@ def _apply_one_link(page, link: dict, new_rect: Rect) -> None:
 
 
 def fitz_rect(x0: float, y0: float, x1: float, y1: float):
-    """Lazy-import fitz.Rect (avoids hard import so the module stays unit-test
+    """Lazy-import pymupdf.Rect (avoids hard import so the module stays unit-test
     friendly even without PyMuPDF present)."""
-    import fitz
+    import pymupdf
 
-    return fitz.Rect(x0, y0, x1, y1)
+    return pymupdf.Rect(x0, y0, x1, y1)

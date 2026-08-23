@@ -688,7 +688,7 @@ def analyze_pdf_images(doc, page_range: Optional[Sequence[int]] = None,
 
     guarded：PyMuPDF 不可用或单页失败时返回该页空列表，绝不抛错。
     输入 doc 需具有 ``page_count`` / ``__getitem__`` / 每页 ``get_images``
-    与 ``doc.extract_image`` 接口（即 fitz.Document）。dpi 由像素/物理比估。
+    与 ``doc.extract_image`` 接口（即 pymupdf.Document）。dpi 由像素/物理比估。
     """
     out: Dict[int, List[ImageObject]] = {}
     try:

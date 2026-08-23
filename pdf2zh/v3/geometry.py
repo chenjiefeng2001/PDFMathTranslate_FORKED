@@ -326,9 +326,9 @@ def extract_chars_from_page(page, page_num: int = 0) -> List[Char]:
 
 def extract_chars_from_stream(stream: bytes, max_pages: Optional[int] = None) -> List[Char]:
     """从 PDF 字节流提取全部字符（跨页）。"""
-    import fitz
+    import pymupdf
     chars: List[Char] = []
-    doc = fitz.open(stream=stream, filetype="pdf")
+    doc = pymupdf.open(stream=stream, filetype="pdf")
     try:
         n = doc.page_count
         if max_pages is not None:
