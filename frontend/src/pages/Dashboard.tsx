@@ -73,6 +73,7 @@ export default function Dashboard() {
     { value: string; label: string }[]
   >([]);
   const [magicpdfOk, setMagicpdfOk] = useState<boolean | null>(null);
+  const [previewIndex, setPreviewIndex] = useState(0);
 
   useEffect(() => {
     listGlossaries()
@@ -145,12 +146,17 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active?.status]);
 
+  // 切换任务时预览回到第一个产物。
+  useEffect(() => {
+    setPreviewIndex(0);
+  }, [activeId]);
+
   async function onSubmit(values: Record<string, unknown>) {
     const file = values.file;
     const raw = Array.isArray(file) ? file[0] : undefined;
     const blob = raw?.originFileObj ?? null;
-    if (!blob) return;
-    await submit({
+    if (!blob || submitting) return;
+    const taskId = await submit({
       file: blob,
       targetLang: (values.target_lang as string) || "zh-CN",
       sourceLang: (values.source_lang as string) || "auto",
@@ -163,6 +169,10 @@ export default function Dashboard() {
       ignoreCache: !!values.ignore_cache,
       glossaryNames: (values.glossary_names as string[]) || [],
     });
+    if (taskId) {
+      // 任务已入列：清空待提交队列，避免同一文件被重复提交。
+      form.setFieldValue("file", []);
+    }
   }
 
   const artifacts: ResultFile[] = active?.result_files ?? [];
@@ -389,18 +399,20 @@ export default function Dashboard() {
       )}
 
       {/* 预览与下载 */}
-      {artifacts.length > 0 && (
+      {artifacts.length > 0 && activeId && (
         <Card title={t("ui.section_preview")}>
           <Space direction="vertical" size={12} style={{ width: "100%" }}>
             <div>
               <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
                 {t("ui.preview_output")}
               </Typography.Text>
-              <Space wrap>
+              <Space wrap size={8}>
                 {artifacts.map((f, i) => (
-                  <Button key={i} icon={<DownloadOutlined />} href={artifactUrl(activeId!, i)} target="_blank">
-                    {f.name || `artifact-${i}`}
-                  </Button>
+                  <ArtifactDownload
+                    key={i}
+                    name={f.name || `artifact-${i}`}
+                    url={artifactUrl(activeId, i)}
+                  />
                 ))}
               </Space>
             </div>
@@ -408,12 +420,82 @@ export default function Dashboard() {
               <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
                 {t("ui.preview_title")}
               </Typography.Text>
-              <PdfPreview url={artifactUrl(activeId!, 0)} />
+              <Space style={{ marginBottom: 8 }} wrap>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {t("ui.preview_pick")}:
+                </Typography.Text>
+                <Select
+                  size="small"
+                  style={{ minWidth: 240 }}
+                  value={previewIndex}
+                  onChange={(v) => setPreviewIndex(v)}
+                  options={artifacts.map((f, i) => ({
+                    value: i,
+                    label: f.name || `artifact-${i}`,
+                  }))}
+                />
+              </Space>
+              <PdfPreview key={previewIndex} url={artifactUrl(activeId, previewIndex)} />
             </div>
           </Space>
         </Card>
       )}
     </div>
+  );
+}
+
+/** 单个产物下载：fetch-blob（webview 内可靠触发保存）+ 大小校验 + 状态回显。 */
+function ArtifactDownload({ name, url }: { name: string; url: string }) {
+  const { t } = useTranslation();
+  const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
+  const [detail, setDetail] = useState("");
+
+  async function download() {
+    setState("busy");
+    setDetail("");
+    try {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      if (blob.size === 0) throw new Error("empty file");
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = name;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      setDetail(`${(blob.size / 1048576).toFixed(2)} MB`);
+      setState("done");
+    } catch (err) {
+      setDetail(String(err));
+      setState("error");
+    }
+  }
+
+  return (
+    <Space size={6}>
+      <Button
+        icon={<DownloadOutlined />}
+        loading={state === "busy"}
+        onClick={() => void download()}
+      >
+        {name}
+      </Button>
+      {state === "done" && (
+        <Tag color="green">
+          {t("ui.download_done")}
+          {detail ? ` · ${detail}` : ""}
+        </Tag>
+      )}
+      {state === "error" && (
+        <Tag color="red">
+          {t("ui.download_failed")}
+          {detail ? ` · ${detail}` : ""}
+        </Tag>
+      )}
+    </Space>
   );
 }
 

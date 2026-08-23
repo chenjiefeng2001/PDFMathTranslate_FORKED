@@ -60,6 +60,10 @@ const SPA_OVERLAY = {
       settings_models_missing: "未下载",
       settings_models_failed: "下载失败",
       parse_engine_unavailable: "未安装（桌面版不内置，需本地部署 magic-pdf/MinerU）",
+      download_done: "已下载",
+      download_failed: "下载失败",
+      download_btn: "下载",
+      preview_pick: "预览文件",
     },
   },
   en: {
@@ -110,6 +114,10 @@ const SPA_OVERLAY = {
       settings_models_failed: "Download failed",
       parse_engine_unavailable:
         "Not installed (not bundled with the desktop build; deploy magic-pdf/MinerU locally)",
+      download_done: "Downloaded",
+      download_failed: "Download failed",
+      download_btn: "Download",
+      preview_pick: "Preview file",
     },
   },
 } as const;

@@ -18,34 +18,34 @@ import {
   StepForwardOutlined,
   StopOutlined,
 } from "@ant-design/icons";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import type { TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
 
-/** 流水线主阶段 → 步骤条索引（stage.* 与 status.* 键与 generated 资产对齐）。 */
-const PIPELINE: { key: string; label: string }[] = [
-  { key: "pending", label: "stage.pending" },
-  { key: "parsing", label: "stage.parsing" },
-  { key: "layouting", label: "stage.layouting" },
-  { key: "translating", label: "stage.translating" },
-  { key: "rendering", label: "stage.rendering" },
-  { key: "completed", label: "stage.completed" },
+/**
+ * 流水线阶段与后端 runtime_service._STAGE_ORDER / _STAGE_WEIGHTS 对齐：
+ *   parsing 0-10 | analyzing(+planning) 10-40 | translating 40-70 |
+ *   layouting 70-85 | rendering(+evaluating) 85-100
+ *
+ * BabelDOC 原生阶段名会乱序到达（如 Extract Terms 先于版面分析被映射成
+ * translating），直接用 stage 推导步骤会让步骤条来回跳。因此步骤索引一律
+ * 由**单调的工作量百分比**推导，stage 仅用于文字标签。
+ */
+const PIPELINE: { key: string; label: string; pctEnd: number }[] = [
+  { key: "pending", label: "stage.pending", pctEnd: 2 },
+  { key: "parsing", label: "stage.parsing", pctEnd: 40 },
+  { key: "translating", label: "stage.translating", pctEnd: 70 },
+  { key: "layouting", label: "stage.layouting", pctEnd: 92 },
+  { key: "rendering", label: "stage.rendering", pctEnd: 100 },
 ];
 
-const STAGE_ALIASES: Record<string, string> = {
-  idle: "pending",
-  planning: "parsing",
-  analyzing: "parsing",
-  normalizing: "layouting",
-  running: "translating",
-  repairing: "rendering",
-  evaluating: "rendering",
-};
-
-function stageIndex(stage: string): number {
-  const s = STAGE_ALIASES[stage] ?? stage;
-  return Math.max(0, PIPELINE.findIndex((p) => p.key === s));
+function stepIndexForPercent(pct: number, status: string): number {
+  if (status === "completed") return PIPELINE.length;
+  for (let i = 0; i < PIPELINE.length; i += 1) {
+    if (pct < PIPELINE[i].pctEnd) return i;
+  }
+  return PIPELINE.length - 1;
 }
 
 export function statusLabelKey(status: string): string {
@@ -103,11 +103,20 @@ export default function ProgressPanel({
   const paused = task.status === "paused";
   const failed = task.status === "failed";
 
-  const currentIdx = useMemo(() => {
-    const idx = stageIndex(task.stage || task.status);
-    if (task.status === "completed") return PIPELINE.length - 1;
-    return idx;
-  }, [task.stage, task.status]);
+  // 百分比单调钳制：SSE 帧偶发乱序时进度条绝不回退。
+  const maxPctRef = useRef(0);
+  const rawPct = Math.min(100, Math.max(0, Math.round(task.progress)));
+  if (terminal) maxPctRef.current = rawPct;
+  else if (rawPct > maxPctRef.current) maxPctRef.current = rawPct;
+  // 任务切换（task_id 变化）时重置。
+  const lastTaskRef = useRef(task.task_id);
+  if (lastTaskRef.current !== task.task_id) {
+    lastTaskRef.current = task.task_id;
+    maxPctRef.current = rawPct;
+  }
+  const percent = maxPctRef.current;
+
+  const currentIdx = stepIndexForPercent(percent, task.status);
 
   const stepStatus = failed
     ? "error"
@@ -119,7 +128,6 @@ export default function ProgressPanel({
           ? "wait"
           : "process";
 
-  const percent = Math.min(100, Math.max(0, Math.round(task.progress)));
   const statusKey = statusLabelKey(task.status);
 
   return (
