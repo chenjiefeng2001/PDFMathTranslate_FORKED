@@ -58,12 +58,14 @@ Scientific PDF document translation preserving layouts.
 - 🛡️ Long-running reliability: task self-healing watchdogs, bounded retries, queue liveness watchdog, and per-thread connection pools keep big documents translating without hanging or connection storms.
 - 🔄 Switchable PDF parse engine: BabelDOC / legacy (pdfminer) built in, plus optional MinerU/magic-pdf (`--parse-engine magicpdf`) for scanned or damaged-text PDFs — auto-falls back to the legacy kernel when the engine is unavailable.
 - ⚡ Parallel page processing with worker-process isolation, GPU backend propagation (`--backend cuda`/`dml` also accelerates BabelDOC's internal layout ONNX inference via `PDF2ZH_BABELDOC_BACKEND`), and automatic CPU degradation on worker crashes.
+- 📚 Concurrent batch processing: multi-file tasks translate several documents at once (`PDF2ZH_BATCH_CONCURRENCY`, default 2, max 4), with monotonic overall progress and per-file result/failure accounting — a single failed file never aborts the batch.
 
 <div align="center">
 <img src="./docs/images/preview.gif" width="80%"/>
 </div>
 
 <h2 id="updates">2. Recent Updates</h2>
+- [August 24, 2026] Concurrent batch execution: multi-file tasks now process files in parallel (`PDF2ZH_BATCH_CONCURRENCY`, default 2, clamped 1–4; `1` restores strict serial semantics), with linear overall progress aggregation and race-free per-file result recording.
 - [August 17, 2026] Switchable parse engine: MinerU/magic-pdf as an optional PDF parsing layer (`--parse-engine magicpdf`, `--magicpdf-ocr`, `--magicpdf-render`), with automatic config generation, weight pre-check, and legacy-kernel fallback; BabelDOC OCR tri-state (`--babeldoc-ocr`), and GPU backend propagation to BabelDOC's internal doclayout ONNX session (`PDF2ZH_BABELDOC_BACKEND`).
 - [August 13, 2026] Reliability hardening: bounded translate retries (`PDF2ZH_TRANSLATE_RETRY`), terminal-task pruning via `PDF2ZH_TASK_RETENTION_SECONDS`, GUI queue liveness watchdog, and direct (queue-less) control buttons for cancel/pause/resume/skip/download.
 - [August 13, 2026] Parallel engine: isolated worker processes with GPU backend propagation (`--backend`), automatic CPU degradation after worker crashes, incremental per-chunk retry with serial patch fallback, and main-process model warm-up with atomic optimized-cache publishing.
@@ -360,12 +362,15 @@ Long-running tasks are guarded by several self-healing mechanisms; all knobs are
 | `PDF2ZH_TRANSLATE_RETRY` | `3` | Bounded retries per translation call (a non-positive or invalid value falls back to 3). Prevents infinite retry loops that previously stalled tasks forever. |
 | `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | Terminal tasks (completed/cancelled/failed) older than this are pruned from memory. |
 | `PDF2ZH_SWEEP_INTERVAL` | `60` | Seconds between memory-cleanup sweeps (minimum 10). |
+| `PDF2ZH_BATCH_CONCURRENCY` | `2` | Files processed in parallel within a multi-file task (clamped to 1–4; invalid values fall back to 2). `1` keeps the original strict serial per-file execution. |
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | Env-var equivalents of `--parallel-workers` / `--no-parallel`. |
 | `PDF2ZH_PROXY` | — | Env-var equivalent of `--proxy`. |
 | `PDF2ZH_MAX_FILE_SIZE` | — | Env-var equivalent of `--max-file-size` (MB). |
 | `HF_ENDPOINT` | — | HuggingFace mirror for model downloads (e.g. `https://hf-mirror.com`). |
 
 **Parallel engine.** Documents with more than 5 pages are processed by isolated worker processes (`--parallel-workers`, default 4). Each worker loads the layout model once and runs with `--backend`-selected providers; if a worker crashes (e.g. GPU session conflict), the engine automatically retries with half the workers and, if needed, degrades to CPU instead of failing the whole document. Failed page chunks are retried incrementally and only the remaining chunks run serially — completed pages are never re-translated.
+
+**Batch concurrency.** When a task contains multiple files, up to K files run simultaneously through their full single-file pipelines (`PDF2ZH_BATCH_CONCURRENCY`, default 2, clamped 1–4). Overall progress is the mean of per-file percentages (monotonic), results and failures are recorded per file under a lock so concurrent completions cannot drop each other, and one failed file never aborts the batch — it is logged into per-file failures while the remaining files finish. Set `1` to restore strict serial execution.
 
 **Translator transport.** Connection pools are sized per worker thread (32) to avoid connection-storm "discarding connection" behavior; each thread gets its own `requests.Session`. Google 429/CAPTCHA blocks fail fast with an actionable message (switch proxy/IP or retry later) instead of burning retries; transient network errors still retry with exponential backoff. Texts longer than 4000 characters are split at natural boundaries and translated in parts, which also fixes the previous silent truncation at 5000 chars.
 

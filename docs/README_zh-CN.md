@@ -41,12 +41,14 @@
 - 🛡️ 长时间运行可靠性：任务自愈看门狗、有限重试、队列活性看门狗、按线程隔离的连接池，保证大文档翻译不悬挂、不连接风暴
 - 🔄 可切换解析引擎：内置 BabelDOC / legacy（pdfminer），可选 MinerU/magic-pdf（`--parse-engine magicpdf`）用于扫描件与损坏文本层，引擎不可用时自动降级 legacy 内核
 - ⚡ 并行页面处理：worker 进程隔离、GPU 后端传播、worker 崩溃自动降级 CPU
+- 📚 并发批处理：多文件任务同时翻译多个文档（`PDF2ZH_BATCH_CONCURRENCY`，默认 2、上限 4），总体进度单调平滑、逐文件记录结果与失败——单个文件失败不会中断整批
 
 欢迎在 [GitHub Issues](https://github.com/Byaidu/PDFMathTranslate/issues) 或 [Telegram 用户群](https://t.me/+Z9_SgnxmsmA5NzBl)
 
 有关如何贡献的详细信息，请查阅 [贡献指南](https://github.com/Byaidu/PDFMathTranslate/wiki/Contribution-Guide---%E8%B4%A1%E7%8C%AE%E6%8C%87%E5%8D%97)
 
 <h2 id="updates">更新</h2>
+- [2026年8月24日] 并发批处理：多文件任务按并发度并行处理文件（`PDF2ZH_BATCH_CONCURRENCY`，默认 2、钳制 1–4；设 1 恢复严格串行语义），总体进度线性聚合、逐文件结果加锁入账不互丢
 - [2026年8月17日] 可切换解析引擎：以 MinerU/magic-pdf 作为可选 PDF 解析层（`--parse-engine magicpdf`、`--magicpdf-ocr`、`--magicpdf-render`），自动生成配置 + 权重预检 + legacy 熔断降级；BabelDOC OCR 三态开关（`--babeldoc-ocr`）；GPU 后端传播到 BabelDOC 内部 doclayout ONNX 会话（`PDF2ZH_BABELDOC_BACKEND`）
 - [2026年8月13日] 可靠性加固：翻译重试止损（`PDF2ZH_TRANSLATE_RETRY`）、终态任务自动清理（`PDF2ZH_TASK_RETENTION_SECONDS`）、GUI 队列活性看门狗、控制按钮直连（取消/暂停/继续/跳过/下载不再排队）
 - [2026年8月13日] 并行引擎：worker 进程隔离 + GPU 后端传播（`--backend`）、worker 崩溃自动降级 CPU、失败分块增量重试 + 串行补跑、主进程模型预热 + 原子化优化缓存发布
@@ -284,6 +286,7 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 | `PDF2ZH_TRANSLATE_RETRY` | `3` | 每次翻译调用的有限重试次数（非正数或非法值回退为 3）。防止无限重试导致任务永久卡住。 |
 | `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | 终态任务（已完成/已取消/失败）超过该时长后从内存中清理。 |
 | `PDF2ZH_SWEEP_INTERVAL` | `60` | 后台内存清扫间隔（最小 10）秒。 |
+| `PDF2ZH_BATCH_CONCURRENCY` | `2` | 多文件任务内并行处理的文件数（钳制 1–4；非法值回退 2）。设 `1` 保持原先的严格串行逐文件执行。 |
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | 对应 `--parallel-workers` / `--no-parallel` 的环境变量形式。 |
 | `PDF2ZH_PROXY` | — | 对应 `--proxy` 的环境变量形式。 |
 | `PDF2ZH_MAX_FILE_SIZE` | — | 对应 `--max-file-size`（MB）的环境变量形式。 |
@@ -292,6 +295,8 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 | `HF_ENDPOINT` | — | 模型下载的 HuggingFace 镜像（如 `https://hf-mirror.com`）。 |
 
 **并行引擎。** 超过 5 页的文档由隔离的 worker 进程处理（`--parallel-workers`，默认 4）。每个 worker 只加载一次布局模型，并使用 `--backend` 指定的执行提供方；若 worker 崩溃（如 GPU session 冲突），引擎自动先用一半 worker 重试，必要时降级到 CPU 而不是让整个文档失败。失败的分块会增量重试，仅剩余分块走串行补跑——已完成页面绝不重复翻译。
+
+**批处理并发。** 任务包含多个文件时，最多 K 个文件同时走完整单文件管线（`PDF2ZH_BATCH_CONCURRENCY`，默认 2、钳制 1–4）。总体进度取各文件百分比的平均值（单调不回退），结果与失败逐文件加锁入账、并发完成不互丢；单个文件失败只记入 per-file 失败列表，其余文件照常完成。设 `1` 恢复严格串行执行。
 
 **翻译传输层。** 连接池按 worker 线程隔离（32）以避免 "discarding connection" 连接风暴，每个线程持有独立的 `requests.Session`。Google 429/CAPTCHA 封禁快速失败并给出可操作提示（更换代理/IP 或稍后重试），不再空耗重试；瞬时网络错误仍按指数退避重试。超过 4000 字符的文本按自然边界分段翻译，同时修复了原先 5000 字符静默截断的问题。
 
