@@ -529,6 +529,11 @@ def _configure_session_options() -> "onnxruntime.SessionOptions":
         opts.intra_op_num_threads = 1
         opts.inter_op_num_threads = 1
         opts.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
+    if os.environ.get("PDF2ZH_ORT_NO_ARENA", "") == "1":
+        # 关闭 CPU 内存 arena：arena 会预分配并只增不减，常驻多 worker 的
+        # 服务形态下每个 worker 实测 ~490MB RSS（模型文件仅 72MB）。关 arena
+        # 换直接 malloc/free，通常显著降低峰值 RSS，延迟影响个位数百分比。
+        opts.enable_cpu_mem_arena = False
     return opts
 
 

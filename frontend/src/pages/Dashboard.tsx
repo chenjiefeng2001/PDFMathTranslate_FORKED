@@ -18,7 +18,7 @@ import {
   Typography,
 } from "antd";
 import { DownloadOutlined, InboxOutlined } from "@ant-design/icons";
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   artifactUrl,
@@ -30,9 +30,12 @@ import {
 import type { ResultFile, TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
 import { useAppStore } from "../stores/taskStore";
-import PdfPreview from "./PdfPreview";
 import DiagnosticsPanel from "./DiagnosticsPanel";
 import ProgressPanel, { statusLabelKey } from "./ProgressPanel";
+
+// pdfjs-dist（主库 ~1MB + worker 1.26MB）仅在预览渲染时才需要；
+// 惰性加载把它拆出首屏 bundle。
+const PdfPreview = lazy(() => import("./PdfPreview"));
 
 const LANGS = [
   "auto", "zh-CN", "zh-TW", "en", "ja", "ko",
@@ -480,7 +483,15 @@ export default function Dashboard() {
                   }))}
                 />
               </Space>
-              <PdfPreview key={previewIndex} url={artifactUrl(activeId, previewIndex)} />
+              <Suspense
+                fallback={
+                  <div style={{ textAlign: "center", padding: 24, opacity: 0.6 }}>
+                    loading…
+                  </div>
+                }
+              >
+                <PdfPreview key={previewIndex} url={artifactUrl(activeId, previewIndex)} />
+              </Suspense>
             </div>
           </Space>
         </Card>

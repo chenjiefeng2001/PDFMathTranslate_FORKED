@@ -138,6 +138,8 @@ class SidecarHandle:
     startup_s: float = 0.0          # Popen -> 首个 /api/health 200 的真实冷启动时长
     rss_stop: threading.Event = field(default_factory=threading.Event)
     rss_samples_mb: list[float] = field(default_factory=list)
+    rss_parent_mb: list[float] = field(default_factory=list)
+    rss_workers_mb: list[float] = field(default_factory=list)
 
     def base(self) -> str:
         return f"http://127.0.0.1:{self.port}"
@@ -179,10 +181,13 @@ def launch_sidecar(exe: Path, *, port: int | None = None,
             parent = psutil.Process(process.pid)
             while not handle.rss_stop.is_set():
                 try:
-                    total = parent.memory_info().rss
+                    parent_rss = parent.memory_info().rss
+                    workers_rss = 0
                     for child in parent.children(recursive=True):
-                        total += child.memory_info().rss
-                    handle.rss_samples_mb.append(total / 1048576.0)
+                        workers_rss += child.memory_info().rss
+                    handle.rss_parent_mb.append(parent_rss / 1048576.0)
+                    handle.rss_workers_mb.append(workers_rss / 1048576.0)
+                    handle.rss_samples_mb.append((parent_rss + workers_rss) / 1048576.0)
                 except Exception:  # noqa: BLE001 -- 进程退出时采样失败忽略
                     return
                 handle.rss_stop.wait(0.5)

@@ -118,6 +118,9 @@ def create_api_app(
     #   （基准实测 t8 较 t4 劣化 16%）。
     os.environ.setdefault("PDF2ZH_WARM_POOL", "1")
     os.environ.setdefault("PDF2ZH_WORKER_ORT_THREADS", "1")
+    # 关闭 ORT CPU arena：常驻多 worker 下每个 worker ~490MB RSS（模型仅
+    # 72MB），关 arena 显著削峰，延迟代价个位数百分比。
+    os.environ.setdefault("PDF2ZH_ORT_NO_ARENA", "1")
 
     # 后台预热并行 worker 池：首个用户任务不再承担 spawn + ONNX 模型加载
     # （实测 ~8s）。池大小取 2-4（按核数），后续请求更大并发时自动重建。

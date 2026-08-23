@@ -71,13 +71,20 @@
 
 ### 其余待办（按优先级）
 
-2. **峰值内存 ~2.4GB 恒定**：需 tracemalloc/memray 定位；短期先做 worker 模型共享与 chunk fp_bytes 引用化。
+2. ~~**峰值内存 ~2.4GB 恒定**~~ ✅ 已测量构成并部分优化：parent 500–560MB +
+   每 worker ~450MB（模型 72MB + ORT 会话/arena + 基线）。已加
+   `PDF2ZH_ORT_NO_ARENA=1`（服务默认）关 arena：workers -13%（1968→1721MB）
+   无速度回归。剩余为每 worker 独立会话的固有成本，结构性方案是集中式版面
+   推理服务（IPC 共享单模型），暂列后续架构项。
 3. ~~**首次 /api/engines ~4.9s**~~ ✅ 已实施：create_api_app 后台预热 translator 注册表，
    预热完成后稳态 **13ms**（实测 25 引擎）；SPA bootstrap 与预热线程竞态时最多等一次构建。
-4. **babeldoc 在小文档上慢 4.4×**（analyzing+parsing 占 145s）：UI 按页数提示选择 quick/legacy；中期排查 analyze 并行化。
+4. **babeldoc 在小文档上慢 4.4×** ⚠️ 结论：analyzing/parsing 段位于 BabelDOC 库内部
+   （document_il midend，单线程设计），本地无并行切入点；上游化改造代价高。
+   缓解：UI 已按探测提示引擎选择；速度敏感文档建议 quick/legacy 模式。
 5. ~~**冷启动 3.6s 黑等**~~ ✅ 已实施：Tauri 无装饰闪屏立即可见（0.8s 实测出窗），
    API 就绪后切主窗口 + 关闪屏；SPA 侧 ReadyGate 轮询 /api/health 双保险。
-6. **前端 bundle 1.65MB**：路由级 code splitting 与 antd 图标按需引入。
+6. ~~**前端 bundle 1.65MB**~~ ✅ 已实施：PdfPreview（pdfjs-dist）React.lazy 拆分，
+   首屏 JS 1647KB→1229KB（gzip 514→389KB，-24%）；pdf.worker 本就独立按需加载。
 
 ## 原始基线快照（优化前）
 

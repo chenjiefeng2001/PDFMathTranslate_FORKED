@@ -119,7 +119,13 @@ def main() -> int:
         for name in names:
             fields = CONFIGS.get(name, {})
             result = run_one(base, pdf, name, fields)
+            parent_peak = max(handle.rss_parent_mb) if handle.rss_parent_mb else 0.0
+            workers_peak = max(handle.rss_workers_mb) if handle.rss_workers_mb else 0.0
             result["peak_rss_mb"] = round(handle.peak_tree_rss_mb(), 0)
+            result["rss_split"] = {
+                "parent": round(parent_peak, 0),
+                "workers": round(workers_peak, 0),
+            }
             results.append(result)
             print(json.dumps(result, ensure_ascii=False))
     finally:
