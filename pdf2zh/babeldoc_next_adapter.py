@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib.util
+import inspect
 import logging
 import os
 import sys
@@ -434,9 +435,13 @@ def run_babeldoc_next_translation(
         from pdf2zh.babeldoc_adapter import (
             _collect_result_files,
             _map_babeldoc_stage,
+            _progress_detail_from_event,
         )
     except Exception:  # noqa: BLE001 -- keep the adapter self-contained
-        from pdf2zh.babeldoc_adapter import _map_babeldoc_stage  # noqa: F401
+        from pdf2zh.babeldoc_adapter import (  # noqa: F401
+            _map_babeldoc_stage,
+            _progress_detail_from_event,
+        )
 
         def _collect_result_files(result: Any) -> List[Dict[str, str]]:
             files: List[Dict[str, str]] = []
@@ -527,6 +532,14 @@ def run_babeldoc_next_translation(
 
         async def _drive() -> Optional[Any]:
             nonlocal cancelled
+            # progress_cb 兼容 3 参（旧调用方）与 4 参（带 detail）两种签名
+            try:
+                cb_takes_detail = (
+                    len(inspect.signature(progress_cb).parameters) >= 4
+                    if progress_cb is not None else False
+                )
+            except (TypeError, ValueError):
+                cb_takes_detail = False
             async for event in babeldoc_translate(config):
                 if cancelled_check and cancelled_check() and not cancelled:
                     cancelled = True
@@ -550,12 +563,21 @@ def run_babeldoc_next_translation(
                     overall = float(event.get("overall_progress") or 0.0)
                     if progress_cb:
                         try:
-                            progress_cb(
-                                _map_babeldoc_stage(stage_name), overall, stage_name,
-                            )
+                            detail = _progress_detail_from_event(event)
+                            if cb_takes_detail:
+                                progress_cb(
+                                    _map_babeldoc_stage(stage_name), overall,
+                                    stage_name, detail,
+                                )
+                            else:
+                                progress_cb(
+                                    _map_babeldoc_stage(stage_name), overall,
+                                    stage_name,
+                                )
                         except Exception:  # noqa: BLE001 -- progress never fatal
                             logger.debug(
-                                "babeldoc-next progress callback failed", exc_info=True
+                                "babeldoc-next progress callback failed",
+                                exc_info=True,
                             )
             return None
 

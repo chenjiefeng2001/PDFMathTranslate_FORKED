@@ -25,6 +25,7 @@ friendly message when it is missing.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import os
 from string import Template
@@ -72,6 +73,56 @@ def _map_babeldoc_stage(stage: str) -> str:
         if key in stage:
             return gui_stage
     return "translating"
+
+
+#: BabelDOC 阶段名 -> 计数单位（细粒度进度展示用，见
+#: doc/granular_progress_feasibility_report.md）。匹配规则与
+#: ``_BABELDOC_STAGE_MAP`` 一致（子串包含，按声明顺序）。
+_BABELDOC_STAGE_UNITS: Dict[str, str] = {
+    "Parse PDF and Create Intermediate Representation": "page",
+    "Detect Scanned File": "page",
+    "Parse Page Layout": "page",
+    "Parse Table": "page",
+    "Extract Terms": "term",
+    "Translate Paragraphs": "paragraph",
+}
+
+
+def _babeldoc_stage_unit(stage: str) -> str:
+    """阶段计数单位（page/paragraph/term），未知阶段返回空串。"""
+    if not stage:
+        return ""
+    for key, unit in _BABELDOC_STAGE_UNITS.items():
+        if key in stage:
+            return unit
+    return ""
+
+
+def _progress_detail_from_event(event: dict) -> Optional[Dict[str, Any]]:
+    """把 BabelDOC 进度事件的页级/段落级计数整理成结构化 ``detail``。
+
+    ``async_translate`` 的事件自带 ``stage_current/stage_total``（LayoutParser、
+    DetectScannedFile 逐页推进，ILTranslator 按段落推进）；此前适配器只取
+    ``overall_progress``，细节被丢弃。字段缺失（旧版本/异常事件）时返回
+    ``None``——调用方保持现状行为。
+    """
+    current = event.get("stage_current")
+    total = event.get("stage_total")
+    if current is None and total is None:
+        return None
+    stage_name = str(event.get("stage") or "")
+    try:
+        cur = int(current or 0)
+        tot = int(total or 0)
+    except (TypeError, ValueError):
+        return None
+    return {
+        "engine": "babeldoc",
+        "raw_stage": stage_name,
+        "unit": _babeldoc_stage_unit(stage_name),
+        "current": cur,
+        "total": tot,
+    }
 
 
 def _resolve_prompt(prompt: Any) -> Optional[Template]:
@@ -378,6 +429,14 @@ def run_babeldoc_translation(
 
         async def _drive() -> Optional[Any]:
             nonlocal cancelled
+            # progress_cb 兼容 3 参（旧调用方）与 4 参（带 detail）两种签名
+            try:
+                cb_takes_detail = (
+                    len(inspect.signature(progress_cb).parameters) >= 4
+                    if progress_cb is not None else False
+                )
+            except (TypeError, ValueError):
+                cb_takes_detail = False
             async for event in yadt_async_translate(yadt_config):
                 if cancelled_check and cancelled_check() and not cancelled:
                     cancelled = True
@@ -400,9 +459,17 @@ def run_babeldoc_translation(
                     overall = float(event.get("overall_progress") or 0.0)
                     if progress_cb:
                         try:
-                            progress_cb(
-                                _map_babeldoc_stage(stage_name), overall, stage_name,
-                            )
+                            detail = _progress_detail_from_event(event)
+                            if cb_takes_detail:
+                                progress_cb(
+                                    _map_babeldoc_stage(stage_name), overall,
+                                    stage_name, detail,
+                                )
+                            else:
+                                progress_cb(
+                                    _map_babeldoc_stage(stage_name), overall,
+                                    stage_name,
+                                )
                         except Exception:  # noqa: BLE001 -- progress never fatal
                             logger.debug(
                                 "babeldoc progress callback failed", exc_info=True

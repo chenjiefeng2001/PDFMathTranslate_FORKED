@@ -341,8 +341,12 @@ class TaskProgressEvent:
     current_node_count: int = 0
     diagnostics_count: int = 0
     message: str = ""
-    #: V1.24：预计剩余秒数（ProgressAggregator 按已完工权重速率外推；0=未知）。
+    #: V1.24：预计剩余秒数（ProgressAggregator 按已完工权重速率外推，0=未知）。
     eta: float = 0.0
+    #: 细粒度进度细节（可选）：{"engine","raw_stage","unit","current","total",
+    #: "component"}——BabelDOC 页级/段落级计数、magicpdf Batch 计数等。
+    #: 旧前端忽略未知键，协议向后兼容。见 doc/granular_progress_feasibility_report.md。
+    detail: Optional[Dict[str, Any]] = None
     timestamp: float = field(default_factory=time.time)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -354,6 +358,7 @@ class TaskProgressEvent:
             "diagnostics_count": self.diagnostics_count,
             "message": self.message,
             "eta": self.eta,
+            "detail": self.detail,
             "timestamp": self.timestamp,
         }
 
@@ -456,6 +461,9 @@ class TaskState:
     toc_ir_records: Optional[Dict[str, Any]] = None
     """V9.0: 目录条目 IR 结构化记录（pageid -> toc_to_ir_records 输出）。"""
     error_message: Optional[str] = None
+    #: 细粒度进度快照（最新一次 detail，见 TaskProgressEvent.detail）：
+    #: /api/tasks/{id} 轮询与 SSE 重连后可恢复「第几页/共几页」级显示。
+    stage_detail: Optional[Dict[str, Any]] = None
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
@@ -492,6 +500,7 @@ class TaskState:
             "processor_reports": self.processor_reports,
             "toc_ir_records": self.toc_ir_records,
             "error_message": self.error_message,
+            "stage_detail": self.stage_detail,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
@@ -2040,10 +2049,12 @@ class RuntimeService:
         ocr_mode = extra.get("ocr_mode")
         glossary_files = list(request.glossary_files or [])
         out_dir = self._resolve_out_dir(request, config)
-        def _forward_progress(stage: str, pct: float, msg: str) -> None:
+        def _forward_progress(stage: str, pct: float, msg: str,
+                              detail: Optional[Dict[str, Any]] = None) -> None:
             # _emit_smooth throttles the 0.2s BabelDOC event cadence into
-            # monotone progress steps while still forwarding stage msgs.
-            self._emit_smooth(task_id, stage, pct, msg)
+            # monotone progress steps while still forwarding stage msgs;
+            # detail（页级/段落级计数）随事件搭车透传到前端。
+            self._emit_smooth(task_id, stage, pct, msg, detail=detail)
 
         try:
             result_files = None
@@ -2404,6 +2415,7 @@ class RuntimeService:
     def _emit_smooth(
         self, task_id: str, stage: str, progress: float,
         message: str = "", min_delta: float = 1.0,
+        detail: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Emit a progress event that is throttled and monotonically non-decreasing.
 
@@ -2415,6 +2427,9 @@ class RuntimeService:
         Monotonicity is enforced on the *visible* value: in batch mode the
         per-file progress is aggregated first, so the clamp never goes
         backwards across files.
+
+        ``detail``（可选）是引擎上报的细粒度计数（页/段落级），随本次发射
+        的事件搭车写入事件与 store 快照——不单独产生事件，不参与节流判定。
         """
         raw = max(0.0, min(100.0, float(progress)))
         terminal = stage in (
@@ -2448,15 +2463,18 @@ class RuntimeService:
                         eta_now = float(getattr(state_now, "eta", 0.0) or 0.0) if state_now else 0.0
                         event = TaskProgressEvent(
                             task_id=task_id, stage=stage, progress=overall,
-                            message=message, eta=eta_now,
+                            message=message, eta=eta_now, detail=detail,
                         )
                         self._store.add_event(task_id, event)
-                        self._store.update_task(
-                            task_id, stage=stage, progress=overall,
+                        upd: Dict[str, Any] = dict(
+                            stage=stage, progress=overall,
                             total_progress=overall, eta=eta_now,
                             message=message,
                             current_file_name=os.path.basename(slot_path),
                         )
+                        if detail is not None:
+                            upd["stage_detail"] = detail
+                        self._store.update_task(task_id, **upd)
                         self._notify_event_listeners(event)
                 return
         batch = self._batch_ctx.get(task_id)
@@ -2474,7 +2492,7 @@ class RuntimeService:
                 return
             if prev < 0 or terminal or visible - prev >= min_delta:
                 self._last_progress[task_id] = visible
-                self._emit_event(task_id, stage, raw, message)
+                self._emit_event(task_id, stage, raw, message, detail=detail)
 
     def _emit_message_event(self, task_id: str, stage: str, message: str) -> None:
         """仅透传消息的进度事件：进度沿用当前已入账值，不倒退、不重映射。
@@ -2503,6 +2521,7 @@ class RuntimeService:
     def _emit_event(
         self, task_id: str, stage: str, progress: float,
         message: str = "", node_count: int = 0, diag_count: int = 0,
+        detail: Optional[Dict[str, Any]] = None,
     ) -> None:
         # V1.24：真实任务走 ProgressAggregator —— 绝对百分比先映射到
         # 「阶段权重 × 阶段内完成度」的工作量模型，再经指数平滑输出。
@@ -2525,9 +2544,12 @@ class RuntimeService:
         event = TaskProgressEvent(
             task_id=task_id, stage=stage, progress=progress,
             current_node_count=node_count, diagnostics_count=diag_count,
-            message=message, eta=eta,
+            message=message, eta=eta, detail=detail,
         )
         self._store.add_event(task_id, event)
+        if detail is not None:
+            # 细粒度快照随事件持久化：轮询/重连恢复「第几页」级显示。
+            self._store.update_task(task_id, stage_detail=detail)
         if batch is not None:
             self._store.update_task(
                 task_id, stage=stage, progress=progress, eta=eta,
