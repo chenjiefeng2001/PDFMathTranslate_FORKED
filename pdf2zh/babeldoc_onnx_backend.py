@@ -168,6 +168,10 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
         可直接传给 ``onnxruntime.InferenceSession(providers=...)`` 的列表。
     """
     from pdf2zh.doclayout import _ort_available_providers  # noqa: PLC0415
+    from pdf2zh.doclayout import (  # noqa: PLC0415
+        _executable_alternative_providers,
+        _warn_gpu_substituted,
+    )
 
     if backend is None:
         backend = get_babeldoc_backend()
@@ -196,7 +200,12 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
     gpu = [p for p in usable if p != "CPUExecutionProvider"]
     if not gpu:
         # 显式请求 GPU 但 GPU provider 缺失（CPU 兜底项使交集非空）：
-        # 与 pdf2zh.doclayout 一致，给出可执行修复提示，而非静默回退 CPU。
+        # 先尝试跨后端兜底（如请求 cuda 但本机只有可执行的 DirectML），
+        # 仍无解才给出可执行修复提示，而非静默回退 CPU。
+        alt = _executable_alternative_providers(name)
+        if alt is not None:
+            _warn_gpu_substituted(name, wanted, available, alt[0], alt[1])
+            return alt[1]
         try:
             from pdf2zh.doclayout import warn_gpu_unavailable  # noqa: PLC0415
         except Exception:  # noqa: BLE001 -- 降级为本地警告
@@ -210,9 +219,13 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
                 name, wanted, available,
             )
     elif _babeldoc_gpu_ineffective(name, gpu):
-        # 执行级校验：GPU provider 已注册但设备/运行库初始化失败时 ORT 会静默
-        # 回退 CPU（get_providers() 仍返回 GPU 名）。与 pdf2zh.doclayout 一致，
+        # 执行级校验：GPU provider 已注册但设备/运行库初始化失败时 ORT 会
+        # 静默回退 CPU（get_providers() 仍返回 GPU 名）。与 pdf2zh.doclayout 一致，
         # 提前识别并回退 CPU-only，避免创建无效 GPU 会话后毫无感知。
+        alt = _executable_alternative_providers(name)
+        if alt is not None:
+            _warn_gpu_substituted(name, wanted, available, alt[0], alt[1])
+            return alt[1]
         _warn_babeldoc_gpu_session_fallback(name, usable, gpu)
         cpu_only = [p for p in usable if p == "CPUExecutionProvider"]
         return cpu_only or ["CPUExecutionProvider"]
@@ -308,7 +321,14 @@ def _patched_init(self, model_path: str) -> None:
     logger.info(
         "BabelDOC doclayout ONNX providers=%s (backend=%s)", effective, backend,
     )
-    if backend in ("cuda", "dml") and not _session_has_gpu(backend, effective):
+    if (
+        backend in ("cuda", "dml")
+        # 解析阶段已把「provider 缺失/注册但不可执行」降级为 CPU-only 时，
+        # resolve_babeldoc_providers 已给出针对性警告——这里不再重复报
+        # 「session 回退」，避免同一根因刷两条吓人消息（用户实测反馈）。
+        and any(p != "CPUExecutionProvider" for p in providers)
+        and not _session_has_gpu(backend, effective)
+    ):
         # 注册表里有 GPU provider 但真实创建会话时回退 CPU（缺 CUDA/cuDNN
         # 运行库 DLL 等）：给出与 pdf2zh.doclayout 一致的明确警告。
         try:

@@ -410,6 +410,50 @@ def _exec_gpu_providers() -> set[str]:
     return result
 
 
+def _executable_alternative_providers(backend: str) -> tuple[str, list[str]] | None:
+    """请求的 GPU 后端不可用时，探测另一个 GPU 后端是否执行级可用。
+
+    典型场景（用户实测）：Windows 上装了 onnxruntime-directml（编译期注册表
+    只有 ``AzureExecutionProvider``）却显式请求 ``cuda``——CUDA provider 根本
+    未注册，原逻辑只能回退 CPU；而 DML 明明执行级可用（``torch.cuda.is_
+    available()=True`` 的 NVIDIA 机器同样能走 DirectML）。跨后端兜底让
+    「要 GPU 加速」的用户意图在错选后端名时仍能达成，并以 WARNING 说明
+    实际选择、如何显式固定。
+
+    Returns:
+        ``(alt_backend, providers)``：替代后端名 + 执行级可用的 provider 列表
+        （GPU 优先、CPU 兜底）；无可执行替代时 ``None``。
+    """
+    alt = {"cuda": "dml", "dml": "cuda"}.get(backend)
+    if not alt:
+        return None
+    wanted = _BACKEND_PROVIDERS.get(alt) or []
+    available = _ort_available_providers()
+    exec_gpu = _exec_gpu_providers()
+    for name in wanted:
+        if name in available and name in exec_gpu:
+            out = [name]
+            if "CPUExecutionProvider" in available and (
+                "CPUExecutionProvider" not in out
+            ):
+                out.append("CPUExecutionProvider")
+            return alt, out
+    return None
+
+
+def _warn_gpu_substituted(
+    backend: str, wanted: list[str], available: list[str],
+    alt_backend: str, providers: list[str],
+) -> None:
+    """请求的 GPU 后端不可用、已切换到另一可执行 GPU 后端时的统一警告。"""
+    logger.warning(
+        "Backend '%s' requested but its GPU provider is not usable "
+        "(wanted %s; available: %s); falling back to the executable "
+        "'%s' backend (%s). Pin '--backend %s' to make this choice explicit.",
+        backend, wanted, available, alt_backend, providers, alt_backend,
+    )
+
+
 def get_runtime_provider_status() -> dict:
     """Probe the current ONNX Runtime environment for GUI diagnostics.
 
@@ -461,6 +505,12 @@ def resolve_providers(backend: str | None) -> list[str]:
             if backend in ("cuda", "dml") and all(
                 p == "CPUExecutionProvider" for p in usable
             ):
+                alt = _executable_alternative_providers(backend)
+                if alt is not None:
+                    _warn_gpu_substituted(
+                        backend, wanted, available, alt[0], alt[1],
+                    )
+                    return alt[1]
                 warn_gpu_unavailable(backend, wanted, available)
                 return usable
             # 执行级校验：GPU provider 已注册但设备/运行库初始化失败时 ORT 会
@@ -473,6 +523,12 @@ def resolve_providers(backend: str | None) -> list[str]:
                 }
                 if not (gpu_names[backend] & _exec_gpu_providers()):
                     cpu_only = [p for p in usable if p == "CPUExecutionProvider"]
+                    alt = _executable_alternative_providers(backend)
+                    if alt is not None:
+                        _warn_gpu_substituted(
+                            backend, wanted, available, alt[0], alt[1],
+                        )
+                        return alt[1]
                     warn_gpu_session_fallback(
                         backend, usable, cpu_only or ["CPUExecutionProvider"],
                     )
