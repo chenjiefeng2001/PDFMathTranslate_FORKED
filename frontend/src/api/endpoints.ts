@@ -30,6 +30,8 @@ export interface SubmitParams {
   parseEngine?: string;
   modeChoice?: string;
   ocrMode?: string;
+  backend?: string;
+  outputDir?: string;
   ignoreCache?: boolean;
   glossaryNames?: string[];
 }
@@ -48,6 +50,8 @@ export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
     form.append("mode_choice", params.modeChoice);
   }
   if (params.ocrMode) form.append("ocr_mode", params.ocrMode);
+  if (params.backend) form.append("backend", params.backend);
+  if (params.outputDir) form.append("output_dir", params.outputDir);
   form.append("ignore_cache", String(!!params.ignoreCache));
   if (params.glossaryNames?.length) {
     form.append("glossary_files", params.glossaryNames.join(","));
@@ -130,7 +134,7 @@ export function downloadDoclayoutModel(): Promise<{ started: boolean; reason?: s
   return api().request("POST", "/api/models/doclayout/download");
 }
 
-export function selftestMagicpdf(): Promise<{ ok: boolean; backend: string }> {
+export function selftestMagicpdf(): Promise<{ ok: boolean; backend: string; hint: string }> {
   return api().get("/api/selftest/magicpdf");
 }
 

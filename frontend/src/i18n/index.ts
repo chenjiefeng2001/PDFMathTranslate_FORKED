@@ -60,6 +60,14 @@ const SPA_OVERLAY = {
       settings_models_missing: "未下载",
       settings_models_failed: "下载失败",
       parse_engine_unavailable: "未安装（桌面版不内置，需本地部署 magic-pdf/MinerU）",
+      config_output_dir: "输出目录（下载存放位置）",
+      config_output_dir_hint: "翻译结果 mono/dual PDF 的保存位置；留空使用源文件所在目录。修改后自动记住。",
+      settings_mineru: "MinerU / magic-pdf 高级解析",
+      settings_mineru_hint:
+        "桌面安装包因体积上限不内置 MinerU 与 torch。在独立 Python 环境（3.10–3.12）执行以下命令即可启用 magicpdf 解析与 OCR；模型在首次解析时自动下载到用户缓存，与应用目录分离。桌面版将保持禁用并显示探测状态。",
+      settings_mineru_ready: "本机已检测到，magicpdf 链路可用",
+      settings_copy: "复制命令",
+      settings_copied: "已复制",
       download_done: "已下载",
       download_failed: "下载失败",
       download_btn: "下载",
@@ -114,6 +122,15 @@ const SPA_OVERLAY = {
       settings_models_failed: "Download failed",
       parse_engine_unavailable:
         "Not installed (not bundled with the desktop build; deploy magic-pdf/MinerU locally)",
+      config_output_dir: "Output directory (download location)",
+      config_output_dir_hint:
+        "Where translated mono/dual PDFs are saved; empty = the source file's folder. Remembered across sessions.",
+      settings_mineru: "MinerU / magic-pdf advanced parsing",
+      settings_mineru_hint:
+        "The desktop installer cannot bundle MinerU and torch due to size limits. Run the command below in a separate Python env (3.10–3.12) to enable magicpdf parsing + OCR for source/CLI/GUI usage; models auto-download into the user cache on first parse, separate from the app. The desktop build stays disabled and shows the probe status.",
+      settings_mineru_ready: "Detected on this machine — magicpdf chain available",
+      settings_copy: "Copy command",
+      settings_copied: "Copied",
       download_done: "Downloaded",
       download_failed: "Download failed",
       download_btn: "Download",

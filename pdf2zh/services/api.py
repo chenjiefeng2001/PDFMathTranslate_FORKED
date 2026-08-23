@@ -15,7 +15,7 @@ TaskProgressEvent / RuntimeNoticeEvent（客户端无关，见 gui/events.py）�
     GET  /api/models/doclayout              版面模型状态（存在/校验/下载中）
     POST /api/models/doclayout/download     后台下载版面模型
     GET  /api/selftest/babeldoc             BabelDOC 导入链路自检
-    GET  /api/selftest/magicpdf             magic-pdf/MinerU 可用性探测
+    GET  /api/selftest/magicpdf             magic-pdf/MinerU 可用性探测（含安装指引）
     POST /api/tasks                         提交任务（multipart 上传或 JSON source_path）
     GET  /api/tasks                         任务列表
     GET  /api/tasks/{task_id}               任务状态
@@ -310,10 +310,17 @@ def create_api_app(
     @app.get("/api/selftest/magicpdf")
     def selftest_magicpdf() -> Dict[str, Any]:
         """magic-pdf/MinerU 解析链路可用性探测（frozen 包内默认不可用）。"""
-        from pdf2zh.engine_env import available_backend
+        from pdf2zh.engine_env import available_backend, mineru_install_hint
 
         backend, ok = available_backend()
-        return {"ok": bool(ok), "backend": backend}
+        return {
+            "ok": bool(ok),
+            "backend": backend,
+            # 桌面包不内置 MinerU/torch（NSIS 2GB 上限）；给出与当前
+            # Python 版本匹配的可执行安装命令，模型在首次解析时下载到
+            # 用户缓存、与应用目录分离。
+            "hint": mineru_install_hint() if not ok else "",
+        }
 
     # ── submit ────────────────────────────────────────────────────────────
     def _submit(request: TranslationRequest) -> Dict[str, str]:
@@ -332,6 +339,8 @@ def create_api_app(
         parse_engine: str = Form(default="auto"),
         mode_choice: str = Form(default="auto"),
         ocr_mode: str = Form(default="auto"),
+        backend: str = Form(default="auto"),
+        output_dir: str = Form(default=""),
         ignore_cache: bool = Form(default=False),
         extra_config: str = Form(default=""),
         glossaries: Optional[List[UploadFile]] = File(default=None),
@@ -405,6 +414,8 @@ def create_api_app(
             threads=max(1, min(int(threads), 32)),
             page_range=page_range or None,
             parse_engine=parse_engine,
+            backend=(backend or "auto").strip().lower() or "auto",
+            output_dir=(output_dir or "").strip(),
             ignore_cache=bool(ignore_cache),
             glossary_files=resolved_glossaries,
             extra_config=extra,

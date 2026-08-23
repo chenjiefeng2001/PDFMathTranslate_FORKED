@@ -74,6 +74,19 @@ export default function Dashboard() {
   >([]);
   const [magicpdfOk, setMagicpdfOk] = useState<boolean | null>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [initialOutputDir, setInitialOutputDir] = useState("");
+
+  useEffect(() => {
+    let stored = "";
+    try {
+      stored = window.localStorage.getItem("pdf2zh.outputDir") ?? "";
+    } catch {
+      /* ignore */
+    }
+    setInitialOutputDir(stored);
+    if (stored) form.setFieldValue("output_dir", stored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     listGlossaries()
@@ -166,12 +179,21 @@ export default function Dashboard() {
       parseEngine: (values.parse_engine as string) || "auto",
       modeChoice: (values.mode_choice as string) || "auto",
       ocrMode: (values.ocr_mode as string) || "auto",
+      backend: (values.backend as string) || "auto",
+      outputDir: ((values.output_dir as string) || "").trim(),
       ignoreCache: !!values.ignore_cache,
       glossaryNames: (values.glossary_names as string[]) || [],
     });
     if (taskId) {
-      // 任务已入列：清空待提交队列，避免同一文件被重复提交。
+      // 任务已入列：清空待提交队列，避免同一文件被重复提交；
+      // 输出目录跨会话记忆。
       form.setFieldValue("file", []);
+      try {
+        const outDir = ((values.output_dir as string) || "").trim();
+        if (outDir) window.localStorage.setItem("pdf2zh.outputDir", outDir);
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -194,6 +216,8 @@ export default function Dashboard() {
           parse_engine: "auto",
           mode_choice: "auto",
           ocr_mode: "auto",
+          backend: "auto",
+          output_dir: initialOutputDir,
         }}
       >
         {/* 文件上传 */}
@@ -297,6 +321,27 @@ export default function Dashboard() {
                       </Form.Item>
                       <Form.Item label={t("ui.config_ignore_cache")} name="ignore_cache" valuePropName="checked">
                         <Switch />
+                      </Form.Item>
+                    </Space>
+                    <Space wrap size={12}>
+                      <Form.Item label={t("ui.config_backend")} name="backend" tooltip={t("ui.config_backend_info")}>
+                        <Select
+                          style={{ width: 200 }}
+                          options={[
+                            { value: "auto", label: t("ui.config_backend_auto") },
+                            { value: "cpu", label: t("ui.config_backend_cpu") },
+                            { value: "cuda", label: t("ui.config_backend_cuda") },
+                            { value: "dml", label: t("ui.config_backend_dml") },
+                          ]}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_output_dir")}
+                        name="output_dir"
+                        tooltip={t("ui.config_output_dir_hint")}
+                        style={{ minWidth: 320, flex: 1 }}
+                      >
+                        <Input placeholder={t("ui.label_n_a")} allowClear />
                       </Form.Item>
                     </Space>
                     {glossaryOptions.length > 0 && (

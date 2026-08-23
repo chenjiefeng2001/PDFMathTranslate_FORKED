@@ -399,6 +399,63 @@ function ModelsSection({ active }: { active: boolean }) {
   );
 }
 
+/** MinerU / magic-pdf 高级解析：探测状态 + 安装指引（模型与应用分离）。 */
+function MineruSection() {
+  const { t } = useTranslation();
+  const [state, setState] = useState<{ ok: boolean; hint: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    selftestMagicpdf()
+      .then((r) => {
+        if (!cancelled) setState({ ok: r.ok, hint: r.hint ?? "" });
+      })
+      .catch(() => {
+        /* 服务未就绪时静默 */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function copyCommand() {
+    const cmd = state?.hint || 'pip install -U "magic-pdf[full]"';
+    try {
+      await navigator.clipboard.writeText(cmd);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      message.error(t("ui.label_error"));
+    }
+  }
+
+  return (
+    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+        {t("ui.settings_mineru_hint")}
+      </Typography.Paragraph>
+      {state?.ok ? (
+        <Tag color="green">{t("ui.settings_mineru_ready")}</Tag>
+      ) : (
+        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          {state?.hint && (
+            <Input.TextArea
+              value={state.hint}
+              readOnly
+              autoSize
+              style={{ fontFamily: "var(--text-font-mono)", fontSize: 12 }}
+            />
+          )}
+          <Button size="small" onClick={() => void copyCommand()}>
+            {copied ? t("ui.settings_copied") : t("ui.settings_copy")}
+          </Button>
+        </Space>
+      )}
+    </Space>
+  );
+}
+
 function ConnectionSection() {
   const { t } = useTranslation();
   const [value, setValue] = useState("");
@@ -473,6 +530,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
         t("ui.settings_models"),
         <ModelsSection active={open} />,
       )}
+      {section(t("ui.settings_mineru"), <MineruSection />)}
       {section(
         t("ui.settings_glossaries"),
         <Space direction="vertical" size={6} style={{ width: "100%" }}>

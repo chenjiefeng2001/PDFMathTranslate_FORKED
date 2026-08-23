@@ -274,6 +274,10 @@ class TranslationRequest:
     与 CLI ``--backend`` 语义一致：``auto`` 保持调用方/默认行为（CPU 优先），
     ``cuda``/``dml`` 显式开启 GPU 加速，GPU 不可用或崩溃时自动回退 CPU。
     """
+
+    output_dir: str = ""
+    """结果文件输出目录（用户自定义下载位置）。空串回落到
+    ``ServiceConfig.output_dir``，再回落到源文件所在目录。"""
     parse_engine: str = "auto"
     """解析引擎（auto/legacy/babeldoc/magicpdf），与 CLI ``--parse-engine`` 一致。
 
@@ -1279,6 +1283,17 @@ class RuntimeService:
         except Exception:
             logger.debug("feature flag sync skipped", exc_info=True)
 
+    def _resolve_out_dir(self, request: TranslationRequest,
+                         config: Optional[ServiceConfig]) -> str:
+        """输出目录优先级：请求级 output_dir > 服务级 config > 源文件目录。"""
+        cfg = config or self.config
+        custom = (getattr(request, "output_dir", "") or "").strip()
+        if custom:
+            return custom
+        if cfg.output_dir:
+            return cfg.output_dir
+        return os.path.dirname(request.source_path)
+
     def _execute_v4(self, task_id: str, request: TranslationRequest,
                     config: Optional[ServiceConfig] = None) -> None:
         """Execute with V4 RuntimeFacade pipeline."""
@@ -1363,7 +1378,7 @@ class RuntimeService:
         except Exception:
             diagnostic_summary = "Diagnostics unavailable"
 
-        out_dir = config.output_dir or os.path.dirname(request.source_path)
+        out_dir = self._resolve_out_dir(request, config)
         basename = os.path.splitext(os.path.basename(request.source_path))[0]
         os.makedirs(out_dir, exist_ok=True)
         result_path = os.path.join(out_dir, f"{basename}-translated.pdf")
@@ -1556,7 +1571,7 @@ class RuntimeService:
         # translate_stream handles the merge internally; we poll with short sleeps
         # to allow the UI to receive periodic progress updates.
         self._emit_event(task_id, TaskStage.RENDERING.value, 85.0, "Writing output files...")
-        out_dir = config.output_dir or os.path.dirname(request.source_path)
+        out_dir = self._resolve_out_dir(request, config)
         basename = os.path.splitext(os.path.basename(request.source_path))[0]
         os.makedirs(out_dir, exist_ok=True)
         logger.info("[task=%s] Merge OK: mono=%d bytes, dual=%d bytes", task_id, len(doc_mono), len(doc_dual))
@@ -1694,8 +1709,7 @@ class RuntimeService:
             self._fail_file(task_id, f"magicpdf args error: {exc}", total_files=total)
             return
         ns.files = files
-        out_dir = (config.output_dir if config and config.output_dir
-                   else os.path.dirname(os.path.abspath(files[0])))
+        out_dir = self._resolve_out_dir(request, config) or os.path.dirname(os.path.abspath(files[0]))
         ns.output = out_dir
         ns.backend = request.backend or "auto"
         ns.magicpdf_ocr = bool(request.magicpdf_ocr)
@@ -1851,7 +1865,7 @@ class RuntimeService:
         prompt = extra.get("prompt")
         ocr_mode = extra.get("ocr_mode")
         glossary_files = list(request.glossary_files or [])
-        out_dir = config.output_dir or os.path.dirname(request.source_path)
+        out_dir = self._resolve_out_dir(request, config)
         def _forward_progress(stage: str, pct: float, msg: str) -> None:
             # _emit_smooth throttles the 0.2s BabelDOC event cadence into
             # monotone progress steps while still forwarding stage msgs.
