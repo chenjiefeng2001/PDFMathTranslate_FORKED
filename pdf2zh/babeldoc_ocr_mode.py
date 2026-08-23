@@ -48,6 +48,15 @@ VALID_OCR_MODES = ("auto", "on", "off")
 #: ``PDF2ZH_BABELDOC_OCR`` 环境变量名。
 _ENV_OCR_MODE = "PDF2ZH_BABELDOC_OCR"
 
+#: 信任预检开关：预检判定「健康文本层」时跳过 BabelDOC 内部 SSIM 二次扫描
+#: 检测（省掉 ~20% 页面的双次栅格化 + SSIM，大文档提速；见
+#: doc/babeldoc_large_doc_slow_progress_report.md §2.5）。设 ``0`` 恢复
+#: 「预检 + BabelDOC 检测双重执行」的旧行为。
+_ENV_TRUST_PREFLIGHT = "PDF2ZH_BABELDOC_TRUST_PREFLIGHT"
+
+#: 判定「该页有文本层」的最小可抽取字符数（低于此值视为无文本/扫描页）。
+_MIN_TEXT_CHARS_PER_PAGE = 32
+
 #: OCR 模式 -> ``(ocr_workaround, auto_enable_ocr_workaround,
 #: skip_scanned_detection)``。
 #:
@@ -106,11 +115,18 @@ def resolve_ocr_flags(
 
     在 ``auto`` 模式下，若 ``source_path`` 指向 PDF，会先运行
     :func:`pdf2zh.scanned_detection.preflight_scan_check` 多信号融合预检
-    （scan_damaged_text 报告 §6.3 长期实现）：任一损坏信号命中阈值即强制
-    ``ocr_workaround=True``（相当于临时 ``--babeldoc-ocr on``），并把
-    ``auto_enable_ocr_workaround`` 关闭——从根上解决「渲染可见但语义损坏」的
-    文本层骗过 BabelDOC SSIM 判定、乱码被直接翻译的问题。预检失败/文件不可
-    读时保持原 auto 语义（不阻断主链路）。
+    （scan_damaged_text 报告 §6.3 长期实现）：
+
+    - 任一损坏信号命中阈值 → 强制 ``ocr_workaround=True``（相当于临时
+      ``--babeldoc-ocr on``），并把 ``auto_enable_ocr_workaround`` 关闭——
+      从根上解决「渲染可见但语义损坏」的文本层骗过 BabelDOC SSIM 判定、
+      乱码被直接翻译的问题；
+    - 预检判定健康文本层且**每一页**都有可抽取文本（:func:
+      `_all_pages_have_text_layer`，防混合扫描文档漏检）→ 直接跳过 BabelDOC
+      内部 SSIM 扫描检测（``skip_scanned_detection=True``），省掉大文档在
+      检测上的双次栅格化开销；设 ``PDF2ZH_BABELDOC_TRUST_PREFLIGHT=0``
+      可恢复双重检测的旧行为；
+    - 预检失败/文件不可读时保持原 auto 语义（不阻断主链路）。
 
     Returns:
         ``(ocr_workaround, auto_enable_ocr_workaround, skip_scanned_detection)``
@@ -126,12 +142,34 @@ def resolve_ocr_flags(
     return _OCR_FLAGS[mode]
 
 
+def _all_pages_have_text_layer(pdf_path: str) -> bool:
+    """逐页快速检查是否存在可抽取文本层（pymupdf 纯文本提取，毫秒级/页）。
+
+    是「信任预检、跳过 BabelDOC 二次扫描检测」的安全前提：任何一页几乎无
+    文本即视为混合扫描文档，不跳过（交回 BabelDOC 检测/OCR 兜底）。
+    任何异常都返回 False（保守：不跳过）。
+    """
+    try:
+        import pymupdf  # noqa: PLC0415
+
+        with pymupdf.open(pdf_path) as doc:
+            for page in doc:
+                if len(page.get_text().strip()) < _MIN_TEXT_CHARS_PER_PAGE:
+                    return False
+        return True
+    except Exception:  # noqa: BLE001 -- 检查失败时不跳过（保守）
+        return False
+
+
 def _preflight_forced_flags(source_path: str):
-    """运行多信号融合预检；判定为扫描 → 强制 OCR 开关，否则 None。
+    """运行多信号融合预检并映射为互斥三元组。
 
     Returns:
-        ``(True, False, False)``（强制 OCR）或 ``None``（预检未命中/不可用，
-        保持调用方 auto 语义）。
+        ``(True, False, False)``：预检命中扫描/损坏信号 → 强制 OCR；
+        ``(False, False, True)``：预检判定健康文本层且每页均有文本层 →
+            跳过 BabelDOC 内部 SSIM 二次检测（提速优化，可经
+            ``PDF2ZH_BABELDOC_TRUST_PREFLIGHT=0`` 关闭）；
+        ``None``：预检不可用/失败/未通过健康前提 → 保持调用方原 auto 语义。
     """
     if not source_path or not source_path.lower().endswith(".pdf"):
         return None
@@ -146,6 +184,16 @@ def _preflight_forced_flags(source_path: str):
                 "; ".join(decision.reasons) or "unknown",
             )
             return True, False, False
+        if (
+            os.environ.get(_ENV_TRUST_PREFLIGHT, "").strip().lower() != "0"
+            and _all_pages_have_text_layer(source_path)
+        ):
+            logger.info(
+                "文本层质量预检通过（healthy text layer）；跳过 BabelDOC 内部"
+                "扫描二次检测以加速大文档（%s=0 可关闭此优化）",
+                _ENV_TRUST_PREFLIGHT,
+            )
+            return False, False, True
     except Exception as exc:  # noqa: BLE001 -- 预检失败绝不阻断翻译
         logger.debug("preflight scan check skipped: %s", exc)
     return None

@@ -32,6 +32,14 @@ PP-DocLayoutV2.onnx（约 204 MB）默认放在 BabelDOC 的模型缓存目录
 可用环境变量 ``PDF2ZH_PP_DOCLAYOUT_MODEL`` 覆盖路径。缺失时通过
 ``python -m pdf2zh.doclayout_pseudocode --download`` 从 hf-mirror 下载；
 未下载则伪代码保护静默禁用（保持现状）。
+
+开关与门控
+----------
+融合模型每页多做一次完整推理，大文档下布局阶段成本翻倍。环境变量
+``PDF2ZH_BABELDOC_PSEUDO_PROTECT``（``auto``/``on``/``off``，默认 ``auto``）
+控制启用：``auto`` 仅对小文档（页数 ≤
+``PDF2ZH_BABELDOC_PSEUDO_PROTECT_MAX_PAGES``，默认 30）启用；``on`` 强制；
+``off`` 关闭。
 """
 
 from __future__ import annotations
@@ -94,6 +102,73 @@ PP_DOCLAYOUT_V2_MODEL_URL = (
 )
 
 _MODEL_FILE_NAME = "PP-DocLayoutV2.onnx"
+
+# ── 伪代码保护三态开关（大文档提速门控）─────────────────────────────────────
+# 融合模型每页多做一次完整推理（PP-DocLayoutV2 / MinerU），布局阶段成本翻倍；
+# 大文档下 analyzing 段线性膨胀成为主导瓶颈（见
+# doc/babeldoc_large_doc_slow_progress_report.md §2.3）。因此提供三态开关：
+#: ``PDF2ZH_BABELDOC_PSEUDO_PROTECT`` ∈ ``auto``/``on``/``off``（默认 auto）。
+PSEUDO_PROTECT_ENV = "PDF2ZH_BABELDOC_PSEUDO_PROTECT"
+#: auto 模式页数上限环境变量（``..._MAX_PAGES``，默认 30）。
+PSEUDO_PROTECT_MAX_PAGES_ENV = "PDF2ZH_BABELDOC_PSEUDO_PROTECT_MAX_PAGES"
+#: auto 模式默认页数上限：超过则跳过保护（伪代码块将被翻译，质量换速度）。
+PSEUDO_PROTECT_DEFAULT_MAX_PAGES = 30
+
+_PPROTECT_MODES = ("auto", "on", "off")
+
+
+def get_pseudo_code_protect_mode() -> str:
+    """解析伪代码保护三态开关；非法取值告警并回退 ``auto``。"""
+    raw = (os.environ.get(PSEUDO_PROTECT_ENV) or "").strip().lower() or "auto"
+    if raw not in _PPROTECT_MODES:
+        logger.warning(
+            "Ignoring invalid %s=%r (expected one of %s); falling back to 'auto'",
+            PSEUDO_PROTECT_ENV, raw, list(_PPROTECT_MODES),
+        )
+        return "auto"
+    return raw
+
+
+def _pdf_page_count(pdf_path: Optional[str]) -> Optional[int]:
+    """读取 PDF 页数；任何失败返回 ``None``（绝不阻断主链路）。"""
+    try:
+        import pymupdf  # noqa: PLC0415
+
+        with pymupdf.open(pdf_path) as doc:
+            return int(doc.page_count)
+    except Exception:  # noqa: BLE001 -- 页数未知时按启用处理
+        return None
+
+
+def is_pseudo_code_protection_active(
+    pdf_path: Optional[str] = None,
+) -> tuple[bool, str]:
+    """判定伪代码保护是否生效，返回 ``(active, reason)``（纯查询，不加载模型）。
+
+    - ``off``：始终关闭；
+    - ``on``：始终开启（显式 opt-in，接受布局成本翻倍与 MinerU 整本预解析）；
+    - ``auto``（默认）：仅当文档页数 ≤ 上限
+      （``PDF2ZH_BABELDOC_PSEUDO_PROTECT_MAX_PAGES``，默认 30）时启用；
+      页数未知（读取失败/非 PDF）时保守启用，保持历史行为。
+    """
+    mode = get_pseudo_code_protect_mode()
+    if mode == "off":
+        return False, f"{PSEUDO_PROTECT_ENV}=off"
+    if mode == "on":
+        return True, f"{PSEUDO_PROTECT_ENV}=on"
+    try:
+        limit = max(1, int(
+            os.environ.get(PSEUDO_PROTECT_MAX_PAGES_ENV)
+            or PSEUDO_PROTECT_DEFAULT_MAX_PAGES
+        ))
+    except ValueError:
+        limit = PSEUDO_PROTECT_DEFAULT_MAX_PAGES
+    pages = _pdf_page_count(pdf_path) if pdf_path else None
+    if pages is None:
+        return True, "auto (page count unknown; keeping protection)"
+    if pages <= limit:
+        return True, f"auto ({pages} pages <= {limit})"
+    return False, f"auto skipped ({pages} pages > {limit} page cap)"
 
 
 def get_pp_doclayout_model_path() -> Path:
@@ -518,9 +593,14 @@ def build_pseudo_code_protected_layout_model(pdf_path: Optional[str] = None):
 
     Returns:
         ``PseudoCodeProtectedLayoutModel``；模型/检测器任一不可用时返回基础
-        默认布局模型；BabelDOC 不可用时返回 ``None``（调用方回退到 BabelDOC
-        自身默认模型）。
+        默认布局模型；被开关禁用（``PDF2ZH_BABELDOC_PSEUDO_PROTECT``，见
+        :func:`is_pseudo_code_protection_active`）或 BabelDOC 不可用时返回
+        ``None``（调用方回退到 BabelDOC 自身默认模型）。
     """
+    active, reason = is_pseudo_code_protection_active(pdf_path)
+    if not active:
+        logger.info("BabelDOC pseudo-code protection disabled (%s)", reason)
+        return None
     global _fused_model
     if pdf_path:
         return _build_with_mineru_or_paddle(pdf_path)
