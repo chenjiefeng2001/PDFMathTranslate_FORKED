@@ -59,6 +59,30 @@ _ENV_BACKEND = "PDF2ZH_BABELDOC_BACKEND"
 _PATCH_LOCK = threading.Lock()
 _ORIGINAL_INIT: Optional[object] = None
 
+#: CPU 回退提示只打一次（进程级），避免多任务刷屏。
+_GPU_HINT_LOGGED = False
+
+
+def _log_gpu_acceleration_hint(providers: list[str]) -> None:
+    """布局推理落在 CPU 时的一次性加速引导（P0-3，纯日志无行为变化）。
+
+    大文档的墙钟大头是逐页版面分析（见
+    doc/babeldoc_large_doc_slow_progress_report.md §2.1）；GPU 版 onnxruntime
+    缺失/未生效时给出可操作的安装与开关指引。
+    """
+    global _GPU_HINT_LOGGED
+    if _GPU_HINT_LOGGED:
+        return
+    _GPU_HINT_LOGGED = True
+    logger.info(
+        "BabelDOC layout inference is running on CPU (providers=%s). Large "
+        "documents spend most of their wall time in per-page layout analysis; "
+        "consider 'pip install onnxruntime-gpu' (NVIDIA) or "
+        "'pip install onnxruntime-directml' (Windows GPU) and setting "
+        "PDF2ZH_BABELDOC_BACKEND=cuda|dml to accelerate it.",
+        providers,
+    )
+
 
 def get_babeldoc_backend() -> Optional[str]:
     """解析 BabelDOC 内部 ONNX 的有效后端（``None``/``auto`` = 原生行为）。
@@ -267,6 +291,7 @@ def _patched_init(self, model_path: str) -> None:
             providers = resolve_babeldoc_providers("auto")
         if not any(p != "CPUExecutionProvider" for p in providers):
             # 无执行级可用 GPU：保持 BabelDOC 原生行为（含 macOS CoreML 特判）。
+            _log_gpu_acceleration_hint(providers)
             return _ORIGINAL_INIT(self, model_path)
     else:
         providers = resolve_babeldoc_providers(backend)

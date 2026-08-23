@@ -1939,6 +1939,45 @@ class RuntimeService:
             self._engine_cooldown_until[key] = time.time() + _ENGINE_COOLDOWN_SECONDS
             self._engine_cooldown_error_cache[key] = str(error)
 
+    #: 走 LLM 提示词/生成式接口的引擎（翻译段墙钟 ≈ 段落数 ÷ qps × 单请求
+    #: 延迟）：大文档 + 低 qps 时给出调高并发的可操作提示（纯日志）。
+    _LLM_ENGINES = frozenset({
+        "openai", "openai-compatible", "azure_openai", "azureopenai",
+        "deepseek", "zhipu", "modelscope", "silicon", "siliconflow",
+        "gemini", "groq", "grok", "qwen", "aliyun", "aliyun-dashscope",
+        "ollama", "xinference", "anythingllm", "dify", "claude",
+    })
+
+    def _hint_babeldoc_qps(self, task_id: str, request: TranslationRequest) -> None:
+        """大文档 + LLM 引擎 + 低 qps 的一次性提速提示（P0-4，纯日志）。"""
+        try:
+            name = (getattr(request, "engine", "") or "").split(":", 1)[0]
+            name = name.strip().lower()
+            qps = max(1, int(getattr(request, "threads", 0) or 4))
+            pages = None
+            source = getattr(request, "source_path", "") or ""
+            if source.lower().endswith(".pdf") and os.path.exists(source):
+                try:
+                    import pymupdf  # noqa: PLC0415
+
+                    with pymupdf.open(source) as doc:
+                        pages = int(doc.page_count)
+                except Exception:  # noqa: BLE001 -- 页数未知就跳过提示
+                    return
+            if (
+                name in self._LLM_ENGINES and qps < 8
+                and pages is not None and pages >= 60
+            ):
+                logger.info(
+                    "[task=%s] large document (%d pages) with LLM engine %r at "
+                    "qps=%d: paragraph translation dominates wall time; raise "
+                    "the threads/QPS setting to speed up (free engines stay "
+                    "rate-limited by their providers)",
+                    task_id, pages, name, qps,
+                )
+        except Exception:  # noqa: BLE001 -- 提示绝不影响任务
+            logger.debug("babeldoc qps hint failed", exc_info=True)
+
     def _execute_babeldoc(
         self, task_id: str, request: TranslationRequest,
         config: Optional[ServiceConfig] = None,
@@ -1991,6 +2030,7 @@ class RuntimeService:
 
         self._emit_event(task_id, TaskStage.PARSING.value, 5.0,
                          "BabelDOC engine starting...")
+        self._hint_babeldoc_qps(task_id, request)
         if self._store.is_cancelled(task_id):
             return
 
