@@ -50,20 +50,43 @@
 
 ## 结论：存在明确优化空间
 
-1. **并行负扩展（最高优先级）**：10 页时 t4/t8 比 t1 慢 37–43%；20 页 t4 仅 1.43×、t8 反超回退。
+### ✅ 已实施：Warm Pool 服务化（优化 #1，2026-08-23）
+
+服务形态默认启用常驻 worker 池 + worker ORT 单线程 + 启动即预热：
+
+- `create_api_app` 设 `PDF2ZH_WARM_POOL=1` / `PDF2ZH_WORKER_ORT_THREADS=1`（CLI 单次任务不受影响）
+- 启动后台预热 2-4 worker（按核数），首个用户任务免付 spawn + ONNX 加载（实测 ~8s）
+- `get_shared_pool` 复用策略：池够大时不重建（t8→t4 不再反复 respawn）
+
+| 场景 | 前 | 后 | Δ |
+|---|---|---|---|
+| 10p legacy_t4 | 61.0s | **40.7s**† | **-33%** |
+| 10p legacy_t8 | 63.6s | **31.2s**† | **-51%（不再劣化）** |
+| 20p legacy_t4 | 78.8s | **37.0s** | **-53%** |
+| 20p legacy_t8 | 91.6s | **33.8s** | **-63%** |
+| 首任务附加成本 | ~8s（池 spawn+模型） | 0s（启动时预热） | — |
+
+† 多轮中位；google 免费引擎单轮方差 ±30%，看趋势与多轮中位。
+代价：空闲 RSS 从 109MB 升至 ~2.3GB 常驻池水位（worker 各持模型副本）；babeldoc 路径不经过进程池，其内存为其管线自身。
+
+### 其余待办（按优先级）
+
+2. **峰值内存 ~2.4GB 恒定**：需 tracemalloc/memray 定位；短期先做 worker 模型共享与 chunk fp_bytes 引用化。
+3. **首次 /api/engines ~4.9s**：sidecar 启动后台预热注册表或缓存序列化。
+4. **babeldoc 在小文档上慢 4.4×**（analyzing+parsing 占 145s）：UI 按页数提示选择 quick/legacy；中期排查 analyze 并行化。
+5. **冷启动 3.6s**：先开窗显示加载态、后台等 API，体感可降 ~3s。
+6. **前端 bundle 1.65MB**：路由级 code splitting 与 antd 图标按需引入。
+
+## 原始基线快照（优化前）
+
+1. **并行负扩展**：10 页时 t4/t8 比 t1 慢 37–43%；20 页 t4 仅 1.43×、t8 反超回退。
    疑因组合：每任务 worker 冷启动（spawn + 每 worker 各自加载 ONNX 模型）、ORT 线程过订阅
-   （worker 内默认吃满核）、免费引擎 QPS 限流重试。动作：常驻进程池复用（parallel/pool.py 已有雏形）、
-   worker 强制 `PDF2ZH_WORKER_ORT_THREADS=1`、按引擎限流自适应 chunk 提交节奏；t8 档位直接隐藏或警告。
-2. **峰值内存 ~2.4GB 恒定**：与页数/线程几乎无关 → 疑似 ORT arena + 每 worker 模型副本 +
-   全文档字节多份拷贝。需 tracemalloc/memray 定位；短期先做 worker 模型共享与 chunk fp_bytes 引用化。
-3. **首次 /api/engines ~4.9s**：SPA bootstrap 即调用 → 每次启动都白等。动作：sidecar 启动后台
-   预热注册表；或把 engines 缓存序列化。收益：设置抽屉/引擎下拉即开即用。
-4. **babeldoc 在小文档上慢 4.4×**（145s 花在 analyzing+parsing）：属质量换速度，建议 UI 按
-   页数提示选择 quick/legacy；中期排查 analyze 阶段可否并行。
-5. **冷启动 3.6s**：桌面开窗被 main.rs 的 health 等待阻塞。可与窗口打开并行（先开窗显示加载态，
-   后台等 API），体感启动时间可降 ~3s。
-6. **前端 bundle 1.65MB（gzip 514KB）+ pdf.worker 1.26MB**：vite 已告警；做路由级 code splitting
-   与 antd 图标按需引入。
+   （worker 内默认吃满核）、免费引擎 QPS 限流重试。→ 已由 Warm Pool 修复（见上表）。
+2. **峰值内存 ~2.4GB 恒定**：与页数/线程几乎无关 → 待定位。
+3. **首次 /api/engines ~4.9s**：SPA bootstrap 即调用 → 每次启动都白等。
+4. **babeldoc 在小文档上慢 4.4×**：属质量换速度。
+5. **冷启动 3.6s**：桌面开窗被 main.rs 的 health 等待阻塞。
+6. **前端 bundle 1.65MB（gzip 514KB）+ pdf.worker 1.26MB**。
 
 ## 基线快照方式
 

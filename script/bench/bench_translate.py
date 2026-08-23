@@ -111,6 +111,9 @@ def main() -> int:
         base = handle.base()
         # 预热：懒导入 translator 注册表与模型下载检查
         http_json("GET", base + "/api/engines", timeout=120.0)
+        # 服务态预热等待：sidecar 启动后会在后台建常驻 worker 池（~8s），
+        # 等它就绪后再开跑，模拟真实桌面使用节奏。
+        time.sleep(12.0)
         rss_before_run = max(handle.rss_samples_mb) if handle.rss_samples_mb else 0.0
 
         for name in names:

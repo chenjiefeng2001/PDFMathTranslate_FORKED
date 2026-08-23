@@ -31,6 +31,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import tempfile
 import threading
 import uuid
@@ -110,6 +111,34 @@ def create_api_app(
     allow_origins: Optional[List[str]] = None,
 ) -> FastAPI:
     """Build the FastAPI application bound to a (shared) RuntimeService."""
+    # 服务形态默认启用并行优化（CLI 单次任务不受影响，仍走原路径）：
+    # - Warm Pool：常驻 worker 进程池，免去每任务 spawn + ONNX 模型加载
+    #   （doc/performance_bottleneck_report.md §6.3 实测 8.2s，约占 29%）；
+    # - worker ORT 单线程：多 worker 并发时避免 onnxruntime 全核过订阅
+    #   （基准实测 t8 较 t4 劣化 16%）。
+    os.environ.setdefault("PDF2ZH_WARM_POOL", "1")
+    os.environ.setdefault("PDF2ZH_WORKER_ORT_THREADS", "1")
+
+    # 后台预热并行 worker 池：首个用户任务不再承担 spawn + ONNX 模型加载
+    # （实测 ~8s）。池大小取 2-4（按核数），后续请求更大并发时自动重建。
+    def _prewarm_pool() -> None:
+        try:
+            from pdf2zh.doclayout import get_backend
+            from pdf2zh.parallel.pool import get_shared_pool
+
+            size = max(2, min(4, os.cpu_count() or 2))
+            started = time.perf_counter()
+            get_shared_pool(size, get_backend()).get()
+            logger.info(
+                "parallel worker pool prewarmed (%d workers) in %.1fs",
+                size,
+                time.perf_counter() - started,
+            )
+        except Exception as exc:  # noqa: BLE001 -- 预热失败不阻断服务
+            logger.warning("parallel pool prewarm skipped: %s", str(exc)[:120])
+
+    threading.Thread(target=_prewarm_pool, name="pool-prewarm", daemon=True).start()
+
     svc = service or get_runtime_service()
     app = FastAPI(title="pdf2zh API", version="1.0.0")
     if allow_origins:

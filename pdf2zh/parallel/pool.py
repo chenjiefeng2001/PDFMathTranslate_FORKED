@@ -101,20 +101,24 @@ def get_shared_pool(
 ) -> Optional[SharedProcessPool]:
     """返回共享池；未启用时返回 ``None``（调用方回落旧行为）。
 
-    backend / workers 与池不一致时自动重建（保证 worker 侧环境正确）。
+    backend / workers 与池不一致时的重建策略：
+    - 池过小（< 请求 worker 数）或 backend 变化 → 必须重建（保证并发度/环境正确）；
+    - 池够大但请求更少 → **复用大池**：避免 t8→t4 这类任务序列反复 respawn
+      （基准实测每次重建含 spawn + ONNX 模型加载 ~8s）。
     """
     global _shared_pool
     if not warm_pool_enabled():
         return None
+    wanted = max(2, int(workers))
     with _shared_pool_lock:
         if _shared_pool is None:
-            _shared_pool = SharedProcessPool(max_workers=workers, backend=backend)
+            _shared_pool = SharedProcessPool(max_workers=wanted, backend=backend)
         elif (
             _shared_pool._backend != backend
-            or _shared_pool._max_workers != max(2, int(workers))
+            or _shared_pool._max_workers < wanted
         ):
             _shared_pool.shutdown()
-            _shared_pool = SharedProcessPool(max_workers=workers, backend=backend)
+            _shared_pool = SharedProcessPool(max_workers=wanted, backend=backend)
         return _shared_pool
 
 
