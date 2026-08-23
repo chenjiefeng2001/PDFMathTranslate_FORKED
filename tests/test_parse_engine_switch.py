@@ -100,6 +100,9 @@ class TestExecuteBatchRouting:
         calls: list = []
         files = ["/tmp/a.pdf", "/tmp/b.pdf"]
         with pytest.MonkeyPatch.context() as mp:
+            # 本组测试断言逐文件调用顺序（串行语义）；并发批处理见
+            # test_batch_concurrency.py。
+            mp.setenv("PDF2ZH_BATCH_CONCURRENCY", "1")
             mp.setattr(svc, "_execute_legacy", lambda *a, **k: calls.append("legacy"))
             mp.setattr(svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc"))
             mp.setattr(svc, "_execute_v4", lambda *a, **k: calls.append("v4"))
