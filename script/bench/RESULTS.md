@@ -72,9 +72,11 @@
 ### 其余待办（按优先级）
 
 2. **峰值内存 ~2.4GB 恒定**：需 tracemalloc/memray 定位；短期先做 worker 模型共享与 chunk fp_bytes 引用化。
-3. **首次 /api/engines ~4.9s**：sidecar 启动后台预热注册表或缓存序列化。
+3. ~~**首次 /api/engines ~4.9s**~~ ✅ 已实施：create_api_app 后台预热 translator 注册表，
+   预热完成后稳态 **13ms**（实测 25 引擎）；SPA bootstrap 与预热线程竞态时最多等一次构建。
 4. **babeldoc 在小文档上慢 4.4×**（analyzing+parsing 占 145s）：UI 按页数提示选择 quick/legacy；中期排查 analyze 并行化。
-5. **冷启动 3.6s**：先开窗显示加载态、后台等 API，体感可降 ~3s。
+5. ~~**冷启动 3.6s 黑等**~~ ✅ 已实施：Tauri 无装饰闪屏立即可见（0.8s 实测出窗），
+   API 就绪后切主窗口 + 关闪屏；SPA 侧 ReadyGate 轮询 /api/health 双保险。
 6. **前端 bundle 1.65MB**：路由级 code splitting 与 antd 图标按需引入。
 
 ## 原始基线快照（优化前）

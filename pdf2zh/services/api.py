@@ -139,6 +139,26 @@ def create_api_app(
 
     threading.Thread(target=_prewarm_pool, name="pool-prewarm", daemon=True).start()
 
+    # 预热 translator 注册表：首次 GET /api/engines 实测 ~4.9s（懒导入全部
+    # 引擎模块），SPA bootstrap 一启动就会调用它。后台提前建好注册表，
+    # 前端引擎下拉即开即用。
+    def _prewarm_registry() -> None:
+        try:
+            started = time.perf_counter()
+            from pdf2zh.config import ConfigManager
+            from pdf2zh.translator import build_translator_registry
+
+            ConfigManager.get_instance()
+            build_translator_registry()
+            logger.info(
+                "translator registry prewarmed in %.1fs",
+                time.perf_counter() - started,
+            )
+        except Exception as exc:  # noqa: BLE001 -- 预热失败不阻断服务
+            logger.warning("translator registry prewarm skipped: %s", str(exc)[:120])
+
+    threading.Thread(target=_prewarm_registry, name="registry-prewarm", daemon=True).start()
+
     svc = service or get_runtime_service()
     app = FastAPI(title="pdf2zh API", version="1.0.0")
     if allow_origins:

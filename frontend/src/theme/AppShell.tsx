@@ -1,6 +1,6 @@
 /** App 外观：antd 主题（亮/暗）+ Design Tokens 品牌色对齐 + 全局壳（头部/设置入口）。 */
 
-import { Button, ConfigProvider, Space, theme as antdTheme } from "antd";
+import { Button, ConfigProvider, Space, Spin, theme as antdTheme } from "antd";
 import { MoonOutlined, SettingOutlined, SunOutlined } from "@ant-design/icons";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
@@ -8,11 +8,57 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import tokens from "../../../pdf2zh/gui/assets/generated/tokens/tokens.json";
+import { getHealth } from "../api/endpoints";
 import { currentLang, switchLang } from "../i18n";
 import { useSettingsStore } from "../stores/settingsStore";
 import SettingsDrawer from "../pages/SettingsDrawer";
 
 const BRAND = (tokens as { light: Record<string, string> }).light["color_accent"] || "#165dff";
+
+/**
+ * 健康门闩：主窗口可能在 sidecar 就绪前显示（闪屏切换时序双保险），
+ * 轮询 /api/health 通过后才挂载业务页面，避免 bootstrap 空连报错。
+ */
+function ReadyGate({ children }: { children: ReactNode }) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer = 0;
+    async function poll() {
+      try {
+        await getHealth();
+        if (!cancelled) setReady(true);
+        return;
+      } catch {
+        /* 服务未就绪，继续等 */
+      }
+      if (!cancelled) timer = window.setTimeout(() => void poll(), 700);
+    }
+    void poll();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, []);
+
+  if (ready) return <>{children}</>;
+  return (
+    <div
+      style={{
+        height: "60vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <Spin size="large" />
+      <span style={{ opacity: 0.6 }}>…</span>
+    </div>
+  );
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
@@ -94,7 +140,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
           </Space>
         </header>
-        <main>{children}</main>
+        <main>
+          <ReadyGate>{children}</ReadyGate>
+        </main>
       </div>
       <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </ConfigProvider>
