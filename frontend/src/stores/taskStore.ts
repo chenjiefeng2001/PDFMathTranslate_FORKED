@@ -61,6 +61,8 @@ function applyEventToState(
     stage: frame.stage ?? state.stage,
     message: frame.message ?? state.message,
     eta: frame.eta ?? state.eta,
+    // 细粒度计数（页/段落级）随事件搭车更新；缺省保持旧值
+    stage_detail: frame.detail ?? state.stage_detail ?? null,
     updated_at: frame.timestamp ?? Date.now() / 1000,
   };
 }

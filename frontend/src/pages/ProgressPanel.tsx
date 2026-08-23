@@ -195,6 +195,27 @@ export default function ProgressPanel({
                 {t("ui.current_file")}: {task.current_file_name}
               </span>
             )}
+            {/* 细粒度进度：引擎上报的「第几页/共几页」级计数（BabelDOC 页级、
+                段落翻译段落级等）。仅运行中且有有效计数时显示。 */}
+            {!terminal &&
+              task.stage_detail &&
+              (task.stage_detail.total ?? 0) > 0 && (
+                <span
+                  style={{ fontSize: 12, opacity: 0.75 }}
+                  title={task.stage_detail.raw_stage}
+                >
+                  {t("ui.progress_detail", {
+                    stage:
+                      task.stage_detail.raw_stage ||
+                      t(`stage.${task.stage || task.status}`),
+                    current: task.stage_detail.current ?? 0,
+                    total: task.stage_detail.total,
+                  })}
+                  {task.stage_detail.unit
+                    ? ` (${t(`ui.unit_${task.stage_detail.unit}`)})`
+                    : ""}
+                </span>
+              )}
           </Space>
         </div>
 

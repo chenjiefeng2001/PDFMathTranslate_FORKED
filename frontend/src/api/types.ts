@@ -64,8 +64,23 @@ export interface TaskState {
   toc_ir_records: Record<string, unknown> | null;
   eta: number;
   error_message: string | null;
+  /** 最新一次细粒度进度快照（轮询/重连恢复「第几页」级显示） */
+  stage_detail?: ProgressDetail | null;
   created_at: number;
   updated_at: number;
+}
+
+/** 细粒度进度细节（后端 TaskProgressEvent.detail / TaskState.stage_detail） */
+export interface ProgressDetail {
+  engine?: string;
+  /** 引擎原始阶段名（如 "Parse Page Layout"），原样透传 */
+  raw_stage?: string;
+  /** 计数单位：page / paragraph / term / batch */
+  unit?: string;
+  current?: number;
+  total?: number;
+  /** 组件加载场景（magicpdf/mineru 的模型组件） */
+  component?: string;
 }
 
 export interface ProgressEventPayload {
@@ -75,6 +90,7 @@ export interface ProgressEventPayload {
   progress: number;
   message: string;
   eta: number;
+  detail?: ProgressDetail | null;
   timestamp: number;
 }
 
