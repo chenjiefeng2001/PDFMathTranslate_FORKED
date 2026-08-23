@@ -395,12 +395,18 @@ class _BatchContext:
 
     Tracks how many files completed / failed so per-file progress events can
     be folded into one smooth overall progress for the whole task.
+
+    并发批处理（``PDF2ZH_BATCH_CONCURRENCY>1``）时 ``progress_map`` 记录每个
+    已开始文件的最新百分比（完成/失败记 100），总体进度 = Σ(map)/total；
+    ``lock`` 保护 map 与 completed/failed 计数的读改写。
     """
 
     total_files: int
     completed_files: int = 0
     failed_files: int = 0
     current_file: str = ""
+    progress_map: Dict[str, float] = field(default_factory=dict)
+    lock: threading.Lock = field(default_factory=threading.Lock)
 
 
 @dataclass
@@ -672,6 +678,9 @@ class RuntimeService:
         self._active_count = 0
         #: Per-task batch aggregation state (only for multi-file tasks).
         self._batch_ctx: Dict[str, _BatchContext] = {}
+        # 并发批处理：worker 线程本地槽（task_id, path），进度事件据此路由到
+        # 对应文件的批量聚合，而不是任务级 stage 聚合器（后者假设串行单文件）。
+        self._batch_file_local = threading.local()
         self._batch_ctx_lock = threading.Lock()
         #: External callbacks invoked on every emitted ``TaskProgressEvent``
         #: (Observer pattern -- the service stays fully decoupled from the
@@ -971,11 +980,12 @@ class RuntimeService:
         self, task_id: str, request: TranslationRequest, files: List[str],
         config: ServiceConfig, cancel_event: Optional[threading.Event] = None,
     ) -> None:
-        """Execute a multi-file batch sequentially, aggregating overall progress.
+        """Execute a multi-file batch, aggregating overall progress.
 
-        Per-file results are accumulated into ``result_files`` and failures are
-        recorded per-file (task continues with the next file). The task only
-        reaches a terminal stage once every file has been processed.
+        ``PDF2ZH_BATCH_CONCURRENCY``（默认 2，上限 4）> 1 且文件数 > 1 时按
+        有界并发处理多个文件；否则保持原串行语义（逐文件、stage 权重平滑）。
+        并发路径的进度模型是线性的「Σ(每文件百分比)/total」——stage 聚合器
+        假设任务内同时只有一个活动文件，与多文件并发天然冲突，故绕过。
         """
         mode = (request.extra_config or {}).get("mode_choice") or "auto"
         ctx = self._batch_ctx.get(task_id)
@@ -984,6 +994,20 @@ class RuntimeService:
             with self._batch_ctx_lock:
                 self._batch_ctx[task_id] = ctx
         total = ctx.total_files
+        try:
+            concurrency = max(1, min(
+                4, int(os.environ.get("PDF2ZH_BATCH_CONCURRENCY", "2") or "2")
+            ))
+        except ValueError:
+            concurrency = 2
+
+        if concurrency > 1 and len(files) > 1:
+            self._execute_batch_concurrent(
+                task_id, request, files, config, ctx, cancel_event,
+                concurrency, mode,
+            )
+            return
+
         for path in files:
             if self._store.is_cancelled(task_id):
                 return
@@ -1036,6 +1060,85 @@ class RuntimeService:
             return
         self._finish_batch(task_id, ctx)
 
+    def _route_parse_pipeline(self, request: TranslationRequest,
+                              mode: str) -> str:
+        """与 _execute_task 一致的管线路由（显式 parse_engine 优先）。"""
+        parse_engine = (
+            getattr(request, "parse_engine", "auto") or "auto"
+        ).lower()
+        if parse_engine == "babeldoc" or resolve_pipeline(mode) == "babeldoc":
+            return "babeldoc"
+        return "legacy"
+
+    def _execute_batch_concurrent(
+        self, task_id: str, request: TranslationRequest, files: List[str],
+        config: ServiceConfig, ctx: _BatchContext,
+        cancel_event: Optional[threading.Event], concurrency: int,
+        mode: str,
+    ) -> None:
+        """有界并发批处理：K 个文件同时跑完整单文件管线。
+
+        进度经线程槽路由到 ``progress_map``（线性聚合）；stage 聚合器在此
+        模式下停用。结果/失败记录沿用 _complete_file/_fail_file（已加锁）。
+        """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        # 停用任务级 stage 聚合器：并发下其「单活动文件」假设不成立。
+        with self._aggregator_lock:
+            self._aggregators.pop(task_id, None)
+
+        route = self._route_parse_pipeline(request, mode)
+        logger.info(
+            "[task=%s] batch concurrent execution: %d file(s), K=%d, pipeline=%s",
+            task_id, len(files), concurrency, route,
+        )
+        self._store.update_task(
+            task_id,
+            status=TaskStage.PARSING.value,
+            message=f"Processing {len(files)} files ({concurrency} parallel)",
+        )
+
+        def _run_one(path: str) -> None:
+            if self._store.is_cancelled(task_id):
+                return
+            sub_request = dataclasses.replace(request, source_path=path, files=[])
+            ctx.current_file = os.path.basename(path)
+            self._slot_begin(task_id, path, ctx)
+            try:
+                if route == "babeldoc":
+                    self._execute_babeldoc(task_id, sub_request, config)
+                elif config.use_v4_engine:
+                    self._execute_v4(task_id, sub_request, config)
+                else:
+                    self._execute_legacy(
+                        task_id, sub_request, config, cancel_event
+                    )
+            except Exception as exc:
+                logger.error(
+                    "[task=%s] file %s failed: %s", task_id, path, exc,
+                    exc_info=True,
+                )
+                self._fail_file(
+                    task_id, exc, total_files=ctx.total_files,
+                    file_path=path,
+                )
+            finally:
+                # 成功路径：执行器内部的 _complete_file 不携带 file_path，
+                # 无法入账 100；在此统一把该文件标记为已消费（成功/失败/
+                # 意外异常一视同仁），保证 Σ(progress_map)/total 能走满。
+                with ctx.lock:
+                    ctx.progress_map[path] = 100.0
+                self._slot_end()
+
+        with ThreadPoolExecutor(max_workers=concurrency) as pool:
+            futures = [pool.submit(_run_one, path) for path in files]
+            for future in as_completed(futures):
+                future.result()
+
+        if self._store.is_cancelled(task_id):
+            return
+        self._finish_batch(task_id, ctx)
+
     def _finish_batch(self, task_id: str, ctx: _BatchContext) -> None:
         """Terminal wrap-up for a batch task after every file was processed."""
         total = ctx.total_files
@@ -1077,10 +1180,13 @@ class RuntimeService:
     def _emit_batch_progress(self, task_id: str, ctx: _BatchContext, message: str = "") -> None:
         """Persist aggregate batch progress and broadcast a low-level event.
 
-        ``ctx.completed_files`` already counts the file that just finished, so
-        the overall progress is simply ``completed / total``.
+        并发模式：总体 = Σ(progress_map)/total；串行模式：completed/total。
         """
-        agg = self._agg(ctx, 0.0)
+        with ctx.lock:
+            if ctx.progress_map:
+                agg = min(100.0, sum(ctx.progress_map.values()) / max(1, ctx.total_files))
+            else:
+                agg = self._agg(ctx, 0.0)
         self._store.update_task(
             task_id,
             stage=TaskStage.RENDERING.value,
@@ -1103,9 +1209,26 @@ class RuntimeService:
         ctx = self._batch_ctx.get(task_id)
         return ctx.total_files if ctx else 1
 
+    # ── 并发批处理：线程槽与总体进度 ─────────────────────────────────
+    def _slot_begin(self, task_id: str, path: str, ctx: _BatchContext) -> None:
+        self._batch_file_local.task_id = task_id
+        self._batch_file_local.path = path
+        with ctx.lock:
+            ctx.progress_map.setdefault(path, 0.0)
+
+    def _slot_end(self) -> None:
+        self._batch_file_local.task_id = None
+        self._batch_file_local.path = None
+
+    def _slot_active(self) -> tuple[Optional[str], Optional[str]]:
+        task_id = getattr(self._batch_file_local, "task_id", None)
+        path = getattr(self._batch_file_local, "path", None)
+        return task_id, path
+
     def _complete_file(
         self, task_id: str, result_files: List[Dict[str, str]], *,
-        total_files: int = 1, message: str = "Completed", **extra: Any,
+        total_files: int = 1, message: str = "Completed", file_path: Optional[str] = None,
+        **extra: Any,
     ) -> None:
         """Record a per-file completion.
 
@@ -1138,29 +1261,35 @@ class RuntimeService:
             self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, message)
             return
         ctx = self._batch_ctx[task_id]
-        ctx.completed_files += 1
-        state = self._store.get_task(task_id)
-        prev = list(state.result_files or []) if state else []
-        upd: Dict[str, Any] = {
-            "result_files": prev + list(result_files),
-            "file_progress": 100.0,
-            "completed_files": ctx.completed_files,
-            "message": f"Completed {ctx.current_file}",
-        }
-        if extra.get("selected_file"):
-            upd["selected_file"] = extra.pop("selected_file")
-        for key in (
-            "diagnostic_summary", "quality_scores", "node_overview",
-            "ir_snapshots", "gate_verdicts", "processor_reports", "toc_ir_records",
-            "diagnostic_report", "heal_status", "repair_records", "confidence_stats",
-        ):
-            if extra.get(key) is not None:
-                upd[key] = extra.pop(key)
-        self._store.update_task(task_id, **upd)
-        self._emit_batch_progress(task_id, ctx, f"Completed {ctx.current_file}")
+        # 并发批处理下 result_files 的读改写必须与 progress_map 同锁，否则
+        # 两个文件同时完成时会互相丢结果。
+        with ctx.lock:
+            ctx.completed_files += 1
+            if file_path:
+                ctx.progress_map[file_path] = 100.0
+            state = self._store.get_task(task_id)
+            prev = list(state.result_files or []) if state else []
+            upd: Dict[str, Any] = {
+                "result_files": prev + list(result_files),
+                "file_progress": 100.0,
+                "completed_files": ctx.completed_files,
+                "message": f"Completed {file_path or ctx.current_file}",
+            }
+            if extra.get("selected_file"):
+                upd["selected_file"] = extra.pop("selected_file")
+            for key in (
+                "diagnostic_summary", "quality_scores", "node_overview",
+                "ir_snapshots", "gate_verdicts", "processor_reports", "toc_ir_records",
+                "diagnostic_report", "heal_status", "repair_records", "confidence_stats",
+            ):
+                if extra.get(key) is not None:
+                    upd[key] = extra.pop(key)
+            self._store.update_task(task_id, **upd)
+        self._emit_batch_progress(task_id, ctx, f"Completed {file_path or ctx.current_file}")
 
     def _fail_file(
-        self, task_id: str, exc: Any, *, total_files: int = 1, message: Optional[str] = None,
+        self, task_id: str, exc: Any, *, total_files: int = 1,
+        message: Optional[str] = None, file_path: Optional[str] = None,
     ) -> None:
         """Record a per-file failure.
 
@@ -1182,15 +1311,20 @@ class RuntimeService:
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {error}")
             return
         ctx = self._batch_ctx[task_id]
-        ctx.failed_files += 1
-        state = self._store.get_task(task_id)
-        failures = list(getattr(state, "file_failures", None) or [])
-        failures.append({"file": ctx.current_file, "error": error})
-        self._store.update_task(
-            task_id, failed_files=ctx.failed_files, file_failures=failures,
-            message=f"Failed {ctx.current_file}",
-        )
-        self._emit_batch_progress(task_id, ctx, f"Failed {ctx.current_file}: {error}")
+        failed_name = file_path or ctx.current_file
+        with ctx.lock:
+            ctx.failed_files += 1
+            if failed_name:
+                # 失败文件视为已消费（记 100），保证总体进度能走满。
+                ctx.progress_map[failed_name] = 100.0
+            state = self._store.get_task(task_id)
+            failures = list(getattr(state, "file_failures", None) or [])
+            failures.append({"file": failed_name, "error": error})
+            self._store.update_task(
+                task_id, failed_files=ctx.failed_files, file_failures=failures,
+                message=f"Failed {failed_name}",
+            )
+        self._emit_batch_progress(task_id, ctx, f"Failed {failed_name}: {error}")
 
     def _build_batch_zip(self, task_id: str) -> Optional[str]:
         """Package all completed result files into a single zip.
@@ -2248,6 +2382,43 @@ class RuntimeService:
             TaskStage.FAILED.value,
             TaskStage.CANCELLED.value,
         )
+        slot_task, slot_path = self._slot_active()
+        if slot_task == task_id and slot_path and not terminal:
+            # 并发批处理：按文件槽位把原始百分比记入 progress_map，总体进度
+            # 走线性聚合，绕过假设「单活动文件」的 stage 权重聚合器。
+            batch = self._batch_ctx.get(task_id)
+            if batch is not None:
+                with batch.lock:
+                    prev_file = batch.progress_map.get(slot_path, 0.0)
+                    batch.progress_map[slot_path] = max(prev_file, raw)
+                    overall = min(
+                        100.0,
+                        sum(batch.progress_map.values())
+                        / max(1, batch.total_files),
+                    )
+                with self._progress_lock:
+                    prev = self._last_progress.get(task_id, -1.0)
+                    if overall < prev:
+                        if message:
+                            self._store.update_task(task_id, message=message)
+                        return
+                    if prev < 0 or overall - prev >= min_delta:
+                        self._last_progress[task_id] = overall
+                        state_now = self._store.get_task(task_id)
+                        eta_now = float(getattr(state_now, "eta", 0.0) or 0.0) if state_now else 0.0
+                        event = TaskProgressEvent(
+                            task_id=task_id, stage=stage, progress=overall,
+                            message=message, eta=eta_now,
+                        )
+                        self._store.add_event(task_id, event)
+                        self._store.update_task(
+                            task_id, stage=stage, progress=overall,
+                            total_progress=overall, eta=eta_now,
+                            message=message,
+                            current_file_name=os.path.basename(slot_path),
+                        )
+                        self._notify_event_listeners(event)
+                return
         batch = self._batch_ctx.get(task_id)
         visible = raw
         if batch is not None and not terminal:
