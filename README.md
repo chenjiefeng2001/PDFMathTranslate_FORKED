@@ -363,6 +363,7 @@ Long-running tasks are guarded by several self-healing mechanisms; all knobs are
 | `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | Terminal tasks (completed/cancelled/failed) older than this are pruned from memory. |
 | `PDF2ZH_SWEEP_INTERVAL` | `60` | Seconds between memory-cleanup sweeps (minimum 10). |
 | `PDF2ZH_BATCH_CONCURRENCY` | `2` | Files processed in parallel within a multi-file task (clamped to 1–4; invalid values fall back to 2). `1` keeps the original strict serial per-file execution. |
+| `PDF2ZH_BABELDOC_PSEUDO_PROTECT` | `auto` | BabelDOC pseudo-code protection tri-state: `auto` enables it only for documents up to `PDF2ZH_BABELDOC_PSEUDO_PROTECT_MAX_PAGES` pages (default 30); `on` forces; `off` disables. Protection doubles per-page layout inference cost, which dominates large-document wall time. |
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | Env-var equivalents of `--parallel-workers` / `--no-parallel`. |
 | `PDF2ZH_PROXY` | — | Env-var equivalent of `--proxy`. |
 | `PDF2ZH_MAX_FILE_SIZE` | — | Env-var equivalent of `--max-file-size` (MB). |

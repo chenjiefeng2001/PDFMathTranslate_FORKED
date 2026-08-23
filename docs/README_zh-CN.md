@@ -287,6 +287,7 @@ $env:HF_ENDPOINT = https://hf-mirror.com
 | `PDF2ZH_TASK_RETENTION_SECONDS` | `3600` | 终态任务（已完成/已取消/失败）超过该时长后从内存中清理。 |
 | `PDF2ZH_SWEEP_INTERVAL` | `60` | 后台内存清扫间隔（最小 10）秒。 |
 | `PDF2ZH_BATCH_CONCURRENCY` | `2` | 多文件任务内并行处理的文件数（钳制 1–4；非法值回退 2）。设 `1` 保持原先的严格串行逐文件执行。 |
+| `PDF2ZH_BABELDOC_PSEUDO_PROTECT` | `auto` | BabelDOC 伪代码保护三态开关：`auto` 仅对页数 ≤ `PDF2ZH_BABELDOC_PSEUDO_PROTECT_MAX_PAGES`（默认 30）的文档启用；`on` 强制开启；`off` 关闭。保护会使每页版面推理成本翻倍，大文档下是主要耗时来源。 |
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | 对应 `--parallel-workers` / `--no-parallel` 的环境变量形式。 |
 | `PDF2ZH_PROXY` | — | 对应 `--proxy` 的环境变量形式。 |
 | `PDF2ZH_MAX_FILE_SIZE` | — | 对应 `--max-file-size`（MB）的环境变量形式。 |
