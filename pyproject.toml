@@ -93,6 +93,21 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/Byaidu/PDFMathTranslate"
 
+[tool.pytest.ini_options]
+# 告警治理：豁免当前依赖树中已知的三类第三方告警（均非本项目代码触发），
+# 保证测试输出零 warning；新出现的告警仍会正常显示、可被及时发现。
+# 注：未启用 ``error`` 基线 —— 全量套件存在 6 处既有的 GC 期
+# ResourceWarning（未关闭文件/sqlite 连接，PytestUnraisableExceptionWarning），
+# 属独立的资源卫生问题，修复后可再升级为 error。
+filterwarnings = [
+    # websockets 14 弃用 legacy 模块（经 gradio 间接导入时触发）
+    "ignore::DeprecationWarning:websockets\\.legacy",
+    # gradio 5.x 在无运行中事件循环时调用 asyncio.get_event_loop()
+    "ignore:There is no current event loop:DeprecationWarning",
+    # numpy.matrix PendingDeprecation（第三方库内部使用，非本仓库代码）
+    "ignore::PendingDeprecationWarning:numpy\\.matrixlib",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
