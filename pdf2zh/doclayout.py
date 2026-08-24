@@ -385,6 +385,17 @@ def _probe_gpu_provider(name: str) -> bool:
     return name in _probe_providers(providers)
 
 
+#: 永不探测/启用的 provider：pdf2zh 的后端开关（auto/cpu/cuda/dml）没有
+#: TensorRT 对应项，它永远不会被主动选用；而执行级探测会创建 TRT 测试会话，
+#: 在缺 TensorRT 运行库的机器上（绝大多数环境）ORT 的 C++ 层会直接向 stderr
+#: 打印整段 "EP Error ... Please install TensorRT libraries ... Falling back"
+#: 噪音（LoadLibrary error 126，绕过 Python logging），sidecar/服务形态下
+#: 用户会误以为翻译出错。TRT 唯一的现实效果就是被 auto 全量列表带进请求，
+#: 因此这里直接跳过探测 —— ``_COMPILED_PROVIDERS`` 过滤会把它从 auto 列表
+#: 剔除（与库缺失时的既有行为一致），显式 cuda/dml 路径本就不含 TRT。
+_NEVER_PROBE_PROVIDERS = frozenset({"TensorrtExecutionProvider"})
+
+
 def _exec_gpu_providers() -> set[str]:
     """真正可用的非 CPU provider 集合（执行级探测，进程内缓存）。
 
@@ -400,7 +411,7 @@ def _exec_gpu_providers() -> set[str]:
     except Exception:  # noqa: BLE001 -- 探测环境异常视为无 GPU
         available = []
     for name in available:
-        if name != "CPUExecutionProvider":
+        if name != "CPUExecutionProvider" and name not in _NEVER_PROBE_PROVIDERS:
             try:
                 if _probe_gpu_provider(name):
                     result.add(name)

@@ -425,6 +425,39 @@ class TestExecutionLevelProbe(unittest.TestCase):
         finally:
             dl._EXEC_GPU_PROVIDERS = saved
 
+    def test_exec_gpu_providers_never_probes_tensorrt(self):
+        # TRT 不在任何后端开关（auto/cpu/cuda/dml）里，永远不会被选用；
+        # 探测它只会创建 TRT 测试会话，在缺 TensorRT 运行库的机器上触发
+        # ORT C++ 层向 stderr 打印整段 "EP Error ... Falling back" 刷屏。
+        import pdf2zh.doclayout as dl
+        from pdf2zh.doclayout import _exec_gpu_providers
+
+        saved = dl._EXEC_GPU_PROVIDERS
+        probed: list[str] = []
+
+        def _fake_probe(name: str) -> bool:
+            probed.append(name)
+            return name == "CUDAExecutionProvider"
+
+        try:
+            dl._EXEC_GPU_PROVIDERS = None
+            with patch(
+                "pdf2zh.doclayout._ort_available_providers",
+                return_value=[
+                    "TensorrtExecutionProvider",
+                    "CUDAExecutionProvider",
+                    "CPUExecutionProvider",
+                ],
+            ), patch(
+                "pdf2zh.doclayout._probe_gpu_provider",
+                side_effect=_fake_probe,
+            ):
+                result = _exec_gpu_providers()
+            self.assertEqual(probed, ["CUDAExecutionProvider"])
+            self.assertEqual(result, {"CUDAExecutionProvider"})
+        finally:
+            dl._EXEC_GPU_PROVIDERS = saved
+
 
 
 class TestOptimizedCacheIsolation(unittest.TestCase):
