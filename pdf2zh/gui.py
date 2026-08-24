@@ -166,7 +166,13 @@ else: enabled_services = list(service_map.keys())
 hidden_gradio_details = bool(ConfigManager.get("HIDDEN_GRADIO_DETAILS"))
 
 def verify_recaptcha_response(response):
-    r = requests.post("https://www.google.com/recaptcha/api/siteverify", data={"secret": server_key, "response": response})
+    # (5,10) 超时：Google 不可达时快速失败，避免请求挂死（与 translator
+    # HTTP_TIMEOUT 同一教训）。
+    r = requests.post(
+        "https://www.google.com/recaptcha/api/siteverify",
+        data={"secret": server_key, "response": response},
+        timeout=(5, 10),
+    )
     return r.json().get("success")
 def download_with_limit(url, save_path, size_limit):
     chunk_size = 1024; total = 0
@@ -867,6 +873,8 @@ def setup_gui(share=False,auth_file=["",""],server_port=7860):
     ul,html=parse_user_passwd(auth_file)
     akw={"auth":ul,"auth_message":html} if ul else {}
     demo.queue(default_concurrency_limit=2,max_size=10,status_update_rate=0.1)
-    if flag_demo: demo.launch(server_name="0.0.0.0",max_file_size="5mb",inbrowser=True);return
-    demo.launch(server_name="0.0.0.0",debug=False,inbrowser=True,share=False,server_port=server_port,**akw)
+    # 默认仅回环监听；PDF2ZH_GUI_HOST=0.0.0.0 显式开放（建议配合 auth）
+    _host = os.environ.get("PDF2ZH_GUI_HOST","127.0.0.1").strip() or "127.0.0.1"
+    if flag_demo: demo.launch(server_name=_host,max_file_size="5mb",inbrowser=True);return
+    demo.launch(server_name=_host,debug=False,inbrowser=True,share=share,server_port=server_port,**akw)
 if __name__=="__main__":_logging.basicConfig(level=_logging.DEBUG);setup_gui()

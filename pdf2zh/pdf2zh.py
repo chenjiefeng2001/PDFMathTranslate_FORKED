@@ -463,10 +463,10 @@ def main(args: list[str] | None = None) -> int:
         from pdf2zh.services.api import create_api_app
         from pdf2zh.services.runtime_singleton import get_runtime_service
 
-        # 默认放开 CORS：SPA 开发服务器（如 Vite 5173）跨域联调即开即用。
-        api_app = create_api_app(
-            service=get_runtime_service(), allow_origins=["*"]
-        )
+        # CORS 仅对显式声明的源开启（如 Vite 5173 联调时设
+        # allow_origins=["http://localhost:5173"]）；通配 "*" 已被入站
+        # Host/Origin 守卫取代，防止网页 drive-by 访问本地 API。
+        api_app = create_api_app(service=get_runtime_service())
         uvicorn.run(api_app, host="127.0.0.1", port=11009)
         return 0
 

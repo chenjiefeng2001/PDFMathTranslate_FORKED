@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -49,6 +50,32 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
+
+# ── 入站防护 ─────────────────────────────────────────────────────────
+#: 请求体上限（默认 64MB，``PDF2ZH_RUNTIME_MAX_BODY_MB`` 可调）。
+#: ``_read_body`` 此前按 Content-Length 无界读入内存；loopback-only
+#: 默认缓解了大半，但 host 参数一旦外开即成内存 DoS 点。
+def _max_body_bytes() -> int:
+    raw = os.environ.get("PDF2ZH_RUNTIME_MAX_BODY_MB") or ""
+    try:
+        mb = int(raw.strip()) if raw.strip() else 64
+    except ValueError:
+        mb = 64
+    return max(1, mb) << 20
+
+
+class _BodyTooLarge(ValueError):
+    """Content-Length 超出上限（映射为 HTTP 413）。"""
+
+
+#: 拒绝超限请求前最多排空的字节数：先消费掉已声明的请求体再回 413，
+#: 客户端才能收到状态码而不是连接重置；声明量离谱时放弃排空直接断开。
+_DRAIN_LIMIT = 16 << 20
+
+
+#: 同时处理的请求上限：ThreadingHTTPServer 每连接一个线程且无内建
+#: 上限，用信号量封顶，超出的请求排队而非无限增殖线程。
+_HANDLER_SLOTS = threading.BoundedSemaphore(32)
 
 
 class RuntimeRemoteError(RuntimeError):
@@ -162,6 +189,20 @@ class _RuntimeRequestHandler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0:
             return {}
+        if length > _max_body_bytes():
+            remaining = min(length, _DRAIN_LIMIT)
+            while remaining > 0:
+                chunk = self.rfile.read(min(65536, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+            if remaining:
+                # 客户端声明的体量远大于实际发送：连接已不可靠
+                self.close_connection = True
+            raise _BodyTooLarge(
+                f"body of {length} bytes exceeds limit "
+                f"({_max_body_bytes()} bytes)"
+            )
         raw = self.rfile.read(length).decode("utf-8")
         if not raw.strip():
             return {}
@@ -174,6 +215,10 @@ class _RuntimeRequestHandler(BaseHTTPRequestHandler):
     # ── routing ──────────────────────────────────────────────────────
 
     def _dispatch(self) -> None:
+        with _HANDLER_SLOTS:
+            self._dispatch_locked()
+
+    def _dispatch_locked(self) -> None:
         parsed = urlparse(self.path)
         for method, pattern, action in _ROUTES:
             if self.command != method:
@@ -183,6 +228,9 @@ class _RuntimeRequestHandler(BaseHTTPRequestHandler):
                 continue
             try:
                 body = self._read_body()
+            except _BodyTooLarge as exc:
+                self._error(413, exc)
+                return
             except ValueError as exc:
                 self._error(400, exc)
                 return

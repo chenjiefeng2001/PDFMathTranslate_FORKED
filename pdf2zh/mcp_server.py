@@ -218,7 +218,8 @@ if __name__ == "__main__":
     if args.sse and args.host and args.port:
         import uvicorn
 
-        starlette_app = create_starlette_app(mcp_server, debug=True)
+        # debug=False：不向客户端回显异常堆栈（信息泄露）
+        starlette_app = create_starlette_app(mcp_server, debug=False)
         uvicorn.run(starlette_app, host=args.host, port=args.port)
     else:
         mcp.run()

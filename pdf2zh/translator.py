@@ -494,7 +494,12 @@ class DeepLXTranslator(BaseTranslator):
                 "target_lang": self.lang_out,
                 "text": text,
             },
-            verify=False,  # noqa: S506
+            # 安全加固：默认校验 TLS 证书。自签名/内网 DeepLX 部署可显式设
+            # PDF2ZH_DEEPLX_INSECURE=1 关闭（历史版本无条件 verify=False，
+            # 中间人可窃取 token）。
+            verify=(
+                os.environ.get("PDF2ZH_DEEPLX_INSECURE", "").strip() != "1"
+            ),
             timeout=HTTP_TIMEOUT,
         )
         response.raise_for_status()

@@ -29,6 +29,7 @@ TaskProgressEvent / RuntimeNoticeEvent（客户端无关，见 gui/events.py）�
 from __future__ import annotations
 
 import asyncio
+import hmac
 import json
 import logging
 import os
@@ -36,12 +37,13 @@ import tempfile
 import threading
 import time
 import uuid
+from urllib.parse import urlsplit
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
 from pdf2zh.services.runtime_service import RuntimeService, TranslationRequest
@@ -51,6 +53,71 @@ logger = logging.getLogger(__name__)
 
 _TERMINAL_STATUSES = {"completed", "cancelled", "failed"}
 _SSE_KEEPALIVE_SECONDS = 15.0
+
+# ════════════════════════════════════════════════════════════════════
+# 入站防护（安全加固）
+#
+# 服务默认只绑定 loopback，但浏览器内任意网页仍可向
+# http://127.0.0.1:<port> 发起跨站请求（简单请求免预检；DNS rebinding
+# 可绕过同源策略）。以下三层防护按序生效：
+#
+#   1. Host 守卫：Host 头必须是回环地址 —— 直接封死 DNS rebinding；
+#      部署到非回环地址时需显式设 ``PDF2ZH_API_TRUST_ANY_HOST=1``。
+#   2. Origin 守卫：携带 Origin 的请求（浏览器发起）其源主机必须是
+#      回环地址或显式 allow_origins —— 封死网页 drive-by 读/写。
+#   3. 可选 Token 鉴权：设置 ``PDF2ZH_API_TOKEN`` 后，除健康检查外的
+#      全部 /api 端点要求凭据（供远程可信客户端使用）。
+# ════════════════════════════════════════════════════════════════════
+
+_LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
+#: Tauri v2 Windows WebView 的自定义协议源（跨源调用 sidecar 时出现）。
+_EXTRA_TRUSTED_ORIGIN_HOSTS = frozenset({"tauri.localhost"})
+
+
+def _hostname_of(netloc: str) -> str:
+    """从 Host/Origin 头提取 hostname（兼容 IPv6 字面量与端口）。"""
+    netloc = netloc.rsplit("@", 1)[-1].strip()
+    if netloc.startswith("["):
+        end = netloc.find("]")
+        return (netloc[1:end] if end > 0 else netloc).lower()
+    return netloc.split(":", 1)[0].lower()
+
+
+def _trust_any_host() -> bool:
+    return (os.environ.get("PDF2ZH_API_TRUST_ANY_HOST") or "").strip() == "1"
+
+
+def _api_token() -> str:
+    return (os.environ.get("PDF2ZH_API_TOKEN") or "").strip()
+
+
+def _max_upload_bytes() -> int:
+    """上传体积上限（默认 200MB，``PDF2ZH_MAX_UPLOAD_MB`` 可调）。"""
+    raw = (os.environ.get("PDF2ZH_MAX_UPLOAD_MB") or "").strip()
+    try:
+        mb = int(raw) if raw else 200
+    except ValueError:
+        mb = 200
+    return max(1, mb) << 20
+
+
+def _allowed_source_dirs() -> List[Path]:
+    """允许作为 source_path 的额外目录（os.pathsep 分隔）。"""
+    raw = os.environ.get("PDF2ZH_ALLOWED_SOURCE_DIRS") or ""
+    out = []
+    for part in raw.split(os.pathsep):
+        part = part.strip()
+        if part:
+            out.append(Path(part).expanduser().resolve())
+    return out
+
+
+def _is_under(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
 
 
 class EngineEnvsPayload(BaseModel):
@@ -70,6 +137,59 @@ def _mask_secret(value: str) -> str:
     if len(value) <= 8:
         return "****"
     return f"{value[:3]}****{value[-4:]}"
+
+
+async def _save_upload(file: UploadFile, dest: Path) -> None:
+    """分块落盘上传内容，超过 ``PDF2ZH_MAX_UPLOAD_MB`` 即拒绝（防磁盘耗尽）。"""
+    limit = _max_upload_bytes()
+    total = 0
+    with dest.open("wb") as fh:
+        while chunk := await file.read(1024 * 1024):
+            total += len(chunk)
+            if total > limit:
+                fh.close()
+                dest.unlink(missing_ok=True)
+                raise HTTPException(
+                    413,
+                    f"upload exceeds size limit ({limit >> 20} MB)",
+                )
+            fh.write(chunk)
+
+
+def _validate_source_path(resolved_path: str) -> None:
+    """限制 ``source_path`` 指向可信目录，封死本地任意文件外泄链。
+
+    攻击面：无鉴权的网页可提交 ``source_path=<任意本机文件>`` 的任务，
+    完成后经 artifacts 端点把文件下载走。规则：
+      - 未配置 token（纯 loopback 本机模式）→ 仅允许上传临时目录、
+        词表目录及 ``PDF2ZH_ALLOWED_SOURCE_DIRS`` 白名单内的路径；
+      - 已配置 token（操作方声明存在远程可信客户端）→ 仅要求文件
+        存在（客户端已通过凭据校验，等价于本机 CLI 信任级别）。
+    """
+    path = Path(resolved_path)
+    if _api_token():
+        if not path.is_file():
+            raise HTTPException(404, f"source file not found: {resolved_path}")
+        return
+    resolved = path.resolve()
+    trusted_roots = [*_allowed_source_dirs()]
+    for name in ("pdf2zh_api_uploads", "pdf2zh_api_glossaries"):
+        trusted_roots.append(Path(tempfile.gettempdir()) / name)
+    if any(_is_under(resolved, root) for root in trusted_roots):
+        return
+    if not resolved.exists():
+        return  # 不存在的路径交由任务执行期自然报错（保持既有语义）
+    logger.warning(
+        "Rejected source_path outside allowed directories: %s "
+        "(set PDF2ZH_ALLOWED_SOURCE_DIRS to trust a directory, or "
+        "PDF2ZH_API_TOKEN for authenticated remote access)",
+        resolved_path,
+    )
+    raise HTTPException(
+        403,
+        "source_path is outside allowed directories; upload the file via "
+        "multipart instead, or configure PDF2ZH_ALLOWED_SOURCE_DIRS",
+    )
 
 
 #: doclayout 模型后台下载状态（create_api_app 内的端点共享）
@@ -165,10 +285,63 @@ def create_api_app(
 
     svc = service or get_runtime_service()
     app = FastAPI(title="pdf2zh API", version="1.0.0")
-    if allow_origins:
+
+    # ── 入站防护中间件（Host / Origin / Token） ───────────────────────
+    @app.middleware("http")
+    async def _inbound_guard(request: Request, call_next):
+        if _trust_any_host():
+            host_ok = True
+        else:
+            hostname = _hostname_of(request.headers.get("host") or "")
+            host_ok = hostname in _LOOPBACK_HOSTS
+        origin = (request.headers.get("origin") or "").strip()
+        if host_ok and origin:
+            try:
+                ohost = (urlsplit(origin).hostname or "").lower()
+            except ValueError:
+                ohost = ""
+            host_ok = (
+                ohost in _LOOPBACK_HOSTS
+                or ohost in _EXTRA_TRUSTED_ORIGIN_HOSTS
+                or bool(allow_origins and origin in allow_origins)
+            )
+        if not host_ok:
+            return JSONResponse(
+                {"error": "forbidden: untrusted Host/Origin"},
+                status_code=403,
+            )
+        token = _api_token()
+        path = request.url.path
+        if token and path.startswith("/api/") and path != "/api/health":
+            supplied = (
+                request.headers.get("x-api-key")
+                or request.query_params.get("api_key")
+                or ""
+            )
+            auth = request.headers.get("authorization") or ""
+            if auth.lower().startswith("bearer "):
+                supplied = supplied or auth[7:].strip()
+
+            if not supplied or not hmac.compare_digest(supplied, token):
+                return JSONResponse(
+                    {"error": "unauthorized: missing/invalid API key"},
+                    status_code=401,
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        return await call_next(request)
+
+    # CORS：仅对显式声明的非通配源开启。历史调用方传 ["*"] 等价于
+    # 关闭（防护由上方 Origin 守卫承担），避免向任意网页开放跨源读。
+    cors_origins = [o for o in (allow_origins or []) if o and o != "*"]
+    if "*" in (allow_origins or []):
+        logger.warning(
+            "allow_origins=['*'] ignored; loopback Host/Origin guard is "
+            "enforced instead. Pass explicit origins to enable CORS."
+        )
+    if cors_origins:
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=allow_origins,
+            allow_origins=cors_origins,
             allow_methods=["*"],
             allow_headers=["*"],
         )
@@ -405,10 +578,11 @@ def create_api_app(
             upload_dir.mkdir(parents=True, exist_ok=True)
             safe_name = f"{uuid.uuid4().hex[:8]}_{Path(file.filename).name}"
             dest = upload_dir / safe_name
-            with dest.open("wb") as fh:
-                while chunk := await file.read(1024 * 1024):
-                    fh.write(chunk)
+            await _save_upload(file, dest)
             resolved_path = str(dest)
+
+        if resolved_path:
+            _validate_source_path(resolved_path)
 
         extra: Dict[str, Any] = {}
         if extra_config.strip():
@@ -432,9 +606,7 @@ def create_api_app(
             )
             glossary_dir.mkdir(parents=True, exist_ok=True)
             gdest = glossary_dir / f"{uuid.uuid4().hex[:8]}_{Path(gf.filename).name}"
-            with gdest.open("wb") as fh:
-                while chunk := await gf.read(1024 * 1024):
-                    fh.write(chunk)
+            await _save_upload(gf, gdest)
             resolved_glossaries.append(str(gdest))
         if glossary_files.strip():
             from pdf2zh.glossary_store import resolve_store_names
@@ -494,9 +666,7 @@ def create_api_app(
         tmp_dir = Path(tempfile.gettempdir()) / "pdf2zh_api_glossaries"
         tmp_dir.mkdir(parents=True, exist_ok=True)
         tmp = tmp_dir / f"{uuid.uuid4().hex[:8]}_{Path(file.filename).name}"
-        with tmp.open("wb") as fh:
-            while chunk := await file.read(1024 * 1024):
-                fh.write(chunk)
+        await _save_upload(file, tmp)
         try:
             entries = parse_csv(tmp)
             dest = import_to_store(tmp, name=name or None)
@@ -566,6 +736,10 @@ def create_api_app(
         return _control(task_id, "skip_task")
 
     # ── SSE ───────────────────────────────────────────────────────────────
+    #: 每条 SSE 连接独占一个 0.4s 轮询线程；用信号量限制并发流数，
+    #: 防止前端重连风暴耗尽线程（超限时返回 503，客户端会自动退避重试）。
+    _sse_slots = threading.BoundedSemaphore(16)
+
     @app.get("/api/tasks/{task_id}/events")
     async def stream_events(
         task_id: str,
@@ -573,6 +747,10 @@ def create_api_app(
         since: int = 0,
     ) -> StreamingResponse:
         _require_state(task_id)
+        if not _sse_slots.acquire(timeout=5.0):
+            raise HTTPException(
+                503, "too many concurrent event streams; retry later"
+            )
         # 断线续传游标：优先取浏览器 EventSource 自动回传的 Last-Event-ID，
         # 其次 ?since= 查询参数（非浏览器客户端）。
         last_event_id = 0
@@ -584,7 +762,10 @@ def create_api_app(
         if last_event_id <= 0 and since > 0:
             last_event_id = since
         return StreamingResponse(
-            _event_stream(svc, task_id, start_seq=max(0, last_event_id)),
+            _event_stream(
+                svc, task_id, start_seq=max(0, last_event_id),
+                release=_sse_slots.release,
+            ),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
@@ -620,14 +801,16 @@ def create_api_app(
 
 
 async def _event_stream(
-    svc: RuntimeService, task_id: str, start_seq: int = 0
+    svc: RuntimeService, task_id: str, start_seq: int = 0,
+    release=None,
 ) -> AsyncIterator[str]:
     """SSE 桥（游标轮询泵）：帧携带绝对序号，天然支持 Last-Event-ID 续传。
 
     - 每个事件帧 ``id: <seq>``，seq = 该任务事件列表中的绝对位置（1-based）；
     - 浏览器 EventSource 自动重连时会回传 Last-Event-ID，服务端从
       ``get_task_events(since=seq)`` 重放缺失事件，零丢失；
-    - 连接建立先发一帧完整 ``state`` 快照，再进入增量流。
+    - 连接建立先发一帧完整 ``state`` 快照，再进入增量流；
+    - ``release``：连接关闭时归还并发信号量名额（见 stream_events）。
     """
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue = asyncio.Queue(maxsize=512)
@@ -702,6 +885,11 @@ async def _event_stream(
         yield _sse_frame("done", {"status": current.status})
     finally:
         stop.set()
+        if release is not None:
+            try:
+                release()
+            except ValueError:  # 信号量已满：防重复归还
+                pass
 
 
 def main() -> int:
@@ -715,7 +903,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=11009)
     args = parser.parse_args()
 
-    app = create_api_app(allow_origins=["*"])
+    app = create_api_app()
     uvicorn.run(app, host=args.host, port=args.port)
     return 0
 

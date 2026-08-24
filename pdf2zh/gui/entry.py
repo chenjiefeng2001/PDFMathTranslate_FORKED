@@ -97,7 +97,16 @@ def _startup_events_ok(port: int, timeout: float = 10.0) -> bool:
         return False
 
 
-def _launch(gui, *, port: int, share: bool, debug: bool, max_file_size: str, akw: dict):
+#: GUI 监听地址。历史版本无条件绑 ``0.0.0.0``（LAN 全员可访问、且无认证），
+#: 现默认仅回环；需要局域网/远程访问时显式设 ``PDF2ZH_GUI_HOST=0.0.0.0``，
+#: 并建议同时配置 gradio auth。
+def _gui_host() -> str:
+    return (os.environ.get("PDF2ZH_GUI_HOST") or "127.0.0.1").strip() \
+        or "127.0.0.1"
+
+
+def _launch(gui, *, port: int, share: bool, debug: bool, max_file_size: str,
+            akw: dict, host: Optional[str] = None):
     """Run gui.launch with the transient startup-events handshake tolerated.
 
     When the handshake 502s but the server is already serving (verified by a
@@ -108,7 +117,7 @@ def _launch(gui, *, port: int, share: bool, debug: bool, max_file_size: str, akw
     """
     try:
         gui.launch(
-            server_name="0.0.0.0",
+            server_name=host or _gui_host(),
             server_port=port,
             debug=debug,
             inbrowser=False,
@@ -237,7 +246,8 @@ def setup_gui(
     gui.queue(default_concurrency_limit=2, max_size=20, status_update_rate=0.1)
 
     requested = server_port
-    port = _find_free_port("0.0.0.0", requested)
+    host = _gui_host()
+    port = _find_free_port(host, requested)
     if port != requested:
         logger.warning(
             "Port %s is occupied by another instance; the GUI will listen on %s instead.",
@@ -245,7 +255,7 @@ def setup_gui(
         )
 
     try:
-        _launch(gui, port=port, share=share, debug=debug,
+        _launch(gui, port=port, share=share, debug=debug, host=host,
                 max_file_size=resolve_max_file_size(max_file_size), akw=akw)
     except ValueError as exc:
         msg = str(exc)
@@ -259,13 +269,14 @@ def setup_gui(
                     "share fallback.", str(exc)[:100], port,
                 )
             else:
-                logger.warning("Localhost not accessible, falling back to share=True")
-                try:
-                    _launch(gui, port=port, share=True, debug=debug,
-                            max_file_size=resolve_max_file_size(max_file_size), akw=akw)
-                except Exception as exc2:
-                    logger.error("Failed to launch with share=True: %s", exc2)
-                    raise exc2 from exc
+                # 安全加固：不再自动 share=True 公网隧道回退（会把无认证的
+                # GUI 暴露到公网）。需要隧道时显式传 --share。
+                logger.error(
+                    "Gradio launch failed (%s). Automatic share=True fallback "
+                    "was removed for security; re-run with an explicit --share "
+                    "flag if a public tunnel is really needed.", str(exc)[:150],
+                )
+                raise
         else:
             raise
     _ensure_queue_running(gui)

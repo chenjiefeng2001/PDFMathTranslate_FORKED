@@ -23,7 +23,7 @@ def service():
 
 @pytest.fixture()
 def client(service):
-    return TestClient(create_api_app(service=service))
+    return TestClient(create_api_app(service=service), base_url="http://127.0.0.1:11009")
 
 
 @pytest.fixture()

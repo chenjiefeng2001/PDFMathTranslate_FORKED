@@ -29,7 +29,7 @@ def main() -> int:
     from pdf2zh.services.runtime_singleton import get_runtime_service
 
     app = create_api_app(
-        service=get_runtime_service(), allow_origins=["*"]
+        service=get_runtime_service(), allow_origins=["http://tauri.localhost"]
     )
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
     return 0
