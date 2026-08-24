@@ -281,7 +281,9 @@ def test_patched_init_uses_gpu_providers(monkeypatch):
     ]
     assert obj._stride == 32
     assert obj._names == {0: "text", 1: "figure"}
-    assert isinstance(obj.lock, threading.Lock)
+    # 跨版本：threading.Lock 在 3.13+ 是类、3.12- 是工厂函数，
+    # isinstance(x, threading.Lock) 在旧版本会直接 TypeError。
+    assert isinstance(obj.lock, type(threading.Lock()))
 
 
 def test_patched_init_warns_when_session_falls_back_to_cpu(monkeypatch):
@@ -403,4 +405,3 @@ def test_paddle_detector_follows_backend_switch(monkeypatch, tmp_path):
     det = PaddleDocLayoutV2Detector(model_path)
     assert det._session is not None
     assert "CPUExecutionProvider" in det._session.get_providers()
-

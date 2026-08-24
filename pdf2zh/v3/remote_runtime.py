@@ -36,6 +36,7 @@ Usage::
         session_id = client.open_session(blocks)["session_id"]
         print(client.execute(session_id))
 """
+
 from __future__ import annotations
 
 import json
@@ -50,6 +51,7 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 logger = logging.getLogger(__name__)
+
 
 # ── 入站防护 ─────────────────────────────────────────────────────────
 #: 请求体上限（默认 64MB，``PDF2ZH_RUNTIME_MAX_BODY_MB`` 可调）。
@@ -84,6 +86,7 @@ class RuntimeRemoteError(RuntimeError):
 
 def _jsonable(obj: Any) -> Any:
     from pdf2zh.v3.operators import _as_jsonable
+
     return _as_jsonable(obj)
 
 
@@ -94,12 +97,17 @@ class RuntimeTransport:
     future gRPC adapter would implement the same interface.
     """
 
-    def open_session(self, document: Any, document_id: Optional[str] = None,
-                     target_lang: str = "zh-CN") -> Dict[str, Any]:
+    def open_session(
+        self,
+        document: Any,
+        document_id: Optional[str] = None,
+        target_lang: str = "zh-CN",
+    ) -> Dict[str, Any]:
         raise NotImplementedError
 
-    def execute(self, session_id: str,
-                changed_ids: Optional[List[str]] = None) -> Dict[str, Any]:
+    def execute(
+        self, session_id: str, changed_ids: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         raise NotImplementedError
 
     def status(self, session_id: str) -> Dict[str, Any]:
@@ -108,12 +116,10 @@ class RuntimeTransport:
     def translations(self, session_id: str) -> Dict[str, Any]:
         raise NotImplementedError
 
-    def snapshot(self, session_id: str,
-                 label: str = "snapshot") -> Dict[str, Any]:
+    def snapshot(self, session_id: str, label: str = "snapshot") -> Dict[str, Any]:
         raise NotImplementedError
 
-    def rollback(self, session_id: str,
-                 label: Optional[str] = None) -> Dict[str, Any]:
+    def rollback(self, session_id: str, label: Optional[str] = None) -> Dict[str, Any]:
         raise NotImplementedError
 
     def close(self, session_id: str) -> Dict[str, Any]:
@@ -132,35 +138,29 @@ _ROUTES = [
     ("GET", re.compile(r"^/health$"), "health"),
     ("GET", re.compile(r"^/v1/stats$"), "stats"),
     ("POST", re.compile(r"^/v1/sessions$"), "open"),
-    ("POST",
-     re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/execute$"),
-     "execute"),
-    ("POST",
-     re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/execute_incremental$"),
-     "execute_incremental"),
-    ("GET",
-     re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/status$"), "status"),
-    ("GET",
-     re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/translations$"),
-     "translations"),
-    ("POST",
-     re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/snapshot$"),
-     "snapshot"),
-    ("POST",
-     re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/rollback$"),
-     "rollback"),
-    ("POST",
-     re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/close$"), "close"),
+    ("POST", re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/execute$"), "execute"),
+    (
+        "POST",
+        re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/execute_incremental$"),
+        "execute_incremental",
+    ),
+    ("GET", re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/status$"), "status"),
+    (
+        "GET",
+        re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/translations$"),
+        "translations",
+    ),
+    ("POST", re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/snapshot$"), "snapshot"),
+    ("POST", re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/rollback$"), "rollback"),
+    ("POST", re.compile(r"^/v1/sessions/(?P<session_id>[^/]+)/close$"), "close"),
 ]
 
 
-def _find_snapshot_by_label(service: Any, session_id: str,
-                            label: str) -> Any:
+def _find_snapshot_by_label(service: Any, session_id: str, label: str) -> Any:
     for snap in service.list_snapshots(session_id):
         if getattr(snap, "label", "") == label:
             return snap
-    raise ValueError(f"No snapshot labeled '{label}' for session "
-                     f"'{session_id}'")
+    raise ValueError(f"No snapshot labeled '{label}' for session " f"'{session_id}'")
 
 
 class _RuntimeRequestHandler(BaseHTTPRequestHandler):
@@ -174,8 +174,7 @@ class _RuntimeRequestHandler(BaseHTTPRequestHandler):
     # ── plumbing ─────────────────────────────────────────────────────
 
     def _respond(self, status: int, payload: Dict[str, Any]) -> None:
-        body = json.dumps(payload, ensure_ascii=False,
-                          default=str).encode("utf-8")
+        body = json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -200,8 +199,7 @@ class _RuntimeRequestHandler(BaseHTTPRequestHandler):
                 # 客户端声明的体量远大于实际发送：连接已不可靠
                 self.close_connection = True
             raise _BodyTooLarge(
-                f"body of {length} bytes exceeds limit "
-                f"({_max_body_bytes()} bytes)"
+                f"body of {length} bytes exceeds limit " f"({_max_body_bytes()} bytes)"
             )
         raw = self.rfile.read(length).decode("utf-8")
         if not raw.strip():
@@ -254,7 +252,6 @@ class _RuntimeRequestHandler(BaseHTTPRequestHandler):
     do_POST = _dispatch
 
 
-
 class _RuntimeHTTPServer(ThreadingHTTPServer):
     """Threaded HTTP server carrying the wrapped RuntimeService."""
 
@@ -265,8 +262,9 @@ class _RuntimeHTTPServer(ThreadingHTTPServer):
         self.service = service
         super().__init__(addr, handler)
 
-    def _handle(self, action: str, groups: Dict[str, str],
-                body: Dict[str, Any]) -> Dict[str, Any]:
+    def _handle(
+        self, action: str, groups: Dict[str, str], body: Dict[str, Any]
+    ) -> Dict[str, Any]:
         service = self.service
         if action == "health":
             return {"status": "ok", "service": "pdf2zh-dir-runtime"}
@@ -279,10 +277,13 @@ class _RuntimeHTTPServer(ThreadingHTTPServer):
             session = service.open(
                 document,
                 document_id=body.get("document_id"),
-                target_lang=body.get("target_lang", "zh-CN"))
-            return {"session_id": session.session_id,
-                    "document_id": body.get("document_id"),
-                    "state": session.state.value}
+                target_lang=body.get("target_lang", "zh-CN"),
+            )
+            return {
+                "session_id": session.session_id,
+                "document_id": body.get("document_id"),
+                "state": session.state.value,
+            }
         session_id = groups["session_id"]
         if action == "execute":
             changed = body.get("changed_ids")
@@ -298,21 +299,27 @@ class _RuntimeHTTPServer(ThreadingHTTPServer):
             return _jsonable(service.status(session_id))
         if action == "translations":
             session = service.sessions.get(session_id)
-            return {"session_id": session_id,
-                    "translations": dict(getattr(session, "translations", {}))}
+            return {
+                "session_id": session_id,
+                "translations": dict(getattr(session, "translations", {})),
+            }
         if action == "snapshot":
-            snap = service.snapshot(session_id,
-                                    label=body.get("label", "snapshot"))
-            return {"session_id": session_id,
-                    "snapshot_id": snap.snapshot_id,
-                    "label": snap.label}
+            snap = service.snapshot(session_id, label=body.get("label", "snapshot"))
+            return {
+                "session_id": session_id,
+                "snapshot_id": snap.snapshot_id,
+                "label": snap.label,
+            }
         if action == "rollback":
             label = body.get("label")
-            snap = _find_snapshot_by_label(service, session_id, label) \
-                if label else None
+            snap = (
+                _find_snapshot_by_label(service, session_id, label) if label else None
+            )
             target = service.rollback(session_id, snapshot=snap)
-            return {"session_id": session_id,
-                    "rolled_back_to": getattr(target, "label", "")}
+            return {
+                "session_id": session_id,
+                "rolled_back_to": getattr(target, "label", ""),
+            }
         if action == "close":
             closed = service.close(session_id)
             return {"session_id": session_id, "closed": bool(closed)}
@@ -327,8 +334,9 @@ class RuntimeRestServer:
     start). Also usable as a context manager.
     """
 
-    def __init__(self, runtime_service: Any, host: str = "127.0.0.1",
-                 port: int = 0) -> None:
+    def __init__(
+        self, runtime_service: Any, host: str = "127.0.0.1", port: int = 0
+    ) -> None:
         self.service = runtime_service
         self.host = host
         self.port = port
@@ -343,11 +351,12 @@ class RuntimeRestServer:
         if self._httpd is not None:
             return self
         self._httpd = _RuntimeHTTPServer(
-            (self.host, self.port), _RuntimeRequestHandler, self.service)
+            (self.host, self.port), _RuntimeRequestHandler, self.service
+        )
         self.port = int(self._httpd.server_address[1])
         self._thread = threading.Thread(
-            target=self._httpd.serve_forever,
-            name="pdf2zh-rest-runtime", daemon=True)
+            target=self._httpd.serve_forever, name="pdf2zh-rest-runtime", daemon=True
+        )
         self._thread.start()
         logger.info("Runtime REST server listening on %s", self.url)
         return self
@@ -366,8 +375,8 @@ class RuntimeRestServer:
         self.stop()
 
 
-
 # ── HTTP client ──────────────────────────────────────────────────────
+
 
 class RuntimeRestClient(RuntimeTransport):
     """Blocking JSON-REST client for ``RuntimeRestServer`` (stdlib only)."""
@@ -376,14 +385,20 @@ class RuntimeRestClient(RuntimeTransport):
         self.base_url = str(base_url).rstrip("/")
         self.timeout = timeout
 
-    def _request(self, method: str, path: str,
-                 payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        body = json.dumps(payload, ensure_ascii=False,
-                          default=str).encode("utf-8") \
-            if payload is not None else None
+    def _request(
+        self, method: str, path: str, payload: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        body = (
+            json.dumps(payload, ensure_ascii=False, default=str).encode("utf-8")
+            if payload is not None
+            else None
+        )
         request = Request(
-            self.base_url + path, data=body, method=method,
-            headers={"Content-Type": "application/json; charset=utf-8"})
+            self.base_url + path,
+            data=body,
+            method=method,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+        )
         try:
             with urlopen(request, timeout=self.timeout) as response:
                 raw = response.read().decode("utf-8")
@@ -395,52 +410,69 @@ class RuntimeRestClient(RuntimeTransport):
             except json.JSONDecodeError:
                 message = detail or exc.reason
             raise RuntimeRemoteError(
-                f"{method} {path} → {exc.code}: {message}") from exc
+                f"{method} {path} → {exc.code}: {message}"
+            ) from exc
         except URLError as exc:
             raise RuntimeRemoteError(
-                f"{method} {path} unreachable: {exc.reason}") from exc
+                f"{method} {path} unreachable: {exc.reason}"
+            ) from exc
+        except OSError as exc:
+            # urllib 仅把「连接建立阶段」的失败包成 URLError；读响应阶段的
+            # 超时 / 连接中断以裸 TimeoutError / ConnectionError（均为
+            # OSError 子类）逃逸。统一收口，保证调用方只需捕获一种异常。
+            # （顺序：HTTPError 与 URLError 均为 OSError 子类，须先匹配。）
+            raise RuntimeRemoteError(f"{method} {path} unreachable: {exc}") from exc
         return json.loads(raw) if raw.strip() else {}
 
     # ── RuntimeTransport verbs ───────────────────────────────────────
 
-    def open_session(self, document: Any, document_id: Optional[str] = None,
-                     target_lang: str = "zh-CN") -> Dict[str, Any]:
-        return self._request("POST", "/v1/sessions", {
-            "document": _jsonable(document),
-            "document_id": document_id,
-            "target_lang": target_lang,
-        })
-
-    def execute(self, session_id: str,
-                changed_ids: Optional[List[str]] = None) -> Dict[str, Any]:
-        payload = {"changed_ids": list(changed_ids)} \
-            if changed_ids is not None else None
-        return self._request("POST", f"/v1/sessions/{session_id}/execute",
-                             payload)
-
-    def execute_incremental(self, session_id: str,
-                            changed_ids: List[str]) -> Dict[str, Any]:
+    def open_session(
+        self,
+        document: Any,
+        document_id: Optional[str] = None,
+        target_lang: str = "zh-CN",
+    ) -> Dict[str, Any]:
         return self._request(
-            "POST", f"/v1/sessions/{session_id}/execute_incremental",
-            {"changed_ids": list(changed_ids)})
+            "POST",
+            "/v1/sessions",
+            {
+                "document": _jsonable(document),
+                "document_id": document_id,
+                "target_lang": target_lang,
+            },
+        )
+
+    def execute(
+        self, session_id: str, changed_ids: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        payload = (
+            {"changed_ids": list(changed_ids)} if changed_ids is not None else None
+        )
+        return self._request("POST", f"/v1/sessions/{session_id}/execute", payload)
+
+    def execute_incremental(
+        self, session_id: str, changed_ids: List[str]
+    ) -> Dict[str, Any]:
+        return self._request(
+            "POST",
+            f"/v1/sessions/{session_id}/execute_incremental",
+            {"changed_ids": list(changed_ids)},
+        )
 
     def status(self, session_id: str) -> Dict[str, Any]:
         return self._request("GET", f"/v1/sessions/{session_id}/status")
 
     def translations(self, session_id: str) -> Dict[str, Any]:
-        return self._request("GET",
-                             f"/v1/sessions/{session_id}/translations")
+        return self._request("GET", f"/v1/sessions/{session_id}/translations")
 
-    def snapshot(self, session_id: str,
-                 label: str = "snapshot") -> Dict[str, Any]:
-        return self._request("POST", f"/v1/sessions/{session_id}/snapshot",
-                             {"label": label})
+    def snapshot(self, session_id: str, label: str = "snapshot") -> Dict[str, Any]:
+        return self._request(
+            "POST", f"/v1/sessions/{session_id}/snapshot", {"label": label}
+        )
 
-    def rollback(self, session_id: str,
-                 label: Optional[str] = None) -> Dict[str, Any]:
+    def rollback(self, session_id: str, label: Optional[str] = None) -> Dict[str, Any]:
         payload = {"label": label} if label else {}
-        return self._request("POST", f"/v1/sessions/{session_id}/rollback",
-                             payload)
+        return self._request("POST", f"/v1/sessions/{session_id}/rollback", payload)
 
     def close(self, session_id: str) -> Dict[str, Any]:
         return self._request("POST", f"/v1/sessions/{session_id}/close")
@@ -453,7 +485,8 @@ class RuntimeRestClient(RuntimeTransport):
 
 
 __all__ = [
-    "RuntimeTransport", "RuntimeRemoteError", "RuntimeRestServer",
+    "RuntimeTransport",
+    "RuntimeRemoteError",
+    "RuntimeRestServer",
     "RuntimeRestClient",
 ]
-

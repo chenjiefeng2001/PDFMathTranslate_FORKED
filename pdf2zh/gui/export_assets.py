@@ -34,8 +34,8 @@ def export_assets(out_dir: Path | None = None) -> Dict[str, Path]:
     from pdf2zh.gui.i18n import STAGE_LABELS, T
     from pdf2zh.gui.styles import DARK_TOKENS, LIGHT_TOKENS
 
-    out_dir = Path(out_dir) if out_dir else (
-        Path(__file__).parent / "assets" / "generated"
+    out_dir = (
+        Path(out_dir) if out_dir else (Path(__file__).parent / "assets" / "generated")
     )
     locales_dir = out_dir / "locales"
     tokens_dir = out_dir / "tokens"
@@ -55,14 +55,19 @@ def export_assets(out_dir: Path | None = None) -> Dict[str, Path]:
         path.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True),
             encoding="utf-8",
+            # 显式 LF：write_text 默认按 os.linesep 翻译换行（Windows CRLF /
+            # Linux LF），会让逐字节漂移校验在跨平台 CI 上必然失败。
+            newline="\n",
         )
         written[name] = path
 
     (tokens_dir / "light.css").write_text(
-        _css_vars(LIGHT_TOKENS, ":root"), encoding="utf-8"
+        _css_vars(LIGHT_TOKENS, ":root"), encoding="utf-8", newline="\n"
     )
     (tokens_dir / "dark.css").write_text(
-        _css_vars(DARK_TOKENS, ":root[data-theme='dark']"), encoding="utf-8"
+        _css_vars(DARK_TOKENS, ":root[data-theme='dark']"),
+        encoding="utf-8",
+        newline="\n",
     )
     tokens_json = out_dir / "tokens" / "tokens.json"
     tokens_json.write_text(
@@ -73,6 +78,7 @@ def export_assets(out_dir: Path | None = None) -> Dict[str, Path]:
             sort_keys=True,
         ),
         encoding="utf-8",
+        newline="\n",
     )
     return written
 

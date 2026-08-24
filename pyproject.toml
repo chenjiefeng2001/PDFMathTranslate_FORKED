@@ -93,7 +93,37 @@ dev = [
 [project.urls]
 Homepage = "https://github.com/Byaidu/PDFMathTranslate"
 
+[tool.black]
+# 内嵌第三方代码不参与格式化（vendor/MinerU、pdf2zh/kernel 内嵌 git 检出），
+# 构建产物目录一并排除；CI 的 psf/black@stable 从仓库根运行 --check，
+# 依赖此配置保持通过。
+extend-exclude = '''
+(
+  ^/vendor/
+| ^/pdf2zh/kernel/
+| ^/deploy/_build_sidecar/
+| ^/script/build/
+| ^/frontend/
+)
+'''
+
 [tool.pytest.ini_options]
+# 只收集第一方测试目录。CI 从仓库根执行 ``pytest .``，若不加限制会把
+# vendor/MinerU 与 pdf2zh/kernel 内嵌检出的第三方测试一并收集——它们依赖
+# 未安装的重可选依赖（torch 等），在 collection 阶段即报错并中断全量。
+#
+# 注意：``testpaths`` 仅在命令行不传路径时生效，CI 的显式 ``.`` 会绕过它；
+# 必须用 ``norecursedirs`` 直接阻断对内嵌目录的递归（该选项覆盖默认值，
+# 故需一并保留常用的默认排除项）。
+testpaths = ["tests"]
+norecursedirs = [
+    ".*", "*.egg", "_darcs", "build", "CVS", "dist", "node_modules", "venv",
+    "vendor",
+    "pdf2zh/kernel",
+    "frontend",
+    "deploy/_build_sidecar",
+]
+
 # 告警治理：豁免当前依赖树中已知的三类第三方告警（均非本项目代码触发），
 # 保证测试输出零 warning；新出现的告警仍会正常显示、可被及时发现。
 # 注：未启用 ``error`` 基线 —— 全量套件存在 6 处既有的 GC 期
