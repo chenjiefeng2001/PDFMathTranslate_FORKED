@@ -66,11 +66,16 @@ dml = [
     "onnxruntime-directml",
 ]
 magicpdf = [
-    # MinerU 2.x（Py3.10-3.12 优先）或 magic-pdf 1.3.12（Py3.13 兜底）。
-    # 由 pdf2zh.engine_env 自动选择；二者互斥（在 PyPI 上互相依赖冲突），
-    # 故用 environment marker 按 Python 版本拆分支，避免解析器同时解析两个引擎。
-    "mineru>=2.0; python_version < '3.13'",
-    "magic-pdf>=1.3.12,<2; python_version >= '3.13'",
+    # MinerU 3.x（>=3.1.0 起 Apache 系许可；官方支持 Py3.10-3.13，pipeline
+    # 本地后端）。由 pdf2zh.engine_env 自动选择后端。
+    # magic-pdf 1.x 已停更（最后 1.3.12 @2025-05），不再进默认依赖分支；
+    # 仅作 MinerU 不可用时的手动兜底：`uv pip install -U "magic-pdf[full]<2"`。
+    #
+    # six：MinerU 3.4.5 的 pipeline 后端运行时 import six 但未声明依赖
+    # （上游打包遗漏，实测 Win+Py3.13 首跑即 ModuleNotFoundError）；这里
+    # 显式补上，上游修复后可移除。
+    "mineru>=3.1,<4",
+    "six",
 ]
 
 precise = []  # marker — run `pdf2zh-setup-precise` after install to provision the isolated venv
@@ -103,6 +108,7 @@ packages = ["pdf2zh"]
 [project.scripts]
 pdf2zh = "pdf2zh.pdf2zh:main"
 pdf2zh-setup-precise = "pdf2zh.kernel.precise:setup_precise_cli"
+pdf2zh-setup-mineru = "pdf2zh.kernel.mineru_env:setup_mineru_cli"
 
 [tool.uv]
 # magic-pdf 1.x 的 PyMuPDF<1.25.0 pin 属历史遗留（1.3.12 在 pymupdf 1.28 下实测正常），
