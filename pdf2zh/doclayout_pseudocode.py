@@ -44,9 +44,11 @@ PP-DocLayoutV2.onnx（约 204 MB）默认放在 BabelDOC 的模型缓存目录
 
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 import threading
+from collections import deque
 from pathlib import Path
 from typing import Optional
 
@@ -233,6 +235,66 @@ def _is_text_layout_name(name: str) -> bool:
         return False
 
 
+# ── 布局流水线并行（Parse Page Layout 提速）─────────────────────────────────
+#
+# ``_LAYOUT_ONNX_RUN_LOCK``（进程级叶级锁）是本节的核心：它包住基础模型与
+# 检测器的 ``session.run``，解决两个真实问题：
+#   1) 跨任务阻塞 —— 旧实现把 base_model.lock 横跨渲染+双模型推理全程持有，
+#      并发翻译任务在 Parse Page Layout 上互相排队；
+#   2) cuDNN 并发硬崩 —— 实测（ORT 1.20.2 + cuDNN 9.x）两个 CUDA 会话多线程
+#      并发 Execute 会 CUDNN_BACKEND_API_FAILED 崩溃。
+# 渲染/坐标转换/调试图仍与推理重叠。
+#
+# ``PDF2ZH_LAYOUT_PREFETCH``（实验性）：线程池预取窗口，结果按页序 yield。
+# 默认 1（串行）——实测 A/B 中预取无稳定收益（CPU 配置下算力本就饱和；
+# GPU 配置下推理经共享锁串行化），仅保留给「检测器留在 CPU、基础模型走
+# GPU」的混合配置实验。
+
+_LAYOUT_PREFETCH_ENV = "PDF2ZH_LAYOUT_PREFETCH"
+_LAYOUT_PREFETCH_DEFAULT = 1
+_LAYOUT_PREFETCH_MAX = 8
+
+_LAYOUT_ONNX_RUN_LOCK = threading.Lock()
+
+
+def _layout_pipeline_window() -> int:
+    """解析布局阶段预取窗口（1=串行回退，上限 8 防 VRAM/内存尖刺）。"""
+    raw = (os.environ.get(_LAYOUT_PREFETCH_ENV) or "").strip()
+    if not raw:
+        return _LAYOUT_PREFETCH_DEFAULT
+    try:
+        value = int(raw)
+    except ValueError:
+        logger.warning(
+            "Ignoring invalid %s=%r (expected integer); "
+            "using default %d",
+            _LAYOUT_PREFETCH_ENV, raw, _LAYOUT_PREFETCH_DEFAULT,
+        )
+        return _LAYOUT_PREFETCH_DEFAULT
+    return max(1, min(value, _LAYOUT_PREFETCH_MAX))
+
+
+def _detector_supports_page_index(detector) -> bool:
+    """探测检测器 ``detect_algorithm_boxes`` 是否接受 ``page_index`` 形参。"""
+    try:
+        sig = inspect.signature(detector.detect_algorithm_boxes)
+    except (TypeError, ValueError):
+        return False
+    if any(
+        p.kind is inspect.Parameter.VAR_KEYWORD
+        for p in sig.parameters.values()
+    ):
+        return True
+    param = sig.parameters.get("page_index")
+    return bool(
+        param
+        and param.kind
+        in (
+            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            inspect.Parameter.KEYWORD_ONLY,
+        )
+    )
+
 
 class PaddleDocLayoutV2Detector:
     """PP-DocLayoutV2 ONNX 推理，只用于提取 ``algorithm`` 类别的检测框。
@@ -253,14 +315,38 @@ class PaddleDocLayoutV2Detector:
 
         self.model_path = str(model_path)
         self.conf_threshold = conf_threshold
-        # 遵循 BabelDOC 后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）：
-        # auto=CPU（原生行为）、cuda/dml 显式启用 GPU，GPU 不可用时自动回退 CPU。
+        # 推理后端三段式：
+        #   PDF2ZH_PP_DOCLAYOUT_BACKEND 显式指定（cpu/cuda/dml）；
+        #   未设置或 auto 时跟随全局 BabelDOC 后端开关（--backend /
+        #   PDF2ZH_BABELDOC_BACKEND；其 auto 原生行为是 CPU）。
+        # 实测 RT-DETR 系检测模型在 CPU 上 ~4.3s/页，是布局阶段的最大头；
+        # GPU 可用时强烈建议 cuda（~百毫秒级）。GPU 不可用时经
+        # resolve_babeldoc_providers 的替代链自动回退并告警。
         from pdf2zh.babeldoc_onnx_backend import (
             get_babeldoc_backend,
             resolve_babeldoc_providers,
         )
 
-        providers = resolve_babeldoc_providers(get_babeldoc_backend())
+        requested = (
+            os.environ.get("PDF2ZH_PP_DOCLAYOUT_BACKEND", "").strip().lower()
+        )
+        if requested and requested not in ("auto", "cpu", "cuda", "dml"):
+            logger.warning(
+                "Ignoring invalid %s=%r (expected one of "
+                "auto/cpu/cuda/dml); following the global backend switch",
+                "PDF2ZH_PP_DOCLAYOUT_BACKEND", requested,
+            )
+            requested = ""
+        backend = (
+            get_babeldoc_backend()
+            if requested in ("", "auto")
+            else requested
+        )
+        providers = resolve_babeldoc_providers(backend)
+        logger.info(
+            "PP-DocLayoutV2 detector providers=%s (backend=%s)",
+            providers, backend,
+        )
         self._session = ort.InferenceSession(self.model_path, providers=providers)
         self._lock = threading.Lock()
 
@@ -275,9 +361,10 @@ class PaddleDocLayoutV2Detector:
         Returns:
             ``[(x1, y1, x2, y2), ...]``，坐标为图像像素坐标（x/y 分别与宽/高对齐）。
         """
-        with self._lock:
-            blob, scale = self._preprocess(image_rgb)
-            shape = np.array([[800, 800]], dtype=np.float32)
+        blob, scale = self._preprocess(image_rgb)
+        shape = np.array([[800, 800]], dtype=np.float32)
+        # 进程级推理锁：与基础模型共享，避免多线程并发 Execute 撞 cuDNN
+        with _LAYOUT_ONNX_RUN_LOCK:
             out = self._session.run(
                 None,
                 {
@@ -323,7 +410,6 @@ class PaddleDocLayoutV2Detector:
         return blob, np.array([[scale_h, scale_w]], dtype=np.float32)
 
 
-
 class PseudoCodeProtectedLayoutModel:
     """BabelDOC 默认布局模型 + PP-DocLayoutV2 ``algorithm`` 保护的融合模型。
 
@@ -355,30 +441,76 @@ class PseudoCodeProtectedLayoutModel:
         self.cover_threshold = cover_threshold
         self._algo_cls_cache: dict[int, int] = {}
         self._algo_cls_lock = threading.Lock()
+        # 检测器接口能力只探测一次：旧式纯图像签名逐页 try/except TypeError
+        # 既慢又掩盖真实错误。
+        self._detector_accepts_page_index = (
+            _detector_supports_page_index(detector)
+            if detector is not None
+            else False
+        )
 
     @property
     def stride(self) -> int:
         return self.base_model.stride
 
     def handle_document(self, pages, mupdf_doc, translate_config, save_debug_image):
-        """与 BabelDOC ``DocLayoutModel.handle_document`` 签名一致的生成器。"""
-        from babeldoc.format.pdf.document_il.utils.raster_geometry import (
-            with_target_long_edge,
-        )
+        """与 BabelDOC ``DocLayoutModel.handle_document`` 签名一致的生成器。
 
+        ``base_model.lock`` 只覆盖渲染段（与 BabelDOC 默认模型一致），推理
+        经进程级 ``_LAYOUT_ONNX_RUN_LOCK`` 与检测器串行共享 —— 修复并发任务
+        在本阶段互相阻塞、以及多 CUDA 会话并发 Execute 撞 cuDNN 崩溃两个问题。
+        ``PDF2ZH_LAYOUT_PREFETCH``>1 可开启实验性预取流水线（默认关闭）。
+        """
+        window = _layout_pipeline_window()
+        if window <= 1 or self.base_model is None:
+            yield from self._handle_document_serial(
+                pages, mupdf_doc, translate_config, save_debug_image
+            )
+            return
+
+        from concurrent.futures import ThreadPoolExecutor
+
+        def _work(page):
+            translate_config.raise_if_cancelled()
+            return self._predict_page(page, mupdf_doc)
+
+        pages_iter = iter(pages)
+        pending: deque = deque()
+        with ThreadPoolExecutor(
+            max_workers=window, thread_name_prefix="pdf2zh-layout"
+        ) as executor:
+            for page in pages_iter:
+                pending.append(executor.submit(_work, page))
+                if len(pending) >= window:
+                    break
+            while pending:
+                future = pending.popleft()
+                page, geometry, image_bgr, predict_result = future.result()
+                try:
+                    self._protect_page(
+                        geometry, predict_result, page.page_number
+                    )
+                except Exception:  # noqa: BLE001 -- 保护失败不应阻断主链路
+                    logger.warning(
+                        "pseudo-code protection failed on page %s",
+                        page.page_number,
+                        exc_info=True,
+                    )
+                save_debug_image(image_bgr, predict_result, page.page_number + 1)
+                for next_page in pages_iter:
+                    pending.append(executor.submit(_work, next_page))
+                    break
+                translate_config.raise_if_cancelled()
+                yield page, predict_result
+
+    def _handle_document_serial(self, pages, mupdf_doc, translate_config,
+                                save_debug_image):
+        """串行回退路径（prefetch=1）：语义与历史版本一致，仅锁范围收窄。"""
         for page in pages:
             translate_config.raise_if_cancelled()
-            with self.base_model.lock:
-                geometry = with_target_long_edge(
-                    mupdf_doc[page.page_number],
-                    72,
-                    1024,
-                    normalize_rotation=True,
-                )
-                image_bgr = geometry.image[:, :, ::-1]  # RGB -> BGR（与默认模型一致）
-                predict_result = self.base_model.predict(
-                    image_bgr, geometry=geometry
-                )[0]
+            page, geometry, image_bgr, predict_result = self._predict_page(
+                page, mupdf_doc
+            )
             try:
                 self._protect_page(
                     geometry, predict_result, page.page_number
@@ -392,20 +524,41 @@ class PseudoCodeProtectedLayoutModel:
             save_debug_image(image_bgr, predict_result, page.page_number + 1)
             yield page, predict_result
 
+    def _predict_page(self, page, mupdf_doc):
+        """渲染 + 基础模型推理。``base_model.lock`` 只覆盖渲染段：
+        PyMuPDF 文档对象非线程安全必须互斥，而 ONNX 会话本身线程安全，
+        推理留在锁外才能与其它页面/其它任务的检测阶段重叠。"""
+        from babeldoc.format.pdf.document_il.utils.raster_geometry import (
+            with_target_long_edge,
+        )
+
+        with self.base_model.lock:
+            geometry = with_target_long_edge(
+                mupdf_doc[page.page_number],
+                72,
+                1024,
+                normalize_rotation=True,
+            )
+        image_bgr = geometry.image[:, :, ::-1]  # RGB -> BGR（与默认模型一致）
+        # 进程级推理锁：检测器（可能同为 CUDA 会话）串行共享，防 cuDNN 并发崩
+        with _LAYOUT_ONNX_RUN_LOCK:
+            predict_result = self.base_model.predict(
+                image_bgr, geometry=geometry
+            )[0]
+        return page, geometry, image_bgr, predict_result
+
     def _protect_page(self, geometry, yolo_result,
                       page_number: Optional[int] = None) -> None:
         """把默认模型文本框中被 algorithm 框覆盖的部分提升为 algorithm。"""
         if self.detector is None:
             return
-        # 检测器接口兼容：MinerUAlgorithmDetector 支持按页提取（page_index），
-        # PaddleDocLayoutV2Detector 无页概念（只接收 image）。统一先按主接口
-        # 调用，遇到 TypeError 再退化为纯图像接口，避免 PP-DocLayoutV2 路径
-        # 每页静默失败。
-        try:
+        # 接口能力在 __init__ 已探测一次（MinerU 分支按页提取 page_index，
+        # PP-DocLayoutV2 为纯图像签名），不再逐页 try/except TypeError。
+        if self._detector_accepts_page_index:
             algo_boxes = self.detector.detect_algorithm_boxes(
                 geometry.image, page_index=page_number
             )
-        except TypeError:
+        else:
             algo_boxes = self.detector.detect_algorithm_boxes(geometry.image)
         if not algo_boxes:
             return
@@ -463,8 +616,6 @@ class PseudoCodeProtectedLayoutModel:
             yolo_result.names[new_cls] = "algorithm"
             self._algo_cls_cache[key] = new_cls
             return new_cls
-
-
 
 
 class MinerUAlgorithmDetector:
@@ -698,4 +849,3 @@ def _main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(_main())
-

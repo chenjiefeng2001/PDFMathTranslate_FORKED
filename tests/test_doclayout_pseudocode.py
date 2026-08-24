@@ -163,3 +163,192 @@ class TestInterface:
 
         model = PseudoCodeProtectedLayoutModel(_Base(), detector=None)
         assert model.stride == 32
+
+
+# ── 布局流水线并行（Parse Page Layout 提速）─────────────────────────────────
+
+
+import threading  # noqa: E402
+import types  # noqa: E402
+from collections import namedtuple  # noqa: E402
+
+import pytest  # noqa: E402
+
+from pdf2zh.doclayout_pseudocode import (  # noqa: E402
+    _detector_supports_page_index,
+    _layout_pipeline_window,
+)
+
+_FakePage = namedtuple("_FakePage", "page_number")
+
+
+class _BaseModel:
+    """带锁的假基础模型：记录 predict 调用。"""
+
+    stride = 32
+
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.predict_count = 0
+
+    def predict(self, image_bgr, geometry=None):
+        hook = getattr(geometry, "on_predict", None)
+        if hook is not None:
+            hook()
+        self.predict_count += 1
+        # 文本框落在检测器返回的 algorithm 框 (100,100)-(400,300) 内部，
+        # 保证保护提升逻辑在流水线路径可被断言
+        return [_make_result([[100, 100, 400, 300, 0.9, 0]], {0: "plain text"})]
+
+
+def _install_fake_render(monkeypatch, on_predict=None):
+    """替换 with_target_long_edge：返回带 .image 的替身几何。"""
+    import numpy as np
+
+    def fake_with_target_long_edge(page_ref, dpi, edge, normalize_rotation=True):
+        geom = types.SimpleNamespace(
+            image=np.zeros((8, 8, 3), dtype=np.uint8),
+            px_len_to_pt=lambda value, axis: float(value),  # 1:1 坐标
+        )
+        if on_predict is not None:
+            geom.on_predict = lambda: on_predict(page_ref.page_number)
+        else:
+            geom.on_predict = None
+        return geom
+
+    monkeypatch.setattr(
+        "babeldoc.format.pdf.document_il.utils.raster_geometry."
+        "with_target_long_edge",
+        fake_with_target_long_edge,
+    )
+
+
+def _fake_mupdf_doc(n_pages: int) -> dict:
+    return {
+        i: types.SimpleNamespace(page_number=i) for i in range(n_pages)
+    }
+
+
+class _Cfg:
+    def raise_if_cancelled(self) -> None:
+        return None
+
+
+def _run_handle_document(model, n_pages=4):
+    out = list(
+        model.handle_document(
+            [_FakePage(i) for i in range(n_pages)],
+            _fake_mupdf_doc(n_pages),
+            _Cfg(),
+            lambda *a, **k: None,
+        )
+    )
+    return out
+
+
+def test_layout_pipeline_window_env(monkeypatch):
+    monkeypatch.delenv("PDF2ZH_LAYOUT_PREFETCH", raising=False)
+    assert _layout_pipeline_window() == 1  # 默认串行（实测预取无稳定收益）
+    monkeypatch.setenv("PDF2ZH_LAYOUT_PREFETCH", "1")
+    assert _layout_pipeline_window() == 1
+    monkeypatch.setenv("PDF2ZH_LAYOUT_PREFETCH", "4")
+    assert _layout_pipeline_window() == 4
+    monkeypatch.setenv("PDF2ZH_LAYOUT_PREFETCH", "99")
+    assert _layout_pipeline_window() == 8
+    monkeypatch.setenv("PDF2ZH_LAYOUT_PREFETCH", "garbage")
+    assert _layout_pipeline_window() == 1
+
+
+def test_detector_capability_probe():
+    assert _detector_supports_page_index(_FakeDetector([])) is True
+    assert _detector_supports_page_index(_LegacyDetector([])) is False
+
+    class _VarKw:
+        def detect_algorithm_boxes(self, *a, **kw):
+            return []
+
+    assert _detector_supports_page_index(_VarKw()) is True
+
+
+def test_handle_document_prefetch_preserves_order_and_protects(monkeypatch):
+    _install_fake_render(monkeypatch)
+
+    promoted_boxes = [(100.0, 100.0, 400.0, 300.0)]
+
+    class _Det:
+        # 旧式纯图像签名：验证能力探测 + 流水线路径下保护仍生效
+        def detect_algorithm_boxes(self, image_rgb):
+            return list(promoted_boxes)
+
+    base = _BaseModel()
+    model = PseudoCodeProtectedLayoutModel(base_model=base, detector=_Det())
+    assert model._detector_accepts_page_index is False
+
+    results = _run_handle_document(model, n_pages=4)
+
+    assert [p.page_number for p, _r in results] == [0, 1, 2, 3]
+    assert base.predict_count == 4
+    for _p, r in results:
+        names_after = [r.names[int(b.cls)] for b in r.boxes]
+        assert names_after.count("algorithm") == 1
+
+
+def test_handle_document_overlaps_detector_with_next_predict(monkeypatch):
+    """保护（消费线程）阻塞时，下一页 predict（worker 线程）应已开始。"""
+    page1_predict_started = threading.Event()
+
+    def on_predict(page_number: int) -> None:
+        if page_number == 1:
+            page1_predict_started.set()
+
+    _install_fake_render(monkeypatch, on_predict=on_predict)
+
+    class _BlockingDetector:
+        """page0 保护等待 page1 predict 开始；串行路径将超时失败。"""
+
+        def detect_algorithm_boxes(self, image_rgb, page_index=None):
+            if page_index == 0:
+                assert page1_predict_started.wait(timeout=5), (
+                    "no overlap: page1 predict did not start while page0 "
+                    "protection was still running"
+                )
+            return []
+
+    model = PseudoCodeProtectedLayoutModel(
+        base_model=_BaseModel(), detector=_BlockingDetector()
+    )
+    assert model._detector_accepts_page_index is True
+    results = _run_handle_document(model, n_pages=4)
+    assert len(results) == 4
+
+
+def test_handle_document_serial_fallback_when_prefetch_1(monkeypatch):
+    _install_fake_render(monkeypatch)
+    monkeypatch.setenv("PDF2ZH_LAYOUT_PREFETCH", "1")
+
+    model = PseudoCodeProtectedLayoutModel(
+        base_model=_BaseModel(), detector=_FakeDetector([])
+    )
+    results = _run_handle_document(model, n_pages=3)
+    assert [p.page_number for p, _r in results] == [0, 1, 2]
+
+
+def test_handle_document_cancel_propagates(monkeypatch):
+    _install_fake_render(monkeypatch)
+
+    class _CancelledCfg:
+        def raise_if_cancelled(self) -> None:
+            raise RuntimeError("cancelled")
+
+    model = PseudoCodeProtectedLayoutModel(
+        base_model=_BaseModel(), detector=_FakeDetector([])
+    )
+    with pytest.raises(RuntimeError, match="cancelled"):
+        list(
+            model.handle_document(
+                [_FakePage(i) for i in range(4)],
+                {},
+                _CancelledCfg(),
+                lambda *a, **k: None,
+            )
+        )
