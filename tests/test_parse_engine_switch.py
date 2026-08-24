@@ -151,8 +151,9 @@ class TestExecuteMagicpdf:
 
         captured = {}
 
-        def fake_main(ns):
+        def fake_main(ns, progress_cb=None):
             captured["ns"] = ns
+            captured["progress_cb"] = progress_cb
             return 0
 
         with pytest.MonkeyPatch.context() as mp:
@@ -173,6 +174,7 @@ class TestExecuteMagicpdf:
             )
 
         ns = captured["ns"]
+        assert callable(captured["progress_cb"])  # 细粒度进度前向回调
         assert ns.files == [str(src)]
         assert ns.magicpdf_ocr is True
         assert ns.magicpdf_ocr_mode == "auto"
@@ -196,7 +198,7 @@ class TestExecuteMagicpdf:
         src = tmp_path / "in.pdf"
         src.write_bytes(b"%PDF-1.4 test")
 
-        def boom(ns):
+        def boom(ns, progress_cb=None):
             raise RuntimeError("parse crashed")
 
         with pytest.MonkeyPatch.context() as mp:

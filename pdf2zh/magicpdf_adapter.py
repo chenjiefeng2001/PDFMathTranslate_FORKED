@@ -1,6 +1,6 @@
 """Magic-PDF / MinerU 独立解析适配器（Step 2.1）。
 
-把 magic-pdf 1.x 或 MinerU 2.x 的解析能力封装成统一的
+把 MinerU 3.x 或 magic-pdf 1.x 的解析能力封装成统一的
 :class:`MagicPdfAdapter`，产出 :class:`MagicPdfParseResult`（原始
 middle.json 树 + 归一化 block/lines/spans 列表）。下游
 :mod:`pdf2zh.v3.magicpdf_bridge` 消费该结果并映射为 v3 规范页面模型。
@@ -9,10 +9,12 @@ middle.json 树 + 归一化 block/lines/spans 列表）。下游
 --------
 1. **可选依赖**：magic-pdf / mineru 均为可选依赖，顶层不导入；首次
    ``parse`` 才懒加载，未安装时抛 :class:`MagicPdfNotInstalledError`。
-2. **双后端自动选择**：``mineru`` 2.x 优先（Py3.10~3.12），``magic-pdf``
-   1.3.12 兜底。选择逻辑见 :mod:`pdf2zh.engine_env`。
-3. **离线可测**：``load_middle_json`` / ``from_middle_json`` 支持直接消费
-   middle.json，便于在未安装引擎的环境中回归测试 bridge 层。
+2. **双后端自动选择**：``mineru`` 3.x 优先（Py3.10~3.13，官方编程入口
+   ``mineru.cli.common.do_parse``，pipeline 本地后端）；``magic-pdf``
+   1.3.12 降级为手动兜底。选择逻辑见 :mod:`pdf2zh.engine_env`。
+3. **middle.json 同构复用**：两引擎产物同构，统一经
+   :func:`_normalize_blocks` 归一化；离线可测（``load_middle_json`` /
+   ``from_middle_json`` 直接消费 middle.json）。
 
 坐标约定
 --------
@@ -22,13 +24,23 @@ middle.json 树 + 归一化 block/lines/spans 列表）。下游
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import os
+import re
+import subprocess
+import tempfile
 from dataclasses import dataclass, field
-from typing import Any
+from pathlib import Path
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
+
+#: 解析期细粒度上报回调：``progress_cb(detail_dict)``（P1，见
+#: ``doc/granular_progress_feasibility_report.md`` §3.2）。detail 结构与
+#: BabelDOC 适配器一致：``{engine, raw_stage, unit, current, total, ...}``。
+MagicPdfProgressCB = Callable[[Dict[str, Any]], None]
 
 #: magic-pdf 1.x 配置文件环境变量（与 ``magic_pdf.libs.config_reader`` 一致）。
 _MAGICPDF_CONFIG_ENV = "MINERU_TOOLS_CONFIG_JSON"
@@ -454,6 +466,234 @@ class MagicPdfNotInstalledError(RuntimeError):
     """
 
 
+# ── 解析期细粒度进度（P1）─────────────────────────────────────────────────────
+#
+# magic-pdf 1.x 的 ``doc_analyze`` 以 Batch 粒度经 **loguru**（非标准 logging）
+# 输出批处理日志：``Batch {i}/{n}: {x} pages/{y} pages``；模型初始化完成时输出
+# ``model init cost: ...``。这些数据此前全部被丢弃，解析期对用户是黑盒。
+# 探针在解析窗口内挂一个 loguru sink 捕获并整理为结构化 detail。
+
+
+#: ``Batch 2/5: 320 pages/800 pages``（doc_analyze_by_custom_model.py:162/223）
+_MAGICPDF_BATCH_RE = re.compile(
+    r"Batch\s+(\d+)\s*/\s*(\d+)\s*:\s*(\d+)\s*pages\s*/\s*(\d+)\s*pages"
+)
+
+#: 组件/模型加载信号（保守关键词，避免误报普通日志）。
+_MAGICPDF_COMPONENT_RES = (
+    re.compile(r"model init cost", re.IGNORECASE),
+    re.compile(r"loading .*model|model loading|load(?:ing)? model", re.IGNORECASE),
+)
+
+
+def _magicpdf_log_to_detail(
+    text: str, engine: str = "magicpdf"
+) -> Optional[Dict[str, Any]]:
+    """把一条引擎 loguru 日志整理成结构化 detail（不匹配返回 None）。
+
+    Batch 行优先按页计数上报（``unit="page"``，current=cumulative 已处理页），
+    批次序号作为附加字段 ``batch_current/batch_total`` 一并透传。
+    magic-pdf 1.x 与 MinerU pipeline 的批处理日志同源（``Batch i/n: x pages/y
+    pages``），同一正则双引擎复用；不匹配时静默放弃（保持现状行为）。
+    """
+    m = _MAGICPDF_BATCH_RE.search(text or "")
+    if m is None:
+        return None
+    try:
+        batch_i, batch_n, pages_done, pages_total = (int(g) for g in m.groups())
+    except ValueError:  # pragma: no cover - 正则保证均为数字
+        return None
+    return {
+        "engine": engine,
+        "raw_stage": "doc_analyze",
+        "unit": "page",
+        "current": pages_done,
+        "total": pages_total,
+        "batch_current": batch_i,
+        "batch_total": batch_n,
+    }
+
+
+def _magicpdf_log_component(text: str) -> Optional[str]:
+    """识别组件加载类日志，返回组件描述（不匹配返回 None）。"""
+    low = str(text or "")
+    if not low:
+        return None
+    for rx in _MAGICPDF_COMPONENT_RES:
+        m = rx.search(low)
+        if m:
+            return m.group(0).strip()
+    return None
+
+
+class _MagicPdfLogProbe:
+    """解析窗口内的 loguru 探针：捕获引擎日志 → progress_cb(detail)。
+
+    用法::
+
+        with _MagicPdfLogProbe(progress_cb):
+            ds.apply(doc_analyze, ocr=ocr)
+
+    magic-pdf 1.x 与 MinerU 3.x 均使用 loguru 输出日志，同一探针按
+    ``name_prefixes`` 过滤模块名、按 ``engine`` 标记 detail 归属。
+
+    设计约束：探针绝不抛异常、绝不阻断解析——sink 内部全量 try/except；
+    loguru 缺失或 add() 失败时静默退化为无探针（保持现状行为）。
+    """
+
+    def __init__(
+        self,
+        report: Optional[MagicPdfProgressCB],
+        engine: str = "magicpdf",
+        name_prefixes: tuple[str, ...] = ("magic_pdf",),
+    ) -> None:
+        self._report = report
+        self._engine = engine
+        self._name_prefixes = name_prefixes
+        self._sink_id: Any = None
+
+    def __enter__(self) -> "_MagicPdfLogProbe":
+        if self._report is None:
+            return self
+        try:
+            from loguru import logger as _loguru
+
+            prefixes = self._name_prefixes
+
+            def _filter(record: Any) -> bool:
+                name = str(record.get("name") or "")
+                return any(name.startswith(p) for p in prefixes)
+
+            self._sink_id = _loguru.add(self._on_message, filter=_filter, level="INFO")
+        except Exception:  # noqa: BLE001 -- 探针失败退化为无细粒度
+            logger.debug("[magicpdf] loguru probe unavailable", exc_info=True)
+            self._sink_id = None
+        return self
+
+    def __exit__(self, *exc_info: Any) -> None:
+        if self._sink_id is None:
+            return
+        try:
+            from loguru import logger as _loguru
+
+            _loguru.remove(self._sink_id)
+        except Exception:  # noqa: BLE001 -- 清理失败不影响主流程
+            pass
+        finally:
+            self._sink_id = None
+
+    def _on_message(self, message: Any) -> None:
+        try:
+            record = getattr(message, "record", None) or {}
+            # 模块名过滤（loguru sink 的 filter 之外的双保险）
+            name = str(record.get("name") or "")
+            if not any(name.startswith(p) for p in self._name_prefixes):
+                return
+            text = str(record.get("message") or "")
+            if not text:
+                return
+            if self._report is None:
+                return
+            detail = _magicpdf_log_to_detail(text, engine=self._engine)
+            if detail is not None:
+                self._report(detail)
+                return
+            component = _magicpdf_log_component(text)
+            if component is not None:
+                self._report(
+                    {
+                        "engine": self._engine,
+                        "raw_stage": "model_load",
+                        "unit": "component",
+                        "current": 0,
+                        "total": 0,
+                        "component": component,
+                    }
+                )
+        except Exception:  # noqa: BLE001 -- 探针永不致命
+            pass
+
+
+def _pdf_page_count(pdf_path: str, pdf_bytes: Optional[bytes] = None) -> int:
+    """轻量页数统计（pymupdf），失败返回 0（仅用于粗粒度展示）。"""
+    try:
+        import pymupdf
+
+        if pdf_bytes is not None:
+            with pymupdf.open(stream=pdf_bytes, filetype="pdf") as d:
+                return int(d.page_count)
+        with pymupdf.open(pdf_path) as d:
+            return int(d.page_count)
+    except Exception:  # noqa: BLE001 -- 页数拿不到就不展示总数
+        return 0
+
+
+def _read_pdf_bytes(pdf_path: str) -> bytes:
+    """读取 PDF 字节流（MinerU ``do_parse`` 以 bytes 为输入界面）。"""
+    with open(pdf_path, "rb") as fh:
+        return fh.read()
+
+
+def _run_mineru_process(
+    cmd: list[str], timeout: int
+) -> "subprocess.CompletedProcess[str]":
+    """执行 mineru worker 子进程（独立函数便于测试打桩）。
+
+    Windows 下子进程日志是 UTF-8，而管道默认按 locale（cp936 等）解码会
+    炸 UnicodeDecodeError；这里显式固定 utf-8 并容忍坏字节。
+    """
+    return subprocess.run(
+        cmd, capture_output=True, text=True,
+        encoding="utf-8", errors="replace", timeout=timeout,
+    )
+
+
+def _find_mineru_middle_json(root_dir: str) -> Optional[str]:
+    """在 do_parse 输出目录内递归定位 ``*_middle.json``。
+
+    实测 3.4.5 产物位于 ``{output_dir}/{stem}/{parse_method}/`` 子目录；
+    递归搜索 + 唯一性优先（多个时取修改时间最新），找不到返回 None。
+    """
+    candidates: list[tuple[float, str]] = []
+    for dirpath, _dirnames, filenames in os.walk(root_dir):
+        for name in filenames:
+            if name.endswith("_middle.json"):
+                path = os.path.join(dirpath, name)
+                try:
+                    mtime = os.path.getmtime(path)
+                except OSError:  # pragma: no cover - 竞态兜底
+                    mtime = 0.0
+                candidates.append((mtime, path))
+    if not candidates:
+        return None
+    candidates.sort(reverse=True)
+    if len(candidates) > 1:
+        logger.warning(
+            "[mineru] multiple middle.json found under %s; using %s",
+            root_dir, candidates[0][1],
+        )
+    return candidates[0][1]
+
+
+def _build_do_parse_kwargs(
+    do_parse: Callable[..., Any],
+    wanted: Dict[str, Any],
+) -> Dict[str, Any]:
+    """按 ``do_parse`` 实际签名过滤关键字参数（跨小版本防御）。
+
+    MinerU 3.x 的 ``do_parse`` 形参集合随版本增删（如 effort 等新参）；
+    显式形参按名取交集，``**kwargs`` 形态全量透传，签名不可探测时原样
+    返回由调用方 TypeError 降级路径兜底。
+    """
+    try:
+        params = inspect.signature(do_parse).parameters
+    except (TypeError, ValueError):  # pragma: no cover - 内置类兜底
+        return dict(wanted)
+    if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()):
+        return dict(wanted)
+    return {k: v for k, v in wanted.items() if k in params}
+
+
 class MagicPdfParseError(RuntimeError):
     """PDF 解析失败（文件缺失 / 解析管线内部错误）。"""
 
@@ -620,7 +860,7 @@ def _normalize_blocks(
 ) -> list[MagicPdfParseResult]:
     """把 middle.json 树归一化为逐页 :class:`MagicPdfParseResult` 列表。
 
-    兼容 magic-pdf 1.x（``pdf_info``/``page_info``）与 MinerU 2.x 近似结构
+    兼容 magic-pdf 1.x（``pdf_info``/``page_info``）与 MinerU 3.x 近似结构
     （``pages``/``page_info``）。
 
     Args:
@@ -744,15 +984,25 @@ class MagicPdfAdapter:
         pdf_path: str,
         pages: list[int] | None = None,
         ocr: bool = False,
+        progress_cb: Optional[MagicPdfProgressCB] = None,
     ) -> list[MagicPdfParseResult]:
-        """解析 PDF，返回逐页 :class:`MagicPdfParseResult`。"""
+        """解析 PDF，返回逐页 :class:`MagicPdfParseResult`。
+
+        ``progress_cb(detail_dict)``（可选）接收解析期细粒度计数（页级/
+        组件加载），结构与 BabelDOC 适配器的 detail 约定一致；任何引擎
+        不支持时静默降级为粗粒度事件，绝不阻断解析。
+        """
         if not pdf_path or not os.path.exists(pdf_path):
             raise MagicPdfParseError(f"PDF file not found: {pdf_path}")
         backend = self.backend()
         if backend == "mineru":
-            return self._parse_mineru(pdf_path, pages=pages)
+            return self._parse_mineru(
+                pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
+            )
         if backend == "magicpdf":
-            return self._parse_magicpdf(pdf_path, pages=pages, ocr=ocr)
+            return self._parse_magicpdf(
+                pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
+            )
         from pdf2zh.engine_env import mineru_install_hint
 
         raise MagicPdfNotInstalledError(
@@ -765,6 +1015,7 @@ class MagicPdfAdapter:
         pdf_path: str,
         pages: list[int] | None = None,
         ocr: bool = False,
+        progress_cb: Optional[MagicPdfProgressCB] = None,
     ) -> list[MagicPdfParseResult]:
         """magic-pdf 1.x 公共管线（懒导入）。
 
@@ -772,6 +1023,8 @@ class MagicPdfAdapter:
         → ``pipe_txt_merge`` / ``pipe_ocr_merge`` → middle.json。
 
         解析前自动确保 ``~/magic-pdf.json`` 配置存在（缺失时生成最小配置）。
+        ``doc_analyze`` 窗口内挂 loguru 探针捕获 Batch 页计数/组件加载日志，
+        经 ``progress_cb(detail)`` 上报细粒度进度（loguru 缺失则静默退化）。
         """
         try:
             from magic_pdf.data.dataset import PymuDocDataset
@@ -822,7 +1075,23 @@ class MagicPdfAdapter:
         if ds_init is not None and "dpi" in ds_init.parameters:
             ds_kwargs["dpi"] = 200
         ds = PymuDocDataset(pdf_bytes, **ds_kwargs)
-        infer = ds.apply(doc_analyze, ocr=ocr)
+        # 细粒度进度（P1）：doc_analyze 是整个链路最长的黑盒阶段。先上报
+        # 「0/N 页」粗事件，再挂 loguru 探针捕获 Batch 页计数与模型加载日志。
+        if progress_cb is not None:
+            try:
+                progress_cb(
+                    {
+                        "engine": "magicpdf",
+                        "raw_stage": "doc_analyze",
+                        "unit": "page",
+                        "current": 0,
+                        "total": _pdf_page_count(pdf_path, pdf_bytes),
+                    }
+                )
+            except Exception:  # noqa: BLE001 -- 进度上报永不致命
+                pass
+        with _MagicPdfLogProbe(progress_cb):
+            infer = ds.apply(doc_analyze, ocr=ocr)
         # magic-pdf 1.3.12 的 API 是 pipe_ocr_mode(imageWriter, ...) /
         # pipe_txt_mode(imageWriter, ...)，旧版 1.x 是 pipe_ocr_merge() /
         # pipe_txt_merge()（无参数）。这里按存在性探测兼容。
@@ -852,42 +1121,134 @@ class MagicPdfAdapter:
         self,
         pdf_path: str,
         pages: list[int] | None = None,
+        ocr: bool = False,
+        progress_cb: Optional[MagicPdfProgressCB] = None,
     ) -> list[MagicPdfParseResult]:
-        """MinerU 2.x 解析（懒导入，best-effort 兼容多种 API 形态）。
+        """MinerU 3.x 解析（懒导入，官方编程入口 ``do_parse``）。
 
-        MinerU 2.x 的 ``Document.parse`` 返回页列表；每页的文本块/行/span
-        在此统一转换为与 magic-pdf middle.json 一致的归一化结构（bbox 为
-        PDF 点、左上角原点）。属性访问全部走 ``getattr`` 兜底，任何单块
-        转换失败都不会拖垮整页。
+        管线：``read_fn`` → ``do_parse(backend="pipeline",
+        f_dump_middle_json=True)`` → 消费 ``{stem}_middle.json`` →
+        :func:`_normalize_blocks` 归一化（与 magic-pdf 1.x 同构，
+        bbox 为 PDF 点、左上角原点，下游 bridge 全链复用）。
+
+        防御策略：``do_parse`` 形参按签名过滤（小版本增删不致命）；调用
+        抛 TypeError 时以最小参数集重试一次；任何进度上报失败均静默。
+
+        设置 ``PDF2ZH_MINERU_PYTHON``（如 ``pdf2zh-setup-mineru`` 构建的
+        隔离 venv 解释器）时改走 :meth:`_parse_mineru_subprocess` ——
+        torch 等重依赖与 DLL 冲突面被完全隔离在子进程内。
         """
+        from pdf2zh.engine_env import mineru_python_override
+
+        override = mineru_python_override()
+        if override:
+            if not os.path.exists(override):
+                raise MagicPdfParseError(
+                    f"PDF2ZH_MINERU_PYTHON points to a missing interpreter: "
+                    f"{override}"
+                )
+            return self._parse_mineru_subprocess(
+                pdf_path,
+                pages=pages,
+                ocr=ocr,
+                progress_cb=progress_cb,
+                python_exe=override,
+            )
         try:
-            from mineru.document import Document
+            from mineru.cli.common import do_parse, read_fn
         except Exception as exc:
             raise MagicPdfNotInstalledError(f"mineru import failed: {exc}") from exc
-        doc = Document.parse(pdf_path, dpi=200, language="ch", callback=None)
-        results: list[MagicPdfParseResult] = []
-        for pi, page in enumerate(getattr(doc, "pages", None) or []):
-            if pages is not None and pi not in pages:
-                continue
-            width = _as_float(getattr(page, "width", 0))
-            height = _as_float(getattr(page, "height", 0))
-            blocks = []
-            for tb in getattr(page, "text", None) or []:
-                try:
-                    blocks.append(_mineru_block_to_dict(tb))
-                except Exception:  # noqa: BLE001 -- 单块失败不中断
-                    logger.debug("mineru block dropped on page %s", pi)
-            results.append(
-                MagicPdfParseResult(
-                    page_num=pi,
-                    width=width,
-                    height=height,
-                    raw={"page_no": pi, "width": width, "height": height},
-                    blocks=blocks,
-                    backend="mineru",
+
+        stem = os.path.splitext(os.path.basename(pdf_path))[0]
+        try:
+            pdf_bytes = read_fn(pdf_path)
+        except Exception:  # noqa: BLE001 -- read_fn 兼容图片输入，失败回退直读
+            logger.debug("[mineru] read_fn failed; reading file directly", exc_info=True)
+            pdf_bytes = _read_pdf_bytes(pdf_path)
+        if not isinstance(pdf_bytes, (bytes, bytearray)):
+            pdf_bytes = _read_pdf_bytes(pdf_path)
+        pdf_bytes = bytes(pdf_bytes)
+
+        # 页码范围：0 基 list[int] → do_parse 的闭区间 start/end_page_id
+        # （离散页集合先按范围切片解析，再由 _normalize_blocks(pages=) 过滤）
+        start_id = end_id = None
+        if pages:
+            start_id, end_id = min(pages), max(pages)
+
+        if progress_cb is not None:
+            try:
+                progress_cb(
+                    {
+                        "engine": "mineru",
+                        "raw_stage": "pipeline",
+                        "unit": "page",
+                        "current": 0,
+                        "total": _pdf_page_count(pdf_path, pdf_bytes),
+                    }
                 )
+            except Exception:  # noqa: BLE001 -- 进度上报永不致命
+                pass
+
+        wanted: Dict[str, Any] = {
+            "backend": "pipeline",  # 本地 OCR/版面模型；纯 CPU 可用、无幻觉
+            "parse_method": "ocr" if ocr else "auto",
+            "f_dump_md": False,
+            "f_dump_content_list": False,
+            "f_draw_layout_bbox": False,
+            "f_draw_span_bbox": False,
+            "f_dump_middle_json": True,
+        }
+        if start_id is not None:
+            wanted["start_page_id"] = int(start_id)
+            wanted["end_page_id"] = int(end_id)
+
+        with tempfile.TemporaryDirectory(prefix="pdf2zh_mineru_") as tmp_dir:
+            call_kwargs = _build_do_parse_kwargs(
+                do_parse,
+                {
+                    "output_dir": tmp_dir,
+                    "pdf_file_names": [stem],
+                    "pdf_bytes_list": [pdf_bytes],
+                    "p_lang_list": ["ch"],
+                    **wanted,
+                },
             )
-        return results
+            # 细粒度进度：do_parse 窗口内挂 loguru 探针（mineru 同样用
+            # loguru 输出日志；Batch 正则不匹配时静默保持粗粒度）。
+            with _MagicPdfLogProbe(
+                progress_cb, engine="mineru", name_prefixes=("mineru",)
+            ):
+                try:
+                    do_parse(**call_kwargs)
+                except TypeError:
+                    # 小版本形参语义漂移等：以最小必需集重试一次。
+                    logger.warning(
+                        "[mineru] do_parse(**%s) rejected; retrying with "
+                        "minimal args",
+                        sorted(call_kwargs),
+                        exc_info=True,
+                    )
+                    minimal = _build_do_parse_kwargs(
+                        do_parse,
+                        {
+                            "output_dir": tmp_dir,
+                            "pdf_file_names": [stem],
+                            "pdf_bytes_list": [pdf_bytes],
+                            "p_lang_list": ["ch"],
+                        },
+                    )
+                    do_parse(**minimal)
+
+            # 实测（3.4.5）：产物写入 {output_dir}/{stem}/{parse_method}/
+            # 子目录，故递归搜索 *_middle.json。
+            middle_path = _find_mineru_middle_json(tmp_dir)
+            if middle_path is None:
+                raise MagicPdfParseError(
+                    f"mineru did not produce middle.json in {tmp_dir}"
+                )
+            with open(middle_path, encoding="utf-8") as fh:
+                middle = json.load(fh)
+        return _normalize_blocks(middle, backend="mineru", pages=pages)
 
     @staticmethod
     def from_middle_json(
@@ -897,44 +1258,73 @@ class MagicPdfAdapter:
         """离线路径：直接消费预生成的 middle.json（测试/诊断用）。"""
         return _normalize_blocks(middle, backend="offline", pages=pages)
 
+    def _parse_mineru_subprocess(
+        self,
+        pdf_path: str,
+        *,
+        pages: list[int] | None = None,
+        ocr: bool = False,
+        progress_cb: Optional[MagicPdfProgressCB] = None,
+        python_exe: str,
+        out_dir: Optional[str] = None,
+    ) -> list[MagicPdfParseResult]:
+        """经隔离解释器 + :mod:`pdf2zh.kernel.mineru_worker` 子进程解析。
 
-def _mineru_block_to_dict(tb: Any) -> dict[str, Any]:
-    """把 MinerU 2.x 的文本块对象转换为归一化 block dict（best-effort）。"""
-    bbox = _as_bbox(getattr(tb, "bbox", None))
-    lines: list[dict[str, Any]] = []
-    for line in getattr(tb, "lines", None) or []:
-        spans = []
-        for span in getattr(line, "spans", None) or []:
-            spans.append(
-                {
-                    "bbox": _as_bbox(getattr(span, "bbox", None)),
-                    "content": str(
-                        getattr(span, "content", None)
-                        or getattr(span, "text", "")
-                        or ""
-                    ),
-                    "type": str(getattr(span, "type", "text")),
-                }
-            )
-        lines.append(
-            {
-                "bbox": _as_bbox(getattr(line, "bbox", None)),
-                "spans": spans,
-            }
+        torch/onnxruntime 等重依赖与主进程完全隔离（DLL 加载顺序、pymupdf
+        版本冲突面归零）；产物仍为 middle.json，复用同一归一化链。
+        ``out_dir`` 供测试注入，生产路径用一次性临时目录。
+        """
+        import shutil
+        import subprocess
+
+        worker = (
+            Path(__file__).resolve().parent / "kernel" / "mineru_worker.py"
         )
-    text = "".join(s["content"] for ln in lines for s in ln["spans"])
-    return {
-        "type": str(getattr(tb, "type", "text") or "text").lower(),
-        "cls": str(
-            getattr(tb, "layout_type", None) or getattr(tb, "type", "text")
-        ),
-        "confidence": _as_float(getattr(tb, "confidence", 0.0)),
-        "bbox": bbox,
-        "lines": lines,
-        "text": text,
-        "latex": getattr(tb, "latex", None),
-        "img": getattr(tb, "image", None),
-    }
+        owned_dir = out_dir is None
+        work_dir = out_dir or tempfile.mkdtemp(prefix="pdf2zh_mineru_sub_")
+        timeout = int(
+            os.environ.get("PDF2ZH_MINERU_TIMEOUT", "").strip() or 3600
+        )
+        if progress_cb is not None:
+            try:
+                progress_cb(
+                    {
+                        "engine": "mineru",
+                        "raw_stage": "pipeline",
+                        "unit": "page",
+                        "current": 0,
+                        "total": _pdf_page_count(pdf_path),
+                    }
+                )
+            except Exception:  # noqa: BLE001 -- 进度上报永不致命
+                pass
+        try:
+            cmd = [
+                python_exe,
+                str(worker),
+                pdf_path,
+                work_dir,
+                "ocr" if ocr else "auto",
+                "ch",
+            ]
+            completed = _run_mineru_process(cmd, timeout=timeout)
+            if completed.returncode != 0:
+                stderr = (completed.stderr or "")[-2000:]
+                raise MagicPdfParseError(
+                    f"mineru worker failed (exit {completed.returncode}): "
+                    f"{stderr or '(no stderr)'}"
+                )
+            middle_path = _find_mineru_middle_json(work_dir)
+            if middle_path is None:
+                raise MagicPdfParseError(
+                    f"mineru worker produced no middle.json in {work_dir}"
+                )
+            with open(middle_path, encoding="utf-8") as fh:
+                middle = json.load(fh)
+        finally:
+            if owned_dir:
+                shutil.rmtree(work_dir, ignore_errors=True)
+        return _normalize_blocks(middle, backend="mineru", pages=pages)
 
 
 def parse_pdf(
@@ -942,6 +1332,9 @@ def parse_pdf(
     pages: list[int] | None = None,
     ocr: bool = False,
     device: str = "auto",
+    progress_cb: Optional[MagicPdfProgressCB] = None,
 ) -> list[MagicPdfParseResult]:
     """模块级便捷入口：``MagicPdfAdapter(...).parse(...)``。"""
-    return MagicPdfAdapter(device=device).parse(pdf_path, pages=pages, ocr=ocr)
+    return MagicPdfAdapter(device=device).parse(
+        pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
+    )

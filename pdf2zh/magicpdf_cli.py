@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import os
@@ -71,6 +72,51 @@ def _prompt_text(parsed_args) -> str | None:
     )
 
 
+# ── 解析期细粒度进度（P1，doc/granular_progress_feasibility_report.md）────────
+#
+# 适配器的计数回调只携带结构化 detail（页计数/组件加载）；这里升格为完整的
+# 进度事件 (stage, pct, msg, detail)：parsing 相位按页计数线性内插到 ~[10,55]，
+# 翻译/渲染两个相位由 run_magicpdf_main 显式发粗事件。百分比单调不回退。
+
+
+#: magicpdf 单文件管线在总体进度上的相位区间（粗粒度锚点）。
+_PCT_PARSE_START = 10.0
+_PCT_PARSE_END = 55.0
+_PCT_TRANSLATE = 62.0
+_PCT_RENDER = 85.0
+
+
+def _make_parse_progress(progress_cb, path: str):
+    """把适配器级 ``progress_cb(detail)`` 升格为完整事件回调（解析期）。"""
+    if progress_cb is None:
+        return None
+    name = os.path.basename(path)
+    state = {"pct": _PCT_PARSE_START}
+
+    def _report(detail: dict) -> None:
+        try:
+            d = dict(detail)
+            cur = int(d.get("current") or 0)
+            tot = int(d.get("total") or 0)
+            if d.get("unit") == "component" or tot <= 0:
+                pct = state["pct"]
+                msg = "{}: {}".format(
+                    name, d.get("component") or "preparing models..."
+                )
+            else:
+                frac = max(0.0, min(1.0, cur / tot))
+                pct = _PCT_PARSE_START + frac * (
+                    _PCT_PARSE_END - _PCT_PARSE_START
+                )
+                msg = f"{name}: analyzing page {cur}/{tot}"
+            state["pct"] = max(state["pct"], pct)
+            progress_cb("analyzing", pct, msg, d)
+        except Exception:  # noqa: BLE001 -- 进度上报永不致命
+            pass
+
+    return _report
+
+
 def _write_dumps(
     pdf_path: str,
     results: list[Any],
@@ -100,8 +146,34 @@ def _write_dumps(
             json.dump(fixed_plan, fh, ensure_ascii=False, indent=2)
         logger.info("[magicpdf] render plan dump: %s", plan_dump)
 
-def run_magicpdf_main(parsed_args) -> int:
-    """magicpdf 解析引擎主流程（引擎不可用时自动降级 legacy）。"""
+def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb):
+    """防御性调用 ``adapter.parse``：旧版签名（无 progress_cb 形参）兼容。
+
+    第三方/测试代码可能 monkey-patch 或子类覆盖 ``parse`` 且不带新形参；
+    按签名探测后再传 ``progress_cb``，避免 TypeError 破坏解析主流程。
+    """
+    if progress_cb is not None:
+        try:
+            params = inspect.signature(adapter.parse).parameters
+            takes_cb = "progress_cb" in params or any(
+                p.kind is inspect.Parameter.VAR_KEYWORD
+                for p in params.values()
+            )
+        except (TypeError, ValueError):  # pragma: no cover - 内置类兜底
+            takes_cb = False
+        if takes_cb:
+            return adapter.parse(
+                path, pages=pages, ocr=ocr, progress_cb=progress_cb
+            )
+    return adapter.parse(path, pages=pages, ocr=ocr)
+
+
+def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
+    """magicpdf 解析引擎主流程（引擎不可用时自动降级 legacy）。
+
+    ``progress_cb(stage, pct, msg, detail=None)``（可选）：解析期页级/
+    组件级细粒度计数与翻译/渲染相位粗事件都经它上报；不传保持原行为。
+    """
     # torch 必须先于任何 onnxruntime CUDA 会话导入（DLL 加载顺序，见
     # _preload_torch docstring）；CLI 全局入口已不再无条件加载 doclayout
     # 模型，此处预载兜底覆盖 API/GUI 服务进程复用等其它进入形态。
@@ -169,7 +241,10 @@ def run_magicpdf_main(parsed_args) -> int:
             except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断解析
                 logger.debug("[magicpdf] preflight skipped: %s", exc)
         try:
-            results = adapter.parse(path, pages=parsed_args.pages, ocr=ocr)
+            results = _adapter_parse(
+                adapter, path, parsed_args.pages, ocr,
+                _make_parse_progress(progress_cb, path),
+            )
         except Exception as exc:  # noqa: BLE001 -- 熔断降级
             logger.warning("[magicpdf] %s 解析失败: %s", path, exc)
             return _fallback_legacy(parsed_args, f"{path} 解析失败")
@@ -179,6 +254,11 @@ def run_magicpdf_main(parsed_args) -> int:
         try:
             from pdf2zh.translator import build_translator
 
+            if progress_cb is not None:
+                progress_cb(
+                    "translating", _PCT_TRANSLATE,
+                    f"{os.path.basename(path)}: translating blocks...",
+                )
             translator = build_translator(
                 parsed_args.service,
                 parsed_args.lang_in,
@@ -214,6 +294,11 @@ def run_magicpdf_main(parsed_args) -> int:
         if getattr(parsed_args, "magicpdf_render", True) and fixed_plan:
             from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
 
+            if progress_cb is not None:
+                progress_cb(
+                    "rendering", _PCT_RENDER,
+                    f"{os.path.basename(path)}: rendering mono PDF...",
+                )
             page_sizes = {
                 p.page_num: [p.width, p.height]
                 for p in doc.pages

@@ -1870,8 +1870,16 @@ class RuntimeService:
         ns.prompt = extra.get("prompt") or ""
         self._emit_event(task_id, TaskStage.PARSING.value, 10.0,
                          "magic-pdf/MinerU parsing...")
+
+        def _forward_magicpdf_progress(stage: str, pct: float, msg: str,
+                                       detail: Optional[Dict[str, Any]] = None) -> None:
+            # magicpdf 引擎的细粒度进度（解析页计数/组件加载 + 翻译/渲染
+            # 相位粗事件）与 BabelDOC 路径共用 _emit_smooth 通道：detail
+            # 随事件搭车写入 store 快照并推送到前端。
+            self._emit_smooth(task_id, stage, pct, msg, detail=detail)
+
         try:
-            rc = run_magicpdf_main(ns)
+            rc = run_magicpdf_main(ns, progress_cb=_forward_magicpdf_progress)
         except Exception as exc:  # noqa: BLE001
             logger.error("[task=%s] magicpdf engine failed: %s",
                           task_id, exc, exc_info=True)
