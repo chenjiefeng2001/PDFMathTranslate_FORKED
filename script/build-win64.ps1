@@ -476,7 +476,7 @@ if ($GenerateOfflineAssets) {
 
     $env:PYTHONPATH = $SitePackagesDir
 
-    & "$EmbeddedPython" -m babeldoc --generate-offline-assets "$BuildDir"
+    & "$EmbeddedPython" -c "import sys; from babeldoc.main import cli; sys.exit(cli())" --generate-offline-assets "$BuildDir"
 
     $env:PYTHONPATH = ""
 
