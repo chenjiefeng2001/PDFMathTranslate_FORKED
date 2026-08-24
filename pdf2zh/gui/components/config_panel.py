@@ -249,12 +249,13 @@ def create_config_panel() -> dict:
             info=B("config_magicpdf_ocr_info"),
         )
         # 专业词表（babeldoc 链路生效）：CSV 多选上传，逐任务透传。
+        # gradio 5.x 移除了 Files 的 info 形参，说明文字改用下方 Markdown 承载。
         glossary_files = gr.Files(
             file_count="multiple",
             file_types=[".csv"],
             label=B("config_glossary_files"),
-            info=B("config_glossary_files_info"),
         )
+        gr.Markdown(B("config_glossary_files_info"), elem_id="glossary-files-info")
         # ---- 高级选项 / Advanced ----
         with gr.Accordion(B("config_advanced"), open=False):
             with gr.Row():
