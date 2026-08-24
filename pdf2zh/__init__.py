@@ -1,15 +1,45 @@
 import logging
 import warnings
 
-# 第三方依赖（babeldoc / magic-pdf）内部仍 `import fitz`——pymupdf 1.26+ 会对
-# 顶层 fitz 别名发 DeprecationWarning，每次翻译都刷屏且无法由用户操作消除。
-# 我们自身的运行时代码已全部迁移到 `import pymupdf`；这里在包入口一次性
-# 压制该特定告警（不影响其它 DeprecationWarning 的可见性）。
-warnings.filterwarnings(
-    "ignore",
-    message=r".*\bfitz\b API is deprecated.*",
-    category=DeprecationWarning,
-)
+
+def _quiet_third_party_noise() -> None:
+    """压制第三方依赖在翻译期间打印、但用户无法操作的告警噪音。
+
+    1) fitz 弃用提示：babeldoc / magic-pdf 内部仍 ``import fitz``。pymupdf
+       的提示经它**自带的消息系统**输出（``message()`` 直接 print 到
+       ``_g_out_message``），根本不经过 ``warnings`` 模块——旧的
+       DeprecationWarning 过滤对它无效（实测 sidecar 日志仍刷屏）。这里改用
+       官方出口 :func:`pymupdf.set_messages` 把消息路由进 Python logging，
+       再只丢弃这一条文本；其余 pymupdf 消息保持 logging 可见。
+    2) sklearn 并行配置告警：babeldoc 调用链触发
+       ``sklearn.utils.parallel.delayed should be used with ...Parallel``，
+       纯上游内部实现细节，静音。
+    """
+    _pymupdf_messages = logging.getLogger("pymupdf.message")
+
+    class _FitzDeprecationOnly(logging.Filter):
+        def filter(self, record: logging.LogRecord) -> bool:
+            return "API is deprecated" not in record.getMessage()
+
+    # 过滤器必须先于首次 `import fitz` 挂上：fitz 导入的瞬间即打印提示。
+    _pymupdf_messages.addFilter(_FitzDeprecationOnly())
+
+    try:
+        import pymupdf
+
+        pymupdf.set_messages(pylogging=True, pylogging_name="pymupdf.message")
+        import fitz  # noqa: F401  -- 提前触发一次性的弃用提示（已被上方过滤）
+    except Exception:  # noqa: BLE001 -- pymupdf/fitz 缺失时不阻塞包导入
+        pass
+
+    warnings.filterwarnings(
+        "ignore",
+        message=r".*parallel\.delayed.*should be used with.*",
+        category=UserWarning,
+    )
+
+
+_quiet_third_party_noise()
 
 log = logging.getLogger(__name__)
 

@@ -458,6 +458,53 @@ class TestExecutionLevelProbe(unittest.TestCase):
         finally:
             dl._EXEC_GPU_PROVIDERS = saved
 
+    def test_probe_model_pads_match_declared_output_shape(self):
+        # 探针 Conv 必须带 pads=[1,1,1,1]：输入 64×64 → 输出 64×64，与图
+        # 声明的 'y' 形状一致。无 padding 时实际输出 62×62，ORT 每次会话
+        # 创建都打 "Error merging shape info ... lenient merge" 警告。
+        import pdf2zh.doclayout as dl
+
+        data = dl._build_probe_model_bytes()
+        self.assertIsNotNone(data)
+        import onnx
+
+        model = onnx.ModelProto.FromString(data)
+        conv = next(n for n in model.graph.node if n.op_type == "Conv")
+        pads = next(
+            a for a in conv.attribute if a.name == "pads"
+        ).ints
+        self.assertEqual(list(pads), [1, 1, 1, 1])
+        declared = model.graph.output[0].type.tensor_type.shape.dim
+        self.assertEqual([d.dim_value for d in declared], [1, 3, 64, 64])
+
+    def test_ort_log_severity_default_and_env_override(self):
+        import pdf2zh.doclayout as dl
+        from pdf2zh.doclayout import ort_log_severity
+
+        old = os.environ.get("PDF2ZH_ORT_LOG_SEVERITY")
+        try:
+            os.environ.pop("PDF2ZH_ORT_LOG_SEVERITY", None)
+            self.assertEqual(ort_log_severity(), 3)  # 默认 ERROR-only
+            os.environ["PDF2ZH_ORT_LOG_SEVERITY"] = "0"
+            self.assertEqual(ort_log_severity(), 0)
+            os.environ["PDF2ZH_ORT_LOG_SEVERITY"] = "9"
+            self.assertEqual(ort_log_severity(), 4)  # 上限钳制
+            os.environ["PDF2ZH_ORT_LOG_SEVERITY"] = "bogus"
+            self.assertEqual(ort_log_severity(), 3)  # 非法值回退默认
+        finally:
+            if old is None:
+                os.environ.pop("PDF2ZH_ORT_LOG_SEVERITY", None)
+            else:
+                os.environ["PDF2ZH_ORT_LOG_SEVERITY"] = old
+
+    def test_session_options_carry_log_severity(self):
+        import onnxruntime
+
+        from pdf2zh.doclayout import _configure_session_options
+
+        opts = _configure_session_options()
+        self.assertEqual(opts.log_severity_level, 3)
+
 
 
 class TestOptimizedCacheIsolation(unittest.TestCase):

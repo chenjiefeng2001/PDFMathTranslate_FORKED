@@ -24,6 +24,42 @@ except ImportError as e:
 
 logger = logging.getLogger(__name__)
 
+#: ORT C++ 层日志级别（0=VERBOSE 1=INFO 2=WARNING 3=ERROR 4=FATAL）。
+#:
+#: 默认 ERROR：CUDA 会话创建时的 "Memcpy nodes are added to the graph"
+#: 等提示属正常现象（模型含 CPU-only 算子时必然出现），provider 是否真正
+#: 生效由本项目自己的执行级探测负责并经 Python logging 告知用户，ORT 的
+#: WARNING 流只会刷屏。``PDF2ZH_ORT_LOG_SEVERITY`` 可显式调回（如调试期
+#: 设 0/1/2）。
+_ORT_LOG_SEVERITY_DEFAULT = 3
+
+
+def ort_log_severity() -> int:
+    """解析 ORT C++ 日志级别（环境变量 ``PDF2ZH_ORT_LOG_SEVERITY``）。"""
+    raw = (os.environ.get("PDF2ZH_ORT_LOG_SEVERITY") or "").strip()
+    if raw:
+        try:
+            return max(0, min(int(raw), 4))
+        except ValueError:
+            logger.warning(
+                "Ignoring invalid PDF2ZH_ORT_LOG_SEVERITY=%r "
+                "(expected integer 0-4); using default %d",
+                raw, _ORT_LOG_SEVERITY_DEFAULT,
+            )
+    return _ORT_LOG_SEVERITY_DEFAULT
+
+
+def _apply_ort_log_severity() -> None:
+    """把日志级别应用到 ORT 全局默认（SessionOptions 未显式设置时生效）。"""
+    try:
+        onnxruntime.set_default_logger_severity(ort_log_severity())
+    except Exception:  # noqa: BLE001 -- 老版本无此 API 时静默跳过
+        logger.debug("set_default_logger_severity unavailable", exc_info=True)
+
+
+_apply_ort_log_severity()
+
+
 _BACKEND_PROVIDERS = {
     "cpu": ["CPUExecutionProvider"],
     "cuda": ["CUDAExecutionProvider", "CPUExecutionProvider"],
@@ -267,6 +303,36 @@ def _check_session_fallback(
             )
 
 
+def _build_probe_model_bytes() -> bytes | None:
+    """构造最小 Conv 探针模型的序列化 bytes；onnx 不可用时返回 None。
+
+    Conv 带 ``pads=[1,1,1,1]``：输入 [1,3,64,64] → 输出 [1,3,64,64]，与图
+    声明的输出形状严格一致。早期版本无 padding（输出 62×62），ORT 每次
+    会话创建都打 "Error merging shape info ... Falling back to lenient
+    merge" 警告刷屏。
+    """
+    try:
+        from onnx import TensorProto, helper  # noqa: PLC0415
+    except Exception:  # noqa: BLE001 -- 无法构造探针时回退静态判断
+        return None
+    x = helper.make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 64, 64])
+    y = helper.make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 64, 64])
+    w = helper.make_tensor(
+        "w", TensorProto.FLOAT, [3, 3, 3, 3], [0.1] * 81,
+    )
+    node = helper.make_node(
+        "Conv", ["x", "w"], ["y"], pads=[1, 1, 1, 1],
+    )
+    graph = helper.make_graph([node], "probe_conv", [x], [y], [w])
+    model = helper.make_model(
+        graph, opset_imports=[helper.make_opsetid("", 11)]
+    )
+    # 旧版 onnxruntime（1.20.x）只支持 IR version <= 10；新版 onnx 默认
+    # IR 可能更高，若不降级探针本身会创建失败，误报 GPU 不可用。
+    model.ir_version = min(model.ir_version, 10)
+    return model.SerializeToString()
+
+
 def _probe_providers(providers: list[str]) -> list[str]:
     """用最小 Conv 模型做**执行级**探测：真正执行过算子的 provider 才算可用。
 
@@ -278,24 +344,11 @@ def _probe_providers(providers: list[str]) -> list[str]:
     新实现创建最小 Conv 会话后开启 profiling 跑一次真实推理，解析 profile 中
     Node 事件的 provider 分布——只有真正执行过算子的 provider 才进入结果。
     """
-    try:
-        from onnx import TensorProto, helper  # noqa: PLC0415
-    except Exception:  # noqa: BLE001 -- 无法构造探针时回退静态判断
+    model_bytes = _build_probe_model_bytes()
+    if model_bytes is None:
+        # 无法构造探针：回退静态判断，交由调用方的会话级校验兜底。
         return list(providers)
     try:
-        x = helper.make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 64, 64])
-        y = helper.make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 64, 64])
-        w = helper.make_tensor(
-            "w", TensorProto.FLOAT, [3, 3, 3, 3], [0.1] * 81,
-        )
-        node = helper.make_node("Conv", ["x", "w"], ["y"])
-        graph = helper.make_graph([node], "probe_conv", [x], [y], [w])
-        model = helper.make_model(
-            graph, opset_imports=[helper.make_opsetid("", 11)]
-        )
-        # 旧版 onnxruntime（1.20.x）只支持 IR version <= 10；新版 onnx 默认
-        # IR 可能更高，若不降级探针本身会创建失败，误报 GPU 不可用。
-        model.ir_version = min(model.ir_version, 10)
         opts = onnxruntime.SessionOptions()
         # BASIC：避免 NchwcTransformer 把探针图优化为 CPU 专用 NCHWc 布局而
         # 掩盖 GPU 本应接管算子的能力（与真实 DML 会话的优化级别一致）。
@@ -303,8 +356,9 @@ def _probe_providers(providers: list[str]) -> list[str]:
             onnxruntime.GraphOptimizationLevel.ORT_ENABLE_BASIC
         )
         opts.enable_profiling = True
+        opts.log_severity_level = ort_log_severity()
         sess = onnxruntime.InferenceSession(
-            model.SerializeToString(), opts, providers=list(providers),
+            model_bytes, opts, providers=list(providers),
         )
         sess.run(None, {"x": np.zeros((1, 3, 64, 64), dtype=np.float32)})
         profile_path = sess.end_profiling()
@@ -601,6 +655,9 @@ def _configure_session_options() -> "onnxruntime.SessionOptions":
         # 服务形态下每个 worker 实测 ~490MB RSS（模型文件仅 72MB）。关 arena
         # 换直接 malloc/free，通常显著降低峰值 RSS，延迟影响个位数百分比。
         opts.enable_cpu_mem_arena = False
+    # ORT C++ 层 WARNING（如 CUDA 会话的 Memcpy 提示）不进控制台刷屏；
+    # provider 生效性由执行级探测负责并经 Python logging 呈现。
+    opts.log_severity_level = ort_log_severity()
     return opts
 
 
