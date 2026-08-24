@@ -364,6 +364,8 @@ Long-running tasks are guarded by several self-healing mechanisms; all knobs are
 | `PDF2ZH_SWEEP_INTERVAL` | `60` | Seconds between memory-cleanup sweeps (minimum 10). |
 | `PDF2ZH_BATCH_CONCURRENCY` | `2` | Files processed in parallel within a multi-file task (clamped to 1–4; invalid values fall back to 2). `1` keeps the original strict serial per-file execution. |
 | `PDF2ZH_BABELDOC_PSEUDO_PROTECT` | `auto` | BabelDOC pseudo-code protection tri-state: `auto` enables it only for documents up to `PDF2ZH_BABELDOC_PSEUDO_PROTECT_MAX_PAGES` pages (default 30); `on` forces; `off` disables. Protection doubles per-page layout inference cost, which dominates large-document wall time. |
+| `PDF2ZH_PP_DOCLAYOUT_BACKEND` | follows global | Inference backend for the PP-DocLayoutV2 algorithm detector (`cpu`/`cuda`/`dml`; unset or `auto` follows `PDF2ZH_BABELDOC_BACKEND`, whose native default is CPU). Measured on CPU the detector costs ~4.3 s/page — the single largest chunk of Parse Page Layout; with CUDA it drops to ~0.1 s/page (~40x). Strongly recommended when a working GPU runtime is present. |
+| `PDF2ZH_LAYOUT_PREFETCH` | `1` | Experimental pipeline window for the fused layout stage (pages processed ahead by worker threads, results still yielded in page order). Default is serial — measured A/B showed no stable win since inference saturates the device anyway. Values >1 are for experimentation only; inference calls stay serialized by an internal lock that also prevents concurrent-task blocking and cuDNN crashes from parallel ONNX sessions. |
 | `PDF2ZH_PARALLEL_WORKERS` / `PDF2ZH_NO_PARALLEL` / `PDF2ZH_PARALLEL` | — | Env-var equivalents of `--parallel-workers` / `--no-parallel`. |
 | `PDF2ZH_PROXY` | — | Env-var equivalent of `--proxy`. |
 | `PDF2ZH_MAX_FILE_SIZE` | — | Env-var equivalent of `--max-file-size` (MB). |
@@ -394,13 +396,20 @@ For downstream applications, please refer to our document about [API Details](./
 Beyond the built-in BabelDOC / legacy (pdfminer) engines, pdf2zh can use **MinerU / magic-pdf** as the PDF *parsing* layer while translation, layout and rendering still run on pdf2zh's own v3 pipeline:
 
 ```bash
-# Install the optional engines (mineru 2.x is preferred on Python 3.10–3.12; magic-pdf 1.3.12 is the Python 3.13 fallback)
+# Install the optional parse engine: MinerU 3.x (pipeline backend, Python 3.10–3.13).
+# magic-pdf 1.x is discontinued upstream and now only a manual fallback
+# (`pip install "magic-pdf[full]<2"`); pdf2zh picks it up automatically when MinerU is absent.
 pip install pdf2zh[magicpdf]
+
+# Alternative: build an isolated env from the pinned source anchor (vendor/MinerU submodule)
+git submodule update --init vendor/MinerU
+pdf2zh-setup-mineru
+set PDF2ZH_MINERU_PYTHON=%CD%\vendor\MinerU\.venv\Scripts\python.exe   # route parsing through it
 
 # Parse with MinerU/magic-pdf and render a translated mono PDF (default)
 pdf2zh --parse-engine magicpdf example.pdf
 
-# Force OCR during magic-pdf parsing (magic-pdf 1.x pipe_ocr_merge) — recommended for scans
+# Force OCR during parsing — recommended for scans
 pdf2zh --parse-engine magicpdf --magicpdf-ocr scanned.pdf
 
 # Keep JSON dumps only (no rendering)
@@ -410,7 +419,9 @@ pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf
 How it works:
 
 - **`--parse-engine {auto,legacy,babeldoc,magicpdf}`** — `auto` keeps the historical behaviour (`--babeldoc` → YADT, otherwise the legacy kernel); `magicpdf` routes through the `MagicPdfAdapter` → v3 IR bridge → translate → RenderTakeover mono PDF. If the engine or its models are unavailable, it automatically falls back to the legacy kernel.
-- **Models.** magic-pdf does not auto-download its PDF-Extract-Kit weights. On first use, download them to `~/.cache/magic-pdf/models`:
+- **Models.** MinerU 3.x downloads its pipeline model weights automatically on first use from HuggingFace; set `MINERU_MODEL_SOURCE=modelscope` when HuggingFace is unreachable.
+
+  Legacy magic-pdf does not auto-download its PDF-Extract-Kit weights. On first use, download them to `~/.cache/magic-pdf/models`:
 
   ```
   pip install modelscope

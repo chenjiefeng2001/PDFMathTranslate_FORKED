@@ -386,10 +386,23 @@ pdf2zh can use **MinerU / magic-pdf** as the PDF *parsing* layer instead of the 
 uv pip install -e ".[magicpdf]"   # uv recommended: the repo ships a [tool.uv] override below
 ```
 
-The extra resolves to `mineru>=2.0` on Python 3.10–3.12 and `magic-pdf>=1.3.12,<2` on Python 3.13+ (decided by `pdf2zh.engine_env`). The two engines are mutually exclusive on PyPI, so they are split by an environment marker — do **not** install both manually.
+The extra resolves to `mineru>=3.1,<4` (MinerU 3.x, Apache-based license, official Python 3.10–3.13 support; pdf2zh drives its local `pipeline` backend via the official `mineru.cli.common.do_parse` API). `magic-pdf` 1.x is discontinued upstream (last release 1.3.12, 2025-05) and is no longer part of the default dependency branch — it only remains as a manual fallback: install it yourself with `uv pip install -U "magic-pdf[full]<2"` and pdf2zh will pick it up automatically when MinerU is absent (`PDF2ZH_MINERU_PREFER=0` forces this preference).
+
+**Isolated env from pinned source (submodule anchor).** The repo vendors MinerU as the `vendor/MinerU` submodule, pinned to an upstream release that has been verified end-to-end on Windows × Py3.13. You can build an isolated venv from exactly that source instead of PyPI:
+
+```bash
+git submodule update --init vendor/MinerU
+pdf2zh-setup-mineru                                  # builds vendor/MinerU/.venv (torch stays out of your main env)
+set PDF2ZH_MINERU_PYTHON=%CD%\vendor\MinerU\.venv\Scripts\python.exe   # Windows
+export PDF2ZH_MINERU_PYTHON="$PWD/vendor/MinerU/.venv/bin/python"      # Linux/macOS
+```
+
+When `PDF2ZH_MINERU_PYTHON` is set, parsing runs through a small subprocess worker (`pdf2zh/kernel/mineru_worker.py`) inside that interpreter — torch/onnxruntime DLL load-order issues and pymupdf version conflicts with the main process are structurally eliminated; results still flow through the same middle.json normalization pipeline. Upgrades = bump the submodule pin (`git -C vendor/MinerU fetch --depth 1 origin tag mineru-<ver>-released && git -C vendor/MinerU checkout <tag>`), re-run setup, and rerun the regression suite.
+
+> **Note.** MinerU 3.4.5's pipeline backend imports `six` at runtime without declaring it (upstream packaging gap); pdf2zh's `magicpdf` extra ships the shim. When building from the submodule manually, add `six` alongside (`pdf2zh-setup-mineru` does this for you).
 
 
-> **Resolver note.** `magic-pdf` pins `pdfminer-six==20250506` and (stale) `pymupdf<1.25.0`, while `babeldoc>=0.6.4` needs `pymupdf>=1.26.7`. pdf2zh now declares `pdfminer-six>=20250416,<20250507` and ships `[tool.uv] override-dependencies = ["pymupdf>=1.26.7"]` (magic-pdf 1.3.12 verified running on pymupdf 1.28). **uv** handles this automatically. With **pip**, if the resolver rejects the install, add the engine without its stale pins:
+> **Resolver note (legacy magic-pdf fallback only).** `magic-pdf` pins `pdfminer-six==20250506` and (stale) `pymupdf<1.25.0`, while `babeldoc>=0.6.4` needs `pymupdf>=1.26.7`. pdf2zh now declares `pdfminer-six>=20250416,<20250507` and ships `[tool.uv] override-dependencies = ["pymupdf>=1.26.7"]` (magic-pdf 1.3.12 verified running on pymupdf 1.28). **uv** handles this automatically. With **pip**, if the resolver rejects the install, add the engine without its stale pins:
 >
 > ```bash
 > pip install "magic-pdf[full]==1.3.12" --no-deps
@@ -397,7 +410,9 @@ The extra resolves to `mineru>=2.0` on Python 3.10–3.12 and `magic-pdf>=1.3.12
 > ```
 >
 
-**Models.** magic-pdf does not auto-download its PDF-Extract-Kit weights. Download them once to `~/.cache/magic-pdf/models`:
+**Models.** MinerU 3.x downloads its pipeline model weights automatically on first use from HuggingFace (default) or ModelScope — set `MINERU_MODEL_SOURCE=modelscope` when HuggingFace is unreachable.
+
+Legacy magic-pdf does not auto-download its PDF-Extract-Kit weights. Download them once to `~/.cache/magic-pdf/models`:
 
 ```bash
 pip install modelscope
@@ -447,6 +462,8 @@ pdf2zh example.pdf --backend cuda
 ```
 
 - **BabelDOC's internal doclayout ONNX session** is controlled independently via `PDF2ZH_BABELDOC_BACKEND` (`auto`/`cpu`/`cuda`/`dml`). Default `auto` keeps BabelDOC's native CPU behaviour; setting `cuda`/`dml` lets BabelDOC run its layout analysis on the GPU even when the main pipeline uses CPU.
+- **PP-DocLayoutV2 algorithm detector (pseudo-code protection)** follows the same global switch, with its own override `PDF2ZH_PP_DOCLAYOUT_BACKEND` (`auto`/`cpu`/`cuda`/`dml`). Measured impact (12-page sample): CPU detector ≈ 4.3 s/page vs CUDA ≈ 0.1 s/page — it dominates Parse Page Layout when pseudo-code protection is active. Set `cuda` when a working GPU runtime is present.
+- **Layout-stage concurrency safety.** The fused layout model serializes both ONNX sessions through a process-wide inference lock. This fixes two failure modes observed under concurrent translation tasks: tasks queuing behind a lock held across render+inference (Parse Page Layout "parallel blocking"), and hard crashes (`CUDNN_BACKEND_API_FAILED`) from two CUDA sessions executing concurrently in different threads.
 - **Auto fallback.** When a requested provider cannot actually initialize (e.g. missing CUDA runtime DLLs such as `onnxruntime_providers_cuda.dll` failing to load with error 126), ONNX Runtime falls back to `['CPUExecutionProvider']` and logs a warning. pdf2zh's status panel shows registered vs. effective providers so silent CPU fallback stays visible.
 - **CPU-only builds.** `onnxruntime-gpu` does not ship the DirectML provider; `AzureExecutionProvider`/`DmlExecutionProvider` only appear when `onnxruntime-directml` is installed. Install the package matching your target hardware.
 - **Backend propagation.** `--backend` is propagated to the parallel page-processing worker processes so the whole pipeline uses the same providers.
