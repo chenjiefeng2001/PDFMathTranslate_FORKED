@@ -59,6 +59,17 @@ class TestSpawnChildDetection:
         assert calls == [1]
 
     def test_wrapper_script_guards_spawn_reexec(self):
+        # script/build/pdf2zh.int 由 script/build-win64.ps1 在打包时生成，
+        # 全新检出中不存在（不变式由下方 _pystand_static.int 模板测试兜底）。
+        import os
+
+        import pytest
+
+        if not os.path.exists("script/build/pdf2zh.int"):
+            pytest.skip(
+                "wrapper script is a build artifact of script/build-win64.ps1; "
+                "not present in a fresh checkout"
+            )
         with open("script/build/pdf2zh.int", encoding="utf-8") as fh:
             text = fh.read()
         assert "__name__" in text

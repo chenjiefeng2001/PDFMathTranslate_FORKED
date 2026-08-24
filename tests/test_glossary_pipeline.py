@@ -22,6 +22,12 @@ from pdf2zh import glossary_store as gs
 from pdf2zh.services.runtime_service import RuntimeService, TranslationRequest
 
 
+def _next_kernel_available() -> bool:
+    from pdf2zh.babeldoc_next_adapter import is_next_kernel_available
+
+    return is_next_kernel_available()
+
+
 def _write_csv(path, rows=(("kernel", "内核", ""),)):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as fh:
@@ -94,6 +100,13 @@ class TestExecuteBabeldocPassthrough:
 
 
 class TestNextKernelMapping:
+    # 全新克隆不含内嵌内核（嵌套 git 仓库在克隆时为空目录），此时
+    # build_next_settings 无法导入 pdf2zh_next 的 SettingsModel —— 与
+    # 运行时的软降级语义一致，直接跳过而非报错。
+    @pytest.mark.skipif(
+        not _next_kernel_available(),
+        reason="bundled pdf2zh_next kernel absent (fresh clone of nested repo)",
+    )
     def test_settings_carry_comma_separated_paths(self, tmp_path):
         from pdf2zh.babeldoc_next_adapter import build_next_settings
 
@@ -107,6 +120,10 @@ class TestNextKernelMapping:
         )
         assert settings.translation.glossaries == g1
 
+    @pytest.mark.skipif(
+        not _next_kernel_available(),
+        reason="bundled pdf2zh_next kernel absent (fresh clone of nested repo)",
+    )
     def test_invalid_csv_fails_before_kernel(self, tmp_path):
         from pdf2zh.babeldoc_next_adapter import build_next_settings
 
@@ -121,6 +138,10 @@ class TestNextKernelMapping:
                 glossary_files=[str(bad)],
             )
 
+    @pytest.mark.skipif(
+        not _next_kernel_available(),
+        reason="bundled pdf2zh_next kernel absent (fresh clone of nested repo)",
+    )
     def test_none_leaves_kernel_default(self):
         from pdf2zh.babeldoc_next_adapter import build_next_settings
 

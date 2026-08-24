@@ -57,6 +57,22 @@ class _BabeldocNextCancelledError(Exception):
     """Internal: the user cancelled a running BabelDOC-next task."""
 
 
+def is_next_kernel_available() -> bool:
+    """Whether the modified pdf2zh_next kernel can be loaded here.
+
+    Mirrors :func:`_ensure_next_kernel` without side effects: bundled kernel
+    directory present, or a PyPI-installed ``pdf2zh_next`` package. Used by
+    tests to skip cleanly on fresh checkouts — the nested git repo under
+    ``pdf2zh/kernel/`` ships empty in plain clones.
+    """
+    if os.path.isdir(os.path.join(_NEXT_KERNEL_DIR, "pdf2zh_next")):
+        return True
+    try:
+        return importlib.util.find_spec("pdf2zh_next") is not None
+    except (ImportError, ValueError):
+        return False
+
+
 def _ensure_next_kernel() -> str:
     """Idempotently expose the bundled pdf2zh_next kernel on ``sys.path``.
 
