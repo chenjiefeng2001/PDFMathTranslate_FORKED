@@ -136,12 +136,17 @@ class SessionManager:
     can serve many documents without leaking state.
     """
 
-    def __init__(self, max_sessions: int = 32) -> None:
+    def __init__(self, max_sessions: int = 32,
+                 on_evict: Optional[Callable[[str], None]] = None) -> None:
         if max_sessions < 1:
             raise ValueError("max_sessions must be >= 1")
         self._max = max_sessions
         self._sessions: Dict[str, Any] = {}
         self._lock = threading.Lock()
+        #: Called with the session id after an idle eviction (create-at-cap
+        #: auto-evict or explicit evict_idle) so owners can release
+        #: per-session side data (snapshots, metrics, ...).
+        self._on_evict = on_evict
 
     def list_ids(self) -> List[str]:
         """Return the currently live session ids (sorted)."""
@@ -150,15 +155,23 @@ class SessionManager:
 
     def create(self, document: Any, document_id: Optional[str] = None,
                target_lang: str = "zh-CN") -> Any:
-        """Create a new DocumentSession for ``document``."""
+        """Create a new DocumentSession for ``document``.
+
+        When the session cap is reached, idle sessions (untouched for
+        ``evict_idle_seconds``) are evicted automatically — including their
+        ``on_evict`` side-data cleanup — instead of failing outright. The
+        cap is only a hard limit for *actively used* sessions.
+        """
         from pdf2zh.v3.document_runtime import DocumentSession, \
             RuntimeCheckpoint, SessionState
 
         with self._lock:
             if len(self._sessions) >= self._max:
+                self._evict_idle_locked()
+            if len(self._sessions) >= self._max:
                 raise RuntimeError(
-                    f"Session limit reached ({self._max}) — close a session "
-                    "or call evict_idle() first")
+                    f"Session limit reached ({self._max}) — all sessions are "
+                    "actively in use; close a session first")
             session = DocumentSession(
                 document=document, document_id=document_id,
                 target_lang=target_lang,
@@ -179,7 +192,10 @@ class SessionManager:
 
     def close(self, session_id: str) -> bool:
         with self._lock:
-            return self._sessions.pop(session_id, None) is not None
+            removed = self._sessions.pop(session_id, None) is not None
+        if removed and self._on_evict is not None:
+            self._notify_evict(session_id)
+        return removed
 
     def evict_idle(self, max_idle_seconds: float = 600.0) -> List[str]:
         """Close sessions untouched for ``max_idle_seconds``."""
@@ -193,7 +209,40 @@ class SessionManager:
                     evicted.append(sid)
         if evicted:
             logger.info("Evicted idle sessions: %s", evicted)
+            for sid in evicted:
+                self._notify_evict(sid)
         return evicted
+
+    def _evict_idle_locked(self,
+                           max_idle_seconds: float = 600.0) -> List[str]:
+        """Idle-eviction variant for callers already holding ``_lock``.
+
+        ``create()`` uses this at cap; must never re-acquire the (non-
+        reentrant) lock.
+        """
+        cutoff = time.time() - max_idle_seconds
+        evicted: List[str] = []
+        for sid, session in list(self._sessions.items()):
+            last = getattr(session, "last_active", 0.0) or 0.0
+            if last < cutoff:
+                self._sessions.pop(sid, None)
+                evicted.append(sid)
+        if evicted:
+            logger.info("Auto-evicted idle sessions at cap: %s", evicted)
+            for sid in evicted:
+                self._notify_evict(sid)
+        return evicted
+
+    def _notify_evict(self, session_id: str) -> None:
+        """Best-effort side-data cleanup callback (never blocks eviction)."""
+        cb = self._on_evict
+        if cb is None:
+            return
+        try:
+            cb(session_id)
+        except Exception:  # noqa: BLE001 -- cleanup must not break lifecycle
+            logger.warning("on_evict callback failed for session %s",
+                           session_id, exc_info=True)
 
     @property
     def sessions(self) -> List[str]:
@@ -565,7 +614,9 @@ class RuntimeService:
         from pdf2zh.v3.operator_cache import OperatorResultCache
 
         self.runtime = document_runtime or DocumentRuntime()
-        self.sessions = SessionManager(max_sessions=max_sessions)
+        self.sessions = SessionManager(
+            max_sessions=max_sessions,
+            on_evict=self._release_session_side_data)
         self.resources = ResourceManager()
         self.resources.register("concurrency", max_concurrency)
         self.resources.register("llm", max_llm_concurrency)
@@ -620,8 +671,18 @@ class RuntimeService:
     def close(self, session_id: str) -> bool:
         closed = self.sessions.close(session_id)
         if closed:
+            self._release_session_side_data(session_id)
             self.bus.publish("session.closed", {"session_id": session_id})
         return closed
+
+    def _release_session_side_data(self, session_id: str) -> None:
+        """Drop per-session in-memory side data (GC/leak guard).
+
+        ``self._snapshots[session_id]`` previously grew without bound for the
+        lifetime of the service — it is never read after close/eviction.
+        """
+        self._snapshots.pop(session_id, None)
+        self._metrics.pop(session_id, None)
 
     # ── Execution ─────────────────────────────────────────────────────
 

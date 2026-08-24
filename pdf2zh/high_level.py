@@ -889,455 +889,463 @@ def translate_stream(
     font_list.append((noto_name, font_path))
 
     doc_en = Document(stream=stream)
-    stream = io.BytesIO()
-    doc_en.save(stream)
-    doc_zh = Document(stream=stream)
-    page_count = doc_zh.page_count
-    logger.info("translate_stream: loaded %d pages, starting patch phase...", page_count)
+    doc_zh = None
+    # GC/leak guard: every exception path must release the two MuPDF
+    # documents (native memory). Passthrough's inner finally closes
+    # them first; outer close below is idempotent via ``is_closed``.
+    try:
+        stream = io.BytesIO()
+        doc_en.save(stream)
+        doc_zh = Document(stream=stream)
+        page_count = doc_zh.page_count
+        logger.info("translate_stream: loaded %d pages, starting patch phase...", page_count)
 
-    # V3 passthrough: 全文档无可提取文本（扫描件 / 纯矢量 / 纯图片）时跳过
-    # 字体嵌入、翻译与补丁，直接压缩写出。原路径会把全量 SourceHanSerif 字体
-    # （~9-14MB）嵌入到没有任何文本使用的输出中，导致体积膨胀 10-20 倍
-    # （实测 603KB -> 9.6MB，xref 中单个字体流解压后 14MB）。
-    if page_count > 0 and not any(
-        _page.get_text().strip() for _page in doc_en
-    ):
-        logger.warning(
-            "translate_stream: no extractable text across %d page(s); "
-            "running passthrough mode (no translation, output mirrors input)",
-            page_count,
-        )
-        _pt_start = time.perf_counter()
+        # V3 passthrough: 全文档无可提取文本（扫描件 / 纯矢量 / 纯图片）时跳过
+        # 字体嵌入、翻译与补丁，直接压缩写出。原路径会把全量 SourceHanSerif 字体
+        # （~9-14MB）嵌入到没有任何文本使用的输出中，导致体积膨胀 10-20 倍
+        # （实测 603KB -> 9.6MB，xref 中单个字体流解压后 14MB）。
+        if page_count > 0 and not any(
+            _page.get_text().strip() for _page in doc_en
+        ):
+            logger.warning(
+                "translate_stream: no extractable text across %d page(s); "
+                "running passthrough mode (no translation, output mirrors input)",
+                page_count,
+            )
+            _pt_start = time.perf_counter()
+            try:
+                # clean=True 会触发 MuPDF 内容流消毒器，实测会把 converter 生成的
+                # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
+                # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
+                doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
+                doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
+            finally:
+                doc_en.close()
+                doc_zh.close()
+            if callable(progress_cb):
+                try:
+                    progress_cb(100.0, f"No extractable text ({page_count} page(s)); passthrough")
+                except Exception:
+                    pass
+            logger.info(
+                "translate_stream: passthrough complete (mono=%d bytes, dual=%d bytes, %.1fs)",
+                len(doc_mono), len(doc_dual), time.perf_counter() - _pt_start,
+            )
+            return (doc_dual, doc_mono)
+        import sys as _sys_init; _sys_init.stdout.flush()
+        # Phase 1: Document-level font cache
+        font_cache = DocumentFontCache(doc_zh)
+        registered_font_name = font_cache.register(font_path)
+        # font_list = [("GoNotoKurrent-Regular.ttf", font_path), ("tiro", None)]
+        # === 8.1.1 字体嵌入重构：O(N×F) → O(F) ===
+        # 旧实现逐页 `insert_font`（`for page in doc_zh: for font in font_list`），
+        # 每页从磁盘重载同一字体文件（`fz_new_font_from_file`）并嵌入一份副本，
+        # 1918 次调用累计 18.5s（其中 7.5s 磁盘重载 14MB 字体 + 9.66s 逐副本嵌入）。
+        # 重构要点：
+        #   1) `fontbuffer` 一次读入内存，避开按路径重载（`fz_new_font_from_file`）；
+        #   2) `insert_font` 只在文档第一页调用一次，拿到唯一 font_id；
+        #   3) 保留下方 xref 共享广播循环（把字体引用写入各页 `Resources/Font`）。
+        # 空文档（page_count==0）跳过嵌入；xref 广播循环此时因 font_id 为空由
+        # `except Exception` 兜底（与旧行为一致）。
+        font_id = {}
+        if doc_zh.page_count > 0:
+            _font_buffer = None
+            try:
+                with open(font_path, "rb") as _fb:
+                    _font_buffer = _fb.read()
+            except OSError:
+                _font_buffer = None
+            _first_page = doc_zh[0]
+            for _fname, _fpath in font_list:
+                if _fpath:
+                    # 有真实字体文件 → 优先 fontbuffer 单次嵌入
+                    if _font_buffer is not None:
+                        try:
+                            font_id[_fname] = _first_page.insert_font(
+                                _fname, fontbuffer=_font_buffer
+                            )
+                            continue
+                        except Exception:  # noqa: BLE001 -- buffer 路径失败回退路径加载
+                            logger.debug(
+                                "insert_font(fontbuffer=) failed for %s; retry via path",
+                                _fname,
+                            )
+                    font_id[_fname] = _first_page.insert_font(_fname, _fpath)
+                else:
+                    # 内置字体（tiro）按名称嵌入
+                    font_id[_fname] = _first_page.insert_font(_fname, None)
+        xreflen = doc_zh.xref_length()
+        for xref in range(1, xreflen):
+            for label in ["Resources/", ""]:  # 可能是基于 xobj 的 res
+                try:  # xref 读写可能出错
+                    font_res = doc_zh.xref_get_key(xref, f"{label}Font")
+                    target_key_prefix = f"{label}Font/"
+                    if font_res[0] == "xref":
+                        resource_xref_id = re.search("(\\d+) 0 R", font_res[1]).group(1)
+                        xref = int(resource_xref_id)
+                        font_res = ("dict", doc_zh.xref_object(xref))
+                        target_key_prefix = ""
+
+                    if font_res[0] == "dict":
+                        for font in font_list:
+                            target_key = f"{target_key_prefix}{font[0]}"
+                            font_exist = doc_zh.xref_get_key(xref, target_key)
+                            if font_exist[0] == "null":
+                                doc_zh.xref_set_key(
+                                    xref,
+                                    target_key,
+                                    f"{font_id[font[0]]} 0 R",
+                                )
+                except Exception:
+                    pass
+
+        fp = io.BytesIO()
+
+        doc_zh.save(fp)
+        fp.seek(0)  # Rewind before passing to translate_patch / PDFParser
+
+        # === 2.0: Create TextMetrics instances (M1) ===
+        text_metrics = {}
+        if use_text_metrics and font_path and os.path.exists(font_path):
+            try:
+                from pdf2zh.text_metrics import TextMetrics as _TM
+                tm = _TM(font_path)
+                text_metrics[noto_name] = tm
+                text_metrics[registered_font_name] = tm
+            except Exception as e:
+                logger.warning("TextMetrics init failed (falling back to legacy width): %s", e)
+
+        # === 2.0: Translation cache (L3) ===
+        translation_cache_obj = None
+        if use_translation_cache and not ignore_cache:
+            try:
+                translation_cache_obj = TranslationCache()
+            except Exception as e:
+                logger.warning("TranslationCache init failed: %s", e)
+
+        # === 2.0: Collision Resolver & Layout Graph ===
+        collision_resolver = CollisionResolver()
+        layout_graph = LayoutGraph()
+
+        # Ensure 2.0 module references exist in locals
+        if 'text_metrics' not in dir():
+            text_metrics = {}
+        if 'translation_cache_obj' not in dir():
+            translation_cache_obj = None
+
+        # === 2.0: Parallel page processing (L2) ===
+        page_xref_map = None
+        if parallel_pages and page_count > 5:
+            # P2（V3）：主进程单写者预热 —— 确保 doclayout 模型与 optimized 缓存就绪，
+            # worker 的 OnnxModel 加载直接命中 cached，绝无并发写竞争；预热失败时记录
+            # 并跳过并行（等价于整体串行兜底），不让预热异常重复进 worker 初始化。
+            from pdf2zh.doclayout import DocLayoutModel
+            from pdf2zh.parallel.errors import ParallelError
+            if not DocLayoutModel.ensure_model_prewarmed():
+                logger.warning(
+                    "Layout model prewarm failed; skipping page parallelism "
+                    "(serial fallback)."
+                )
+                obj_patch = translate_patch(fp, **dict(locals()))
+            else:
+                # 主进程预创建所有页面的新内容流 xref：worker 进程从共享 fp_bytes 各自打开文档后，
+                # get_new_xref() 会从相同的起始编号分配，导致跨 worker 编号冲突，且这些对象只存在于
+                # worker 进程内；主进程 update_stream(page_xref) 会因此报 bad xref / object is no PDF dict。
+                try:
+                    page_xref_map = {}
+                    for pageno in range(page_count):
+                        xref = doc_zh.get_new_xref()
+                        doc_zh.update_object(xref, "<<>>")
+                        doc_zh.update_stream(xref, b"")
+                        page_xref_map[pageno] = xref
+                except Exception as px_err:
+                    logger.warning(
+                        "Failed to pre-create page xrefs (%s), falling back to serial",
+                        str(px_err)[:120],
+                    )
+                    page_xref_map = None
+                    obj_patch = translate_patch(fp, **dict(locals()))
+                else:
+                    try:
+                        obj_patch = _translate_parallel(
+                            fp, dict(locals()),
+                            workers=parallel_workers,
+                            page_xref_map=page_xref_map,
+                        )
+                    except KeyboardInterrupt:
+                        # V3（§5.4/§5.5）：Ctrl+C 绝不进入串行兜底 —— 直接传播给上层
+                        # 关闭流程（GUI 优雅关闭 / CLI 退出），由上层负责 worker 回收。
+                        raise
+                    except ParallelError as parallel_err:
+                        # V3（§5.5）语义化兜底：池整体不可用（bootstrap / 协议违例）
+                        # 才整文档串行重跑；chunk 级失败已在 coordinator 内增量补跑。
+                        logger.warning(
+                            "Parallel engine degraded cleanly (%s: %s); "
+                            "full serial fallback",
+                            type(parallel_err).__name__,
+                            str(parallel_err)[:120],
+                        )
+                        obj_patch = translate_patch(fp, **dict(locals()))
+                    except (Exception, SystemExit) as parallel_err:
+                        logger.warning(
+                            "Parallel page processing failed (%s), falling back to serial: %s "
+                            "(tip: fix the GPU backend or disable page parallelism with "
+                            "--backend cpu / parallel_pages=False)",
+                            type(parallel_err).__name__, str(parallel_err)[:120],
+                        )
+                        # 并发 GPU session 冲突（多 worker 同时建 DirectML/CUDA session）
+                        # 是 worker 原生崩溃最常见的诱因；在真正降级 CPU 之前，先用更少
+                        # 的 worker 重试一次整个翻译（仍然并行架构，只是并发度减半）。
+                        if isinstance(parallel_err, BrokenProcessPool):
+                            try:
+                                retry_workers = max(1, (parallel_workers or 4) // 2)
+                                logger.info(
+                                    "Parallel crash detected; retrying the whole task "
+                                    "with %d worker(s) before degrading to CPU...",
+                                    retry_workers,
+                                )
+                                obj_patch = _translate_parallel(
+                                    fp, dict(locals()),
+                                    workers=retry_workers,
+                                    page_xref_map=page_xref_map,
+                                )
+                                parallel_err = None
+                                logger.info(
+                                    "Reduced-worker parallel retry succeeded; "
+                                    "continuing without CPU degradation."
+                                )
+                            except (Exception, SystemExit) as retry_err:
+                                parallel_err = retry_err
+                                logger.warning(
+                                    "Reduced-worker retry also failed (%s), degrading to CPU.",
+                                    type(retry_err).__name__,
+                                )
+                        if parallel_err is not None:
+                            # 自动降级：worker 进程被终止（BrokenProcessPool）时把后端切到 CPU，
+                            # 并让本次串行回退也按 CPU provider 重新加载模型，保证
+                            # "降级即生效"，且崩溃后的 GPU session 不再参与本任务。
+                            degraded = _degrade_backend_on_crash(
+                                parallel_err,
+                                progress_cb=dict(locals()).get("progress_cb"),
+                                context=f"pages={page_count} workers={parallel_workers}",
+                            )
+                            if degraded:
+                                from pdf2zh.doclayout import ModelInstance as _RemodelInst
+                                from pdf2zh.doclayout import OnnxModel as _RemodelOnnx
+                                try:
+                                    _RemodelInst.value = _RemodelOnnx.load_available()
+                                except Exception as _remodel_err:
+                                    logger.warning(
+                                        "CPU model reload after degradation failed: %s",
+                                        str(_remodel_err)[:120],
+                                    )
+                                # 覆盖本次的 model local，让串行回退使用 CPU 模型；
+                                # 若重新加载失败，退回原 model（可能仍可用），
+                                # 总比 model=None 在 translate_patch 里崩溃强。
+                                model = _RemodelInst.value or locals().get("model")
+                            # Serial fallback: use locals directly (all objects available in current process)
+                            obj_patch = translate_patch(fp, **dict(locals()))
+        else:
+            obj_patch = translate_patch(fp, **dict(locals()))
+
+        # Phase D: 并行路径的可观测 payload 经 __obs__ 私有键回传，这里并入 v3_output
+        if v3_output is not None and isinstance(obj_patch, dict) and \
+                "__obs__" in obj_patch:
+            v3_output["observability"] = obj_patch.pop("__obs__")
+
+        total_objs = len(obj_patch)
+        for idx, (obj_id, ops_new) in enumerate(obj_patch.items()):
+            try:
+                # Validate that the obj_id references a dict/stream before updating
+                xref_type = doc_zh.xref_object(obj_id, compressed=True)
+                if not xref_type.startswith('<<'):
+                    logger.warning(
+                        'Skipping obj_id %s: not a PDF dict (xref_object starts with %r)',
+                        obj_id, xref_type[:40],
+                    )
+                    continue
+                doc_zh.update_stream(obj_id, ops_new.encode())
+            except ValueError as ve:
+                logger.warning(
+                    'Skipping obj_id %s (ValueError: %s) — common for non-stream objects',
+                    obj_id, str(ve)[:80],
+                )
+            except Exception as stream_err:
+                logger.warning(
+                    'Skipping obj_id %s update_stream error: %s',
+                    obj_id, str(stream_err)[:120],
+                )
+            if idx % 5 == 0 or idx == total_objs - 1:
+                logger.info("translate_stream: updated stream %d/%d (%.0f%%)", idx + 1, total_objs, (idx + 1) / total_objs * 100)
+
+        # 并行模式下 worker 进程不会修改主进程 doc_zh 的页面 /Contents，
+        # 这里统一将每个页面指向其新的（已写入译文指令流的）内容流对象。
+        if page_xref_map:
+            for _px_pageno, _px_xref in page_xref_map.items():
+                try:
+                    doc_zh[_px_pageno].set_contents(_px_xref)
+                except Exception as se:
+                    logger.warning(
+                        "set_contents failed for page %s (xref %s): %s",
+                        _px_pageno, _px_xref, str(se)[:80],
+                    )
+
+        # === V8.5: 超链接重定位（必须发生在 insert_file 合并之前，译副本才能继承修正 rect） ===
+        # 用 converter side-channel 采集的段落源→目标几何，把译文页面上继承自原文的
+        # link /Rect 重新投影到译文实际渲染位置（mono 原文页的锚点保持原样不动）。
+        if relink_links:
+            try:
+                link_stats = _relink_translated_doc(doc_zh, v3_output)
+                if any(link_stats["relinked"] for _ in [0]):
+                    logger.info(
+                        "translate_stream: relinked %d links across %d pages",
+                        link_stats["relinked"], link_stats["pages"],
+                    )
+            except Exception as relink_err:
+                logger.warning("translate_stream: link relink skipped: %s", str(relink_err)[:160])
+
+        # === V8.6: 图片翻译 + 内容保护决策的 side-channel（仅采集回传，不改渲染） ===
+        if emit_preservation:
+            try:
+                pres_stats = _collect_preservation_side_channel(
+                    doc_zh, v3_output,
+                    image_engine=image_engine,
+                    content_preservation=content_preservation,
+                    image_render=image_render,
+                )
+                if pres_stats and pres_stats["objects"]:
+                    logger.info(
+                        "translate_stream: preservation decided %d image objects "
+                        "(translate=%d preserve=%d overlay=%d)",
+                        pres_stats["objects"], pres_stats["translated"],
+                        pres_stats["preserved"], pres_stats["overlay"],
+                    )
+            except Exception as pres_err:
+                logger.warning("translate_stream: preservation skipped: %s", str(pres_err)[:160])
+
+        logger.info("=" * 60)
+        logger.info("translate_stream: MERGING %d pages (this may take a while for large PDFs)...", page_count)
+        logger.info("=" * 60)
+        import time as _merge_time
+        import sys as _sys
         try:
+            _merge_start = _merge_time.time()
+            logger.info("translate_stream: calling doc_en.insert_file(doc_zh)...")
+            _sys.stdout.flush()
+            _sys.stderr.flush()
+            doc_en.insert_file(doc_zh)
+            _insert_elapsed = _merge_time.time() - _merge_start
+            logger.info("translate_stream: insert_file OK (%.1fs), reordering %d pages...", _insert_elapsed, page_count)
+            _sys.stdout.flush()
+            for id in range(page_count):
+                doc_en.move_page(page_count + id, id * 2 + 1)
+                if id % 5 == 0 or id == page_count - 1:
+                    logger.info("translate_stream: moved page %d/%d (%.1f%% done)", id + 1, page_count, (id + 1) / page_count * 100)
+                    _sys.stdout.flush()
+                    _sys.stderr.flush()
+            _merge_total = _merge_time.time() - _merge_start
+            logger.info("translate_stream: page merge complete (%d pages, %.1fs total)", page_count, _merge_total)
+        except Exception as merge_err:
+            logger.error("translate_stream: page merge failed after %.1fs: %s", _merge_time.time() - _merge_start, merge_err)
+            raise
+        def _protect_math_fonts(doc):
+            """保护已知数学字体不被 MuPDF subset_fonts 子集化破坏宽度"""
+            try:
+                xreflen = doc.xref_length()
+                for xref in range(1, xreflen):
+                    try:
+                        subtype_res = doc.xref_get_key(xref, "/Subtype")
+                        if subtype_res[0] == "name" and "Type3" in str(subtype_res[1]):
+                            # Type3 字体跳过子集化
+                            doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
+                    except Exception:
+                        pass
+                    try:
+                        basefont_res = doc.xref_get_key(xref, "/BaseFont")
+                        if basefont_res[0] == "name":
+                            bf = str(basefont_res[1])
+                            math_patterns = [
+                                "CM", "CMSY", "CMEX", "CMMI", "EUFM", "MSBM", "MSAM",
+                                "STIX", "XITS", "MnSymbol", "rsfs", "txsy", "wasy", "stmary",
+                                "Symbol", "MT", "BL", "RM", "EU", "LA", "RS"
+                            ]
+                            for mp in math_patterns:
+                                if mp in bf:
+                                    doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
+                                    break
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        logger.info("translate_stream: subsetting fonts...")
+        if not skip_subset_fonts:
+            _subset_start = _merge_time.time()
+            # 在子集化前保护数学字体
+            _protect_math_fonts(doc_zh)
+            _protect_math_fonts(doc_en)
+            logger.info("translate_stream: subsetting doc_zh fonts...")
+            try:
+                doc_zh.subset_fonts(fallback=False)
+                logger.info("translate_stream: doc_zh subset_fonts complete")
+            except Exception as subset_err:
+                logger.warning("subset_fonts failed for doc_zh: %s", str(subset_err)[:120])
+            logger.info("translate_stream: subsetting doc_en fonts...")
+            try:
+                doc_en.subset_fonts(fallback=False)
+                logger.info("translate_stream: doc_en subset_fonts complete")
+            except Exception as subset_err:
+                logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])
+        # === 书签（/Outlines）：翻译标题并重建到 mono/dual 文档（P0-3） ===
+        # 在子集化之后、写出之前重建，避免子集化影响新写入的 outline 对象。
+        _apply_bookmarks(
+            doc_zh, doc_en, stream.getvalue(),
+            service=service, lang_in=lang_in, lang_out=lang_out,
+            envs=envs, prompt=prompt, ignore_cache=ignore_cache,
+        )
+        logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
+        try:
+            _write_start = _merge_time.time()
             # clean=True 会触发 MuPDF 内容流消毒器，实测会把 converter 生成的
             # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
             # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
             doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
+            logger.info("translate_stream: doc_zh write OK (size=%d bytes, %.1fs)", len(doc_dual), _merge_time.time() - _write_start)
+        except Exception as write_err:
+            logger.error("translate_stream: doc_zh write failed: %s", write_err)
+            raise
+        logger.info("translate_stream: writing doc_en (mono) PDF bytes...")
+        try:
+            _write_start = _merge_time.time()
             doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
-        finally:
-            doc_en.close()
-            doc_zh.close()
-        if callable(progress_cb):
+            logger.info("translate_stream: doc_en write OK (size=%d bytes, %.1fs)", len(doc_mono), _merge_time.time() - _write_start)
+        except Exception as write_err:
+            logger.error("translate_stream: doc_en write failed: %s", write_err)
+            raise
+        logger.info("translate_stream: write complete (mono=%d bytes, dual=%d bytes, total=%.1fs)", len(doc_mono), len(doc_dual), _merge_time.time() - _merge_start)
+        # V1.19: TOC 观察报告落盘（PDF2ZH_TOC_REPORT=1；无环境变量时零开销）
+        if os.environ.get("PDF2ZH_TOC_REPORT", "") == "1":
             try:
-                progress_cb(100.0, f"No extractable text ({page_count} page(s)); passthrough")
-            except Exception:
-                pass
-        logger.info(
-            "translate_stream: passthrough complete (mono=%d bytes, dual=%d bytes, %.1fs)",
-            len(doc_mono), len(doc_dual), time.perf_counter() - _pt_start,
-        )
+                _toc_reports = getattr(device, "_toc_reports", None) or []
+                if _toc_reports:
+                    _reports_path = stream.name if hasattr(stream, "name") and stream.name else None
+                    if _reports_path:
+                        _dump_base = os.path.splitext(_reports_path)[0]
+                    else:
+                        _dump_base = "pdf2zh_toc_report"
+                    _dump_path = f"{_dump_base}.toc_report.json"
+                    with open(_dump_path, "w", encoding="utf-8") as _rf:
+                        json.dump(_toc_reports, _rf, ensure_ascii=False, indent=1)
+                    logger.info("translate_stream: TOC report written (%d entries) -> %s", len(_toc_reports), _dump_path)
+            except Exception as _dump_err:
+                logger.warning("translate_stream: TOC report dump failed: %s", str(_dump_err)[:120])
         return (doc_dual, doc_mono)
-    import sys as _sys_init; _sys_init.stdout.flush()
-    # Phase 1: Document-level font cache
-    font_cache = DocumentFontCache(doc_zh)
-    registered_font_name = font_cache.register(font_path)
-    # font_list = [("GoNotoKurrent-Regular.ttf", font_path), ("tiro", None)]
-    # === 8.1.1 字体嵌入重构：O(N×F) → O(F) ===
-    # 旧实现逐页 `insert_font`（`for page in doc_zh: for font in font_list`），
-    # 每页从磁盘重载同一字体文件（`fz_new_font_from_file`）并嵌入一份副本，
-    # 1918 次调用累计 18.5s（其中 7.5s 磁盘重载 14MB 字体 + 9.66s 逐副本嵌入）。
-    # 重构要点：
-    #   1) `fontbuffer` 一次读入内存，避开按路径重载（`fz_new_font_from_file`）；
-    #   2) `insert_font` 只在文档第一页调用一次，拿到唯一 font_id；
-    #   3) 保留下方 xref 共享广播循环（把字体引用写入各页 `Resources/Font`）。
-    # 空文档（page_count==0）跳过嵌入；xref 广播循环此时因 font_id 为空由
-    # `except Exception` 兜底（与旧行为一致）。
-    font_id = {}
-    if doc_zh.page_count > 0:
-        _font_buffer = None
-        try:
-            with open(font_path, "rb") as _fb:
-                _font_buffer = _fb.read()
-        except OSError:
-            _font_buffer = None
-        _first_page = doc_zh[0]
-        for _fname, _fpath in font_list:
-            if _fpath:
-                # 有真实字体文件 → 优先 fontbuffer 单次嵌入
-                if _font_buffer is not None:
-                    try:
-                        font_id[_fname] = _first_page.insert_font(
-                            _fname, fontbuffer=_font_buffer
-                        )
-                        continue
-                    except Exception:  # noqa: BLE001 -- buffer 路径失败回退路径加载
-                        logger.debug(
-                            "insert_font(fontbuffer=) failed for %s; retry via path",
-                            _fname,
-                        )
-                font_id[_fname] = _first_page.insert_font(_fname, _fpath)
-            else:
-                # 内置字体（tiro）按名称嵌入
-                font_id[_fname] = _first_page.insert_font(_fname, None)
-    xreflen = doc_zh.xref_length()
-    for xref in range(1, xreflen):
-        for label in ["Resources/", ""]:  # 可能是基于 xobj 的 res
-            try:  # xref 读写可能出错
-                font_res = doc_zh.xref_get_key(xref, f"{label}Font")
-                target_key_prefix = f"{label}Font/"
-                if font_res[0] == "xref":
-                    resource_xref_id = re.search("(\\d+) 0 R", font_res[1]).group(1)
-                    xref = int(resource_xref_id)
-                    font_res = ("dict", doc_zh.xref_object(xref))
-                    target_key_prefix = ""
-
-                if font_res[0] == "dict":
-                    for font in font_list:
-                        target_key = f"{target_key_prefix}{font[0]}"
-                        font_exist = doc_zh.xref_get_key(xref, target_key)
-                        if font_exist[0] == "null":
-                            doc_zh.xref_set_key(
-                                xref,
-                                target_key,
-                                f"{font_id[font[0]]} 0 R",
-                            )
-            except Exception:
-                pass
-
-    fp = io.BytesIO()
-
-    doc_zh.save(fp)
-    fp.seek(0)  # Rewind before passing to translate_patch / PDFParser
-
-    # === 2.0: Create TextMetrics instances (M1) ===
-    text_metrics = {}
-    if use_text_metrics and font_path and os.path.exists(font_path):
-        try:
-            from pdf2zh.text_metrics import TextMetrics as _TM
-            tm = _TM(font_path)
-            text_metrics[noto_name] = tm
-            text_metrics[registered_font_name] = tm
-        except Exception as e:
-            logger.warning("TextMetrics init failed (falling back to legacy width): %s", e)
-
-    # === 2.0: Translation cache (L3) ===
-    translation_cache_obj = None
-    if use_translation_cache and not ignore_cache:
-        try:
-            translation_cache_obj = TranslationCache()
-        except Exception as e:
-            logger.warning("TranslationCache init failed: %s", e)
-
-    # === 2.0: Collision Resolver & Layout Graph ===
-    collision_resolver = CollisionResolver()
-    layout_graph = LayoutGraph()
-
-    # Ensure 2.0 module references exist in locals
-    if 'text_metrics' not in dir():
-        text_metrics = {}
-    if 'translation_cache_obj' not in dir():
-        translation_cache_obj = None
-
-    # === 2.0: Parallel page processing (L2) ===
-    page_xref_map = None
-    if parallel_pages and page_count > 5:
-        # P2（V3）：主进程单写者预热 —— 确保 doclayout 模型与 optimized 缓存就绪，
-        # worker 的 OnnxModel 加载直接命中 cached，绝无并发写竞争；预热失败时记录
-        # 并跳过并行（等价于整体串行兜底），不让预热异常重复进 worker 初始化。
-        from pdf2zh.doclayout import DocLayoutModel
-        from pdf2zh.parallel.errors import ParallelError
-        if not DocLayoutModel.ensure_model_prewarmed():
-            logger.warning(
-                "Layout model prewarm failed; skipping page parallelism "
-                "(serial fallback)."
-            )
-            obj_patch = translate_patch(fp, **dict(locals()))
-        else:
-            # 主进程预创建所有页面的新内容流 xref：worker 进程从共享 fp_bytes 各自打开文档后，
-            # get_new_xref() 会从相同的起始编号分配，导致跨 worker 编号冲突，且这些对象只存在于
-            # worker 进程内；主进程 update_stream(page_xref) 会因此报 bad xref / object is no PDF dict。
-            try:
-                page_xref_map = {}
-                for pageno in range(page_count):
-                    xref = doc_zh.get_new_xref()
-                    doc_zh.update_object(xref, "<<>>")
-                    doc_zh.update_stream(xref, b"")
-                    page_xref_map[pageno] = xref
-            except Exception as px_err:
-                logger.warning(
-                    "Failed to pre-create page xrefs (%s), falling back to serial",
-                    str(px_err)[:120],
-                )
-                page_xref_map = None
-                obj_patch = translate_patch(fp, **dict(locals()))
-            else:
-                try:
-                    obj_patch = _translate_parallel(
-                        fp, dict(locals()),
-                        workers=parallel_workers,
-                        page_xref_map=page_xref_map,
-                    )
-                except KeyboardInterrupt:
-                    # V3（§5.4/§5.5）：Ctrl+C 绝不进入串行兜底 —— 直接传播给上层
-                    # 关闭流程（GUI 优雅关闭 / CLI 退出），由上层负责 worker 回收。
-                    raise
-                except ParallelError as parallel_err:
-                    # V3（§5.5）语义化兜底：池整体不可用（bootstrap / 协议违例）
-                    # 才整文档串行重跑；chunk 级失败已在 coordinator 内增量补跑。
-                    logger.warning(
-                        "Parallel engine degraded cleanly (%s: %s); "
-                        "full serial fallback",
-                        type(parallel_err).__name__,
-                        str(parallel_err)[:120],
-                    )
-                    obj_patch = translate_patch(fp, **dict(locals()))
-                except (Exception, SystemExit) as parallel_err:
-                    logger.warning(
-                        "Parallel page processing failed (%s), falling back to serial: %s "
-                        "(tip: fix the GPU backend or disable page parallelism with "
-                        "--backend cpu / parallel_pages=False)",
-                        type(parallel_err).__name__, str(parallel_err)[:120],
-                    )
-                    # 并发 GPU session 冲突（多 worker 同时建 DirectML/CUDA session）
-                    # 是 worker 原生崩溃最常见的诱因；在真正降级 CPU 之前，先用更少
-                    # 的 worker 重试一次整个翻译（仍然并行架构，只是并发度减半）。
-                    if isinstance(parallel_err, BrokenProcessPool):
-                        try:
-                            retry_workers = max(1, (parallel_workers or 4) // 2)
-                            logger.info(
-                                "Parallel crash detected; retrying the whole task "
-                                "with %d worker(s) before degrading to CPU...",
-                                retry_workers,
-                            )
-                            obj_patch = _translate_parallel(
-                                fp, dict(locals()),
-                                workers=retry_workers,
-                                page_xref_map=page_xref_map,
-                            )
-                            parallel_err = None
-                            logger.info(
-                                "Reduced-worker parallel retry succeeded; "
-                                "continuing without CPU degradation."
-                            )
-                        except (Exception, SystemExit) as retry_err:
-                            parallel_err = retry_err
-                            logger.warning(
-                                "Reduced-worker retry also failed (%s), degrading to CPU.",
-                                type(retry_err).__name__,
-                            )
-                    if parallel_err is not None:
-                        # 自动降级：worker 进程被终止（BrokenProcessPool）时把后端切到 CPU，
-                        # 并让本次串行回退也按 CPU provider 重新加载模型，保证
-                        # "降级即生效"，且崩溃后的 GPU session 不再参与本任务。
-                        degraded = _degrade_backend_on_crash(
-                            parallel_err,
-                            progress_cb=dict(locals()).get("progress_cb"),
-                            context=f"pages={page_count} workers={parallel_workers}",
-                        )
-                        if degraded:
-                            from pdf2zh.doclayout import ModelInstance as _RemodelInst
-                            from pdf2zh.doclayout import OnnxModel as _RemodelOnnx
-                            try:
-                                _RemodelInst.value = _RemodelOnnx.load_available()
-                            except Exception as _remodel_err:
-                                logger.warning(
-                                    "CPU model reload after degradation failed: %s",
-                                    str(_remodel_err)[:120],
-                                )
-                            # 覆盖本次的 model local，让串行回退使用 CPU 模型；
-                            # 若重新加载失败，退回原 model（可能仍可用），
-                            # 总比 model=None 在 translate_patch 里崩溃强。
-                            model = _RemodelInst.value or locals().get("model")
-                        # Serial fallback: use locals directly (all objects available in current process)
-                        obj_patch = translate_patch(fp, **dict(locals()))
-    else:
-        obj_patch = translate_patch(fp, **dict(locals()))
-
-    # Phase D: 并行路径的可观测 payload 经 __obs__ 私有键回传，这里并入 v3_output
-    if v3_output is not None and isinstance(obj_patch, dict) and \
-            "__obs__" in obj_patch:
-        v3_output["observability"] = obj_patch.pop("__obs__")
-
-    total_objs = len(obj_patch)
-    for idx, (obj_id, ops_new) in enumerate(obj_patch.items()):
-        try:
-            # Validate that the obj_id references a dict/stream before updating
-            xref_type = doc_zh.xref_object(obj_id, compressed=True)
-            if not xref_type.startswith('<<'):
-                logger.warning(
-                    'Skipping obj_id %s: not a PDF dict (xref_object starts with %r)',
-                    obj_id, xref_type[:40],
-                )
-                continue
-            doc_zh.update_stream(obj_id, ops_new.encode())
-        except ValueError as ve:
-            logger.warning(
-                'Skipping obj_id %s (ValueError: %s) — common for non-stream objects',
-                obj_id, str(ve)[:80],
-            )
-        except Exception as stream_err:
-            logger.warning(
-                'Skipping obj_id %s update_stream error: %s',
-                obj_id, str(stream_err)[:120],
-            )
-        if idx % 5 == 0 or idx == total_objs - 1:
-            logger.info("translate_stream: updated stream %d/%d (%.0f%%)", idx + 1, total_objs, (idx + 1) / total_objs * 100)
-
-    # 并行模式下 worker 进程不会修改主进程 doc_zh 的页面 /Contents，
-    # 这里统一将每个页面指向其新的（已写入译文指令流的）内容流对象。
-    if page_xref_map:
-        for _px_pageno, _px_xref in page_xref_map.items():
-            try:
-                doc_zh[_px_pageno].set_contents(_px_xref)
-            except Exception as se:
-                logger.warning(
-                    "set_contents failed for page %s (xref %s): %s",
-                    _px_pageno, _px_xref, str(se)[:80],
-                )
-
-    # === V8.5: 超链接重定位（必须发生在 insert_file 合并之前，译副本才能继承修正 rect） ===
-    # 用 converter side-channel 采集的段落源→目标几何，把译文页面上继承自原文的
-    # link /Rect 重新投影到译文实际渲染位置（mono 原文页的锚点保持原样不动）。
-    if relink_links:
-        try:
-            link_stats = _relink_translated_doc(doc_zh, v3_output)
-            if any(link_stats["relinked"] for _ in [0]):
-                logger.info(
-                    "translate_stream: relinked %d links across %d pages",
-                    link_stats["relinked"], link_stats["pages"],
-                )
-        except Exception as relink_err:
-            logger.warning("translate_stream: link relink skipped: %s", str(relink_err)[:160])
-
-    # === V8.6: 图片翻译 + 内容保护决策的 side-channel（仅采集回传，不改渲染） ===
-    if emit_preservation:
-        try:
-            pres_stats = _collect_preservation_side_channel(
-                doc_zh, v3_output,
-                image_engine=image_engine,
-                content_preservation=content_preservation,
-                image_render=image_render,
-            )
-            if pres_stats and pres_stats["objects"]:
-                logger.info(
-                    "translate_stream: preservation decided %d image objects "
-                    "(translate=%d preserve=%d overlay=%d)",
-                    pres_stats["objects"], pres_stats["translated"],
-                    pres_stats["preserved"], pres_stats["overlay"],
-                )
-        except Exception as pres_err:
-            logger.warning("translate_stream: preservation skipped: %s", str(pres_err)[:160])
-
-    logger.info("=" * 60)
-    logger.info("translate_stream: MERGING %d pages (this may take a while for large PDFs)...", page_count)
-    logger.info("=" * 60)
-    import time as _merge_time
-    import sys as _sys
-    try:
-        _merge_start = _merge_time.time()
-        logger.info("translate_stream: calling doc_en.insert_file(doc_zh)...")
-        _sys.stdout.flush()
-        _sys.stderr.flush()
-        doc_en.insert_file(doc_zh)
-        _insert_elapsed = _merge_time.time() - _merge_start
-        logger.info("translate_stream: insert_file OK (%.1fs), reordering %d pages...", _insert_elapsed, page_count)
-        _sys.stdout.flush()
-        for id in range(page_count):
-            doc_en.move_page(page_count + id, id * 2 + 1)
-            if id % 5 == 0 or id == page_count - 1:
-                logger.info("translate_stream: moved page %d/%d (%.1f%% done)", id + 1, page_count, (id + 1) / page_count * 100)
-                _sys.stdout.flush()
-                _sys.stderr.flush()
-        _merge_total = _merge_time.time() - _merge_start
-        logger.info("translate_stream: page merge complete (%d pages, %.1fs total)", page_count, _merge_total)
-    except Exception as merge_err:
-        logger.error("translate_stream: page merge failed after %.1fs: %s", _merge_time.time() - _merge_start, merge_err)
-        raise
-    def _protect_math_fonts(doc):
-        """保护已知数学字体不被 MuPDF subset_fonts 子集化破坏宽度"""
-        try:
-            xreflen = doc.xref_length()
-            for xref in range(1, xreflen):
-                try:
-                    subtype_res = doc.xref_get_key(xref, "/Subtype")
-                    if subtype_res[0] == "name" and "Type3" in str(subtype_res[1]):
-                        # Type3 字体跳过子集化
-                        doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
-                except Exception:
-                    pass
-                try:
-                    basefont_res = doc.xref_get_key(xref, "/BaseFont")
-                    if basefont_res[0] == "name":
-                        bf = str(basefont_res[1])
-                        math_patterns = [
-                            "CM", "CMSY", "CMEX", "CMMI", "EUFM", "MSBM", "MSAM",
-                            "STIX", "XITS", "MnSymbol", "rsfs", "txsy", "wasy", "stmary",
-                            "Symbol", "MT", "BL", "RM", "EU", "LA", "RS"
-                        ]
-                        for mp in math_patterns:
-                            if mp in bf:
-                                doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
-                                break
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-    logger.info("translate_stream: subsetting fonts...")
-    if not skip_subset_fonts:
-        _subset_start = _merge_time.time()
-        # 在子集化前保护数学字体
-        _protect_math_fonts(doc_zh)
-        _protect_math_fonts(doc_en)
-        logger.info("translate_stream: subsetting doc_zh fonts...")
-        try:
-            doc_zh.subset_fonts(fallback=False)
-            logger.info("translate_stream: doc_zh subset_fonts complete")
-        except Exception as subset_err:
-            logger.warning("subset_fonts failed for doc_zh: %s", str(subset_err)[:120])
-        logger.info("translate_stream: subsetting doc_en fonts...")
-        try:
-            doc_en.subset_fonts(fallback=False)
-            logger.info("translate_stream: doc_en subset_fonts complete")
-        except Exception as subset_err:
-            logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])
-    # === 书签（/Outlines）：翻译标题并重建到 mono/dual 文档（P0-3） ===
-    # 在子集化之后、写出之前重建，避免子集化影响新写入的 outline 对象。
-    _apply_bookmarks(
-        doc_zh, doc_en, stream.getvalue(),
-        service=service, lang_in=lang_in, lang_out=lang_out,
-        envs=envs, prompt=prompt, ignore_cache=ignore_cache,
-    )
-    logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
-    try:
-        _write_start = _merge_time.time()
-        # clean=True 会触发 MuPDF 内容流消毒器，实测会把 converter 生成的
-        # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
-        # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
-        doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
-        logger.info("translate_stream: doc_zh write OK (size=%d bytes, %.1fs)", len(doc_dual), _merge_time.time() - _write_start)
-    except Exception as write_err:
-        logger.error("translate_stream: doc_zh write failed: %s", write_err)
-        raise
-    logger.info("translate_stream: writing doc_en (mono) PDF bytes...")
-    try:
-        _write_start = _merge_time.time()
-        doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
-        logger.info("translate_stream: doc_en write OK (size=%d bytes, %.1fs)", len(doc_mono), _merge_time.time() - _write_start)
-    except Exception as write_err:
-        logger.error("translate_stream: doc_en write failed: %s", write_err)
-        raise
-    logger.info("translate_stream: write complete (mono=%d bytes, dual=%d bytes, total=%.1fs)", len(doc_mono), len(doc_dual), _merge_time.time() - _merge_start)
-    # V1.19: TOC 观察报告落盘（PDF2ZH_TOC_REPORT=1；无环境变量时零开销）
-    if os.environ.get("PDF2ZH_TOC_REPORT", "") == "1":
-        try:
-            _toc_reports = getattr(device, "_toc_reports", None) or []
-            if _toc_reports:
-                _reports_path = stream.name if hasattr(stream, "name") and stream.name else None
-                if _reports_path:
-                    _dump_base = os.path.splitext(_reports_path)[0]
-                else:
-                    _dump_base = "pdf2zh_toc_report"
-                _dump_path = f"{_dump_base}.toc_report.json"
-                with open(_dump_path, "w", encoding="utf-8") as _rf:
-                    json.dump(_toc_reports, _rf, ensure_ascii=False, indent=1)
-                logger.info("translate_stream: TOC report written (%d entries) -> %s", len(_toc_reports), _dump_path)
-        except Exception as _dump_err:
-            logger.warning("translate_stream: TOC report dump failed: %s", str(_dump_err)[:120])
-    doc_en.close()
-    doc_zh.close()
-    logger.info("translate_stream: documents closed")
-    return (doc_dual, doc_mono)
+    finally:
+        if doc_en is not None and not getattr(doc_en, "is_closed", False):
+            doc_en.close()
+        if doc_zh is not None and not getattr(doc_zh, "is_closed", False):
+            doc_zh.close()
+        logger.info("translate_stream: documents closed")
 
 
 def convert_to_pdfa(input_path, output_path):
@@ -1427,13 +1435,18 @@ def _degrade_backend_on_crash(
     降级事件会经 ``progress_cb`` 上报给上层（GUI 进度/日志面板），
     而不是只写在 log 里。
     """
-    from pdf2zh.doclayout import ModelInstance, get_backend, mark_cpu_degraded
+    from pdf2zh.doclayout import (
+        get_backend,
+        mark_cpu_degraded,
+        release_model_instance,
+    )
     prev_backend = get_backend()
     if isinstance(err, BrokenProcessPool) and mark_cpu_degraded():
         # 主进程可能已缓存 GPU session（ModelInstance 全局单例），重置为 None，
         # 使后续任何路径（worker spawn / 串行回退 / 新任务）都按 CPU provider
-        # 重新加载。
-        ModelInstance.value = None
+        # 重新加载。release_model_instance 附带 gc.collect + CUDA empty_cache，
+        # 避免旧 GPU session 的显存滞留到新 session 加载之后。
+        release_model_instance()
         msg = (
             "GPU-backed parallel workers crashed; execution provider degraded "
             "to CPU for this and subsequent translation tasks "

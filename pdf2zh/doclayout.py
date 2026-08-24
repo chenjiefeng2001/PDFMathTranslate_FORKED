@@ -1,4 +1,5 @@
 import abc
+import gc
 import glob
 import json
 import logging
@@ -1329,3 +1330,26 @@ class OnnxModel(DocLayoutModel):
 
 class ModelInstance:
     value: OnnxModel = None
+
+
+def release_model_instance() -> None:
+    """Drop the global layout-model singleton and reclaim native memory.
+
+    A bare ``ModelInstance.value = None`` only removes one reference:
+    exception frames or in-flight closures may keep the ORT session alive,
+    and neither ORT's native heap nor torch's CUDA caching allocator is
+    returned to the OS deterministically without an explicit collection
+    pass. Backend switches / GPU-crash recovery must use this helper so a
+    reload does not stack two sessions' worth of (GPU) memory.
+
+    Note: DirectML device memory is not covered by ``torch.cuda``; the
+    session is still freed by reference counting + ``gc.collect()``.
+    """
+    ModelInstance.value = None
+    gc.collect()
+    try:
+        import torch  # noqa: PLC0415 -- optional at this layer
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:  # noqa: BLE001 -- best-effort reclaim, never raise
+        logger.debug("CUDA empty_cache after model release failed", exc_info=True)

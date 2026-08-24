@@ -885,7 +885,11 @@ class RuntimeService:
         (``resolve_providers`` auto-falls-back to CPU when a GPU provider is
         unavailable, so an explicit cuda/dml request never hard-fails).
         """
-        from pdf2zh.doclayout import ModelInstance, get_backend, set_backend
+        from pdf2zh.doclayout import (  # noqa: PLC0415
+            get_backend,
+            release_model_instance,
+            set_backend,
+        )
 
         wanted = (request.backend or "auto").strip().lower() or "auto"
         if wanted not in ("auto", "cpu", "cuda", "dml"):
@@ -899,7 +903,9 @@ class RuntimeService:
             set_backend(wanted)
             # 全局已缓存的 ONNX session 基于旧 provider 构建；重置后
             # _execute_legacy/_execute_babeldoc 会按新后端重新加载模型。
-            ModelInstance.value = None
+            # release_model_instance 额外做 gc.collect + CUDA empty_cache，
+            # 确保旧 provider 的 native/GPU 内存在重载前确定释放。
+            release_model_instance()
             # 8.2.1 Warm Process Pool：worker 后端在建池时固定（initializer
             # 只在建池时执行一次）；后端切换后旧池的 worker 仍持有旧 provider，
             # 必须重建池。未启用时 shutdown 为幂等空操作。
@@ -1593,13 +1599,18 @@ class RuntimeService:
                         cancel_event: Optional[threading.Event] = None) -> None:
         """Execute with Legacy translate_stream pipeline."""
         from pdf2zh.high_level import translate_stream
-        from pdf2zh.doclayout import ModelInstance, OnnxModel
+        from pdf2zh.doclayout import (  # noqa: PLC0415
+            ModelInstance,
+            OnnxModel,
+            is_cpu_degraded,
+            release_model_instance,
+            try_rearm_gpu,
+        )
 
         config = config or self.config
         total_files = self._batch_total(task_id)
 
         # Ensure layout model is loaded before translation
-        from pdf2zh.doclayout import is_cpu_degraded, try_rearm_gpu
         if is_cpu_degraded():
             rearmed = try_rearm_gpu()
             if rearmed:
@@ -1609,7 +1620,9 @@ class RuntimeService:
                     "A second crash will keep the backend on CPU for this session.",
                     task_id,
                 )
-                ModelInstance.value = None  # GPU session 在崩溃后已重置，重载
+                # GPU session 在崩溃后已重置；显式回收确保重载前旧 native/GPU
+                # 内存确定释放（异常路径可能有闭包仍持有 InferenceSession 引用）。
+                release_model_instance()
             else:
                 logger.warning(
                     "[task=%s] Process backend is CPU-degraded (previous GPU worker crash); "

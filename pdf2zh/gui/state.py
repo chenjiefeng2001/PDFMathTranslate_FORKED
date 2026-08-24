@@ -16,6 +16,15 @@ from typing import Any, Dict, List, Optional
 
 MAX_CONCURRENCY = 4
 
+# ── GC/leak guard: bounded task store ────────────────────────────────────────
+
+#: Terminal statuses whose TaskState objects are only kept for UI history.
+#: Long-lived GUI/backend processes previously accumulated them forever.
+TERMINAL_STATUSES = frozenset({"completed", "cancelled", "failed"})
+
+#: Max retained terminal-state tasks (FIFO eviction of the oldest).
+MAX_TERMINAL_TASKS = 100
+
 # ── Global Task Store ────────────────────────────────────────────────────────
 
 
@@ -93,6 +102,28 @@ _GLOBAL_TASK_STORE: Dict[str, TaskState] = {}
 _GLOBAL_TASK_QUEUE: List[str] = []
 
 
+def _prune_terminal_locked() -> None:
+    """Evict the oldest terminal-state tasks beyond ``MAX_TERMINAL_TASKS``.
+
+    Caller must hold ``_lock``. Active (non-terminal) tasks are never
+    evicted; queue entries of removed tasks are dropped as well.
+    """
+    terminal = sorted(
+        (
+            (state.updated_at, tid)
+            for tid, state in _GLOBAL_TASK_STORE.items()
+            if state.status in TERMINAL_STATUSES
+        ),
+    )
+    excess = len(terminal) - MAX_TERMINAL_TASKS
+    if excess <= 0:
+        return
+    for _, tid in terminal[:excess]:
+        _GLOBAL_TASK_STORE.pop(tid, None)
+        if tid in _GLOBAL_TASK_QUEUE:
+            _GLOBAL_TASK_QUEUE.remove(tid)
+
+
 class GlobalTaskStore:
     """Thread-safe accessor for the global task store."""
 
@@ -105,6 +136,7 @@ class GlobalTaskStore:
     def set(task_id: str, state: TaskState) -> None:
         with _lock:
             _GLOBAL_TASK_STORE[task_id] = state
+            _prune_terminal_locked()
 
     @staticmethod
     def remove(task_id: str) -> None:
@@ -128,6 +160,7 @@ class GlobalTaskStore:
                 if hasattr(state, k):
                     setattr(state, k, v)
             state.updated_at = time.time()
+            _prune_terminal_locked()
             return state
 
     @staticmethod
