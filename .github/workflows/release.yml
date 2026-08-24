@@ -1,14 +1,27 @@
 # =============================================================================
 # Build & Publish Release
 # -----------------------------------------------------------------------------
-# 鍦?GitHub Actions 杩滅鎵撳寘骞跺彂甯?Release 鐗堟湰锛堥€傞厤 fork / 浠绘剰浠撳簱锛夈€?#
-# 瑙﹀彂鏂瑰紡锛?#   1. workflow_dispatch锛堟墜鍔級锛?#      - version      : 鍙戝竷鐗堟湰鍙凤紝濡?1.9.12 鎴?v1.9.12锛堢暀绌哄垯璇诲彇 pyproject.toml锛?#      - publish_pypi : 鏄惁鍚屾椂鍙戝竷 sdist/wheel 鍒?PyPI锛堥渶瑕?PYPI_API_TOKEN secret
-#                       鎴栧凡閰嶇疆 Trusted Publishing锛?#      - run_tests    : 鍙戝竷鍓嶆槸鍚﹁繍琛屽畬鏁存祴璇曞浠讹紙澶嶇敤 python-test.yml锛?#      - prerelease   : 鏄惁鏍囪涓洪鍙戝竷
-#   2. push tags v*   : 鎺ㄩ€?v1.x.x 褰㈠紡鐨?tag 鏃惰嚜鍔ㄦ瀯寤哄苟鍙戝竷銆?#
-# 浜х墿锛堝叏閮ㄤ笂浼犲埌瀵瑰簲 tag 鐨?GitHub Release锛夛細
-#   - PDFMathTranslate_<tag>_x64-setup.exe 锛圱auri v2 妗岄潰瀹夎鍖咃紝鎺ㄨ崘锛?#     鍐呯疆 REST/SSE API sidecar 涓?SPA 鍓嶇锛?#   - pdf2zh-<tag>-with-assets-win64.zip  锛圕LI 缁胯壊鐗堬紝鍐呯疆瀛椾綋/妯″瀷绛夌绾胯祫婧愶級
-#   - pdf2zh-<tag>-win64.zip              锛圕LI 缁胯壊鐗堬紝杩愯鏃舵寜闇€涓嬭浇璧勬簮锛?#   - pdf2zh-<version>.whl / .tar.gz      锛圥ython sdist + wheel锛?#
-# 鎵€闇€鏉冮檺锛氬伐浣滄祦闇€寮€鍚?Actions 鐨勮鍐欐潈闄?#   锛圫ettings > Actions > General > Workflow permissions: Read and write permissions锛?# =============================================================================
+# 在 GitHub Actions 远端打包并发布 Release 版本（适配 fork / 任意仓库）。
+#
+# 触发方式：
+#   1. workflow_dispatch（手动）：
+#      - version      : 发布版本号，如 1.9.12 或 v1.9.12（留空则读取 pyproject.toml）
+#      - publish_pypi : 是否同时发布 sdist/wheel 到 PyPI（需要 PYPI_API_TOKEN secret
+#                       或已配置 Trusted Publishing）
+#      - run_tests    : 发布前是否运行完整测试套件（复用 python-test.yml）
+#      - prerelease   : 是否标记为预发布
+#   2. push tags v*   : 推送 v1.x.x 形式的 tag 时自动构建并发布。
+#
+# 产物（全部上传到对应 tag 的 GitHub Release）：
+#   - PDFMathTranslate_<tag>_x64-setup.exe （Tauri v2 桌面安装包，推荐；
+#     内置 REST/SSE API sidecar 与 SPA 前端）
+#   - pdf2zh-<tag>-with-assets-win64.zip  （CLI 绿色版，内置字体/模型等离线资源）
+#   - pdf2zh-<tag>-win64.zip              （CLI 绿色版，运行时按需下载资源）
+#   - pdf2zh-<version>.whl / .tar.gz      （Python sdist + wheel）
+#
+# 所需权限：工作流需开启 Actions 的读写权限
+#   （Settings > Actions > General > Workflow permissions: Read and write permissions）
+# =============================================================================
 
 name: Build & Publish Release
 
@@ -51,7 +64,7 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # 瑙ｆ瀽骞舵牎楠屾湰娆″彂甯冪増鏈彿
+  # 解析并校验本次发布版本号
   # ---------------------------------------------------------------------------
   version:
     name: Resolve version
@@ -82,7 +95,8 @@ jobs:
           echo "Resolved release version: $VERSION (git tag v$VERSION)"
 
   # ---------------------------------------------------------------------------
-  # 鍙€夛細鍙戝竷鍓嶈繍琛屽畬鏁存祴璇曞浠讹紙澶嶇敤 python-test.yml锛?  # ---------------------------------------------------------------------------
+  # 可选：发布前运行完整测试套件（复用 python-test.yml）
+  # ---------------------------------------------------------------------------
   test:
     name: Run test suite
     needs: version
@@ -92,7 +106,7 @@ jobs:
     uses: ./.github/workflows/python-test.yml
 
   # ---------------------------------------------------------------------------
-  # 鏋勫缓 Python sdist + wheel
+  # 构建 Python sdist + wheel
   # ---------------------------------------------------------------------------
   build-python:
     name: Build sdist & wheel
@@ -121,7 +135,8 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 鏋勫缓 Windows x64 鍙墽琛岀増锛堝鐢?script/build-win64.ps1锛?  # 浜х墿鍦?script/build/ 涓嬶紝鎵撳寘鎴?with-assets / without-assets 涓や釜 zip
+  # 构建 Windows x64 可执行版（复用 script/build-win64.ps1）
+  # 产物在 script/build/ 下，打包成 with-assets / without-assets 两个 zip
   # ---------------------------------------------------------------------------
   build-win64:
     name: Build Windows x64 exe
@@ -209,8 +224,12 @@ jobs:
           compression-level: 0
 
   # ---------------------------------------------------------------------------
-  # 鏋勫缓 Tauri v2 妗岄潰鍖咃紙鎺ㄨ崘鍒嗗彂褰㈡€侊級锛?  #   [1/3] REST/SSE API sidecar锛歅yInstaller onedir锛坉eploy/pdf2zh-api-sidecar.spec锛?  #   [2/3] SPA 闈欐€佷骇鐗╋細npm run build 鈫?frontend/dist
-  #   [3/3] npx tauri build 鈫?NSIS 瀹夎鍣?  # 涓庢湰鍦?script/build-tauri.ps1 鐨勪笁娈甸摼璺竴涓€瀵瑰簲銆?  # ---------------------------------------------------------------------------
+  # 构建 Tauri v2 桌面包（推荐分发形态），三段链路与本地
+  # script/build-tauri.ps1 一一对应：
+  #   [1/3] REST/SSE API sidecar：PyInstaller onedir（deploy/pdf2zh-api-sidecar.spec）
+  #   [2/3] SPA 静态产物：npm ci + npm run build → frontend/dist
+  #   [3/3] npx tauri build → NSIS 安装器
+  # ---------------------------------------------------------------------------
   build-tauri-win64:
     name: Build Windows Tauri desktop
     needs: version
@@ -241,7 +260,8 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
 
-      # [1/3] sidecar锛氬湪 uv 绠＄悊鐨勯」鐩幆澧冨唴璺?PyInstaller锛坥nedir锛?      - name: Build API sidecar (PyInstaller onedir)
+      # [1/3] sidecar：在 uv 管理的项目环境内跑 PyInstaller（onedir）
+      - name: Build API sidecar (PyInstaller onedir)
         shell: pwsh
         run: |
           uv sync --python "${{ env.WIN_EXE_PYTHON_VERSION }}"
@@ -264,7 +284,8 @@ jobs:
             -Destination $target -Recurse -Force
           Get-ChildItem $target | Select-Object -First 5 Name
 
-      # [2/3] SPA 闈欐€佷骇鐗?      - name: Build SPA (tsc + vite)
+      # [2/3] SPA 静态产物
+      - name: Build SPA (tsc + vite)
         working-directory: frontend
         shell: pwsh
         run: |
@@ -272,7 +293,9 @@ jobs:
           npm run build
           if (-not (Test-Path "dist/index.html")) { throw "SPA dist/index.html missing" }
 
-      # [3/3] Tauri 鎵撳寘锛氫互 release tag 瑕嗙洊 conf 鍐呯殑鍗犱綅 version锛?      # 瀹夎鍣ㄦ枃浠跺悕闅忎箣鎼哄甫姝ｇ‘鐗堟湰鍙枫€?      - name: Tauri build (NSIS bundle)
+      # [3/3] Tauri 打包：以 release tag 覆盖 conf 内的占位 version，
+      # 安装器文件名随之携带正确版本号。
+      - name: Tauri build (NSIS bundle)
         shell: pwsh
         env:
           TAURI_VERSION: ${{ needs.version.outputs.version }}
@@ -324,7 +347,8 @@ jobs:
           compression-level: 0
 
   # ---------------------------------------------------------------------------
-  # Windows exe 鍐掔儫娴嬭瘯锛堢増鏈緭鍑?+ 鐪熷疄缈昏瘧涓や釜娴嬭瘯 PDF锛?  # ---------------------------------------------------------------------------
+  # Windows exe 冒烟测试（版本输出 + 真实翻译两个测试 PDF）
+  # ---------------------------------------------------------------------------
   smoke-test-win64:
     name: Smoke-test Windows exe
     needs: build-win64
@@ -359,7 +383,8 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # 鍒涘缓 / 鏇存柊 GitHub Release 骞朵笂浼犲叏閮ㄨ祫浜?  # ---------------------------------------------------------------------------
+  # 创建 / 更新 GitHub Release 并上传全部资产
+  # ---------------------------------------------------------------------------
   publish:
     name: Publish GitHub Release
     needs: [version, build-python, build-win64, smoke-test-win64, build-tauri-win64]
@@ -424,8 +449,9 @@ jobs:
           gh release view "$TAG" --json tagName,assets --jq '.tagName, (.assets[].name)'
 
   # ---------------------------------------------------------------------------
-  # 鍙€夛細鍙戝竷 Python 鍖呭埌 PyPI
-  #   闇€瑕?PYPI_API_TOKEN secret锛屾垨宸蹭负浠撳簱閰嶇疆 Trusted Publishing銆?  # ---------------------------------------------------------------------------
+  # 可选：发布 Python 包到 PyPI
+  #   需要 PYPI_API_TOKEN secret，或已为仓库配置 Trusted Publishing。
+  # ---------------------------------------------------------------------------
   publish-pypi:
     name: Publish to PyPI (optional)
     needs: [version, build-python]
