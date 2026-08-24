@@ -7,6 +7,7 @@
 - convert：MagicPdfParseResult → PageModel（块/行/span/字形 + metadata）；
 - to_document_model / build_document_from_results：标注 Pass 全链路可用。
 """
+
 import unittest
 
 from pdf2zh.magicpdf_adapter import MagicPdfAdapter
@@ -29,7 +30,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 0, 300, 24],
                         "spans": [
-                            {"bbox": [0, 0, 300, 24], "content": "Attention", "type": "text"},
+                            {
+                                "bbox": [0, 0, 300, 24],
+                                "content": "Attention",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -59,7 +64,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 90, 400, 120],
                         "spans": [
-                            {"bbox": [0, 90, 400, 120], "content": "x = a + b", "type": "text"},
+                            {
+                                "bbox": [0, 90, 400, 120],
+                                "content": "x = a + b",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -72,7 +81,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 140, 200, 165],
                         "spans": [
-                            {"bbox": [0, 140, 200, 165], "content": "def f(): pass", "type": "text"},
+                            {
+                                "bbox": [0, 140, 200, 165],
+                                "content": "def f(): pass",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -160,7 +173,9 @@ class TestConvert(unittest.TestCase):
 class TestDocumentModel(unittest.TestCase):
     def setUp(self):
         self.bridge = MagicPdfBridge(default_font="Helvetica")
-        self.doc = self.bridge.to_document_model(self.bridge.convert_all(SAMPLE_RESULTS))
+        self.doc = self.bridge.to_document_model(
+            self.bridge.convert_all(SAMPLE_RESULTS)
+        )
 
     def test_document_model(self):
         self.assertEqual(len(self.doc.pages), 1)

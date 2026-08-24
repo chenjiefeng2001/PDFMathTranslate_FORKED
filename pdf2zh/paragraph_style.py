@@ -4,6 +4,7 @@ ParagraphStyle for pdf2zh 2.0.
 Provides consistent line height management independent of font metrics,
 ensuring uniform paragraph spacing across different fonts and languages.
 """
+
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -36,11 +37,22 @@ class ParagraphStyle:
     space_after: float = 2.0
 
     # Language-specific default line spacings
-    LANG_LINE_SPACING: Dict[str, float] = field(default_factory=lambda: {
-        "zh-cn": 1.35, "zh-tw": 1.35, "zh-hans": 1.35, "zh-hant": 1.35,
-        "zh": 1.35, "ja": 1.25, "ko": 1.30,
-        "en": 1.20, "ar": 1.10, "ru": 1.15, "uk": 1.15, "ta": 1.10,
-    })
+    LANG_LINE_SPACING: Dict[str, float] = field(
+        default_factory=lambda: {
+            "zh-cn": 1.35,
+            "zh-tw": 1.35,
+            "zh-hans": 1.35,
+            "zh-hant": 1.35,
+            "zh": 1.35,
+            "ja": 1.25,
+            "ko": 1.30,
+            "en": 1.20,
+            "ar": 1.10,
+            "ru": 1.15,
+            "uk": 1.15,
+            "ta": 1.10,
+        }
+    )
 
     def __post_init__(self):
         if self.line_spacing < 0.8:
@@ -81,6 +93,7 @@ class ParagraphStyle:
 @dataclass
 class TextLine:
     """A single line of laid-out text with positioning info."""
+
     text: str
     x: float
     y: float
@@ -93,6 +106,7 @@ class TextLine:
 @dataclass
 class TextBlock:
     """A paragraph block containing one or more text lines."""
+
     lines: list = field(default_factory=list)
     x0: float = 0.0
     y0: float = 0.0

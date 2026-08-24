@@ -81,7 +81,8 @@ def normalize_ocr_mode(ocr_mode: Optional[str] = None) -> str:
         logger.warning(
             "Ignoring invalid BabelDOC OCR mode %r (expected one of %s); "
             "falling back to 'auto'",
-            raw, list(VALID_OCR_MODES),
+            raw,
+            list(VALID_OCR_MODES),
         )
         return "auto"
     return raw
@@ -100,7 +101,9 @@ def get_babeldoc_ocr_mode(ocr_mode: Optional[str] = None) -> str:
             logger.warning(
                 "Ignoring invalid %s=%r (expected one of %s); "
                 "falling back to the explicit/default OCR mode",
-                _ENV_OCR_MODE, override, list(VALID_OCR_MODES),
+                _ENV_OCR_MODE,
+                override,
+                list(VALID_OCR_MODES),
             )
         else:
             return override
@@ -184,10 +187,9 @@ def _preflight_forced_flags(source_path: str):
                 "; ".join(decision.reasons) or "unknown",
             )
             return True, False, False
-        if (
-            os.environ.get(_ENV_TRUST_PREFLIGHT, "").strip().lower() != "0"
-            and _all_pages_have_text_layer(source_path)
-        ):
+        if os.environ.get(
+            _ENV_TRUST_PREFLIGHT, ""
+        ).strip().lower() != "0" and _all_pages_have_text_layer(source_path):
             logger.info(
                 "文本层质量预检通过（healthy text layer）；跳过 BabelDOC 内部"
                 "扫描二次检测以加速大文档（%s=0 可关闭此优化）",

@@ -1,4 +1,5 @@
 """Tests for FontResolver (Phase 1)."""
+
 import unittest
 from pdf2zh.font_resolver import FontResolver, FontStyle
 
@@ -80,11 +81,14 @@ class TestFontResolver(unittest.TestCase):
     def test_match_unknown_font_serif_default(self):
         """Unknown font without flags should fallback to serif."""
         result = self.resolver_zh.match("SomeRandomFont", 0)
-        self.assertIn(result, [
-            "SourceHanSerifCN-Regular.otf",
-            "SourceHanSansCN-Regular.otf",
-            "NotoSansMonoCJKsc-Regular.otf",
-        ])
+        self.assertIn(
+            result,
+            [
+                "SourceHanSerifCN-Regular.otf",
+                "SourceHanSansCN-Regular.otf",
+                "NotoSansMonoCJKsc-Regular.otf",
+            ],
+        )
 
     # ── Fallback Chain Tests ─────────────────────────────────
 

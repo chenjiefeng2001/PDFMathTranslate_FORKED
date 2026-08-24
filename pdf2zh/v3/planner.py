@@ -195,6 +195,7 @@ Output ONLY the translated text.
 @dataclass
 class TranslationChunk:
     """A single chunk of text to be translated together."""
+
     text: str
     node_ids: List[str]
     chunk_index: int = 0
@@ -203,6 +204,7 @@ class TranslationChunk:
 @dataclass
 class ContextWindow:
     """Context surrounding a translation unit."""
+
     preceding_texts: List[str] = field(default_factory=list)
     following_texts: List[str] = field(default_factory=list)
     doc_title: str = ""
@@ -226,6 +228,7 @@ class TranslationPlan:
         strategy: Chunk strategy name.
         preserve_newlines: Whether to preserve newlines in output.
     """
+
     prompt: str = ""
     template_name: str = ""
     temperature: float = DEFAULT_TEMPERATURE
@@ -236,6 +239,7 @@ class TranslationPlan:
     node_ids: List[str] = field(default_factory=list)
     strategy: str = "single"
     preserve_newlines: bool = True
+
 
 # ── Prompt Manager ────────────────────────────────────────────────────
 
@@ -276,10 +280,11 @@ class PromptManager:
         glossary_section = ""
         if glossary:
             entries = "\n".join(
-                f"  \"{term}\" → \"{translation}\""
-                for term, translation in glossary
+                f'  "{term}" → "{translation}"' for term, translation in glossary
             )
-            glossary_section = f"Glossary (use these translations consistently):\n{entries}\n"
+            glossary_section = (
+                f"Glossary (use these translations consistently):\n{entries}\n"
+            )
 
         # Build context
         context_parts = []
@@ -290,13 +295,23 @@ class PromptManager:
         if context_window.section_title:
             context_parts.append(f"Section: {context_window.section_title}")
         if context_window.preceding_texts:
-            context_parts.append("Preceding text: " + " | ".join(context_window.preceding_texts[-3:]))
+            context_parts.append(
+                "Preceding text: " + " | ".join(context_window.preceding_texts[-3:])
+            )
         if context_window.following_texts:
-            context_parts.append("Following text: " + " | ".join(context_window.following_texts[:2]))
+            context_parts.append(
+                "Following text: " + " | ".join(context_window.following_texts[:2])
+            )
 
-        context = "\n".join(context_parts) if context_parts else "(no additional context)"
+        context = (
+            "\n".join(context_parts) if context_parts else "(no additional context)"
+        )
 
-        instructions = custom_instructions if custom_instructions else "(follow default translation rules)"
+        instructions = (
+            custom_instructions
+            if custom_instructions
+            else "(follow default translation rules)"
+        )
 
         return template.format(
             text=text,
@@ -332,9 +347,10 @@ class ContextBuilder:
 
         # Collect preceding/following texts via content ordering
         all_content = [
-            n for n in graph.nodes
-            if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE,
-                                   NodeType.HEADER, NodeType.FOOTER)
+            n
+            for n in graph.nodes
+            if n.node_type
+            not in (NodeType.DOCUMENT, NodeType.PAGE, NodeType.HEADER, NodeType.FOOTER)
         ]
         content_ids = [n.id for n in all_content]
 
@@ -345,7 +361,7 @@ class ContextBuilder:
             start = max(0, idx - self.max_preceding)
             preceding = all_content[start:idx]
             end = min(len(all_content), idx + 1 + self.max_following)
-            following = all_content[idx + 1:end]
+            following = all_content[idx + 1 : end]
 
         cw.preceding_texts = [n.text for n in preceding if n.text.strip()]
         cw.following_texts = [n.text for n in following if n.text.strip()]
@@ -362,17 +378,20 @@ class ContextBuilder:
 
         # Find section title via SAME_SECTION edges
         section_edges = [
-            e for e in node.out_edges + node.in_edges
+            e
+            for e in node.out_edges + node.in_edges
             if e.edge_type == EdgeType.SAME_SECTION
         ]
         for edge in section_edges:
             other_id = edge.target_id if edge.source_id == node.id else edge.source_id
             other_node = graph.get_node(other_id)
-            if other_node and other_node.node_type in (NodeType.SECTION, NodeType.SUBSECTION):
+            if other_node and other_node.node_type in (
+                NodeType.SECTION,
+                NodeType.SUBSECTION,
+            ):
                 cw.section_title = other_node.text
                 break
         return cw
-
 
 
 # ── Glossary Manager ──────────────────────────────────────────────────
@@ -381,6 +400,7 @@ class ContextBuilder:
 @dataclass
 class GlossaryEntry:
     """A single glossary entry."""
+
     source_term: str
     target_term: str
     aliases: List[str] = field(default_factory=list)
@@ -408,12 +428,16 @@ class GlossaryManager:
         for alias in entry.aliases:
             self._alias_map[alias.lower()] = key
 
-    def add_term(self, source: str, target: str, aliases: Optional[List[str]] = None) -> None:
-        self.add_entry(GlossaryEntry(
-            source_term=source,
-            target_term=target,
-            aliases=aliases or [],
-        ))
+    def add_term(
+        self, source: str, target: str, aliases: Optional[List[str]] = None
+    ) -> None:
+        self.add_entry(
+            GlossaryEntry(
+                source_term=source,
+                target_term=target,
+                aliases=aliases or [],
+            )
+        )
 
     def resolve(self, term: str) -> Optional[str]:
         key = self._alias_map.get(term.lower())
@@ -427,10 +451,7 @@ class GlossaryManager:
         return [e for e in self._entries.values() if e.category == category]
 
     def to_pairs(self, category: Optional[str] = None) -> List[Tuple[str, str]]:
-        return [
-            (e.source_term, e.target_term)
-            for e in self.get_all_entries(category)
-        ]
+        return [(e.source_term, e.target_term) for e in self.get_all_entries(category)]
 
     def clear(self) -> None:
         self._entries.clear()
@@ -442,6 +463,7 @@ class GlossaryManager:
 
 class ChunkStrategy(Enum):
     """Strategies for splitting long content into chunks."""
+
     SINGLE = "single"
     SENTENCE = "sentence"
     PARAGRAPH = "paragraph"
@@ -454,7 +476,9 @@ class ChunkSplitter:
     def __init__(self, max_chars: int = 2000):
         self.max_chars = max_chars
 
-    def split(self, text: str, strategy: ChunkStrategy = ChunkStrategy.SINGLE) -> List[str]:
+    def split(
+        self, text: str, strategy: ChunkStrategy = ChunkStrategy.SINGLE
+    ) -> List[str]:
         if strategy == ChunkStrategy.SINGLE:
             return [text]
         if strategy == ChunkStrategy.PARAGRAPH:
@@ -502,6 +526,7 @@ class ChunkSplitter:
 @dataclass
 class PlannerConfig:
     """Configuration for the Translation Planner."""
+
     source_lang: str = "auto"
     target_lang: str = "zh-CN"
     temperature: float = DEFAULT_TEMPERATURE
@@ -576,7 +601,9 @@ class TranslationPlanner:
             target_lang=self.config.target_lang,
         )
 
-        template_name = node.node_type.value if node.node_type in PROMPT_TEMPLATES else "fallback"
+        template_name = (
+            node.node_type.value if node.node_type in PROMPT_TEMPLATES else "fallback"
+        )
 
         return TranslationPlan(
             prompt=prompt,
@@ -588,13 +615,18 @@ class TranslationPlanner:
             context_window=context,
             node_ids=[node_id],
             strategy=strategy.value,
-            preserve_newlines=(node.node_type not in (NodeType.HEADING, NodeType.CAPTION)),
+            preserve_newlines=(
+                node.node_type not in (NodeType.HEADING, NodeType.CAPTION)
+            ),
         )
 
     def plan_all(self, graph: DocumentGraph) -> Dict[str, TranslationPlan]:
         plans: Dict[str, TranslationPlan] = {}
         skip_types = {
-            NodeType.DOCUMENT, NodeType.PAGE, NodeType.FIGURE, NodeType.TABLE,
+            NodeType.DOCUMENT,
+            NodeType.PAGE,
+            NodeType.FIGURE,
+            NodeType.TABLE,
         }
         for node in graph.nodes:
             if node.node_type in skip_types:
@@ -609,7 +641,10 @@ class TranslationPlanner:
     def plan_by_section(self, graph: DocumentGraph) -> Dict[str, List[TranslationPlan]]:
         sections: Dict[str, List[TranslationPlan]] = {}
         skip_types = {
-            NodeType.DOCUMENT, NodeType.PAGE, NodeType.FIGURE, NodeType.TABLE,
+            NodeType.DOCUMENT,
+            NodeType.PAGE,
+            NodeType.FIGURE,
+            NodeType.TABLE,
         }
         for node in graph.nodes:
             if node.node_type not in (NodeType.SECTION, NodeType.SUBSECTION):
@@ -618,7 +653,11 @@ class TranslationPlanner:
             for edge in node.out_edges:
                 if edge.edge_type == EdgeType.CONTAINS:
                     child = graph.get_node(edge.target_id)
-                    if child and child.text.strip() and child.node_type not in skip_types:
+                    if (
+                        child
+                        and child.text.strip()
+                        and child.node_type not in skip_types
+                    ):
                         try:
                             section_plans.append(self.plan(graph, child.id))
                         except ValueError:
@@ -629,10 +668,16 @@ class TranslationPlanner:
 
 
 __all__ = [
-    "TranslationPlan", "TranslationChunk", "ContextWindow",
-    "PromptManager", "ContextBuilder",
-    "GlossaryEntry", "GlossaryManager",
-    "ChunkStrategy", "ChunkSplitter",
-    "PlannerConfig", "TranslationPlanner",
+    "TranslationPlan",
+    "TranslationChunk",
+    "ContextWindow",
+    "PromptManager",
+    "ContextBuilder",
+    "GlossaryEntry",
+    "GlossaryManager",
+    "ChunkStrategy",
+    "ChunkSplitter",
+    "PlannerConfig",
+    "TranslationPlanner",
     "PROMPT_TEMPLATES",
 ]

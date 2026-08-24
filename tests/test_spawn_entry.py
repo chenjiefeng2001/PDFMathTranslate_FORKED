@@ -14,8 +14,14 @@ class TestSpawnChildDetection:
     def test_recognizes_spawn_marker_anywhere_in_argv(self):
         from pdf2zh.pdf2zh import is_spawn_child
 
-        assert is_spawn_child(["pdf2zh.int", "-I", "--multiprocessing-fork", "fd=1"]) is True
-        assert is_spawn_child(["python", "-I", "pdf2zh.int", "--multiprocessing-fork"]) is True
+        assert (
+            is_spawn_child(["pdf2zh.int", "-I", "--multiprocessing-fork", "fd=1"])
+            is True
+        )
+        assert (
+            is_spawn_child(["python", "-I", "pdf2zh.int", "--multiprocessing-fork"])
+            is True
+        )
         assert is_spawn_child(["-c", "--multiprocessing-fork", "fd=8"]) is True
 
     def test_regular_cli_invocations_are_not_children(self):
@@ -46,7 +52,10 @@ class TestSpawnChildDetection:
         monkeypatch.setattr(multiprocessing, "freeze_support", fake_freezer)
         assert spawn_child_yields_to(["pdf2zh.int", "x.pdf"]) is False
         assert calls == []
-        assert spawn_child_yields_to(["pdf2zh.int", "-I", "--multiprocessing-fork"]) is True
+        assert (
+            spawn_child_yields_to(["pdf2zh.int", "-I", "--multiprocessing-fork"])
+            is True
+        )
         assert calls == [1]
 
     def test_wrapper_script_guards_spawn_reexec(self):

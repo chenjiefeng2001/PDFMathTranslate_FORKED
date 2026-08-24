@@ -68,12 +68,23 @@ def test_invalid_mode_falls_back_to_auto():
 
 def test_legacy_bool_ocr_wins_over_mode():
     # --magicpdf-ocr（历史 bool）等价 on 且优先于 mode。
-    assert resolve_magicpdf_ocr_mode(make_args(magicpdf_ocr=True, magicpdf_ocr_mode="off")) == "on"
+    assert (
+        resolve_magicpdf_ocr_mode(make_args(magicpdf_ocr=True, magicpdf_ocr_mode="off"))
+        == "on"
+    )
 
 
 def test_legacy_bool_false_uses_mode():
-    assert resolve_magicpdf_ocr_mode(make_args(magicpdf_ocr=False, magicpdf_ocr_mode="off")) == "off"
-    assert resolve_magicpdf_ocr_mode(make_args(magicpdf_ocr=False, magicpdf_ocr_mode="on")) == "on"
+    assert (
+        resolve_magicpdf_ocr_mode(
+            make_args(magicpdf_ocr=False, magicpdf_ocr_mode="off")
+        )
+        == "off"
+    )
+    assert (
+        resolve_magicpdf_ocr_mode(make_args(magicpdf_ocr=False, magicpdf_ocr_mode="on"))
+        == "on"
+    )
 
 
 def test_missing_attrs_default_to_auto():
@@ -87,7 +98,9 @@ def test_missing_attrs_default_to_auto():
 def test_cli_parses_mode_choices():
     from pdf2zh.pdf2zh import parse_args
 
-    args = parse_args(["--parse-engine", "magicpdf", "--magicpdf-ocr-mode", "off", "x.pdf"])
+    args = parse_args(
+        ["--parse-engine", "magicpdf", "--magicpdf-ocr-mode", "off", "x.pdf"]
+    )
     assert args.magicpdf_ocr_mode == "off"
     assert args.magicpdf_ocr is False
     assert args.files == ["x.pdf"]
@@ -127,28 +140,38 @@ def _patch_flow(tmp_path, **ns_kw):
 
     with tempfile.TemporaryDirectory() as tmp2:
         args = make_args(files=[pdf_path], output=tmp2, **ns_kw)
-        with patch(
-            "pdf2zh.magicpdf_adapter.MagicPdfAdapter", _FakeAdapter
-        ), patch(
-            "pdf2zh.v3.magicpdf_bridge.MagicPdfBridge.to_document_model",
-            return_value=_FakeDoc(),
-        ), patch(
-            "pdf2zh.v3.magicpdf_bridge.MagicPdfBridge.convert_all",
-            return_value=[],
-        ), patch(
-            "pdf2zh.translator.build_translator", return_value=fake_translator,
-        ), patch(
-            "pdf2zh.v3.document_model.translate_document",
-            return_value={"translated": 0, "preserved": 0},
-        ), patch(
-            "pdf2zh.v3.document_model.render_plan_from_model",
-            return_value=([], Mock()),
-        ), patch(
-            "pdf2zh.v3.render_takeover.fixup_render_plan",
-            return_value=([], {}),
-        ), patch(
-            "pdf2zh.scanned_detection.preflight_scan_check",
-            return_value=Mock(is_scanned=True, reasons=["font_to_unicode: 1.000 >= 0.60"]),
+        with (
+            patch("pdf2zh.magicpdf_adapter.MagicPdfAdapter", _FakeAdapter),
+            patch(
+                "pdf2zh.v3.magicpdf_bridge.MagicPdfBridge.to_document_model",
+                return_value=_FakeDoc(),
+            ),
+            patch(
+                "pdf2zh.v3.magicpdf_bridge.MagicPdfBridge.convert_all",
+                return_value=[],
+            ),
+            patch(
+                "pdf2zh.translator.build_translator",
+                return_value=fake_translator,
+            ),
+            patch(
+                "pdf2zh.v3.document_model.translate_document",
+                return_value={"translated": 0, "preserved": 0},
+            ),
+            patch(
+                "pdf2zh.v3.document_model.render_plan_from_model",
+                return_value=([], Mock()),
+            ),
+            patch(
+                "pdf2zh.v3.render_takeover.fixup_render_plan",
+                return_value=([], {}),
+            ),
+            patch(
+                "pdf2zh.scanned_detection.preflight_scan_check",
+                return_value=Mock(
+                    is_scanned=True, reasons=["font_to_unicode: 1.000 >= 0.60"]
+                ),
+            ),
         ):
             run_magicpdf_main(args)
     return captured
@@ -198,12 +221,15 @@ def test_auto_switch_still_happens_on_auto(monkeypatch):
     from pdf2zh.pdf2zh import _try_auto_switch_magicpdf
 
     ns = make_args(files=["paper.pdf"], parse_engine="legacy", magicpdf_ocr_mode="auto")
-    with patch(
-        "pdf2zh.scanned_detection.preflight_scan_check",
-        return_value=Mock(is_scanned=True, reasons=["scan"]),
-    ), patch(
-        "pdf2zh.engine_env.available_backend",
-        return_value=("cpu", True),
+    with (
+        patch(
+            "pdf2zh.scanned_detection.preflight_scan_check",
+            return_value=Mock(is_scanned=True, reasons=["scan"]),
+        ),
+        patch(
+            "pdf2zh.engine_env.available_backend",
+            return_value=("cpu", True),
+        ),
     ):
         switched = _try_auto_switch_magicpdf(ns)
     assert switched is True

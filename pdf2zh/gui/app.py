@@ -5,6 +5,7 @@ Usage:
 """
 
 from __future__ import annotations
+
 # --- 优先加载 PyTorch 解决 Windows 环境下 DLL 顺序冲突（副作用导入，勿删）---
 try:
     import torch  # noqa: F401
@@ -69,9 +70,16 @@ logger = logging.getLogger(__name__)
 
 #: Statuses considered "actively running" (guards cancel/pause/resume/skip).
 _RUNNING_STATUSES: Tuple[str, ...] = (
-    "pending", "parsing", "normalizing", "analyzing",
-    "planning", "translating", "layouting", "rendering",
-    "evaluating", "repairing",
+    "pending",
+    "parsing",
+    "normalizing",
+    "analyzing",
+    "planning",
+    "translating",
+    "layouting",
+    "rendering",
+    "evaluating",
+    "repairing",
 )
 
 #: Last known task id (needed so a declined cancel dialog can restore the
@@ -100,23 +108,41 @@ BRAND_HTML = (
 
 def _sanitize_html(text: str) -> str:
     """Sanitize text for safe HTML embedding. Removes surrogate characters."""
-    cleaned = "".join(c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd" for c in text)
+    cleaned = "".join(
+        c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd" for c in text
+    )
     return cleaned.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 def on_translate(
-    client_id: str, file_type: str, file_input: Any, link_input: str,
-    service: str, lang_from: str, lang_to: str, page_range: str,
-    page_input: Any, threads: int, skip_subset_fonts: bool,
-    ignore_cache: bool, vfont: str, vchar: str, mode_choice: str,
-    recaptcha_response: str, fl_state: List[str],
-    env0: str, env1: str, env2: str, prompt_env: str,
+    client_id: str,
+    file_type: str,
+    file_input: Any,
+    link_input: str,
+    service: str,
+    lang_from: str,
+    lang_to: str,
+    page_range: str,
+    page_input: Any,
+    threads: int,
+    skip_subset_fonts: bool,
+    ignore_cache: bool,
+    vfont: str,
+    vchar: str,
+    mode_choice: str,
+    recaptcha_response: str,
+    fl_state: List[str],
+    env0: str,
+    env1: str,
+    env2: str,
+    prompt_env: str,
     backend: str,
     ocr_mode: str,
     parse_engine: str,
     magicpdf_ocr: str,
     glossary_files: Any,
-    current_task_id: str, last_inputs: Any = None,
+    current_task_id: str,
+    last_inputs: Any = None,
 ) -> tuple:
     """Handle translate button with double-click prevention.
 
@@ -126,7 +152,10 @@ def on_translate(
     """
     # Resolve effective client_id (supports both Gradio State and JS-side global)
     import __main__ as _main_mod
-    effective_cid = client_id if client_id else getattr(_main_mod, "__pdf2zh_client_id", "")
+
+    effective_cid = (
+        client_id if client_id else getattr(_main_mod, "__pdf2zh_client_id", "")
+    )
     if not effective_cid:
         effective_cid = "client_default"
     if current_task_id:
@@ -136,15 +165,26 @@ def on_translate(
             return current_task_id, gr.update(), last_inputs
     try:
         task_id = submit_translation_task(
-            client_id=effective_cid, file_type=file_type,
-            file_input=file_input, link_input=link_input,
-            service=service, lang_from=lang_from, lang_to=lang_to,
-            page_range=page_range, page_input=page_input,
-            threads=threads, skip_subset_fonts=skip_subset_fonts,
-            ignore_cache=ignore_cache, vfont=vfont, vchar=vchar,
+            client_id=effective_cid,
+            file_type=file_type,
+            file_input=file_input,
+            link_input=link_input,
+            service=service,
+            lang_from=lang_from,
+            lang_to=lang_to,
+            page_range=page_range,
+            page_input=page_input,
+            threads=threads,
+            skip_subset_fonts=skip_subset_fonts,
+            ignore_cache=ignore_cache,
+            vfont=vfont,
+            vchar=vchar,
             mode_choice=mode_choice,
             recaptcha_response=recaptcha_response,
-            fl_state=fl_state, env0=env0, env1=env1, env2=env2,
+            fl_state=fl_state,
+            env0=env0,
+            env1=env1,
+            env2=env2,
             prompt_env=prompt_env,
             backend=backend,
             ocr_mode=ocr_mode,
@@ -159,14 +199,35 @@ def on_translate(
     _last_task_id = task_id
     # 复位 Ctrl+C 旗标：新任务不应被上一次 Ctrl+C 的取消请求立即短路。
     from pdf2zh.parallel.interrupt import reset_interrupt_flag
+
     reset_interrupt_flag()
     saved = (
-        client_id, file_type, file_input, link_input,
-        service, lang_from, lang_to, page_range, page_input,
-        threads, skip_subset_fonts, ignore_cache, vfont, vchar,
-        mode_choice, recaptcha_response, fl_state,
-        env0, env1, env2, prompt_env,
-        backend, ocr_mode, parse_engine, magicpdf_ocr, glossary_files,
+        client_id,
+        file_type,
+        file_input,
+        link_input,
+        service,
+        lang_from,
+        lang_to,
+        page_range,
+        page_input,
+        threads,
+        skip_subset_fonts,
+        ignore_cache,
+        vfont,
+        vchar,
+        mode_choice,
+        recaptcha_response,
+        fl_state,
+        env0,
+        env1,
+        env2,
+        prompt_env,
+        backend,
+        ocr_mode,
+        parse_engine,
+        magicpdf_ocr,
+        glossary_files,
     )
     return task_id, gr.update(interactive=False), saved
 
@@ -195,9 +256,7 @@ def on_cancel(current_task_id: str) -> str:
         return ""
     _last_task_id = tid
     get_runtime_service().cancel_task(tid)
-    EVENT_BUS.publish(
-        TaskCancelled(task_id=tid, message="Cancelled by user")
-    )
+    EVENT_BUS.publish(TaskCancelled(task_id=tid, message="Cancelled by user"))
     return tid
 
 
@@ -228,10 +287,13 @@ def on_skip(current_task_id: str) -> str:
 def _persist_state_to_storage(task_id: str, ts) -> str:
     """Persist current task state to localStorage for cross-session recovery."""
     import json
+
     try:
         results_json = json.dumps(
-            [{"name": r["name"], "path": r["path"]}
-             for r in (getattr(ts, "result_files", None) or [])],
+            [
+                {"name": r["name"], "path": r["path"]}
+                for r in (getattr(ts, "result_files", None) or [])
+            ],
             ensure_ascii=False,
         )
         preview = getattr(ts, "preview_path", None) or ""
@@ -239,11 +301,13 @@ def _persist_state_to_storage(task_id: str, ts) -> str:
         safe_preview = json.dumps(preview)
         safe_results = json.dumps(results_json)
         script = "<script>"
-        script += 'localStorage.setItem("pdf2zh_last_task_id", ' + safe_tid + ');'
-        script += 'localStorage.setItem("pdf2zh_last_preview_path", ' + safe_preview + ');'
-        script += 'localStorage.setItem("pdf2zh_last_results", ' + safe_results + ');'
-        script += 'window.__pdf2zh_last_task_id = ' + safe_tid + ';'
-        script += 'window.__pdf2zh_last_preview = ' + safe_preview + ';'
+        script += 'localStorage.setItem("pdf2zh_last_task_id", ' + safe_tid + ");"
+        script += (
+            'localStorage.setItem("pdf2zh_last_preview_path", ' + safe_preview + ");"
+        )
+        script += 'localStorage.setItem("pdf2zh_last_results", ' + safe_results + ");"
+        script += "window.__pdf2zh_last_task_id = " + safe_tid + ";"
+        script += "window.__pdf2zh_last_preview = " + safe_preview + ";"
         script += "</script>"
         return script
     except Exception:
@@ -295,10 +359,7 @@ def _collect_logs(max_lines: int = 50, task_id: str = "") -> str:
             tagged = [ln for ln in lines if f"task={task_id}" in ln]
             if len(tagged) >= 2:
                 lines = tagged
-        return "\n".join(
-            _sanitize_html(line)
-            for line in lines[-max_lines:]
-        )
+        return "\n".join(_sanitize_html(line) for line in lines[-max_lines:])
     except Exception:
         return ""
 
@@ -366,9 +427,7 @@ class _DeltaAccumulator:
         return list(self._updates.keys())
 
     def as_tuple(self) -> tuple:
-        return tuple(
-            self._updates.get(name, gr.update()) for name in _SYNC_COMPONENTS
-        )
+        return tuple(self._updates.get(name, gr.update()) for name in _SYNC_COMPONENTS)
 
 
 # ── Event -> component renderers (pure functions of the event) ──────────────
@@ -449,9 +508,7 @@ def _render_stage_changed(acc: _DeltaAccumulator, ev: "TaskStageChanged") -> Non
             acc.set("retry_btn", gr.update(visible=False))
 
 
-def _render_progress_changed(
-    acc: _DeltaAccumulator, ev: "TaskProgressChanged"
-) -> None:
+def _render_progress_changed(acc: _DeltaAccumulator, ev: "TaskProgressChanged") -> None:
     # Only the progress bar is re-rendered here. The status badge is tied to
     # the *stage* (see _render_stage_changed); re-setting it on every progress
     # event would replace its DOM mid-animation (pulse-dot), causing visible
@@ -460,7 +517,9 @@ def _render_progress_changed(
         "progress_bar",
         gr.update(
             value=build_progress_bar_html(
-                ev.stage or "running", ev.progress, ev.message or "",
+                ev.stage or "running",
+                ev.progress,
+                ev.message or "",
                 getattr(ev, "eta", 0.0),
             )
         ),
@@ -480,9 +539,7 @@ def _render_progress_changed(
     _render_logs(acc, ev.task_id)
 
 
-def _render_message_changed(
-    acc: _DeltaAccumulator, ev: "TaskMessageChanged"
-) -> None:
+def _render_message_changed(acc: _DeltaAccumulator, ev: "TaskMessageChanged") -> None:
     # Keep the labelled status/progress prefix so the live status text matches
     # the full re-render (a bare message would silently drop the 状态/进度 label).
     svc = get_runtime_service()
@@ -579,7 +636,10 @@ def _render_terminal(
     acc.set("pause_btn", gr.update(interactive=False))
     acc.set("resume_btn", gr.update(interactive=False))
     acc.set("skip_btn", gr.update(interactive=False))
-    acc.set("retry_btn", gr.update(visible=status == "failed", interactive=status == "failed"))
+    acc.set(
+        "retry_btn",
+        gr.update(visible=status == "failed", interactive=status == "failed"),
+    )
     acc.set("status_badge", gr.update(value=build_status_badge_html(status, message)))
     if task_id:
         svc = get_runtime_service()
@@ -618,7 +678,9 @@ def _render_terminal(
         )
         acc.set(
             "status_markdown",
-            gr.update(value=message or f"**{B('label_status')}**: {B('status_cancelled')}"),
+            gr.update(
+                value=message or f"**{B('label_status')}**: {B('status_cancelled')}"
+            ),
         )
 
 
@@ -775,7 +837,9 @@ def _fill_full_state(acc: _DeltaAccumulator, svc, tid: str) -> None:
     pct = ts.progress
 
     bar = build_progress_bar_html(
-        ts.stage or ts.status or "running", pct, ts.message or "",
+        ts.stage or ts.status or "running",
+        pct,
+        ts.message or "",
         getattr(ts, "eta", 0.0),
     )
     st = (
@@ -872,9 +936,7 @@ def _fill_full_state(acc: _DeltaAccumulator, svc, tid: str) -> None:
         node_overview=gr.update(value=ov),
         quality_scores=gr.update(value=qs_md),
         diagnostic_status=gr.update(value=diag_md),
-        result_selector=gr.update(
-            choices=choices, value=sval, visible=bool(choices)
-        ),
+        result_selector=gr.update(choices=choices, value=sval, visible=bool(choices)),
         download_single=gr.update(
             value=download_single_val, visible=done and bool(download_single_val)
         ),
@@ -1028,7 +1090,8 @@ def create_gui() -> gr.Blocks:
     get_handler()
 
     with gr.Blocks(
-        css=UI_CSS, title="PDFMathTranslate",
+        css=UI_CSS,
+        title="PDFMathTranslate",
         theme=gr.themes.Base(primary_hue="blue", neutral_hue="slate"),
         head=SESSION_JS,
     ) as gui:
@@ -1051,12 +1114,15 @@ def create_gui() -> gr.Blocks:
                 elem_classes="theme-toggle-btn",
             )
             recover_gpu_status = gr.Markdown(
-                value="", visible=False, elem_id="recover-gpu-status",
+                value="",
+                visible=False,
+                elem_id="recover-gpu-status",
             )
 
         def _on_recover_gpu():
             """恢复版面分析 GPU 后端：清降级标记，下次任务初始化重新尝试 GPU。"""
             from pdf2zh.doclayout import set_backend
+
             try:
                 set_backend("auto")
                 _hint = B("recover_gpu_ok")
@@ -1103,15 +1169,31 @@ def create_gui() -> gr.Blocks:
                 dc = create_diagnostic_panel()
 
         t_inputs = [
-            gr.State(""), gr.State("file"), uc["file_input"],
-            uc["link_input"], cc["service"], cc["lang_from"],
-            cc["lang_to"], cc["page_range"], gr.State(None),
-            cc["threads"], cc["skip_subset_fonts"],
-            cc["ignore_cache"], cc["vfont"], cc["vchar"],
-            cc["mode_choice"], gr.State(""), file_state,
-            cc["env0"], cc["env1"], cc["env2"], cc["prompt_env"],
-            cc["backend"], cc["ocr_mode"],
-            cc["parse_engine"], cc["magicpdf_ocr"],
+            gr.State(""),
+            gr.State("file"),
+            uc["file_input"],
+            uc["link_input"],
+            cc["service"],
+            cc["lang_from"],
+            cc["lang_to"],
+            cc["page_range"],
+            gr.State(None),
+            cc["threads"],
+            cc["skip_subset_fonts"],
+            cc["ignore_cache"],
+            cc["vfont"],
+            cc["vchar"],
+            cc["mode_choice"],
+            gr.State(""),
+            file_state,
+            cc["env0"],
+            cc["env1"],
+            cc["env2"],
+            cc["prompt_env"],
+            cc["backend"],
+            cc["ocr_mode"],
+            cc["parse_engine"],
+            cc["magicpdf_ocr"],
             cc["glossary_files"],
             task_id_state,
         ]
@@ -1255,7 +1337,9 @@ def _register_preview_route(gui: "gr.Blocks") -> None:
 
         app = gui.app
         if app is None or not hasattr(app, "get"):
-            logger.warning("Could not register /pdf-preview/ route: no FastAPI app available")
+            logger.warning(
+                "Could not register /pdf-preview/ route: no FastAPI app available"
+            )
             return
 
         @app.get("/pdf-preview/{path:path}")
@@ -1268,6 +1352,7 @@ def _register_preview_route(gui: "gr.Blocks") -> None:
                     content_disposition_type="inline",
                 )
             return Response("File not found", status_code=404)
+
     except Exception as route_err:
         logger.warning("Could not register /pdf-preview/ route: %s", route_err)
 
@@ -1282,7 +1367,9 @@ def _register_events_route(gui: "gr.Blocks") -> None:
     try:
         app = gui.app
         if app is None or not hasattr(app, "add_api_route"):
-            logger.warning("Could not register /gui/events route: no FastAPI app available")
+            logger.warning(
+                "Could not register /gui/events route: no FastAPI app available"
+            )
             return
         app.add_api_route(
             "/gui/events",
@@ -1304,13 +1391,17 @@ def _register_logs_route(gui: "gr.Blocks") -> None:
     try:
         app = gui.app
         if app is None or not hasattr(app, "add_api_route"):
-            logger.warning("Could not register /gui/logs route: no FastAPI app available")
+            logger.warning(
+                "Could not register /gui/logs route: no FastAPI app available"
+            )
             return
 
         def logs_endpoint(max_lines: int = 200):
             from starlette.responses import JSONResponse
 
-            lines = get_handler().recent_lines(max_lines=max(1, min(int(max_lines), 1000)))
+            lines = get_handler().recent_lines(
+                max_lines=max(1, min(int(max_lines), 1000))
+            )
             return JSONResponse({"lines": lines, "total": len(lines)})
 
         app.add_api_route(
@@ -1327,8 +1418,8 @@ def main() -> None:
     from pdf2zh.parallel.interrupt import install_interrupt_guard
 
     # Ctrl+C 语义（cancel_only=True）：第一次 Ctrl+C 只取消当前翻译任务、GUI 保持运行
-# 进入空闲（可看预览/重新提交/下载已完成任务）；第二次 Ctrl+C 才关闭应用。后台
-# 翻译线程经 coordinator 轮询/池崩短路感知旗标并落 CANCELLED，绝不进入整文档串行兜底。
+    # 进入空闲（可看预览/重新提交/下载已完成任务）；第二次 Ctrl+C 才关闭应用。后台
+    # 翻译线程经 coordinator 轮询/池崩短路感知旗标并落 CANCELLED，绝不进入整文档串行兜底。
     install_interrupt_guard(cancel_only=True)
 
     # Unified entry through entry.setup_gui() (same as CLI interactive).

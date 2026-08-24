@@ -11,6 +11,7 @@ LTFigure（with.figure.pdf：顶层仅 1 个 LTFigure，4418 字符全在其内�
     LTChar 进主循环 —— 装饰层无文字时平铺为空，行为不变；
   * 局部 LTFigure（Logo/页眉/插图）保持原状，不平铺避免引入垃圾文本。
 """
+
 from __future__ import annotations
 
 from typing import Iterable
@@ -29,9 +30,8 @@ def flatten_page_children(ltpage, page_w: float, page_h: float) -> Iterable:
     for child in ltpage:
         yield child
         if isinstance(child, LTFigure):
-            fig_area = (
-                max(float(child.x1 - child.x0), 0.0)
-                * max(float(child.y1 - child.y0), 0.0)
+            fig_area = max(float(child.x1 - child.x0), 0.0) * max(
+                float(child.y1 - child.y0), 0.0
             )
             if fig_area > _FULL_PAGE_FIGURE_RATIO * page_area:
                 yield from _iter_ltchars(child)

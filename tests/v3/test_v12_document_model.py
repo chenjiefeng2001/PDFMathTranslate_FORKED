@@ -9,6 +9,7 @@
 - 主链路通道：run_document_model 跨页累积；
 - 多页模型 JSON 可序列化（诊断/落盘）。
 """
+
 import json
 import unittest
 from unittest.mock import Mock
@@ -17,8 +18,13 @@ from pdfminer.layout import LTChar, LTPage
 from pdfminer.pdfinterp import PDFResourceManager
 
 from pdf2zh.v3.document_model import (
-    REL_CAPTION_OF, REL_FOLLOWS, REL_TOC_CHILD_OF, DocumentModel,
-    annotate_render, annotate_translation, build_document_model,
+    REL_CAPTION_OF,
+    REL_FOLLOWS,
+    REL_TOC_CHILD_OF,
+    DocumentModel,
+    annotate_render,
+    annotate_translation,
+    build_document_model,
 )
 
 
@@ -51,17 +57,21 @@ def add_text(page, x0, y, text, adv=9.0, fontname="Helvetica"):
 def build_converter(**kwargs):
     from pdf2zh.converter import TranslateConverter
     from pdf2zh.collision_resolver import CollisionResolver
+
     translator = Mock()
     translator.translate = Mock(side_effect=lambda t: "YI" + t)
     translator.lang_in = "en"
     translator.lang_out = "zh-CN"
     from unittest.mock import patch
+
     with patch("pdf2zh.converter.build_translator") as bt:
         bt.return_value = translator
         conv = TranslateConverter(
             PDFResourceManager(),
             layout={},
-            lang_in="en", lang_out="zh-CN", service="stub",
+            lang_in="en",
+            lang_out="zh-CN",
+            service="stub",
         )
     conv.thread = 1
     conv.noto_name = "noto"
@@ -109,32 +119,33 @@ class TestBuildDocumentModel(unittest.TestCase):
         types = [r.type for r in model.relations]
         self.assertIn(REL_FOLLOWS, types)
         p1 = model.pages[0]
-        toc_block = [b for b in p1.blocks
-                     if b.metadata.get("kind") == "toc"][0]
+        toc_block = [b for b in p1.blocks if b.metadata.get("kind") == "toc"][0]
         toc_idx = p1.blocks.index(toc_block)
         child = f"p1_{toc_idx}"
-        rels = [r for r in model.relations
-                if r.type == REL_TOC_CHILD_OF and r.source == child]
+        rels = [
+            r
+            for r in model.relations
+            if r.type == REL_TOC_CHILD_OF and r.source == child
+        ]
         # 无父编号（5.2.1 是根）→ 无 TOC_CHILD_OF；父条目场景见下个用例
         self.assertEqual(rels, [])
 
     def test_toc_child_of_with_parent_entry(self):
         from pdf2zh.v3.canonical_page import annotate_toc_scan
+
         page = LTPage(1, (0, 0, 600, 800))
         add_text(page, 50, 740, "5 Results ...... 290")
         add_text(page, 50, 720, "5.2 Parser ...... 292")
-        p = __import__("pdf2zh.v3.canonical_page",
-                       fromlist=["build_page_model"]).build_page_model(
-            page, page_num=1)
+        p = __import__(
+            "pdf2zh.v3.canonical_page", fromlist=["build_page_model"]
+        ).build_page_model(page, page_num=1)
         annotate_toc_scan(p)
         model = DocumentModel()
         model.add_page(p)
-        rels = [r for r in model.relations
-                if r.type == REL_TOC_CHILD_OF]
+        rels = [r for r in model.relations if r.type == REL_TOC_CHILD_OF]
         self.assertEqual(len(rels), 1)
         parent = [b for b in p.blocks if b.metadata.get("toc_number") == "5"][0]
-        child = [b for b in p.blocks
-                 if b.metadata.get("toc_number") == "5.2"][0]
+        child = [b for b in p.blocks if b.metadata.get("toc_number") == "5.2"][0]
         self.assertEqual(rels[0].source, f"p1_{p.blocks.index(child)}")
         self.assertEqual(rels[0].target, f"p1_{p.blocks.index(parent)}")
 
@@ -142,20 +153,20 @@ class TestBuildDocumentModel(unittest.TestCase):
         page = LTPage(1, (0, 0, 600, 800))
         add_text(page, 50, 700, "Fig. 1. System overview.", fontname="Times")
         add_text(page, 50, 680, "Body text here")
-        p = __import__("pdf2zh.v3.canonical_page",
-                       fromlist=["build_page_model"]).build_page_model(
-            page, page_num=1)
+        p = __import__(
+            "pdf2zh.v3.canonical_page", fromlist=["build_page_model"]
+        ).build_page_model(page, page_num=1)
         from pdf2zh.v3.document_model import annotate_roles
+
         annotate_roles(p)
         # 无 figure 块 → CAPTION_OF 应为空（best-effort，不误报）
         model = DocumentModel()
         model.add_page(p)
-        self.assertFalse(
-            [r for r in model.relations if r.type == REL_CAPTION_OF])
+        self.assertFalse([r for r in model.relations if r.type == REL_CAPTION_OF])
         # 手工造 figure 块验证连线逻辑
-        fig = __import__("pdf2zh.v3.canonical_page",
-                         fromlist=["BlockModel"]).BlockModel(
-            text="", kind="figure", x0=50, y0=720, x1=300, y1=750)
+        fig = __import__(
+            "pdf2zh.v3.canonical_page", fromlist=["BlockModel"]
+        ).BlockModel(text="", kind="figure", x0=50, y0=720, x1=300, y1=750)
         p.blocks.insert(0, fig)
         for b in p.blocks:
             if b.metadata.get("role") == "caption":
@@ -180,20 +191,30 @@ class TestBuildDocumentModel(unittest.TestCase):
         add_text(page, 50, 700, "5.2.1 Parser ...... 292")
         add_text(page, 50, 680, "x^2 + y^2 = z^2")
         from pdf2zh.v3.canonical_page import build_page_model
+
         p = build_page_model(page, page_num=1)
         annotate_render(p)
         for b in p.blocks:
-            self.assertIn(b.metadata["render_path"],
-                          ("overlay", "preserve_float", "translate_refit"))
+            self.assertIn(
+                b.metadata["render_path"],
+                ("overlay", "preserve_float", "translate_refit"),
+            )
 
 
 class TestDocumentModelGraphBridge(unittest.TestCase):
     def test_to_graph_and_ir_view(self):
         from pdf2zh.v3.ir_convergence import converged_snapshot
+
         model = build_document_model(
-            [__import__("tests.v3.test_v12_document_model",
-                        fromlist=["TestBuildDocumentModel"]).
-             TestBuildDocumentModel()._two_pages()[0]])
+            [
+                __import__(
+                    "tests.v3.test_v12_document_model",
+                    fromlist=["TestBuildDocumentModel"],
+                )
+                .TestBuildDocumentModel()
+                ._two_pages()[0]
+            ]
+        )
         g = model.to_graph()
         self.assertGreaterEqual(len(g.nodes), 2)
         # 节点 id 稳定、可寻址
@@ -209,9 +230,15 @@ class TestDocumentModelGraphBridge(unittest.TestCase):
 
     def test_model_json_serializable(self):
         model = build_document_model(
-            [__import__("tests.v3.test_v12_document_model",
-                        fromlist=["TestBuildDocumentModel"]).
-             TestBuildDocumentModel()._two_pages()[0]])
+            [
+                __import__(
+                    "tests.v3.test_v12_document_model",
+                    fromlist=["TestBuildDocumentModel"],
+                )
+                .TestBuildDocumentModel()
+                ._two_pages()[0]
+            ]
+        )
         text = json.dumps(model.to_dict(), ensure_ascii=False)
         self.assertTrue(text)
 
@@ -219,6 +246,7 @@ class TestDocumentModelGraphBridge(unittest.TestCase):
 class TestMainlineDocumentModelChannel(unittest.TestCase):
     def test_run_document_model_accumulates_pages(self):
         from pdf2zh.v3.mainline_wiring import run_document_model
+
         conv = build_converter()
         conv.document_model = None
         p1 = LTPage(1, (0, 0, 600, 800))
@@ -248,8 +276,11 @@ class TestModelConsumption(unittest.TestCase):
     def test_translate_document_decisions(self):
         from pdf2zh.v3.canonical_page import build_page_model
         from pdf2zh.v3.document_model import (
-            DocumentModel, build_document_model, translate_document,
+            DocumentModel,
+            build_document_model,
+            translate_document,
         )
+
         model = build_document_model([self._page_with_toc_and_formula()])
         stats = translate_document(model, lambda t: "译_" + t)
         # toc 描述标题 + 正文翻译；公式 preserve
@@ -257,19 +288,21 @@ class TestModelConsumption(unittest.TestCase):
         self.assertGreaterEqual(stats["preserved"], 1)
         self.assertGreaterEqual(stats["toc_translated"], 1)
         p1 = model.pages[0]
-        translated = [b.metadata["translated"] for b in p1.blocks
-                      if b.metadata.get("translate")]
+        translated = [
+            b.metadata["translated"] for b in p1.blocks if b.metadata.get("translate")
+        ]
         self.assertTrue(any(t.startswith("译_") for t in translated))
         # 公式块 preserve：translated == 原文
-        formula = [b for b in p1.blocks
-                   if b.metadata.get("role") == "formula"][0]
+        formula = [b for b in p1.blocks if b.metadata.get("role") == "formula"][0]
         self.assertEqual(formula.metadata["translated"], "x^2 + y^2 = z^2")
         self.assertFalse(formula.metadata["translate"])
 
     def test_render_plan_from_model(self):
         from pdf2zh.v3.document_model import (
-            build_document_model, render_plan_from_model,
+            build_document_model,
+            render_plan_from_model,
         )
+
         model = build_document_model([self._page_with_toc_and_formula()])
         plan = render_plan_from_model(model)
         self.assertGreaterEqual(len(plan), 3)
@@ -283,8 +316,10 @@ class TestModelConsumption(unittest.TestCase):
 
     def test_toc_records_from_model_schema(self):
         from pdf2zh.v3.document_model import (
-            build_document_model, toc_records_from_model,
+            build_document_model,
+            toc_records_from_model,
         )
+
         model = build_document_model([self._page_with_toc_and_formula()])
         records = toc_records_from_model(model)
         self.assertEqual(len(records), 1)
@@ -296,19 +331,29 @@ class TestModelConsumption(unittest.TestCase):
         self.assertTrue(r["block_id"].startswith("p1_"))
         self.assertTrue(r["matched"])
         # 与 toc_to_ir_records schema 兼容的键都在
-        for key in ("raw", "kind", "level", "number", "title", "page",
-                    "leader", "matched", "title_remainder",
-                    "translated_title", "page_num"):
+        for key in (
+            "raw",
+            "kind",
+            "level",
+            "number",
+            "title",
+            "page",
+            "leader",
+            "matched",
+            "title_remainder",
+            "translated_title",
+            "page_num",
+        ):
             self.assertIn(key, r)
 
     def test_annotate_translation_from_records(self):
         from pdf2zh.v3.canonical_page import build_page_model
         from pdf2zh.v3.document_model import annotate_translation_from_records
+
         page = LTPage(1, (0, 0, 600, 800))
         add_text(page, 50, 700, "5.2.1 Parser ...... 292")
         pm = build_page_model(page, page_num=1)
-        records = [{"text": "5.2.1 Parser ...... 292",
-                    "translated": "译 5.2.1 Parser"}]
+        records = [{"text": "5.2.1 Parser ...... 292", "translated": "译 5.2.1 Parser"}]
         hits = annotate_translation_from_records(pm, records)
         self.assertEqual(hits, 1)
         b = pm.blocks[0]
@@ -319,10 +364,17 @@ class TestModelConsumption(unittest.TestCase):
         """统一模型 → DocumentGraph → 既有 Processor 栈 → IR 视图。"""
         from pdf2zh.v3.document_pipeline import run_semantic_pipeline
         from pdf2zh.v3.ir_convergence import converged_snapshot
+
         model = build_document_model(
-            [__import__("tests.v3.test_v12_document_model",
-                        fromlist=["TestBuildDocumentModel"]).
-             TestBuildDocumentModel()._two_pages()[0]])
+            [
+                __import__(
+                    "tests.v3.test_v12_document_model",
+                    fromlist=["TestBuildDocumentModel"],
+                )
+                .TestBuildDocumentModel()
+                ._two_pages()[0]
+            ]
+        )
         g = model.to_graph()
         report = run_semantic_pipeline(g)
         self.assertTrue(report.ok())

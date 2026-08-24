@@ -117,11 +117,11 @@ def mineru_install_hint() -> str:
     """按当前 Python 版本给出可执行的安装建议（含依赖冲突提示）。"""
     if not prefer_mineru():
         return (
-            "uv pip install -U \"magic-pdf[full]<2\"  # 手动兜底：magic-pdf 1.x"
+            'uv pip install -U "magic-pdf[full]<2"  # 手动兜底：magic-pdf 1.x'
             "（已停更；pip 遇 pymupdf/pdfminer 冲突见 docs/ADVANCED.md）"
         )
     return (
-        "uv pip install -U \"mineru[pipeline]>=3.1\"  "
+        'uv pip install -U "mineru[pipeline]>=3.1"  '
         "# MinerU 3.x（pipeline 本地后端，Py3.10-3.13；模型权重经"
         " MINERU_MODEL_SOURCE=modelscope|huggingface 下载；"
         "pip 遇冲突见 docs/ADVANCED.md）"

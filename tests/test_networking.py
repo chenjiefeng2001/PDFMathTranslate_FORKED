@@ -15,16 +15,20 @@ from pdf2zh import networking
 class TestImportSystemProxyToEnv:
     def _clear_proxy_env(self, monkeypatch):
         for k in (
-            "HTTP_PROXY", "http_proxy",
-            "HTTPS_PROXY", "https_proxy",
-            "ALL_PROXY", "all_proxy",
+            "HTTP_PROXY",
+            "http_proxy",
+            "HTTPS_PROXY",
+            "https_proxy",
+            "ALL_PROXY",
+            "all_proxy",
         ):
             monkeypatch.delenv(k, raising=False)
 
     def test_imports_registry_proxy_when_no_env_proxy(self, monkeypatch):
         self._clear_proxy_env(monkeypatch)
         monkeypatch.setattr(
-            networking, "_read_wininet_proxy",
+            networking,
+            "_read_wininet_proxy",
             lambda: (1, "127.0.0.1:7890", "localhost;<local>"),
         )
         networking.import_system_proxy_to_env()
@@ -55,8 +59,13 @@ class TestImportSystemProxyToEnv:
     def test_per_scheme_registry_value(self, monkeypatch):
         self._clear_proxy_env(monkeypatch)
         monkeypatch.setattr(
-            networking, "_read_wininet_proxy",
-            lambda: (1, "http=127.0.0.1:7890;https=127.0.0.1:7891;socks=127.0.0.1:7892", ""),
+            networking,
+            "_read_wininet_proxy",
+            lambda: (
+                1,
+                "http=127.0.0.1:7890;https=127.0.0.1:7891;socks=127.0.0.1:7892",
+                "",
+            ),
         )
         networking.import_system_proxy_to_env()
         assert os.environ.get("HTTP_PROXY") == "http://127.0.0.1:7890"
@@ -67,17 +76,22 @@ class TestImportSystemProxyToEnv:
 class TestSanitizeLoopbackProxy:
     def _clear_proxy_env(self, monkeypatch):
         for k in (
-            "HTTP_PROXY", "http_proxy",
-            "HTTPS_PROXY", "https_proxy",
-            "ALL_PROXY", "all_proxy",
-            "NO_PROXY", "no_proxy",
+            "HTTP_PROXY",
+            "http_proxy",
+            "HTTPS_PROXY",
+            "https_proxy",
+            "ALL_PROXY",
+            "all_proxy",
+            "NO_PROXY",
+            "no_proxy",
         ):
             monkeypatch.delenv(k, raising=False)
 
     def test_builds_no_proxy_from_registry_override_and_loopback(self, monkeypatch):
         self._clear_proxy_env(monkeypatch)
         monkeypatch.setattr(
-            networking, "_read_wininet_proxy",
+            networking,
+            "_read_wininet_proxy",
             lambda: (1, "127.0.0.1:7890", "localhost;127.*;<local>"),
         )
         networking.sanitize_loopback_proxy()
@@ -98,7 +112,8 @@ class TestSanitizeLoopbackProxy:
         """End-to-end: after sanitize, Google goes through the proxy, loopback does not."""
         self._clear_proxy_env(monkeypatch)
         monkeypatch.setattr(
-            networking, "_read_wininet_proxy",
+            networking,
+            "_read_wininet_proxy",
             lambda: (1, "127.0.0.1:7890", "localhost;127.*;<local>"),
         )
         networking.sanitize_loopback_proxy()

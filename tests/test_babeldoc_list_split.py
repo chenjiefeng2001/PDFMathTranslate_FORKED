@@ -97,9 +97,7 @@ class TestSplitListItems:
                 xs2 = [c.visual_bbox.box.x2 for c in chars]
                 ys2 = [c.visual_bbox.box.y2 for c in chars]
                 paragraph.box = Box(min(xs), min(ys), max(xs2), max(ys2))
-                paragraph.unicode = "".join(
-                    c.char_unicode or "" for c in chars
-                )
+                paragraph.unicode = "".join(c.char_unicode or "" for c in chars)
                 paragraph.xobj_id = chars[0].xobj_id
 
         finder = SimpleNamespace(update_paragraph_data=update_paragraph_data)
@@ -122,8 +120,10 @@ class TestSplitListItems:
                         char_unicode=ch,
                         visual_bbox=SimpleNamespace(
                             box=Box(
-                                x, 100.0 + i * 20.0,
-                                x + 8.0, 100.0 + i * 20.0 + 12.0,
+                                x,
+                                100.0 + i * 20.0,
+                                x + 8.0,
+                                100.0 + i * 20.0 + 12.0,
                             ),
                         ),
                         xobj_id=xobj,
@@ -210,17 +210,10 @@ class TestPatchLifecycle:
         try:
             assert bls.apply_babeldoc_list_split() is True
             assert bls.apply_babeldoc_list_split() is True  # 幂等
-            assert (
-                ParagraphFinder.process_independent_paragraphs
-                is not original
-            )
+            assert ParagraphFinder.process_independent_paragraphs is not original
         finally:
             assert bls.reset_babeldoc_list_split() is True
-            assert (
-                ParagraphFinder.process_independent_paragraphs
-                is original
-            )
-
+            assert ParagraphFinder.process_independent_paragraphs is original
 
 
 def _line_chars_text(line) -> str:
@@ -318,8 +311,6 @@ class TestProtectListPrefixes:
         assert len(comps) == 1
         assert comps[0].pdf_formula is None
         assert _line_chars_text(comps[0].pdf_line) == "Intro text here"
-
-
 
 
 class TestMergeContinuationLines:
@@ -431,7 +422,9 @@ class TestPatchedPIPDegradesGracefully:
         monkeypatch.setattr(bls, "_merge_continuation_lines_in_paragraphs", boom)
         monkeypatch.setattr(bls, "_protect_list_prefixes_in_paragraphs", boom)
         monkeypatch.setattr(
-            bls, "get_babeldoc_list_split_enabled", lambda: True,
+            bls,
+            "get_babeldoc_list_split_enabled",
+            lambda: True,
         )
 
         paragraphs = [PdfParagraph(box=Box(0, 0, 1, 1), unicode="")]

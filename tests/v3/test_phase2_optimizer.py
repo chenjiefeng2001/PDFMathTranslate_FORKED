@@ -1,4 +1,5 @@
 """Tests for V3 Layout Optimizer (Module: optimizer.py)."""
+
 import pytest
 from pdf2zh.v3.optimizer import LayoutElement, OptimizationResult, LayoutOptimizer
 from pdf2zh.v3.layout import LayoutConstraint, ConstraintType
@@ -76,11 +77,15 @@ class TestLayoutOptimizer:
         opt = LayoutOptimizer()
         opt.add_element(LayoutElement(node_id="a", width=100, height=50))
         opt.add_element(LayoutElement(node_id="b", width=100, height=30))
-        opt.add_constraint(LayoutConstraint(
-            constraint_type=ConstraintType.HARD,
-            source_id="b", target_id="a",
-            relationship="must_below", gap=20.0,
-        ))
+        opt.add_constraint(
+            LayoutConstraint(
+                constraint_type=ConstraintType.HARD,
+                source_id="b",
+                target_id="a",
+                relationship="must_below",
+                gap=20.0,
+            )
+        )
         result = opt.optimize()
         assert result.positions["b"] > result.positions["a"] + 20
 
@@ -88,11 +93,15 @@ class TestLayoutOptimizer:
         opt = LayoutOptimizer()
         opt.add_element(LayoutElement(node_id="a", width=100, height=50))
         opt.add_element(LayoutElement(node_id="b", width=100, height=30))
-        opt.add_constraint(LayoutConstraint(
-            constraint_type=ConstraintType.HARD,
-            source_id="b", target_id="a",
-            relationship="cannot_overlap", gap=5.0,
-        ))
+        opt.add_constraint(
+            LayoutConstraint(
+                constraint_type=ConstraintType.HARD,
+                source_id="b",
+                target_id="a",
+                relationship="cannot_overlap",
+                gap=5.0,
+            )
+        )
         result = opt.optimize()
         diff = result.positions["b"] - result.positions["a"]
         assert diff >= 0
@@ -107,11 +116,15 @@ class TestLayoutOptimizer:
         opt = LayoutOptimizer()
         opt.add_element(LayoutElement(node_id="n1", width=100, height=50))
         opt.add_element(LayoutElement(node_id="n2", width=100, height=30))
-        opt.add_constraint(LayoutConstraint(
-            constraint_type=ConstraintType.SOFT,
-            source_id="n2", target_id="n1",
-            relationship="cannot_overlap", gap=5.0,
-        ))
+        opt.add_constraint(
+            LayoutConstraint(
+                constraint_type=ConstraintType.SOFT,
+                source_id="n2",
+                target_id="n1",
+                relationship="cannot_overlap",
+                gap=5.0,
+            )
+        )
         result = opt.optimize()
         cost = opt.estimate_cost(result.positions)
         assert isinstance(cost, float)

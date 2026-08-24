@@ -7,6 +7,7 @@
 - 目录行禁折行 + 点线原位填充 + 页码右对齐
 - 目录行不做行高压缩、不产生 QA 溢出标记
 """
+
 import re
 import unittest
 from unittest.mock import Mock
@@ -53,7 +54,13 @@ def make_zone_layout(shape=(800, 600), default=3.0):
 class TocDetectionTest(unittest.TestCase):
     def test_detect_valid_toc_line(self):
         text = "Intro....3"
-        track = [(".", 74, 80), (".", 80, 86), (".", 86, 92), (".", 92, 98), ("3", 98, 104)]
+        track = [
+            (".", 74, 80),
+            (".", 80, 86),
+            (".", 86, 92),
+            (".", 92, 98),
+            ("3", 98, 104),
+        ]
         spec = detect_toc_line(text, brk=False, track=track, page_right=104.0)
         self.assertIsNotNone(spec)
         self.assertEqual(spec["title"], "Intro")
@@ -63,8 +70,14 @@ class TocDetectionTest(unittest.TestCase):
 
     def test_detect_toc_with_space_leader(self):
         text = "Chapter 1 .... 42"
-        track = [(".", 90, 96), (".", 96, 102), (".", 102, 108), (".", 108, 114),
-                 ("4", 120, 126), ("2", 126, 132)]
+        track = [
+            (".", 90, 96),
+            (".", 96, 102),
+            (".", 102, 108),
+            (".", 108, 114),
+            ("4", 120, 126),
+            ("2", 126, 132),
+        ]
         spec = detect_toc_line(text, brk=False, track=track, page_right=132.0)
         self.assertIsNotNone(spec)
         self.assertEqual(spec["title"], "Chapter 1")
@@ -72,12 +85,18 @@ class TocDetectionTest(unittest.TestCase):
         self.assertAlmostEqual(spec["page_start_x"], 120.0)
 
     def test_body_text_without_leader_not_detected(self):
-        self.assertIsNone(detect_toc_line("A plain sentence ending in 42", False, [], page_right=200.0))
+        self.assertIsNone(
+            detect_toc_line(
+                "A plain sentence ending in 42", False, [], page_right=200.0
+            )
+        )
         self.assertIsNone(detect_toc_line("No dots 123", False, [], page_right=200.0))
         self.assertIsNone(detect_toc_line("Section 1.2.3", False, [], page_right=200.0))
 
     def test_multiline_paragraph_not_detected(self):
-        self.assertIsNone(detect_toc_line("Intro....3", brk=True, track=[], page_right=200.0))
+        self.assertIsNone(
+            detect_toc_line("Intro....3", brk=True, track=[], page_right=200.0)
+        )
 
     def test_title_too_short_not_detected(self):
         self.assertIsNone(detect_toc_line("....3", False, [], page_right=200.0))
@@ -110,6 +129,7 @@ class TocRenderBase(unittest.TestCase):
         converter.fontid = {}
         converter.text_metrics = {}
         from pdf2zh.collision_resolver import CollisionResolver
+
         converter.collision_resolver = CollisionResolver()
         translator = Mock()
         translator.translate = Mock(side_effect=list(translations))
@@ -149,7 +169,9 @@ class TestTocLineRendering(TocRenderBase):
         ops = conv.receive_layout(page)
 
         # 标题译文单行渲染在行首 x=50（未折行：标题两个字符合成一个 Tm）
-        self.assertIn("/noto 12.0000 Tf 1 0 0 1 50.0000 660.0000 Tm [<00010001>] TJ", ops)
+        self.assertIn(
+            "/noto 12.0000 Tf 1 0 0 1 50.0000 660.0000 Tm [<00010001>] TJ", ops
+        )
         # 页码右对齐：渲染宽度 4pt，右对齐起始 = 116 - 4 = 112，右边缘贴住 116
         self.assertIn("1 0 0 1 112.0000 660.0000 Tm", ops)
         # 点线在标题与页码之间原位填充（多个 '.' 依次右移）
@@ -193,7 +215,9 @@ class TestTocSemanticRendering(TocRenderBase):
         self.assertEqual(len(args), 1)
         self.assertEqual(args[0][0][0], "ExperimentalSetup")
         # 组合标题渲染在行首：第3节 实验设置 = 8 个字形（第/3/节/空格/实/验/设/置）
-        self.assertIn("1 40.0000 660.0000 Tm [<00010001000100010001000100010001>] TJ", ops)
+        self.assertIn(
+            "1 40.0000 660.0000 Tm [<00010001000100010001000100010001>] TJ", ops
+        )
 
     def test_appendix_local_render(self):
         page = LTPage(1, (0, 0, 600, 800))

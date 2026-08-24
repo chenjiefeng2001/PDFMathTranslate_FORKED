@@ -14,6 +14,7 @@
 决策纪律不变：OCR 只是把"框里的字符"交给后续的 Translation Policy 判断
 （系统不是判断图里有没有文字，而是判断该不该翻译、怎么翻译）。
 """
+
 from __future__ import annotations
 
 import logging
@@ -44,8 +45,9 @@ class DeterministicOCRBackend(OCRBackend):
     wide_text = "Sample label text"
     narrow_text = "value 123"
 
-    def __init__(self, confidence: float = 0.9,
-                 wide_text: str = "", narrow_text: str = "") -> None:
+    def __init__(
+        self, confidence: float = 0.9, wide_text: str = "", narrow_text: str = ""
+    ) -> None:
         self.confidence = confidence
         if wide_text:
             self.wide_text = wide_text
@@ -59,31 +61,47 @@ class DeterministicOCRBackend(OCRBackend):
             w = max(bbox[2] - bbox[0], 1e-6)
             h = max(bbox[3] - bbox[1], 1e-6)
             if self._region_is_empty(pixels, bbox):
-                out.append(TextRegion(bbox=bbox, text="",
-                                      ocr_confidence=0.0, kind=reg.kind,
-                                      reasons=[*reg.reasons, "ocr:empty"]))
+                out.append(
+                    TextRegion(
+                        bbox=bbox,
+                        text="",
+                        ocr_confidence=0.0,
+                        kind=reg.kind,
+                        reasons=[*reg.reasons, "ocr:empty"],
+                    )
+                )
                 continue
             if w / h > 3.0:
-                out.append(TextRegion(bbox=bbox, text=self.wide_text,
-                                      ocr_confidence=self.confidence,
-                                      kind=reg.kind or "text",
-                                      reasons=[*reg.reasons, "ocr:deterministic"]))
+                out.append(
+                    TextRegion(
+                        bbox=bbox,
+                        text=self.wide_text,
+                        ocr_confidence=self.confidence,
+                        kind=reg.kind or "text",
+                        reasons=[*reg.reasons, "ocr:deterministic"],
+                    )
+                )
             else:
-                out.append(TextRegion(bbox=bbox, text=self.narrow_text,
-                                      ocr_confidence=self.confidence,
-                                      kind=reg.kind or "text",
-                                      reasons=[*reg.reasons, "ocr:deterministic"]))
+                out.append(
+                    TextRegion(
+                        bbox=bbox,
+                        text=self.narrow_text,
+                        ocr_confidence=self.confidence,
+                        kind=reg.kind or "text",
+                        reasons=[*reg.reasons, "ocr:deterministic"],
+                    )
+                )
         return out
 
     @staticmethod
     def _region_is_empty(pixels, bbox) -> bool:
         """区域 5×5 网格采样：暗像素占比 < 1% 视为空。"""
         import numpy as np
+
         try:
             arr = np.asarray(pixels)
             h, w = arr.shape[:2]
-            x0, y0, x1, y1 = (int(v * min(w, h)) if v <= 1 else int(v)
-                              for v in bbox)
+            x0, y0, x1, y1 = (int(v * min(w, h)) if v <= 1 else int(v) for v in bbox)
             x0, x1 = max(0, min(x0, w - 1)), max(0, min(x1, w))
             y0, y1 = max(0, min(y0, h - 1)), max(0, min(y1, h))
             patch = arr[y0:y1, x0:x1]
@@ -113,8 +131,9 @@ def ocr_regions_into_object(obj, backend: Optional[OCRBackend] = None) -> None:
         logger.debug("OCR backend failed (regions kept as-is): %s", str(e)[:120])
 
 
-def ocr_into_pixels(pixels, regions: Sequence[TextRegion],
-                    backend: Optional[OCRBackend] = None) -> List[TextRegion]:
+def ocr_into_pixels(
+    pixels, regions: Sequence[TextRegion], backend: Optional[OCRBackend] = None
+) -> List[TextRegion]:
     """像素 + 框 → 识别后的 regions（独立入口，便于 analyze 链路组合）。"""
     if backend is None:
         return list(regions or [])
@@ -122,6 +141,8 @@ def ocr_into_pixels(pixels, regions: Sequence[TextRegion],
 
 
 __all__ = [
-    "OCRBackend", "DeterministicOCRBackend",
-    "ocr_regions_into_object", "ocr_into_pixels",
+    "OCRBackend",
+    "DeterministicOCRBackend",
+    "ocr_regions_into_object",
+    "ocr_into_pixels",
 ]

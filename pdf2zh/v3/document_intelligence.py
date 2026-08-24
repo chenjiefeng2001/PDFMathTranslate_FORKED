@@ -19,6 +19,7 @@ Usage:
     di.fuse()
     print(di.entity_graph.entities)
 """
+
 from __future__ import annotations
 import logging, re
 from dataclasses import dataclass, field
@@ -32,9 +33,11 @@ logger = logging.getLogger(__name__)
 
 # ── Entity Graph ─────────────────────────────────────────────
 
+
 @dataclass
 class EntityNode:
     """A named entity in the document."""
+
     id: str
     name: str
     canonical_name: str = ""
@@ -66,16 +69,25 @@ class EntityGraph:
         self._entities: Dict[str, EntityNode] = {}
         self._relations: List[EntityRelation] = []
 
-    def add_entity(self, name: str, entity_type: str = "unknown",
-                   canonical_name: str = "", aliases: Optional[List[str]] = None,
-                   definition: str = "", page_num: int = 0) -> EntityNode:
+    def add_entity(
+        self,
+        name: str,
+        entity_type: str = "unknown",
+        canonical_name: str = "",
+        aliases: Optional[List[str]] = None,
+        definition: str = "",
+        page_num: int = 0,
+    ) -> EntityNode:
         eid = self._make_id(name)
         if eid in self._entities:
             existing = self._entities[eid]
             existing.occurrence_count += 1
             if definition and definition not in existing.definitions:
                 existing.definitions.append(definition)
-            if page_num > 0 and (existing.first_occurrence_page == 0 or page_num < existing.first_occurrence_page):
+            if page_num > 0 and (
+                existing.first_occurrence_page == 0
+                or page_num < existing.first_occurrence_page
+            ):
                 existing.first_occurrence_page = page_num
             if aliases:
                 for a in aliases:
@@ -84,8 +96,11 @@ class EntityGraph:
             return existing
         can = canonical_name or name
         node = EntityNode(
-            id=eid, name=name, canonical_name=can,
-            entity_type=entity_type, aliases=aliases or [],
+            id=eid,
+            name=name,
+            canonical_name=can,
+            entity_type=entity_type,
+            aliases=aliases or [],
             definitions=[definition] if definition else [],
             first_occurrence_page=page_num,
         )
@@ -96,24 +111,37 @@ class EntityGraph:
         eid = self._make_id(name)
         return self._entities.get(eid)
 
-    def add_relation(self, source_name: str, target_name: str,
-                     relation_type: str, weight: float = 1.0) -> None:
+    def add_relation(
+        self,
+        source_name: str,
+        target_name: str,
+        relation_type: str,
+        weight: float = 1.0,
+    ) -> None:
         source = self.get_entity(source_name) or self.add_entity(source_name)
         target = self.get_entity(target_name) or self.add_entity(target_name)
-        self._relations.append(EntityRelation(
-            source_id=source.id, target_id=target.id,
-            relation_type=relation_type, weight=weight,
-        ))
+        self._relations.append(
+            EntityRelation(
+                source_id=source.id,
+                target_id=target.id,
+                relation_type=relation_type,
+                weight=weight,
+            )
+        )
 
     def find_related(self, name: str, relation_type: str = "") -> List[EntityNode]:
         eid = self._make_id(name)
         results = []
         for r in self._relations:
-            if r.source_id == eid and (not relation_type or r.relation_type == relation_type):
+            if r.source_id == eid and (
+                not relation_type or r.relation_type == relation_type
+            ):
                 target = self._entities.get(r.target_id)
                 if target:
                     results.append(target)
-            if r.target_id == eid and (not relation_type or r.relation_type == relation_type):
+            if r.target_id == eid and (
+                not relation_type or r.relation_type == relation_type
+            ):
                 source = self._entities.get(r.source_id)
                 if source:
                     results.append(source)
@@ -139,15 +167,24 @@ class EntityGraph:
         """Simple regex-based entity extraction."""
         found = []
         # Acronym pattern: ALL CAPS (2-8 chars)
-        for match in re.finditer(r'\b([A-Z]{2,8})\b', text):
+        for match in re.finditer(r"\b([A-Z]{2,8})\b", text):
             abbr = match.group(1)
-            entity = self.add_entity(abbr, entity_type="abbreviation", page_num=page_num)
+            entity = self.add_entity(
+                abbr, entity_type="abbreviation", page_num=page_num
+            )
             if entity not in found:
                 found.append(entity)
         # Numbered entity pattern: e.g., "Transformer", "BERT", "GPT-4"
-        for match in re.finditer(r'\b([A-Z][a-z]+(?:[-][A-Za-z0-9]+)?)\b', text):
+        for match in re.finditer(r"\b([A-Z][a-z]+(?:[-][A-Za-z0-9]+)?)\b", text):
             word = match.group(1)
-            if len(word) >= 3 and word.lower() not in ('the', 'this', 'that', 'with', 'from', 'have'):
+            if len(word) >= 3 and word.lower() not in (
+                "the",
+                "this",
+                "that",
+                "with",
+                "from",
+                "have",
+            ):
                 entity = self.add_entity(word, entity_type="concept", page_num=page_num)
                 if entity not in found:
                     found.append(entity)
@@ -162,13 +199,15 @@ class EntityGraph:
         texts = [n.text for n in graph.nodes if n.text]
         for text in texts:
             # Pattern: "Long Form (LF)" or "LF (Long Form)"
-            for match in re.finditer(r'([A-Z][a-zA-Z\s]{2,40})\s*\(([A-Z]{2,8})\)', text):
+            for match in re.finditer(
+                r"([A-Z][a-zA-Z\s]{2,40})\s*\(([A-Z]{2,8})\)", text
+            ):
                 full = match.group(1).strip()
                 abbr = match.group(2)
                 self.add_entity(abbr, entity_type="abbreviation", canonical_name=abbr)
                 self.add_entity(full, entity_type="concept", canonical_name=full)
                 self.add_relation(abbr, full, "abbreviation_of")
-            for match in re.finditer(r'([A-Z]{2,8})\s*\(([A-Za-z\s]{3,40})\)', text):
+            for match in re.finditer(r"([A-Z]{2,8})\s*\(([A-Za-z\s]{3,40})\)", text):
                 abbr = match.group(1)
                 full = match.group(2).strip()
                 self.add_entity(abbr, entity_type="abbreviation", canonical_name=abbr)
@@ -189,13 +228,31 @@ class EntityGraph:
 
     def to_dict(self) -> dict:
         return {
-            "entities": {e.name: {"type": e.entity_type, "canonical": e.canonical_name,
-                                   "aliases": e.aliases, "occurrences": e.occurrence_count}
-                         for e in self._entities.values()},
-            "relations": [{"source": self._entities.get(r.source_id).name if self._entities.get(r.source_id) else r.source_id,
-                           "target": self._entities.get(r.target_id).name if self._entities.get(r.target_id) else r.target_id,
-                           "type": r.relation_type}
-                          for r in self._relations],
+            "entities": {
+                e.name: {
+                    "type": e.entity_type,
+                    "canonical": e.canonical_name,
+                    "aliases": e.aliases,
+                    "occurrences": e.occurrence_count,
+                }
+                for e in self._entities.values()
+            },
+            "relations": [
+                {
+                    "source": (
+                        self._entities.get(r.source_id).name
+                        if self._entities.get(r.source_id)
+                        else r.source_id
+                    ),
+                    "target": (
+                        self._entities.get(r.target_id).name
+                        if self._entities.get(r.target_id)
+                        else r.target_id
+                    ),
+                    "type": r.relation_type,
+                }
+                for r in self._relations
+            ],
         }
 
     @staticmethod
@@ -204,6 +261,7 @@ class EntityGraph:
 
 
 # ── Concept Graph ────────────────────────────────────────────
+
 
 @dataclass
 class ConceptNode:
@@ -225,12 +283,19 @@ class ConceptGraph:
     def __init__(self) -> None:
         self._concepts: Dict[str, ConceptNode] = {}
 
-    def add_concept(self, name: str, description: str = "",
-                    parent: Optional[str] = None, page_num: int = 0) -> ConceptNode:
+    def add_concept(
+        self,
+        name: str,
+        description: str = "",
+        parent: Optional[str] = None,
+        page_num: int = 0,
+    ) -> ConceptNode:
         cid = self._make_id(name)
         if cid not in self._concepts:
             node = ConceptNode(
-                id=cid, name=name, description=description,
+                id=cid,
+                name=name,
+                description=description,
                 parent_id=parent and self._make_id(parent) or "",
                 related_pages=[page_num] if page_num > 0 else [],
             )
@@ -254,7 +319,11 @@ class ConceptGraph:
         cid = self._make_id(name)
         if cid not in self._concepts:
             return []
-        return [self._concepts[c] for c in self._concepts[cid].children if c in self._concepts]
+        return [
+            self._concepts[c]
+            for c in self._concepts[cid].children
+            if c in self._concepts
+        ]
 
     def get_parent(self, name: str) -> Optional[ConceptNode]:
         cid = self._make_id(name)
@@ -278,8 +347,9 @@ class ConceptGraph:
             while stack and len(stack) >= level:
                 stack.pop()
             parent = stack[-1] if stack else None
-            concept = self.add_concept(h.text.strip(), page_num=h.page_num,
-                                       parent=parent)
+            concept = self.add_concept(
+                h.text.strip(), page_num=h.page_num, parent=parent
+            )
             stack.append(concept.id)
 
     @property
@@ -292,10 +362,22 @@ class ConceptGraph:
 
     def to_dict(self) -> dict:
         return {
-            "concepts": {c.name: {"children": [self._concepts[cid].name for cid in c.children if cid in self._concepts],
-                                   "parent": self._concepts[c.parent_id].name if c.parent_id and c.parent_id in self._concepts else None,
-                                   "pages": c.related_pages}
-                         for c in self._concepts.values()},
+            "concepts": {
+                c.name: {
+                    "children": [
+                        self._concepts[cid].name
+                        for cid in c.children
+                        if cid in self._concepts
+                    ],
+                    "parent": (
+                        self._concepts[c.parent_id].name
+                        if c.parent_id and c.parent_id in self._concepts
+                        else None
+                    ),
+                    "pages": c.related_pages,
+                }
+                for c in self._concepts.values()
+            },
         }
 
     @staticmethod
@@ -304,6 +386,7 @@ class ConceptGraph:
 
 
 # ── Citation Graph ───────────────────────────────────────────
+
 
 @dataclass
 class CitationNode:
@@ -336,13 +419,22 @@ class CitationGraph:
         self._citations: Dict[str, CitationNode] = {}
         self._relations: List[CitationRelation] = []
 
-    def add_citation(self, citation_key: str, title: str = "",
-                     authors: str = "", year: str = "",
-                     page_num: int = 0) -> CitationNode:
+    def add_citation(
+        self,
+        citation_key: str,
+        title: str = "",
+        authors: str = "",
+        year: str = "",
+        page_num: int = 0,
+    ) -> CitationNode:
         cid = f"cit_{len(self._citations)}"
         node = CitationNode(
-            id=cid, citation_key=citation_key, title=title,
-            authors=authors, year=year, page_num=page_num,
+            id=cid,
+            citation_key=citation_key,
+            title=title,
+            authors=authors,
+            year=year,
+            page_num=page_num,
         )
         self._citations[cid] = node
         return node
@@ -350,28 +442,37 @@ class CitationGraph:
     def add_reference(self, ref_text: str, page_num: int = 0) -> CitationNode:
         cid = f"ref_{len(self._citations)}"
         node = CitationNode(
-            id=cid, citation_key=ref_text[:40], source_text=ref_text,
-            page_num=page_num, is_cited=False,
+            id=cid,
+            citation_key=ref_text[:40],
+            source_text=ref_text,
+            page_num=page_num,
+            is_cited=False,
         )
         self._citations[cid] = node
         return node
 
     def add_cross_ref(self, source: str, target: str, page_num: int = 0) -> None:
-        self._relations.append(CitationRelation(
-            source_id=source, target_id=target,
-            relation_type="cross_ref", page_num=page_num,
-        ))
+        self._relations.append(
+            CitationRelation(
+                source_id=source,
+                target_id=target,
+                relation_type="cross_ref",
+                page_num=page_num,
+            )
+        )
 
     def find_citations_in_text(self, text: str, page_num: int = 0) -> List[str]:
         """Find citation markers like [1], [2,3], [Smith2023]."""
         found = []
-        for match in re.finditer(r'\[([^\]]+)\]', text):
+        for match in re.finditer(r"\[([^\]]+)\]", text):
             ref = match.group(1)
-            if re.match(r'[\d\s,\-–]+$', ref) or re.match(r'[A-Za-z]+', ref):
+            if re.match(r"[\d\s,\-–]+$", ref) or re.match(r"[A-Za-z]+", ref):
                 found.append(f"[{ref}]")
                 self.add_reference(f"[{ref}]", page_num=page_num)
         # Also find "Figure N", "Table N", "Fig. N"
-        for match in re.finditer(r'(?:Fig|Figure|Table|Tab|Section|Sec)\.?\s*(\d+(?:\.\d+)?)', text):
+        for match in re.finditer(
+            r"(?:Fig|Figure|Table|Tab|Section|Sec)\.?\s*(\d+(?:\.\d+)?)", text
+        ):
             ref = match.group(0)
             found.append(ref)
         return found
@@ -398,14 +499,19 @@ class CitationGraph:
 
     def to_dict(self) -> dict:
         return {
-            "citations": {c.citation_key: {"page": c.page_num, "is_cited": c.is_cited}
-                          for c in self._citations.values()},
-            "cross_refs": [{"source": r.source_id, "target": r.target_id, "type": r.relation_type}
-                           for r in self._relations],
+            "citations": {
+                c.citation_key: {"page": c.page_num, "is_cited": c.is_cited}
+                for c in self._citations.values()
+            },
+            "cross_refs": [
+                {"source": r.source_id, "target": r.target_id, "type": r.relation_type}
+                for r in self._relations
+            ],
         }
 
 
 # ── Knowledge Fuser ──────────────────────────────────────────
+
 
 class KnowledgeFuser:
     """Fuse knowledge from multiple sources into a unified representation.
@@ -414,10 +520,13 @@ class KnowledgeFuser:
     into a single coherent knowledge base for translation planning.
     """
 
-    def __init__(self, entity_graph: Optional[EntityGraph] = None,
-                 concept_graph: Optional[ConceptGraph] = None,
-                 citation_graph: Optional[CitationGraph] = None,
-                 memory: Optional[DocumentMemory] = None) -> None:
+    def __init__(
+        self,
+        entity_graph: Optional[EntityGraph] = None,
+        concept_graph: Optional[ConceptGraph] = None,
+        citation_graph: Optional[CitationGraph] = None,
+        memory: Optional[DocumentMemory] = None,
+    ) -> None:
         self.entity_graph = entity_graph or EntityGraph()
         self.concept_graph = concept_graph or ConceptGraph()
         self.citation_graph = citation_graph or CitationGraph()
@@ -432,20 +541,25 @@ class KnowledgeFuser:
         if self.memory:
             for entry in self.memory.get_all_entities():
                 self.entity_graph.add_entity(
-                    entry.canonical_name, entity_type="entity",
+                    entry.canonical_name,
+                    entity_type="entity",
                     canonical_name=entry.canonical_name,
                 )
             for entry in self.memory.get_all_abbreviations():
                 entity = self.entity_graph.add_entity(
-                    entry.short, entity_type="abbreviation",
+                    entry.short,
+                    entity_type="abbreviation",
                     canonical_name=entry.short,
                 )
                 self.entity_graph.add_entity(
-                    entry.long, entity_type="concept",
+                    entry.long,
+                    entity_type="concept",
                     canonical_name=entry.long,
                 )
                 self.entity_graph.add_relation(
-                    entry.short, entry.long, "abbreviation_of",
+                    entry.short,
+                    entry.long,
+                    "abbreviation_of",
                 )
         self._fused = True
 
@@ -453,7 +567,11 @@ class KnowledgeFuser:
         """Build rich context for a node from all knowledge sources."""
         context: dict = {
             "node_id": node.id,
-            "node_type": node.node_type.value if hasattr(node.node_type, 'value') else str(node.node_type),
+            "node_type": (
+                node.node_type.value
+                if hasattr(node.node_type, "value")
+                else str(node.node_type)
+            ),
             "text": node.text,
             "entities": [],
             "concepts": [],
@@ -465,34 +583,45 @@ class KnowledgeFuser:
         # Find related entities
         for entity in self.entity_graph.entities:
             if entity.name.lower() in node.text.lower():
-                context["entities"].append({
-                    "name": entity.name,
-                    "canonical": entity.canonical_name,
-                    "type": entity.entity_type,
-                })
+                context["entities"].append(
+                    {
+                        "name": entity.name,
+                        "canonical": entity.canonical_name,
+                        "type": entity.entity_type,
+                    }
+                )
         # Find related concepts
         for concept in self.concept_graph.concepts:
             if concept.name.lower() in node.text.lower():
-                context["concepts"].append({
-                    "name": concept.name,
-                    "parent": self.concept_graph.get_parent(concept.name).name
-                    if self.concept_graph.get_parent(concept.name) else None,
-                })
+                context["concepts"].append(
+                    {
+                        "name": concept.name,
+                        "parent": (
+                            self.concept_graph.get_parent(concept.name).name
+                            if self.concept_graph.get_parent(concept.name)
+                            else None
+                        ),
+                    }
+                )
         # Find citations
         for cit in self.citation_graph.citations:
             if cit.citation_key.lower() in node.text.lower():
-                context["citations"].append({
-                    "key": cit.citation_key,
-                    "page": cit.page_num,
-                })
+                context["citations"].append(
+                    {
+                        "key": cit.citation_key,
+                        "page": cit.page_num,
+                    }
+                )
         # Add glossary from memory
         if self.memory:
             for entry in self.memory.get_all_glossary():
                 if entry.source.lower() in node.text.lower():
-                    context["glossary"].append({
-                        "source": entry.source,
-                        "target": entry.target,
-                    })
+                    context["glossary"].append(
+                        {
+                            "source": entry.source,
+                            "target": entry.target,
+                        }
+                    )
         return context
 
     def build_all(self, graph: DocumentGraph) -> None:
@@ -521,8 +650,11 @@ class DocumentIntelligence:
         print(di.summary())
     """
 
-    def __init__(self, graph: Optional[DocumentGraph] = None,
-                 memory: Optional[DocumentMemory] = None) -> None:
+    def __init__(
+        self,
+        graph: Optional[DocumentGraph] = None,
+        memory: Optional[DocumentMemory] = None,
+    ) -> None:
         self.graph = graph
         self.memory = memory
         self.fuser = KnowledgeFuser(memory=memory)
@@ -557,8 +689,14 @@ class DocumentIntelligence:
 
 
 __all__ = [
-    "EntityNode", "EntityRelation", "EntityGraph",
-    "ConceptNode", "ConceptGraph",
-    "CitationNode", "CitationRelation", "CitationGraph",
-    "KnowledgeFuser", "DocumentIntelligence",
+    "EntityNode",
+    "EntityRelation",
+    "EntityGraph",
+    "ConceptNode",
+    "ConceptGraph",
+    "CitationNode",
+    "CitationRelation",
+    "CitationGraph",
+    "KnowledgeFuser",
+    "DocumentIntelligence",
 ]

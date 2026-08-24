@@ -3,6 +3,7 @@
 submit 的词表字段用假 submit_task 捕获；库端点把 store_dir 指到 tmp_path，
 绝不触碰真实 ~/.config。
 """
+
 from __future__ import annotations
 
 import csv
@@ -23,7 +24,9 @@ def service():
 
 @pytest.fixture()
 def client(service):
-    return TestClient(create_api_app(service=service), base_url="http://127.0.0.1:11009")
+    return TestClient(
+        create_api_app(service=service), base_url="http://127.0.0.1:11009"
+    )
 
 
 @pytest.fixture()
@@ -79,14 +82,16 @@ class TestSubmitGlossaryFields:
         monkeypatch.setattr(RuntimeService, "submit_task", fake_submit)
         resp = client.post(
             "/api/tasks",
-            data={"source_path": "/tmp/a.pdf",
-                  "glossary_files": json.dumps([g])},
+            data={"source_path": "/tmp/a.pdf", "glossary_files": json.dumps([g])},
         )
         assert resp.status_code == 200
         assert captured["request"].glossary_files == [g]
 
     def test_store_name_resolution_and_missing_rejection(
-        self, client, monkeypatch, store,
+        self,
+        client,
+        monkeypatch,
+        store,
     ):
         (store / "mine.csv").write_bytes(_csv_bytes())
         captured = {}
@@ -98,16 +103,14 @@ class TestSubmitGlossaryFields:
         monkeypatch.setattr(RuntimeService, "submit_task", fake_submit)
         ok = client.post(
             "/api/tasks",
-            data={"source_path": "/tmp/a.pdf",
-                  "glossary_files": "mine"},
+            data={"source_path": "/tmp/a.pdf", "glossary_files": "mine"},
         )
         assert ok.status_code == 200
         assert captured["request"].glossary_files == [str(store / "mine.csv")]
 
         bad = client.post(
             "/api/tasks",
-            data={"source_path": "/tmp/a.pdf",
-                  "glossary_files": "ghost"},
+            data={"source_path": "/tmp/a.pdf", "glossary_files": "ghost"},
         )
         assert bad.status_code == 400
 

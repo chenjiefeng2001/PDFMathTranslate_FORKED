@@ -4,6 +4,7 @@ CausalDiagnosticGraph, RuntimeSupervisor, Tracer, and Kernel integration.
 Run with::
     python -m pytest tests/v3/test_v5.py -v
 """
+
 from __future__ import annotations
 import time, uuid
 from typing import Dict, List, Optional
@@ -12,17 +13,29 @@ import pytest
 
 # ── V5 Module Imports ──────────────────────────────────────────
 from pdf2zh.v3.runtime_context import RuntimeConfig, LRUCache, RuntimeContext
-from pdf2zh.v3.runtime_kernel import RuntimeKernel, KnowledgeCenter, MemoryCenter, TelemetryCollector
+from pdf2zh.v3.runtime_kernel import (
+    RuntimeKernel,
+    KnowledgeCenter,
+    MemoryCenter,
+    TelemetryCollector,
+)
 from pdf2zh.v3.workflow_engine import WorkflowNodeType, WorkflowNode, WorkflowEngine
 from pdf2zh.v3.execution_graph import ExecutionNodeState, ExecutionNode, ExecutionGraph
-from pdf2zh.v3.causal_graph import Severity, RepairStatus, CausalNode, CausalDiagnosticGraph
+from pdf2zh.v3.causal_graph import (
+    Severity,
+    RepairStatus,
+    CausalNode,
+    CausalDiagnosticGraph,
+)
 from pdf2zh.v3.runtime_supervisor import ResourceUsage, ResourceReport, ResourceManager
 from pdf2zh.v3.runtime_supervisor import RecoveryManager, RuntimeSupervisor
 from pdf2zh.v3.tracing import TraceSpan, Tracer
 from pdf2zh.v3.scheduler import TaskStatus
+
 # ═══════════════════════════════════════════════════════════════
 # 1. RuntimeContext Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestLRUCache:
     def test_put_get(self):
@@ -43,7 +56,9 @@ class TestLRUCache:
 
     def test_lru_promotion(self):
         cache = LRUCache(max_size=3)
-        cache.put("a", 1); cache.put("b", 2); cache.put("c", 3)
+        cache.put("a", 1)
+        cache.put("b", 2)
+        cache.put("c", 3)
         cache.get("a")  # promote a
         cache.put("d", 4)  # evicts b (least recently used)
         assert cache.get("b") is None
@@ -57,7 +72,8 @@ class TestLRUCache:
 
     def test_clear(self):
         cache = LRUCache(max_size=5)
-        cache.put("a", 1); cache.put("b", 2)
+        cache.put("a", 1)
+        cache.put("b", 2)
         cache.clear()
         assert cache.size == 0
         assert cache.hit_rate == 0.0
@@ -112,8 +128,10 @@ class TestRuntimeContext:
         cache = LRUCache(max_size=10)
         ctx = RuntimeContext(
             config=RuntimeConfig(tracing_enabled=False),
-            knowledge=knowledge, memory=memory,
-            telemetry=telemetry, cache=cache,
+            knowledge=knowledge,
+            memory=memory,
+            telemetry=telemetry,
+            cache=cache,
         )
         assert ctx.knowledge is knowledge
         assert ctx.memory is memory
@@ -148,9 +166,11 @@ class TestRuntimeContext:
         assert ctx.cache.size == 0
         assert ctx.get_label("env") is None
 
+
 # ═══════════════════════════════════════════════════════════════
 # 2. WorkflowEngine Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestWorkflowEngine:
     def test_add_task(self):
@@ -162,8 +182,12 @@ class TestWorkflowEngine:
 
     def test_add_condition(self):
         wf = WorkflowEngine()
-        n = wf.add_condition("check_lang", lambda ctx: ctx.get("lang") == "en",
-                             if_true="translate_en", if_false="translate_other")
+        n = wf.add_condition(
+            "check_lang",
+            lambda ctx: ctx.get("lang") == "en",
+            if_true="translate_en",
+            if_false="translate_other",
+        )
         assert n.node_type == WorkflowNodeType.CONDITION
         assert n.if_true == "translate_en"
         assert wf.node_count == 1
@@ -184,8 +208,12 @@ class TestWorkflowEngine:
 
     def test_add_loop(self):
         wf = WorkflowEngine()
-        n = wf.add_loop("retry_loop", body=["translate"],
-                         condition=lambda ctx: False, max_iterations=3)
+        n = wf.add_loop(
+            "retry_loop",
+            body=["translate"],
+            condition=lambda ctx: False,
+            max_iterations=3,
+        )
         assert n.node_type == WorkflowNodeType.LOOP
         assert n.loop_body == ["translate"]
         assert n.max_iterations == 3
@@ -266,9 +294,11 @@ class TestWorkflowEngine:
         ready = wf.get_ready_nodes()
         assert len(ready) == 0
 
+
 # ═══════════════════════════════════════════════════════════════
 # 3. ExecutionGraph Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestExecutionGraph:
     def test_add_node(self):
@@ -376,9 +406,11 @@ class TestExecutionGraph:
         assert s["by_state"]["new"] == 1
         assert s["by_state"]["translated"] == 1
 
+
 # ═══════════════════════════════════════════════════════════════
 # 4. CausalDiagnosticGraph Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestCausalDiagnosticGraph:
     def test_add_diagnostic(self):
@@ -391,11 +423,13 @@ class TestCausalDiagnosticGraph:
 
     def test_add_causal_chain(self):
         cdg = CausalDiagnosticGraph()
-        nodes = cdg.add_causal_chain([
-            ("Font missing", Severity.HIGH, "font"),
-            ("Layout overflow", Severity.HIGH, "layout"),
-            ("Collision", Severity.CRITICAL, "layout"),
-        ])
+        nodes = cdg.add_causal_chain(
+            [
+                ("Font missing", Severity.HIGH, "font"),
+                ("Layout overflow", Severity.HIGH, "layout"),
+                ("Collision", Severity.CRITICAL, "layout"),
+            ]
+        )
         assert len(nodes) == 3
         assert len(nodes[0].cause_ids) == 0  # root cause
         assert len(nodes[1].cause_ids) == 1
@@ -403,42 +437,50 @@ class TestCausalDiagnosticGraph:
 
     def test_find_root_causes(self):
         cdg = CausalDiagnosticGraph()
-        cdg.add_causal_chain([
-            ("Root", Severity.HIGH, "sys"),
-            ("Effect", Severity.CRITICAL, "sys"),
-        ])
+        cdg.add_causal_chain(
+            [
+                ("Root", Severity.HIGH, "sys"),
+                ("Effect", Severity.CRITICAL, "sys"),
+            ]
+        )
         roots = cdg.find_root_causes()
         assert len(roots) == 1
         assert roots[0].label == "Root"
 
     def test_leaf_causes(self):
         cdg = CausalDiagnosticGraph()
-        cdg.add_causal_chain([
-            ("Root", Severity.HIGH, "sys"),
-            ("Middle", Severity.HIGH, "sys"),
-            ("Leaf", Severity.CRITICAL, "sys"),
-        ])
+        cdg.add_causal_chain(
+            [
+                ("Root", Severity.HIGH, "sys"),
+                ("Middle", Severity.HIGH, "sys"),
+                ("Leaf", Severity.CRITICAL, "sys"),
+            ]
+        )
         leaves = cdg.get_leaf_causes()
         assert len(leaves) == 1
         assert leaves[0].label == "Leaf"
 
     def test_get_affected_nodes(self):
         cdg = CausalDiagnosticGraph()
-        nodes = cdg.add_causal_chain([
-            ("Root", Severity.HIGH, "sys"),
-            ("Middle", Severity.HIGH, "sys"),
-            ("Leaf", Severity.CRITICAL, "sys"),
-        ])
+        nodes = cdg.add_causal_chain(
+            [
+                ("Root", Severity.HIGH, "sys"),
+                ("Middle", Severity.HIGH, "sys"),
+                ("Leaf", Severity.CRITICAL, "sys"),
+            ]
+        )
         affected = cdg.get_affected_nodes(nodes[0].id)
         assert len(affected) == 3
 
     def test_get_causal_chain(self):
         cdg = CausalDiagnosticGraph()
-        nodes = cdg.add_causal_chain([
-            ("Root", Severity.HIGH, "sys"),
-            ("Middle", Severity.HIGH, "sys"),
-            ("Leaf", Severity.CRITICAL, "sys"),
-        ])
+        nodes = cdg.add_causal_chain(
+            [
+                ("Root", Severity.HIGH, "sys"),
+                ("Middle", Severity.HIGH, "sys"),
+                ("Leaf", Severity.CRITICAL, "sys"),
+            ]
+        )
         chain = cdg.get_causal_chain(nodes[2].id)
         assert len(chain) == 3
         assert chain[0].label == "Leaf"
@@ -446,8 +488,12 @@ class TestCausalDiagnosticGraph:
 
     def test_suggest_repairs(self):
         cdg = CausalDiagnosticGraph()
-        cdg.add_diagnostic("Missing font", severity=Severity.HIGH,
-                           module="font", repair_hint="Install font")
+        cdg.add_diagnostic(
+            "Missing font",
+            severity=Severity.HIGH,
+            module="font",
+            repair_hint="Install font",
+        )
         suggestions = cdg.suggest_repairs()
         assert len(suggestions) == 1
         assert "Install font" in suggestions[0][1]
@@ -476,8 +522,7 @@ class TestCausalDiagnosticGraph:
 
     def test_auto_repair_suggestions(self):
         cdg = CausalDiagnosticGraph()
-        cdg.add_diagnostic("Missing font", module="font",
-                           repair_hint="Install font")
+        cdg.add_diagnostic("Missing font", module="font", repair_hint="Install font")
         suggestions = cdg.auto_repair_suggestions()
         assert len(suggestions) == 1
         assert suggestions[0]["hint"] == "Install font"
@@ -502,9 +547,11 @@ class TestCausalDiagnosticGraph:
         assert s["by_severity"]["critical"] == 1
         assert s["by_module"]["font"] == 1
 
+
 # ═══════════════════════════════════════════════════════════════
 # 5. RuntimeSupervisor Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestResourceManager:
     def test_track(self):
@@ -544,27 +591,33 @@ class TestRecoveryManager:
     def test_register_and_recover(self):
         rcm = RecoveryManager()
         rcm.register("font", lambda d: "Installed font: " + d.label)
+
         class MockDiag:
             id = "diag_1"
             module = "font"
             label = "Missing X"
+
         result = rcm.attempt_recovery(MockDiag())
         assert result == "Installed font: Missing X"
 
     def test_no_strategy(self):
         rcm = RecoveryManager()
+
         class MockDiag:
             id = "diag_1"
             module = "unknown"
+
         result = rcm.attempt_recovery(MockDiag())
         assert result is None
 
     def test_wildcard_strategy(self):
         rcm = RecoveryManager()
         rcm.register("*", lambda d: "Generic fix")
+
         class MockDiag:
             id = "d1"
             module = "anything"
+
         result = rcm.attempt_recovery(MockDiag())
         assert result == "Generic fix"
 
@@ -572,17 +625,21 @@ class TestRecoveryManager:
         rcm = RecoveryManager()
         rcm.register("err", lambda d: "fix")
         rcm.unregister("err")
+
         class MockDiag:
             id = "d1"
             module = "err"
+
         assert rcm.attempt_recovery(MockDiag()) is None
 
     def test_history(self):
         rcm = RecoveryManager()
         rcm.register("err", lambda d: "fix")
+
         class MockDiag:
             id = "d1"
             module = "err"
+
         rcm.attempt_recovery(MockDiag())
         assert len(rcm.get_history()) == 1
         rcm.clear_history()
@@ -611,16 +668,16 @@ class TestRuntimeSupervisor:
 
     def test_auto_diagnose(self):
         sup = RuntimeSupervisor()
-        n = sup.auto_diagnose("Failed to load font", module="font",
-                              repair_hint="Reinstall font")
+        n = sup.auto_diagnose(
+            "Failed to load font", module="font", repair_hint="Reinstall font"
+        )
         assert n is not None
         assert n.label == "Failed to load font"
 
     def test_auto_repair(self):
         sup = RuntimeSupervisor()
         sup.recovery_manager.register("font", lambda d: "Fixed")
-        sup.auto_diagnose("Font error", module="font",
-                          repair_hint="Reinstall")
+        sup.auto_diagnose("Font error", module="font", repair_hint="Reinstall")
         count = sup.auto_repair()
         assert count == 1
 
@@ -634,9 +691,11 @@ class TestRuntimeSupervisor:
         assert "recovery" in s
         assert "diagnostic_graph" in s
 
+
 # ═══════════════════════════════════════════════════════════════
 # 6. Tracer Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestTracer:
     def test_start_span(self):
@@ -721,9 +780,11 @@ class TestTracer:
         summary = telemetry.summary()
         assert summary["total"] >= 1
 
+
 # ═══════════════════════════════════════════════════════════════
 # 7. Kernel Integration Tests (V5 lazy properties)
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestKernelV5Integration:
     def test_runtime_context_property(self):
@@ -826,8 +887,12 @@ class TestKernelV5Integration:
             sup.record_operation("translate", 1.2, success=True)
 
         # 4) Diagnose and repair
-        cdg.add_diagnostic("Font warning", severity=Severity.WARNING,
-                           module="font", repair_hint="Check fonts")
+        cdg.add_diagnostic(
+            "Font warning",
+            severity=Severity.WARNING,
+            module="font",
+            repair_hint="Check fonts",
+        )
         sup.recovery_manager.register("font", lambda d: "Fonts checked")
         repaired = sup.auto_repair()
         assert repaired == 1
@@ -855,6 +920,7 @@ class TestKernelV5Integration:
             pass
         summary = kernel.telemetry.summary()
         assert summary["total"] >= 1
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

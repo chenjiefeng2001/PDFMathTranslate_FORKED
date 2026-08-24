@@ -16,9 +16,16 @@ from typing import Dict, List, Optional
 
 from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType, EdgeType
 from pdf2zh.v3.visual_tree import (
-    VisualTree, VisualNode, VisualNodeType,
-    BoundingBox, Page, Paragraph, Line, TextRun,
-    Image, Formula,
+    VisualTree,
+    VisualNode,
+    VisualNodeType,
+    BoundingBox,
+    Page,
+    Paragraph,
+    Line,
+    TextRun,
+    Image,
+    Formula,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,7 +36,8 @@ DEFAULT_MARGIN = 50.0
 
 # Node type mapping for visual tree conversion
 _NODE_TYPE_TO_SKIP = {
-    NodeType.DOCUMENT, NodeType.PAGE,
+    NodeType.DOCUMENT,
+    NodeType.PAGE,
 }
 
 
@@ -76,7 +84,8 @@ class VisualTreeBuilder:
 
         logger.info(
             "Built VisualTree: %d pages from DocumentGraph (%d nodes mapped)",
-            tree.page_count, len(self._node_map),
+            tree.page_count,
+            len(self._node_map),
         )
         return tree
 
@@ -163,7 +172,8 @@ class VisualTreeBuilder:
 
         if ntype == NodeType.FIGURE:
             visual = Image(
-                id=doc_node.id, bbox=bbox,
+                id=doc_node.id,
+                bbox=bbox,
                 alt_text=(doc_node.text or "")[:200],
             )
             self._node_map[doc_node.id] = visual.id
@@ -171,7 +181,8 @@ class VisualTreeBuilder:
 
         if ntype in (NodeType.FORMULA, NodeType.FORMULA_INLINE):
             visual = Formula(
-                id=doc_node.id, bbox=bbox,
+                id=doc_node.id,
+                bbox=bbox,
                 latex=doc_node.text or "",
                 is_inline=(ntype == NodeType.FORMULA_INLINE),
             )
@@ -180,12 +191,14 @@ class VisualTreeBuilder:
 
         if ntype == NodeType.TABLE:
             visual = Paragraph(
-                id=doc_node.id, bbox=bbox,
+                id=doc_node.id,
+                bbox=bbox,
                 language=doc_node.language or "",
             )
             self._node_map[doc_node.id] = visual.id
             line = Line(
-                id=f"{doc_node.id}_l0", y=bbox.y,
+                id=f"{doc_node.id}_l0",
+                y=bbox.y,
                 baseline=bbox.y + 12,
             )
             line.bbox = BoundingBox(bbox.x, bbox.y, bbox.width, 14)
@@ -205,9 +218,11 @@ class VisualTreeBuilder:
             return None
 
         visual = Paragraph(
-            id=doc_node.id, bbox=bbox,
+            id=doc_node.id,
+            bbox=bbox,
             language=doc_node.language or "",
-            spacing_before=2.0, spacing_after=4.0,
+            spacing_before=2.0,
+            spacing_after=4.0,
         )
 
         font_size = doc_node.font_size or 12.0
@@ -220,7 +235,8 @@ class VisualTreeBuilder:
                 y_pos += line_height * 0.5
                 continue
             line = Line(
-                id=f"{doc_node.id}_l{li}", y=y_pos,
+                id=f"{doc_node.id}_l{li}",
+                y=y_pos,
                 baseline=y_pos + font_size * 0.8,
                 line_height=line_height,
             )
@@ -248,15 +264,19 @@ class VisualTreeBuilder:
         try:
             if doc_node.bbox is not None:
                 x0, y0, x1, y1 = (
-                    float(doc_node.bbox[0]), float(doc_node.bbox[1]),
-                    float(doc_node.bbox[2]), float(doc_node.bbox[3]),
+                    float(doc_node.bbox[0]),
+                    float(doc_node.bbox[1]),
+                    float(doc_node.bbox[2]),
+                    float(doc_node.bbox[3]),
                 )
                 return BoundingBox(x0, y0, x1 - x0, y1 - y0)
         except (TypeError, ValueError, IndexError):
             pass
         return BoundingBox(
-            float(doc_node.x0 or 0), float(doc_node.y0 or 0),
-            float(doc_node.width or 100), float(doc_node.height or 20),
+            float(doc_node.x0 or 0),
+            float(doc_node.y0 or 0),
+            float(doc_node.width or 100),
+            float(doc_node.height or 20),
         )
 
 

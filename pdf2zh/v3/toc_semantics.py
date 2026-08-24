@@ -31,6 +31,7 @@
 3. **编号、页码、引导线由渲染器生成**，不是由翻译器输出。
 4. 纯逻辑、无 I/O、无 fitz —— 与 image_engine/link_remap 同风格。
 """
+
 from __future__ import annotations
 
 import re
@@ -51,7 +52,7 @@ class TOCKind(Enum):
     APPENDIX = "appendix"
     CONTENTS = "contents"
     INDEX = "index"
-    PLAIN = "plain"       # 无结构前缀的普通目录标题
+    PLAIN = "plain"  # 无结构前缀的普通目录标题
     UNKNOWN = "unknown"
 
 
@@ -94,9 +95,15 @@ class TOCEntry:
 # ── TOC Grammar（规则式，无 LLM） ──────────────────────────────────────────
 
 
-_RE_CHAPTER = re.compile(r"^\s*(?:chapter|ch\.)\s*([0-9IVXLC]+|[0-9]+(?:\.[0-9]+)*)", re.IGNORECASE)
-_RE_SECTION = re.compile(r"^\s*(?:section|sec\.)\s*([0-9]+(?:\.[0-9]+)*)", re.IGNORECASE)
-_RE_SUBSECTION = re.compile(r"^\s*(?:subsection|subsec\.)\s*([0-9]+(?:\.[0-9]+)*)", re.IGNORECASE)
+_RE_CHAPTER = re.compile(
+    r"^\s*(?:chapter|ch\.)\s*([0-9IVXLC]+|[0-9]+(?:\.[0-9]+)*)", re.IGNORECASE
+)
+_RE_SECTION = re.compile(
+    r"^\s*(?:section|sec\.)\s*([0-9]+(?:\.[0-9]+)*)", re.IGNORECASE
+)
+_RE_SUBSECTION = re.compile(
+    r"^\s*(?:subsection|subsec\.)\s*([0-9]+(?:\.[0-9]+)*)", re.IGNORECASE
+)
 _RE_PART = re.compile(r"^\s*part\s*([0-9IVXLC]+)", re.IGNORECASE)
 _RE_APPENDIX = re.compile(r"^\s*(?:appendix|appx\.)\s*([A-Z0-9]+)", re.IGNORECASE)
 # V1.19：附录中文/Annex 变体
@@ -112,7 +119,8 @@ _RE_BARE_NUMBERED_MULTI = re.compile(r"^\s*([0-9]+(?:\.[0-9]+)+)\.?\s+")
 # 单点编号 "1. 标题" / "1、标题"（需分隔符，避免吃掉 "1.5" 之类小数）
 _RE_BARE_NUMBERED = re.compile(r"^\s*([0-9]+)\s*[.:、]")
 _RE_ZH_PREFIX = re.compile(
-    r"^\s*第\s*([0-9]+(?:\.[0-9]+)*|[零一二三四五六七八九十百千万]+)\s*([章节篇部卷])")
+    r"^\s*第\s*([0-9]+(?:\.[0-9]+)*|[零一二三四五六七八九十百千万]+)\s*([章节篇部卷])"
+)
 # v1.6 变体补充：中文枚举 "一、" / "1、"（中文目录常见）；右括号编号 "1)" / "（1）"
 _RE_ZH_ENUM = re.compile(r"^\s*[零一二三四五六七八九十百千万]+\s*[、.．]")
 _RE_CLOSE_PAREN = re.compile(r"^\s*\(?\s*([0-9]+(?:\.[0-9]+)*)\s*\)?[)）]\s+")
@@ -126,13 +134,16 @@ _STRUCTURED_RE: List[Tuple[TOCKind, re.Pattern, int]] = [
     (TOCKind.APPENDIX, _RE_APPENDIX, 1),
     (TOCKind.APPENDIX, _RE_ZH_APPENDIX, 1),
     (TOCKind.APPENDIX, _RE_ANNEX, 1),
-    (TOCKind.SECTION, _RE_SECTION_SIGN, 2),   # §2 / §3.2 → 节
+    (TOCKind.SECTION, _RE_SECTION_SIGN, 2),  # §2 / §3.2 → 节
 ]
 
 # 中文单位 → 结构类别
 _ZH_UNIT_KIND = {
-    "章": TOCKind.CHAPTER, "节": TOCKind.SECTION,
-    "篇": TOCKind.PART, "部": TOCKind.PART, "卷": TOCKind.PART,
+    "章": TOCKind.CHAPTER,
+    "节": TOCKind.SECTION,
+    "篇": TOCKind.PART,
+    "部": TOCKind.PART,
+    "卷": TOCKind.PART,
     "部分": TOCKind.PART,
 }
 
@@ -168,7 +179,7 @@ def parse_toc_entry(raw_title: str, page: str = "", leader: str = "") -> TOCEntr
             entry.kind = kind
             entry.level = level
             entry.number = m.group(1).strip()
-            rest = text[m.end():]
+            rest = text[m.end() :]
             entry.title = rest.strip(" \t:.-–—()[]{}")
             entry.matched = True
             return entry
@@ -180,7 +191,7 @@ def parse_toc_entry(raw_title: str, page: str = "", leader: str = "") -> TOCEntr
         entry.kind = _ZH_UNIT_KIND.get(unit, TOCKind.SECTION)
         entry.level = 1 if entry.kind in (TOCKind.CHAPTER, TOCKind.PART) else 2
         entry.number = m.group(1).strip()
-        entry.title = text[m.end():].strip(_NUMBER_SEPARATORS + " ")
+        entry.title = text[m.end() :].strip(_NUMBER_SEPARATORS + " ")
         entry.matched = True
         return entry
 
@@ -190,7 +201,7 @@ def parse_toc_entry(raw_title: str, page: str = "", leader: str = "") -> TOCEntr
         entry.kind = TOCKind.SECTION
         entry.number = m.group(1).strip()
         entry.level = entry.number.count(".") + 1
-        entry.title = text[m.end():].strip(_NUMBER_SEPARATORS + " ")
+        entry.title = text[m.end() :].strip(_NUMBER_SEPARATORS + " ")
         entry.matched = True
         return entry
     m = _RE_BARE_NUMBERED.match(text)
@@ -198,7 +209,7 @@ def parse_toc_entry(raw_title: str, page: str = "", leader: str = "") -> TOCEntr
         entry.kind = TOCKind.SECTION
         entry.number = m.group(1).strip()
         entry.level = 2
-        entry.title = text[m.end():].strip(_NUMBER_SEPARATORS + " ")
+        entry.title = text[m.end() :].strip(_NUMBER_SEPARATORS + " ")
         entry.matched = True
         return entry
 
@@ -208,7 +219,7 @@ def parse_toc_entry(raw_title: str, page: str = "", leader: str = "") -> TOCEntr
         entry.kind = TOCKind.SECTION
         entry.number = m.group(1).strip()
         entry.level = entry.number.count(".") + 1
-        entry.title = text[m.end():].strip(_NUMBER_SEPARATORS + " ")
+        entry.title = text[m.end() :].strip(_NUMBER_SEPARATORS + " ")
         entry.matched = True
         return entry
 
@@ -216,8 +227,8 @@ def parse_toc_entry(raw_title: str, page: str = "", leader: str = "") -> TOCEntr
     m = _RE_ZH_ENUM.match(text)
     if m:
         entry.kind = TOCKind.SECTION
-        entry.number = text[:m.end() - 1].strip(" 、.．")
-        entry.title = text[m.end():].strip(_NUMBER_SEPARATORS + " ")
+        entry.number = text[: m.end() - 1].strip(" 、.．")
+        entry.title = text[m.end() :].strip(_NUMBER_SEPARATORS + " ")
         entry.matched = True
         return entry
 
@@ -316,7 +327,9 @@ class TOCTranslationPolicy:
         return prefix + title
 
 
-def compose_toc_title(entry: Optional["TOCEntry"], translated_title: str, lang_out: str = "zh-CN") -> str:
+def compose_toc_title(
+    entry: Optional["TOCEntry"], translated_title: str, lang_out: str = "zh-CN"
+) -> str:
     """目录行标题合成（converter 主链路钩子）。
 
     - entry 为 None（非目录行）或 PLAIN（未命中结构规则）时恒等返回
@@ -328,8 +341,9 @@ def compose_toc_title(entry: Optional["TOCEntry"], translated_title: str, lang_o
     return TOCTranslationPolicy(lang_out).compose(entry, translated_title)
 
 
-def render_toc_line(entry: TOCEntry, translated_title: str,
-                    lang_out: str = "zh-CN") -> str:
+def render_toc_line(
+    entry: TOCEntry, translated_title: str, lang_out: str = "zh-CN"
+) -> str:
     """完整目录行渲染（语义渲染入口，供测试与独立渲染器使用）。
 
     返回形如 ``第3.2节 实验设置 ............ 42`` 的文本。
@@ -342,8 +356,9 @@ def render_toc_line(entry: TOCEntry, translated_title: str,
     return f"{head}{gap}{leader}{page}"
 
 
-def toc_to_ir_records(entries: List[Tuple[TOCEntry, str, str]],
-                      page_num: int = 0) -> List[dict]:
+def toc_to_ir_records(
+    entries: List[Tuple[TOCEntry, str, str]], page_num: int = 0
+) -> List[dict]:
     """V8.7 P1：把结构化目录条目转成 Document IR 侧通道记录。
 
     ``entries`` 为 ``[(entry, title_remainder, translated_title), ...]``
@@ -365,8 +380,13 @@ def toc_to_ir_records(entries: List[Tuple[TOCEntry, str, str]],
 
 
 __all__ = [
-    "TOCKind", "TOCEntry", "parse_toc_entry",
-    "TOC_TEMPLATES", "toc_structure_prefix",
-    "TOCTranslationPolicy", "compose_toc_title", "render_toc_line",
+    "TOCKind",
+    "TOCEntry",
+    "parse_toc_entry",
+    "TOC_TEMPLATES",
+    "toc_structure_prefix",
+    "TOCTranslationPolicy",
+    "compose_toc_title",
+    "render_toc_line",
     "toc_to_ir_records",
 ]

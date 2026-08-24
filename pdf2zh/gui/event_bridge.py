@@ -91,7 +91,9 @@ class TaskEventBridge:
         with self._lock:
             if self._listening:
                 return
-            self.service.add_event_listener(self._on_event_record)  # 统一分流 progress/notice
+            self.service.add_event_listener(
+                self._on_event_record
+            )  # 统一分流 progress/notice
             self._listening = True
             logger.info("TaskEventBridge attached to RuntimeService event stream")
 
@@ -179,9 +181,7 @@ class TaskEventBridge:
             elif stage == TaskStage.FAILED.value:
                 self._bus.publish(TaskFailed(task_id=tid, message=event.message))
             elif stage == TaskStage.CANCELLED.value:
-                self._bus.publish(
-                    TaskCancelled(task_id=tid, message=event.message)
-                )
+                self._bus.publish(TaskCancelled(task_id=tid, message=event.message))
             self._publish_live_diagnostics(tid)
         except Exception:
             logger.exception(

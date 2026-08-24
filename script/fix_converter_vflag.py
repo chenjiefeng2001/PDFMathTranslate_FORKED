@@ -1,8 +1,9 @@
 """Fix vflag function in converter.py - improve math font regex and font name extraction"""
-with open('pdf2zh/converter.py', 'r', encoding='utf-8') as f:
+
+with open("pdf2zh/converter.py", "r", encoding="utf-8") as f:
     content = f.read()
 
-old = '''        def vflag(font: str, char: str):    # 匹配公式（和角标）字体
+old = """        def vflag(font: str, char: str):    # 匹配公式（和角标）字体
             if isinstance(font, bytes):     # 不一定能 decode，直接转 str
                 try:
                     font = font.decode('utf-8')  # 尝试使用 UTF-8 解码
@@ -36,7 +37,7 @@ old = '''        def vflag(font: str, char: str):    # 匹配公式（和角标�
                     )
                 ):
                     return True
-            return False'''
+            return False"""
 
 new = '''        def _extract_font_name(font: str) -> str:
             """从 PDF 字体引用中提取规范字体名（改进版）"""
@@ -90,14 +91,14 @@ new = '''        def _extract_font_name(font: str) -> str:
 if old not in content:
     print("ERROR: old vflag text not found!")
     # Debug: find the vflag function
-    idx = content.find('def vflag')
+    idx = content.find("def vflag")
     if idx >= 0:
         print(f"Found vflag at position {idx}")
-        print(repr(content[idx:idx+800]))
+        print(repr(content[idx : idx + 800]))
     else:
         print("vflag def not found at all!")
 else:
     content = content.replace(old, new, 1)
-    with open('pdf2zh/converter.py', 'w', encoding='utf-8') as f:
+    with open("pdf2zh/converter.py", "w", encoding="utf-8") as f:
         f.write(content)
     print("SUCCESS: vflag function updated")

@@ -151,7 +151,6 @@ def _is_rate_limited_error(exc: Any) -> bool:
     )
 
 
-
 def resolve_pipeline(mode_choice: Optional[str]) -> str:
     """Map a GUI engine-mode value to the concrete execution pipeline.
 
@@ -165,14 +164,23 @@ def resolve_pipeline(mode_choice: Optional[str]) -> str:
 
 #: legacy 模式注入 translate_stream 的额外模态 kwargs（babeldoc 模式不走此表）。
 MODE_LEGACY_KWARGS: Dict[str, Dict[str, Any]] = {
-    "quick": {"document_model": False, "toc_split": True,
-              "render_takeover": False, "translation_qa": False,
-              "geometry_cluster": False, "observability": False,
-              "pipeline_dump": False},
+    "quick": {
+        "document_model": False,
+        "toc_split": True,
+        "render_takeover": False,
+        "translation_qa": False,
+        "geometry_cluster": False,
+        "observability": False,
+        "pipeline_dump": False,
+    },
     "standard": {"document_model": True, "toc_split": True},
-    "quality": {"document_model": True, "toc_split": True,
-                "render_takeover": True, "translation_qa": True,
-                "geometry_cluster": True},
+    "quality": {
+        "document_model": True,
+        "toc_split": True,
+        "render_takeover": True,
+        "translation_qa": True,
+        "geometry_cluster": True,
+    },
 }
 
 # ── V1.24 工作量模型（Work Graph）─────────────────────────────────────────────
@@ -207,7 +215,8 @@ for _stage_name in _STAGE_ORDER:
 
 
 def resolve_mode_config(
-    mode_choice: Optional[str], base: ServiceConfig,
+    mode_choice: Optional[str],
+    base: ServiceConfig,
 ) -> ServiceConfig:
     """Resolve an engine-mode preset onto a ``ServiceConfig``.
 
@@ -224,7 +233,9 @@ def resolve_mode_config(
 
 def legacy_mode_kwargs(mode_choice: Optional[str]) -> Dict[str, Any]:
     """Extra ``translate_stream`` kwargs for legacy engine modes."""
-    return dict(MODE_LEGACY_KWARGS.get((mode_choice or "auto").strip() or "auto", {}) or {})
+    return dict(
+        MODE_LEGACY_KWARGS.get((mode_choice or "auto").strip() or "auto", {}) or {}
+    )
 
 
 # ── Data Models ──────────────────────────────────────────────────────────────
@@ -304,8 +315,6 @@ class TranslationRequest:
     经 ``dataclasses.replace`` 自动携带到每个子请求。legacy/magicpdf 链路
     当前忽略该字段（Phase 3 接入 legacy 后处理钉死）。
     """
-
-
 
     extra_config: Dict[str, Any] = field(default_factory=dict)
 
@@ -636,7 +645,8 @@ class _TaskStore:
         )
         with self._lock:
             stale = [
-                tid for tid, st in self._tasks.items()
+                tid
+                for tid, st in self._tasks.items()
                 if st.status in terminal and (now - st.updated_at) > max_age
             ]
             for tid in stale:
@@ -716,15 +726,15 @@ class RuntimeService:
 
         #: S2: 后台清扫线程（终态任务内存清理；daemon 不阻塞退出）。
         self._sweeper = threading.Thread(
-            target=self._sweeper_loop, name="pdf2zh-task-sweeper", daemon=True,
+            target=self._sweeper_loop,
+            name="pdf2zh-task-sweeper",
+            daemon=True,
         )
         self._sweeper.start()
 
     # ── Event listener API (Worker -> EventBus bridge) ───────────────────────
 
-    def add_event_listener(
-        self, listener: Callable[[TaskProgressEvent], None]
-    ) -> None:
+    def add_event_listener(self, listener: Callable[[TaskProgressEvent], None]) -> None:
         """Register a callback invoked on every emitted ``TaskProgressEvent``."""
         with self._listeners_lock:
             if listener not in self._event_listeners:
@@ -742,7 +752,6 @@ class RuntimeService:
         """Remove all registered event listeners."""
         with self._listeners_lock:
             self._event_listeners.clear()
-
 
     def submit_task(self, request: TranslationRequest) -> str:
         """Submit a translation task; returns task_id.
@@ -763,7 +772,8 @@ class RuntimeService:
         files = request.resolved_files()
         if not files:
             self._store.update_task(
-                task_id, status=TaskStage.FAILED.value,
+                task_id,
+                status=TaskStage.FAILED.value,
                 error_message="No source files provided",
                 message="Error: No source files provided",
             )
@@ -780,7 +790,9 @@ class RuntimeService:
             with self._batch_ctx_lock:
                 self._batch_ctx[task_id] = _BatchContext(total_files=len(files))
         thread = threading.Thread(
-            target=self._execute_task, args=(task_id, request), daemon=True,
+            target=self._execute_task,
+            args=(task_id, request),
+            daemon=True,
         )
         thread.start()
         return task_id
@@ -812,7 +824,9 @@ class RuntimeService:
             return False
         self._store.cancel_task(task_id)
         self._store.update_task(
-            task_id, status=TaskStage.CANCELLED.value, message="Cancelled by user",
+            task_id,
+            status=TaskStage.CANCELLED.value,
+            message="Cancelled by user",
         )
         return True
 
@@ -821,7 +835,11 @@ class RuntimeService:
         state = self._store.get_task(task_id)
         if state is None:
             return False
-        if state.status in (TaskStage.COMPLETED.value, TaskStage.CANCELLED.value, TaskStage.FAILED.value):
+        if state.status in (
+            TaskStage.COMPLETED.value,
+            TaskStage.CANCELLED.value,
+            TaskStage.FAILED.value,
+        ):
             return False
         self._store.pause_task(task_id)
         self._store.update_task(task_id, message="Paused by user")
@@ -841,7 +859,11 @@ class RuntimeService:
         state = self._store.get_task(task_id)
         if state is None:
             return False
-        if state.status in (TaskStage.COMPLETED.value, TaskStage.CANCELLED.value, TaskStage.FAILED.value):
+        if state.status in (
+            TaskStage.COMPLETED.value,
+            TaskStage.CANCELLED.value,
+            TaskStage.FAILED.value,
+        ):
             return False
         self._store.skip_task(task_id)
         self._store.update_task(task_id, message="Skipping current file...")
@@ -861,7 +883,9 @@ class RuntimeService:
                 yield event
             last_index += len(events)
             if state.status in (
-                TaskStage.COMPLETED.value, TaskStage.CANCELLED.value, TaskStage.FAILED.value,
+                TaskStage.COMPLETED.value,
+                TaskStage.CANCELLED.value,
+                TaskStage.FAILED.value,
             ):
                 break
             time.sleep(poll_interval)
@@ -898,7 +922,9 @@ class RuntimeService:
         if current != wanted:
             logger.info(
                 "[task=%s] ONNX backend switch: %s -> %s (applied on next model load)",
-                task_id, current, wanted,
+                task_id,
+                current,
+                wanted,
             )
             set_backend(wanted)
             # 全局已缓存的 ONNX session 基于旧 provider 构建；重置后
@@ -915,7 +941,8 @@ class RuntimeService:
                 shutdown_shared_pool()
             except Exception:  # noqa: BLE001 -- 池清理失败不阻断任务
                 logger.debug(
-                    "[task=%s] warm pool shutdown on backend switch failed", task_id,
+                    "[task=%s] warm pool shutdown on backend switch failed",
+                    task_id,
                 )
 
     def _execute_task(self, task_id: str, request: TranslationRequest) -> None:
@@ -945,7 +972,9 @@ class RuntimeService:
                 # BabelDOC 布局引擎独立执行路径：单文件直跑，批量走 _execute_batch
                 # （其 per-file 分发同样识别 babeldoc 模式）。
                 if len(files) > 1:
-                    self._execute_batch(task_id, request, files, task_config, cancel_event)
+                    self._execute_batch(
+                        task_id, request, files, task_config, cancel_event
+                    )
                 else:
                     self._execute_babeldoc(task_id, request, task_config)
             elif len(files) > 1:
@@ -961,15 +990,21 @@ class RuntimeService:
             # 也绝不进入任何串行兜底（translate_stream 已 except KeyboardInterrupt: raise）。
             logger.info("[task=%s] interrupted by Ctrl+C; task cancelled", task_id)
             self._store.update_task(
-                task_id, status=TaskStage.CANCELLED.value,
-                error_message="Interrupted by user", message="Cancelled by user",
+                task_id,
+                status=TaskStage.CANCELLED.value,
+                error_message="Interrupted by user",
+                message="Cancelled by user",
             )
-            self._emit_event(task_id, TaskStage.CANCELLED.value, 100.0, "Cancelled by user")
+            self._emit_event(
+                task_id, TaskStage.CANCELLED.value, 100.0, "Cancelled by user"
+            )
         except Exception as exc:
             logger.error("Task %s failed: %s", task_id, exc, exc_info=True)
             self._store.update_task(
-                task_id, status=TaskStage.FAILED.value,
-                error_message=str(exc), message=f"Error: {exc}",
+                task_id,
+                status=TaskStage.FAILED.value,
+                error_message=str(exc),
+                message=f"Error: {exc}",
             )
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {exc}")
         finally:
@@ -992,8 +1027,12 @@ class RuntimeService:
                     pass
 
     def _execute_batch(
-        self, task_id: str, request: TranslationRequest, files: List[str],
-        config: ServiceConfig, cancel_event: Optional[threading.Event] = None,
+        self,
+        task_id: str,
+        request: TranslationRequest,
+        files: List[str],
+        config: ServiceConfig,
+        cancel_event: Optional[threading.Event] = None,
     ) -> None:
         """Execute a multi-file batch, aggregating overall progress.
 
@@ -1010,16 +1049,22 @@ class RuntimeService:
                 self._batch_ctx[task_id] = ctx
         total = ctx.total_files
         try:
-            concurrency = max(1, min(
-                4, int(os.environ.get("PDF2ZH_BATCH_CONCURRENCY", "2") or "2")
-            ))
+            concurrency = max(
+                1, min(4, int(os.environ.get("PDF2ZH_BATCH_CONCURRENCY", "2") or "2"))
+            )
         except ValueError:
             concurrency = 2
 
         if concurrency > 1 and len(files) > 1:
             self._execute_batch_concurrent(
-                task_id, request, files, config, ctx, cancel_event,
-                concurrency, mode,
+                task_id,
+                request,
+                files,
+                config,
+                ctx,
+                cancel_event,
+                concurrency,
+                mode,
             )
             return
 
@@ -1057,7 +1102,11 @@ class RuntimeService:
                     self._execute_legacy(task_id, sub_request, config, cancel_event)
             except Exception as exc:
                 logger.error(
-                    "[task=%s] file %s failed: %s", task_id, path, exc, exc_info=True,
+                    "[task=%s] file %s failed: %s",
+                    task_id,
+                    path,
+                    exc,
+                    exc_info=True,
                 )
                 self._fail_file(task_id, exc, total_files=total)
             # Defensive: if the per-file executor left the task in FAILED
@@ -1069,26 +1118,29 @@ class RuntimeService:
                 and state.status == TaskStage.FAILED.value
                 and not self._file_failure_recorded(task_id, ctx)
             ):
-                self._fail_file(task_id, state.error_message or "File failed",
-                                total_files=total)
+                self._fail_file(
+                    task_id, state.error_message or "File failed", total_files=total
+                )
         if self._store.is_cancelled(task_id):
             return
         self._finish_batch(task_id, ctx)
 
-    def _route_parse_pipeline(self, request: TranslationRequest,
-                              mode: str) -> str:
+    def _route_parse_pipeline(self, request: TranslationRequest, mode: str) -> str:
         """与 _execute_task 一致的管线路由（显式 parse_engine 优先）。"""
-        parse_engine = (
-            getattr(request, "parse_engine", "auto") or "auto"
-        ).lower()
+        parse_engine = (getattr(request, "parse_engine", "auto") or "auto").lower()
         if parse_engine == "babeldoc" or resolve_pipeline(mode) == "babeldoc":
             return "babeldoc"
         return "legacy"
 
     def _execute_batch_concurrent(
-        self, task_id: str, request: TranslationRequest, files: List[str],
-        config: ServiceConfig, ctx: _BatchContext,
-        cancel_event: Optional[threading.Event], concurrency: int,
+        self,
+        task_id: str,
+        request: TranslationRequest,
+        files: List[str],
+        config: ServiceConfig,
+        ctx: _BatchContext,
+        cancel_event: Optional[threading.Event],
+        concurrency: int,
         mode: str,
     ) -> None:
         """有界并发批处理：K 个文件同时跑完整单文件管线。
@@ -1105,7 +1157,10 @@ class RuntimeService:
         route = self._route_parse_pipeline(request, mode)
         logger.info(
             "[task=%s] batch concurrent execution: %d file(s), K=%d, pipeline=%s",
-            task_id, len(files), concurrency, route,
+            task_id,
+            len(files),
+            concurrency,
+            route,
         )
         self._store.update_task(
             task_id,
@@ -1125,16 +1180,19 @@ class RuntimeService:
                 elif config.use_v4_engine:
                     self._execute_v4(task_id, sub_request, config)
                 else:
-                    self._execute_legacy(
-                        task_id, sub_request, config, cancel_event
-                    )
+                    self._execute_legacy(task_id, sub_request, config, cancel_event)
             except Exception as exc:
                 logger.error(
-                    "[task=%s] file %s failed: %s", task_id, path, exc,
+                    "[task=%s] file %s failed: %s",
+                    task_id,
+                    path,
+                    exc,
                     exc_info=True,
                 )
                 self._fail_file(
-                    task_id, exc, total_files=ctx.total_files,
+                    task_id,
+                    exc,
+                    total_files=ctx.total_files,
                     file_path=path,
                 )
             finally:
@@ -1159,8 +1217,11 @@ class RuntimeService:
         total = ctx.total_files
         if ctx.failed_files >= total:
             self._store.update_task(
-                task_id, status=TaskStage.FAILED.value, progress=100.0,
-                total_progress=100.0, message="All files failed",
+                task_id,
+                status=TaskStage.FAILED.value,
+                progress=100.0,
+                total_progress=100.0,
+                message="All files failed",
                 error_message="All files failed",
             )
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, "All files failed")
@@ -1171,8 +1232,12 @@ class RuntimeService:
         zip_path = self._build_batch_zip(task_id)
         state = self._store.get_task(task_id)
         self._store.update_task(
-            task_id, status=TaskStage.COMPLETED.value, progress=100.0,
-            total_progress=100.0, file_progress=100.0, message=msg,
+            task_id,
+            status=TaskStage.COMPLETED.value,
+            progress=100.0,
+            total_progress=100.0,
+            file_progress=100.0,
+            message=msg,
             result_zip=zip_path,
             result_files=list(state.result_files or []) if state else [],
         )
@@ -1192,14 +1257,18 @@ class RuntimeService:
             return f
         return (ctx.completed_files + f / 100.0) / ctx.total_files * 100.0
 
-    def _emit_batch_progress(self, task_id: str, ctx: _BatchContext, message: str = "") -> None:
+    def _emit_batch_progress(
+        self, task_id: str, ctx: _BatchContext, message: str = ""
+    ) -> None:
         """Persist aggregate batch progress and broadcast a low-level event.
 
         并发模式：总体 = Σ(progress_map)/total；串行模式：completed/total。
         """
         with ctx.lock:
             if ctx.progress_map:
-                agg = min(100.0, sum(ctx.progress_map.values()) / max(1, ctx.total_files))
+                agg = min(
+                    100.0, sum(ctx.progress_map.values()) / max(1, ctx.total_files)
+                )
             else:
                 agg = self._agg(ctx, 0.0)
         self._store.update_task(
@@ -1213,7 +1282,9 @@ class RuntimeService:
             message=message or f"Completed {ctx.current_file}",
         )
         event = TaskProgressEvent(
-            task_id=task_id, stage=TaskStage.RENDERING.value, progress=agg,
+            task_id=task_id,
+            stage=TaskStage.RENDERING.value,
+            progress=agg,
             message=message or f"Completed {ctx.current_file}",
         )
         self._store.add_event(task_id, event)
@@ -1241,8 +1312,13 @@ class RuntimeService:
         return task_id, path
 
     def _complete_file(
-        self, task_id: str, result_files: List[Dict[str, str]], *,
-        total_files: int = 1, message: str = "Completed", file_path: Optional[str] = None,
+        self,
+        task_id: str,
+        result_files: List[Dict[str, str]],
+        *,
+        total_files: int = 1,
+        message: str = "Completed",
+        file_path: Optional[str] = None,
         **extra: Any,
     ) -> None:
         """Record a per-file completion.
@@ -1262,8 +1338,11 @@ class RuntimeService:
             # surface as a bogus "Download All (ZIP)" target, so drop it.
             extra.pop("result_zip", None)
             self._store.update_task(
-                task_id, status=TaskStage.COMPLETED.value, progress=100.0,
-                total_progress=100.0, file_progress=100.0,
+                task_id,
+                status=TaskStage.COMPLETED.value,
+                progress=100.0,
+                total_progress=100.0,
+                file_progress=100.0,
                 result_files=result_files,
                 selected_file=(
                     extra.pop("selected_file", None)
@@ -1293,18 +1372,33 @@ class RuntimeService:
             if extra.get("selected_file"):
                 upd["selected_file"] = extra.pop("selected_file")
             for key in (
-                "diagnostic_summary", "quality_scores", "node_overview",
-                "ir_snapshots", "gate_verdicts", "processor_reports", "toc_ir_records",
-                "diagnostic_report", "heal_status", "repair_records", "confidence_stats",
+                "diagnostic_summary",
+                "quality_scores",
+                "node_overview",
+                "ir_snapshots",
+                "gate_verdicts",
+                "processor_reports",
+                "toc_ir_records",
+                "diagnostic_report",
+                "heal_status",
+                "repair_records",
+                "confidence_stats",
             ):
                 if extra.get(key) is not None:
                     upd[key] = extra.pop(key)
             self._store.update_task(task_id, **upd)
-        self._emit_batch_progress(task_id, ctx, f"Completed {file_path or ctx.current_file}")
+        self._emit_batch_progress(
+            task_id, ctx, f"Completed {file_path or ctx.current_file}"
+        )
 
     def _fail_file(
-        self, task_id: str, exc: Any, *, total_files: int = 1,
-        message: Optional[str] = None, file_path: Optional[str] = None,
+        self,
+        task_id: str,
+        exc: Any,
+        *,
+        total_files: int = 1,
+        message: Optional[str] = None,
+        file_path: Optional[str] = None,
     ) -> None:
         """Record a per-file failure.
 
@@ -1317,11 +1411,15 @@ class RuntimeService:
                 # Single-file task cancelled by the user: keep the terminal state
                 # set by the canceller instead of overwriting it with a failure
                 # report (CANCELLED -> FAILED).
-                logger.info("[task=%s] cancelled; dropping late failure report", task_id)
+                logger.info(
+                    "[task=%s] cancelled; dropping late failure report", task_id
+                )
                 return
             self._store.update_task(
-                task_id, status=TaskStage.FAILED.value,
-                error_message=error, message=message or f"Error: {error}",
+                task_id,
+                status=TaskStage.FAILED.value,
+                error_message=error,
+                message=message or f"Error: {error}",
             )
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {error}")
             return
@@ -1336,7 +1434,9 @@ class RuntimeService:
             failures = list(getattr(state, "file_failures", None) or [])
             failures.append({"file": failed_name, "error": error})
             self._store.update_task(
-                task_id, failed_files=ctx.failed_files, file_failures=failures,
+                task_id,
+                failed_files=ctx.failed_files,
+                file_failures=failures,
                 message=f"Failed {failed_name}",
             )
         self._emit_batch_progress(task_id, ctx, f"Failed {failed_name}: {error}")
@@ -1378,18 +1478,23 @@ class RuntimeService:
         if state is None:
             return None
         if zip_path is None:
-            zip_path = next(
-                (
-                    rf.get("path") for rf in (state.result_files or [])
-                    if rf.get("path") and os.path.exists(rf.get("path"))
-                ),
-                None,
-            ) or ""
+            zip_path = (
+                next(
+                    (
+                        rf.get("path")
+                        for rf in (state.result_files or [])
+                        if rf.get("path") and os.path.exists(rf.get("path"))
+                    ),
+                    None,
+                )
+                or ""
+            )
         self._store.update_task(task_id, result_zip=zip_path)
         return zip_path
 
-    def _sync_feature_flags(self, task_id: str,
-                            config: Optional[ServiceConfig] = None) -> None:
+    def _sync_feature_flags(
+        self, task_id: str, config: Optional[ServiceConfig] = None
+    ) -> None:
         """V8.2：把 ServiceConfig.use_v4_* 同步到 v3 FeatureFlags 单例，
         并记录回退遥测（use_v4_engine=False 即 legacy 回退事件）。
 
@@ -1398,8 +1503,12 @@ class RuntimeService:
         cfg = config or self.config
         try:
             from pdf2zh.v3.feature_flags import (
-                FallbackTelemetry, FeatureFlags, get_feature_flags, set_feature_flags,
+                FallbackTelemetry,
+                FeatureFlags,
+                get_feature_flags,
+                set_feature_flags,
             )
+
             flags = get_feature_flags()
             flags.use_v4_engine = cfg.use_v4_engine
             flags.use_v4_translator = cfg.use_v4_translator
@@ -1418,22 +1527,28 @@ class RuntimeService:
                 flags.use_v4_engine = False
                 flags.use_v4_translator = flags.use_v4_translator or False
             flags.telemetry = FallbackTelemetry()
-            flags.record_fallback({
-                "reason": "legacy_mainline" if not cfg.use_v4_engine
-                else "v4_enabled",
-                "task_id": task_id,
-                "run_evaluation": cfg.run_evaluation,
-                "emit_ir": cfg.emit_ir,
-                "use_v4_gate": cfg.use_v4_gate,
-                "mode_choice": getattr(
-                    self._store.get_task(task_id), "mode_choice", "") or "",
-            })
+            flags.record_fallback(
+                {
+                    "reason": (
+                        "legacy_mainline" if not cfg.use_v4_engine else "v4_enabled"
+                    ),
+                    "task_id": task_id,
+                    "run_evaluation": cfg.run_evaluation,
+                    "emit_ir": cfg.emit_ir,
+                    "use_v4_gate": cfg.use_v4_gate,
+                    "mode_choice": getattr(
+                        self._store.get_task(task_id), "mode_choice", ""
+                    )
+                    or "",
+                }
+            )
             set_feature_flags(flags)
         except Exception:
             logger.debug("feature flag sync skipped", exc_info=True)
 
-    def _resolve_out_dir(self, request: TranslationRequest,
-                         config: Optional[ServiceConfig]) -> str:
+    def _resolve_out_dir(
+        self, request: TranslationRequest, config: Optional[ServiceConfig]
+    ) -> str:
         """输出目录优先级：请求级 output_dir > 服务级 config > 源文件目录。"""
         cfg = config or self.config
         custom = (getattr(request, "output_dir", "") or "").strip()
@@ -1443,8 +1558,12 @@ class RuntimeService:
             return cfg.output_dir
         return os.path.dirname(request.source_path)
 
-    def _execute_v4(self, task_id: str, request: TranslationRequest,
-                    config: Optional[ServiceConfig] = None) -> None:
+    def _execute_v4(
+        self,
+        task_id: str,
+        request: TranslationRequest,
+        config: Optional[ServiceConfig] = None,
+    ) -> None:
         """Execute with V4 RuntimeFacade pipeline."""
         from pdf2zh.v3.runtime import RuntimeFacade
 
@@ -1456,10 +1575,12 @@ class RuntimeService:
         diag_report: Optional[Dict[str, Any]] = None
 
         self._emit_event(task_id, TaskStage.PARSING.value, 10.0, "Parsing PDF...")
-        rt = RuntimeFacade(config={
-            "lang_in": request.source_lang,
-            "lang_out": request.target_lang,
-        })
+        rt = RuntimeFacade(
+            config={
+                "lang_in": request.source_lang,
+                "lang_out": request.target_lang,
+            }
+        )
         rt.load(request.source_path)
         if self._store.is_cancelled(task_id):
             return
@@ -1477,12 +1598,14 @@ class RuntimeService:
         self._emit_event(task_id, TaskStage.TRANSLATING.value, 50.0, "Translating...")
         if config.use_v4_translator:
             from pdf2zh.v3.translation_runtime import TranslationRuntime
+
             tr = TranslationRuntime()
             if rt.plans:
                 # rt.plans 是 {node_id: TranslationPlan}，合并为单 plan 后执行；
                 # 不能把整个 dict 当作 TranslationPlan 传入
                 # （历史 bug：'dict' object has no attribute 'node_ids'）。
                 from pdf2zh.v3.planner import TranslationPlan
+
                 plan = TranslationPlan(node_ids=list(rt.plans.keys()))
                 tr.execute(rt.graph, plan)
         else:
@@ -1502,10 +1625,15 @@ class RuntimeService:
         quality_scores = {}
         try:
             from pdf2zh.v3.evaluator import QualityEvaluator
+
             ev = QualityEvaluator()
             report = ev.evaluate(rt.graph)
             if isinstance(report, dict) and isinstance(report.get("scores"), dict):
-                quality_scores = {k: float(v) for k, v in report["scores"].items() if isinstance(v, (int, float))}
+                quality_scores = {
+                    k: float(v)
+                    for k, v in report["scores"].items()
+                    if isinstance(v, (int, float))
+                }
                 issues = []
                 for cat, sc in quality_scores.items():
                     issues.append(str(cat) + ": " + str(int(sc)) + "/100")
@@ -1515,7 +1643,9 @@ class RuntimeService:
                 ts = quality_scores.get("translation_score", 100)
                 if ts < 80:
                     issues.append("Low quality")
-                diagnostic_summary = " | ".join(issues) if issues else "All checks passed"
+                diagnostic_summary = (
+                    " | ".join(issues) if issues else "All checks passed"
+                )
             diag_src = getattr(ev, "_diagnostic", None)
             if diag_src is not None and hasattr(diag_src, "to_dict"):
                 try:
@@ -1549,7 +1679,9 @@ class RuntimeService:
             quality_scores = {}
 
         self._complete_file(
-            task_id, result_files, total_files=total_files,
+            task_id,
+            result_files,
+            total_files=total_files,
             selected_file=result_files[0]["name"],
             diagnostic_summary=diagnostic_summary,
             quality_scores=quality_scores,
@@ -1570,8 +1702,12 @@ class RuntimeService:
             if graph is None:
                 return None
             pages = 0
-            counts: Dict[str, int] = {"paragraphs": 0, "headings": 0,
-                                      "figures": 0, "formulas": 0}
+            counts: Dict[str, int] = {
+                "paragraphs": 0,
+                "headings": 0,
+                "figures": 0,
+                "formulas": 0,
+            }
             for node in getattr(graph, "nodes", None) or ():
                 kind = str(getattr(node, "kind", "") or "").lower()
                 ntype = str(getattr(node, "type", "") or "").lower()
@@ -1594,9 +1730,13 @@ class RuntimeService:
         except Exception:
             return None
 
-    def _execute_legacy(self, task_id: str, request: TranslationRequest,
-                        config: Optional[ServiceConfig] = None,
-                        cancel_event: Optional[threading.Event] = None) -> None:
+    def _execute_legacy(
+        self,
+        task_id: str,
+        request: TranslationRequest,
+        config: Optional[ServiceConfig] = None,
+        cancel_event: Optional[threading.Event] = None,
+    ) -> None:
         """Execute with Legacy translate_stream pipeline."""
         from pdf2zh.high_level import translate_stream
         from pdf2zh.doclayout import (  # noqa: PLC0415
@@ -1660,12 +1800,14 @@ class RuntimeService:
         logger.info("[task=%s] Translation phase starting...", task_id)
         # V8.3/V8.4: 主链路 IR 产出 + 写回前门控（side-channel）
         v3_output: Dict[str, Any] = {}
+
         # 并行进度回调：translate_stream 按已完成的页面分块回报（0-100），
         # 映射到翻译窗口 30→70（阶段权重 translating=[40,70]；经聚合器
         # 按权重折算 + 指数平滑后推给 UI），避免并行下进度条跳变。
         def _progress_cb(pct: float, msg: str) -> None:
             self._emit_smooth(
-                task_id, TaskStage.TRANSLATING.value,
+                task_id,
+                TaskStage.TRANSLATING.value,
                 30.0 + max(0.0, min(100.0, float(pct))) * 0.40,
                 msg,
             )
@@ -1711,7 +1853,9 @@ class RuntimeService:
                     task_id,
                 )
                 return
-            logger.error("[task=%s] translate_stream failed: %s", task_id, tx_exc, exc_info=True)
+            logger.error(
+                "[task=%s] translate_stream failed: %s", task_id, tx_exc, exc_info=True
+            )
             self._fail_file(task_id, tx_exc, total_files=total_files)
             return
         if self._store.is_cancelled(task_id):
@@ -1720,22 +1864,39 @@ class RuntimeService:
         self._emit_event(task_id, TaskStage.RENDERING.value, 80.0, "Merging pages...")
         if doc_mono is None or doc_dual is None:
             logger.error("Page merging failed: translate_stream returned None")
-            self._fail_file(task_id, "translate_stream returned None", total_files=total_files)
+            self._fail_file(
+                task_id, "translate_stream returned None", total_files=total_files
+            )
             return
-        self._emit_event(task_id, TaskStage.RENDERING.value, 82.0, "Subsetting fonts...")
+        self._emit_event(
+            task_id, TaskStage.RENDERING.value, 82.0, "Subsetting fonts..."
+        )
         # Track merge progress: subset_fonts + write can take minutes for large PDFs.
         # translate_stream handles the merge internally; we poll with short sleeps
         # to allow the UI to receive periodic progress updates.
-        self._emit_event(task_id, TaskStage.RENDERING.value, 85.0, "Writing output files...")
+        self._emit_event(
+            task_id, TaskStage.RENDERING.value, 85.0, "Writing output files..."
+        )
         out_dir = self._resolve_out_dir(request, config)
         basename = os.path.splitext(os.path.basename(request.source_path))[0]
         os.makedirs(out_dir, exist_ok=True)
-        logger.info("[task=%s] Merge OK: mono=%d bytes, dual=%d bytes", task_id, len(doc_mono), len(doc_dual))
+        logger.info(
+            "[task=%s] Merge OK: mono=%d bytes, dual=%d bytes",
+            task_id,
+            len(doc_mono),
+            len(doc_dual),
+        )
 
         mono_path = os.path.join(out_dir, f"{basename}-mono.pdf")
         dual_path = os.path.join(out_dir, f"{basename}-dual.pdf")
-        logger.info("[task=%s] Writing mono (%d bytes) and dual (%d bytes)...", task_id, len(doc_mono), len(doc_dual))
+        logger.info(
+            "[task=%s] Writing mono (%d bytes) and dual (%d bytes)...",
+            task_id,
+            len(doc_mono),
+            len(doc_dual),
+        )
         import sys as _sys_write
+
         _sys_write.stdout.flush()
         with open(mono_path, "wb") as f:
             f.write(doc_mono)
@@ -1750,26 +1911,48 @@ class RuntimeService:
         if config.run_evaluation:
             try:
                 from pdf2zh.evaluate import evaluate_translation
-                self._emit_event(task_id, TaskStage.EVALUATING.value, 92.0,
-                                 "Evaluating output...")
+
+                self._emit_event(
+                    task_id, TaskStage.EVALUATING.value, 92.0, "Evaluating output..."
+                )
                 eval_report = evaluate_translation(
-                    request.source_path, mono_path,
+                    request.source_path,
+                    mono_path,
                     target_lang=request.target_lang,
                     report_dir=config.evaluation_report_dir or None,
                     report_threshold=90.0,
                 )
                 quality_scores = {
                     "overall": float(eval_report.overall_score),
-                    "geometry_score": float(eval_report.geometry.get("geometry_score", 0)),
-                    "structure_score": float(eval_report.structure.get("structure_score", 0)),
-                    "translation_score": float(eval_report.translation.get("translation_score", 0)),
-                    "rendering_score": float(eval_report.rendering.get("rendering_score", 0)),
-                    "collision_rate": float(eval_report.rendering.get("collision_rate", 0)),
-                    "overflow_rate": float(eval_report.rendering.get("overflow_rate", 0)),
-                    "residue_estimate": float(eval_report.translation.get("residue_estimate", 0)),
+                    "geometry_score": float(
+                        eval_report.geometry.get("geometry_score", 0)
+                    ),
+                    "structure_score": float(
+                        eval_report.structure.get("structure_score", 0)
+                    ),
+                    "translation_score": float(
+                        eval_report.translation.get("translation_score", 0)
+                    ),
+                    "rendering_score": float(
+                        eval_report.rendering.get("rendering_score", 0)
+                    ),
+                    "collision_rate": float(
+                        eval_report.rendering.get("collision_rate", 0)
+                    ),
+                    "overflow_rate": float(
+                        eval_report.rendering.get("overflow_rate", 0)
+                    ),
+                    "residue_estimate": float(
+                        eval_report.translation.get("residue_estimate", 0)
+                    ),
                 }
                 diag_parts = []
-                for k in ("geometry_score", "structure_score", "translation_score", "rendering_score"):
+                for k in (
+                    "geometry_score",
+                    "structure_score",
+                    "translation_score",
+                    "rendering_score",
+                ):
                     diag_parts.append(f"{k}: {int(quality_scores[k])}/100")
                 if quality_scores["collision_rate"] > 0.05:
                     diag_parts.append("Overlap")
@@ -1777,27 +1960,39 @@ class RuntimeService:
                     diag_parts.append("Overflow")
                 if quality_scores["residue_estimate"] > 0.15:
                     diag_parts.append("Original residue")
-                diagnostic_summary = " | ".join(diag_parts) if diag_parts else "All checks passed"
-                self._emit_event(task_id, TaskStage.EVALUATING.value, 98.0,
-                                 f"Evaluated: {eval_report.summary()}")
+                diagnostic_summary = (
+                    " | ".join(diag_parts) if diag_parts else "All checks passed"
+                )
+                self._emit_event(
+                    task_id,
+                    TaskStage.EVALUATING.value,
+                    98.0,
+                    f"Evaluated: {eval_report.summary()}",
+                )
             except Exception as ev_exc:
                 logger.warning("[task=%s] evaluation failed: %s", task_id, ev_exc)
         # 确保 diagnostic_summary 和 quality_scores 至少有一个默认值
-        if 'diagnostic_summary' not in dir() or not diagnostic_summary:
+        if "diagnostic_summary" not in dir() or not diagnostic_summary:
             diagnostic_summary = "Legacy pipeline - V4 diagnostics not available"
-        if 'quality_scores' not in dir() or not quality_scores:
+        if "quality_scores" not in dir() or not quality_scores:
             quality_scores = {}
 
         # V8.3/V8.4: 收集主链路 side-channel（IR 快照 + 写回门控裁决）
         ir_snapshots = v3_output.get("ir_snapshots") or None
         gate_verdicts = v3_output.get("gate_verdicts") or None
         if gate_verdicts:
-            blocked = [str(p) for p, v in gate_verdicts.items()
-                       if not v.get("writeback_allowed", True)]
+            blocked = [
+                str(p)
+                for p, v in gate_verdicts.items()
+                if not v.get("writeback_allowed", True)
+            ]
             if blocked:
                 diag_extra = f"Gate {len(blocked)} page(s) blocked write-back: {','.join(blocked)}"
-                diagnostic_summary = f"{diagnostic_summary} | {diag_extra}" \
-                    if diagnostic_summary else diag_extra
+                diagnostic_summary = (
+                    f"{diagnostic_summary} | {diag_extra}"
+                    if diagnostic_summary
+                    else diag_extra
+                )
         # V9.0: Processor 语义通道（处理器报告 + TOC 结构化记录）回传 task state
         processor_reports = v3_output.get("processor_reports") or None
         toc_ir_records = v3_output.get("toc_ir_records") or None
@@ -1808,8 +2003,9 @@ class RuntimeService:
             self._store.update_task(task_id, node_overview=node_overview)
         # 诊断报告 + 置信度统计 + 自愈行程（side-channel 模型，纯只读分析之外会
         # 在模型副本上运行修复闭环以产出 before/after 证据；渲染不受影响）。
-        diag_report, heal_status, repair_records, confidence_stats = \
+        diag_report, heal_status, repair_records, confidence_stats = (
             self._collect_legacy_diagnostics(v3_output)
+        )
         if diag_report and heal_status:
             errs = int(diag_report.get("errors") or 0)
             warns = int(diag_report.get("warnings") or 0)
@@ -1817,11 +2013,16 @@ class RuntimeService:
             diag_extra = f"Errors={errs} Warnings={warns} {heal}"
             if diagnostic_summary and "Errors=" not in diagnostic_summary:
                 diagnostic_summary = f"{diagnostic_summary} | {diag_extra}"
-            elif diagnostic_summary in ("", "Legacy pipeline - V4 diagnostics not available"):
+            elif diagnostic_summary in (
+                "",
+                "Legacy pipeline - V4 diagnostics not available",
+            ):
                 diagnostic_summary = diag_extra
 
         self._complete_file(
-            task_id, result_files, total_files=total_files,
+            task_id,
+            result_files,
+            total_files=total_files,
             selected_file=result_files[0]["name"],
             diagnostic_summary=diagnostic_summary,
             quality_scores=quality_scores,
@@ -1840,7 +2041,9 @@ class RuntimeService:
         logger.info("[task=%s] Output files written successfully", task_id)
 
     def _execute_magicpdf(
-        self, task_id: str, request: TranslationRequest,
+        self,
+        task_id: str,
+        request: TranslationRequest,
         config: Optional[ServiceConfig] = None,
     ) -> None:
         """MinerU/magic-pdf 解析引擎执行路径（--parse-engine magicpdf）。
@@ -1865,7 +2068,9 @@ class RuntimeService:
             self._fail_file(task_id, f"magicpdf args error: {exc}", total_files=total)
             return
         ns.files = files
-        out_dir = self._resolve_out_dir(request, config) or os.path.dirname(os.path.abspath(files[0]))
+        out_dir = self._resolve_out_dir(request, config) or os.path.dirname(
+            os.path.abspath(files[0])
+        )
         ns.output = out_dir
         ns.backend = request.backend or "auto"
         ns.magicpdf_ocr = bool(request.magicpdf_ocr)
@@ -1881,11 +2086,13 @@ class RuntimeService:
         ns.ignore_cache = request.ignore_cache
         extra = request.extra_config or {}
         ns.prompt = extra.get("prompt") or ""
-        self._emit_event(task_id, TaskStage.PARSING.value, 10.0,
-                         "magic-pdf/MinerU parsing...")
+        self._emit_event(
+            task_id, TaskStage.PARSING.value, 10.0, "magic-pdf/MinerU parsing..."
+        )
 
-        def _forward_magicpdf_progress(stage: str, pct: float, msg: str,
-                                       detail: Optional[Dict[str, Any]] = None) -> None:
+        def _forward_magicpdf_progress(
+            stage: str, pct: float, msg: str, detail: Optional[Dict[str, Any]] = None
+        ) -> None:
             # magicpdf 引擎的细粒度进度（解析页计数/组件加载 + 翻译/渲染
             # 相位粗事件）与 BabelDOC 路径共用 _emit_smooth 通道：detail
             # 随事件搭车写入 store 快照并推送到前端。
@@ -1894,14 +2101,17 @@ class RuntimeService:
         try:
             rc = run_magicpdf_main(ns, progress_cb=_forward_magicpdf_progress)
         except Exception as exc:  # noqa: BLE001
-            logger.error("[task=%s] magicpdf engine failed: %s",
-                          task_id, exc, exc_info=True)
-            self._fail_file(task_id, f"magicpdf engine failed: {exc}",
-                           total_files=total)
+            logger.error(
+                "[task=%s] magicpdf engine failed: %s", task_id, exc, exc_info=True
+            )
+            self._fail_file(
+                task_id, f"magicpdf engine failed: {exc}", total_files=total
+            )
             return
         if rc != 0:
-            self._fail_file(task_id, f"magicpdf engine returned {rc}",
-                           total_files=total)
+            self._fail_file(
+                task_id, f"magicpdf engine returned {rc}", total_files=total
+            )
             return
         # magicpdf 产物为 {output}/magicpdf/ 下的 JSON 转储 + 译后 mono PDF
         # （run_magicpdf_main 默认渲染 {stem}_mono.pdf）。二者都作为结果文件
@@ -1923,9 +2133,12 @@ class RuntimeService:
         except Exception:  # noqa: BLE001 -- 结果收集失败不影响落终态
             pass
         self._complete_file(
-            task_id, result_files, total_files=total,
+            task_id,
+            result_files,
+            total_files=total,
             selected_file=(
-                pdf_entry["name"] if pdf_entry is not None
+                pdf_entry["name"]
+                if pdf_entry is not None
                 else (result_files[0]["name"] if result_files else None)
             ),
             preview_path=(pdf_entry["path"] if pdf_entry is not None else None),
@@ -1971,12 +2184,30 @@ class RuntimeService:
 
     #: 走 LLM 提示词/生成式接口的引擎（翻译段墙钟 ≈ 段落数 ÷ qps × 单请求
     #: 延迟）：大文档 + 低 qps 时给出调高并发的可操作提示（纯日志）。
-    _LLM_ENGINES = frozenset({
-        "openai", "openai-compatible", "azure_openai", "azureopenai",
-        "deepseek", "zhipu", "modelscope", "silicon", "siliconflow",
-        "gemini", "groq", "grok", "qwen", "aliyun", "aliyun-dashscope",
-        "ollama", "xinference", "anythingllm", "dify", "claude",
-    })
+    _LLM_ENGINES = frozenset(
+        {
+            "openai",
+            "openai-compatible",
+            "azure_openai",
+            "azureopenai",
+            "deepseek",
+            "zhipu",
+            "modelscope",
+            "silicon",
+            "siliconflow",
+            "gemini",
+            "groq",
+            "grok",
+            "qwen",
+            "aliyun",
+            "aliyun-dashscope",
+            "ollama",
+            "xinference",
+            "anythingllm",
+            "dify",
+            "claude",
+        }
+    )
 
     def _hint_babeldoc_qps(self, task_id: str, request: TranslationRequest) -> None:
         """大文档 + LLM 引擎 + 低 qps 的一次性提速提示（P0-4，纯日志）。"""
@@ -1995,21 +2226,28 @@ class RuntimeService:
                 except Exception:  # noqa: BLE001 -- 页数未知就跳过提示
                     return
             if (
-                name in self._LLM_ENGINES and qps < 8
-                and pages is not None and pages >= 60
+                name in self._LLM_ENGINES
+                and qps < 8
+                and pages is not None
+                and pages >= 60
             ):
                 logger.info(
                     "[task=%s] large document (%d pages) with LLM engine %r at "
                     "qps=%d: paragraph translation dominates wall time; raise "
                     "the threads/QPS setting to speed up (free engines stay "
                     "rate-limited by their providers)",
-                    task_id, pages, name, qps,
+                    task_id,
+                    pages,
+                    name,
+                    qps,
                 )
         except Exception:  # noqa: BLE001 -- 提示绝不影响任务
             logger.debug("babeldoc qps hint failed", exc_info=True)
 
     def _execute_babeldoc(
-        self, task_id: str, request: TranslationRequest,
+        self,
+        task_id: str,
+        request: TranslationRequest,
         config: Optional[ServiceConfig] = None,
     ) -> None:
         """Execute with the BabelDOC (YADT) layout engine (mode='babeldoc').
@@ -2028,6 +2266,7 @@ class RuntimeService:
             BabeldocNotInstalledError,
             run_babeldoc_translation,
         )
+
         try:
             from pdf2zh.babeldoc_next_adapter import (
                 BabeldocNextUnavailableError,
@@ -2047,7 +2286,9 @@ class RuntimeService:
             logger.warning(
                 "[task=%s] engine %s recently rate-limited (%s); fast-failing "
                 "instead of re-running the translator health check",
-                task_id, request.engine, cooldown_error,
+                task_id,
+                request.engine,
+                cooldown_error,
             )
             self._fail_file(
                 task_id,
@@ -2058,8 +2299,9 @@ class RuntimeService:
             )
             return
 
-        self._emit_event(task_id, TaskStage.PARSING.value, 5.0,
-                         "BabelDOC engine starting...")
+        self._emit_event(
+            task_id, TaskStage.PARSING.value, 5.0, "BabelDOC engine starting..."
+        )
         self._hint_babeldoc_qps(task_id, request)
         if self._store.is_cancelled(task_id):
             return
@@ -2070,8 +2312,10 @@ class RuntimeService:
         ocr_mode = extra.get("ocr_mode")
         glossary_files = list(request.glossary_files or [])
         out_dir = self._resolve_out_dir(request, config)
-        def _forward_progress(stage: str, pct: float, msg: str,
-                              detail: Optional[Dict[str, Any]] = None) -> None:
+
+        def _forward_progress(
+            stage: str, pct: float, msg: str, detail: Optional[Dict[str, Any]] = None
+        ) -> None:
             # _emit_smooth throttles the 0.2s BabelDOC event cadence into
             # monotone progress steps while still forwarding stage msgs;
             # detail（页级/段落级计数）随事件搭车透传到前端。
@@ -2103,7 +2347,9 @@ class RuntimeService:
                     logger.info(
                         "[task=%s] pdf2zh_next kernel unavailable for engine "
                         "%r (%s); falling back to the legacy BabelDOC pipeline",
-                        task_id, request.engine, exc,
+                        task_id,
+                        request.engine,
+                        exc,
                     )
                     result_files = None
             if result_files is None:
@@ -2139,18 +2385,22 @@ class RuntimeService:
                 self._mark_engine_unavailable(engine_key, exc)
                 logger.warning(
                     "[task=%s] BabelDOC engine %s rate-limited: %s",
-                    task_id, request.engine, exc,
+                    task_id,
+                    request.engine,
+                    exc,
                 )
             else:
-                logger.error("[task=%s] BabelDOC failed: %s", task_id, exc,
-                             exc_info=True)
+                logger.error(
+                    "[task=%s] BabelDOC failed: %s", task_id, exc, exc_info=True
+                )
             self._fail_file(task_id, exc, total_files=total_files)
             return
         if self._store.is_cancelled(task_id):
             return
         if not result_files:
             self._fail_file(
-                task_id, "BabelDOC produced no output files",
+                task_id,
+                "BabelDOC produced no output files",
                 total_files=total_files,
             )
             return
@@ -2159,7 +2409,9 @@ class RuntimeService:
             result_files[0]["path"],
         )
         self._complete_file(
-            task_id, result_files, total_files=total_files,
+            task_id,
+            result_files,
+            total_files=total_files,
             selected_file=result_files[0]["name"],
             preview_path=dual if os.path.exists(dual) else result_files[0]["path"],
             diagnostic_summary=engine_label,
@@ -2167,7 +2419,9 @@ class RuntimeService:
         )
 
     def _collect_legacy_overview(
-        self, v3_output: Dict[str, Any], source_path: str,
+        self,
+        v3_output: Dict[str, Any],
+        source_path: str,
     ) -> Optional[Dict[str, int]]:
         """Build the document overview for the legacy pipeline.
 
@@ -2196,6 +2450,7 @@ class RuntimeService:
                 return counts
             if source_path and os.path.exists(source_path):
                 import pymupdf as _fitz
+
                 with _fitz.open(source_path) as src:
                     return {"pages": src.page_count}
             return None
@@ -2203,6 +2458,7 @@ class RuntimeService:
             try:
                 if source_path and os.path.exists(source_path):
                     import pymupdf as _fitz
+
                     with _fitz.open(source_path) as src:
                         return {"pages": src.page_count}
             except Exception:
@@ -2240,20 +2496,23 @@ class RuntimeService:
             if not isinstance(i, dict):
                 continue
             code = str(i.get("code") or "")
-            records.append({
-                "code": code,
-                "node_id": str(i.get("node_id") or ""),
-                "page": int(i.get("page") or i.get("page_num") or 0),
-                "severity": str(i.get("severity") or "warning"),
-                "message": str(i.get("message") or "")[:160],
-                "action": _HEAL_ACTIONS.get(code, "人工复核"),
-                "status": "applied" if code in _HEAL_ACTIONS else "manual",
-            })
+            records.append(
+                {
+                    "code": code,
+                    "node_id": str(i.get("node_id") or ""),
+                    "page": int(i.get("page") or i.get("page_num") or 0),
+                    "severity": str(i.get("severity") or "warning"),
+                    "message": str(i.get("message") or "")[:160],
+                    "action": _HEAL_ACTIONS.get(code, "人工复核"),
+                    "status": "applied" if code in _HEAL_ACTIONS else "manual",
+                }
+            )
         heal = None
         if diag and int(diag.get("errors") or 0) > 0:
             try:
                 from pdf2zh.v3.diagnostics import analyze_document
                 from pdf2zh.v3.repair_engine import repair_loop
+
                 res = repair_loop(dm, max_iterations=2)
                 after = analyze_document(dm).to_dict()
                 heal = {
@@ -2272,6 +2531,7 @@ class RuntimeService:
         layout = None
         try:
             from pdf2zh.v3.document_inspector import build_layout_report
+
             layout = build_layout_report(dm)
         except Exception:  # noqa: BLE001
             layout = None
@@ -2288,17 +2548,25 @@ class RuntimeService:
             return 0
         return max(0, self._active_count)
 
-    def _make_gate(self, page_width: float = 612.0,
-                   page_height: float = 792.0, margin: float = 50.0):
+    def _make_gate(
+        self,
+        page_width: float = 612.0,
+        page_height: float = 792.0,
+        margin: float = 50.0,
+    ):
         """V8.4: 创建写回前重排版门控（按页面尺寸工厂）。
 
         阈值放宽（overlap_rate >= 5% 才触发重排）避免在真实文档上过度干预
         legacy 布局 —— 门控主要承担「写回安全护栏」：只在明显重叠时记录拦截。
         """
         from pdf2zh.v3.mainline_gate import MainlineRelayoutGate
+
         return MainlineRelayoutGate(
-            page_width=page_width, page_height=page_height,
-            margin=margin, threshold=0.05, max_passes=2,
+            page_width=page_width,
+            page_height=page_height,
+            margin=margin,
+            threshold=0.05,
+            max_passes=2,
         )
 
     # ── V1.24 ProgressAggregator 集成（Work Graph 工作量模型） ────────────────
@@ -2311,6 +2579,7 @@ class RuntimeService:
         """
         try:
             from pdf2zh.v3.progress_aggregator import ProgressAggregator
+
             agg = ProgressAggregator(alpha=alpha)
             with self._stage_weights_lock:
                 self._task_stage_weights[task_id] = dict(_STAGE_WEIGHTS)
@@ -2368,10 +2637,9 @@ class RuntimeService:
             return
         try:
             import pymupdf as _fitz
+
             with _fitz.open(source_path) as src:
-                self._update_aggregator_weights(
-                    task_id, {"pages": int(src.page_count)}
-                )
+                self._update_aggregator_weights(task_id, {"pages": int(src.page_count)})
         except Exception:
             pass
 
@@ -2434,8 +2702,12 @@ class RuntimeService:
         return state.percentage, state.eta
 
     def _emit_smooth(
-        self, task_id: str, stage: str, progress: float,
-        message: str = "", min_delta: float = 1.0,
+        self,
+        task_id: str,
+        stage: str,
+        progress: float,
+        message: str = "",
+        min_delta: float = 1.0,
         detail: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Emit a progress event that is throttled and monotonically non-decreasing.
@@ -2469,8 +2741,7 @@ class RuntimeService:
                     batch.progress_map[slot_path] = max(prev_file, raw)
                     overall = min(
                         100.0,
-                        sum(batch.progress_map.values())
-                        / max(1, batch.total_files),
+                        sum(batch.progress_map.values()) / max(1, batch.total_files),
                     )
                 with self._progress_lock:
                     prev = self._last_progress.get(task_id, -1.0)
@@ -2481,15 +2752,25 @@ class RuntimeService:
                     if prev < 0 or overall - prev >= min_delta:
                         self._last_progress[task_id] = overall
                         state_now = self._store.get_task(task_id)
-                        eta_now = float(getattr(state_now, "eta", 0.0) or 0.0) if state_now else 0.0
+                        eta_now = (
+                            float(getattr(state_now, "eta", 0.0) or 0.0)
+                            if state_now
+                            else 0.0
+                        )
                         event = TaskProgressEvent(
-                            task_id=task_id, stage=stage, progress=overall,
-                            message=message, eta=eta_now, detail=detail,
+                            task_id=task_id,
+                            stage=stage,
+                            progress=overall,
+                            message=message,
+                            eta=eta_now,
+                            detail=detail,
                         )
                         self._store.add_event(task_id, event)
                         upd: Dict[str, Any] = dict(
-                            stage=stage, progress=overall,
-                            total_progress=overall, eta=eta_now,
+                            stage=stage,
+                            progress=overall,
+                            total_progress=overall,
+                            eta=eta_now,
                             message=message,
                             current_file_name=os.path.basename(slot_path),
                         )
@@ -2540,8 +2821,13 @@ class RuntimeService:
         self._notify_event_listeners(event)
 
     def _emit_event(
-        self, task_id: str, stage: str, progress: float,
-        message: str = "", node_count: int = 0, diag_count: int = 0,
+        self,
+        task_id: str,
+        stage: str,
+        progress: float,
+        message: str = "",
+        node_count: int = 0,
+        diag_count: int = 0,
         detail: Optional[Dict[str, Any]] = None,
     ) -> None:
         # V1.24：真实任务走 ProgressAggregator —— 绝对百分比先映射到
@@ -2553,19 +2839,21 @@ class RuntimeService:
         file_progress = progress
         # In batch mode, ``progress`` is the per-file progress; fold it into
         # the overall task progress. Terminal stages bypass aggregation.
-        if (
-            batch is not None
-            and stage not in (
-                TaskStage.COMPLETED.value,
-                TaskStage.FAILED.value,
-                TaskStage.CANCELLED.value,
-            )
+        if batch is not None and stage not in (
+            TaskStage.COMPLETED.value,
+            TaskStage.FAILED.value,
+            TaskStage.CANCELLED.value,
         ):
             progress = self._agg(batch, progress)
         event = TaskProgressEvent(
-            task_id=task_id, stage=stage, progress=progress,
-            current_node_count=node_count, diagnostics_count=diag_count,
-            message=message, eta=eta, detail=detail,
+            task_id=task_id,
+            stage=stage,
+            progress=progress,
+            current_node_count=node_count,
+            diagnostics_count=diag_count,
+            message=message,
+            eta=eta,
+            detail=detail,
         )
         self._store.add_event(task_id, event)
         if detail is not None:
@@ -2573,13 +2861,21 @@ class RuntimeService:
             self._store.update_task(task_id, stage_detail=detail)
         if batch is not None:
             self._store.update_task(
-                task_id, stage=stage, progress=progress, eta=eta,
-                total_progress=progress, file_progress=file_progress,
+                task_id,
+                stage=stage,
+                progress=progress,
+                eta=eta,
+                total_progress=progress,
+                file_progress=file_progress,
                 message=message,
             )
         else:
             self._store.update_task(
-                task_id, stage=stage, progress=progress, eta=eta, message=message,
+                task_id,
+                stage=stage,
+                progress=progress,
+                eta=eta,
+                message=message,
             )
         self._notify_event_listeners(event)
 
@@ -2591,9 +2887,7 @@ class RuntimeService:
             try:
                 listener(event)
             except Exception:
-                logger.exception(
-                    "Event listener error for task %s", event.task_id
-                )
+                logger.exception("Event listener error for task %s", event.task_id)
 
     # ── S2 后台清扫（内存上限） ──────────────────────────
 
@@ -2608,7 +2902,8 @@ class RuntimeService:
         if removed:
             logger.info(
                 "Pruned %d terminated task(s) older than %.0fs",
-                removed, self._retention_seconds,
+                removed,
+                self._retention_seconds,
             )
         with self._batch_ctx_lock:
             for tid in list(self._batch_ctx):
@@ -2664,7 +2959,6 @@ class RuntimeService:
         self._notify_event_listeners(event)
 
 
-
 __all__ = [
     "RuntimeService",
     "TranslationRequest",
@@ -2674,4 +2968,3 @@ __all__ = [
     "TaskStage",
     "ServiceConfig",
 ]
-

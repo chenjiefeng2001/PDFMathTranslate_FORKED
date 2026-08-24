@@ -9,6 +9,7 @@
 
 所有插件只操作 DocumentModel（统一数据源）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -42,22 +43,25 @@ class PassPlugin(DocumentPlugin):
 class TranslatePlugin(DocumentPlugin):
     """翻译后端插件：translate_fn(text) -> str。"""
 
-    def __init__(self, translate_fn: Callable[[str], str],
-                 name: str = "translate") -> None:
+    def __init__(
+        self, translate_fn: Callable[[str], str], name: str = "translate"
+    ) -> None:
         self.translate_fn = translate_fn
         self.name = name
         self.stage = "translation"
 
     def process(self, doc: DocumentModel) -> dict:
         from pdf2zh.v3.document_model import translate_document
+
         return translate_document(doc, self.translate_fn)
 
 
 class ExportPlugin(DocumentPlugin):
     """导出插件：process 把产物存进 self.output。"""
 
-    def __init__(self, exporter: Callable[[DocumentModel], str],
-                 name: str = "export") -> None:
+    def __init__(
+        self, exporter: Callable[[DocumentModel], str], name: str = "export"
+    ) -> None:
         self.exporter = exporter
         self.name = name
         self.stage = "export"
@@ -102,5 +106,10 @@ class PluginRegistry:
         return None
 
 
-__all__ = ["DocumentPlugin", "PassPlugin", "TranslatePlugin",
-           "ExportPlugin", "PluginRegistry"]
+__all__ = [
+    "DocumentPlugin",
+    "PassPlugin",
+    "TranslatePlugin",
+    "ExportPlugin",
+    "PluginRegistry",
+]

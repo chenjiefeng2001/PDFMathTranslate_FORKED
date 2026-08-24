@@ -21,7 +21,9 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_EXE = REPO_ROOT / "deploy/_build_sidecar/dist/pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe"
+DEFAULT_EXE = (
+    REPO_ROOT / "deploy/_build_sidecar/dist/pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe"
+)
 SAMPLE_PDF = Path(__file__).parent / "_fixture_10p.pdf"
 
 
@@ -31,9 +33,14 @@ def free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def http_json(method: str, url: str, *, timeout: float = 30.0,
-              body: bytes | None = None,
-              headers: dict[str, str] | None = None) -> tuple[int, Any, float]:
+def http_json(
+    method: str,
+    url: str,
+    *,
+    timeout: float = 30.0,
+    body: bytes | None = None,
+    headers: dict[str, str] | None = None,
+) -> tuple[int, Any, float]:
     """返回 (status, parsed-json-or-text, elapsed_seconds)。"""
     request = urllib.request.Request(url, method=method, data=body)
     for key, value in (headers or {}).items():
@@ -83,20 +90,26 @@ def multipart_body(pdf_path: Path, fields: dict[str, str]) -> tuple[bytes, str]:
 
 @dataclass
 class SseFrame:
-    ts: float          # perf_counter 相对起点秒
+    ts: float  # perf_counter 相对起点秒
     event: str
     data: dict[str, Any]
 
 
-def read_sse(url: str, *, timeout: float = 600.0,
-             stop_event: threading.Event | None = None,
-             on_frame: Callable[[SseFrame], bool] | None = None) -> list[SseFrame]:
+def read_sse(
+    url: str,
+    *,
+    timeout: float = 600.0,
+    stop_event: threading.Event | None = None,
+    on_frame: Callable[[SseFrame], bool] | None = None,
+) -> list[SseFrame]:
     """读取 SSE 流直到连接关闭/on_frame 返回 False/超时。返回带相对时间戳的帧序列。"""
     frames: list[SseFrame] = []
     started = time.perf_counter()
     current_event = ""
     try:
-        with urllib.request.urlopen(urllib.request.Request(url), timeout=timeout) as resp:
+        with urllib.request.urlopen(
+            urllib.request.Request(url), timeout=timeout
+        ) as resp:
             buffer = b""
             while True:
                 if stop_event is not None and stop_event.is_set():
@@ -109,9 +122,9 @@ def read_sse(url: str, *, timeout: float = 600.0,
                     line_bytes, buffer = buffer.split(b"\n", 1)
                     line = line_bytes.decode("utf-8", "replace").rstrip("\r")
                     if line.startswith("event:"):
-                        current_event = line[len("event:"):].strip()
+                        current_event = line[len("event:") :].strip()
                     elif line.startswith("data:") and current_event:
-                        raw = line[len("data:"):].strip()
+                        raw = line[len("data:") :].strip()
                         try:
                             data = json.loads(raw)
                         except json.JSONDecodeError:
@@ -135,7 +148,7 @@ def read_sse(url: str, *, timeout: float = 600.0,
 class SidecarHandle:
     process: subprocess.Popen
     port: int
-    startup_s: float = 0.0          # Popen -> 首个 /api/health 200 的真实冷启动时长
+    startup_s: float = 0.0  # Popen -> 首个 /api/health 200 的真实冷启动时长
     rss_stop: threading.Event = field(default_factory=threading.Event)
     rss_samples_mb: list[float] = field(default_factory=list)
     rss_parent_mb: list[float] = field(default_factory=list)
@@ -148,9 +161,13 @@ class SidecarHandle:
         return max(self.rss_samples_mb) if self.rss_samples_mb else 0.0
 
 
-def launch_sidecar(exe: Path, *, port: int | None = None,
-                   startup_timeout: float = 120.0,
-                   sample_rss: bool = False) -> SidecarHandle:
+def launch_sidecar(
+    exe: Path,
+    *,
+    port: int | None = None,
+    startup_timeout: float = 120.0,
+    sample_rss: bool = False,
+) -> SidecarHandle:
     """启动 sidecar 并等待健康；可选后台采样进程树 RSS。"""
     port = port or free_port()
     spawned = time.perf_counter()
@@ -175,6 +192,7 @@ def launch_sidecar(exe: Path, *, port: int | None = None,
         raise RuntimeError(f"sidecar did not become healthy within {startup_timeout}s")
 
     if sample_rss:
+
         def _sample() -> None:
             import psutil
 
@@ -233,8 +251,7 @@ def gen_pdf(path: Path, pages: int = 10, lines_per_page: int = 28) -> Path:
         cursor_y = 72.0
         for line in range(lines_per_page):
             text = " ".join(
-                words[(page_index * 7 + line * 3 + k) % len(words)]
-                for k in range(14)
+                words[(page_index * 7 + line * 3 + k) % len(words)] for k in range(14)
             )
             page.insert_text((60, cursor_y), text, fontsize=11, fontname="helv")
             cursor_y += 24
@@ -249,7 +266,9 @@ def ensure_fixture(pages: int = 10) -> Path:
     return gen_pdf(SAMPLE_PDF, pages=pages)
 
 
-def print_table(title: str, rows: list[tuple[str, ...]], headers: tuple[str, ...]) -> None:
+def print_table(
+    title: str, rows: list[tuple[str, ...]], headers: tuple[str, ...]
+) -> None:
     widths = [len(header) for header in headers]
     for row in rows:
         for i, cell in enumerate(row):

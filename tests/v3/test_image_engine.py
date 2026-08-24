@@ -3,15 +3,24 @@
 覆盖：ImageObject 结构、统计特征提取、规则分类器、文字区域检测、
 TranslationDecisionEngine 决策、Router keep 词典、图片级端到端分析。
 """
+
 import unittest
 
 import numpy as np
 
 from pdf2zh.v3.image_engine import (
-    IMAGE_POLICY, ImageClass, ImageObject, RenderMode, TextRegion,
-    TranslationDecision, TranslationDecisionEngine,
-    analyze_image_bytes, classify_image, compute_image_features,
-    detect_text_regions, is_probably_brand_or_technical,
+    IMAGE_POLICY,
+    ImageClass,
+    ImageObject,
+    RenderMode,
+    TextRegion,
+    TranslationDecision,
+    TranslationDecisionEngine,
+    analyze_image_bytes,
+    classify_image,
+    compute_image_features,
+    detect_text_regions,
+    is_probably_brand_or_technical,
     router_should_translate,
 )
 
@@ -57,7 +66,7 @@ class TestClassifier(unittest.TestCase):
         for y in range(20):
             for x in range(20):
                 if mod[y, x] == 1:
-                    arr[y * 5:(y + 1) * 5, x * 5:(x + 1) * 5] = 255
+                    arr[y * 5 : (y + 1) * 5, x * 5 : (x + 1) * 5] = 255
         f = compute_image_features(arr)
         cls, conf = classify_image(f)
         self.assertEqual(cls, ImageClass.QR_CODE)
@@ -67,17 +76,17 @@ class TestClassifier(unittest.TestCase):
         arr = np.full((60, 100, 3), 255, dtype=np.uint8)
         # 密集工程图线网：横向 + 纵向细线（非方形，规避 QR 规则）
         for x in range(0, 100, 4):
-            arr[:, x:x + 1] = 0
+            arr[:, x : x + 1] = 0
         for y in range(0, 60, 4):
-            arr[y:y + 1, :] = 0
+            arr[y : y + 1, :] = 0
         f = compute_image_features(arr)
         cls, _ = classify_image(f)
         self.assertEqual(cls, ImageClass.CAD)
 
     def test_logo_small_few_colors(self):
         arr = np.zeros((32, 32, 3), dtype=np.uint8)
-        arr[:16, :16] = (200, 30, 30)   # red block
-        arr[16:, 16:] = (30, 30, 200)   # blue block
+        arr[:16, :16] = (200, 30, 30)  # red block
+        arr[16:, 16:] = (30, 30, 200)  # blue block
         f = compute_image_features(arr)
         cls, _ = classify_image(f)
         # 绝不允许翻译成可翻译类型（低于阈值进入 preserve 保护链）
@@ -88,13 +97,19 @@ class TestClassifier(unittest.TestCase):
         arr = rng.integers(0, 256, size=(96, 96, 3), dtype=np.uint8)
         f = compute_image_features(arr)
         cls, _ = classify_image(f)
-        self.assertTrue(IMAGE_POLICY[cls].render_mode in (RenderMode.PRESERVE, RenderMode.OVERLAY))
+        self.assertTrue(
+            IMAGE_POLICY[cls].render_mode in (RenderMode.PRESERVE, RenderMode.OVERLAY)
+        )
 
     def test_unknown_defaults_preserve(self):
-        f = compute_image_features(_white(np.full((5, 5, 3), 255, dtype=np.uint8), 5, 5))
+        f = compute_image_features(
+            _white(np.full((5, 5, 3), 255, dtype=np.uint8), 5, 5)
+        )
         cls, _ = classify_image(f)
         self.assertEqual(cls, ImageClass.UNKNOWN)
-        self.assertEqual(IMAGE_POLICY[ImageClass.UNKNOWN].render_mode, RenderMode.PRESERVE)
+        self.assertEqual(
+            IMAGE_POLICY[ImageClass.UNKNOWN].render_mode, RenderMode.PRESERVE
+        )
 
 
 class TestTextRegionDetection(unittest.TestCase):
@@ -105,7 +120,7 @@ class TestTextRegionDetection(unittest.TestCase):
 
     def test_block_detected(self):
         arr = _white(np.full((120, 120, 3), 255, dtype=np.uint8), 120, 120)
-        arr[20:40, 20:60] = 0   # a solid dark region
+        arr[20:40, 20:60] = 0  # a solid dark region
         regs = detect_text_regions(arr)
         self.assertGreaterEqual(len(regs), 1)
         for r in regs:
@@ -159,8 +174,9 @@ class TestDecisionEngine(unittest.TestCase):
     def test_diagram_with_regions_translates_whitelisted(self):
         img = self._img(ImageClass.DIAGRAM)
         img.regions = [
-            TextRegion(bbox=(0, 0, 0.2, 0.1), text="Start the process",
-                       ocr_confidence=0.9),
+            TextRegion(
+                bbox=(0, 0, 0.2, 0.1), text="Start the process", ocr_confidence=0.9
+            ),
         ]
         d = TranslationDecisionEngine().decide(img)
         self.assertTrue(d.translate)
@@ -184,16 +200,22 @@ class TestDecisionEngine(unittest.TestCase):
 
     def test_threshold_configurable(self):
         img = self._img(ImageClass.DIAGRAM)
-        img.regions = [TextRegion(bbox=(0, 0, 0.2, 0.1), text="Process data here",
-                                  ocr_confidence=0.9)]
+        img.regions = [
+            TextRegion(
+                bbox=(0, 0, 0.2, 0.1), text="Process data here", ocr_confidence=0.9
+            )
+        ]
         eng = TranslationDecisionEngine(translate_threshold=0.99)
         d = eng.decide(img)
         self.assertFalse(d.translate)
 
     def test_decision_schema_dict(self):
         img = self._img(ImageClass.CHART)
-        img.regions = [TextRegion(bbox=(0, 0, 0.2, 0.1), text="Quarterly revenue",
-                                  ocr_confidence=0.92)]
+        img.regions = [
+            TextRegion(
+                bbox=(0, 0, 0.2, 0.1), text="Quarterly revenue", ocr_confidence=0.92
+            )
+        ]
         d = TranslationDecisionEngine().decide(img)
         out = d.to_dict()
         self.assertIn("confidence", out)

@@ -24,6 +24,7 @@ Usage::
     report = pipeline.run(ir)
     print(report.final_translations)
 """
+
 from __future__ import annotations
 
 import logging
@@ -55,15 +56,23 @@ class ParserReport:
 
     @property
     def ok(self) -> bool:
-        return not (self.missing_text or self.orphan_pages
-                    or self.unknown_semantic or self.issues)
+        return not (
+            self.missing_text
+            or self.orphan_pages
+            or self.unknown_semantic
+            or self.issues
+        )
 
     def to_dict(self) -> dict:
-        return {"node_count": self.node_count, "pages": self.pages,
-                "missing_text": self.missing_text,
-                "orphan_pages": self.orphan_pages,
-                "unknown_semantic": self.unknown_semantic,
-                "issues": self.issues, "ok": self.ok}
+        return {
+            "node_count": self.node_count,
+            "pages": self.pages,
+            "missing_text": self.missing_text,
+            "orphan_pages": self.orphan_pages,
+            "unknown_semantic": self.unknown_semantic,
+            "issues": self.issues,
+            "ok": self.ok,
+        }
 
 
 @dataclass
@@ -82,9 +91,10 @@ class LayoutPlan:
             "engine": self.engine,
             "overlap_rate": round(self.overlap_rate, 4),
             "collisions": [f"{a}<->{b}" for a, b in self.collisions],
-            "positions": {k: (round(v.x, 1), round(v.y, 1),
-                              round(v.width, 1), round(v.height, 1))
-                          for k, v in self.positions.items()},
+            "positions": {
+                k: (round(v.x, 1), round(v.y, 1), round(v.width, 1), round(v.height, 1))
+                for k, v in self.positions.items()
+            },
         }
 
 
@@ -93,7 +103,7 @@ class TypographyPlan:
     """Typography Agent plan: per-node adaptive metrics."""
 
     metrics: Dict[str, TypographyMetrics] = field(default_factory=dict)
-    resized: Dict[str, float] = field(default_factory=dict)   # node_id → new height
+    resized: Dict[str, float] = field(default_factory=dict)  # node_id → new height
     auto_fit: Dict[str, float] = field(default_factory=dict)  # node_id → new font size
 
     def to_dict(self) -> dict:
@@ -117,8 +127,12 @@ class ReviewOutcome:
         return not self.issues
 
     def to_dict(self) -> dict:
-        return {"issues": self.issues, "flagged_nodes": self.flagged_nodes,
-                "reviewed": self.reviewed, "ok": self.ok}
+        return {
+            "issues": self.issues,
+            "flagged_nodes": self.flagged_nodes,
+            "reviewed": self.reviewed,
+            "ok": self.ok,
+        }
 
 
 @dataclass
@@ -132,9 +146,13 @@ class PipelineReport:
     converged: bool = False
 
     def to_dict(self) -> dict:
-        return {"rounds": self.rounds, "stages": self.stages,
-                "final_translations": self.final_translations,
-                "issues": self.issues, "converged": self.converged}
+        return {
+            "rounds": self.rounds,
+            "stages": self.stages,
+            "final_translations": self.final_translations,
+            "issues": self.issues,
+            "converged": self.converged,
+        }
 
 
 # ── Agents ──────────────────────────────────────────────────────────
@@ -177,8 +195,11 @@ class ParserAgent:
         pages = {getattr(n, "page_num", None) for n in nodes}
         pages.discard(None)
         report.pages = len(pages)
-        page_nodes = {getattr(n, "page_num", None)
-                      for n in nodes if _semantic_name(n) == "document"}
+        page_nodes = {
+            getattr(n, "page_num", None)
+            for n in nodes
+            if _semantic_name(n) == "document"
+        }
         for n in nodes:
             name = _semantic_name(n)
             if name in ("document", "section"):
@@ -201,42 +222,62 @@ class LayoutAgent:
     and reports residual collisions.
     """
 
-    def __init__(self, page_width: float = 612.0,
-                 page_height: float = 792.0) -> None:
+    def __init__(self, page_width: float = 612.0, page_height: float = 792.0) -> None:
         self.page_width = page_width
         self.page_height = page_height
 
-    def plan(self, ir: Any, order_edges: Optional[List[Tuple[str, str]]] = None,
-             engine: str = "auto") -> LayoutPlan:
-        from pdf2zh.v3.constraint_graph import (ConstraintGraph,
-                                                ConstraintRelation)
+    def plan(
+        self,
+        ir: Any,
+        order_edges: Optional[List[Tuple[str, str]]] = None,
+        engine: str = "auto",
+    ) -> LayoutPlan:
+        from pdf2zh.v3.constraint_graph import ConstraintGraph, ConstraintRelation
+
         nodes = _ir_nodes(ir)
-        content = [n for n in nodes
-                   if _semantic_name(n) not in ("document", "section")]
+        content = [n for n in nodes if _semantic_name(n) not in ("document", "section")]
         cg = ConstraintGraph()
         for n in content:
             bb = _node_bbox(n)
             if bb is None:
                 continue
-            cg.add_node(nid := getattr(n, "id", ""), _semantic_name(n),
-                        bbox=bb, page_num=getattr(n, "page_num", 0))
+            cg.add_node(
+                nid := getattr(n, "id", ""),
+                _semantic_name(n),
+                bbox=bb,
+                page_num=getattr(n, "page_num", 0),
+            )
         # reading order: explicit edges first, then page/position order
         seen: set = set()
-        for src, tgt in (order_edges or []):
+        for src, tgt in order_edges or []:
             if src in cg._nodes and tgt in cg._nodes and (src, tgt) not in seen:
                 seen.add((src, tgt))
-                cg.add_edge(src, tgt, ConstraintRelation.MUST_BELOW,
-                            priority="hard", gap=4.0)
-        sorted_nodes = sorted(content, key=lambda n: (
-            getattr(n, "page_num", 0), getattr(n, "bbox", (0, 0, 0, 0))[1]
-            if not hasattr(getattr(n, "bbox", None), "y")
-            else getattr(n.bbox, "y", 0)))
+                cg.add_edge(
+                    src, tgt, ConstraintRelation.MUST_BELOW, priority="hard", gap=4.0
+                )
+        sorted_nodes = sorted(
+            content,
+            key=lambda n: (
+                getattr(n, "page_num", 0),
+                (
+                    getattr(n, "bbox", (0, 0, 0, 0))[1]
+                    if not hasattr(getattr(n, "bbox", None), "y")
+                    else getattr(n.bbox, "y", 0)
+                ),
+            ),
+        )
         for prev, nxt in zip(sorted_nodes, sorted_nodes[1:]):
             if (prev.id, nxt.id) not in seen:
-                cg.add_edge(prev.id, nxt.id, ConstraintRelation.MUST_BELOW,
-                            priority="soft", gap=4.0)
+                cg.add_edge(
+                    prev.id,
+                    nxt.id,
+                    ConstraintRelation.MUST_BELOW,
+                    priority="soft",
+                    gap=4.0,
+                )
 
         from pdf2zh.v3.constraint_graph import ConstraintSolver
+
         solver = ConstraintSolver(cg, self.page_width, self.page_height)
         solved = solver.solve(engine=engine)
         positions: Dict[str, BoundingBox] = {}
@@ -252,23 +293,31 @@ class LayoutAgent:
                 ab, bb = positions[a.id], positions[b.id]
                 if ab.overlaps(bb):
                     collisions.append((a.id, b.id))
-        overlap = (len(set(c for c, _ in collisions) |
-                        {c for _, c in collisions}) / max(1, len(laid)))
-        return LayoutPlan(positions=positions, collisions=collisions,
-                          overlap_rate=overlap, solved=solved,
-                          engine="kiwi" if engine in ("auto", "kiwi") else "greedy")
+        overlap = len(set(c for c, _ in collisions) | {c for _, c in collisions}) / max(
+            1, len(laid)
+        )
+        return LayoutPlan(
+            positions=positions,
+            collisions=collisions,
+            overlap_rate=overlap,
+            solved=solved,
+            engine="kiwi" if engine in ("auto", "kiwi") else "greedy",
+        )
 
 
 class TypographyAgent:
     """阶段七 / 阶段十一 — adaptive typography plan for translated text."""
 
-    def __init__(self, container_width: float = 450.0,
-                 font_size: float = 12.0) -> None:
+    def __init__(self, container_width: float = 450.0, font_size: float = 12.0) -> None:
         self.typography = AdaptiveTypography(container_width, font_size)
 
-    def plan(self, ir: Any, translations: Dict[str, str],
-             source_text: Optional[Dict[str, str]] = None,
-             max_lines: Optional[int] = None) -> TypographyPlan:
+    def plan(
+        self,
+        ir: Any,
+        translations: Dict[str, str],
+        source_text: Optional[Dict[str, str]] = None,
+        max_lines: Optional[int] = None,
+    ) -> TypographyPlan:
         plan = TypographyPlan()
         for n in _ir_nodes(ir):
             nid = getattr(n, "id", "")
@@ -284,8 +333,7 @@ class TypographyAgent:
             if bb is not None and m.block_height > bb.height:
                 plan.resized[nid] = m.block_height
             # auto-fit the font when the translation overflows the container
-            fit = self.typography.auto_fit_font_size(
-                translated, max_lines=max_lines)
+            fit = self.typography.auto_fit_font_size(translated, max_lines=max_lines)
             if fit < self.typography.font_size - 1e-6:
                 plan.auto_fit[nid] = fit
         return plan
@@ -294,13 +342,15 @@ class TypographyAgent:
 class TranslateAgent:
     """阶段三 / 阶段十一 — per-semantic-unit translation with glossary guard."""
 
-    def __init__(self, translator: Callable[..., str],
-                 glossary: Optional[Dict[str, str]] = None) -> None:
+    def __init__(
+        self, translator: Callable[..., str], glossary: Optional[Dict[str, str]] = None
+    ) -> None:
         self.translator = translator
         self.glossary = glossary or {}
 
-    def translate(self, ir: Any, strict: bool = False,
-                  node_ids: Optional[List[str]] = None) -> Dict[str, str]:
+    def translate(
+        self, ir: Any, strict: bool = False, node_ids: Optional[List[str]] = None
+    ) -> Dict[str, str]:
         """Return ``{node_id: translated_text}`` for the given IR nodes."""
         result: Dict[str, str] = {}
         wanted = set(node_ids or [])
@@ -310,8 +360,12 @@ class TranslateAgent:
                 continue
             name = _semantic_name(n)
             text = getattr(n, "text", "") or ""
-            if name in _KEEP_SEMANTIC or name in ("citation", "reference",
-                                                  "footnote", "bibliography"):
+            if name in _KEEP_SEMANTIC or name in (
+                "citation",
+                "reference",
+                "footnote",
+                "bibliography",
+            ):
                 result[nid] = text
                 continue
             if not text.strip():
@@ -331,8 +385,11 @@ class TranslateAgent:
 class ReviewerAgent:
     """阶段十一 — glossary / emptiness / integrity review of translations."""
 
-    def __init__(self, glossary: Optional[Dict[str, str]] = None,
-                 source_text: Optional[Dict[str, str]] = None) -> None:
+    def __init__(
+        self,
+        glossary: Optional[Dict[str, str]] = None,
+        source_text: Optional[Dict[str, str]] = None,
+    ) -> None:
         self.glossary = glossary or {}
         self.source_text = source_text or {}
 
@@ -351,8 +408,7 @@ class ReviewerAgent:
                 continue
             if name in _KEEP_SEMANTIC:
                 if t != (getattr(n, "text", "") or ""):
-                    outcome.issues.append(
-                        f"{nid}: kept role {name} was modified")
+                    outcome.issues.append(f"{nid}: kept role {name} was modified")
                     outcome.flagged_nodes.append(nid)
                 continue
             src = self.source_text.get(nid, getattr(n, "text", "") or "")
@@ -360,7 +416,8 @@ class ReviewerAgent:
                 if src_term in src and tgt_term not in t:
                     outcome.issues.append(
                         f"{nid}: glossary term '{src_term}' not rendered as "
-                        f"'{tgt_term}'")
+                        f"'{tgt_term}'"
+                    )
                     outcome.flagged_nodes.append(nid)
         # deduplicate flagged nodes
         outcome.flagged_nodes = sorted(set(outcome.flagged_nodes))
@@ -374,13 +431,16 @@ class AgentPipeline:
     Reviewer.review → (re-translate flagged nodes in strict mode) → report.
     """
 
-    def __init__(self, translator: Callable[..., str],
-                 glossary: Optional[Dict[str, str]] = None,
-                 source_text: Optional[Dict[str, str]] = None,
-                 max_feedback_rounds: int = 2,
-                 page_width: float = 612.0,
-                 page_height: float = 792.0,
-                 container_width: float = 450.0) -> None:
+    def __init__(
+        self,
+        translator: Callable[..., str],
+        glossary: Optional[Dict[str, str]] = None,
+        source_text: Optional[Dict[str, str]] = None,
+        max_feedback_rounds: int = 2,
+        page_width: float = 612.0,
+        page_height: float = 792.0,
+        container_width: float = 450.0,
+    ) -> None:
         self.parser = ParserAgent()
         self.layout = LayoutAgent(page_width, page_height)
         self.translator = TranslateAgent(translator, glossary)
@@ -400,7 +460,9 @@ class AgentPipeline:
             rounds += 1
             translations.update(
                 self.translator.translate(
-                    ir, strict=True, node_ids=outcome.flagged_nodes))
+                    ir, strict=True, node_ids=outcome.flagged_nodes
+                )
+            )
             typography_plan = self.typography.plan(ir, translations)
             outcome = self.reviewer.review(ir, translations)
 
@@ -419,10 +481,15 @@ class AgentPipeline:
 
 
 __all__ = [
-    "ParserReport", "LayoutPlan", "TypographyPlan", "ReviewOutcome",
-    "PipelineReport", "ParserAgent", "LayoutAgent", "TypographyAgent",
-    "TranslateAgent", "ReviewerAgent", "AgentPipeline",
+    "ParserReport",
+    "LayoutPlan",
+    "TypographyPlan",
+    "ReviewOutcome",
+    "PipelineReport",
+    "ParserAgent",
+    "LayoutAgent",
+    "TypographyAgent",
+    "TranslateAgent",
+    "ReviewerAgent",
+    "AgentPipeline",
 ]
-
-
-

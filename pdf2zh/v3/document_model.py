@@ -22,6 +22,7 @@
        ├── annotate_*             TOC/公式/角色/翻译/渲染 只写 metadata
        └── to_graph()  →  DocumentGraph  →  view_as_ir（既有生态）
 """
+
 from __future__ import annotations
 
 import logging
@@ -60,8 +61,7 @@ class Relation:
     target: str = ""
 
     def to_dict(self) -> dict:
-        return {"type": self.type, "source": self.source,
-                "target": self.target}
+        return {"type": self.type, "source": self.source, "target": self.target}
 
 
 @dataclass
@@ -102,11 +102,15 @@ class DocumentModel:
         blocks = page_model.blocks
         # 1) 阅读序：FOLLOWS 链
         for i in range(1, len(blocks)):
-            self.relations.append(Relation(
-                REL_FOLLOWS, block_id(pno, i - 1), block_id(pno, i)))
+            self.relations.append(
+                Relation(REL_FOLLOWS, block_id(pno, i - 1), block_id(pno, i))
+            )
         # 2) TOC 层级：按块 metadata.toc_number 前缀包含
-        toc = [(i, b) for i, b in enumerate(blocks)
-               if b.metadata.get("kind") == "toc" and b.metadata.get("toc_number")]
+        toc = [
+            (i, b)
+            for i, b in enumerate(blocks)
+            if b.metadata.get("kind") == "toc" and b.metadata.get("toc_number")
+        ]
         for i, (idx, b) in enumerate(toc):
             parent = None
             for j in range(i - 1, -1, -1):
@@ -115,21 +119,26 @@ class DocumentModel:
                     parent = toc[j][0]
                     break
             if parent is not None:
-                self.relations.append(Relation(
-                    REL_TOC_CHILD_OF, block_id(pno, idx), block_id(pno, parent)))
+                self.relations.append(
+                    Relation(
+                        REL_TOC_CHILD_OF, block_id(pno, idx), block_id(pno, parent)
+                    )
+                )
         # 3) 题注 → 宿主（同页最近的 figure/table 块，best-effort）
         for idx, b in enumerate(blocks):
             if b.metadata.get("role") != "caption" and b.kind != "caption":
                 continue
             host = None
             for j in range(idx - 1, -1, -1):
-                if blocks[j].kind in ("figure", "table") or \
-                        blocks[j].metadata.get("role") in ("figure", "table"):
+                if blocks[j].kind in ("figure", "table") or blocks[j].metadata.get(
+                    "role"
+                ) in ("figure", "table"):
                     host = j
                     break
             if host is not None:
-                self.relations.append(Relation(
-                    REL_CAPTION_OF, block_id(pno, idx), block_id(pno, host)))
+                self.relations.append(
+                    Relation(REL_CAPTION_OF, block_id(pno, idx), block_id(pno, host))
+                )
 
     # ── 投影到既有 v3 生态 ───────────────────────────────────────────
 
@@ -139,6 +148,7 @@ class DocumentModel:
         供既有 Processor / IR 视图（view_as_ir）消费 —— 唯一数据源，不复制。
         """
         from pdf2zh.v3.graph import DocumentGraph, DocumentNode, Edge, EdgeType
+
         g = DocumentGraph()
         index_of: Dict[tuple, int] = {}
         for page in self.pages:
@@ -146,20 +156,26 @@ class DocumentModel:
             for i, b in enumerate(page.blocks):
                 nid = block_id(pno, i)
                 index_of[(pno, i)] = nid
-                ntype = _KIND_TO_NODE_TYPE.get(
-                    b.kind, "paragraph") if b.kind != "paragraph" \
-                    else ("paragraph" if not b.metadata.get("role")
-                          else _KIND_TO_NODE_TYPE.get(
-                              b.metadata["role"], "paragraph"))
-                g.add_node(DocumentNode(
-                    id=nid,
-                    node_type=ntype,
-                    bbox=b.bbox,
-                    text=b.text,
-                    page_num=pno,
-                    font_size=_node_font_size(b),
-                    metadata=dict(b.metadata),
-                ))
+                ntype = (
+                    _KIND_TO_NODE_TYPE.get(b.kind, "paragraph")
+                    if b.kind != "paragraph"
+                    else (
+                        "paragraph"
+                        if not b.metadata.get("role")
+                        else _KIND_TO_NODE_TYPE.get(b.metadata["role"], "paragraph")
+                    )
+                )
+                g.add_node(
+                    DocumentNode(
+                        id=nid,
+                        node_type=ntype,
+                        bbox=b.bbox,
+                        text=b.text,
+                        page_num=pno,
+                        font_size=_node_font_size(b),
+                        metadata=dict(b.metadata),
+                    )
+                )
         edge_map = {
             REL_FOLLOWS: EdgeType.FOLLOWS,
             REL_TOC_CHILD_OF: EdgeType.CONTAINS,
@@ -167,10 +183,13 @@ class DocumentModel:
         }
         # Phase 4.1 语义边：belongs_to → CONTAINS，mentions → REFERENCE
         from pdf2zh.v3.semantic_graph import REL_BELONGS_TO, REL_MENTIONS
-        edge_map.update({
-            REL_BELONGS_TO: EdgeType.CONTAINS,
-            REL_MENTIONS: EdgeType.REFERENCE,
-        })
+
+        edge_map.update(
+            {
+                REL_BELONGS_TO: EdgeType.CONTAINS,
+                REL_MENTIONS: EdgeType.REFERENCE,
+            }
+        )
         for r in self.relations:
             etype = edge_map.get(r.type)
             if etype is None:
@@ -182,7 +201,7 @@ class DocumentModel:
 def _number_prefix(a: str, b: str) -> bool:
     """a 是否为 b 的编号前缀（5.2 是 5.2.1 的前缀）。"""
     sa, sb = a.split("."), b.split(".")
-    return len(sa) < len(sb) and sb[:len(sa)] == sa
+    return len(sa) < len(sb) and sb[: len(sa)] == sa
 
 
 def _node_font_size(block) -> float:
@@ -226,9 +245,14 @@ def annotate_roles(page, classifier=None) -> int:
     classifier = classifier or StructureClassifier()
     body_size = _estimate_body_size(page)
     type_map = {
-        "heading": "heading", "caption": "caption", "footnote": "footnote",
-        "formula": "formula", "citation": "citation",
-        "toc_entry": "toc", "header": "header", "footer": "footer",
+        "heading": "heading",
+        "caption": "caption",
+        "footnote": "footnote",
+        "formula": "formula",
+        "citation": "citation",
+        "toc_entry": "toc",
+        "header": "header",
+        "footer": "footer",
     }
     hits = 0
     for block in page.blocks:
@@ -236,8 +260,10 @@ def annotate_roles(page, classifier=None) -> int:
             continue
         try:
             classified = classifier.classify_paragraph(
-                _RuleParagraphAdapter(_NodeProxy(block)), page=None,
-                body_font_size=body_size)
+                _RuleParagraphAdapter(_NodeProxy(block)),
+                page=None,
+                body_font_size=body_size,
+            )
         except Exception:  # noqa: BLE001
             continue
         role = classified.role
@@ -253,8 +279,7 @@ def annotate_roles(page, classifier=None) -> int:
 
 
 def _estimate_body_size(page) -> float:
-    sizes = [b.font_size for b in page.blocks
-             if b.font_size and (b.text or "").strip()]
+    sizes = [b.font_size for b in page.blocks if b.font_size and (b.text or "").strip()]
     if not sizes:
         return 12.0
     sizes.sort()
@@ -274,7 +299,7 @@ def annotate_translation(page, translations: Dict[str, str]) -> int:
         if t is None:
             continue
         block.metadata["translated"] = t
-        block.metadata["translated_same"] = (t == (block.text or ""))
+        block.metadata["translated_same"] = t == (block.text or "")
         hits += 1
     return hits
 
@@ -287,8 +312,7 @@ def annotate_render(page) -> int:
     返回标注块数。
     """
     overlay = {"toc", "header", "footer"}
-    preserve = {"figure", "image", "table", "formula", "formula_inline",
-                "code"}
+    preserve = {"figure", "image", "table", "formula", "formula_inline", "code"}
     hits = 0
     for block in page.blocks:
         kind = block.kind
@@ -306,9 +330,11 @@ def annotate_render(page) -> int:
 # ── 构建入口 ─────────────────────────────────────────────────────────────
 
 
-def build_document_model(ltpages: Sequence,
-                         annotate_toc_entries: Optional[Dict[int, Sequence[dict]]] = None,
-                         classifier=None) -> DocumentModel:
+def build_document_model(
+    ltpages: Sequence,
+    annotate_toc_entries: Optional[Dict[int, Sequence[dict]]] = None,
+    classifier=None,
+) -> DocumentModel:
     """从 LTChar 流构建文档统一模型（逐页：结构恢复 + 全部标注 Pass）。
 
     - 每页：build_page_model（树）→ annotate_roles / annotate_formulas /
@@ -318,9 +344,14 @@ def build_document_model(ltpages: Sequence,
     - 页级 Relations（FOLLOWS / TOC_CHILD_OF / CAPTION_OF）自动重建。
     """
     from pdf2zh.v3.canonical_page import (
-        annotate_formulas, annotate_style, annotate_toc, annotate_toc_scan,
-        apply_layout_splits, build_page_model,
+        annotate_formulas,
+        annotate_style,
+        annotate_toc,
+        annotate_toc_scan,
+        apply_layout_splits,
+        build_page_model,
     )
+
     model = DocumentModel()
     for ltpage in ltpages or []:
         pno = getattr(ltpage, "pageid", 0)
@@ -335,16 +366,15 @@ def build_document_model(ltpages: Sequence,
             annotate_style(page)
             apply_layout_splits(page)
         except Exception as e:  # noqa: BLE001
-            log.debug("document_model: layout passes page %s failed: %s",
-                      pno, e)
+            log.debug("document_model: layout passes page %s failed: %s", pno, e)
         annotate_roles(page, classifier=classifier)
         annotate_formulas(page)
         try:
             from pdf2zh.v3.toc_analyzer import split_toc_blocks
+
             split_toc_blocks(page)
         except Exception as e:  # noqa: BLE001
-            log.debug("document_model: split_toc_blocks page %s failed: %s",
-                      pno, e)
+            log.debug("document_model: split_toc_blocks page %s failed: %s", pno, e)
         annotate_toc_scan(page)
         for entry in (annotate_toc_entries or {}).get(pno, []) or []:
             annotate_toc(page, [entry])
@@ -356,12 +386,14 @@ def build_document_model(ltpages: Sequence,
 # ── 模型消费：Translation / Render Plan / TOC 记录 ───────────────────────
 
 
-_KEEP_KINDS = frozenset({"formula", "figure", "image", "table", "code",
-                         "header", "footer"})
+_KEEP_KINDS = frozenset(
+    {"formula", "figure", "image", "table", "code", "header", "footer"}
+)
 
 
-def translate_document(model: DocumentModel, translate_fn,
-                       lang_out: str = "zh-CN") -> dict:
+def translate_document(
+    model: DocumentModel, translate_fn, lang_out: str = "zh-CN"
+) -> dict:
     """Translation Pass：按翻译策略（TranslationPolicyPass 产出）翻译。
 
     - policy.translate=False（formula/figure/table/code/header/footer…）
@@ -371,8 +403,7 @@ def translate_document(model: DocumentModel, translate_fn,
     - 无策略时按 kind 兜底。``translate_fn(text) -> str`` 缺省恒等。
     返回统计 {translated, preserved, skipped, toc_translated}。
     """
-    stats = {"translated": 0, "preserved": 0, "skipped": 0,
-             "toc_translated": 0}
+    stats = {"translated": 0, "preserved": 0, "skipped": 0, "toc_translated": 0}
     for page in model.pages:
         for i, block in enumerate(page.blocks):
             text = (block.text or "").strip()
@@ -394,11 +425,14 @@ def translate_document(model: DocumentModel, translate_fn,
                 try:
                     translated = translate_fn(src) or src
                 except Exception as e:  # noqa: BLE001
-                    log.debug("translate_document failed %s: %s",
-                              block_id(page.page_num, i), e)
+                    log.debug(
+                        "translate_document failed %s: %s",
+                        block_id(page.page_num, i),
+                        e,
+                    )
                     translated = src
             block.metadata["translated"] = translated
-            block.metadata["translated_same"] = (translated == src)
+            block.metadata["translated_same"] = translated == src
             block.metadata["translate"] = True
             stats["translated"] += 1
             if block.kind == "toc":
@@ -418,18 +452,19 @@ def render_plan_from_model(model: DocumentModel) -> List[dict]:
     for page in model.pages:
         pno = page.page_num
         for i, block in enumerate(page.blocks):
-            plan.append({
-                "block_id": block_id(pno, i),
-                "page": pno,
-                "kind": block.kind,
-                "text": block.text,
-                "translated": block.metadata.get("translated", block.text),
-                "render_path": block.metadata.get(
-                    "render_path", "translate_refit"),
-                "src_box": [round(v, 2) for v in block.bbox],
-                "dst_box": [round(v, 2) for v in block.bbox],
-                "font_size": _node_font_size(block),
-            })
+            plan.append(
+                {
+                    "block_id": block_id(pno, i),
+                    "page": pno,
+                    "kind": block.kind,
+                    "text": block.text,
+                    "translated": block.metadata.get("translated", block.text),
+                    "render_path": block.metadata.get("render_path", "translate_refit"),
+                    "src_box": [round(v, 2) for v in block.bbox],
+                    "dst_box": [round(v, 2) for v in block.bbox],
+                    "font_size": _node_font_size(block),
+                }
+            )
     return plan
 
 
@@ -447,20 +482,22 @@ def toc_records_from_model(model: DocumentModel) -> List[dict]:
             md = block.metadata
             if md.get("kind") != "toc" or not md.get("toc_number"):
                 continue
-            records.append({
-                "raw": block.text,
-                "kind": "section" if "." in md["toc_number"] else "chapter",
-                "level": md["toc_number"].count(".") + 1,
-                "number": md["toc_number"],
-                "title": md.get("toc_title", ""),
-                "page": md.get("toc_page", ""),
-                "leader": "",
-                "matched": True,
-                "title_remainder": md.get("toc_title", ""),
-                "translated_title": md.get("translated", ""),
-                "page_num": pno,
-                "block_id": block_id(pno, i),
-            })
+            records.append(
+                {
+                    "raw": block.text,
+                    "kind": "section" if "." in md["toc_number"] else "chapter",
+                    "level": md["toc_number"].count(".") + 1,
+                    "number": md["toc_number"],
+                    "title": md.get("toc_title", ""),
+                    "page": md.get("toc_page", ""),
+                    "leader": "",
+                    "matched": True,
+                    "title_remainder": md.get("toc_title", ""),
+                    "translated_title": md.get("translated", ""),
+                    "page_num": pno,
+                    "block_id": block_id(pno, i),
+                }
+            )
     return records
 
 
@@ -480,13 +517,15 @@ def annotate_translation_from_records(page, records: Sequence[dict]) -> int:
         for i, block in enumerate(page.blocks):
             block_text = (block.text or "").strip()
             toc_title = str(block.metadata.get("toc_title", "")).strip()
-            matched = (block_text == src or
-                       (src and block_text.endswith(src)) or
-                       (toc_title and (src == toc_title or src in toc_title)))
+            matched = (
+                block_text == src
+                or (src and block_text.endswith(src))
+                or (toc_title and (src == toc_title or src in toc_title))
+            )
             if not matched:
                 continue
             block.metadata["translated"] = dst
-            block.metadata["translated_same"] = (dst == src)
+            block.metadata["translated_same"] = dst == src
             block.metadata["translate"] = True
             hits += 1
             break
@@ -494,10 +533,19 @@ def annotate_translation_from_records(page, records: Sequence[dict]) -> int:
 
 
 __all__ = [
-    "REL_FOLLOWS", "REL_TOC_CHILD_OF", "REL_CAPTION_OF",
-    "block_id", "Relation", "DocumentModel",
-    "annotate_roles", "annotate_translation", "annotate_render",
-    "build_document_model", "_number_prefix",
-    "translate_document", "render_plan_from_model",
-    "toc_records_from_model", "annotate_translation_from_records",
+    "REL_FOLLOWS",
+    "REL_TOC_CHILD_OF",
+    "REL_CAPTION_OF",
+    "block_id",
+    "Relation",
+    "DocumentModel",
+    "annotate_roles",
+    "annotate_translation",
+    "annotate_render",
+    "build_document_model",
+    "_number_prefix",
+    "translate_document",
+    "render_plan_from_model",
+    "toc_records_from_model",
+    "annotate_translation_from_records",
 ]

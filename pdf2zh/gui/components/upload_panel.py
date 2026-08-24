@@ -100,7 +100,11 @@ def build_file_summary_html(files: Any) -> str:
         size = item.get("size")
         label = _human_size(size) if size is not None else "?"
         chips.append(
-            '<span class="file-summary-item">' + base + " <em>(" + label + ")</em></span>"
+            '<span class="file-summary-item">'
+            + base
+            + " <em>("
+            + label
+            + ")</em></span>"
         )
     total = len(items)
     plural = "" if total == 1 else " × " + str(total)
@@ -113,7 +117,6 @@ def build_file_summary_html(files: Any) -> str:
         + " ".join(chips)
         + "</div>"
     )
-
 
 
 def create_upload_panel() -> dict:

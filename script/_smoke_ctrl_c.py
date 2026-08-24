@@ -99,7 +99,9 @@ def main() -> int:
         )
     except KeyboardInterrupt:
         elapsed = time.monotonic() - t0
-        print(f"[2] coordinator aborted via KeyboardInterrupt in {elapsed:.2f}s (chunk sleeps 3s)")
+        print(
+            f"[2] coordinator aborted via KeyboardInterrupt in {elapsed:.2f}s (chunk sleeps 3s)"
+        )
         aborted_ok = elapsed < 2.5
         # V3-5：中断路径应硬杀 worker —— 不允许 worker 继续跑完 chunk（3s）。
         # terminate 已由 ``Ctrl+C: force-terminated N ...`` 日志确认；此处只做
@@ -109,7 +111,9 @@ def main() -> int:
             time.sleep(0.3)  # 等 terminate 生效
             procs = list((getattr(ex, "_processes", None) or {}).values())
             alive = [p for p in procs if p.is_alive()]
-            print(f"[2b] workers force-terminated: alive_after={len(alive)} ({len(procs)} tracked)")
+            print(
+                f"[2b] workers force-terminated: alive_after={len(alive)} ({len(procs)} tracked)"
+            )
             if alive:
                 aborted_ok = False
     except Exception as exc:  # noqa: BLE001
@@ -172,10 +176,14 @@ def _smoke_execute_task_cancelled() -> int:
     svc = RuntimeService()
     svc._store.create_task("smoke_kbint")
     svc._execute_legacy = _boom  # type: ignore[method-assign]
-    svc._execute_task("smoke_kbint", TranslationRequest(source_path="dummy.pdf", files=[]))
+    svc._execute_task(
+        "smoke_kbint", TranslationRequest(source_path="dummy.pdf", files=[])
+    )
     st = svc._store.get_task("smoke_kbint")
     ok = st is not None and st.status == TaskStage.CANCELLED.value
-    print(f"[4] _execute_task KeyboardInterrupt -> CANCELLED: {ok} (status={st.status if st else None})")
+    print(
+        f"[4] _execute_task KeyboardInterrupt -> CANCELLED: {ok} (status={st.status if st else None})"
+    )
     return 0 if ok else 6
 
 

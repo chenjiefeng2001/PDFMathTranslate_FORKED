@@ -14,20 +14,30 @@ Covers the Design RFC deliverables implemented in v6.0:
 Run with:
     python -m pytest tests/v3/test_v6_design_rfc.py -v
 """
+
 from __future__ import annotations
 
 import pytest
 
 from pdf2zh.v3.visual_tree import BoundingBox
 from pdf2zh.v3.relayout_engine import (
-    RelayoutConfig, RelayoutResult, ModelSelector,
-    RelayoutSolver, OutputAssembler, RelayoutEngine,
+    RelayoutConfig,
+    RelayoutResult,
+    ModelSelector,
+    RelayoutSolver,
+    OutputAssembler,
+    RelayoutEngine,
 )
 from pdf2zh.v3.render_adapter import (
-    RenderBlock, HTMLFloatRenderer, TextRenderer, RenderAdapter,
+    RenderBlock,
+    HTMLFloatRenderer,
+    TextRenderer,
+    RenderAdapter,
 )
 from pdf2zh.v3.transformation_pipeline import (
-    PipelineConfig, RuleBasedProvider, TransformationPipeline,
+    PipelineConfig,
+    RuleBasedProvider,
+    TransformationPipeline,
 )
 from pdf2zh.v3.review_agent import ReviewAgent, QualityPipeline
 
@@ -39,6 +49,7 @@ def _item(nid: str, x: float, y: float, w: float = 200.0, h: float = 14.0):
 # ═══════════════════════════════════════════════════════════════
 # Layer A — ModelSelector
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestModelSelector:
     def test_merges_close_lines_into_one_chunk(self):
@@ -66,9 +77,11 @@ class TestModelSelector:
     def test_empty(self):
         assert ModelSelector().select([]) == []
 
+
 # ═══════════════════════════════════════════════════════════════
 # Layer B — RelayoutSolver (constraint graph + native solve)
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestRelayoutSolver:
     def test_build_graph_creates_nodes_and_must_below_edges(self):
@@ -99,13 +112,16 @@ class TestRelayoutSolver:
 # Layer C — OutputAssembler
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestOutputAssembler:
     def test_manifest_sorted_by_reading_order(self):
         layout = {
             "chunk_b": BoundingBox(10, 40, 200, 14),
             "chunk_a": BoundingBox(10, 10, 200, 14),
         }
-        blocks = OutputAssembler.assemble(layout, {"chunk_a": ["a1"], "chunk_b": ["b1"]})
+        blocks = OutputAssembler.assemble(
+            layout, {"chunk_a": ["a1"], "chunk_b": ["b1"]}
+        )
         assert [b["id"] for b in blocks] == ["chunk_a", "chunk_b"]
         assert blocks[0]["source_ids"] == ["a1"]
         assert blocks[0]["w"] == 200.0
@@ -114,6 +130,7 @@ class TestOutputAssembler:
 # ═══════════════════════════════════════════════════════════════
 # RelayoutEngine facade
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestRelayoutEngine:
     def test_run_single_page(self):
@@ -139,6 +156,7 @@ class TestRelayoutEngine:
 # ═══════════════════════════════════════════════════════════════
 # RenderAdapter — HTML float / text / native PDF
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestRenderAdapter:
     def _blocks(self):
@@ -170,8 +188,14 @@ class TestRenderAdapter:
     def test_build_blocks_from_manifest(self):
         manifest = {
             "blocks": [
-                {"id": "chunk_a", "x": 0, "y": 0, "w": 10, "h": 10,
-                 "source_ids": ["a"]},
+                {
+                    "id": "chunk_a",
+                    "x": 0,
+                    "y": 0,
+                    "w": 10,
+                    "h": 10,
+                    "source_ids": ["a"],
+                },
             ]
         }
         blocks = RenderAdapter.build_blocks(manifest, {"chunk_a": "你好"})
@@ -186,13 +210,16 @@ class TestRenderAdapter:
 # RuleBasedProvider
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestRuleBasedProvider:
     def test_preserves_tokens_and_numbers(self):
         prov = RuleBasedProvider()
-        resp = prov.complete([
-            {"role": "system", "content": "translate"},
-            {"role": "user", "content": "Text to translate:\nLoss = CE + L2"},
-        ])
+        resp = prov.complete(
+            [
+                {"role": "system", "content": "translate"},
+                {"role": "user", "content": "Text to translate:\nLoss = CE + L2"},
+            ]
+        )
         assert resp.provider == "rule-based"
         assert "L2" in resp.text
         assert "CE" in resp.text
@@ -203,15 +230,18 @@ class TestRuleBasedProvider:
 # TransformationPipeline — end-to-end headless run
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestTransformationPipeline:
     def test_run_text_end_to_end(self):
         cfg = PipelineConfig(glossary={"Transformer": "Transformer"})
         pipeline = TransformationPipeline(cfg)
-        out = pipeline.run_text([
-            "The Transformer uses x=5 and y=3.",
-            "Attention is all you need.",
-            "Loss = CE + L2",
-        ])
+        out = pipeline.run_text(
+            [
+                "The Transformer uses x=5 and y=3.",
+                "Attention is all you need.",
+                "Loss = CE + L2",
+            ]
+        )
         assert out.stats.total_nodes == 3
         assert out.stats.translated == 3
         assert out.stats.review_errors == 0
@@ -232,12 +262,31 @@ class TestTransformationPipeline:
 
     def test_build_graph_from_blocks_creates_reading_edges(self):
         from pdf2zh.v3.graph import EdgeType
-        graph = TransformationPipeline.build_graph_from_blocks([
-            {"id": "a", "text": "one", "type": "paragraph", "x": 0, "y": 0,
-             "w": 100, "h": 14, "page": 0},
-            {"id": "b", "text": "two", "type": "paragraph", "x": 0, "y": 30,
-             "w": 100, "h": 14, "page": 0},
-        ])
+
+        graph = TransformationPipeline.build_graph_from_blocks(
+            [
+                {
+                    "id": "a",
+                    "text": "one",
+                    "type": "paragraph",
+                    "x": 0,
+                    "y": 0,
+                    "w": 100,
+                    "h": 14,
+                    "page": 0,
+                },
+                {
+                    "id": "b",
+                    "text": "two",
+                    "type": "paragraph",
+                    "x": 0,
+                    "y": 30,
+                    "w": 100,
+                    "h": 14,
+                    "page": 0,
+                },
+            ]
+        )
         assert len(graph.nodes) == 3  # a, b, page_0
         follows = [e for e in graph.edges if e.edge_type == EdgeType.FOLLOWS]
         assert len(follows) == 1
@@ -246,9 +295,11 @@ class TestTransformationPipeline:
 
     def test_glossary_in_prompt_does_not_crash(self):
         """Regression: PromptComposer now tolerates tuple-based glossary."""
-        pipeline = TransformationPipeline(PipelineConfig(
-            glossary={"Transformer": "Transformer"},
-        ))
+        pipeline = TransformationPipeline(
+            PipelineConfig(
+                glossary={"Transformer": "Transformer"},
+            )
+        )
         out = pipeline.run_text(["The Transformer is a model."])
         assert out.stats.translated == 1
         assert "Transformer" in out.translations[list(out.translations)[0]]
@@ -257,6 +308,7 @@ class TestTransformationPipeline:
 # ═══════════════════════════════════════════════════════════════
 # Quality gate sanity (ReviewAgent/QualityPipeline integration)
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestQualityGateIntegration:
     def test_identity_translation_fails_review(self):
@@ -267,10 +319,11 @@ class TestQualityGateIntegration:
 
     def test_quality_pipeline_reports_score(self):
         qp = QualityPipeline()
-        report = qp.run({
-            "n1": {"source": "hello world", "translated": "你好 世界"},
-        })
+        report = qp.run(
+            {
+                "n1": {"source": "hello world", "translated": "你好 世界"},
+            }
+        )
         assert report["errors"] == 0
         assert report["quality_score"] == 1.0
         assert report["final_translations"]["n1"] == "你好 世界"
-

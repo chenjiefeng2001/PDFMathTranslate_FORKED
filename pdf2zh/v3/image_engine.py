@@ -24,6 +24,7 @@
 - LLM 仅在 ``TranslationDecisionEngine`` 置信度不足时做类别辅助判定，
   不参与 OCR、不参与重绘。
 """
+
 from __future__ import annotations
 
 import logging
@@ -65,10 +66,10 @@ class ImageClass(Enum):
 class RenderMode(Enum):
     """Phase 5 的四种图片渲染模式。"""
 
-    PRESERVE = "preserve"            # Mode 1：保持原图，仅正文翻译
-    OVERLAY = "overlay"              # Mode 2：原图 + 透明译文图层
+    PRESERVE = "preserve"  # Mode 1：保持原图，仅正文翻译
+    OVERLAY = "overlay"  # Mode 2：原图 + 透明译文图层
     REGION_REPLACE = "region_replace"  # Mode 3：仅替换 OCR region，背景保留
-    FULL_REPAINT = "full_repaint"    # Mode 4：流程图/统计图，重排重绘
+    FULL_REPAINT = "full_repaint"  # Mode 4：流程图/统计图，重排重绘
 
 
 class ImageSource(Enum):
@@ -216,29 +217,95 @@ IMAGE_POLICY: Dict[ImageClass, ImagePolicy] = {
 # 技术名词：一律 keep（不翻译）
 TECHNICAL_KEEP_TERMS = frozenset(
     {
-        "cpu", "gpu", "ram", "rom", "usb", "hdmi", "vga", "tcp", "ip",
-        "http", "https", "url", "uri", "api", "sdk", "cli", "gui", "db",
-        "sql", "html", "css", "json", "xml", "pdf", "png", "jpeg",
-        "github", "gitlab", "docker", "kubernetes", "kubernetes",
-        "windows", "linux", "macos", "android", "ios", "chrome",
+        "cpu",
+        "gpu",
+        "ram",
+        "rom",
+        "usb",
+        "hdmi",
+        "vga",
+        "tcp",
+        "ip",
+        "http",
+        "https",
+        "url",
+        "uri",
+        "api",
+        "sdk",
+        "cli",
+        "gui",
+        "db",
+        "sql",
+        "html",
+        "css",
+        "json",
+        "xml",
+        "pdf",
+        "png",
+        "jpeg",
+        "github",
+        "gitlab",
+        "docker",
+        "kubernetes",
+        "kubernetes",
+        "windows",
+        "linux",
+        "macos",
+        "android",
+        "ios",
+        "chrome",
     }
 )
 
 # 品牌/产品名：一律 keep
 BRAND_KEEP_TERMS = frozenset(
     {
-        "google", "amazon", "microsoft", "apple", "facebook", "meta",
-        "alibaba", "tencent", "huawei", "xiaomi", "intel", "amd",
-        "nvidia", "qualcomm", "samsung", "oracle", "salesforce",
+        "google",
+        "amazon",
+        "microsoft",
+        "apple",
+        "facebook",
+        "meta",
+        "alibaba",
+        "tencent",
+        "huawei",
+        "xiaomi",
+        "intel",
+        "amd",
+        "nvidia",
+        "qualcomm",
+        "samsung",
+        "oracle",
+        "salesforce",
     }
 )
 
 # 已知"UI 控件"，短文本一律 keep
 UI_KEEP_TERMS = frozenset(
     {
-        "ok", "cancel", "close", "open", "save", "exit", "run", "start",
-        "stop", "next", "back", "yes", "no", "on", "off", "apply",
-        "reset", "settings", "file", "edit", "view", "help", "about",
+        "ok",
+        "cancel",
+        "close",
+        "open",
+        "save",
+        "exit",
+        "run",
+        "start",
+        "stop",
+        "next",
+        "back",
+        "yes",
+        "no",
+        "on",
+        "off",
+        "apply",
+        "reset",
+        "settings",
+        "file",
+        "edit",
+        "view",
+        "help",
+        "about",
     }
 )
 
@@ -283,8 +350,11 @@ def _looks_like_code(text: str) -> bool:
     if any(ch in text for ch in "{}_\\"):
         return True
     parts = text.split()
-    return len(parts) == 1 and any(ch.isdigit() for ch in text) and \
-        any(ch.isalpha() for ch in text)
+    return (
+        len(parts) == 1
+        and any(ch.isdigit() for ch in text)
+        and any(ch.isalpha() for ch in text)
+    )
 
 
 def _looks_like_number_only(text: str) -> bool:
@@ -362,9 +432,9 @@ def compute_image_features(pixels, has_alpha: bool = False) -> ImageFeatures:
         f.white_ratio = float(np.mean(gray > 220))
         # coarse Sobel-ish edge density via finite diff on downsampled gray
         gs = gray[::2, ::2]
-        dx = np.abs(gs[1:, :] - gs[:-1, :])   # (h'-1, w')
-        dy = np.abs(gs[:, 1:] - gs[:, :-1])   # (h', w'-1)
-        dx = dx[:, :-1]                       # crop to common (h'-1, w'-1)
+        dx = np.abs(gs[1:, :] - gs[:-1, :])  # (h'-1, w')
+        dy = np.abs(gs[:, 1:] - gs[:, :-1])  # (h', w'-1)
+        dx = dx[:, :-1]  # crop to common (h'-1, w'-1)
         dy = dy[:-1, :]
         edge = (dx + dy) / 2.0
         f.edge_density = float(np.mean(edge > 24))
@@ -433,8 +503,7 @@ class RuleClassifierConfig:
     shot_max_edge: float = 0.30
 
     def tuned(self) -> Dict[str, float]:
-        return {k: v for k, v in self.__dict__.items()
-                if isinstance(v, (int, float))}
+        return {k: v for k, v in self.__dict__.items() if isinstance(v, (int, float))}
 
 
 class RuleImageClassifier(ImageClassifierBackend):
@@ -457,47 +526,72 @@ class RuleImageClassifier(ImageClassifierBackend):
 
         # QR/条形码：方形/条状 + 黑白高对比 + 高边缘密度
         if f.mostly_grayscale and 0 < f.color_count <= cfg.qr_max_colors:
-            if cfg.qr_min_aspect <= f.aspect_ratio <= cfg.qr_max_aspect \
-                    and f.edge_density >= cfg.qr_edge:
+            if (
+                cfg.qr_min_aspect <= f.aspect_ratio <= cfg.qr_max_aspect
+                and f.edge_density >= cfg.qr_edge
+            ):
                 return ImageClass.QR_CODE, _bounded(f.edge_density * 1.6)
-            if f.aspect_ratio < cfg.barcode_max_aspect and f.edge_density >= cfg.barcode_edge:
+            if (
+                f.aspect_ratio < cfg.barcode_max_aspect
+                and f.edge_density >= cfg.barcode_edge
+            ):
                 return ImageClass.BARCODE, _bounded(0.6 + f.edge_density)
 
         # CAD：近单色工程图，超低色数 + 高边缘密度
-        if f.color_count <= cfg.cad_max_colors and f.mostly_grayscale \
-                and f.edge_density >= cfg.cad_edge and f.width >= 32 and f.height >= 32:
+        if (
+            f.color_count <= cfg.cad_max_colors
+            and f.mostly_grayscale
+            and f.edge_density >= cfg.cad_edge
+            and f.width >= 32
+            and f.height >= 32
+        ):
             return ImageClass.CAD, _bounded(0.55 + f.edge_density * 0.8)
 
         # Equation：窄高条、白底、密集细笔划、色数低
-        if f.mostly_grayscale and f.aspect_ratio > cfg.equation_min_aspect \
-                and f.white_ratio >= cfg.equation_white \
-                and f.color_count <= cfg.equation_max_colors:
+        if (
+            f.mostly_grayscale
+            and f.aspect_ratio > cfg.equation_min_aspect
+            and f.white_ratio >= cfg.equation_white
+            and f.color_count <= cfg.equation_max_colors
+        ):
             return ImageClass.EQUATION, _bounded(0.55 + f.edge_density)
 
         # Logo：面积小、色数极少、对比强烈的简洁图形
-        if area <= cfg.logo_max_area and f.color_count <= cfg.logo_max_colors \
-                and (f.dark_ratio > 0.05 or f.edge_density > 0.02):
+        if (
+            area <= cfg.logo_max_area
+            and f.color_count <= cfg.logo_max_colors
+            and (f.dark_ratio > 0.05 or f.edge_density > 0.02)
+        ):
             return ImageClass.LOGO, _bounded(0.5 + max(0.0, 0.2 - f.unique_color_ratio))
 
         # 照片：高色数 + 低边缘密度（自然渐变）
-        if f.color_count >= cfg.photo_min_colors \
-                and f.unique_color_ratio >= cfg.photo_min_unique \
-                and f.edge_density < cfg.photo_max_edge:
+        if (
+            f.color_count >= cfg.photo_min_colors
+            and f.unique_color_ratio >= cfg.photo_min_unique
+            and f.edge_density < cfg.photo_max_edge
+        ):
             return ImageClass.PHOTO, _bounded(0.55 + f.unique_color_ratio)
 
         # 图表/流程图：白底、中低色数、高边缘（线条/网格）
-        if f.white_ratio >= cfg.chart_min_white \
-                and f.color_count <= cfg.chart_max_colors \
-                and f.edge_density >= cfg.chart_min_edge:
+        if (
+            f.white_ratio >= cfg.chart_min_white
+            and f.color_count <= cfg.chart_max_colors
+            and f.edge_density >= cfg.chart_min_edge
+        ):
             return ImageClass.CHART, _bounded(0.5 + f.edge_density)
 
         # Comic：高色数 + 高边缘密度（粗描边）
-        if f.color_count >= cfg.comic_min_colors and f.edge_density >= cfg.comic_min_edge:
+        if (
+            f.color_count >= cfg.comic_min_colors
+            and f.edge_density >= cfg.comic_min_edge
+        ):
             return ImageClass.COMIC, _bounded(0.55)
 
         # 截图：色数中等偏高 + 低-中边缘、常带深色/白色 UI 块
-        if cfg.shot_min_colors <= f.color_count < cfg.shot_max_colors \
-                and f.edge_density < cfg.shot_max_edge:
+        if (
+            cfg.shot_min_colors <= f.color_count < cfg.shot_max_colors
+            and f.edge_density < cfg.shot_max_edge
+        ):
             return ImageClass.SCREENSHOT, _bounded(0.5)
 
         return ImageClass.UNKNOWN, 0.35
@@ -507,8 +601,9 @@ def _bounded(x: float) -> float:
     return float(max(0.0, min(1.0, x)))
 
 
-def classify_image(features: ImageFeatures,
-                   backend: Optional[ImageClassifierBackend] = None) -> Tuple[ImageClass, float]:
+def classify_image(
+    features: ImageFeatures, backend: Optional[ImageClassifierBackend] = None
+) -> Tuple[ImageClass, float]:
     backend = backend or RuleImageClassifier()
     return backend.classify(features)
 
@@ -566,8 +661,12 @@ def detect_text_regions(pixels, max_regions: int = 32) -> List[TextRegion]:
                 for dr in (-1, 0, 1):
                     for dc in (-1, 0, 1):
                         nr, nc = r + dr, c + dc
-                        if 0 <= nr < 24 and 0 <= nc < 24 and occupied[nr, nc] and \
-                                not assigned[nr, nc]:
+                        if (
+                            0 <= nr < 24
+                            and 0 <= nc < 24
+                            and occupied[nr, nc]
+                            and not assigned[nr, nc]
+                        ):
                             assigned[nr, nc] = True
                             stack.append((nr, nc))
             regions.append((rs0, cs0, rs1 + 1, cs1 + 1))
@@ -592,14 +691,20 @@ class TranslationDecisionEngine:
       坐标轴数值 / 公式符号 / 文本长度。
     """
 
-    def __init__(self, policy: Optional[Dict[ImageClass, ImagePolicy]] = None,
-                 translate_threshold: float = 0.55) -> None:
+    def __init__(
+        self,
+        policy: Optional[Dict[ImageClass, ImagePolicy]] = None,
+        translate_threshold: float = 0.55,
+    ) -> None:
         self.policy = dict(policy or IMAGE_POLICY)
         self.translate_threshold = translate_threshold
 
-    def decide(self, image: ImageObject,
-               regions: Optional[Sequence[TextRegion]] = None,
-               ocr_confidence: Optional[float] = None) -> TranslationDecision:
+    def decide(
+        self,
+        image: ImageObject,
+        regions: Optional[Sequence[TextRegion]] = None,
+        ocr_confidence: Optional[float] = None,
+    ) -> TranslationDecision:
         regions = list(regions if regions is not None else image.regions)
 
         pol = self.policy.get(image.image_class, IMAGE_POLICY[ImageClass.UNKNOWN])
@@ -613,13 +718,21 @@ class TranslationDecisionEngine:
 
         region_decisions: List[RegionDecision] = []
         for reg in regions:
-            conf = reg.ocr_confidence if reg.ocr_confidence > 0 else \
-                (ocr_confidence or 0.5)
+            conf = (
+                reg.ocr_confidence
+                if reg.ocr_confidence > 0
+                else (ocr_confidence or 0.5)
+            )
             score, reasons = self._score_region(reg, conf)
-            region_decisions.append(RegionDecision(
-                region=reg, translation_score=score, translate=score > self.translate_threshold,
-                confidence=conf, reasons=reasons,
-            ))
+            region_decisions.append(
+                RegionDecision(
+                    region=reg,
+                    translation_score=score,
+                    translate=score > self.translate_threshold,
+                    confidence=conf,
+                    reasons=reasons,
+                )
+            )
 
         translatable = [d for d in region_decisions if d.translate]
         if not translatable:
@@ -635,11 +748,16 @@ class TranslationDecisionEngine:
             translate=True,
             confidence=_bounded(avg),
             render_mode=pol.render_mode,
-            reasons=[f"policy:{image.image_class.value}", f"regions:{len(translatable)}"],
+            reasons=[
+                f"policy:{image.image_class.value}",
+                f"regions:{len(translatable)}",
+            ],
             region_decisions=region_decisions,
         )
 
-    def _score_region(self, reg: TextRegion, ocr_conf: float) -> Tuple[float, List[str]]:
+    def _score_region(
+        self, reg: TextRegion, ocr_conf: float
+    ) -> Tuple[float, List[str]]:
         """单区域分数累加（0~1）。"""
         if reg.kind == "axis_label":
             return 0.2, ["axis_number_keep"]
@@ -652,7 +770,7 @@ class TranslationDecisionEngine:
         if not translate:
             return 0.15, [f"router_keep:{reason}"]
         score = 0.5
-        score += 0.15 * ocr_conf          # OCR 置信度高加分
+        score += 0.15 * ocr_conf  # OCR 置信度高加分
         words = len(text.split())
         if words >= 2:
             score += 0.15
@@ -664,26 +782,37 @@ class TranslationDecisionEngine:
 # ── 端到端分析（可选 fitz 入口，guarded） ────────────────────────────────
 
 
-def analyze_image_bytes(pixels, object_id: str = "img", page_num: int = 0,
-                        has_alpha: bool = False,
-                        engine: Optional[TranslationDecisionEngine] = None) -> ImageObject:
+def analyze_image_bytes(
+    pixels,
+    object_id: str = "img",
+    page_num: int = 0,
+    has_alpha: bool = False,
+    engine: Optional[TranslationDecisionEngine] = None,
+) -> ImageObject:
     """对内存中的像素数组执行完整分析：特征 → 分类 → 区域 → 决策。"""
     features = compute_image_features(pixels, has_alpha=has_alpha)
     image_class, conf = classify_image(features)
     regions = detect_text_regions(pixels)
     obj = ImageObject(
-        id=object_id, page_num=page_num,
-        width_px=features.width, height_px=features.height,
-        has_alpha=has_alpha, image_class=image_class,
-        class_confidence=conf, features=features.to_dict(),
+        id=object_id,
+        page_num=page_num,
+        width_px=features.width,
+        height_px=features.height,
+        has_alpha=has_alpha,
+        image_class=image_class,
+        class_confidence=conf,
+        features=features.to_dict(),
         regions=regions,
     )
     obj.decision = (engine or TranslationDecisionEngine()).decide(obj)
     return obj
 
 
-def analyze_pdf_images(doc, page_range: Optional[Sequence[int]] = None,
-                       engine: Optional[TranslationDecisionEngine] = None) -> Dict[int, List[ImageObject]]:
+def analyze_pdf_images(
+    doc,
+    page_range: Optional[Sequence[int]] = None,
+    engine: Optional[TranslationDecisionEngine] = None,
+) -> Dict[int, List[ImageObject]]:
     """从 PyMuPDF document 提取每页图片对象并做整条决策管线。
 
     guarded：PyMuPDF 不可用或单页失败时返回该页空列表，绝不抛错。
@@ -693,6 +822,7 @@ def analyze_pdf_images(doc, page_range: Optional[Sequence[int]] = None,
     out: Dict[int, List[ImageObject]] = {}
     try:
         import numpy as _np  # noqa: F401  (确认 numpy 可用)
+
         n = doc.page_count
         rng = list(page_range) if page_range is not None else list(range(n))
         for pno in rng:
@@ -700,9 +830,13 @@ def analyze_pdf_images(doc, page_range: Optional[Sequence[int]] = None,
                 continue
             page = doc[pno]
             pixmap = page.get_pixmap(matrix=None)  # 整页栅格
-            pixels = np.frombuffer(pixmap.samples, dtype=np.uint8).reshape(
-                pixmap.height, pixmap.width, pixmap.n
-            ) if np is not None else None
+            pixels = (
+                np.frombuffer(pixmap.samples, dtype=np.uint8).reshape(
+                    pixmap.height, pixmap.width, pixmap.n
+                )
+                if np is not None
+                else None
+            )
             if pixels is None:
                 continue
             # 每张嵌入图作为独立 ImageObject（bbox 取自页面）
@@ -712,14 +846,21 @@ def analyze_pdf_images(doc, page_range: Optional[Sequence[int]] = None,
             except Exception:
                 img_infos = []
             if not img_infos and pixels is not None:
-                items.append(analyze_image_bytes(
-                    pixels[..., :3] if pixels.shape[2] >= 3 else pixels,
-                    object_id=f"p{pno}_full", page_num=pno, engine=engine))
+                items.append(
+                    analyze_image_bytes(
+                        pixels[..., :3] if pixels.shape[2] >= 3 else pixels,
+                        object_id=f"p{pno}_full",
+                        page_num=pno,
+                        engine=engine,
+                    )
+                )
             for info in img_infos:
                 obj = analyze_image_bytes(
                     pixels[..., :3] if pixels.shape[2] >= 3 else pixels,
-                    object_id=f"p{pno}_x{info.get('xref', 0)}", page_num=pno,
-                    engine=engine)
+                    object_id=f"p{pno}_x{info.get('xref', 0)}",
+                    page_num=pno,
+                    engine=engine,
+                )
                 bbox = info.get("bbox")
                 if bbox:
                     obj.bbox = tuple(float(v) for v in bbox)
@@ -735,13 +876,27 @@ def analyze_pdf_images(doc, page_range: Optional[Sequence[int]] = None,
 
 
 __all__ = [
-    "ImageClass", "RenderMode", "ImageSource",
-    "ImageObject", "TextRegion", "TranslationDecision", "RegionDecision",
-    "ImagePolicy", "IMAGE_POLICY",
-    "ImageFeatures", "compute_image_features",
-    "ImageClassifierBackend", "RuleImageClassifier", "classify_image",
-    "detect_text_regions", "TranslationDecisionEngine",
-    "router_should_translate", "is_probably_brand_or_technical",
-    "TECHNICAL_KEEP_TERMS", "BRAND_KEEP_TERMS", "UI_KEEP_TERMS",
-    "analyze_image_bytes", "analyze_pdf_images",
+    "ImageClass",
+    "RenderMode",
+    "ImageSource",
+    "ImageObject",
+    "TextRegion",
+    "TranslationDecision",
+    "RegionDecision",
+    "ImagePolicy",
+    "IMAGE_POLICY",
+    "ImageFeatures",
+    "compute_image_features",
+    "ImageClassifierBackend",
+    "RuleImageClassifier",
+    "classify_image",
+    "detect_text_regions",
+    "TranslationDecisionEngine",
+    "router_should_translate",
+    "is_probably_brand_or_technical",
+    "TECHNICAL_KEEP_TERMS",
+    "BRAND_KEEP_TERMS",
+    "UI_KEEP_TERMS",
+    "analyze_image_bytes",
+    "analyze_pdf_images",
 ]

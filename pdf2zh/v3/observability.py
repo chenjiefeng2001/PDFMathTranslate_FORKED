@@ -30,6 +30,7 @@ Usage::
                      evidence={"structure": 0.9, "formula": 0.2},
                      source="toc_gate", stage="semantic")
 """
+
 from __future__ import annotations
 
 import gzip
@@ -67,11 +68,24 @@ _DEFAULT_COLOR = "#9e9e9e"
 
 # 进入快照 payload 的 metadata 白名单（其余忽略，保持快照紧凑、可差分）
 _MD_KEYS = (
-    "role", "role_confidence", "confidence", "confidence_source",
-    "uncertainty", "translate", "translated", "toc_number",
-    "toc_confidence", "toc_scan", "formula_density", "reading_order",
-    "anomaly", "render_path", "translation_policy",
-    "typography", "fonts", "multifont",
+    "role",
+    "role_confidence",
+    "confidence",
+    "confidence_source",
+    "uncertainty",
+    "translate",
+    "translated",
+    "toc_number",
+    "toc_confidence",
+    "toc_scan",
+    "formula_density",
+    "reading_order",
+    "anomaly",
+    "render_path",
+    "translation_policy",
+    "typography",
+    "fonts",
+    "multifont",
 )
 
 
@@ -141,10 +155,14 @@ class TraceContext:
         self.trace_id: str = f"T-{uuid.uuid4().hex[:10]}"
         self._nodes: Dict[str, NodeID] = {}
         self._children: Dict[str, List[str]] = {}
-        self._root = NodeID(self.doc_id, (), )
+        self._root = NodeID(
+            self.doc_id,
+            (),
+        )
 
-    def node_id(self, kind: str, seq: int = 0,
-                parent: Optional[NodeID] = None, text: str = "") -> NodeID:
+    def node_id(
+        self, kind: str, seq: int = 0, parent: Optional[NodeID] = None, text: str = ""
+    ) -> NodeID:
         """创建/复用子节点 ID：kind 简写（P/B/L/S/H/T/G）+ 序号。"""
         parent = parent or self._root
         node = NodeID(self.doc_id, parent.path + ((kind, seq),), text=text)
@@ -176,15 +194,15 @@ class TraceContext:
         return [self._nodes[k] for k in self._children.get(node.full, [])]
 
     def known(self) -> List[NodeID]:
-        return [
-            n for n in self._nodes.values()
-            if n.full.startswith(self.doc_id)
-        ]
+        return [n for n in self._nodes.values() if n.full.startswith(self.doc_id)]
 
     def to_dict(self) -> Dict:
-        return {"doc_id": self.doc_id, "trace_id": self.trace_id,
-                "nodes": sorted(self._nodes),
-                "children": self._children}
+        return {
+            "doc_id": self.doc_id,
+            "trace_id": self.trace_id,
+            "nodes": sorted(self._nodes),
+            "children": self._children,
+        }
 
 
 # ── D1: SnapshotSystem ─────────────────────────────────────────────────
@@ -219,8 +237,7 @@ def _dup_filtered(metadata: Dict) -> Dict:
     return {k: v for k, v in (metadata or {}).items() if k in _MD_KEYS}
 
 
-def capture_snapshot(source, stage: str,
-                     trace: TraceContext) -> Dict[str, Any]:
+def capture_snapshot(source, stage: str, trace: TraceContext) -> Dict[str, Any]:
     """从统一文档模型捕获节点级快照（不可变 dict，可直接 JSON/Binary 落盘）。
 
     ``source`` 可为 ``DocumentModel`` 或 ``PageModel``（含无 glyph 的空页）。
@@ -228,8 +245,10 @@ def capture_snapshot(source, stage: str,
     块级与 ``block_id(pno, i)``（``p{pno}_{i}``）语义等价。
     """
     if source is None:
-        payload: Dict[str, Any] = {"nodes": {}, "stats": {
-            "pages": 0, "blocks": 0, "lines": 0}}
+        payload: Dict[str, Any] = {
+            "nodes": {},
+            "stats": {"pages": 0, "blocks": 0, "lines": 0},
+        }
     elif hasattr(source, "blocks") and not hasattr(source, "pages"):
         payload = _page_snapshot(source, trace)
     else:
@@ -244,27 +263,38 @@ def capture_snapshot(source, stage: str,
 def _page_snapshot(page, trace: TraceContext) -> Dict[str, Any]:
     pno = int(getattr(page, "page_num", 0) or 0)
     page_node = trace.register(trace.node_id("P", pno, parent=trace._root))
-    nodes: Dict[str, Any] = {page_node.full: {
-        "kind": "page", "text": "", "bbox": [
-            round(float(getattr(page, "width", 0.0) or 0.0), 2),
-            round(float(getattr(page, "height", 0.0) or 0.0), 2)],
-        "metadata": {"page_num": pno}}}
+    nodes: Dict[str, Any] = {
+        page_node.full: {
+            "kind": "page",
+            "text": "",
+            "bbox": [
+                round(float(getattr(page, "width", 0.0) or 0.0), 2),
+                round(float(getattr(page, "height", 0.0) or 0.0), 2),
+            ],
+            "metadata": {"page_num": pno},
+        }
+    }
     blocks = 0
     for i, block in enumerate(page.blocks):
         bnode = trace.node_id("B", i, parent=page_node)
         nodes[bnode.full] = _block_snapshot(block, trace.doc_id)
         blocks += 1
     nodes[page_node.full]["metadata"]["blocks"] = blocks
-    return {"nodes": nodes,
-            "stats": {"pages": 1, "blocks": blocks,
-                      "lines": sum(len(n["lines"]) for n in nodes.values()
-                                   if "lines" in n)}}
+    return {
+        "nodes": nodes,
+        "stats": {
+            "pages": 1,
+            "blocks": blocks,
+            "lines": sum(len(n["lines"]) for n in nodes.values() if "lines" in n),
+        },
+    }
 
 
 def _document_snapshot(model, trace: TraceContext) -> Dict[str, Any]:
     doc_node = trace.node_id("DOC", 0)
-    nodes: Dict[str, Any] = {doc_node.full: {"kind": "document", "text": "",
-                                             "bbox": [], "metadata": {}}}
+    nodes: Dict[str, Any] = {
+        doc_node.full: {"kind": "document", "text": "", "bbox": [], "metadata": {}}
+    }
     pages_n = blocks_n = lines_n = 0
     for page in getattr(model, "pages", []) or []:
         psnap = _page_snapshot(page, trace)
@@ -273,10 +303,15 @@ def _document_snapshot(model, trace: TraceContext) -> Dict[str, Any]:
         blocks_n += psnap["stats"]["blocks"]
         lines_n += psnap["stats"]["lines"]
     nodes[doc_node.full]["metadata"] = dict(getattr(model, "metadata", {}))
-    nodes[doc_node.full]["stats"] = {"pages": pages_n,
-                                     "blocks": blocks_n, "lines": lines_n}
-    return {"nodes": nodes,
-            "stats": {"pages": pages_n, "blocks": blocks_n, "lines": lines_n}}
+    nodes[doc_node.full]["stats"] = {
+        "pages": pages_n,
+        "blocks": blocks_n,
+        "lines": lines_n,
+    }
+    return {
+        "nodes": nodes,
+        "stats": {"pages": pages_n, "blocks": blocks_n, "lines": lines_n},
+    }
 
 
 @dataclass
@@ -288,8 +323,9 @@ class SnapshotStore:
     order: List[str] = field(default_factory=list)
     trace: Optional[TraceContext] = None
 
-    def add(self, snapshot: Optional[Dict[str, Any]],
-            stage: Optional[str] = None) -> str:
+    def add(
+        self, snapshot: Optional[Dict[str, Any]], stage: Optional[str] = None
+    ) -> str:
         if snapshot is None:
             return ""
         stage = stage or (snapshot or {}).get("stage", "unknown")
@@ -303,7 +339,9 @@ class SnapshotStore:
             self.order.append(stage)
         return stage
 
-    def add_stage(self, source, stage: str, trace: Optional[TraceContext] = None) -> str:
+    def add_stage(
+        self, source, stage: str, trace: Optional[TraceContext] = None
+    ) -> str:
         tr = trace or self.trace
         if tr is None:
             tr = TraceContext(self.doc_id)
@@ -321,24 +359,27 @@ class SnapshotStore:
 
     def diff_stages(self, a: str, b: str) -> List["PassDiffEntry"]:
         from pdf2zh.v3.pass_diff import diff_snapshots
-        return diff_snapshots(self.snapshots.get(a, {}),
-                              self.snapshots.get(b, {}))
+
+        return diff_snapshots(self.snapshots.get(a, {}), self.snapshots.get(b, {}))
 
     def serialize(self) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=False)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"doc_id": self.doc_id,
-                "trace": self.trace.to_dict() if self.trace else None,
-                "stages": self.order,
-                "snapshots": self.snapshots}
+        return {
+            "doc_id": self.doc_id,
+            "trace": self.trace.to_dict() if self.trace else None,
+            "stages": self.order,
+            "snapshots": self.snapshots,
+        }
 
     def to_binary(self) -> bytes:
         return gzip.compress(self.serialize().encode("utf-8"))
 
     def to_json_bytes(self, stage: str) -> bytes:
-        return json.dumps(self.snapshots.get(stage, {}),
-                          ensure_ascii=False).encode("utf-8")
+        return json.dumps(self.snapshots.get(stage, {}), ensure_ascii=False).encode(
+            "utf-8"
+        )
 
     def save(self, path: str, binary: bool = False) -> None:
         data = self.to_binary() if binary else self.serialize().encode("utf-8")
@@ -350,11 +391,12 @@ class SnapshotStore:
         payload: Dict[str, Any] = {}
         for stage in self.order:
             snap = self.snapshots.get(stage) or {}
-            payload[stage] = {k: v for k, v in snap.items()
-                              if k not in ("timestamp", "trace_id")}
+            payload[stage] = {
+                k: v for k, v in snap.items() if k not in ("timestamp", "trace_id")
+            }
         return hashlib.sha256(
-            json.dumps(payload, ensure_ascii=False, sort_keys=True)
-            .encode("utf-8")).hexdigest()[:16]
+            json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()[:16]
 
     @classmethod
     def load(cls, path: str) -> Optional["SnapshotStore"]:
@@ -385,11 +427,15 @@ class DecisionRecord:
     message: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"node_id": self.node_id, "decision": self.decision,
-                "evidence": {k: round(float(v), 3) for k, v in self.evidence.items()},
-                "confidence": round(float(self.confidence), 3),
-                "source": self.source, "stage": self.stage,
-                "message": self.message}
+        return {
+            "node_id": self.node_id,
+            "decision": self.decision,
+            "evidence": {k: round(float(v), 3) for k, v in self.evidence.items()},
+            "confidence": round(float(self.confidence), 3),
+            "source": self.source,
+            "stage": self.stage,
+            "message": self.message,
+        }
 
 
 @dataclass
@@ -398,15 +444,29 @@ class DecisionLog:
 
     decisions: List[DecisionRecord] = field(default_factory=list)
 
-    def record(self, node_id, decision: str, evidence=None,
-               confidence: Optional[float] = None, source: str = "",
-               stage: str = "", message: str = "") -> DecisionRecord:
+    def record(
+        self,
+        node_id,
+        decision: str,
+        evidence=None,
+        confidence: Optional[float] = None,
+        source: str = "",
+        stage: str = "",
+        message: str = "",
+    ) -> DecisionRecord:
         rec = DecisionRecord(
-            node_id=str(node_id), decision=decision,
+            node_id=str(node_id),
+            decision=decision,
             evidence={k: float(v) for k, v in (evidence or {}).items()},
-            confidence=float(confidence) if confidence is not None
-            else fuse_evidence(evidence or {}),
-            source=source, stage=stage, message=message)
+            confidence=(
+                float(confidence)
+                if confidence is not None
+                else fuse_evidence(evidence or {})
+            ),
+            source=source,
+            stage=stage,
+            message=message,
+        )
         self.decisions.append(rec)
         return rec
 
@@ -423,12 +483,15 @@ class DecisionLog:
         return out
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"counts": self.counts(),
-                "records": [d.to_dict() for d in self.decisions]}
+        return {
+            "counts": self.counts(),
+            "records": [d.to_dict() for d in self.decisions],
+        }
 
     def summary(self) -> str:
         return "DecisionLog " + " ".join(
-            f"{k}={v}" for k, v in sorted(self.counts().items()))
+            f"{k}={v}" for k, v in sorted(self.counts().items())
+        )
 
 
 # ── D6: DiagnosticEngine（编译器式 warning/error） ───────────────────────
@@ -446,19 +509,18 @@ class DiagnosticEngine:
 
     def run(self, model) -> dict:
         from pdf2zh.v3.diagnostics import analyze_document
+
         self.report = analyze_document(model)
         return self.to_dict()
 
     def diagnostics_for(self, node_id: str) -> List[Dict[str, Any]]:
         if self.report is None:
             return []
-        return [i.to_dict() for i in self.report.issues
-                if i.node_id == str(node_id)]
+        return [i.to_dict() for i in self.report.issues if i.node_id == str(node_id)]
 
     def format_issue(self, issue) -> str:
         loc = f"Page {issue.page}" if issue.page is not None else "doc"
-        return (f"{issue.severity}: {loc}: {issue.message} "
-                f"[{issue.node_id}]")
+        return f"{issue.severity}: {loc}: {issue.message} " f"[{issue.node_id}]"
 
     def format_report(self, include_messages: bool = True) -> str:
         if self.report is None:
@@ -466,13 +528,16 @@ class DiagnosticEngine:
         groups = {"error": [], "warning": []}
         for issue in self.report.issues:
             groups.get(issue.severity, groups["warning"]).append(issue)
-        lines = [f"{issue.severity}: Page {issue.page}: {issue.message} "
-                 f"[{issue.node_id}]"
-                 for issue in groups["error"] + groups["warning"]]
+        lines = [
+            f"{issue.severity}: Page {issue.page}: {issue.message} "
+            f"[{issue.node_id}]"
+            for issue in groups["error"] + groups["warning"]
+        ]
         if include_messages and not lines:
             lines.append(
                 f"{self.report.error_count} error(s), "
-                f"{self.report.warning_count} warning(s)")
+                f"{self.report.warning_count} warning(s)"
+            )
         return "\n".join(lines)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -497,10 +562,19 @@ class ObsSession:
     def capture(self, source, stage: str) -> str:
         return self.snapshot_store.add_stage(source, stage, self.trace)
 
-    def record(self, node_id, decision, evidence=None, confidence=None,
-               source="", stage="", message="") -> DecisionRecord:
-        return self.decisions.record(node_id, decision, evidence, confidence,
-                                     source, stage, message)
+    def record(
+        self,
+        node_id,
+        decision,
+        evidence=None,
+        confidence=None,
+        source="",
+        stage="",
+        message="",
+    ) -> DecisionRecord:
+        return self.decisions.record(
+            node_id, decision, evidence, confidence, source, stage, message
+        )
 
     def diagnose(self, document) -> Dict[str, Any]:
         return self.diagnostics.run(document)
@@ -520,7 +594,17 @@ def make_session(doc_id: Optional[str] = None) -> ObsSession:
 
 
 __all__ = [
-    "STAGES", "ROLE_COLORS", "new_document_id", "DocumentID", "NodeID",
-    "TraceContext", "SnapshotStore", "capture_snapshot", "DecisionLog",
-    "DecisionRecord", "DiagnosticEngine", "ObsSession", "make_session",
+    "STAGES",
+    "ROLE_COLORS",
+    "new_document_id",
+    "DocumentID",
+    "NodeID",
+    "TraceContext",
+    "SnapshotStore",
+    "capture_snapshot",
+    "DecisionLog",
+    "DecisionRecord",
+    "DiagnosticEngine",
+    "ObsSession",
+    "make_session",
 ]

@@ -27,6 +27,7 @@ Usage::
     for para in page_model.reading_order():        # XY-Cut 后的真实阅读顺序
         print(para.text)
 """
+
 from __future__ import annotations
 
 import re
@@ -75,10 +76,16 @@ class Char:
         return self.y0
 
     def to_dict(self) -> dict:
-        return {"text": self.text, "x0": round(self.x0, 2), "y0": round(self.y0, 2),
-                "x1": round(self.x1, 2), "y1": round(self.y1, 2),
-                "size": round(self.size, 2), "font": self.font,
-                "page": self.page_num}
+        return {
+            "text": self.text,
+            "x0": round(self.x0, 2),
+            "y0": round(self.y0, 2),
+            "x1": round(self.x1, 2),
+            "y1": round(self.y1, 2),
+            "size": round(self.size, 2),
+            "font": self.font,
+            "page": self.page_num,
+        }
 
 
 @dataclass
@@ -128,9 +135,15 @@ class Word:
         return self.chars[0].font if self.chars else ""
 
     def to_dict(self) -> dict:
-        return {"text": self.text, "x0": round(self.x0, 2), "y0": round(self.y0, 2),
-                "x1": round(self.x1, 2), "y1": round(self.y1, 2),
-                "size": round(self.size, 2), "font": self.font}
+        return {
+            "text": self.text,
+            "x0": round(self.x0, 2),
+            "y0": round(self.y0, 2),
+            "x1": round(self.x1, 2),
+            "y1": round(self.y1, 2),
+            "size": round(self.size, 2),
+            "font": self.font,
+        }
 
 
 @dataclass
@@ -184,9 +197,14 @@ class Line:
         return sum(len(w.chars) for w in self.words)
 
     def to_dict(self) -> dict:
-        return {"text": self.text, "x0": round(self.x0, 2), "y0": round(self.y0, 2),
-                "x1": round(self.x1, 2), "y1": round(self.y1, 2),
-                "size": round(self.size, 2)}
+        return {
+            "text": self.text,
+            "x0": round(self.x0, 2),
+            "y0": round(self.y0, 2),
+            "x1": round(self.x1, 2),
+            "y1": round(self.y1, 2),
+            "size": round(self.size, 2),
+        }
 
 
 @dataclass
@@ -262,12 +280,18 @@ class Paragraph:
         return "justify"
 
     def to_dict(self) -> dict:
-        return {"text": self.text, "page": self.page_num,
-                "x0": round(self.x0, 2), "y0": round(self.y0, 2),
-                "x1": round(self.x1, 2), "y1": round(self.y1, 2),
-                "size": round(self.size, 2), "lines": self.line_count,
-                "indent": round(self.first_line_indent, 2),
-                "alignment": self.alignment}
+        return {
+            "text": self.text,
+            "page": self.page_num,
+            "x0": round(self.x0, 2),
+            "y0": round(self.y0, 2),
+            "x1": round(self.x1, 2),
+            "y1": round(self.y1, 2),
+            "size": round(self.size, 2),
+            "lines": self.line_count,
+            "indent": round(self.first_line_indent, 2),
+            "alignment": self.alignment,
+        }
 
 
 @dataclass
@@ -313,20 +337,27 @@ def extract_chars_from_page(page, page_num: int = 0) -> List[Char]:
                     text = ch.get("c", "")
                     if not text:
                         continue
-                    chars.append(Char(
-                        text=text,
-                        x0=float(cb[0]), y0=float(cb[1]),
-                        x1=float(cb[2]), y1=float(cb[3]),
-                        size=float(span.get("size", 12.0)),
-                        font=str(span.get("font", "")),
-                        page_num=page_num,
-                    ))
+                    chars.append(
+                        Char(
+                            text=text,
+                            x0=float(cb[0]),
+                            y0=float(cb[1]),
+                            x1=float(cb[2]),
+                            y1=float(cb[3]),
+                            size=float(span.get("size", 12.0)),
+                            font=str(span.get("font", "")),
+                            page_num=page_num,
+                        )
+                    )
     return chars
 
 
-def extract_chars_from_stream(stream: bytes, max_pages: Optional[int] = None) -> List[Char]:
+def extract_chars_from_stream(
+    stream: bytes, max_pages: Optional[int] = None
+) -> List[Char]:
     """从 PDF 字节流提取全部字符（跨页）。"""
     import pymupdf
+
     chars: List[Char] = []
     doc = pymupdf.open(stream=stream, filetype="pdf")
     try:
@@ -366,14 +397,18 @@ def chars_from_ltpage(ltpage, page_num: int = 0) -> List[Char]:
             y0 = float(getattr(child, "y0", bbox[1]) or bbox[1])
             x1 = float(getattr(child, "x1", bbox[2]) or bbox[2])
             y1 = float(getattr(child, "y1", bbox[3]) or bbox[3])
-            chars.append(Char(
-                text=text,
-                x0=x0, y0=y0,
-                x1=x1, y1=y1,
-                size=size,
-                font=str(getattr(child, "fontname", "") or ""),
-                page_num=page_num,
-            ))
+            chars.append(
+                Char(
+                    text=text,
+                    x0=x0,
+                    y0=y0,
+                    x1=x1,
+                    y1=y1,
+                    size=size,
+                    font=str(getattr(child, "fontname", "") or ""),
+                    page_num=page_num,
+                )
+            )
         elif hasattr(child, "__iter__"):
             chars.extend(chars_from_ltpage(child, page_num=page_num))
     return chars
@@ -467,10 +502,15 @@ class GeometryEngine:
                 last = words[-1]
                 ref_size = max(ch.size, last.chars[-1].size)
                 gap = ch.x0 - last.x1
-                same_baseline = abs(ch.baseline_y - last.baseline_y) <= \
-                    self.config.baseline_tol_ratio * ref_size
-                if same_baseline and not prev_is_space and \
-                        gap <= self.config.gap_word_ratio * ref_size:
+                same_baseline = (
+                    abs(ch.baseline_y - last.baseline_y)
+                    <= self.config.baseline_tol_ratio * ref_size
+                )
+                if (
+                    same_baseline
+                    and not prev_is_space
+                    and gap <= self.config.gap_word_ratio * ref_size
+                ):
                     last.chars.append(ch)
                 else:
                     words.append(Word([ch]))
@@ -529,9 +569,12 @@ class GeometryEngine:
             if not line.words:
                 return False
             return all(
-                (c.height >= cfg.vertical_strip_aspect * max(c.width, 0.01)
-                 or c.width <= 0.01)
-                for w in line.words for c in w.chars
+                (
+                    c.height >= cfg.vertical_strip_aspect * max(c.width, 0.01)
+                    or c.width <= 0.01
+                )
+                for w in line.words
+                for c in w.chars
             )
 
         for i in range(len(lines)):
@@ -542,15 +585,20 @@ class GeometryEngine:
                 continue
             group = [i]
             for j in range(len(lines)):
-                if i != j and keep[j] and (
-                    lines[j].char_count <= cfg.vertical_strip_max_chars
-                    or _rotated(lines[j])
+                if (
+                    i != j
+                    and keep[j]
+                    and (
+                        lines[j].char_count <= cfg.vertical_strip_max_chars
+                        or _rotated(lines[j])
+                    )
                 ):
                     b = lines[j]
-                    same_x = (abs(a.x0 - b.x0) <= cfg.vertical_strip_x_tol
-                              and abs(a.x1 - b.x1) <= cfg.vertical_strip_x_tol)
-                    same_center = (abs(a.cx - b.cx)
-                                   <= cfg.vertical_strip_x_tol)
+                    same_x = (
+                        abs(a.x0 - b.x0) <= cfg.vertical_strip_x_tol
+                        and abs(a.x1 - b.x1) <= cfg.vertical_strip_x_tol
+                    )
+                    same_center = abs(a.cx - b.cx) <= cfg.vertical_strip_x_tol
                     if same_x or (_rotated(a) and _rotated(b) and same_center):
                         group.append(j)
             if len(group) >= cfg.vertical_strip_min_stack:
@@ -584,7 +632,9 @@ class GeometryEngine:
 
     # ── 阶段 3：Line → Paragraph ─────────────────────────────────────
 
-    def build_paragraphs(self, lines: Sequence[Line], page_num: int = 0) -> List[Paragraph]:
+    def build_paragraphs(
+        self, lines: Sequence[Line], page_num: int = 0
+    ) -> List[Paragraph]:
         """按行距连续性 + 缩进/对齐把物理行聚为逻辑段落。
 
         行距 ≤ ``line_gap_ratio * 字号`` 且缩进突变（首行缩进）不打断段落；
@@ -600,12 +650,17 @@ class GeometryEngine:
             prev = last.lines[-1]
             gap = prev.y0 - line.y0  # PDF 坐标系 y 向上，下一行 y 更小
             size_ref = max(line.size, prev.size, 1e-6)
-            x_overlap = (line.x0 < prev.x1 - 1.0 and line.x1 > prev.x0 + 1.0) or \
-                line.x0 - prev.x1 < 0.5 * size_ref
+            x_overlap = (
+                line.x0 < prev.x1 - 1.0 and line.x1 > prev.x0 + 1.0
+            ) or line.x0 - prev.x1 < 0.5 * size_ref
             # 目录行保护：上一行以「点线 + 页码」结尾时不与下一行合并
             toc_break = bool(_TOC_LINE_END_RE.search(prev.text))
-            if gap > 0 and gap <= self.config.line_gap_ratio * size_ref and \
-                    x_overlap and not toc_break:
+            if (
+                gap > 0
+                and gap <= self.config.line_gap_ratio * size_ref
+                and x_overlap
+                and not toc_break
+            ):
                 last.lines.append(line)
             else:
                 paragraphs.append(Paragraph([line], page_num=page_num))
@@ -660,8 +715,9 @@ class GeometryEngine:
         _xy_cut(indices)
         return order
 
-    def _detect_columns(self, idx_list: List[int],
-                        paragraphs: Sequence[Paragraph]) -> List[List[int]]:
+    def _detect_columns(
+        self, idx_list: List[int], paragraphs: Sequence[Paragraph]
+    ) -> List[List[int]]:
         """把段落下标按 x 中心聚簇，返回并列栏（≥2 且 y 跨度相交的簇）。
 
         未归属任何并列栏的孤立段（如居中页码）并入最近并列栏。
@@ -674,8 +730,7 @@ class GeometryEngine:
         region_w = max(1e-6, region_x1 - region_x0)
         # 整宽块（标题/目录行/表格等跨栏块）：不参与栏聚簇，
         # 按其 y 位置在栏流之前/之后整体排序
-        full_wide = [i for i in idx_list
-                     if paragraphs[i].width >= 0.65 * region_w]
+        full_wide = [i for i in idx_list if paragraphs[i].width >= 0.65 * region_w]
         idx_list = [i for i in idx_list if i not in full_wide]
         if not idx_list:
             return [sorted(full_wide, key=lambda i: -paragraphs[i].y0)]
@@ -723,17 +778,23 @@ class GeometryEngine:
         col_top = max(paragraphs[i].y1 for i in col_ids)
         col_bottom = min(paragraphs[i].y0 for i in col_ids)
         stragglers = [i for i in full_wide] + [
-            i for cl in clusters if cl not in cols for i in cl]
-        above = sorted([i for i in stragglers if paragraphs[i].y1 > col_top],
-                       key=lambda i: -paragraphs[i].y0)
-        below = sorted([i for i in stragglers if paragraphs[i].y0 < col_bottom],
-                       key=lambda i: -paragraphs[i].y0)
+            i for cl in clusters if cl not in cols for i in cl
+        ]
+        above = sorted(
+            [i for i in stragglers if paragraphs[i].y1 > col_top],
+            key=lambda i: -paragraphs[i].y0,
+        )
+        below = sorted(
+            [i for i in stragglers if paragraphs[i].y0 < col_bottom],
+            key=lambda i: -paragraphs[i].y0,
+        )
         inside = [i for i in stragglers if i not in above and i not in below]
         col_cx = [sum(paragraphs[i].cx for i in cl) / len(cl) for cl in cols]
         merged: List[List[int]] = [list(cl) for cl in cols]
         for i in inside:
-            nearest = min(range(len(cols)),
-                          key=lambda k: abs(paragraphs[i].cx - col_cx[k]))
+            nearest = min(
+                range(len(cols)), key=lambda k: abs(paragraphs[i].cx - col_cx[k])
+            )
             merged[nearest].append(i)
         if above:
             merged.insert(0, above)
@@ -766,7 +827,9 @@ class GeometryEngine:
         page._reading_order = self.reading_order(page.paragraphs)
         return page
 
-    def build_document(self, chars_by_page: Sequence[Sequence[Char]]) -> List[PageGeometry]:
+    def build_document(
+        self, chars_by_page: Sequence[Sequence[Char]]
+    ) -> List[PageGeometry]:
         """多页构建，返回按页号排序的 PageGeometry 列表。"""
         pages: List[PageGeometry] = []
         for page_num, chars in enumerate(chars_by_page):
@@ -775,7 +838,13 @@ class GeometryEngine:
 
 
 __all__ = [
-    "Char", "Word", "Line", "Paragraph", "PageGeometry",
-    "GeometryConfig", "GeometryEngine",
-    "extract_chars_from_page", "extract_chars_from_stream",
+    "Char",
+    "Word",
+    "Line",
+    "Paragraph",
+    "PageGeometry",
+    "GeometryConfig",
+    "GeometryEngine",
+    "extract_chars_from_page",
+    "extract_chars_from_stream",
 ]

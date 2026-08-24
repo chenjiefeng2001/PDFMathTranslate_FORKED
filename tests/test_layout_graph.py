@@ -1,4 +1,5 @@
 """Tests for LayoutGraph / DAG-based reading order (Phase 3)."""
+
 import unittest
 from pdf2zh.layout_graph import LayoutGraph, TextNode
 
@@ -92,7 +93,11 @@ class TestLayoutGraph(unittest.TestCase):
         self.graph.add_node(TextNode(id=0, x0=0, y0=100, x1=100, y1=200))
         self.graph.add_node(TextNode(id=1, x0=300, y0=100, x1=400, y1=200))
         cols = self.graph.detect_multi_column()
-        self.assertEqual(cols, 2, f"Expected 2, got {cols}. Intervals: {[(n.x0,n.x1) for n in self.graph.nodes]}")
+        self.assertEqual(
+            cols,
+            2,
+            f"Expected 2, got {cols}. Intervals: {[(n.x0,n.x1) for n in self.graph.nodes]}",
+        )
 
     def test_detect_multi_column_empty(self):
         """Empty graph should detect as 1 column."""

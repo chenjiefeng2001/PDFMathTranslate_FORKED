@@ -37,18 +37,30 @@ from typing import Dict, List, Tuple
 #: Color tokens (--color-*).
 COLOR_KEYS: Tuple[str, ...] = (
     # surfaces
-    "color_bg", "color_surface", "color_surface_raised",
+    "color_bg",
+    "color_surface",
+    "color_surface_raised",
     # borders
-    "color_border", "color_border_strong",
+    "color_border",
+    "color_border_strong",
     # text
-    "color_text_primary", "color_text_secondary", "color_text_tertiary",
+    "color_text_primary",
+    "color_text_secondary",
+    "color_text_tertiary",
     # action
-    "color_accent", "color_accent_hover", "color_accent_soft",
+    "color_accent",
+    "color_accent_hover",
+    "color_accent_soft",
     "color_on_accent",
     # semantic
-    "color_success", "color_warning", "color_danger", "color_info",
+    "color_success",
+    "color_warning",
+    "color_danger",
+    "color_info",
     # stage states (StepBar / status badge)
-    "color_stage_pending", "color_stage_running", "color_stage_done",
+    "color_stage_pending",
+    "color_stage_running",
+    "color_stage_done",
     "color_stage_error",
 )
 
@@ -60,22 +72,40 @@ RADIUS_KEYS: Tuple[str, ...] = ("radius_sm", "radius_md", "radius_lg")
 
 #: Spacing scale tokens (--space-*), 4px base grid.
 SPACE_KEYS: Tuple[str, ...] = (
-    "space_1", "space_2", "space_3", "space_4", "space_5", "space_6",
-    "space_8", "space_12",
+    "space_1",
+    "space_2",
+    "space_3",
+    "space_4",
+    "space_5",
+    "space_6",
+    "space_8",
+    "space_12",
 )
 
 #: Typography tokens (--text-*).
 TYPE_KEYS: Tuple[str, ...] = (
-    "text_font_sans", "text_font_mono",
-    "text_xs", "text_sm", "text_base", "text_md", "text_lg", "text_xl",
-    "text_weight_regular", "text_weight_medium", "text_weight_bold",
-    "text_line_tight", "text_line_body",
+    "text_font_sans",
+    "text_font_mono",
+    "text_xs",
+    "text_sm",
+    "text_base",
+    "text_md",
+    "text_lg",
+    "text_xl",
+    "text_weight_regular",
+    "text_weight_medium",
+    "text_weight_bold",
+    "text_line_tight",
+    "text_line_body",
 )
 
 #: Motion tokens (--motion-*).
 MOTION_KEYS: Tuple[str, ...] = (
-    "motion_fast", "motion_normal", "motion_slow",
-    "motion_ease_standard", "motion_ease_emphasized",
+    "motion_fast",
+    "motion_normal",
+    "motion_slow",
+    "motion_ease_standard",
+    "motion_ease_emphasized",
 )
 
 #: Brand tokens (--brand-*).
@@ -83,8 +113,13 @@ BRAND_KEYS: Tuple[str, ...] = ("brand_gradient",)
 
 #: Canonical key set -- both palettes MUST expose exactly these keys.
 TOKEN_KEYS: Tuple[str, ...] = (
-    COLOR_KEYS + SHADOW_KEYS + RADIUS_KEYS + SPACE_KEYS
-    + TYPE_KEYS + MOTION_KEYS + BRAND_KEYS
+    COLOR_KEYS
+    + SHADOW_KEYS
+    + RADIUS_KEYS
+    + SPACE_KEYS
+    + TYPE_KEYS
+    + MOTION_KEYS
+    + BRAND_KEYS
 )
 
 #: Token key prefix -> CSS variable namespace.
@@ -147,9 +182,7 @@ LIGHT_TOKENS: Dict[str, str] = {
         'ui-sans-serif, system-ui, "Segoe UI", "PingFang SC", '
         '"Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
     ),
-    "text_font_mono": (
-        'ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace'
-    ),
+    "text_font_mono": ('ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace'),
     "text_xs": "12px",
     "text_sm": "13px",
     "text_base": "14px",
@@ -219,9 +252,7 @@ DARK_TOKENS: Dict[str, str] = {
         'ui-sans-serif, system-ui, "Segoe UI", "PingFang SC", '
         '"Microsoft YaHei", "Noto Sans CJK SC", sans-serif'
     ),
-    "text_font_mono": (
-        'ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace'
-    ),
+    "text_font_mono": ('ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace'),
     "text_xs": "12px",
     "text_sm": "13px",
     "text_base": "14px",
@@ -258,7 +289,7 @@ def build_token_css(tokens: Dict[str, str]) -> str:
         lines = [f"  /* {prefix[:-1]} tokens */"]
         for key in TOKEN_KEYS:
             if key.startswith(prefix) and key in tokens:
-                name = key[len(prefix):].replace("_", "-")
+                name = key[len(prefix) :].replace("_", "-")
                 lines.append(f"  {var_prefix}{name}: {tokens[key]};")
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
@@ -650,7 +681,8 @@ _THEME_LABEL_JS = (
     "}"
 )
 
-SESSION_JS = """<script>
+SESSION_JS = (
+    """<script>
 (function() {
     // ---- theme (persisted, falls back to system preference) ----
     var root = document.documentElement;
@@ -660,7 +692,9 @@ SESSION_JS = """<script>
     var isDark = storedTheme
         ? (storedTheme === "dark")
         : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    """ + _THEME_LABEL_JS + """
+    """
+    + _THEME_LABEL_JS
+    + """
     function applyTheme(dark) {
         root.setAttribute("data-theme", dark ? "dark" : "light");
         root.classList.toggle("dark", dark);
@@ -762,6 +796,7 @@ SESSION_JS = """<script>
     if (window.EventSource) { connectEvents(); }
 })();
 </script>"""
+)
 
 
 #: Frontend handler wired to the theme toggle button (no backend round-trip).
@@ -788,7 +823,9 @@ def build_status_badge_html(status: str, message: str = "") -> str:
     if status == "completed":
         cls, label = "status-success", "✓ 完成 / Done"
     elif status in ("failed", "cancelled"):
-        cls, label = "status-error", "已取消 / Cancelled" if status == "cancelled" else "失败 / Failed"
+        cls, label = "status-error", (
+            "已取消 / Cancelled" if status == "cancelled" else "失败 / Failed"
+        )
     elif status in ("idle", ""):
         cls, label = "status-idle", "就绪 / Ready"
     else:

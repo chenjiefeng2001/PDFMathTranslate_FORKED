@@ -9,6 +9,7 @@ Fluent 条件（全部可组合，AND 语义）：
     translated(status: done|pending|preserved|none)
     confidence_below(threshold) / has_replacement()
 """
+
 from __future__ import annotations
 
 from typing import Callable, List, Optional, Sequence
@@ -69,16 +70,17 @@ class DocumentQuery:
             return False
         if self._page is not None and pno != self._page:
             return False
-        if self._status is not None and \
-                _translation_status(block) != self._status:
+        if self._status is not None and _translation_status(block) != self._status:
             return False
-        if self._conf_below is not None and \
-                float(block.metadata.get("confidence", 1.0) or 1.0) >= \
-                self._conf_below:
+        if (
+            self._conf_below is not None
+            and float(block.metadata.get("confidence", 1.0) or 1.0) >= self._conf_below
+        ):
             return False
         if self._has_replacement is not None:
-            has = any(g.decode != "ok" for l in block.lines
-                      for s in l.spans for g in s.glyphs)
+            has = any(
+                g.decode != "ok" for l in block.lines for s in l.spans for g in s.glyphs
+            )
             if has != self._has_replacement:
                 return False
         for pred in self._predicates:
@@ -93,15 +95,17 @@ class DocumentQuery:
             for i, block in enumerate(page.blocks):
                 if not self._matches(block, pno, i):
                     continue
-                out.append({
-                    "block_id": block_id(pno, i),
-                    "page": pno,
-                    "kind": block.kind,
-                    "text": (block.text or "")[:120],
-                    "confidence": block.metadata.get("confidence"),
-                    "translation_status": _translation_status(block),
-                    "translated": block.metadata.get("translated"),
-                })
+                out.append(
+                    {
+                        "block_id": block_id(pno, i),
+                        "page": pno,
+                        "kind": block.kind,
+                        "text": (block.text or "")[:120],
+                        "confidence": block.metadata.get("confidence"),
+                        "translation_status": _translation_status(block),
+                        "translated": block.metadata.get("translated"),
+                    }
+                )
         return out
 
     def ids(self) -> List[str]:

@@ -26,7 +26,6 @@ from pdf2zh.services.runtime_service import (
     _TaskStore,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Data Model Tests
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -44,8 +43,11 @@ class TestTranslationRequest:
 
     def test_to_dict(self):
         req = TranslationRequest(
-            source_path="/tmp/test.pdf", target_lang="en",
-            source_lang="zh-CN", engine="openai", threads=8,
+            source_path="/tmp/test.pdf",
+            target_lang="en",
+            source_lang="zh-CN",
+            engine="openai",
+            threads=8,
             skip_subset_fonts=True,
         )
         d = req.to_dict()
@@ -64,7 +66,9 @@ class TestTranslationRequest:
         assert d["prompt"] == "Translate academic paper"
 
     def test_resolved_files_prefers_files_list(self):
-        req = TranslationRequest(source_path="/tmp/first.pdf", files=["/tmp/a.pdf", "/tmp/b.pdf"])
+        req = TranslationRequest(
+            source_path="/tmp/first.pdf", files=["/tmp/a.pdf", "/tmp/b.pdf"]
+        )
         assert req.resolved_files() == ["/tmp/a.pdf", "/tmp/b.pdf"]
 
     def test_resolved_files_falls_back_to_source_path(self):
@@ -94,8 +98,12 @@ class TestTaskProgressEvent:
 
     def test_to_dict(self):
         ev = TaskProgressEvent(
-            task_id="t1", stage="translating", progress=75.0,
-            current_node_count=42, diagnostics_count=2, message="Working...",
+            task_id="t1",
+            stage="translating",
+            progress=75.0,
+            current_node_count=42,
+            diagnostics_count=2,
+            message="Working...",
         )
         d = ev.to_dict()
         assert d["task_id"] == "t1"
@@ -112,6 +120,7 @@ class TestTaskState:
         assert s.progress == 0.0
         assert s.file_list == []
         assert s.result_files == []
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # _TaskStore Tests
@@ -176,8 +185,10 @@ class TestTaskStore:
                 errors.append(ex)
 
         threads = [threading.Thread(target=writer) for _ in range(8)]
-        for t in threads: t.start()
-        for t in threads: t.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
         assert not errors
         state = store.get_task("t1")
         assert state is not None
@@ -201,7 +212,8 @@ class TestRuntimeService:
     def test_submit_batch_sets_file_list(self):
         svc = RuntimeService()
         req = TranslationRequest(
-            source_path="/tmp/a.pdf", files=["/tmp/a.pdf", "/tmp/b.pdf"],
+            source_path="/tmp/a.pdf",
+            files=["/tmp/a.pdf", "/tmp/b.pdf"],
         )
         task_id = svc.submit_batch(req)
         state = svc.get_task_state(task_id)
@@ -238,16 +250,20 @@ class TestRuntimeService:
         assert state is not None
         # Directly drive the aggregation helpers (no real translation runs).
         svc._complete_file(
-            task_id, [{"name": "a-mono.pdf", "path": "/tmp/a-mono.pdf"}],
-            total_files=2, selected_file="a-mono.pdf",
+            task_id,
+            [{"name": "a-mono.pdf", "path": "/tmp/a-mono.pdf"}],
+            total_files=2,
+            selected_file="a-mono.pdf",
         )
         state = svc.get_task_state(task_id)
         assert state.completed_files == 1
         assert len(state.result_files) == 1
         assert state.result_files[0]["name"] == "a-mono.pdf"
         svc._complete_file(
-            task_id, [{"name": "b-mono.pdf", "path": "/tmp/b-mono.pdf"}],
-            total_files=2, selected_file="b-mono.pdf",
+            task_id,
+            [{"name": "b-mono.pdf", "path": "/tmp/b-mono.pdf"}],
+            total_files=2,
+            selected_file="b-mono.pdf",
         )
         state = svc.get_task_state(task_id)
         assert state.completed_files == 2
@@ -286,7 +302,9 @@ class TestRuntimeService:
 
     def test_subscribe_events(self):
         svc = RuntimeService()
-        task_id = svc.submit_task(TranslationRequest(source_path="/tmp/nonexistent.pdf"))
+        task_id = svc.submit_task(
+            TranslationRequest(source_path="/tmp/nonexistent.pdf")
+        )
         time.sleep(1.0)  # wait for background thread to fail
         events = list(svc.subscribe_events(task_id, poll_interval=0.1))
         assert len(events) >= 1
@@ -318,15 +336,27 @@ class TestTaskStage:
     def test_all_stages(self):
         values = [s.value for s in TaskStage]
         for expected in [
-            "pending", "parsing", "normalizing", "analyzing", "planning",
-            "translating", "layouting", "rendering", "evaluating",
-            "repairing", "completed", "cancelled", "failed",
+            "pending",
+            "parsing",
+            "normalizing",
+            "analyzing",
+            "planning",
+            "translating",
+            "layouting",
+            "rendering",
+            "evaluating",
+            "repairing",
+            "completed",
+            "cancelled",
+            "failed",
         ]:
             assert expected in values
 
     def test_to_dict(self):
         s = TaskState(
-            task_id="t1", status="completed", progress=100.0,
+            task_id="t1",
+            status="completed",
+            progress=100.0,
             result_files=[{"name": "out.pdf", "path": "/tmp/out.pdf"}],
         )
         d = s.to_dict()

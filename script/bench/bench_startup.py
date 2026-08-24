@@ -39,7 +39,9 @@ def main() -> int:
             base = handle.base()
             startup_ms = handle.startup_s * 1000
             # 健康后首次 engines（触发 translator 注册表懒导入）
-            _, _, engines_elapsed = http_json("GET", base + "/api/engines", timeout=120.0)
+            _, _, engines_elapsed = http_json(
+                "GET", base + "/api/engines", timeout=120.0
+            )
             import time
 
             time.sleep(1.0)  # 让 RSS 采样稳定
@@ -47,12 +49,14 @@ def main() -> int:
             t_startup_runs.append(startup_ms)
             t_engines_runs.append(engines_elapsed * 1000)
             rss_runs.append(rss)
-            rows.append((
-                run,
-                f"{startup_ms:.0f} ms",
-                f"{engines_elapsed * 1000:.0f} ms",
-                f"{rss:.0f} MB",
-            ))
+            rows.append(
+                (
+                    run,
+                    f"{startup_ms:.0f} ms",
+                    f"{engines_elapsed * 1000:.0f} ms",
+                    f"{rss:.0f} MB",
+                )
+            )
         finally:
             stop_sidecar(handle)
 

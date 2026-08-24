@@ -11,6 +11,7 @@
 开关）；所有失败只进 debug 日志，绝不干扰主链路渲染。消费端把
 ``v3_output[\"reconstruction\"]`` 回传（high_level）。
 """
+
 from __future__ import annotations
 
 import logging
@@ -78,8 +79,9 @@ class ReconstructionPipeline:
 
     # ── 完整管道 ──────────────────────────────────────────────────
 
-    def run(self, ltpage, page_id: Optional[int] = None,
-            blocks=None) -> ReconstructionResult:
+    def run(
+        self, ltpage, page_id: Optional[int] = None, blocks=None
+    ) -> ReconstructionResult:
         """对单个 LTPage 执行 P5–P10 全链路并返回结果。"""
         if page_id is None:
             page_id = int(getattr(ltpage, "pageid", 0) or 0)
@@ -91,8 +93,7 @@ class ReconstructionPipeline:
         # P5: 视觉行 + 逻辑段落
         lines = self.line_builder.build(glyphs, page_id=page_id)
         result.line_count = len(lines)
-        paragraphs = build_logical_paragraphs(lines, page_id=page_id,
-                                              blocks=blocks)
+        paragraphs = build_logical_paragraphs(lines, page_id=page_id, blocks=blocks)
         result.paragraph_count = len(paragraphs)
         result.paragraphs = paragraphs
         # P6: 公式抽取 + 锚点
@@ -105,7 +106,8 @@ class ReconstructionPipeline:
                     layout_cls = None
             objects = self.extractor.extract_paragraph(para, layout_class=layout_cls)
             result.formula_count += sum(
-                1 for o in objects if isinstance(o, FormulaObject))
+                1 for o in objects if isinstance(o, FormulaObject)
+            )
             result.ambiguous_count += len(objects) - result.formula_count
             # P7: TranslationUnit（含锚点）
             unit = build_translation_unit(para)
@@ -126,8 +128,9 @@ class ReconstructionPipeline:
     # ── 便捷入口 ──────────────────────────────────────────────────
 
     @staticmethod
-    def run_on_glyphs(glyphs: Sequence, page_id: int = 0,
-                      blocks=None) -> ReconstructionResult:
+    def run_on_glyphs(
+        glyphs: Sequence, page_id: int = 0, blocks=None
+    ) -> ReconstructionResult:
         """直接输入 Glyph 序列（测试友好，跳过 LTChar 提取）。"""
         result = ReconstructionResult(page_id=page_id)
         result.glyph_count = len(glyphs)
@@ -136,14 +139,14 @@ class ReconstructionPipeline:
         pipe = ReconstructionPipeline()
         lines = pipe.line_builder.build(glyphs, page_id=page_id)
         result.line_count = len(lines)
-        paragraphs = build_logical_paragraphs(lines, page_id=page_id,
-                                              blocks=blocks)
+        paragraphs = build_logical_paragraphs(lines, page_id=page_id, blocks=blocks)
         result.paragraph_count = len(paragraphs)
         result.paragraphs = paragraphs
         for para in paragraphs:
             objects = pipe.extractor.extract_paragraph(para)
             result.formula_count += sum(
-                1 for o in objects if isinstance(o, FormulaObject))
+                1 for o in objects if isinstance(o, FormulaObject)
+            )
             unit = build_translation_unit(para)
             result.translation_units.append(unit)
         for unit in result.translation_units:
@@ -153,4 +156,3 @@ class ReconstructionPipeline:
 
 
 __all__ = ["ReconstructionResult", "ReconstructionPipeline"]
-

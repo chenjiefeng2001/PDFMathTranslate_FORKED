@@ -15,6 +15,7 @@ IR 侧通道（V8.3 快照）+ 写回门控（V8.4 裁决）已就位，但**渲
 纯数据进出：输入/输出均为 dict，单元测试驱动；物理写回与否由消费端
 （迁移闭环）决定，本模块不触碰 converter/fitz。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -48,11 +49,16 @@ class WritebackBlock:
 
     def to_dict(self) -> dict:
         return {
-            "node_id": self.node_id, "page": self.page,
-            "text": self.text, "translated": self.translated,
-            "x": self.x, "y": self.y,
-            "width": self.width, "height": self.height,
-            "font_size": self.font_size, "node_type": self.node_type,
+            "node_id": self.node_id,
+            "page": self.page,
+            "text": self.text,
+            "translated": self.translated,
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height,
+            "font_size": self.font_size,
+            "node_type": self.node_type,
         }
 
 
@@ -74,25 +80,34 @@ def _verdict_block_dict(b) -> dict:
     }
 
 
-def plan_writeback_takeover(blocks, verdict: Optional[dict] = None,
-                            advisor: Optional[RenderAdvisor] = None) -> dict:
+def plan_writeback_takeover(
+    blocks, verdict: Optional[dict] = None, advisor: Optional[RenderAdvisor] = None
+) -> dict:
     """按 gate 判据为每个写回块计算渲染路由。
 
     ``verdict`` 为 ``gate_verdicts[pageid]``（GatedResult.to_dict 输出）；
     None 表示门控未启用（默认全部 translate_refit）。
     返回 RenderRenderPlan dict（``admissible`` / ``routing`` …）。
     """
-    gate = dict(verdict or {"writeback_allowed": True, "issues": [],
-                            "overlap_rate": 0.0, "page_height": 792.0})
+    gate = dict(
+        verdict
+        or {
+            "writeback_allowed": True,
+            "issues": [],
+            "overlap_rate": 0.0,
+            "page_height": 792.0,
+        }
+    )
     nodes = [_verdict_block_dict(b) for b in (blocks or [])]
-    plan = (advisor or RenderAdvisor()).plan(gate_verdict=gate,
-                                             snapshot_nodes=nodes)
+    plan = (advisor or RenderAdvisor()).plan(gate_verdict=gate, snapshot_nodes=nodes)
     return plan
 
 
-def apply_render_plan(plan: Optional[dict],
-                      blocks: Sequence[WritebackBlock],
-                      shift_amount: Optional[float] = None) -> List[dict]:
+def apply_render_plan(
+    plan: Optional[dict],
+    blocks: Sequence[WritebackBlock],
+    shift_amount: Optional[float] = None,
+) -> List[dict]:
     """把 RenderPlan 应用到写回块列表。
 
     - ``block`` 路径 → 块从写回列表剔除（gate 判据：溢出未解决）；
@@ -108,15 +123,20 @@ def apply_render_plan(plan: Optional[dict],
         if isinstance(block, WritebackBlock):
             node_id = block.node_id
         else:
-            node_id = getattr(block, "node_id", "") or (block.get("node_id", "") if isinstance(block, dict) else "")
+            node_id = getattr(block, "node_id", "") or (
+                block.get("node_id", "") if isinstance(block, dict) else ""
+            )
         r = routing.get(node_id, {})
         path = r.get("render_path", PATH_TRANSLATE_REFIT)
         d = block.to_dict() if hasattr(block, "to_dict") else dict(block)
         if path == PATH_BLOCK:
             continue
         if path == PATH_SHIFT_DOWN:
-            amount = shift_amount if shift_amount is not None \
+            amount = (
+                shift_amount
+                if shift_amount is not None
                 else float(d.get("height", 1.0))
+            )
             d["y"] = float(d.get("y", 0.0)) + amount
             d["render_path"] = path
         else:
@@ -149,7 +169,10 @@ def fixup_render_plan(
     """
     fixed: List[dict] = []
     stats: Dict[str, Any] = {
-        "preserved": 0, "shifted": 0, "overflowed": 0, "fixed": [],
+        "preserved": 0,
+        "shifted": 0,
+        "overflowed": 0,
+        "fixed": [],
     }
     page_heights = dict(page_height or {})
     for item in list(plan or []):
@@ -176,8 +199,7 @@ def fixup_render_plan(
         # 行数估算：全角（CJK/宽字符）按 1.0em、半角按 0.5em 计宽，
         # 避免把大量全角文本低估成一行。
         est_width = sum(
-            font_size * (1.0 if unicodedata.east_asian_width(ch) in "WF"
-                         else 0.5)
+            font_size * (1.0 if unicodedata.east_asian_width(ch) in "WF" else 0.5)
             for ch in translated
         )
         est_lines = max(1.0, math.ceil(est_width / box_w))
@@ -192,16 +214,21 @@ def fixup_render_plan(
         page_bottom = page_heights.get(pno) or 0.0
         if page_bottom <= 0.0:
             page_bottom = max(
-                (float(f["dst_box"][3]) for f in fixed
-                 if int(f.get("page") or 0) == pno),
+                (
+                    float(f["dst_box"][3])
+                    for f in fixed
+                    if int(f.get("page") or 0) == pno
+                ),
                 default=float(dst[3]),
             )
         overflow_lines = (est_height - box_h) / line_h
         shift = max(1.0, overflow_lines) * line_h
         if float(dst[3]) + shift <= page_bottom + 1.0:
             item["dst_box"] = [
-                round(dst[0], 2), round(dst[1] + shift, 2),
-                round(dst[2], 2), round(dst[3] + shift, 2),
+                round(dst[0], 2),
+                round(dst[1] + shift, 2),
+                round(dst[2], 2),
+                round(dst[3] + shift, 2),
             ]
             item["render_fixup"] = "shift_down"
             item["render_path"] = PATH_SHIFT_DOWN
@@ -216,11 +243,14 @@ def fixup_render_plan(
 
 #: 渲染时原样保留的 kind（与 document_model.annotate_render 的 preserve 集合
 #: 对齐，此处独立成集以免循环导入）。
-_PRESERVE_KINDS = frozenset({"figure", "image", "table", "formula",
-                             "formula_inline", "code"})
+_PRESERVE_KINDS = frozenset(
+    {"figure", "image", "table", "formula", "formula_inline", "code"}
+)
 
 
 __all__ = [
-    "WritebackBlock", "plan_writeback_takeover",
-    "apply_render_plan", "fixup_render_plan",
+    "WritebackBlock",
+    "plan_writeback_takeover",
+    "apply_render_plan",
+    "fixup_render_plan",
 ]

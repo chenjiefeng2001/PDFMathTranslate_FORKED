@@ -9,6 +9,7 @@
   * ``font_name`` 规范化后相同（忽略大小写/空格，兼容子集字体）；
   * ``font_size`` 落在容差内（默认 0.15pt）视为同一字号。
 """
+
 from __future__ import annotations
 
 from typing import List, Sequence
@@ -24,16 +25,28 @@ def normalize_font_name(name: str) -> str:
 class StyleRun:
     """同样式连续字形聚合（``start_index``/``end_index`` 为 glyphs 下标）。"""
 
-    __slots__ = ("start_index", "end_index", "font_name", "font_size",
-                 "bbox", "_font_key")
+    __slots__ = (
+        "start_index",
+        "end_index",
+        "font_name",
+        "font_size",
+        "bbox",
+        "_font_key",
+    )
 
-    def __init__(self, start_index: int, end_index: int, font_name: str,
-                 font_size: float, bbox: GlyphBBox) -> None:
+    def __init__(
+        self,
+        start_index: int,
+        end_index: int,
+        font_name: str,
+        font_size: float,
+        bbox: GlyphBBox,
+    ) -> None:
         self.start_index = start_index
-        self.end_index = end_index            # 含
+        self.end_index = end_index  # 含
         self.font_name = font_name
         self.font_size = font_size
-        self.bbox = bbox                      # (x0, y0, x1, y1)
+        self.bbox = bbox  # (x0, y0, x1, y1)
         self._font_key = normalize_font_name(font_name)
 
     # ── 属性 ────────────────────────────────────────────────────────
@@ -67,8 +80,10 @@ class StyleRun:
         }
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
-        return (f"StyleRun[{self.start_index}:{self.end_index}] "
-                f"{self.font_name}/{self.font_size:.1f}")
+        return (
+            f"StyleRun[{self.start_index}:{self.end_index}] "
+            f"{self.font_name}/{self.font_size:.1f}"
+        )
 
 
 def _union_bbox(bboxes: Sequence[GlyphBBox]) -> GlyphBBox:
@@ -81,8 +96,7 @@ def _union_bbox(bboxes: Sequence[GlyphBBox]) -> GlyphBBox:
     return (min(xs0), min(ys0), max(xs1), max(ys1))
 
 
-def build_style_runs(glyphs: Sequence[Glyph],
-                     size_tol: float = 0.15) -> List[StyleRun]:
+def build_style_runs(glyphs: Sequence[Glyph], size_tol: float = 0.15) -> List[StyleRun]:
     """按「字体键 + 字号容差」把连续字形聚合为 StyleRun。
 
     参数：
@@ -99,35 +113,41 @@ def build_style_runs(glyphs: Sequence[Glyph],
         g = glyphs[i]
         key = normalize_font_name(g.font_name)
         if key != cur_key or abs(g.font_size - cur_size) > size_tol:
-            runs.append(StyleRun(
-                start_index=start,
-                end_index=i - 1,
-                font_name=glyphs[start].font_name,
-                font_size=cur_size,
-                bbox=_union_bbox([gg.bbox for gg in glyphs[start:i]]),
-            ))
+            runs.append(
+                StyleRun(
+                    start_index=start,
+                    end_index=i - 1,
+                    font_name=glyphs[start].font_name,
+                    font_size=cur_size,
+                    bbox=_union_bbox([gg.bbox for gg in glyphs[start:i]]),
+                )
+            )
             start = i
             cur_key = key
             cur_size = g.font_size
-    runs.append(StyleRun(
-        start_index=start,
-        end_index=len(glyphs) - 1,
-        font_name=glyphs[start].font_name,
-        font_size=cur_size,
-        bbox=_union_bbox([gg.bbox for gg in glyphs[start:]]),
-    ))
+    runs.append(
+        StyleRun(
+            start_index=start,
+            end_index=len(glyphs) - 1,
+            font_name=glyphs[start].font_name,
+            font_size=cur_size,
+            bbox=_union_bbox([gg.bbox for gg in glyphs[start:]]),
+        )
+    )
     return runs
 
 
-def style_runs_text(glyphs: Sequence[Glyph],
-                    runs: Sequence[StyleRun]) -> List[str]:
+def style_runs_text(glyphs: Sequence[Glyph], runs: Sequence[StyleRun]) -> List[str]:
     """每个 StyleRun 的纯文本（用于公式置信度引擎的 C_density 统计）。"""
     out: List[str] = []
     for r in runs:
-        out.append("".join(gg.char for gg in glyphs[r.start_index:r.end_index + 1]))
+        out.append("".join(gg.char for gg in glyphs[r.start_index : r.end_index + 1]))
     return out
 
 
 __all__ = [
-    "StyleRun", "normalize_font_name", "build_style_runs", "style_runs_text",
+    "StyleRun",
+    "normalize_font_name",
+    "build_style_runs",
+    "style_runs_text",
 ]

@@ -24,6 +24,7 @@ Reserved metadata keys（唯一 schema —— 新增领域只加 semantic 子键
     TRANSLATED_KEY = "translated_text"
     RENDER_KEY     = "render"             # 渲染阶段（font/size/layer/position）
 """
+
 from __future__ import annotations
 
 import re
@@ -117,16 +118,18 @@ def default_processor_registry() -> ProcessorRegistry:
     顺序即依赖：TOC 先行（避免公式处理器误命中目录行），
     ContentPolicy 不覆盖已由更专门处理器写下的策略。
     """
-    return ProcessorRegistry([
-        TOCSemanticProcessor(),
-        FormulaNodeProcessor(),
-        CodeNodeProcessor(),
-        ImageTranslationProcessor(),
-        TableNodeProcessor(),
-        ReferenceNodeProcessor(),
-        ContentPolicyProcessor(),
-        CaptionNodeProcessor(),
-    ])
+    return ProcessorRegistry(
+        [
+            TOCSemanticProcessor(),
+            FormulaNodeProcessor(),
+            CodeNodeProcessor(),
+            ImageTranslationProcessor(),
+            TableNodeProcessor(),
+            ReferenceNodeProcessor(),
+            ContentPolicyProcessor(),
+            CaptionNodeProcessor(),
+        ]
+    )
 
 
 # ── 目录语义 Processor（V8.7 引擎的 Pass 化封装） ────────────────────────
@@ -150,8 +153,11 @@ class TOCSemanticProcessor(NodeProcessor):
         node.node_type = NodeType.TOC_ENTRY
         get_semantic(node)["toc"] = entry.to_dict()
         decision = self._policy.decide(entry)
-        set_policy(node, "template_local" if decision["local_only"] else "translate_title_remainder",
-                   "toc_grammar")
+        set_policy(
+            node,
+            "template_local" if decision["local_only"] else "translate_title_remainder",
+            "toc_grammar",
+        )
 
 
 # ── 公式 Processor ────────────────────────────────────────────────────────
@@ -208,12 +214,17 @@ class ImageTranslationProcessor(NodeProcessor):
     target_types = (NodeType.IMAGE,)
 
     def process(self, node: DocumentNode, graph: DocumentGraph) -> None:
-        from pdf2zh.v3.image_engine import analyze_image_bytes, TranslationDecisionEngine
+        from pdf2zh.v3.image_engine import (
+            analyze_image_bytes,
+            TranslationDecisionEngine,
+        )
 
         pixels = node.metadata.get("pixels")
         if pixels is not None:
             obj = analyze_image_bytes(
-                pixels, object_id=node.id, page_num=node.page_num,
+                pixels,
+                object_id=node.id,
+                page_num=node.page_num,
                 has_alpha=bool(node.metadata.get("has_alpha", False)),
                 engine=TranslationDecisionEngine(),
             )
@@ -254,7 +265,11 @@ class ContentPolicyProcessor(NodeProcessor):
         role = IRBuilder.semantic_for(node.node_type)
         proxy = SimpleNamespace(semantic=role, id=node.id)
         decision = classify_node(proxy)
-        set_policy(node, decision.action.value, decision.reasons[0] if decision.reasons else "role_default")
+        set_policy(
+            node,
+            decision.action.value,
+            decision.reasons[0] if decision.reasons else "role_default",
+        )
         get_semantic(node)["preservation"] = decision.to_dict()
 
 
@@ -282,8 +297,11 @@ class TableNodeProcessor(NodeProcessor):
         lines = [ln for ln in text.splitlines() if ln.strip()]
         if len(lines) < _TABLE_MIN_LINES:
             return
-        cell_counts = [len(_CELL_SEP_RE.split(ln.strip()))
-                       for ln in lines if _CELL_SEP_RE.search(ln)]
+        cell_counts = [
+            len(_CELL_SEP_RE.split(ln.strip()))
+            for ln in lines
+            if _CELL_SEP_RE.search(ln)
+        ]
         if not cell_counts:
             return
         multi_cell = sum(1 for c in cell_counts if c >= _TABLE_LINE_MIN_CELLS)
@@ -339,14 +357,12 @@ class ReferenceNodeProcessor(NodeProcessor):
             }
 
     def finalize(self, graph: DocumentGraph) -> None:
-        bibliography = [
-            n for n in graph.nodes if n.node_type == NodeType.BIBLIOGRAPHY
-        ]
-        for cite in [n for n in graph.nodes
-                     if n.node_type == NodeType.CITATION]:
-            if any(e.edge_type == EdgeType.CITATION_OF
-                   and e.source_id == cite.id
-                   for e in graph.get_edges(source_id=cite.id)):
+        bibliography = [n for n in graph.nodes if n.node_type == NodeType.BIBLIOGRAPHY]
+        for cite in [n for n in graph.nodes if n.node_type == NodeType.CITATION]:
+            if any(
+                e.edge_type == EdgeType.CITATION_OF and e.source_id == cite.id
+                for e in graph.get_edges(source_id=cite.id)
+            ):
                 continue
             host = self._nearest_bibliography(cite, bibliography)
             if host is not None:
@@ -422,8 +438,10 @@ class CaptionNodeProcessor(NodeProcessor):
 
     def finalize(self, graph: DocumentGraph) -> None:
         for caption in [n for n in graph.nodes if n.node_type == NodeType.CAPTION]:
-            if any(e.edge_type == EdgeType.CAPTION_OF and e.source_id == caption.id
-                   for e in graph.get_edges(source_id=caption.id)):
+            if any(
+                e.edge_type == EdgeType.CAPTION_OF and e.source_id == caption.id
+                for e in graph.get_edges(source_id=caption.id)
+            ):
                 continue
             host = self._nearest_host(caption, graph)
             if host is not None:
@@ -431,11 +449,22 @@ class CaptionNodeProcessor(NodeProcessor):
 
 
 __all__ = [
-    "NodeStage", "STAGE_KEY", "SEMANTIC_KEY", "POLICY_KEY",
-    "ORIGINAL_KEY", "TRANSLATED_KEY", "RENDER_KEY",
-    "get_semantic", "set_policy",
-    "NodeProcessor", "ProcessorRegistry", "default_processor_registry",
-    "TOCSemanticProcessor", "FormulaNodeProcessor", "CodeNodeProcessor",
-    "ImageTranslationProcessor", "ContentPolicyProcessor",
+    "NodeStage",
+    "STAGE_KEY",
+    "SEMANTIC_KEY",
+    "POLICY_KEY",
+    "ORIGINAL_KEY",
+    "TRANSLATED_KEY",
+    "RENDER_KEY",
+    "get_semantic",
+    "set_policy",
+    "NodeProcessor",
+    "ProcessorRegistry",
+    "default_processor_registry",
+    "TOCSemanticProcessor",
+    "FormulaNodeProcessor",
+    "CodeNodeProcessor",
+    "ImageTranslationProcessor",
+    "ContentPolicyProcessor",
     "CaptionNodeProcessor",
 ]

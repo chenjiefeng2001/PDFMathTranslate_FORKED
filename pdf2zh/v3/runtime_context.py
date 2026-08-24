@@ -12,6 +12,7 @@ Usage::
     ctx.memory.put("key", "value")
     ctx.telemetry.record("op", 42.0)
 """
+
 from __future__ import annotations
 
 import logging
@@ -21,8 +22,12 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Callable
 
 from pdf2zh.v3.runtime_kernel import (
-    KnowledgeCenter, MemoryCenter, TelemetryCollector,
-    PluginManager, CapabilityPlugin, Capability,
+    KnowledgeCenter,
+    MemoryCenter,
+    TelemetryCollector,
+    PluginManager,
+    CapabilityPlugin,
+    Capability,
 )
 from pdf2zh.v3.service import ServiceRegistry
 
@@ -32,6 +37,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RuntimeConfig:
     """Shared configuration for the V5 Runtime."""
+
     max_memory_entries: int = 10000
     max_cache_entries: int = 5000
     telemetry_enabled: bool = True
@@ -92,8 +98,10 @@ class LRUCache:
 
     def stats(self) -> dict:
         return {
-            "size": self.size, "max": self._max,
-            "hits": self._hits, "misses": self._misses,
+            "size": self.size,
+            "max": self._max,
+            "hits": self._hits,
+            "misses": self._misses,
             "hit_rate": round(self.hit_rate, 4),
         }
 
@@ -146,8 +154,15 @@ class RuntimeContext:
             "age_seconds": round(time.time() - self._created, 2),
             "knowledge": {"entries": self.knowledge.entry_count()},
             "memory": self.memory.stats(),
-            "telemetry": self.telemetry.summary() if self.config.telemetry_enabled else {"disabled": True},
-            "plugins": {"total": self.plugins.plugin_count, "running": self.plugins.running_count},
+            "telemetry": (
+                self.telemetry.summary()
+                if self.config.telemetry_enabled
+                else {"disabled": True}
+            ),
+            "plugins": {
+                "total": self.plugins.plugin_count,
+                "running": self.plugins.running_count,
+            },
             "cache": self.cache.stats(),
             "labels": dict(self._labels),
         }
@@ -162,5 +177,7 @@ class RuntimeContext:
 
 
 __all__ = [
-    "RuntimeConfig", "LRUCache", "RuntimeContext",
+    "RuntimeConfig",
+    "LRUCache",
+    "RuntimeContext",
 ]

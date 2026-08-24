@@ -19,6 +19,7 @@
 
 纯逻辑、无 I/O；不做任何决策，只回答「谁是谁的父/子」。
 """
+
 from __future__ import annotations
 
 import re
@@ -35,7 +36,7 @@ def _segments(number: str) -> Optional[List[int]]:
 
 
 def _is_prefix(a: List[int], b: List[int]) -> bool:
-    return len(a) < len(b) and b[:len(a)] == a
+    return len(a) < len(b) and b[: len(a)] == a
 
 
 def build_toc_tree(entries: Sequence[dict]) -> dict:
@@ -91,15 +92,17 @@ def build_toc_tree(entries: Sequence[dict]) -> dict:
                 parent = stack[-1][2]
             else:
                 depth = 0
-        nodes.append({
-            "line": line,
-            "number": number,
-            "title": str(e.get("title", "")),
-            "page": str(e.get("page", "")),
-            "depth": depth,
-            "parent": parent,
-            "indent": depth,
-        })
+        nodes.append(
+            {
+                "line": line,
+                "number": number,
+                "title": str(e.get("title", "")),
+                "page": str(e.get("page", "")),
+                "depth": depth,
+                "parent": parent,
+                "indent": depth,
+            }
+        )
         if segs is not None:
             stack.append((segs, len(segs), line, depth))
         else:

@@ -12,8 +12,13 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pdf2zh.v3.graph import DocumentGraph
 from pdf2zh.v3.evaluator import (
-    QualityEvaluator, EvaluatorConfig, EvaluationResult,
-    Issue, IssueSeverity, IssueGraph, RepairScheduler,
+    QualityEvaluator,
+    EvaluatorConfig,
+    EvaluationResult,
+    Issue,
+    IssueSeverity,
+    IssueGraph,
+    RepairScheduler,
     EvaluationIssueMapper,
 )
 
@@ -26,6 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RepairStats:
     """Statistics for a single repair run."""
+
     issues_detected: int = 0
     repairs_scheduled: int = 0
     repairs_executed: int = 0
@@ -51,6 +57,7 @@ class RepairStats:
 @dataclass
 class RepairResult:
     """Result of a full repair loop."""
+
     success: bool
     stats: RepairStats
     final_issues: IssueGraph
@@ -67,7 +74,9 @@ class RepairResult:
         ]
         if s.scores_before:
             before_total = s.scores_before.get("total", 0)
-            after_total = s.scores_after.get("total", 0) if s.scores_after else before_total
+            after_total = (
+                s.scores_after.get("total", 0) if s.scores_after else before_total
+            )
             parts.append(f"  Score: {before_total:.1f} -> {after_total:.1f}")
         return "\n".join(parts)
 
@@ -187,12 +196,14 @@ class RepairRuntime:
             self._stats.repairs_failed += max(0, len(repairs) - len(executed))
 
             scores_after = self.evaluate_scores(graph, orig)
-            per_iteration.append({
-                "iteration": iteration,
-                "repairs_executed": len(executed),
-                "repairs_failed": max(0, len(repairs) - len(executed)),
-                "scores": scores_after,
-            })
+            per_iteration.append(
+                {
+                    "iteration": iteration,
+                    "repairs_executed": len(executed),
+                    "repairs_failed": max(0, len(repairs) - len(executed)),
+                    "scores": scores_after,
+                }
+            )
 
             if iteration >= max_it:
                 self._stats.converged = False
@@ -210,13 +221,16 @@ class RepairRuntime:
         final_eval = self.evaluator.evaluate(graph, orig)
         success = self._stats.converged or self._stats.repairs_failed == 0
         return RepairResult(
-            success=success, stats=self._stats,
-            final_issues=final_issues, final_evaluation=final_eval,
+            success=success,
+            stats=self._stats,
+            final_issues=final_issues,
+            final_evaluation=final_eval,
             per_iteration=per_iteration,
         )
 
     def auto_repair(
-        self, graph: DocumentGraph,
+        self,
+        graph: DocumentGraph,
         original: Optional[DocumentGraph] = None,
     ):
         """Convenience: run repair_loop and return (graph, result)."""
@@ -232,5 +246,7 @@ class RepairRuntime:
 
 
 __all__ = [
-    "RepairStats", "RepairResult", "RepairRuntime",
+    "RepairStats",
+    "RepairResult",
+    "RepairRuntime",
 ]

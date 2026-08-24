@@ -3,13 +3,18 @@
 Run with:
     python -m pytest tests/v3/test_typography.py -v
 """
+
 from __future__ import annotations
 import json
 
 import pytest
 
 from pdf2zh.v3.typography import (
-    is_cjk, GlyphMetric, TypographyMetrics, GlyphProbe, AdaptiveTypography,
+    is_cjk,
+    GlyphMetric,
+    TypographyMetrics,
+    GlyphProbe,
+    AdaptiveTypography,
 )
 
 
@@ -64,7 +69,8 @@ def test_paragraph_spacing_scaled():
 
 def test_expansion_ratio_cjk_growth():
     ratio = AdaptiveTypography.expansion_ratio(
-        "机器学习模型正在快速演进", "Machine learning")
+        "机器学习模型正在快速演进", "Machine learning"
+    )
     assert ratio > 1.0
     assert AdaptiveTypography.expansion_ratio("x", None) == 1.0
     assert AdaptiveTypography.expansion_ratio("", "") == 1.0
@@ -83,10 +89,13 @@ def test_metrics_cjk_dominant():
 
 def test_auto_fit_shrinks_font_on_overflow():
     ty = AdaptiveTypography(container_width=80.0, font_size=12.0)
-    long_text = ("This sentence is far too long for the narrow container "
-                 "and must be shrunk so it fits inside the small box")
-    fit = ty.auto_fit_font_size(long_text, font_size=12.0,
-                                container_width=80.0, max_lines=3)
+    long_text = (
+        "This sentence is far too long for the narrow container "
+        "and must be shrunk so it fits inside the small box"
+    )
+    fit = ty.auto_fit_font_size(
+        long_text, font_size=12.0, container_width=80.0, max_lines=3
+    )
     assert fit < 12.0
     for ln in GlyphProbe.break_lines(long_text, 80.0, fit):
         assert GlyphProbe.text_width(ln, fit) <= 80.0 + 1e-6

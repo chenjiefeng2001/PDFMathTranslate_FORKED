@@ -79,7 +79,8 @@ def test_sklearn_parallel_userwarning_filter_registered():
     )
     proc = subprocess.run(
         [sys.executable, "-c", code],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert proc.returncode == 0, proc.stderr
     assert proc.stderr.strip() == "", proc.stderr
@@ -100,7 +101,8 @@ def test_sklearn_warning_silent_in_fresh_interpreter():
     )
     proc = subprocess.run(
         [sys.executable, "-c", code],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     assert proc.returncode == 0, proc.stderr
     assert "OK" in proc.stdout
@@ -125,7 +127,9 @@ def test_package_import_does_not_print_fitz_warning(capsys):
         "print('OK')\n"
     )
     proc = subprocess.run(
-        [sys.executable, "-c", code], capture_output=True, text=True,
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
     )
     assert proc.returncode == 0, proc.stderr
     assert "OK" in proc.stdout

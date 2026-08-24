@@ -19,6 +19,7 @@ Usage:
     runtime = TranslationRuntime(kernel)
     result = runtime.execute(graph, plan)
 """
+
 from __future__ import annotations
 import logging, time, uuid, hashlib, json
 from dataclasses import dataclass, field
@@ -76,7 +77,11 @@ class TranslationRoute:
     priority: int = 100
 
     def matches(self, node: DocumentNode) -> bool:
-        nt = node.node_type.value if hasattr(node.node_type, 'value') else str(node.node_type)
+        nt = (
+            node.node_type.value
+            if hasattr(node.node_type, "value")
+            else str(node.node_type)
+        )
         return nt == self.node_type
 
 
@@ -85,13 +90,23 @@ class Router:
 
     DEFAULT_ROUTES = [
         TranslationRoute("paragraph", "gpt-4o", 0.3, 4096, "general", "fixed", 2, 100),
-        TranslationRoute("heading", "gpt-4o-mini", 0.1, 1024, "heading", "fixed", 1, 200),
-        TranslationRoute("caption", "gpt-4o-mini", 0.2, 2048, "caption", "fixed", 1, 150),
+        TranslationRoute(
+            "heading", "gpt-4o-mini", 0.1, 1024, "heading", "fixed", 1, 200
+        ),
+        TranslationRoute(
+            "caption", "gpt-4o-mini", 0.2, 2048, "caption", "fixed", 1, 150
+        ),
         TranslationRoute("abstract", "gpt-4o", 0.1, 4096, "abstract", "fixed", 2, 100),
-        TranslationRoute("formula", "gpt-4o-mini", 0.0, 1024, "formula", "fixed", 1, 50),
-        TranslationRoute("reference", "gpt-4o-mini", 0.0, 2048, "reference", "fixed", 1, 50),
+        TranslationRoute(
+            "formula", "gpt-4o-mini", 0.0, 1024, "formula", "fixed", 1, 50
+        ),
+        TranslationRoute(
+            "reference", "gpt-4o-mini", 0.0, 2048, "reference", "fixed", 1, 50
+        ),
         TranslationRoute("code", "gpt-4o-mini", 0.0, 4096, "code", "fixed", 1, 50),
-        TranslationRoute("footnote", "gpt-4o-mini", 0.2, 1024, "footnote", "fixed", 1, 80),
+        TranslationRoute(
+            "footnote", "gpt-4o-mini", 0.2, 1024, "footnote", "fixed", 1, 80
+        ),
         TranslationRoute("table", "gpt-4o", 0.2, 4096, "table", "fixed", 2, 100),
     ]
 
@@ -124,10 +139,17 @@ class ChunkScheduler:
         if plan.node_ids:
             return plan.node_ids
         # Fallback: topological sort by reading order
-        return [n.id for n in sorted(
-            [n for n in self.graph.nodes if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)],
-            key=lambda n: (n.page_num, n.y0),
-        )]
+        return [
+            n.id
+            for n in sorted(
+                [
+                    n
+                    for n in self.graph.nodes
+                    if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)
+                ],
+                key=lambda n: (n.page_num, n.y0),
+            )
+        ]
 
     def mark_done(self, node_id: str, result: TranslationChunkResult) -> None:
         self._results[node_id] = result
@@ -135,8 +157,11 @@ class ChunkScheduler:
     def mark_failed(self, node_id: str, error: str) -> None:
         if node_id not in self._results:
             self._results[node_id] = TranslationChunkResult(
-                node_id=node_id, source_text="", translated_text="",
-                status=ChunkStatus.FAILED, error=error,
+                node_id=node_id,
+                source_text="",
+                translated_text="",
+                status=ChunkStatus.FAILED,
+                error=error,
             )
         else:
             self._results[node_id].status = ChunkStatus.FAILED
@@ -158,8 +183,13 @@ class ConsistencyChecker:
     def __init__(self, memory: Optional[DocumentMemory] = None) -> None:
         self.memory = memory
 
-    def check(self, node_id: str, source: str, translation: str,
-              previous_results: Dict[str, TranslationChunkResult]) -> float:
+    def check(
+        self,
+        node_id: str,
+        source: str,
+        translation: str,
+        previous_results: Dict[str, TranslationChunkResult],
+    ) -> float:
         """Score consistency (0.0 = inconsistent, 1.0 = perfect)."""
         if not self.memory:
             return 1.0
@@ -170,7 +200,9 @@ class ConsistencyChecker:
             if entry.source.lower() in source.lower():
                 if entry.target.lower() not in translation.lower():
                     score -= 0.1
-                    issues.append(f"Glossary term '{entry.source}' -> '{entry.target}' not found")
+                    issues.append(
+                        f"Glossary term '{entry.source}' -> '{entry.target}' not found"
+                    )
         # Check entity consistency
         for entry in self.memory.get_all_entities():
             if entry.name.lower() in source.lower():
@@ -181,7 +213,10 @@ class ConsistencyChecker:
         # Check abbreviation consistency
         for entry in self.memory.get_all_abbreviations():
             if entry.short.lower() in source.lower():
-                if entry.long.lower() not in translation.lower() and entry.short.lower() not in translation.lower():
+                if (
+                    entry.long.lower() not in translation.lower()
+                    and entry.short.lower() not in translation.lower()
+                ):
                     score -= 0.05
         return max(0.0, score)
 
@@ -199,9 +234,12 @@ class ConsistencyChecker:
 class RetryPolicy:
     """Retry policy with exponential backoff."""
 
-    def __init__(self, max_retries: int = 3,
-                 base_delay_ms: float = 100.0,
-                 backoff_factor: float = 2.0) -> None:
+    def __init__(
+        self,
+        max_retries: int = 3,
+        base_delay_ms: float = 100.0,
+        backoff_factor: float = 2.0,
+    ) -> None:
         self.max_retries = max_retries
         self.base_delay_ms = base_delay_ms
         self.backoff_factor = backoff_factor
@@ -210,14 +248,18 @@ class RetryPolicy:
         return attempt < self.max_retries
 
     def delay_ms(self, attempt: int) -> float:
-        return self.base_delay_ms * (self.backoff_factor ** attempt)
+        return self.base_delay_ms * (self.backoff_factor**attempt)
 
 
 class TranslationWorkflow:
     """A full translation workflow for a single document."""
 
-    def __init__(self, graph: DocumentGraph, memory: Optional[DocumentMemory] = None,
-                 router: Optional[Router] = None) -> None:
+    def __init__(
+        self,
+        graph: DocumentGraph,
+        memory: Optional[DocumentMemory] = None,
+        router: Optional[Router] = None,
+    ) -> None:
         self.graph = graph
         self.memory = memory or DocumentMemory()
         self.router = router or Router()
@@ -230,8 +272,11 @@ class TranslationWorkflow:
         self._translator: Optional[Translator] = None
         self._session: Optional[TranslationSession] = None
 
-    def execute(self, plan: TranslationPlan,
-                translate_fn: Optional[Callable[[str, str], Optional[str]]] = None) -> Dict[str, TranslationChunkResult]:
+    def execute(
+        self,
+        plan: TranslationPlan,
+        translate_fn: Optional[Callable[[str, str], Optional[str]]] = None,
+    ) -> Dict[str, TranslationChunkResult]:
         """Execute the full translation workflow.
 
         Args:
@@ -250,7 +295,9 @@ class TranslationWorkflow:
             node = self.graph.get_node(node_id)
             if node is None or not node.text.strip():
                 empty_result = TranslationChunkResult(
-                    node_id=node_id, source_text="", translated_text="",
+                    node_id=node_id,
+                    source_text="",
+                    translated_text="",
                     status=ChunkStatus.DONE,
                 )
                 self.scheduler.mark_done(node_id, empty_result)
@@ -259,8 +306,10 @@ class TranslationWorkflow:
 
             route = self.router.route(node)
             result = TranslationChunkResult(
-                node_id=node_id, source_text=node.text,
-                model=route.model, status=ChunkStatus.ROUTED,
+                node_id=node_id,
+                source_text=node.text,
+                model=route.model,
+                status=ChunkStatus.ROUTED,
             )
             translated = None
             for attempt in range(route.max_retries + 1):
@@ -292,7 +341,9 @@ class TranslationWorkflow:
 
             if translated:
                 # Check consistency
-                score = self.checker.check(node_id, node.text, translated, self.scheduler.results)
+                score = self.checker.check(
+                    node_id, node.text, translated, self.scheduler.results
+                )
                 result.consistency_score = score
                 if score < 0.6:
                     result.status = ChunkStatus.FAILED
@@ -318,25 +369,34 @@ class TranslationWorkflow:
             if result.status == ChunkStatus.FAILED:
                 issues.append(f"Node {nid}: {result.error}")
             elif result.consistency_score < 0.8:
-                issues.append(f"Node {nid}: low consistency ({result.consistency_score:.2f})")
+                issues.append(
+                    f"Node {nid}: low consistency ({result.consistency_score:.2f})"
+                )
         if self.memory:
             # Check all terms in the document are present
             all_text = " ".join(r.translated_text for r in self._results.values())
             for entry in self.memory.get_all_glossary():
                 if entry.target.lower() not in all_text.lower():
-                    issues.append(f"Glossary term '{entry.source}' -> '{entry.target}' missing from output")
+                    issues.append(
+                        f"Glossary term '{entry.source}' -> '{entry.target}' missing from output"
+                    )
         return issues
 
-    def repair(self, node_id: str,
-               translate_fn: Optional[Callable[[str, str], Optional[str]]] = None) -> Optional[TranslationChunkResult]:
+    def repair(
+        self,
+        node_id: str,
+        translate_fn: Optional[Callable[[str, str], Optional[str]]] = None,
+    ) -> Optional[TranslationChunkResult]:
         """Re-translate a single node."""
         node = self.graph.get_node(node_id)
         if node is None:
             return None
         route = self.router.route(node)
         result = TranslationChunkResult(
-            node_id=node_id, source_text=node.text,
-            model=route.model, status=ChunkStatus.REPAIRED,
+            node_id=node_id,
+            source_text=node.text,
+            model=route.model,
+            status=ChunkStatus.REPAIRED,
         )
         try:
             if translate_fn:
@@ -355,14 +415,33 @@ class TranslationWorkflow:
 
     def stats(self) -> dict:
         total = len(self._results)
-        done = sum(1 for r in self._results.values() if r.status in (ChunkStatus.DONE, ChunkStatus.REVIEWED, ChunkStatus.REPAIRED))
-        failed = sum(1 for r in self._results.values() if r.status == ChunkStatus.FAILED)
-        total_time = (self._end_time - self._start_time) * 1000 if self._end_time > self._start_time else 0
+        done = sum(
+            1
+            for r in self._results.values()
+            if r.status
+            in (ChunkStatus.DONE, ChunkStatus.REVIEWED, ChunkStatus.REPAIRED)
+        )
+        failed = sum(
+            1 for r in self._results.values() if r.status == ChunkStatus.FAILED
+        )
+        total_time = (
+            (self._end_time - self._start_time) * 1000
+            if self._end_time > self._start_time
+            else 0
+        )
         return {
-            "total": total, "done": done, "failed": failed,
+            "total": total,
+            "done": done,
+            "failed": failed,
             "total_time_ms": round(total_time, 1),
-            "avg_latency_ms": round(sum(r.latency_ms for r in self._results.values()) / max(total, 1), 1),
-            "avg_consistency": round(sum(r.consistency_score for r in self._results.values()) / max(total, 1), 3),
+            "avg_latency_ms": round(
+                sum(r.latency_ms for r in self._results.values()) / max(total, 1), 1
+            ),
+            "avg_consistency": round(
+                sum(r.consistency_score for r in self._results.values())
+                / max(total, 1),
+                3,
+            ),
         }
 
     def get_results(self) -> Dict[str, TranslationChunkResult]:
@@ -377,26 +456,46 @@ class TranslationWorkflow:
         if use_transaction:
             try:
                 from pdf2zh.v3.runtime import GraphRuntime
+
                 runtime = GraphRuntime(self.graph)
                 with runtime.transaction("translation_workflow_apply"):
                     for nid, result in self._results.items():
-                        if result.status in (ChunkStatus.DONE, ChunkStatus.REVIEWED, ChunkStatus.REPAIRED) and result.translated_text:
+                        if (
+                            result.status
+                            in (
+                                ChunkStatus.DONE,
+                                ChunkStatus.REVIEWED,
+                                ChunkStatus.REPAIRED,
+                            )
+                            and result.translated_text
+                        ):
                             node = self.graph.get_node(nid)
                             if node:
                                 old_text = node.translated_text
                                 node.translated_text = result.translated_text
                                 node.metadata["model_used"] = result.model
                                 node.metadata["translated_at"] = time.time()
-                                node.metadata["consistency_score"] = result.consistency_score
-                                node.metadata["token_cost"] = len(result.translated_text.split())
+                                node.metadata["consistency_score"] = (
+                                    result.consistency_score
+                                )
+                                node.metadata["token_cost"] = len(
+                                    result.translated_text.split()
+                                )
                                 runtime.mark_dirty(nid)
                 return
             except Exception as e:
-                logger.warning("Transaction-based apply failed: %s. Falling back to direct apply.", e)
+                logger.warning(
+                    "Transaction-based apply failed: %s. Falling back to direct apply.",
+                    e,
+                )
 
         # Fallback: direct apply without transaction
         for nid, result in self._results.items():
-            if result.status in (ChunkStatus.DONE, ChunkStatus.REVIEWED, ChunkStatus.REPAIRED) and result.translated_text:
+            if (
+                result.status
+                in (ChunkStatus.DONE, ChunkStatus.REVIEWED, ChunkStatus.REPAIRED)
+                and result.translated_text
+            ):
                 node = self.graph.get_node(nid)
                 if node:
                     node.translated_text = result.translated_text
@@ -430,8 +529,12 @@ class TranslationRuntime:
         self._workflows[wid] = wf
         return wf
 
-    def execute(self, graph: DocumentGraph, plan: TranslationPlan,
-                translate_fn: Optional[Callable] = None) -> Dict[str, TranslationChunkResult]:
+    def execute(
+        self,
+        graph: DocumentGraph,
+        plan: TranslationPlan,
+        translate_fn: Optional[Callable] = None,
+    ) -> Dict[str, TranslationChunkResult]:
         wf = self.create_workflow(graph)
         results = wf.execute(plan, translate_fn=translate_fn)
         self._total_translated += len(results)
@@ -439,8 +542,9 @@ class TranslationRuntime:
         self._total_time_ms += stats.get("total_time_ms", 0)
         return results
 
-    def batch_translate(self, graphs: List[DocumentGraph],
-                        planner: TranslationPlanner) -> List[Dict[str, TranslationChunkResult]]:
+    def batch_translate(
+        self, graphs: List[DocumentGraph], planner: TranslationPlanner
+    ) -> List[Dict[str, TranslationChunkResult]]:
         all_results = []
         for g in graphs:
             # Create a plan for the entire graph by planning all nodes
@@ -464,8 +568,6 @@ class TranslationRuntime:
         return self._router
 
 
-
-
 # --- Legacy Engine Bridge ---
 
 _ENGINE_CACHE = {}
@@ -476,27 +578,31 @@ def discover_legacy_engines():
         return _ENGINE_CACHE
     try:
         import importlib
-        mod = importlib.import_module('pdf2zh.translator')
+
+        mod = importlib.import_module("pdf2zh.translator")
         for attr in dir(mod):
             cls = getattr(mod, attr)
-            if isinstance(cls, type) and hasattr(cls, 'name') and cls.name:
+            if isinstance(cls, type) and hasattr(cls, "name") and cls.name:
                 _ENGINE_CACHE[cls.name.lower()] = cls
         import logging
+
         logging.getLogger(__name__).info(
-            f'Discovered {len(_ENGINE_CACHE)} legacy engines: {list(_ENGINE_CACHE.keys())}')
+            f"Discovered {len(_ENGINE_CACHE)} legacy engines: {list(_ENGINE_CACHE.keys())}"
+        )
     except Exception as e:
         import logging
-        logging.getLogger(__name__).warning(f'Cannot discover legacy engines: {e}')
+
+        logging.getLogger(__name__).warning(f"Cannot discover legacy engines: {e}")
     return _ENGINE_CACHE
 
 
 class LegacyEngineAdapter:
-    def __init__(self, engine_name, lang_in='', lang_out='', envs=None, prompt=None):
+    def __init__(self, engine_name, lang_in="", lang_out="", envs=None, prompt=None):
         engines = discover_legacy_engines()
         key = engine_name.lower()
         if key not in engines:
-            avail = ', '.join(sorted(engines.keys())) if engines else 'none'
-            raise ValueError(f'Unknown engine {engine_name!r}. Available: {avail}')
+            avail = ", ".join(sorted(engines.keys())) if engines else "none"
+            raise ValueError(f"Unknown engine {engine_name!r}. Available: {avail}")
         self._cls = engines[key]
         self._name = engine_name
         self._lang_in = lang_in
@@ -508,9 +614,12 @@ class LegacyEngineAdapter:
     def _get(self):
         if self._inst is None:
             self._inst = self._cls(
-                self._lang_in, self._lang_out,
-                model=self._envs.get('model'),
-                envs=self._envs, prompt=self._prompt)
+                self._lang_in,
+                self._lang_out,
+                model=self._envs.get("model"),
+                envs=self._envs,
+                prompt=self._prompt,
+            )
         return self._inst
 
     @property
@@ -519,17 +628,17 @@ class LegacyEngineAdapter:
 
     def translate(self, text, **kwargs):
         inst = self._get()
-        if hasattr(inst, 'translate') and callable(inst.translate):
+        if hasattr(inst, "translate") and callable(inst.translate):
             r = inst.translate(text)
             return str(r) if r is not None else text
         if callable(inst):
             r = inst(text)
             return str(r) if r is not None else text
-        raise RuntimeError(f'Engine {self._name!r} has no translate method')
+        raise RuntimeError(f"Engine {self._name!r} has no translate method")
 
     def batch_translate(self, texts):
         inst = self._get()
-        if hasattr(inst, 'batch_translate') and callable(inst.batch_translate):
+        if hasattr(inst, "batch_translate") and callable(inst.batch_translate):
             rs = inst.batch_translate(texts)
             return [str(r) if r is not None else t for r, t in zip(rs, texts)]
         return [self.translate(t) for t in texts]
@@ -537,11 +646,18 @@ class LegacyEngineAdapter:
     def __call__(self, text, **kwargs):
         return self.translate(text, **kwargs)
 
-__all__ = [
-    "ChunkStatus", "ConsistencyLevel",
-    "TranslationChunkResult", "TranslationRoute",
-    "Router", "ChunkScheduler", "ConsistencyChecker",
-    "RetryPolicy", "TranslationWorkflow", "TranslationRuntime",
-    "discover_legacy_engines", "LegacyEngineAdapter",
 
+__all__ = [
+    "ChunkStatus",
+    "ConsistencyLevel",
+    "TranslationChunkResult",
+    "TranslationRoute",
+    "Router",
+    "ChunkScheduler",
+    "ConsistencyChecker",
+    "RetryPolicy",
+    "TranslationWorkflow",
+    "TranslationRuntime",
+    "discover_legacy_engines",
+    "LegacyEngineAdapter",
 ]

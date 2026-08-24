@@ -56,37 +56,37 @@ class TestPageFontTable(unittest.TestCase):
         """资源字典的键可能是 str 或 bytes（pdfminer 版本差异），都要能读。"""
         for keyfmt in (lambda k: k, lambda k: k.encode("latin-1")):
             with self.subTest(keyfmt=keyfmt):
-                page = self._fake_page({
-                    keyfmt("F1"): {
-                        "Subtype": PSLiteral("Type0"),
-                        "BaseFont": b"ABCDEF+SimSun",
-                        # ToUnicode 缺失
-                    },
-                    keyfmt("F2"): {
-                        "Subtype": PSLiteral("Type1"),
-                        "BaseFont": b"Helvetica",
-                        "ToUnicode": "<stream>",  # 存在即可
-                    },
-                })
+                page = self._fake_page(
+                    {
+                        keyfmt("F1"): {
+                            "Subtype": PSLiteral("Type0"),
+                            "BaseFont": b"ABCDEF+SimSun",
+                            # ToUnicode 缺失
+                        },
+                        keyfmt("F2"): {
+                            "Subtype": PSLiteral("Type1"),
+                            "BaseFont": b"Helvetica",
+                            "ToUnicode": "<stream>",  # 存在即可
+                        },
+                    }
+                )
                 table = _page_font_table(page)
                 self.assertEqual(table["F1"], {"tounicode": False, "cid": True})
                 self.assertEqual(
-                    table["ABCDEF+SimSun"], {"tounicode": False, "cid": True})
+                    table["ABCDEF+SimSun"], {"tounicode": False, "cid": True}
+                )
                 self.assertEqual(table["F2"], {"tounicode": True, "cid": False})
-                self.assertEqual(table["Helvetica"],
-                                 {"tounicode": True, "cid": False})
+                self.assertEqual(table["Helvetica"], {"tounicode": True, "cid": False})
 
     def test_malformed_resources_returns_empty(self):
-        self.assertEqual(_page_font_table(type("P", (), {"resources": None})()),
-                         {})
+        self.assertEqual(_page_font_table(type("P", (), {"resources": None})()), {})
         self.assertEqual(_page_font_table(type("P", (), {"resources": {}})()), {})
 
 
 class TestFontSignalSemantics(unittest.TestCase):
     def _records(self, hu_list):
         return [
-            {"char": "x", "has_to_unicode": hu, "decode": "ok",
-             "is_replacement": False}
+            {"char": "x", "has_to_unicode": hu, "decode": "ok", "is_replacement": False}
             for hu in hu_list
         ]
 
@@ -102,9 +102,7 @@ class TestFontSignalSemantics(unittest.TestCase):
         self.assertEqual(sig.to_unicode_missing_ratio, 1.0)
 
 
-@pytest.mark.parametrize(
-    "fontname,expected_tu", [("helv", True), ("china-ss", False)]
-)
+@pytest.mark.parametrize("fontname,expected_tu", [("helv", True), ("china-ss", False)])
 def test_extraction_font_signal_by_font_class(fontname, expected_tu):
     """真实 pdfminer 提取路径：简单字体可信 / Type0-CJK 无 ToUnicode 判不可信。"""
     try:
@@ -117,9 +115,9 @@ def test_extraction_font_signal_by_font_class(fontname, expected_tu):
             )._extract_pdf_samples(str(path))
             assert glyphs, "未提取到任何字形"
             values = {g["has_to_unicode"] for g in glyphs}
-            assert values == {expected_tu}, (
-                f"font={fontname}: 期望全部 {expected_tu}，实际 {values}"
-            )
+            assert values == {
+                expected_tu
+            }, f"font={fontname}: 期望全部 {expected_tu}，实际 {values}"
     except RuntimeError as exc:  # fitz 内置字体缺失等环境差异
         pytest.skip(f"环境不支持字体 {fontname}: {exc}")
 
@@ -131,13 +129,11 @@ def test_preflight_not_scanned_on_healthy_synthetic():
         doc = fitz.open()
         page = doc.new_page()
         page.insert_text((72, 72), "Sample Heading", fontsize=16)
-        page.insert_text(
-            (72, 120), "First paragraph of English text.", fontsize=11)
+        page.insert_text((72, 120), "First paragraph of English text.", fontsize=11)
         doc.save(str(path))
         doc.close()
         decision = preflight_scan_check(str(path))
-        font_sig = next(
-            s for s in decision.signals if s.name == "font_to_unicode")
+        font_sig = next(s for s in decision.signals if s.name == "font_to_unicode")
         assert font_sig.value == 0.0, font_sig.detail
         assert not font_sig.triggered
 

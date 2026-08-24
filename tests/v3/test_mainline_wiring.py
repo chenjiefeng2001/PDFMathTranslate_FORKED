@@ -9,6 +9,7 @@ produce, on the legacy render path:
 Run with:
     python -m pytest tests/v3/test_mainline_wiring.py -v
 """
+
 import unittest
 from unittest.mock import Mock
 
@@ -72,6 +73,7 @@ class MainlineChannelsBase(unittest.TestCase):
         converter.fontid = {}
         converter.text_metrics = {}
         from pdf2zh.collision_resolver import CollisionResolver
+
         converter.collision_resolver = CollisionResolver()
         translator = Mock()
         translator.translate = Mock(side_effect=[t for t in ("你好世界",)])
@@ -113,6 +115,7 @@ class TestIrSnapshotSideChannel(MainlineChannelsBase):
 class TestGateSideChannel(MainlineChannelsBase):
     def test_gate_records_verdict_per_page(self):
         from pdf2zh.v3.mainline_gate import MainlineRelayoutGate
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 648, "Hello")
         conv = self.build_converter(page, relayout_gate=MainlineRelayoutGate())
@@ -124,6 +127,7 @@ class TestGateSideChannel(MainlineChannelsBase):
 
     def test_gate_blocked_appends_qa_flag(self):
         from pdf2zh.v3.mainline_gate import MainlineRelayoutGate
+
         page = LTPage(4, (0, 0, 600, 800))
         add_text(page, 50, 780, "Below")  # 底部段落：门控判定溢出
         conv = self.build_converter(page, relayout_gate=MainlineRelayoutGate())

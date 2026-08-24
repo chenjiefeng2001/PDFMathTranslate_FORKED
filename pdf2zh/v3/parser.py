@@ -78,7 +78,6 @@ class RawBlock:
         return sum(s.font_size for s in self.spans) / len(self.spans)
 
 
-
 # ── Parser ──────────────────────────────────────────────────────────────
 
 
@@ -135,9 +134,7 @@ class PDFParser:
             for page_num, page in enumerate(PDFPage.create_pages(doc)):
                 page_image = None
                 if layout_model is not None:
-                    page_image = self._render_page_to_image(
-                        pdf_path, page_num, dpi
-                    )
+                    page_image = self._render_page_to_image(pdf_path, page_num, dpi)
 
                 interpreter.process_page(page)
                 lt_page = device.get_result()
@@ -156,7 +153,10 @@ class PDFParser:
         """
         blocks: List[RawBlock] = []
         from pdfminer.layout import (
-            LTTextBoxHorizontal, LTFigure, LTAnno, LTChar,
+            LTTextBoxHorizontal,
+            LTFigure,
+            LTAnno,
+            LTChar,
         )
 
         def _extract_spans_from_line(text_line) -> List[RawSpan]:
@@ -165,19 +165,24 @@ class PDFParser:
             for char_obj in text_line:
                 if isinstance(char_obj, LTChar):
                     bx0, by0, bx1, by1 = (
-                        char_obj.bbox if isinstance(char_obj.bbox, (tuple, list))
-                        else (char_obj.bbox.x0, char_obj.bbox.y0,
-                              char_obj.bbox.x1, char_obj.bbox.y1)
+                        char_obj.bbox
+                        if isinstance(char_obj.bbox, (tuple, list))
+                        else (
+                            char_obj.bbox.x0,
+                            char_obj.bbox.y0,
+                            char_obj.bbox.x1,
+                            char_obj.bbox.y1,
+                        )
                     )
-                    spans.append(RawSpan(
-                        text=char_obj.get_text(),
-                        font_name=self._safe_fontname(
-                            char_obj.fontname
-                        ),
-                        font_size=char_obj.size,
-                        bbox=(bx0, by0, bx1, by1),
-                        confidence=1.0,
-                    ))
+                    spans.append(
+                        RawSpan(
+                            text=char_obj.get_text(),
+                            font_name=self._safe_fontname(char_obj.fontname),
+                            font_size=char_obj.size,
+                            bbox=(bx0, by0, bx1, by1),
+                            confidence=1.0,
+                        )
+                    )
                 elif isinstance(char_obj, LTAnno) and spans:
                     spans[-1].text += char_obj.get_text()
             return spans
@@ -187,9 +192,14 @@ class PDFParser:
             if not spans:
                 return
             ex0, ey0, ex1, ey1 = (
-                element.bbox if isinstance(element.bbox, (tuple, list))
-                else (element.bbox.x0, element.bbox.y0,
-                      element.bbox.x1, element.bbox.y1)
+                element.bbox
+                if isinstance(element.bbox, (tuple, list))
+                else (
+                    element.bbox.x0,
+                    element.bbox.y0,
+                    element.bbox.x1,
+                    element.bbox.y1,
+                )
             )
             raw = RawBlock(
                 block_type=RawBlockType.TEXT,
@@ -213,17 +223,24 @@ class PDFParser:
             elif isinstance(element, LTChar):
                 # Stand-alone character (not wrapped in a text line)
                 bx0, by0, bx1, by1 = (
-                    element.bbox if isinstance(element.bbox, (tuple, list))
-                    else (element.bbox.x0, element.bbox.y0,
-                          element.bbox.x1, element.bbox.y1)
+                    element.bbox
+                    if isinstance(element.bbox, (tuple, list))
+                    else (
+                        element.bbox.x0,
+                        element.bbox.y0,
+                        element.bbox.x1,
+                        element.bbox.y1,
+                    )
                 )
-                spans = [RawSpan(
-                    text=element.get_text(),
-                    font_name=self._safe_fontname(element.fontname),
-                    font_size=element.size,
-                    bbox=(bx0, by0, bx1, by1),
-                    confidence=1.0,
-                )]
+                spans = [
+                    RawSpan(
+                        text=element.get_text(),
+                        font_name=self._safe_fontname(element.fontname),
+                        font_size=element.size,
+                        bbox=(bx0, by0, bx1, by1),
+                        confidence=1.0,
+                    )
+                ]
                 _emit_block(element, spans)
             elif isinstance(element, LTAnno):
                 # Stand-alone annotation text (e.g. spaces between chars)
@@ -232,7 +249,7 @@ class PDFParser:
                 # Try to iterate as container (LTPage, etc.) or
                 # treat as a stand-alone text line if it looks like one
                 element_type_name = type(element).__name__
-                if element_type_name == 'LTTextLineHorizontal':
+                if element_type_name == "LTTextLineHorizontal":
                     spans = _extract_spans_from_line(element)
                     _emit_block(element, spans)
                 else:

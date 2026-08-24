@@ -10,13 +10,16 @@
 纯逻辑、只写 metadata/relations；投影到 v3 DocumentGraph 时 belongs_to→
 CONTAINS、mentions→REFERENCE（既有 EdgeType，不新增 IR）。
 """
+
 from __future__ import annotations
 
 import re
 from typing import Dict, List, Optional, Tuple
 
 from pdf2zh.v3.document_model import (
-    DocumentModel, Relation, block_id,
+    DocumentModel,
+    Relation,
+    block_id,
 )
 
 REL_BELONGS_TO = "belongs_to"
@@ -28,7 +31,8 @@ _RE_MENTION = re.compile(
     r"\b(?:Table|Tab\.?|表)\s*\.?\s*(\d+)|"
     r"\b(?:Eq(?:uation)?\.?|公式)\s*\.?\s*\(?\s*(\d+)\s*\)?|"
     r"\b(?:Section|Sec\.?|§)\s*\.?\s*(\d+(?:\.\d+)*)",
-    re.IGNORECASE)
+    re.IGNORECASE,
+)
 
 
 def section_number(text: str) -> Optional[str]:
@@ -44,8 +48,7 @@ def build_sections(model: DocumentModel) -> List[dict]:
         pno = page.page_num
         for i, block in enumerate(page.blocks):
             bid = block_id(pno, i)
-            if block.kind == "heading" or \
-                    block.metadata.get("role") == "heading":
+            if block.kind == "heading" or block.metadata.get("role") == "heading":
                 num = section_number(block.text or "")
                 current = {
                     "section_id": bid,
@@ -58,8 +61,7 @@ def build_sections(model: DocumentModel) -> List[dict]:
                 sections.append(current)
                 block.metadata["section_id"] = bid
                 continue
-            if current is not None and block.kind not in (
-                    "header", "footer", "toc"):
+            if current is not None and block.kind not in ("header", "footer", "toc"):
                 current["members"].append(bid)
                 block.metadata["section_id"] = current["section_id"]
     model.metadata["sections"] = sections
@@ -71,23 +73,21 @@ def detect_mentions(text: str) -> List[dict]:
     out: List[dict] = []
     for m in _RE_MENTION.finditer(text or ""):
         if m.group(1):
-            out.append({"target_type": "figure", "id": m.group(1),
-                        "raw": m.group(0)})
+            out.append({"target_type": "figure", "id": m.group(1), "raw": m.group(0)})
         elif m.group(2):
-            out.append({"target_type": "table", "id": m.group(2),
-                        "raw": m.group(0)})
+            out.append({"target_type": "table", "id": m.group(2), "raw": m.group(0)})
         elif m.group(3):
-            out.append({"target_type": "equation", "id": m.group(3),
-                        "raw": m.group(0)})
+            out.append({"target_type": "equation", "id": m.group(3), "raw": m.group(0)})
         elif m.group(4):
-            out.append({"target_type": "section", "id": m.group(4),
-                        "raw": m.group(0)})
+            out.append({"target_type": "section", "id": m.group(4), "raw": m.group(0)})
     return out
 
 
 _RE_CAPTION_NUM = re.compile(
     r"^\s*(?:Fig(?:ure)?\.?|Table|Tab\.?|图|表|Eq(?:uation)?\.?)\s*\.?\s*"
-    r"(\d+(?:\.\d+)*)", re.IGNORECASE)
+    r"(\d+(?:\.\d+)*)",
+    re.IGNORECASE,
+)
 
 
 def _caption_number(text: str) -> Optional[str]:
@@ -95,12 +95,15 @@ def _caption_number(text: str) -> Optional[str]:
     return m.group(1) if m else None
 
 
-def _target_index(model: DocumentModel, page_num: int,
-                  target_type: str, target_id: str) -> Optional[str]:
+def _target_index(
+    model: DocumentModel, page_num: int, target_type: str, target_id: str
+) -> Optional[str]:
     """同页内按编号解析 mention 的目标块（caption/figure/table/equation）。"""
-    kind_map = {"figure": ("caption", "figure"),
-                "table": ("table", "caption"),
-                "equation": ("formula", "equation")}
+    kind_map = {
+        "figure": ("caption", "figure"),
+        "table": ("table", "caption"),
+        "equation": ("formula", "equation"),
+    }
     kinds = kind_map.get(target_type, (target_type,))
     for page in model.pages:
         if page.page_num != page_num:
@@ -121,17 +124,19 @@ def resolve_mentions(model: DocumentModel) -> int:
         pno = page.page_num
         for i, block in enumerate(page.blocks):
             for mention in detect_mentions(block.text or ""):
-                target = _target_index(model, pno, mention["target_type"],
-                                       mention["id"])
+                target = _target_index(
+                    model, pno, mention["target_type"], mention["id"]
+                )
                 if target is None:
                     continue
-                model.relations.append(Relation(
-                    REL_MENTIONS, block_id(pno, i), target))
-                block.metadata.setdefault("mentions", []).append({
-                    "target_type": mention["target_type"],
-                    "target_id": mention["id"],
-                    "target": target,
-                })
+                model.relations.append(Relation(REL_MENTIONS, block_id(pno, i), target))
+                block.metadata.setdefault("mentions", []).append(
+                    {
+                        "target_type": mention["target_type"],
+                        "target_id": mention["id"],
+                        "target": target,
+                    }
+                )
                 added += 1
     return added
 
@@ -142,8 +147,7 @@ def build_semantic_relations(model: DocumentModel) -> dict:
     added = 0
     for sec in sections:
         for member in sec["members"]:
-            model.relations.append(Relation(REL_BELONGS_TO, member,
-                                            sec["section_id"]))
+            model.relations.append(Relation(REL_BELONGS_TO, member, sec["section_id"]))
             added += 1
     mentions = resolve_mentions(model)
     model.metadata["semantic_graph"] = {
@@ -155,7 +159,11 @@ def build_semantic_relations(model: DocumentModel) -> dict:
 
 
 __all__ = [
-    "REL_BELONGS_TO", "REL_MENTIONS",
-    "section_number", "build_sections", "detect_mentions",
-    "resolve_mentions", "build_semantic_relations",
+    "REL_BELONGS_TO",
+    "REL_MENTIONS",
+    "section_number",
+    "build_sections",
+    "detect_mentions",
+    "resolve_mentions",
+    "build_semantic_relations",
 ]

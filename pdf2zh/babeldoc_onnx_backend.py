@@ -96,7 +96,9 @@ def get_babeldoc_backend() -> Optional[str]:
             logger.warning(
                 "Ignoring invalid %s=%r (expected one of %s); "
                 "falling back to the pdf2zh backend selection",
-                _ENV_BACKEND, override, sorted(_VALID_BACKENDS),
+                _ENV_BACKEND,
+                override,
+                sorted(_VALID_BACKENDS),
             )
         else:
             return None if override == "auto" else override
@@ -136,7 +138,9 @@ def _babeldoc_gpu_ineffective(backend: str, gpu: list[str]) -> bool:
 
 
 def _warn_babeldoc_gpu_session_fallback(
-    backend: str, requested: list[str], effective: list[str],
+    backend: str,
+    requested: list[str],
+    effective: list[str],
 ) -> None:
     """GPU provider 注册但无法真正执行时的统一警告（复用 doclayout 提示文案）。"""
     try:
@@ -149,7 +153,9 @@ def _warn_babeldoc_gpu_session_fallback(
         logger.warning(
             "BabelDOC backend '%s' was requested but the ONNX session fell back "
             "to CPU (requested %s; effective %s)",
-            backend, requested, effective,
+            backend,
+            requested,
+            effective,
         )
 
 
@@ -184,7 +190,8 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
     if wanted is None:
         logger.warning(
             "Unknown BabelDOC backend %r (expected one of %s); using CPU",
-            backend, sorted(_BACKEND_PROVIDERS),
+            backend,
+            sorted(_BACKEND_PROVIDERS),
         )
         return _cpu_only(available)
 
@@ -193,7 +200,9 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
         logger.warning(
             "BabelDOC backend '%s' requested but none of %s is available "
             "(available: %s); using CPU",
-            name, wanted, available,
+            name,
+            wanted,
+            available,
         )
         return _cpu_only(available)
 
@@ -216,7 +225,9 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
             logger.warning(
                 "BabelDOC backend '%s' requested but no GPU provider is available "
                 "(wanted %s; available: %s); using CPU",
-                name, wanted, available,
+                name,
+                wanted,
+                available,
             )
     elif _babeldoc_gpu_ineffective(name, gpu):
         # 执行级校验：GPU provider 已注册但设备/运行库初始化失败时 ORT 会
@@ -233,7 +244,6 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
     if "CPUExecutionProvider" in available and "CPUExecutionProvider" not in result:
         result.append("CPUExecutionProvider")
     return result or _cpu_only(available)
-
 
 
 def _init_with_providers(self, model_path: str, providers: list[str]) -> None:
@@ -264,7 +274,9 @@ def _init_with_providers(self, model_path: str, providers: list[str]) -> None:
         else onnxruntime.SessionOptions()
     )
     self.model = onnxruntime.InferenceSession(
-        model.SerializeToString(), opts, providers=providers,
+        model.SerializeToString(),
+        opts,
+        providers=providers,
     )
     self.lock = threading.Lock()
 
@@ -297,7 +309,9 @@ def _patched_init(self, model_path: str) -> None:
     backend = get_babeldoc_backend()
     if backend is None or backend == "auto":
         try:
-            from pdf2zh.doclayout import resolve_providers as _main_resolve  # noqa: PLC0415
+            from pdf2zh.doclayout import (
+                resolve_providers as _main_resolve,
+            )  # noqa: PLC0415
 
             providers = list(_main_resolve(None))
         except Exception:  # noqa: BLE001 -- 主链路解析失败按原生 CPU 兜底
@@ -314,12 +328,16 @@ def _patched_init(self, model_path: str) -> None:
         logger.warning(
             "BabelDOC ONNX init failed with providers=%s (%s: %s); "
             "falling back to the original CPU init",
-            providers, type(exc).__name__, str(exc)[:160],
+            providers,
+            type(exc).__name__,
+            str(exc)[:160],
         )
         return _ORIGINAL_INIT(self, model_path)
     effective = list(self.model.get_providers())
     logger.info(
-        "BabelDOC doclayout ONNX providers=%s (backend=%s)", effective, backend,
+        "BabelDOC doclayout ONNX providers=%s (backend=%s)",
+        effective,
+        backend,
     )
     if (
         backend in ("cuda", "dml")
@@ -343,7 +361,9 @@ def _patched_init(self, model_path: str) -> None:
             logger.warning(
                 "BabelDOC backend '%s' requested but the ONNX session fell "
                 "back to CPU (requested %s; effective %s)",
-                backend, providers, effective,
+                backend,
+                providers,
+                effective,
             )
 
 

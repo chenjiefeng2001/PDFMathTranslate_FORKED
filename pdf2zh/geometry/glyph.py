@@ -8,6 +8,7 @@
     converter / Geometry Engine 消费同一份字符流，V8.3 收敛点）；
   * ``extract_glyphs_from_page``  —— pymupdf ``rawdict`` 页面对象。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -22,10 +23,10 @@ class Glyph:
     """PDF 原生字形元数据（frozen：公式几何不可变性的载体）。"""
 
     char: str
-    bbox: GlyphBBox                       # (x0, y0, x1, y1) y-up
-    baseline: float                       # 主基线 y 坐标（y-up）
-    ascent: float                         # 字面升部（正数，相对基线向上）
-    descent: float                        # 字面降部（负数，相对基线向下）
+    bbox: GlyphBBox  # (x0, y0, x1, y1) y-up
+    baseline: float  # 主基线 y 坐标（y-up）
+    ascent: float  # 字面升部（正数，相对基线向上）
+    descent: float  # 字面降部（负数，相对基线向下）
     font_name: str
     font_size: float
     page_id: int
@@ -74,8 +75,10 @@ class Glyph:
         }
 
     def __repr__(self) -> str:  # pragma: no cover - debug aid
-        return (f"Glyph({self.char!r} {self.bbox} base={self.baseline:.1f} "
-                f"{self.font_name}/{self.font_size:.1f})")
+        return (
+            f"Glyph({self.char!r} {self.bbox} base={self.baseline:.1f} "
+            f"{self.font_name}/{self.font_size:.1f})"
+        )
 
 
 # ── 字体度量近似 ────────────────────────────────────────────────────────
@@ -117,8 +120,9 @@ def _iter_ltchars(obj, _depth: int = 0) -> Iterator:
         yield from _iter_ltchars(child, _depth + 1)
 
 
-def extract_glyphs_from_ltpage(ltpage, page_id: Optional[int] = None,
-                               skip_whitespace: bool = True) -> List[Glyph]:
+def extract_glyphs_from_ltpage(
+    ltpage, page_id: Optional[int] = None, skip_whitespace: bool = True
+) -> List[Glyph]:
     """从 pdfminer LTPage 提取 Glyph 流（与 legacy receive_layout 同源）。
 
     ``page_id`` 缺省时取 ``ltpage.pageid``；``skip_whitespace`` 为真时
@@ -142,23 +146,26 @@ def extract_glyphs_from_ltpage(ltpage, page_id: Optional[int] = None,
             bbox = tuple(float(v) for v in (child.x0, child.y0, child.x1, child.y1))
         except (AttributeError, TypeError, ValueError):
             continue
-        glyphs.append(Glyph(
-            char=text,
-            bbox=bbox,
-            baseline=baseline,
-            ascent=ascent,
-            descent=descent,
-            font_name=str(getattr(child, "fontname", "") or ""),
-            font_size=float(getattr(child, "size", 12.0) or 12.0),
-            page_id=page_id,
-            object_id=obj_id,
-        ))
+        glyphs.append(
+            Glyph(
+                char=text,
+                bbox=bbox,
+                baseline=baseline,
+                ascent=ascent,
+                descent=descent,
+                font_name=str(getattr(child, "fontname", "") or ""),
+                font_size=float(getattr(child, "size", 12.0) or 12.0),
+                page_id=page_id,
+                object_id=obj_id,
+            )
+        )
         obj_id += 1
     return glyphs
 
 
-def extract_glyphs_from_page(page, page_id: int = 0,
-                             skip_whitespace: bool = True) -> List[Glyph]:
+def extract_glyphs_from_page(
+    page, page_id: int = 0, skip_whitespace: bool = True
+) -> List[Glyph]:
     """从 pymupdf 页面对象（rawdict）提取 Glyph 流。"""
     glyphs: List[Glyph] = []
     raw = page.get_text("rawdict")
@@ -180,23 +187,26 @@ def extract_glyphs_from_page(page, page_id: int = 0,
                     # pymupdf 不直接给每字符基线；用 bbox 下缘 - 降部近似
                     descent = -0.25 * span_size
                     baseline = bbox[1] - descent
-                    glyphs.append(Glyph(
-                        char=text,
-                        bbox=bbox,
-                        baseline=baseline,
-                        ascent=0.8 * span_size,
-                        descent=descent,
-                        font_name=span_font,
-                        font_size=span_size,
-                        page_id=page_id,
-                        object_id=obj_id,
-                    ))
+                    glyphs.append(
+                        Glyph(
+                            char=text,
+                            bbox=bbox,
+                            baseline=baseline,
+                            ascent=0.8 * span_size,
+                            descent=descent,
+                            font_name=span_font,
+                            font_size=span_size,
+                            page_id=page_id,
+                            object_id=obj_id,
+                        )
+                    )
                     obj_id += 1
     return glyphs
 
 
 __all__ = [
-    "Glyph", "GlyphBBox",
-    "extract_glyphs_from_ltpage", "extract_glyphs_from_page",
+    "Glyph",
+    "GlyphBBox",
+    "extract_glyphs_from_ltpage",
+    "extract_glyphs_from_page",
 ]
-

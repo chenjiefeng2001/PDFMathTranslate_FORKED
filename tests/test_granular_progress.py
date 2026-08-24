@@ -19,14 +19,16 @@ from pdf2zh.babeldoc_adapter import (
 )
 from pdf2zh.services.runtime_service import RuntimeService, TaskStage
 
-
 # ── 单位映射与事件整理 ───────────────────────────────────────────────────────
 
 
 def test_stage_unit_mapping():
     assert _babeldoc_stage_unit("Parse Page Layout") == "page"
     assert _babeldoc_stage_unit("Detect Scanned File") == "page"
-    assert _babeldoc_stage_unit("Parse PDF and Create Intermediate Representation") == "page"
+    assert (
+        _babeldoc_stage_unit("Parse PDF and Create Intermediate Representation")
+        == "page"
+    )
     assert _babeldoc_stage_unit("Translate Paragraphs") == "paragraph"
     assert _babeldoc_stage_unit("Extract Terms") == "term"
 
@@ -70,15 +72,19 @@ def test_detail_from_paragraph_event():
 
 def test_detail_missing_counts_returns_none():
     # 旧版本/异常事件没有计数 -> None（调用方保持现状行为）
-    assert _progress_detail_from_event(
-        {"stage": "Typesetting", "overall_progress": 90.0}
-    ) is None
+    assert (
+        _progress_detail_from_event({"stage": "Typesetting", "overall_progress": 90.0})
+        is None
+    )
 
 
 def test_detail_garbage_counts_returns_none():
-    assert _progress_detail_from_event(
-        {"stage": "X", "stage_current": "abc", "stage_total": None}
-    ) is None
+    assert (
+        _progress_detail_from_event(
+            {"stage": "X", "stage_current": "abc", "stage_total": None}
+        )
+        is None
+    )
 
 
 # ── 服务层贯通：事件 + store 快照 ────────────────────────────────────────────
@@ -94,8 +100,11 @@ def _service(tid: str) -> RuntimeService:
 def test_emit_smooth_carries_detail_into_event_and_snapshot():
     svc = _service("t_gp1")
     detail = {
-        "engine": "babeldoc", "raw_stage": "Parse Page Layout",
-        "unit": "page", "current": 3, "total": 10,
+        "engine": "babeldoc",
+        "raw_stage": "Parse Page Layout",
+        "unit": "page",
+        "current": 3,
+        "total": 10,
     }
     svc._emit_smooth("t_gp1", TaskStage.PARSING.value, 20.0, "parsing", detail=detail)
 
@@ -108,8 +117,13 @@ def test_emit_smooth_carries_detail_into_event_and_snapshot():
 
 def test_emit_without_detail_keeps_snapshot_untouched():
     svc = _service("t_gp2")
-    first = {"engine": "babeldoc", "raw_stage": "Parse Page Layout",
-             "unit": "page", "current": 5, "total": 10}
+    first = {
+        "engine": "babeldoc",
+        "raw_stage": "Parse Page Layout",
+        "unit": "page",
+        "current": 5,
+        "total": 10,
+    }
     svc._emit_smooth("t_gp2", TaskStage.ANALYZING.value, 25.0, "a", detail=first)
     # 不带 detail 的后续发射不覆盖快照（保持最后一次已知细节）
     svc._emit_smooth("t_gp2", TaskStage.ANALYZING.value, 40.0, "b")
@@ -126,12 +140,21 @@ def test_emit_smooth_slot_path_carries_detail():
     ctx = _BatchContext(total_files=2)
     with svc._batch_ctx_lock:
         svc._batch_ctx["t_gp3"] = ctx
-    detail = {"engine": "babeldoc", "raw_stage": "Parse Page Layout",
-              "unit": "page", "current": 7, "total": 9}
+    detail = {
+        "engine": "babeldoc",
+        "raw_stage": "Parse Page Layout",
+        "unit": "page",
+        "current": 7,
+        "total": 9,
+    }
     svc._slot_begin("t_gp3", "/tmp/a.pdf", ctx)
     try:
         svc._emit_smooth(
-            "t_gp3", TaskStage.PARSING.value, 50.0, "p", detail=detail,
+            "t_gp3",
+            TaskStage.PARSING.value,
+            50.0,
+            "p",
+            detail=detail,
         )
     finally:
         svc._slot_end()
@@ -150,7 +173,9 @@ def test_to_dict_includes_detail_for_protocol_compat():
     assert "detail" in d and d["detail"] is None  # 旧前端忽略未知键，兼容
 
     ev2 = TaskProgressEvent(
-        task_id="t", stage="analyzing", progress=20.0,
+        task_id="t",
+        stage="analyzing",
+        progress=20.0,
         detail={"engine": "babeldoc", "current": 1, "total": 9},
     )
     assert ev2.to_dict()["detail"]["current"] == 1

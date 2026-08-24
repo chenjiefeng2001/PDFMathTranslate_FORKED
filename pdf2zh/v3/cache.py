@@ -10,6 +10,7 @@
 每层独立容量上限（LRU 语义：超限丢最旧）；``invalidate_page`` 级联
 失效同页下游层。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -60,12 +61,12 @@ class CacheStats:
     misses: int = 0
 
     def to_dict(self) -> dict:
-        return {"layers": dict(self.layers), "hits": self.hits,
-                "misses": self.misses}
+        return {"layers": dict(self.layers), "hits": self.hits, "misses": self.misses}
 
     def summary(self) -> str:
-        return (f"Cache {self.hits} hits / {self.misses} misses :: "
-                + " ".join(f"{k}={v}" for k, v in self.layers.items()))
+        return f"Cache {self.hits} hits / {self.misses} misses :: " + " ".join(
+            f"{k}={v}" for k, v in self.layers.items()
+        )
 
 
 class DocumentCache:
@@ -74,8 +75,7 @@ class DocumentCache:
     def __init__(self, capacities: Optional[Dict[str, int]] = None) -> None:
         caps = capacities or {}
         self.layers: Dict[str, LayerCache] = {
-            name: LayerCache(name, int(caps.get(name, 512)))
-            for name in _LAYERS
+            name: LayerCache(name, int(caps.get(name, 512))) for name in _LAYERS
         }
         self.hits = 0
         self.misses = 0
@@ -114,7 +114,9 @@ class DocumentCache:
     def stats(self) -> CacheStats:
         return CacheStats(
             layers={name: layer.size for name, layer in self.layers.items()},
-            hits=self.hits, misses=self.misses)
+            hits=self.hits,
+            misses=self.misses,
+        )
 
 
 __all__ = ["LayerCache", "CacheStats", "DocumentCache", "_LAYERS"]

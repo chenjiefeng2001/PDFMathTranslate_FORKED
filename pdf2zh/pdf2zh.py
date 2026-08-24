@@ -249,7 +249,6 @@ def create_parser() -> argparse.ArgumentParser:
         "--magicpdf-ocr is equivalent to --magicpdf-ocr-mode on.",
     )
 
-
     parse_params.add_argument(
         "--magicpdf-render",
         action=argparse.BooleanOptionalAction,
@@ -257,7 +256,6 @@ def create_parser() -> argparse.ArgumentParser:
         help="Render the magicpdf parse result into a translated mono PDF "
         "(default: on). Use --no-magicpdf-render to keep JSON dumps only.",
     )
-
 
     parse_params.add_argument(
         "--babeldoc-ocr",
@@ -441,12 +439,15 @@ def main(args: list[str] | None = None) -> int:
         max_file_size = getattr(parsed_args, "max_file_size", None)
         if parsed_args.serverport:
             setup_gui(
-                parsed_args.share, parsed_args.authorized, int(parsed_args.serverport),
+                parsed_args.share,
+                parsed_args.authorized,
+                int(parsed_args.serverport),
                 max_file_size=max_file_size,
             )
         else:
             setup_gui(
-                parsed_args.share, parsed_args.authorized,
+                parsed_args.share,
+                parsed_args.authorized,
                 max_file_size=max_file_size,
             )
         return 0
@@ -504,9 +505,7 @@ def main(args: list[str] | None = None) -> int:
     # 普通文件的输入在引擎路由前给出明确错误，而不是等到下游 open() 时抛出
     # 令人困惑的 PermissionError/IsADirectoryError 调用栈。
     if not parsed_args.dir:
-        invalid = [
-            f for f in (parsed_args.files or []) if not os.path.isfile(f)
-        ]
+        invalid = [f for f in (parsed_args.files or []) if not os.path.isfile(f)]
         if invalid:
             raise FileNotFoundError(
                 "Input PDF not found or not a regular file: " + ", ".join(invalid)
@@ -613,7 +612,8 @@ def _try_auto_switch_magicpdf(parsed_args) -> bool:
             logger.warning(
                 "%s 文本层质量预检命中扫描/损坏信号（%s）；magic-pdf/MinerU "
                 "可用，已自动切换 --parse-engine magicpdf --magicpdf-ocr。",
-                f, reasons,
+                f,
+                reasons,
             )
             parsed_args.parse_engine = "magicpdf"
             parsed_args.magicpdf_ocr = True
@@ -622,7 +622,8 @@ def _try_auto_switch_magicpdf(parsed_args) -> bool:
             "%s 文本层质量预检命中扫描/损坏信号（%s）。legacy 内核无 OCR "
             "兜底，译文可能基于乱码输出；建议改用 --parse-engine magicpdf "
             "--magicpdf-ocr 或 --babeldoc-ocr on。",
-            f, reasons,
+            f,
+            reasons,
         )
     return False
 
@@ -750,7 +751,8 @@ def yadt_main(parsed_args) -> int:
     from pdf2zh.glossary_store import load_babeldoc_glossaries
 
     glossaries = load_babeldoc_glossaries(
-        getattr(parsed_args, "glossary_files", None), lang_out,
+        getattr(parsed_args, "glossary_files", None),
+        lang_out,
     )
     if glossaries:
         logger.info("Loaded %d glossary file(s)", len(glossaries))
@@ -838,7 +840,10 @@ def yadt_main(parsed_args) -> int:
     # Bridge the pdf2zh engine into BabelDOC's translator interface so the
     # BabelDOC layout pipeline can call translate(text, rate_limit_params=...).
     babeldoc_translator = make_babeldoc_translator(
-        translator, lang_in, lang_out, ignore_cache,
+        translator,
+        lang_in,
+        lang_out,
+        ignore_cache,
     )
 
     import asyncio
@@ -870,11 +875,16 @@ def yadt_main(parsed_args) -> int:
             # PDF2ZH_BABELDOC_OCR 决定（auto 自动检测扫描并启用 OCR / on
             # 强制 OCR / off 跳过扫描检测），而不是保持 BabelDOC 默认的
             # 扫描检测失败行为。
-            **dict(zip(
-                ("ocr_workaround", "auto_enable_ocr_workaround",
-                 "skip_scanned_detection"),
-                resolve_ocr_flags(parsed_args.babeldoc_ocr),
-            )),
+            **dict(
+                zip(
+                    (
+                        "ocr_workaround",
+                        "auto_enable_ocr_workaround",
+                        "skip_scanned_detection",
+                    ),
+                    resolve_ocr_flags(parsed_args.babeldoc_ocr),
+                )
+            ),
             glossaries=glossaries or None,
         )
 

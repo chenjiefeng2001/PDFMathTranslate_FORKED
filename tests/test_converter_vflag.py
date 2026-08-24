@@ -17,7 +17,7 @@ def _extract_font_name(font):
     """Copy of the _extract_font_name from converter.py"""
     if isinstance(font, bytes):
         try:
-            font = font.decode('utf-8')
+            font = font.decode("utf-8")
         except UnicodeDecodeError:
             return ""
     if "+" in font:

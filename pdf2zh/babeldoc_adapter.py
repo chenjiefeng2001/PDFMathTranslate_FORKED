@@ -141,7 +141,7 @@ def _resolve_prompt(prompt: Any) -> Optional[Template]:
         text = prompt.get("prompt") or prompt.get("PROMPT") or ""
     text = str(text).strip()
     if text.startswith("PROMPT="):
-        text = text[len("PROMPT="):].strip()
+        text = text[len("PROMPT=") :].strip()
     if not text:
         return None
     try:
@@ -149,6 +149,7 @@ def _resolve_prompt(prompt: Any) -> Optional[Template]:
     except Exception:  # noqa: BLE001 -- prompt is user input, never fatal
         logger.warning("Invalid prompt template ignored: %.40s", text)
         return None
+
 
 def make_babeldoc_translator(
     pdf2zh_translator: Any,
@@ -171,8 +172,9 @@ def make_babeldoc_translator(
     class _Pdf2zhBabeldocTranslator(YadtBaseTranslator):
         """Duck-typed bridge: BabelDOC contract, pdf2zh engine underneath."""
 
-        def __init__(self, inner: Any, lang_in: str, lang_out: str,
-                     ignore_cache: bool = False) -> None:
+        def __init__(
+            self, inner: Any, lang_in: str, lang_out: str, ignore_cache: bool = False
+        ) -> None:
             # Set the attributes BabelDOC's BaseTranslator.__init__ would set,
             # but skip super().__init__: it spins up BabelDOC's own SQLite
             # translation cache, which we deliberately bypass.
@@ -189,7 +191,9 @@ def make_babeldoc_translator(
             return self._inner.add_cache_impact_parameters(k, v)
 
         def translate(
-            self, text: str, ignore_cache: bool = False,
+            self,
+            text: str,
+            ignore_cache: bool = False,
             rate_limit_params: Optional[Dict[str, Any]] = None,
         ) -> str:
             # BabelDOC calls translate(text, rate_limit_params=...); proxy to
@@ -200,13 +204,15 @@ def make_babeldoc_translator(
                 return self._inner.translate(text)
 
         def do_translate(
-            self, text: str,
+            self,
+            text: str,
             rate_limit_params: Optional[Dict[str, Any]] = None,
         ) -> str:
             return self._inner.do_translate(text)
 
         def do_llm_translate(
-            self, text: str,
+            self,
+            text: str,
             rate_limit_params: Optional[Dict[str, Any]] = None,
         ) -> str:
             # Keep the LLM prompt path disabled: pdf2zh engines translate
@@ -214,7 +220,8 @@ def make_babeldoc_translator(
             raise NotImplementedError
 
         def llm_translate(
-            self, text: str,
+            self,
+            text: str,
             rate_limit_params: Optional[Dict[str, Any]] = None,
         ) -> str:
             # Satisfies the AutomaticTermExtractor capability probe while
@@ -222,9 +229,11 @@ def make_babeldoc_translator(
             return self.translate(text)
 
     return _Pdf2zhBabeldocTranslator(
-        pdf2zh_translator, lang_in, lang_out, ignore_cache,
+        pdf2zh_translator,
+        lang_in,
+        lang_out,
+        ignore_cache,
     )
-
 
 
 def _build_doclayout_model(pdf_path: Optional[str] = None) -> Any:
@@ -346,10 +355,8 @@ def run_babeldoc_translation(
 
     from pdf2zh.converter_docx import convert_to_pdf, is_convertible
 
-
     from pdf2zh.high_level import download_remote_fonts
     from pdf2zh.translator import build_translator
-
 
     cleanup_paths: List[str] = []
     result = None
@@ -374,7 +381,10 @@ def run_babeldoc_translation(
             ignore_cache=ignore_cache,
         )
         yadt_translator = make_babeldoc_translator(
-            pdf2zh_translator, lang_in, lang_out, ignore_cache,
+            pdf2zh_translator,
+            lang_in,
+            lang_out,
+            ignore_cache,
         )
 
         # 把 OCR 模式开关解析成 BabelDOC 的三个互斥扫描版开关。
@@ -433,7 +443,8 @@ def run_babeldoc_translation(
             try:
                 cb_takes_detail = (
                     len(inspect.signature(progress_cb).parameters) >= 4
-                    if progress_cb is not None else False
+                    if progress_cb is not None
+                    else False
                 )
             except (TypeError, ValueError):
                 cb_takes_detail = False
@@ -462,12 +473,15 @@ def run_babeldoc_translation(
                             detail = _progress_detail_from_event(event)
                             if cb_takes_detail:
                                 progress_cb(
-                                    _map_babeldoc_stage(stage_name), overall,
-                                    stage_name, detail,
+                                    _map_babeldoc_stage(stage_name),
+                                    overall,
+                                    stage_name,
+                                    detail,
                                 )
                             else:
                                 progress_cb(
-                                    _map_babeldoc_stage(stage_name), overall,
+                                    _map_babeldoc_stage(stage_name),
+                                    overall,
                                     stage_name,
                                 )
                         except Exception:  # noqa: BLE001 -- progress never fatal
@@ -519,4 +533,3 @@ def _collect_result_files(result: Any) -> List[Dict[str, str]]:
         seen.add(path)
         files.append({"name": os.path.basename(path), "path": path})
     return files
-

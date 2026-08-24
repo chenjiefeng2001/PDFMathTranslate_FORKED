@@ -49,9 +49,10 @@ class TestCliInputValidation(unittest.TestCase):
     def test_missing_pdf_raises_file_not_found(self):
         from pdf2zh.pdf2zh import main
 
-        with patch("pdf2zh.doclayout.set_backend"), self.assertRaises(
-            FileNotFoundError
-        ) as ctx:
+        with (
+            patch("pdf2zh.doclayout.set_backend"),
+            self.assertRaises(FileNotFoundError) as ctx,
+        ):
             main(["definitely_missing_input.pdf", "--parse-engine", "legacy"])
         self.assertIn("definitely_missing_input.pdf", str(ctx.exception))
 
@@ -59,9 +60,11 @@ class TestCliInputValidation(unittest.TestCase):
         # 非 --dir 模式下目录输入同样是无效 PDF（曾表现为 PermissionError）
         from pdf2zh.pdf2zh import main
 
-        with patch("pdf2zh.doclayout.set_backend"), patch(
-            "pdf2zh.doclayout.ModelInstance"
-        ), self.assertRaises(FileNotFoundError):
+        with (
+            patch("pdf2zh.doclayout.set_backend"),
+            patch("pdf2zh.doclayout.ModelInstance"),
+            self.assertRaises(FileNotFoundError),
+        ):
             main([".", "--parse-engine", "legacy"])
 
 
@@ -84,9 +87,7 @@ class TestDoclayoutModelLazyLoad(unittest.TestCase):
             load_avail.assert_called_once()
 
             # 幂等：单例已有值时不得重复加载
-            with patch(
-                "pdf2zh.doclayout.OnnxModel.load_available"
-            ) as load_avail2:
+            with patch("pdf2zh.doclayout.OnnxModel.load_available") as load_avail2:
                 _ensure_doclayout_model(ns)
             load_avail2.assert_not_called()
         finally:
@@ -101,9 +102,7 @@ class TestDoclayoutModelLazyLoad(unittest.TestCase):
             existing = Mock(name="existing")
             doclayout.ModelInstance.value = existing
             explicit = Mock(name="explicit")
-            with patch(
-                "pdf2zh.doclayout.OnnxModel", return_value=explicit
-            ) as ctor:
+            with patch("pdf2zh.doclayout.OnnxModel", return_value=explicit) as ctor:
                 _ensure_doclayout_model(Mock(onnx="layout.onnx"))
             ctor.assert_called_once_with("layout.onnx")
             self.assertIs(doclayout.ModelInstance.value, explicit)

@@ -10,6 +10,7 @@ PDF → RAW → SEMANTIC → TRANSLATION → RENDER，**全程只有一份
     - 处理器抛错被捕获进 report（绝不让单个节点拖垮整页处理）；
     - 单 IR 断言：run 前后节点 id 集合完全一致（不增不删不改建）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -17,7 +18,9 @@ from typing import Dict, List, Optional
 
 from pdf2zh.v3.graph import DocumentGraph
 from pdf2zh.v3.processors import (
-    NodeStage, ProcessorRegistry, STAGE_KEY,
+    NodeStage,
+    ProcessorRegistry,
+    STAGE_KEY,
     default_processor_registry,
 )
 
@@ -59,8 +62,9 @@ class DocumentPipeline:
     def __init__(self, registry: Optional[ProcessorRegistry] = None) -> None:
         self.registry = registry or default_processor_registry()
 
-    def run(self, graph: DocumentGraph,
-            stages: tuple = DEFAULT_STAGES) -> PipelineReport:
+    def run(
+        self, graph: DocumentGraph, stages: tuple = DEFAULT_STAGES
+    ) -> PipelineReport:
         report = PipelineReport(
             node_count=len(graph.nodes),
             edge_count=len(graph.edges),
@@ -85,34 +89,45 @@ class DocumentPipeline:
         return report
 
 
-def run_semantic_pipeline(graph: DocumentGraph,
-                          registry: Optional[ProcessorRegistry] = None) -> PipelineReport:
+def run_semantic_pipeline(
+    graph: DocumentGraph, registry: Optional[ProcessorRegistry] = None
+) -> PipelineReport:
     """便捷入口：RAW + SEMANTIC 两阶段（翻译/渲染由主链路决策器接管）。"""
-    return DocumentPipeline(registry).run(
-        graph, (NodeStage.RAW, NodeStage.SEMANTIC)
-    )
+    return DocumentPipeline(registry).run(graph, (NodeStage.RAW, NodeStage.SEMANTIC))
 
 
-def view_as_ir(graph: DocumentGraph, title: str = "",
-               source_lang: str = "en", target_lang: str = "zh-cn"):
+def view_as_ir(
+    graph: DocumentGraph,
+    title: str = "",
+    source_lang: str = "en",
+    target_lang: str = "zh-cn",
+):
     """把同一份 DocumentGraph 投影为 DocumentIR 序列化视图（非第二份 IR）。
 
     处理器写入的语义明细（semantic / policy / stage）随节点带过去。
     """
     from pdf2zh.v3.document_ir import IRBuilder
-    ir = IRBuilder.from_graph(graph, title=title, source_lang=source_lang,
-                              target_lang=target_lang)
+
+    ir = IRBuilder.from_graph(
+        graph, title=title, source_lang=source_lang, target_lang=target_lang
+    )
     for node in graph.nodes:
         ir_node = ir.get_node(node.id)
         if ir_node is not None and node.metadata:
-            ir_node.metadata.update({
-                k: v for k, v in node.metadata.items()
-                if k in ("v3.stage", "policy", "semantic", "policy_reasons")
-            })
+            ir_node.metadata.update(
+                {
+                    k: v
+                    for k, v in node.metadata.items()
+                    if k in ("v3.stage", "policy", "semantic", "policy_reasons")
+                }
+            )
     return ir
 
 
 __all__ = [
-    "DEFAULT_STAGES", "PipelineReport", "DocumentPipeline",
-    "run_semantic_pipeline", "view_as_ir",
+    "DEFAULT_STAGES",
+    "PipelineReport",
+    "DocumentPipeline",
+    "run_semantic_pipeline",
+    "view_as_ir",
 ]

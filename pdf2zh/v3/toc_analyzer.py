@@ -21,6 +21,7 @@
 设计约束：纯逻辑、无 I/O、无 fitz/pdfminer；输入 Block[]，输出 TOC 树，
 不修改任何 Parser 代码；与 image_engine / toc_semantics 同风格。
 """
+
 from __future__ import annotations
 
 import logging
@@ -54,8 +55,13 @@ class TOCEntry:
     line: int = 0
 
     def to_dict(self) -> dict:
-        return {"number": self.number, "title": self.title, "page": self.page,
-                "raw": self.raw, "line": self.line}
+        return {
+            "number": self.number,
+            "title": self.title,
+            "page": self.page,
+            "raw": self.raw,
+            "line": self.line,
+        }
 
 
 def parse_entry_text(text: str) -> Optional[TOCEntry]:
@@ -76,22 +82,22 @@ def parse_entry_text(text: str) -> Optional[TOCEntry]:
         if not mf:
             return None
         number = mf.group(1)
-        title_raw = line[mf.end():].strip()
+        title_raw = line[mf.end() :].strip()
     else:
         number = m.group(1)
-        title_raw = line[m.end():].strip()
+        title_raw = line[m.end() :].strip()
     if not title_raw:
         return None
     page = ""
     pm = _RE_TAIL_LEADER_PAGE.search(title_raw)
     if pm:
         page = pm.group(1)
-        title_raw = title_raw[:pm.start()].strip()
+        title_raw = title_raw[: pm.start()].strip()
     else:
         pm2 = _RE_TAIL_SPACE_PAGE.search(title_raw)
         if pm2 and len(pm2.group(1)) <= _PAGE_LEN_MAX:
             page = pm2.group(1)
-            title_raw = title_raw[:pm2.start()].strip()
+            title_raw = title_raw[: pm2.start()].strip()
     title = _RE_STRIP_DOTS.sub("", title_raw).strip(" \t:.-–—")
     if not title:
         return None
@@ -110,11 +116,13 @@ def split_merged_block(block, page_width: float = 0.0) -> List[dict]:
 
     ``block`` 只需提供 ``text``（及可选的 ``lines``，``lines`` 带 ``spans``）。
     """
-    lines = [(getattr(l, "text", "") or "") for l in
-             (getattr(block, "lines", []) or [])]
+    lines = [
+        (getattr(l, "text", "") or "") for l in (getattr(block, "lines", []) or [])
+    ]
     if not lines:
-        lines = [ln for ln in (getattr(block, "text", "") or "").split("\n")
-                 if ln.strip()]
+        lines = [
+            ln for ln in (getattr(block, "text", "") or "").split("\n") if ln.strip()
+        ]
     if not lines:
         return []
 
@@ -133,10 +141,15 @@ def split_merged_block(block, page_width: float = 0.0) -> List[dict]:
                 if (getattr(l_obj, "text", "") or "") == ln:
                     page = _span_geometric_check(l_obj, page_width)
                     break
-        others.append({
-            "number": entry.number, "title": entry.title, "page": page,
-            "raw": entry.raw, "line": i,
-        })
+        others.append(
+            {
+                "number": entry.number,
+                "title": entry.title,
+                "page": page,
+                "raw": entry.raw,
+                "line": i,
+            }
+        )
     # 页码占比护栏：多数命中条目都带页码才判定为目录块
     # （避免「编号标题列表」被误当目录）
     with_page = sum(1 for e in others if e["page"])
@@ -163,8 +176,7 @@ def _span_geometric(line_obj, page_width: float) -> str:
     for span in getattr(line_obj, "spans", []) or []:
         txt = (getattr(span, "text", "") or "").strip()
         x0 = float(getattr(span, "x0", 0.0) or 0.0)
-        if x0 > 0.8 * page_width and txt.isdigit() and \
-                1 <= len(txt) <= _PAGE_LEN_MAX:
+        if x0 > 0.8 * page_width and txt.isdigit() and 1 <= len(txt) <= _PAGE_LEN_MAX:
             return txt
     return ""
 
@@ -173,28 +185,36 @@ def analyze_toc_blocks(blocks, page_width: float = 0.0) -> List[dict]:
     """Block[] → ``[{index, block, entries}]``（纯语义判定，不改块）。"""
     out: List[dict] = []
     for i, block in enumerate(blocks):
-        out.append({"index": i, "block": block,
-                    "entries": split_merged_block(block, page_width)})
+        out.append(
+            {
+                "index": i,
+                "block": block,
+                "entries": split_merged_block(block, page_width),
+            }
+        )
     return out
 
 
 def rebuild_toc_page(page) -> dict:
     """页级目录树重建：块 → 条目 → 层级树（build_toc_tree 视图）。"""
     from pdf2zh.v3.toc_tree import build_toc_tree
+
     records: List[dict] = []
     line = 0
     for be in analyze_toc_blocks(page.blocks, getattr(page, "width", 0.0)):
         for ent in be["entries"]:
             num = ent.get("number", "")
-            records.append({
-                "line": line,
-                "number": num,
-                "title": ent.get("title", ""),
-                "page": ent.get("page", ""),
-                "raw": ent.get("raw", ""),
-                "kind": "section" if "." in num else "chapter",
-                "level": num.count(".") + 1,
-            })
+            records.append(
+                {
+                    "line": line,
+                    "number": num,
+                    "title": ent.get("title", ""),
+                    "page": ent.get("page", ""),
+                    "raw": ent.get("raw", ""),
+                    "kind": "section" if "." in num else "chapter",
+                    "level": num.count(".") + 1,
+                }
+            )
             line += 1
     return build_toc_tree(records)
 
@@ -202,21 +222,24 @@ def rebuild_toc_page(page) -> dict:
 def analyze_toc_result(page) -> dict:
     """页面级目录语义结果：条目 + 块计数 + 树。"""
     from pdf2zh.v3.toc_tree import build_toc_tree
+
     entries: List[dict] = []
     records: List[dict] = []
     line = 0
     for be in analyze_toc_blocks(page.blocks, getattr(page, "width", 0.0)):
         for ent in be["entries"]:
             num = ent.get("number", "")
-            records.append({
-                "line": line,
-                "number": num,
-                "title": ent.get("title", ""),
-                "page": ent.get("page", ""),
-                "raw": ent.get("raw", ""),
-                "kind": "section" if "." in num else "chapter",
-                "level": num.count(".") + 1,
-            })
+            records.append(
+                {
+                    "line": line,
+                    "number": num,
+                    "title": ent.get("title", ""),
+                    "page": ent.get("page", ""),
+                    "raw": ent.get("raw", ""),
+                    "kind": "section" if "." in num else "chapter",
+                    "level": num.count(".") + 1,
+                }
+            )
             line += 1
         entries.extend(be["entries"])
     return {
@@ -226,9 +249,14 @@ def analyze_toc_result(page) -> dict:
     }
 
 
-def render_toc_entry(number: str, title: str, page: str = "",
-                     level: int = 0, leader: str = "...",
-                     lang_out: str = "zh-CN") -> str:
+def render_toc_entry(
+    number: str,
+    title: str,
+    page: str = "",
+    level: int = 0,
+    leader: str = "...",
+    lang_out: str = "zh-CN",
+) -> str:
     """目录条目专用渲染：``title ---- page``（按行，不走段落流）。
 
     ``leader``/``page`` 原样保留（永不翻译）；``level`` 控制缩进。
@@ -286,8 +314,9 @@ def split_toc_blocks(page) -> int:
     return splits
 
 
-def split_merged_toc_paragraphs(conv, ltpage, sstk, pstk, toc_track,
-                                page_width: float = 0.0) -> dict:
+def split_merged_toc_paragraphs(
+    conv, ltpage, sstk, pstk, toc_track, page_width: float = 0.0
+) -> dict:
     """V1.17-3：legacy 渲染路径 —— 把合并目录段按物理行重切（side-channel）。
 
     ``receive_layout`` 的字符循环把「无点线页码列」的多条目录行并成一个
@@ -337,8 +366,7 @@ def split_merged_toc_paragraphs(conv, ltpage, sstk, pstk, toc_track,
         p = pstk[i]
         # 段落 bbox 内的物理行（PDF 坐标 y 向上）
         pad = max(1.0, p.size * 0.5)
-        inner = [r for r in rows
-                 if r["y1"] >= p.y0 - pad and r["y0"] <= p.y1 + pad]
+        inner = [r for r in rows if r["y1"] >= p.y0 - pad and r["y0"] <= p.y1 + pad]
         inner.sort(key=lambda r: -r["y0"])
         if len(inner) < 2:
             continue
@@ -361,18 +389,34 @@ def split_merged_toc_paragraphs(conv, ltpage, sstk, pstk, toc_track,
         texts, paras, tracks = [], [], []
         for r, e in zip(inner, entries):
             texts.append(r["text"])
-            paras.append(AdoptedParagraph(
-                y=r["y0"], x=r["x0"], x0=r["x0"], x1=r["x1"],
-                y0=r["y0"], y1=r["y1"], size=r["size"], brk=False,
-            ))
-            tracks.append([(c, a, b) for c, a, b in r["chars"]
-                           if c in TOC_LEADER_CHARS or c.isdigit()])
+            paras.append(
+                AdoptedParagraph(
+                    y=r["y0"],
+                    x=r["x0"],
+                    x0=r["x0"],
+                    x1=r["x1"],
+                    y0=r["y0"],
+                    y1=r["y1"],
+                    size=r["size"],
+                    brk=False,
+                )
+            )
+            tracks.append(
+                [
+                    (c, a, b)
+                    for c, a, b in r["chars"]
+                    if c in TOC_LEADER_CHARS or c.isdigit()
+                ]
+            )
         sstk[i : i + 1] = texts
         pstk[i : i + 1] = paras
         toc_track[i : i + 1] = tracks
         split_count += 1
-    return {"page": pageid, "split": split_count,
-            "reason": "ok" if split_count else "none"}
+    return {
+        "page": pageid,
+        "split": split_count,
+        "reason": "ok" if split_count else "none",
+    }
 
 
 def _physical_rows(chars) -> List[dict]:
@@ -404,20 +448,30 @@ def _physical_rows(chars) -> List[dict]:
         if not text.strip():
             continue
         chs = [c for w in ws for c in w.chars]
-        rows.append({
-            "text": text,
-            "x0": min(w.x0 for w in ws), "y0": min(w.y0 for w in ws),
-            "x1": max(w.x1 for w in ws), "y1": max(w.y1 for w in ws),
-            "size": max(w.size for w in ws),
-            "chars": [(c.text, c.x0, c.x1) for c in chs],
-        })
+        rows.append(
+            {
+                "text": text,
+                "x0": min(w.x0 for w in ws),
+                "y0": min(w.y0 for w in ws),
+                "x1": max(w.x1 for w in ws),
+                "y1": max(w.y1 for w in ws),
+                "size": max(w.size for w in ws),
+                "chars": [(c.text, c.x0, c.x1) for c in chs],
+            }
+        )
     rows.sort(key=lambda r: -r["y0"])
     return rows
 
 
 __all__ = [
-    "TOCEntry", "parse_entry_text", "split_merged_block",
-    "analyze_toc_blocks", "split_toc_blocks", "rebuild_toc_page",
-    "analyze_toc_result", "render_toc_entry",
-    "split_merged_toc_paragraphs", "_physical_rows",
+    "TOCEntry",
+    "parse_entry_text",
+    "split_merged_block",
+    "analyze_toc_blocks",
+    "split_toc_blocks",
+    "rebuild_toc_page",
+    "analyze_toc_result",
+    "render_toc_entry",
+    "split_merged_toc_paragraphs",
+    "_physical_rows",
 ]

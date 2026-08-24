@@ -14,75 +14,134 @@
 - D8 InspectorGUI：自包含 HTML（树/Overlay/生命周期/决策/诊断）+ 注入防护；
 - D9 Regression：快照哈希基线 + 目录 diff + 回归报告。
 """
+
 import json
 import os
 import tempfile
 import unittest
 
 from pdf2zh.v3.canonical_page import (
-    BlockModel, GlyphModel, LineModel, PageModel, SpanModel,
+    BlockModel,
+    GlyphModel,
+    LineModel,
+    PageModel,
+    SpanModel,
 )
 from pdf2zh.v3.document_model import DocumentModel
 from pdf2zh.v3.inspector_view import (
-    build_inspector_html, build_inspector_html_from_bundle,
+    build_inspector_html,
+    build_inspector_html_from_bundle,
 )
 from pdf2zh.v3.layout_debug import (
-    line_metrics_from_page, line_metrics_from_snapshot, metrics_json,
+    line_metrics_from_page,
+    line_metrics_from_snapshot,
+    metrics_json,
     render_svg as layout_svg,
 )
 from pdf2zh.v3.observability import (
-    DecisionLog, DiagnosticEngine, DocumentID, NodeID, ObsSession,
-    SnapshotStore, TraceContext, capture_snapshot, make_session,
+    DecisionLog,
+    DiagnosticEngine,
+    DocumentID,
+    NodeID,
+    ObsSession,
+    SnapshotStore,
+    TraceContext,
+    capture_snapshot,
+    make_session,
     new_document_id,
 )
 from pdf2zh.v3.overlay_view import (
-    overlay_for_page, overlay_from_snapshot, render_svg as overlay_svg,
+    overlay_for_page,
+    overlay_from_snapshot,
+    render_svg as overlay_svg,
 )
 from pdf2zh.v3.pass_diff import (
-    diff_json, diff_snapshots, render_diff_report,
+    diff_json,
+    diff_snapshots,
+    render_diff_report,
 )
 from pdf2zh.v3.regression import (
-    build_baseline_dir, diff_baselines, diff_records, record_session,
-    run_snapshot_regression, snapshot_hash,
+    build_baseline_dir,
+    diff_baselines,
+    diff_records,
+    record_session,
+    run_snapshot_regression,
+    snapshot_hash,
 )
 from pdf2zh.v3.replay import (
-    ReplaySystem, StageInputStore, TranslationMemo,
+    ReplaySystem,
+    StageInputStore,
+    TranslationMemo,
 )
-
 
 # ── 合成 fixtures（无 PDF） ─────────────────────────────────────────────
 
 
 def make_glyph(text, x, y, size=10.0, decode="ok"):
-    return GlyphModel(char=text, cid=ord(text[0]), font="Helvetica",
-                      size=size, x0=x, y0=y, x1=x + size * 0.6,
-                      y1=y + size, decode=decode)
+    return GlyphModel(
+        char=text,
+        cid=ord(text[0]),
+        font="Helvetica",
+        size=size,
+        x0=x,
+        y0=y,
+        x1=x + size * 0.6,
+        y1=y + size,
+        decode=decode,
+    )
 
 
 def make_span(text, x, y, size=10.0, decode="ok"):
-    return SpanModel(font="Helvetica", size=size, text=text,
-                     x0=x, y0=y, x1=x + size * 0.6 * len(text),
-                     y1=y + size,
-                     glyphs=[make_glyph(c, x + i * size * 0.6, y, size, decode)
-                             for i, c in enumerate(text)])
+    return SpanModel(
+        font="Helvetica",
+        size=size,
+        text=text,
+        x0=x,
+        y0=y,
+        x1=x + size * 0.6 * len(text),
+        y1=y + size,
+        glyphs=[
+            make_glyph(c, x + i * size * 0.6, y, size, decode)
+            for i, c in enumerate(text)
+        ],
+    )
 
 
 def make_line(text, x0, y0, x1, y1, baseline, size=10.0, decode="ok"):
-    return LineModel(text=text, baseline=baseline,
-                     x0=x0, y0=y0, x1=x1, y1=y1,
-                     spans=[make_span(text, x0, y0, size, decode)])
+    return LineModel(
+        text=text,
+        baseline=baseline,
+        x0=x0,
+        y0=y0,
+        x1=x1,
+        y1=y1,
+        spans=[make_span(text, x0, y0, size, decode)],
+    )
 
 
-def make_block(kind, text, x0=50.0, y0=100.0, x1=500.0, y1=120.0,
-               lines=None, metadata=None):
+def make_block(
+    kind, text, x0=50.0, y0=100.0, x1=500.0, y1=120.0, lines=None, metadata=None
+):
     lines = lines or [make_line(text, x0, y0, x1, y1, baseline=y0 + 8.0)]
-    return BlockModel(text=text, kind=kind, x0=x0, y0=y0, x1=x1, y1=y1,
-                      lines=lines, metadata=dict(metadata or {}))
+    return BlockModel(
+        text=text,
+        kind=kind,
+        x0=x0,
+        y0=y0,
+        x1=x1,
+        y1=y1,
+        lines=lines,
+        metadata=dict(metadata or {}),
+    )
 
 
 def make_page(pno=1, blocks=None, w=600.0, h=800.0):
-    return PageModel(page_num=pno, width=w, height=h,
-                     blocks=blocks or [make_block("paragraph", "hello world")])
+    return PageModel(
+        page_num=pno,
+        width=w,
+        height=h,
+        blocks=blocks or [make_block("paragraph", "hello world")],
+    )
 
 
 def make_document(pages=None):
@@ -91,18 +150,40 @@ def make_document(pages=None):
 
 def role_page():
     """每角色一块，验证 D3 着色。"""
-    return make_page(pno=1, blocks=[
-        make_block("heading", "Chapter 1", y0=740.0, y1=760.0,
-                   metadata={"role": "heading"}),
-        make_block("toc", "1.1 引言 ........ 3", y0=710.0, y1=725.0,
-                   metadata={"role": "toc"}),
-        make_block("formula", "E = mc^2", y0=680.0, y1=700.0,
-                   metadata={"role": "formula", "formula_density": 0.9}),
-        make_block("image", "", y0=600.0, y1=660.0, x0=400.0, x1=560.0,
-                   metadata={"role": "image"}),
-        make_block("caption", "Fig 1", y0=590.0, y1=600.0,
-                   metadata={"role": "caption"}),
-    ])
+    return make_page(
+        pno=1,
+        blocks=[
+            make_block(
+                "heading", "Chapter 1", y0=740.0, y1=760.0, metadata={"role": "heading"}
+            ),
+            make_block(
+                "toc",
+                "1.1 引言 ........ 3",
+                y0=710.0,
+                y1=725.0,
+                metadata={"role": "toc"},
+            ),
+            make_block(
+                "formula",
+                "E = mc^2",
+                y0=680.0,
+                y1=700.0,
+                metadata={"role": "formula", "formula_density": 0.9},
+            ),
+            make_block(
+                "image",
+                "",
+                y0=600.0,
+                y1=660.0,
+                x0=400.0,
+                x1=560.0,
+                metadata={"role": "image"},
+            ),
+            make_block(
+                "caption", "Fig 1", y0=590.0, y1=600.0, metadata={"role": "caption"}
+            ),
+        ],
+    )
 
 
 class TestD0TraceContext(unittest.TestCase):
@@ -256,11 +337,11 @@ class TestD3Overlay(unittest.TestCase):
     def test_role_colors(self):
         recs = overlay_for_page(role_page())
         by_kind = {r.kind: r.color for r in recs}
-        self.assertEqual(by_kind["heading"], "#2e7d32")   # 绿
-        self.assertEqual(by_kind["toc"], "#1565c0")       # 蓝
-        self.assertEqual(by_kind["formula"], "#f9a825")   # 黄
-        self.assertEqual(by_kind["image"], "#c62828")     # 红
-        self.assertEqual(by_kind["caption"], "#00838f")   # 青
+        self.assertEqual(by_kind["heading"], "#2e7d32")  # 绿
+        self.assertEqual(by_kind["toc"], "#1565c0")  # 蓝
+        self.assertEqual(by_kind["formula"], "#f9a825")  # 黄
+        self.assertEqual(by_kind["image"], "#c62828")  # 红
+        self.assertEqual(by_kind["caption"], "#00838f")  # 青
         self.assertEqual(len(recs), 5)
 
     def test_zero_bbox_skipped(self):
@@ -287,13 +368,13 @@ class TestD3Overlay(unittest.TestCase):
 
 def overlay_view_html(recs):
     from pdf2zh.v3.overlay_view import render_html
+
     return render_html(recs, 600.0, 800.0)
 
 
 class TestD4LayoutDebug(unittest.TestCase):
     def test_line_metrics_with_glyphs(self):
-        block = make_block("paragraph", "abc", x0=50.0, y0=100.0, x1=120.0,
-                           y1=110.0)
+        block = make_block("paragraph", "abc", x0=50.0, y0=100.0, x1=120.0, y1=110.0)
         line = block.lines[0]
         line.baseline = 108.0  # glyph y1=110（顶） y0=100（底）
         line.y0, line.y1 = 100.0, 110.0
@@ -303,7 +384,7 @@ class TestD4LayoutDebug(unittest.TestCase):
         self.assertEqual(m.node_id, "P1::B0::L0")
         self.assertEqual(m.baseline, 108.0)
         self.assertAlmostEqual(m.line_height, 10.0)
-        self.assertAlmostEqual(m.ascender, 2.0)   # 110 - 108
+        self.assertAlmostEqual(m.ascender, 2.0)  # 110 - 108
         self.assertAlmostEqual(m.descender, 8.0)  # 108 - 100
         self.assertEqual(m.glyph_count, 3)
 
@@ -319,8 +400,8 @@ class TestD4LayoutDebug(unittest.TestCase):
         ms = line_metrics_from_page(make_page(blocks=[block]))
         svg = layout_svg(ms, 600.0, 800.0)
         self.assertIn("<svg", svg)
-        self.assertIn('stroke="#e53935"', svg)   # 基线红
-        self.assertIn('stroke="#8e24aa"', svg)   # asc/desc 紫
+        self.assertIn('stroke="#e53935"', svg)  # 基线红
+        self.assertIn('stroke="#8e24aa"', svg)  # asc/desc 紫
         data = json.loads(metrics_json(ms))
         self.assertEqual(len(data), 1)
         self.assertIn("baseline", data[0])
@@ -329,9 +410,13 @@ class TestD4LayoutDebug(unittest.TestCase):
 class TestD5DecisionLog(unittest.TestCase):
     def test_record_with_evidence(self):
         log = DecisionLog()
-        rec = log.record("DOC_x::P1::B0", "translate:on",
-                         evidence={"structure": 0.9, "formula": 0.2},
-                         source="toc_gate", stage="semantic")
+        rec = log.record(
+            "DOC_x::P1::B0",
+            "translate:on",
+            evidence={"structure": 0.9, "formula": 0.2},
+            source="toc_gate",
+            stage="semantic",
+        )
         self.assertEqual(rec.node_id, "DOC_x::P1::B0")
         self.assertGreaterEqual(rec.confidence, 0.0)
         self.assertLessEqual(rec.confidence, 0.99)
@@ -339,12 +424,13 @@ class TestD5DecisionLog(unittest.TestCase):
 
     def test_query_by_node_and_stage(self):
         log = DecisionLog()
-        log.record("DOC_x::P1::B0", "translate:on", evidence={"a": 0.9},
-                   stage="semantic")
-        log.record("DOC_x::P1::B0", "render:toc", evidence={"a": 0.8},
-                   stage="render")
-        log.record("DOC_x::P1::B1", "translate:off", evidence={"a": 0.1},
-                   stage="semantic")
+        log.record(
+            "DOC_x::P1::B0", "translate:on", evidence={"a": 0.9}, stage="semantic"
+        )
+        log.record("DOC_x::P1::B0", "render:toc", evidence={"a": 0.8}, stage="render")
+        log.record(
+            "DOC_x::P1::B1", "translate:off", evidence={"a": 0.1}, stage="semantic"
+        )
         self.assertEqual(len(log.for_node("DOC_x::P1::B0")), 2)
         self.assertEqual(len(log.stage_records("semantic")), 2)
         data = log.to_dict()
@@ -354,9 +440,11 @@ class TestD5DecisionLog(unittest.TestCase):
 class TestD6DiagnosticEngine(unittest.TestCase):
     def test_low_confidence_toc_warning(self):
         engine = DiagnosticEngine()
-        block = make_block("toc", "1.1 Intro ...... 3",
-                           metadata={"kind": "toc", "toc_confidence": 0.3,
-                                     "toc_scan": True})
+        block = make_block(
+            "toc",
+            "1.1 Intro ...... 3",
+            metadata={"kind": "toc", "toc_confidence": 0.3, "toc_scan": True},
+        )
         doc = make_document([make_page(blocks=[block])])
         engine.run(doc)
         text = engine.format_report()
@@ -369,9 +457,14 @@ class TestD6DiagnosticEngine(unittest.TestCase):
 
     def test_format_issue_style(self):
         from pdf2zh.v3.diagnostics import DiagnosticIssue
-        issue = DiagnosticIssue(code="x", node_id="p1_2", page=18,
-                                message="Formula may overlap page",
-                                severity="warning")
+
+        issue = DiagnosticIssue(
+            code="x",
+            node_id="p1_2",
+            page=18,
+            message="Formula may overlap page",
+            severity="warning",
+        )
         line = engine_format(issue)
         self.assertEqual(line, "warning: Page 18: Formula may overlap page [p1_2]")
 
@@ -401,7 +494,7 @@ class TestD7Replay(unittest.TestCase):
             try:
                 return m.translate(src)
             except KeyError:
-                engine_calls["n"] += 1       # 只有 miss 才真正翻译
+                engine_calls["n"] += 1  # 只有 miss 才真正翻译
                 dst = "你好"
                 m.store(src, dst)
                 return dst
@@ -409,7 +502,7 @@ class TestD7Replay(unittest.TestCase):
         sys = ReplaySystem(store, memo)
         r1 = sys.replay("translation", fn)
         r2 = sys.replay("translation", fn)
-        self.assertEqual(engine_calls["n"], 1)   # 第二次回放零翻译调用
+        self.assertEqual(engine_calls["n"], 1)  # 第二次回放零翻译调用
         self.assertEqual(r1.translated, 1)
         self.assertEqual(r2.memo_hits, 1)
         self.assertEqual(r2.failed, 0)
@@ -427,14 +520,21 @@ class TestD7Replay(unittest.TestCase):
 class TestD8Inspector(unittest.TestCase):
     def _bundle(self):
         tr = TraceContext("DOC_insp")
-        blocks = [make_block("heading", "Ch 1", y0=740.0, y1=760.0),
-                  make_block("toc", "1.1 x ..... 3", y0=710.0, y1=725.0)]
+        blocks = [
+            make_block("heading", "Ch 1", y0=740.0, y1=760.0),
+            make_block("toc", "1.1 x ..... 3", y0=710.0, y1=725.0),
+        ]
         store = SnapshotStore("DOC_insp", trace=tr)
         store.add_stage(make_page(blocks=blocks), "layout")
         log = DecisionLog()
-        log.record("DOC_insp::P1::B0", "translate:on",
-                   evidence={"structure": 0.9}, stage="layout")
+        log.record(
+            "DOC_insp::P1::B0",
+            "translate:on",
+            evidence={"structure": 0.9},
+            stage="layout",
+        )
         from pdf2zh.v3.diagnostics import DiagnosticReport
+
         diag = DiagnosticEngine()
         diag.report = DiagnosticReport(issues=[])
         return store, log.to_dict(), diag.to_dict()
@@ -442,8 +542,11 @@ class TestD8Inspector(unittest.TestCase):
     def test_html_contains_parts(self):
         store, dec, diag = self._bundle()
         html = build_inspector_html(
-            store, decisions=dec, diagnostics=diag,
-            overlays=[{"page": "Page 1", "svg": "<svg/>"}])
+            store,
+            decisions=dec,
+            diagnostics=diag,
+            overlays=[{"page": "Page 1", "svg": "<svg/>"}],
+        )
         self.assertIn("<!doctype html>", html)
         self.assertIn("DOC_insp", html)
         self.assertIn("layout", html)
@@ -485,6 +588,7 @@ class TestD9Regression(unittest.TestCase):
 
     def test_build_and_diff_consistent(self):
         import copy
+
         with tempfile.TemporaryDirectory() as d:
             build_baseline_dir(d, [("doc_a", self._snaps("a"))])
             a = _load(os.path.join(d, "doc_a.obs.json"))
@@ -492,13 +596,13 @@ class TestD9Regression(unittest.TestCase):
             self.assertTrue(diff_records(a, b)["consistent"])
             b["hashes"]["render_a"] = "deadbeef"
             self.assertFalse(diff_records(a, b)["consistent"])
-            self.assertEqual(diff_records(a, b)["changed_stages"],
-                             {"render_a": {"a": a["hashes"]["render_a"],
-                                           "b": "deadbeef"}})
+            self.assertEqual(
+                diff_records(a, b)["changed_stages"],
+                {"render_a": {"a": a["hashes"]["render_a"], "b": "deadbeef"}},
+            )
 
     def test_diff_baselines_dirs(self):
-        with tempfile.TemporaryDirectory() as a, \
-                tempfile.TemporaryDirectory() as b:
+        with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
             build_baseline_dir(a, [("d1", self._snaps("a"))])
             build_baseline_dir(b, [("d1", self._snaps("b"))])
             diffs = diff_baselines(a, b)
@@ -512,9 +616,9 @@ class TestD9Regression(unittest.TestCase):
             rep = run_snapshot_regression([("ok", self._snaps("a"))], d)
             self.assertTrue(rep.results[0].passed)
             rep2 = run_snapshot_regression([("new", self._snaps("a"))], d)
-            self.assertFalse(rep2.results[0].passed)   # 缺失基线
+            self.assertFalse(rep2.results[0].passed)  # 缺失基线
             rep3 = run_snapshot_regression([("ok", self._snaps("b"))], d)
-            self.assertFalse(rep3.results[0].passed)   # 内容漂移
+            self.assertFalse(rep3.results[0].passed)  # 内容漂移
             self.assertIn("Regression", rep.summary())
 
     def test_record_session(self):
@@ -523,8 +627,7 @@ class TestD9Regression(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             rec = record_session("s1", session.bundle(), d)
             self.assertEqual(rec["stem"], "s1")
-            self.assertTrue(os.path.exists(
-                os.path.join(d, "s1.snapshots.json")))
+            self.assertTrue(os.path.exists(os.path.join(d, "s1.snapshots.json")))
             self.assertTrue(os.path.exists(os.path.join(d, "s1.obs.json")))
 
 
@@ -532,8 +635,9 @@ class TestObsSession(unittest.TestCase):
     def test_session_bundle(self):
         session = ObsSession("DOC_z")
         session.capture(make_page(), "parse")
-        session.record("DOC_z::P1::B0", "keep",
-                       evidence={"structure": 0.8}, stage="parse")
+        session.record(
+            "DOC_z::P1::B0", "keep", evidence={"structure": 0.8}, stage="parse"
+        )
         session.diagnose(make_document())
         bundle = session.bundle()
         self.assertEqual(bundle["doc_id"], "DOC_z")

@@ -158,7 +158,9 @@ class TaskCoordinator:
                         broken_chunks.append(idx)
                         logger.warning(
                             "Parallel worker pool crashed (%s); chunk %d "
-                            "queued for serial fallback", str(bpp)[:120], idx,
+                            "queued for serial fallback",
+                            str(bpp)[:120],
+                            idx,
                         )
                         continue
                     except Exception as exc:  # noqa: BLE001
@@ -314,7 +316,10 @@ class TaskCoordinator:
             retry_left[idx] -= 1
             logger.warning(
                 "Parallel chunk %d %s (%s); retrying (%d left)",
-                idx, kind, str(exc)[:120], retry_left[idx],
+                idx,
+                kind,
+                str(exc)[:120],
+                retry_left[idx],
             )
             pending.insert(0, idx)
             manifest.chunk_status[idx] = "pending"
@@ -323,6 +328,7 @@ class TaskCoordinator:
         serial_indices.append(idx)
         logger.warning(
             "Parallel chunk %d %s permanently (%s); queued for serial fallback",
-            idx, kind, str(exc)[:120],
+            idx,
+            kind,
+            str(exc)[:120],
         )
-

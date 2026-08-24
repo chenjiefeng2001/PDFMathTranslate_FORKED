@@ -9,6 +9,7 @@
 
 JSON 以 ``\\u003c`` 转义后嵌入 <script>，杜绝 `</script>` 注入。
 """
+
 from __future__ import annotations
 
 import json
@@ -54,39 +55,51 @@ def _node_lifecycle(snapshots: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             na, nb = by_stage[a].get(nid, {}), by_stage[b].get(nid, {})
             present[a] = bool(na)
             if na and nb:
-                r = diff_snapshots({"nodes": {nid: na}},
-                                   {"nodes": {nid: nb}})
+                r = diff_snapshots({"nodes": {nid: na}}, {"nodes": {nid: nb}})
                 for e in r.entries:
                     if e.kind == "changed":
-                        diffs.append({"from": a, "to": b,
-                                      "field": e.field,
-                                      "before": e.before, "after": e.after})
+                        diffs.append(
+                            {
+                                "from": a,
+                                "to": b,
+                                "field": e.field,
+                                "before": e.before,
+                                "after": e.after,
+                            }
+                        )
         present[stages[-1]] = bool(by_stage[stages[-1]].get(nid, {}))
         latest = by_stage[stages[-1]].get(nid, {}) if stages else {}
         out[nid] = {"payload": latest, "present": present, "diffs": diffs[:50]}
     return out
 
 
-def build_inspector_html(snapshot_store: Any,
-                         decisions: Optional[Dict[str, Any]] = None,
-                         diagnostics: Optional[Dict[str, Any]] = None,
-                         overlays: Optional[List[Dict[str, str]]] = None,
-                         title: str = "Document Inspector") -> str:
+def build_inspector_html(
+    snapshot_store: Any,
+    decisions: Optional[Dict[str, Any]] = None,
+    diagnostics: Optional[Dict[str, Any]] = None,
+    overlays: Optional[List[Dict[str, str]]] = None,
+    title: str = "Document Inspector",
+) -> str:
     """组装自包含 Inspector HTML。
 
     ``snapshot_store``：SnapshotStore 实例或 ``store.to_dict()``；
     ``overlays``：``[{"page": "Page 1", "svg": "<svg .../>"}]``。
     """
-    snap = (snapshot_store.to_dict()
-            if hasattr(snapshot_store, "to_dict") else snapshot_store)
+    snap = (
+        snapshot_store.to_dict()
+        if hasattr(snapshot_store, "to_dict")
+        else snapshot_store
+    )
     data = {
         "doc_id": snap.get("doc_id", ""),
         "stages": snap.get("stages", []),
         "lifecycle": _node_lifecycle(snap),
         "decisions": decisions or {"counts": {}, "records": []},
-        "diagnostics": (diagnostics
-                        if isinstance(diagnostics, dict) else
-                        {"errors": 0, "warnings": 0, "issues": []}),
+        "diagnostics": (
+            diagnostics
+            if isinstance(diagnostics, dict)
+            else {"errors": 0, "warnings": 0, "issues": []}
+        ),
         "overlays": overlays or [],
     }
     payload = _js_escape(json.dumps(data, ensure_ascii=False))
@@ -179,16 +192,24 @@ pg.onchange=renderOverlay;renderOverlay();renderTree('');
 </script></body></html>"""
 
 
-def build_inspector_html_from_bundle(bundle: Dict[str, Any],
-                                     overlays: Optional[List[Dict[str, str]]] = None,
-                                     title: str = "Document Inspector") -> str:
+def build_inspector_html_from_bundle(
+    bundle: Dict[str, Any],
+    overlays: Optional[List[Dict[str, str]]] = None,
+    title: str = "Document Inspector",
+) -> str:
     """从 ObsSession.bundle() 直接组装（mainline side-channel 出口）。"""
     return build_inspector_html(
         bundle.get("snapshots") or {},
         decisions=bundle.get("decisions"),
         diagnostics=bundle.get("diagnostics"),
-        overlays=overlays, title=title)
+        overlays=overlays,
+        title=title,
+    )
 
 
-__all__ = ["build_inspector_html", "build_inspector_html_from_bundle",
-           "_block_bid_of", "_node_lifecycle"]
+__all__ = [
+    "build_inspector_html",
+    "build_inspector_html_from_bundle",
+    "_block_bid_of",
+    "_node_lifecycle",
+]

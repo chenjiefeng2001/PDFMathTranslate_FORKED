@@ -22,7 +22,6 @@ from pdf2zh.magicpdf_adapter import (
     MagicPdfParseError,
 )
 
-
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -148,24 +147,21 @@ def test_parse_routes_to_subprocess_when_override_set(
 
     # 指向一个真实存在的解释器（runner 已打桩，不会真正执行）
     monkeypatch.setenv("PDF2ZH_MINERU_PYTHON", sys.executable)
-    monkeypatch.setattr(
-        "pdf2zh.magicpdf_adapter._run_mineru_process", fake_run
-    )
+    monkeypatch.setattr("pdf2zh.magicpdf_adapter._run_mineru_process", fake_run)
     results = _fake_backend_mineru.parse(
-        __file__, progress_cb=lambda d: None,
+        __file__,
+        progress_cb=lambda d: None,
     )
 
     assert seen["cmd"][1].endswith("mineru_worker.py")
-    assert seen["cmd"][4] == "auto"          # parse_method 非 OCR 默认
-    assert seen["timeout"] >= 3600           # torch 系安装/解析的宽松超时
+    assert seen["cmd"][4] == "auto"  # parse_method 非 OCR 默认
+    assert seen["timeout"] >= 3600  # torch 系安装/解析的宽松超时
     assert len(results) == 1
     assert results[0].text() == "subprocess ok"
     assert results[0].backend == "mineru"
 
 
-def test_parse_subprocess_uses_ocr_flag(
-    _fake_backend_mineru, monkeypatch, tmp_path
-):
+def test_parse_subprocess_uses_ocr_flag(_fake_backend_mineru, monkeypatch, tmp_path):
     def fake_run(cmd, timeout):
         assert cmd[4] == "ocr"
         out_dir = cmd[3]
@@ -179,11 +175,11 @@ def test_parse_subprocess_uses_ocr_flag(
             _json.dump(_MIDDLE, fh)
         return _FakeCompleted()
 
-    monkeypatch.setattr(
-        "pdf2zh.magicpdf_adapter._run_mineru_process", fake_run
-    )
+    monkeypatch.setattr("pdf2zh.magicpdf_adapter._run_mineru_process", fake_run)
     results = MagicPdfAdapter()._parse_mineru_subprocess(  # type: ignore[arg-type]
-        __file__, ocr=True, python_exe="unused-python",
+        __file__,
+        ocr=True,
+        python_exe="unused-python",
         out_dir=str(tmp_path / "out"),
     )
     assert results and results[0].blocks
@@ -202,7 +198,9 @@ def test_parse_subprocess_failure_raises(tmp_path):
     try:
         with pytest.raises(MagicPdfParseError, match="six"):
             MagicPdfAdapter()._parse_mineru_subprocess(  # type: ignore[arg-type]
-                __file__, ocr=False, python_exe="unused-python",
+                __file__,
+                ocr=False,
+                python_exe="unused-python",
                 out_dir=str(tmp_path / "out"),
             )
     finally:

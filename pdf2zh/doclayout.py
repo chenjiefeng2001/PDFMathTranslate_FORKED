@@ -45,7 +45,8 @@ def ort_log_severity() -> int:
             logger.warning(
                 "Ignoring invalid PDF2ZH_ORT_LOG_SEVERITY=%r "
                 "(expected integer 0-4); using default %d",
-                raw, _ORT_LOG_SEVERITY_DEFAULT,
+                raw,
+                _ORT_LOG_SEVERITY_DEFAULT,
             )
     return _ORT_LOG_SEVERITY_DEFAULT
 
@@ -185,7 +186,9 @@ def get_backend() -> str | None:
 
 
 def warn_gpu_unavailable(
-    backend: str, wanted: list[str], available: list[str],
+    backend: str,
+    wanted: list[str],
+    available: list[str],
 ) -> None:
     """Log a clear warning when an explicit GPU backend silently falls back to CPU.
 
@@ -218,12 +221,17 @@ def warn_gpu_unavailable(
     logger.warning(
         "Backend '%s' requested but no GPU provider is available "
         "(wanted %s; available: %s); falling back to CPU. To enable GPU: %s",
-        backend, wanted, available, hint,
+        backend,
+        wanted,
+        available,
+        hint,
     )
 
 
 def warn_gpu_session_fallback(
-    backend: str, requested: list[str], effective: list[str],
+    backend: str,
+    requested: list[str],
+    effective: list[str],
 ) -> None:
     """Log a clear warning when an ONNX session fell back to CPU at creation.
 
@@ -250,7 +258,10 @@ def warn_gpu_session_fallback(
     logger.warning(
         "Backend '%s' was requested but the ONNX session fell back to CPU "
         "(requested %s; effective %s): %s",
-        backend, requested, effective, hint,
+        backend,
+        requested,
+        effective,
+        hint,
     )
 
 
@@ -319,15 +330,19 @@ def _build_probe_model_bytes() -> bytes | None:
     x = helper.make_tensor_value_info("x", TensorProto.FLOAT, [1, 3, 64, 64])
     y = helper.make_tensor_value_info("y", TensorProto.FLOAT, [1, 3, 64, 64])
     w = helper.make_tensor(
-        "w", TensorProto.FLOAT, [3, 3, 3, 3], [0.1] * 81,
+        "w",
+        TensorProto.FLOAT,
+        [3, 3, 3, 3],
+        [0.1] * 81,
     )
     node = helper.make_node(
-        "Conv", ["x", "w"], ["y"], pads=[1, 1, 1, 1],
+        "Conv",
+        ["x", "w"],
+        ["y"],
+        pads=[1, 1, 1, 1],
     )
     graph = helper.make_graph([node], "probe_conv", [x], [y], [w])
-    model = helper.make_model(
-        graph, opset_imports=[helper.make_opsetid("", 11)]
-    )
+    model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 11)])
     # 旧版 onnxruntime（1.20.x）只支持 IR version <= 10；新版 onnx 默认
     # IR 可能更高，若不降级探针本身会创建失败，误报 GPU 不可用。
     model.ir_version = min(model.ir_version, 10)
@@ -359,7 +374,9 @@ def _probe_providers(providers: list[str]) -> list[str]:
         opts.enable_profiling = True
         opts.log_severity_level = ort_log_severity()
         sess = onnxruntime.InferenceSession(
-            model_bytes, opts, providers=list(providers),
+            model_bytes,
+            opts,
+            providers=list(providers),
         )
         sess.run(None, {"x": np.zeros((1, 3, 64, 64), dtype=np.float32)})
         profile_path = sess.end_profiling()
@@ -508,15 +525,23 @@ def _executable_alternative_providers(backend: str) -> tuple[str, list[str]] | N
 
 
 def _warn_gpu_substituted(
-    backend: str, wanted: list[str], available: list[str],
-    alt_backend: str, providers: list[str],
+    backend: str,
+    wanted: list[str],
+    available: list[str],
+    alt_backend: str,
+    providers: list[str],
 ) -> None:
     """请求的 GPU 后端不可用、已切换到另一可执行 GPU 后端时的统一警告。"""
     logger.warning(
         "Backend '%s' requested but its GPU provider is not usable "
         "(wanted %s; available: %s); falling back to the executable "
         "'%s' backend (%s). Pin '--backend %s' to make this choice explicit.",
-        backend, wanted, available, alt_backend, providers, alt_backend,
+        backend,
+        wanted,
+        available,
+        alt_backend,
+        providers,
+        alt_backend,
     )
 
 
@@ -535,9 +560,7 @@ def get_runtime_provider_status() -> dict:
         return dict(_runtime_provider_status_cache)
     available = _ort_available_providers()
     exec_gpu = _exec_gpu_providers()
-    effective = [
-        p for p in available if p == "CPUExecutionProvider" or p in exec_gpu
-    ]
+    effective = [p for p in available if p == "CPUExecutionProvider" or p in exec_gpu]
     result = {
         "onnxruntime": getattr(onnxruntime, "__version__", "unknown"),
         "available": list(available),
@@ -574,7 +597,11 @@ def resolve_providers(backend: str | None) -> list[str]:
                 alt = _executable_alternative_providers(backend)
                 if alt is not None:
                     _warn_gpu_substituted(
-                        backend, wanted, available, alt[0], alt[1],
+                        backend,
+                        wanted,
+                        available,
+                        alt[0],
+                        alt[1],
                     )
                     return alt[1]
                 warn_gpu_unavailable(backend, wanted, available)
@@ -592,18 +619,25 @@ def resolve_providers(backend: str | None) -> list[str]:
                     alt = _executable_alternative_providers(backend)
                     if alt is not None:
                         _warn_gpu_substituted(
-                            backend, wanted, available, alt[0], alt[1],
+                            backend,
+                            wanted,
+                            available,
+                            alt[0],
+                            alt[1],
                         )
                         return alt[1]
                     warn_gpu_session_fallback(
-                        backend, usable, cpu_only or ["CPUExecutionProvider"],
+                        backend,
+                        usable,
+                        cpu_only or ["CPUExecutionProvider"],
                     )
                     return cpu_only or ["CPUExecutionProvider"]
             return usable
         logger.warning(
             "Backend '%s' requested but no matching provider is available "
             "(available: %s); falling back to auto-detection.",
-            backend, available,
+            backend,
+            available,
         )
     # auto / None：返回全部注册 provider 交由 ORT 自选，但过滤掉“执行级确认
     # 不可用”的编译型 provider（典型：TensorRT 已注册但缺运行库）。否则每次
@@ -613,8 +647,7 @@ def resolve_providers(backend: str | None) -> list[str]:
     if _COMPILED_PROVIDERS.intersection(available):
         exec_gpu = _exec_gpu_providers()
         degraded = [
-            p for p in available
-            if p in _COMPILED_PROVIDERS and p not in exec_gpu
+            p for p in available if p in _COMPILED_PROVIDERS and p not in exec_gpu
         ]
         if degraded:
             logger.warning(
@@ -623,7 +656,6 @@ def resolve_providers(backend: str | None) -> list[str]:
             )
             return [p for p in available if p not in degraded]
     return available
-
 
 
 def _configure_session_options() -> "onnxruntime.SessionOptions":
@@ -666,12 +698,29 @@ def _configure_session_options() -> "onnxruntime.SessionOptions":
 #: 优化图（NCHWc 内核）的可用性（AVX/AVX2/AVX512）。指纹中出现这些 flag
 #: 变化时缓存必须失效——ORT 官方文档明确 layout optimizations only usable
 #: on compatible hardware。
-_LAYOUT_CPU_FLAGS = frozenset({
-    "sse", "sse2", "sse3", "ssse3", "sse4_1", "sse4_2",
-    "avx", "avx2", "avx512f", "avx512cd", "avx512bw", "avx512dq",
-    "avx512vl", "avx512vnni", "avx512_bf16", "avx_vnni",
-    "fma", "f16c", "vnni",
-})
+_LAYOUT_CPU_FLAGS = frozenset(
+    {
+        "sse",
+        "sse2",
+        "sse3",
+        "ssse3",
+        "sse4_1",
+        "sse4_2",
+        "avx",
+        "avx2",
+        "avx512f",
+        "avx512cd",
+        "avx512bw",
+        "avx512dq",
+        "avx512vl",
+        "avx512vnni",
+        "avx512_bf16",
+        "avx_vnni",
+        "fma",
+        "f16c",
+        "vnni",
+    }
+)
 
 #: 无法序列化优化图的 provider 集合（缓存只会为 CPU-only 生效）
 _COMPILED_PROVIDERS = {"CoreMLExecutionProvider", "TensorrtExecutionProvider"}
@@ -707,7 +756,12 @@ def _cache_fingerprint_key() -> str:
     else:
         mode = "cpu-all"
     parts = [
-        "ort", onnxruntime.__version__, "mode", mode, "arch", platform.machine(),
+        "ort",
+        onnxruntime.__version__,
+        "mode",
+        mode,
+        "arch",
+        platform.machine(),
     ]
     try:
         proc = platform.processor()
@@ -719,9 +773,7 @@ def _cache_fingerprint_key() -> str:
         import cpuinfo  # noqa: PLC0415 -- py-cpuinfo 可选
 
         flags = sorted(
-            f
-            for f in cpuinfo.get_cpu_info().get("flags", [])
-            if f in _LAYOUT_CPU_FLAGS
+            f for f in cpuinfo.get_cpu_info().get("flags", []) if f in _LAYOUT_CPU_FLAGS
         )
         if flags:
             parts += ["flags", ",".join(flags)]
@@ -729,7 +781,8 @@ def _cache_fingerprint_key() -> str:
         pass
     try:
         parts += [
-            "providers", ",".join(sorted(_ort_available_providers())),
+            "providers",
+            ",".join(sorted(_ort_available_providers())),
         ]
     except Exception:  # noqa: BLE001
         pass
@@ -812,11 +865,11 @@ def _cleanup_stale_tmp_once(model_path: str) -> None:
         if n:
             logger.info(
                 "Cleaned %d stale optimized-cache tmp file(s) for %s",
-                n, os.path.basename(model_path),
+                n,
+                os.path.basename(model_path),
             )
     except Exception:  # noqa: BLE001 -- 清理失败不阻断加载
         pass
-
 
 
 #: .optimized 缓存并发锁：多进程同时生成同一缓存会互相截断，导致 ORT
@@ -995,7 +1048,6 @@ class DocLayoutModel(abc.ABC):
     def load_available():
         return DocLayoutModel.load_onnx()
 
-
     @classmethod
     def ensure_model_prewarmed(cls) -> str | None:
         """主进程单写者预热入口：确保 doclayout 模型文件存在并生成/校验 optimized 缓存。
@@ -1032,14 +1084,13 @@ class DocLayoutModel(abc.ABC):
                         try:
                             opts = _configure_session_options()
                             opts.optimized_model_filepath = cache_holder.tmp_path
-                            onnxruntime.InferenceSession(
-                                pth, opts, providers=providers
-                            )
+                            onnxruntime.InferenceSession(pth, opts, providers=providers)
                         except Exception as exc:  # noqa: BLE001 -- 缓存失败不阻断加载
                             cache_holder.abort()
                             logger.warning(
                                 "prewarm cache generation failed (%s); "
-                                "continuing without optimized cache", exc,
+                                "continuing without optimized cache",
+                                exc,
                             )
                         else:
                             cache_holder.publish()
@@ -1055,7 +1106,6 @@ class DocLayoutModel(abc.ABC):
                 exc,
             )
             return None
-
 
     @property
     @abc.abstractmethod
@@ -1349,6 +1399,7 @@ def release_model_instance() -> None:
     gc.collect()
     try:
         import torch  # noqa: PLC0415 -- optional at this layer
+
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
     except Exception:  # noqa: BLE001 -- best-effort reclaim, never raise

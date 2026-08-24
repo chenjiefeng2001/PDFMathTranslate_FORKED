@@ -1,4 +1,5 @@
 """Tests for ParagraphLayoutEngine (Phase 2)."""
+
 import unittest
 from pdf2zh.paragraph_layout import ParagraphLayoutEngine, TextAlignment, TextBlock
 
@@ -8,19 +9,27 @@ class MockTextMetrics:
 
     def __init__(self):
         self.cjk_widths = {
-            '你': 12.0, '好': 12.0, '世': 12.0, '界': 12.0,
-            '测': 12.0, '试': 12.0, '中': 12.0, '文': 12.0,
+            "你": 12.0,
+            "好": 12.0,
+            "世": 12.0,
+            "界": 12.0,
+            "测": 12.0,
+            "试": 12.0,
+            "中": 12.0,
+            "文": 12.0,
         }
         self.latin_width = 6.0  # Half-width chars
 
     def measure_string(self, text, font_size, char_spacing=0.0):
-        width = sum(
-            self.cjk_widths.get(ch, self.latin_width)
-            for ch in text
-        ) * (font_size / 12.0)
+        width = sum(self.cjk_widths.get(ch, self.latin_width) for ch in text) * (
+            font_size / 12.0
+        )
         return {
             "total_width": width,
-            "glyph_widths": [self.cjk_widths.get(ch, self.latin_width) * (font_size / 12.0) for ch in text],
+            "glyph_widths": [
+                self.cjk_widths.get(ch, self.latin_width) * (font_size / 12.0)
+                for ch in text
+            ],
             "ascent": font_size * 0.7,
             "descent": font_size * -0.2,
         }
@@ -79,8 +88,7 @@ class TestParagraphLayoutEngine(unittest.TestCase):
     def test_layout_block_left_aligned(self):
         """Left-aligned text should start at x0."""
         block = self.engine.layout_block(
-            "Hello", 100, 200, 300, 50, 12.0,
-            alignment=TextAlignment.LEFT
+            "Hello", 100, 200, 300, 50, 12.0, alignment=TextAlignment.LEFT
         )
         if block.lines:
             self.assertEqual(block.lines[0].x, 100)
@@ -88,8 +96,7 @@ class TestParagraphLayoutEngine(unittest.TestCase):
     def test_layout_block_right_aligned(self):
         """Right-aligned text should be positioned at right margin."""
         block = self.engine.layout_block(
-            "Hello", 100, 200, 300, 50, 12.0,
-            alignment=TextAlignment.RIGHT
+            "Hello", 100, 200, 300, 50, 12.0, alignment=TextAlignment.RIGHT
         )
         if block.lines:
             self.assertGreater(block.lines[0].x, 100)
@@ -97,14 +104,11 @@ class TestParagraphLayoutEngine(unittest.TestCase):
     def test_layout_block_center_aligned(self):
         """Center-aligned text should be centered."""
         block = self.engine.layout_block(
-            "Hello", 100, 200, 300, 50, 12.0,
-            alignment=TextAlignment.CENTER
+            "Hello", 100, 200, 300, 50, 12.0, alignment=TextAlignment.CENTER
         )
         if block.lines:
             self.assertAlmostEqual(
-                block.lines[0].x,
-                100 + (300 - block.lines[0].width) / 2,
-                delta=1.0
+                block.lines[0].x, 100 + (300 - block.lines[0].width) / 2, delta=1.0
             )
 
     def test_layout_block_respects_max_height(self):
@@ -118,7 +122,9 @@ class TestParagraphLayoutEngine(unittest.TestCase):
     def test_cjk_detection(self):
         """CJK-heavy text should be detected correctly."""
         self.assertTrue(ParagraphLayoutEngine._is_cjk_heavy("你好世界"))
-        self.assertTrue(ParagraphLayoutEngine._is_cjk_heavy("你好测试Hello"))  # 4/9=44%>30%
+        self.assertTrue(
+            ParagraphLayoutEngine._is_cjk_heavy("你好测试Hello")
+        )  # 4/9=44%>30%
         self.assertFalse(ParagraphLayoutEngine._is_cjk_heavy("HelloWorld"))
         self.assertFalse(ParagraphLayoutEngine._is_cjk_heavy(""))
         self.assertFalse(ParagraphLayoutEngine._is_cjk_heavy("ABC123"))

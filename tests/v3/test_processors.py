@@ -6,23 +6,37 @@
 - 领域引擎复用：TOC（toc_semantics）/ 图片（image_engine）/ 统一策略（content_preservation）
 - 注册表按阶段/类型调度、题注连边
 """
+
 import unittest
 
 import numpy as np
 
 from pdf2zh.v3.graph import (
-    DocumentGraph, DocumentNode, Edge, EdgeType, NodeType,
+    DocumentGraph,
+    DocumentNode,
+    Edge,
+    EdgeType,
+    NodeType,
 )
 from pdf2zh.v3.processors import (
-    NodeStage, POLICY_KEY, SEMANTIC_KEY, get_semantic,
-    ProcessorRegistry, TOCSemanticProcessor, FormulaNodeProcessor,
-    CodeNodeProcessor, ImageTranslationProcessor, ContentPolicyProcessor,
+    NodeStage,
+    POLICY_KEY,
+    SEMANTIC_KEY,
+    get_semantic,
+    ProcessorRegistry,
+    TOCSemanticProcessor,
+    FormulaNodeProcessor,
+    CodeNodeProcessor,
+    ImageTranslationProcessor,
+    ContentPolicyProcessor,
     CaptionNodeProcessor,
 )
 
 
 def make_node(nid, node_type, text="", page=0, bbox=(0, 0, 100, 20)):
-    return DocumentNode(id=nid, node_type=node_type, bbox=bbox, text=text, page_num=page)
+    return DocumentNode(
+        id=nid, node_type=node_type, bbox=bbox, text=text, page_num=page
+    )
 
 
 class TestTOCSemanticProcessor(unittest.TestCase):
@@ -177,11 +191,13 @@ class TestCaptionNodeProcessor(unittest.TestCase):
 
 class TestProcessorRegistry(unittest.TestCase):
     def test_for_stage_and_matching(self):
-        reg = ProcessorRegistry([
-            TOCSemanticProcessor(),
-            ImageTranslationProcessor(),
-            ContentPolicyProcessor(),
-        ])
+        reg = ProcessorRegistry(
+            [
+                TOCSemanticProcessor(),
+                ImageTranslationProcessor(),
+                ContentPolicyProcessor(),
+            ]
+        )
         raw = reg.for_stage(NodeStage.RAW)
         semantic = reg.for_stage(NodeStage.SEMANTIC)
         self.assertEqual([p.name for p in raw], ["toc_semantic"])

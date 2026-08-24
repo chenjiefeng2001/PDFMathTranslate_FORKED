@@ -15,13 +15,15 @@
 纯逻辑；翻译器只需实现带 context 的回调（Google/DeepL 封装可忽略 context
 退化为普通翻译，行为与旧路径一致）。
 """
+
 from __future__ import annotations
 
 import json
 from typing import Callable, Dict, Optional
 
 from pdf2zh.v3.document_model import (
-    DocumentModel, block_id,
+    DocumentModel,
+    block_id,
 )
 from pdf2zh.v3.domain_glossary import DomainGlossary, detect_domain
 
@@ -53,8 +55,11 @@ def document_context_for(model: DocumentModel, block) -> dict:
     ctx = {
         "type": block.kind,
         "level": block.metadata.get("reading_order"),
-        "parent": f"{sec['number']} {sec['title']}".strip()
-        if sec and sec.get("number") else (sec["title"] if sec else ""),
+        "parent": (
+            f"{sec['number']} {sec['title']}".strip()
+            if sec and sec.get("number")
+            else (sec["title"] if sec else "")
+        ),
         "domain": domain,
         "policy": pol,
     }
@@ -63,14 +68,18 @@ def document_context_for(model: DocumentModel, block) -> dict:
 
 def context_to_prompt(ctx: dict) -> str:
     """上下文 → LLM 提示片段（供人工/LLM 翻译器注入）。"""
-    return (f"[context] type={ctx.get('type')} "
-            f"level={ctx.get('level')} parent={ctx.get('parent') or '-'} "
-            f"domain={ctx.get('domain')}")
+    return (
+        f"[context] type={ctx.get('type')} "
+        f"level={ctx.get('level')} parent={ctx.get('parent') or '-'} "
+        f"domain={ctx.get('domain')}"
+    )
 
 
-def translate_document_context_aware(model: DocumentModel,
-                                     ctx_translate_fn: Callable[[str, dict], str],
-                                     glossary: Optional[DomainGlossary] = None) -> dict:
+def translate_document_context_aware(
+    model: DocumentModel,
+    ctx_translate_fn: Callable[[str, dict], str],
+    glossary: Optional[DomainGlossary] = None,
+) -> dict:
     """文档级上下文翻译：策略 → 上下文 →（术语钉死→翻译→术语复检）。
 
     ``ctx_translate_fn(text, context)`` 必须接受 (text, context)；
@@ -78,8 +87,13 @@ def translate_document_context_aware(model: DocumentModel,
     返回统计 {translated, preserved, skipped, context_used, glossary_hits}。
     """
     glossary = glossary or DomainGlossary()
-    stats = {"translated": 0, "preserved": 0, "skipped": 0,
-             "context_used": 0, "glossary_hits": 0}
+    stats = {
+        "translated": 0,
+        "preserved": 0,
+        "skipped": 0,
+        "context_used": 0,
+        "glossary_hits": 0,
+    }
     for page in model.pages:
         for i, block in enumerate(page.blocks):
             pol = block.metadata.get("translation_policy") or {}
@@ -100,7 +114,7 @@ def translate_document_context_aware(model: DocumentModel,
             except Exception as e:  # noqa: BLE001
                 translated = pinned
             block.metadata["translated"] = translated
-            block.metadata["translated_same"] = (translated == pinned)
+            block.metadata["translated_same"] = translated == pinned
             block.metadata["translate"] = True
             block.metadata["context"] = ctx
             stats["translated"] += 1
@@ -109,6 +123,7 @@ def translate_document_context_aware(model: DocumentModel,
 
 
 __all__ = [
-    "document_context_for", "context_to_prompt",
+    "document_context_for",
+    "context_to_prompt",
     "translate_document_context_aware",
 ]

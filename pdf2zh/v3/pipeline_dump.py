@@ -20,6 +20,7 @@
 
 纯逻辑 + 可选 fitz/pdfminer（CLI 路径 guarded），不触碰主链路。
 """
+
 from __future__ import annotations
 
 import json
@@ -68,8 +69,9 @@ def glyph_dump(ltpage, max_chars: int = 1000) -> List[dict]:
             has_to_unicode = None
             if font_obj is not None:
                 try:
-                    font_type = ("cid" if getattr(font_obj, "is_multibyte", False)
-                                 else "simple")
+                    font_type = (
+                        "cid" if getattr(font_obj, "is_multibyte", False) else "simple"
+                    )
                 except Exception:  # noqa: BLE001
                     font_type = "n/a"
                 try:
@@ -77,30 +79,44 @@ def glyph_dump(ltpage, max_chars: int = 1000) -> List[dict]:
                     has_to_unicode = tu is not None
                 except Exception:  # noqa: BLE001
                     has_to_unicode = None
-            out.append({
-                "char": char,
-                "cid": int(getattr(child, "cid", 0) or 0),
-                "font": getattr(child, "fontname", "") or "",
-                "font_type": font_type,
-                "has_to_unicode": has_to_unicode,
-                "size": round(float(getattr(child, "size", 0.0) or 0.0), 2),
-                "x0": round(float(child.x0), 1),
-                "y0": round(float(child.y0), 1),
-                "x1": round(float(child.x1), 1),
-                "y1": round(float(child.y1), 1),
-                "is_replacement": has_replacement(char),
-                "decode": "notdef" if _RE_CID_NOTDEF.search(char) else
-                          ("fffd" if "\ufffd" in char else "ok"),
-            })
+            out.append(
+                {
+                    "char": char,
+                    "cid": int(getattr(child, "cid", 0) or 0),
+                    "font": getattr(child, "fontname", "") or "",
+                    "font_type": font_type,
+                    "has_to_unicode": has_to_unicode,
+                    "size": round(float(getattr(child, "size", 0.0) or 0.0), 2),
+                    "x0": round(float(child.x0), 1),
+                    "y0": round(float(child.y0), 1),
+                    "x1": round(float(child.x1), 1),
+                    "y1": round(float(child.y1), 1),
+                    "is_replacement": has_replacement(char),
+                    "decode": (
+                        "notdef"
+                        if _RE_CID_NOTDEF.search(char)
+                        else ("fffd" if "\ufffd" in char else "ok")
+                    ),
+                }
+            )
         elif cls in ("LTLine", "LTFigure"):
-            out.append({"kind": cls, "char": "", "cid": -1,
-                        "font": "", "font_type": "n/a",
-                        "has_to_unicode": None, "size": 0.0,
-                        "x0": round(float(child.x0), 1),
-                        "y0": round(float(child.y0), 1),
-                        "x1": round(float(child.x1), 1),
-                        "y1": round(float(child.y1), 1),
-                        "is_replacement": False, "decode": "ok"})
+            out.append(
+                {
+                    "kind": cls,
+                    "char": "",
+                    "cid": -1,
+                    "font": "",
+                    "font_type": "n/a",
+                    "has_to_unicode": None,
+                    "size": 0.0,
+                    "x0": round(float(child.x0), 1),
+                    "y0": round(float(child.y0), 1),
+                    "x1": round(float(child.x1), 1),
+                    "y1": round(float(child.y1), 1),
+                    "is_replacement": False,
+                    "decode": "ok",
+                }
+            )
     return out
 
 
@@ -127,18 +143,20 @@ def run_dump(chars, page_num: int = 0, max_runs: int = 300) -> List[dict]:
         if not run:
             return
         text = "".join(c.text for c in run)
-        out.append({
-            "line": line_idx,
-            "font": run[0].font,
-            "size": round(float(run[0].size), 2),
-            "text": text,
-            "x0": round(min(c.x0 for c in run), 1),
-            "y0": round(min(c.y0 for c in run), 1),
-            "x1": round(max(c.x1 for c in run), 1),
-            "y1": round(max(c.y1 for c in run), 1),
-            "char_count": len(run),
-            "has_replacement": has_replacement(text),
-        })
+        out.append(
+            {
+                "line": line_idx,
+                "font": run[0].font,
+                "size": round(float(run[0].size), 2),
+                "text": text,
+                "x0": round(min(c.x0 for c in run), 1),
+                "y0": round(min(c.y0 for c in run), 1),
+                "x1": round(max(c.x1 for c in run), 1),
+                "y1": round(max(c.y1 for c in run), 1),
+                "char_count": len(run),
+                "has_replacement": has_replacement(text),
+            }
+        )
         run = []
 
     for c in ordered:
@@ -146,9 +164,11 @@ def run_dump(chars, page_num: int = 0, max_runs: int = 300) -> List[dict]:
             flush()
             line_idx += 1
             run = [c]
-        elif run and (c.font == run[-1].font
-                      and abs(c.size - run[-1].size) < 0.5
-                      and c.x0 - run[-1].x1 <= gap):
+        elif run and (
+            c.font == run[-1].font
+            and abs(c.size - run[-1].size) < 0.5
+            and c.x0 - run[-1].x1 <= gap
+        ):
             run.append(c)
         else:
             flush()
@@ -165,6 +185,7 @@ def run_dump(chars, page_num: int = 0, max_runs: int = 300) -> List[dict]:
 
 def line_dump(chars, page_num: int = 0, max_lines: int = 500) -> List[dict]:
     from pdf2zh.v3.geometry import GeometryEngine
+
     if not chars:
         return []
     page = GeometryEngine().build_page(chars, page_num=page_num)
@@ -174,37 +195,46 @@ def line_dump(chars, page_num: int = 0, max_lines: int = 500) -> List[dict]:
             if len(out) >= max_lines:
                 return out
             text = line.text or ""
-            out.append({
-                "paragraph": pi,
-                "line": li,
-                "text": text,
-                "x0": round(line.x0, 1), "y0": round(line.y0, 1),
-                "x1": round(line.x1, 1), "y1": round(line.y1, 1),
-                "size": round(float(getattr(line, "size", 0.0) or 0.0), 2),
-                "has_replacement": has_replacement(text),
-                # 疑似「多目录行被合并成一行」（Line Builder 阈值过大）：
-                # 行内 ≥2 个点号编号（5.1 / 5.2.1 …）
-                "suspected_merged_entries":
-                    len(_RE_MERGED_ENTRY_HINT.findall(text)) >= 2,
-            })
+            out.append(
+                {
+                    "paragraph": pi,
+                    "line": li,
+                    "text": text,
+                    "x0": round(line.x0, 1),
+                    "y0": round(line.y0, 1),
+                    "x1": round(line.x1, 1),
+                    "y1": round(line.y1, 1),
+                    "size": round(float(getattr(line, "size", 0.0) or 0.0), 2),
+                    "has_replacement": has_replacement(text),
+                    # 疑似「多目录行被合并成一行」（Line Builder 阈值过大）：
+                    # 行内 ≥2 个点号编号（5.1 / 5.2.1 …）
+                    "suspected_merged_entries": len(_RE_MERGED_ENTRY_HINT.findall(text))
+                    >= 2,
+                }
+            )
     return out
 
 
 def block_dump(chars, page_num: int = 0) -> List[dict]:
     from pdf2zh.v3.geometry import GeometryEngine
+
     if not chars:
         return []
     page = GeometryEngine().build_page(chars, page_num=page_num)
     out: List[dict] = []
     for pi, para in enumerate(page.reading_order()):
-        out.append({
-            "index": pi,
-            "text": para.text,
-            "x0": round(para.x0, 1), "y0": round(para.y0, 1),
-            "x1": round(para.x1, 1), "y1": round(para.y1, 1),
-            "line_count": para.line_count,
-            "has_replacement": has_replacement(para.text),
-        })
+        out.append(
+            {
+                "index": pi,
+                "text": para.text,
+                "x0": round(para.x0, 1),
+                "y0": round(para.y0, 1),
+                "x1": round(para.x1, 1),
+                "y1": round(para.y1, 1),
+                "line_count": para.line_count,
+                "has_replacement": has_replacement(para.text),
+            }
+        )
     return out
 
 
@@ -234,6 +264,7 @@ def toc_dump(conv, pageid: int) -> List[dict]:
     一致：PLAIN 时回退解析组合译文头（``第7.13节 …``）复原 kind/number。
     """
     from pdf2zh.v3.toc_semantics import parse_toc_entry
+
     out: List[dict] = []
     for i, rec in enumerate(getattr(conv, "_gate_records", []) or []):
         if rec.get("node_type") != "toc":
@@ -245,21 +276,23 @@ def toc_dump(conv, pageid: int) -> List[dict]:
             fallback = parse_toc_entry(composed)
             if fallback.matched:
                 entry = fallback
-        out.append({
-            "line": i,
-            "raw": raw,
-            "raw_has_replacement": has_replacement(raw),
-            "composed": rec.get("translated", ""),
-            "kind": entry.kind.value,
-            "level": entry.level,
-            "number": entry.number,
-            "title": entry.title,
-            "title_has_replacement": has_replacement(entry.title),
-            "leader": entry.leader,
-            "page": entry.page,
-            "translated": rec.get("translated", ""),
-            "confidence": toc_confidence(entry, raw),
-        })
+        out.append(
+            {
+                "line": i,
+                "raw": raw,
+                "raw_has_replacement": has_replacement(raw),
+                "composed": rec.get("translated", ""),
+                "kind": entry.kind.value,
+                "level": entry.level,
+                "number": entry.number,
+                "title": entry.title,
+                "title_has_replacement": has_replacement(entry.title),
+                "leader": entry.leader,
+                "page": entry.page,
+                "translated": rec.get("translated", ""),
+                "confidence": toc_confidence(entry, raw),
+            }
+        )
     return out
 
 
@@ -272,15 +305,17 @@ def translation_dump(conv, pageid: int) -> List[dict]:
     for i, rec in enumerate(getattr(conv, "_gate_records", []) or []):
         src = rec.get("text") or ""
         dst = rec.get("translated") or src
-        out.append({
-            "node_id": f"p{pageid}_{i}",
-            "source": src,
-            "translated": dst,
-            "same": src == dst,
-            "source_has_replacement": has_replacement(src),
-            "translated_has_replacement": has_replacement(dst),
-            "node_type": rec.get("node_type", "paragraph"),
-        })
+        out.append(
+            {
+                "node_id": f"p{pageid}_{i}",
+                "source": src,
+                "translated": dst,
+                "same": src == dst,
+                "source_has_replacement": has_replacement(src),
+                "translated_has_replacement": has_replacement(dst),
+                "node_type": rec.get("node_type", "paragraph"),
+            }
+        )
     return out
 
 
@@ -290,15 +325,17 @@ def translation_dump(conv, pageid: int) -> List[dict]:
 def layout_dump(conv, pageid: int) -> dict:
     recs = []
     for i, rec in enumerate(getattr(conv, "_gate_records", []) or []):
-        recs.append({
-            "node_id": f"p{pageid}_{i}",
-            "text": (rec.get("text") or "")[:120],
-            "x": round(float(rec.get("x", 0.0)), 1),
-            "y": round(float(rec.get("y", 0.0)), 1),
-            "width": round(float(rec.get("width", 0.0)), 1),
-            "height": round(float(rec.get("height", 0.0)), 1),
-            "node_type": rec.get("node_type", "paragraph"),
-        })
+        recs.append(
+            {
+                "node_id": f"p{pageid}_{i}",
+                "text": (rec.get("text") or "")[:120],
+                "x": round(float(rec.get("x", 0.0)), 1),
+                "y": round(float(rec.get("y", 0.0)), 1),
+                "width": round(float(rec.get("width", 0.0)), 1),
+                "height": round(float(rec.get("height", 0.0)), 1),
+                "node_type": rec.get("node_type", "paragraph"),
+            }
+        )
     return {
         "page": pageid,
         "blocks": recs,
@@ -314,6 +351,7 @@ def dump_page(conv, ltpage) -> dict:
     pageid = getattr(ltpage, "pageid", 0)
     try:
         from pdf2zh.v3.geometry import chars_from_ltpage
+
         chars = chars_from_ltpage(ltpage, page_num=pageid)
     except Exception as e:  # noqa: BLE001
         log.debug("pipeline_dump: chars failed p%s: %s", pageid, e)
@@ -321,6 +359,7 @@ def dump_page(conv, ltpage) -> dict:
     toc_entries = toc_dump(conv, pageid)
     try:
         from pdf2zh.v3.toc_tree import build_toc_tree
+
         tree = build_toc_tree(toc_entries)
     except Exception as e:  # noqa: BLE001
         log.debug("pipeline_dump: toc tree failed p%s: %s", pageid, e)
@@ -329,11 +368,16 @@ def dump_page(conv, ltpage) -> dict:
     page_model = None
     try:
         from pdf2zh.v3.canonical_page import (
-            annotate_formulas, annotate_style, annotate_toc,
-            annotate_toc_scan, build_page_model,
+            annotate_formulas,
+            annotate_style,
+            annotate_toc,
+            annotate_toc_scan,
+            build_page_model,
         )
+
         pm = build_page_model(ltpage, page_num=pageid)
         from pdf2zh.v3.document_model import annotate_roles
+
         annotate_roles(pm)
         pm.metadata["toc_annotated_blocks"] = annotate_toc(pm, toc_entries)
         # legacy 检测失败时（段落合并等）：从树内块文本自扫描目录行
@@ -368,8 +412,9 @@ class _IdentityTranslator:
         return text
 
 
-def dump_pdf_pipeline(path: str, out_dir: str = "",
-                      max_pages: Optional[int] = None) -> List[dict]:
+def dump_pdf_pipeline(
+    path: str, out_dir: str = "", max_pages: Optional[int] = None
+) -> List[dict]:
     """对真实 PDF 跑完整提取管线（恒等翻译器），逐页导出 JSON dump。
 
     返回 manifest（每页 dump 文件路径 + 该页 replacement 计数）。
@@ -401,7 +446,9 @@ def dump_pdf_pipeline(path: str, out_dir: str = "",
         conv = TranslateConverter(
             rsrcmgr,
             layout={},
-            lang_in="en", lang_out="zh-CN", service="stub",
+            lang_in="en",
+            lang_out="zh-CN",
+            service="stub",
         )
     conv.thread = 1
     conv.noto_name = "noto"
@@ -412,6 +459,7 @@ def dump_pdf_pipeline(path: str, out_dir: str = "",
     conv.fontmap, conv.fontid = {}, {}
     conv.text_metrics = {}
     from pdf2zh.collision_resolver import CollisionResolver
+
     conv.collision_resolver = CollisionResolver()
     conv.translator = _IdentityTranslator()
     conv.emit_ir = False
@@ -433,12 +481,13 @@ def dump_pdf_pipeline(path: str, out_dir: str = "",
         log.error("pipeline_dump: interpreter failed: %s", e)
 
     for pageid, dump in (getattr(conv, "pipeline_dumps", {}) or {}).items():
-        replacement = sum(
-            1 for g in dump.get("glyphs", []) if g.get("is_replacement"))
-        entry = {"page": pageid,
-                 "replacement_glyphs": replacement,
-                 "blocks": len(dump.get("blocks", [])),
-                 "toc_entries": len(dump.get("toc", []))}
+        replacement = sum(1 for g in dump.get("glyphs", []) if g.get("is_replacement"))
+        entry = {
+            "page": pageid,
+            "replacement_glyphs": replacement,
+            "blocks": len(dump.get("blocks", [])),
+            "toc_entries": len(dump.get("toc", [])),
+        }
         if out_dir:
             os.makedirs(out_dir, exist_ok=True)
             out_path = os.path.join(out_dir, f"page_{pageid}.json")
@@ -453,8 +502,9 @@ def dump_pdf_pipeline(path: str, out_dir: str = "",
             dm_path = os.path.join(out_dir, "document_model.json")
             with open(dm_path, "w", encoding="utf-8") as f:
                 json.dump(dm.to_dict(), f, ensure_ascii=False, indent=2)
-            manifest.append({"page": "all", "document_model": dm_path,
-                             "stats": dm.stats()})
+            manifest.append(
+                {"page": "all", "document_model": dm_path, "stats": dm.stats()}
+            )
         except Exception as e:  # noqa: BLE001
             log.debug("pipeline_dump: document model save failed: %s", e)
     return manifest
@@ -462,23 +512,26 @@ def dump_pdf_pipeline(path: str, out_dir: str = "",
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     import argparse
+
     parser = argparse.ArgumentParser(
         prog="pdf2zh.pipeline_dump",
         description="逐阶段 dump：定位乱码发生在 提取/行恢复/TOC/翻译/渲染 哪一层",
     )
     parser.add_argument("pdf")
-    parser.add_argument("--out", default="",
-                        help="输出目录（缺省只打印 manifest，不落盘）")
+    parser.add_argument(
+        "--out", default="", help="输出目录（缺省只打印 manifest，不落盘）"
+    )
     parser.add_argument("--max-pages", type=int, default=None)
     args = parser.parse_args(argv)
-    manifest = dump_pdf_pipeline(args.pdf, out_dir=args.out,
-                                 max_pages=args.max_pages)
+    manifest = dump_pdf_pipeline(args.pdf, out_dir=args.out, max_pages=args.max_pages)
     for m in manifest:
         tag = "CORRUPT" if m["replacement_glyphs"] else "clean"
-        print(f"page {m['page']}: {tag} "
-              f"replacement={m['replacement_glyphs']} "
-              f"blocks={m['blocks']} toc_entries={m['toc_entries']} "
-              f"dump={m.get('dump', '-')}")
+        print(
+            f"page {m['page']}: {tag} "
+            f"replacement={m['replacement_glyphs']} "
+            f"blocks={m['blocks']} toc_entries={m['toc_entries']} "
+            f"dump={m.get('dump', '-')}"
+        )
     if not manifest:
         print("no pages dumped (parse failed?)")
         return 1
@@ -486,7 +539,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 __all__ = [
-    "has_replacement", "glyph_dump", "run_dump", "line_dump", "block_dump",
-    "toc_confidence", "toc_dump", "translation_dump", "layout_dump",
-    "dump_page", "dump_pdf_pipeline", "main",
+    "has_replacement",
+    "glyph_dump",
+    "run_dump",
+    "line_dump",
+    "block_dump",
+    "toc_confidence",
+    "toc_dump",
+    "translation_dump",
+    "layout_dump",
+    "dump_page",
+    "dump_pdf_pipeline",
+    "main",
 ]

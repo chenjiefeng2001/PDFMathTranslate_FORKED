@@ -125,7 +125,9 @@ def get_pseudo_code_protect_mode() -> str:
     if raw not in _PPROTECT_MODES:
         logger.warning(
             "Ignoring invalid %s=%r (expected one of %s); falling back to 'auto'",
-            PSEUDO_PROTECT_ENV, raw, list(_PPROTECT_MODES),
+            PSEUDO_PROTECT_ENV,
+            raw,
+            list(_PPROTECT_MODES),
         )
         return "auto"
     return raw
@@ -159,10 +161,13 @@ def is_pseudo_code_protection_active(
     if mode == "on":
         return True, f"{PSEUDO_PROTECT_ENV}=on"
     try:
-        limit = max(1, int(
-            os.environ.get(PSEUDO_PROTECT_MAX_PAGES_ENV)
-            or PSEUDO_PROTECT_DEFAULT_MAX_PAGES
-        ))
+        limit = max(
+            1,
+            int(
+                os.environ.get(PSEUDO_PROTECT_MAX_PAGES_ENV)
+                or PSEUDO_PROTECT_DEFAULT_MAX_PAGES
+            ),
+        )
     except ValueError:
         limit = PSEUDO_PROTECT_DEFAULT_MAX_PAGES
     pages = _pdf_page_count(pdf_path) if pdf_path else None
@@ -266,9 +271,10 @@ def _layout_pipeline_window() -> int:
         value = int(raw)
     except ValueError:
         logger.warning(
-            "Ignoring invalid %s=%r (expected integer); "
-            "using default %d",
-            _LAYOUT_PREFETCH_ENV, raw, _LAYOUT_PREFETCH_DEFAULT,
+            "Ignoring invalid %s=%r (expected integer); " "using default %d",
+            _LAYOUT_PREFETCH_ENV,
+            raw,
+            _LAYOUT_PREFETCH_DEFAULT,
         )
         return _LAYOUT_PREFETCH_DEFAULT
     return max(1, min(value, _LAYOUT_PREFETCH_MAX))
@@ -280,10 +286,7 @@ def _detector_supports_page_index(detector) -> bool:
         sig = inspect.signature(detector.detect_algorithm_boxes)
     except (TypeError, ValueError):
         return False
-    if any(
-        p.kind is inspect.Parameter.VAR_KEYWORD
-        for p in sig.parameters.values()
-    ):
+    if any(p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
         return True
     param = sig.parameters.get("page_index")
     return bool(
@@ -327,25 +330,21 @@ class PaddleDocLayoutV2Detector:
             resolve_babeldoc_providers,
         )
 
-        requested = (
-            os.environ.get("PDF2ZH_PP_DOCLAYOUT_BACKEND", "").strip().lower()
-        )
+        requested = os.environ.get("PDF2ZH_PP_DOCLAYOUT_BACKEND", "").strip().lower()
         if requested and requested not in ("auto", "cpu", "cuda", "dml"):
             logger.warning(
                 "Ignoring invalid %s=%r (expected one of "
                 "auto/cpu/cuda/dml); following the global backend switch",
-                "PDF2ZH_PP_DOCLAYOUT_BACKEND", requested,
+                "PDF2ZH_PP_DOCLAYOUT_BACKEND",
+                requested,
             )
             requested = ""
-        backend = (
-            get_babeldoc_backend()
-            if requested in ("", "auto")
-            else requested
-        )
+        backend = get_babeldoc_backend() if requested in ("", "auto") else requested
         providers = resolve_babeldoc_providers(backend)
         logger.info(
             "PP-DocLayoutV2 detector providers=%s (backend=%s)",
-            providers, backend,
+            providers,
+            backend,
         )
         self._session = ort.InferenceSession(self.model_path, providers=providers)
         self._lock = threading.Lock()
@@ -444,9 +443,7 @@ class PseudoCodeProtectedLayoutModel:
         # 检测器接口能力只探测一次：旧式纯图像签名逐页 try/except TypeError
         # 既慢又掩盖真实错误。
         self._detector_accepts_page_index = (
-            _detector_supports_page_index(detector)
-            if detector is not None
-            else False
+            _detector_supports_page_index(detector) if detector is not None else False
         )
 
     @property
@@ -487,9 +484,7 @@ class PseudoCodeProtectedLayoutModel:
                 future = pending.popleft()
                 page, geometry, image_bgr, predict_result = future.result()
                 try:
-                    self._protect_page(
-                        geometry, predict_result, page.page_number
-                    )
+                    self._protect_page(geometry, predict_result, page.page_number)
                 except Exception:  # noqa: BLE001 -- 保护失败不应阻断主链路
                     logger.warning(
                         "pseudo-code protection failed on page %s",
@@ -503,8 +498,9 @@ class PseudoCodeProtectedLayoutModel:
                 translate_config.raise_if_cancelled()
                 yield page, predict_result
 
-    def _handle_document_serial(self, pages, mupdf_doc, translate_config,
-                                save_debug_image):
+    def _handle_document_serial(
+        self, pages, mupdf_doc, translate_config, save_debug_image
+    ):
         """串行回退路径（prefetch=1）：语义与历史版本一致，仅锁范围收窄。"""
         for page in pages:
             translate_config.raise_if_cancelled()
@@ -512,9 +508,7 @@ class PseudoCodeProtectedLayoutModel:
                 page, mupdf_doc
             )
             try:
-                self._protect_page(
-                    geometry, predict_result, page.page_number
-                )
+                self._protect_page(geometry, predict_result, page.page_number)
             except Exception:  # noqa: BLE001 -- 保护失败不应阻断翻译主流程
                 logger.warning(
                     "pseudo-code protection failed on page %s",
@@ -542,13 +536,12 @@ class PseudoCodeProtectedLayoutModel:
         image_bgr = geometry.image[:, :, ::-1]  # RGB -> BGR（与默认模型一致）
         # 进程级推理锁：检测器（可能同为 CUDA 会话）串行共享，防 cuDNN 并发崩
         with _LAYOUT_ONNX_RUN_LOCK:
-            predict_result = self.base_model.predict(
-                image_bgr, geometry=geometry
-            )[0]
+            predict_result = self.base_model.predict(image_bgr, geometry=geometry)[0]
         return page, geometry, image_bgr, predict_result
 
-    def _protect_page(self, geometry, yolo_result,
-                      page_number: Optional[int] = None) -> None:
+    def _protect_page(
+        self, geometry, yolo_result, page_number: Optional[int] = None
+    ) -> None:
         """把默认模型文本框中被 algorithm 框覆盖的部分提升为 algorithm。"""
         if self.detector is None:
             return
@@ -656,7 +649,7 @@ class MinerUAlgorithmDetector:
             pw = float(getattr(result, "width", 0.0) or 0.0)
             ph = float(getattr(result, "height", 0.0) or 0.0)
             self._page_pt_sizes.append((pw, ph))
-            for blk in (result.blocks or []):
+            for blk in result.blocks or []:
                 if str(blk.get("cls", "") or "").lower() not in self._ALGO_CLASSES:
                     continue
                 bbox = blk.get("bbox") or [0, 0, 0, 0]
@@ -764,8 +757,7 @@ def build_pseudo_code_protected_layout_model(pdf_path: Optional[str] = None):
             base = _load_base_layout_model()
         except Exception:  # noqa: BLE001 -- 让 BabelDOC 用默认模型
             logger.warning(
-                "failed to load BabelDOC default layout model; "
-                "using engine default",
+                "failed to load BabelDOC default layout model; " "using engine default",
                 exc_info=True,
             )
             return None
@@ -791,8 +783,7 @@ def _build_with_mineru_or_paddle(pdf_path: str):
         base = _load_base_layout_model()
     except Exception:  # noqa: BLE001
         logger.warning(
-            "failed to load BabelDOC default layout model; "
-            "using engine default",
+            "failed to load BabelDOC default layout model; " "using engine default",
             exc_info=True,
         )
         return None
@@ -800,8 +791,7 @@ def _build_with_mineru_or_paddle(pdf_path: str):
     try:
         detector = MinerUAlgorithmDetector(pdf_path)
         logger.info(
-            "BabelDOC pseudo-code protection enabled "
-            "(MinerU VLM algorithm detector)"
+            "BabelDOC pseudo-code protection enabled " "(MinerU VLM algorithm detector)"
         )
     except Exception as exc:  # noqa: BLE001 -- 回退 PP-DocLayoutV2
         logger.debug(

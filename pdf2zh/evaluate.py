@@ -20,6 +20,7 @@ Library::
     report = evaluate_translation("paper.pdf", "paper-mono.pdf")
     print(report.summary())
 """
+
 from __future__ import annotations
 
 import argparse
@@ -92,15 +93,21 @@ class DocumentProfile:
 
 def _is_cjk_char(ch: str) -> bool:
     code = ord(ch)
-    return (0x4E00 <= code <= 0x9FFF or 0x3400 <= code <= 0x4DBF
-            or 0x3000 <= code <= 0x303F or 0xFF00 <= code <= 0xFFEF
-            or 0x20000 <= code <= 0x2EBEF)
+    return (
+        0x4E00 <= code <= 0x9FFF
+        or 0x3400 <= code <= 0x4DBF
+        or 0x3000 <= code <= 0x303F
+        or 0xFF00 <= code <= 0xFFEF
+        or 0x20000 <= code <= 0x2EBEF
+    )
 
 
-def build_profile(path: str, target_lang: str = "zh-CN",
-                  max_pages: Optional[int] = None) -> DocumentProfile:
+def build_profile(
+    path: str, target_lang: str = "zh-CN", max_pages: Optional[int] = None
+) -> DocumentProfile:
     """从 PDF 文件构建 DocumentProfile（几何 + 结构 + 统计）。"""
     import pymupdf
+
     engine = GeometryEngine()
     classifier = StructureClassifier()
     prof = DocumentProfile(path=path)
@@ -116,8 +123,13 @@ def build_profile(path: str, target_lang: str = "zh-CN",
             raw_chars = [c for c in _chars_of_page(page_doc, i) if c is not None]
             # 同一位置重复绘制检测（原文重绘/重叠）
             for c in raw_chars:
-                key = (i, round(c.x0, 1), round(c.y0, 1), round(c.x1, 1),
-                       round(c.y1, 1))
+                key = (
+                    i,
+                    round(c.x0, 1),
+                    round(c.y0, 1),
+                    round(c.x1, 1),
+                    round(c.y1, 1),
+                )
                 if key in seen_chars and seen_chars[key] == c.text:
                     prof.duplicate_chars += 1
                 else:
@@ -129,8 +141,9 @@ def build_profile(path: str, target_lang: str = "zh-CN",
                 prof.paragraph_count += 1
                 prof.char_count += len(para.text)
                 prof.line_count += para.line_count
-                block = classifier.classify_paragraph(para, page=page,
-                                                      body_font_size=body)
+                block = classifier.classify_paragraph(
+                    para, page=page, body_font_size=body
+                )
                 role = block.role
                 if role is BlockRole.HEADING:
                     prof.headings += 1
@@ -145,7 +158,10 @@ def build_profile(path: str, target_lang: str = "zh-CN",
                 text = para.text
                 prof.cjk_count += sum(1 for c in text if _is_cjk_char(c))
                 latin = sum(1 for c in text if c.isascii() and c.isalpha())
-                if len(text) >= 12 and latin / max(len(text), 1) >= LATIN_DOMINATED_RATIO:
+                if (
+                    len(text) >= 12
+                    and latin / max(len(text), 1) >= LATIN_DOMINATED_RATIO
+                ):
                     prof.latin_dominated_lines += 1
                 w = para.width
                 h = para.height
@@ -183,9 +199,17 @@ def _chars_of_page(page, page_num: int):
                         yield None
                         continue
                     from pdf2zh.v3.geometry import Char
-                    yield Char(text=text, x0=float(cb[0]), y0=float(cb[1]),
-                               x1=float(cb[2]), y1=float(cb[3]),
-                               size=size, font=font, page_num=page_num)
+
+                    yield Char(
+                        text=text,
+                        x0=float(cb[0]),
+                        y0=float(cb[1]),
+                        x1=float(cb[2]),
+                        y1=float(cb[3]),
+                        size=size,
+                        font=font,
+                        page_num=page_num,
+                    )
 
 
 # ── 几何指标 ──────────────────────────────────────────────────────────────
@@ -215,8 +239,9 @@ def _line_overlap_rate(pages: Sequence) -> float:
     return overlapping / total if total else 0.0
 
 
-def _overflow_rate(pages: Sequence, page_w: float = 612.0,
-                   page_h: float = 792.0) -> float:
+def _overflow_rate(
+    pages: Sequence, page_w: float = 612.0, page_h: float = 792.0
+) -> float:
     """溢出率：越过页面边界的行数占比。"""
     total = 0
     overflow = 0
@@ -224,8 +249,12 @@ def _overflow_rate(pages: Sequence, page_w: float = 612.0,
     for page in pages:
         for line in page.lines:
             total += 1
-            if line.x0 < -margin or line.x1 > page_w + margin or \
-                    line.y1 > page_h + margin or line.y0 < -margin:
+            if (
+                line.x0 < -margin
+                or line.x1 > page_w + margin
+                or line.y1 > page_h + margin
+                or line.y0 < -margin
+            ):
                 overflow += 1
     return overflow / total if total else 0.0
 
@@ -287,8 +316,7 @@ def _target_coverage(tgt_prof: DocumentProfile, target_lang: str) -> float:
     return 1.0 - tgt_prof.cjk_count / tgt_prof.char_count
 
 
-def _residue_estimate(tgt_prof: DocumentProfile,
-                      src_prof: DocumentProfile) -> float:
+def _residue_estimate(tgt_prof: DocumentProfile, src_prof: DocumentProfile) -> float:
     """原文残留估计：目标语主导的行中，拉丁字符占比超过阈值的长行比例。"""
     if src_prof.line_count <= 0:
         return 0.0
@@ -406,7 +434,8 @@ def evaluate_translation(
         "toc_preservation": _preservation(src.toc_entries, tgt.toc_entries),
         "formula_preservation": _preservation(src.formulas, tgt.formulas),
         "reading_order_consistency": _reading_order_consistency(src.pages, tgt.pages),
-        "structure_score": 100.0 * (
+        "structure_score": 100.0
+        * (
             0.35 * _preservation(src.headings, tgt.headings)
             + 0.2 * _preservation(src.captions, tgt.captions)
             + 0.15 * _preservation(src.toc_entries, tgt.toc_entries)
@@ -422,8 +451,8 @@ def evaluate_translation(
         "target_coverage": coverage,
         "residue_estimate": residue,
         "text_coverage": text_cov,
-        "translation_score": 100.0 * max(0.0,
-            0.5 * coverage + 0.3 * (1.0 - residue) + 0.2 * text_cov),
+        "translation_score": 100.0
+        * max(0.0, 0.5 * coverage + 0.3 * (1.0 - residue) + 0.2 * text_cov),
     }
 
     whitespace = _whitespace_score(tgt)
@@ -433,14 +462,18 @@ def evaluate_translation(
         "overflow_rate": overflow,
         "whitespace_score": whitespace,
         "density_score": density,
-        "rendering_score": 100.0 * (
-            0.4 * (1.0 - collision) + 0.25 * (1.0 - overflow)
-            + 0.2 * whitespace + 0.15 * density
+        "rendering_score": 100.0
+        * (
+            0.4 * (1.0 - collision)
+            + 0.25 * (1.0 - overflow)
+            + 0.2 * whitespace
+            + 0.15 * density
         ),
     }
 
     overall = (
-        0.3 * geometry_score + 0.2 * structure["structure_score"]
+        0.3 * geometry_score
+        + 0.2 * structure["structure_score"]
         + 0.25 * translation["translation_score"]
         + 0.25 * rendering["rendering_score"]
     )
@@ -456,26 +489,34 @@ def evaluate_translation(
     )
     if include_ir:
         try:
-            ir = to_document_ir(tgt.pages, title=translated_path,
-                                target_lang=target_lang)
+            ir = to_document_ir(
+                tgt.pages, title=translated_path, target_lang=target_lang
+            )
             report.ir_snapshot = snapshot_ir(ir, title=translated_path)
         except Exception:
             report.ir_snapshot = {}
     if report_dir:
-        _retain_report(report, report_dir, source_path,
-                       threshold=report_threshold)
+        _retain_report(report, report_dir, source_path, threshold=report_threshold)
     return report
 
 
 # ── <90 分自动差分快照留存（P1） ────────────────────────────────────────
 
 
-_IR_BUCKET_KEYS = ("paragraphs", "captions", "tables", "headings",
-                   "formulas", "references", "others")
+_IR_BUCKET_KEYS = (
+    "paragraphs",
+    "captions",
+    "tables",
+    "headings",
+    "formulas",
+    "references",
+    "others",
+)
 
 
-def _retain_report(report: EvaluationReport, report_dir: str,
-                   source_path: str, threshold: float = 90.0) -> Optional[str]:
+def _retain_report(
+    report: EvaluationReport, report_dir: str, source_path: str, threshold: float = 90.0
+) -> Optional[str]:
     """得分 < threshold 时留存差分快照到 report_dir/<basename>/。
 
     产物：
@@ -491,23 +532,20 @@ def _retain_report(report: EvaluationReport, report_dir: str,
     if not report_dir:
         return None
     import os
+
     basename = os.path.splitext(os.path.basename(source_path))[0]
     out_dir = os.path.join(report_dir, basename)
     os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "report.json"), "w",
-              encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "report.json"), "w", encoding="utf-8") as f:
         f.write(report.to_json())
     src_ir = report.ir_snapshot
-    with open(os.path.join(out_dir, "target-ir.json"), "w",
-              encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "target-ir.json"), "w", encoding="utf-8") as f:
         json.dump(src_ir, f, ensure_ascii=False, indent=2)
     source_snapshot = _source_ir_snapshot(report)
-    with open(os.path.join(out_dir, "source-ir.json"), "w",
-              encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "source-ir.json"), "w", encoding="utf-8") as f:
         json.dump(source_snapshot, f, ensure_ascii=False, indent=2)
     diff = _ir_diff(source_snapshot, src_ir)
-    with open(os.path.join(out_dir, "diff.json"), "w",
-              encoding="utf-8") as f:
+    with open(os.path.join(out_dir, "diff.json"), "w", encoding="utf-8") as f:
         json.dump(diff, f, ensure_ascii=False, indent=2)
     return out_dir
 
@@ -541,12 +579,22 @@ def _ir_diff(src: dict, tgt: dict) -> dict:
     buckets: Dict[str, dict] = {}
     keys = set(_IR_BUCKET_KEYS) | {"node_count"}
     for k in sorted(keys):
-        s = len(src.get(k, [])) if isinstance(src.get(k, []), list) else \
-            int(src.get(k, 0) or 0)
-        t = len(tgt.get(k, [])) if isinstance(tgt.get(k, []), list) else \
-            int(tgt.get(k, 0) or 0)
-        buckets[k] = {"source": s, "target": t, "delta": t - s,
-                      "preservation": round(min(1.0, t / s), 4) if s else 1.0}
+        s = (
+            len(src.get(k, []))
+            if isinstance(src.get(k, []), list)
+            else int(src.get(k, 0) or 0)
+        )
+        t = (
+            len(tgt.get(k, []))
+            if isinstance(tgt.get(k, []), list)
+            else int(tgt.get(k, 0) or 0)
+        )
+        buckets[k] = {
+            "source": s,
+            "target": t,
+            "delta": t - s,
+            "preservation": round(min(1.0, t / s), 4) if s else 1.0,
+        }
     changed = {k: v for k, v in buckets.items() if v["delta"] != 0}
     return {
         "schema": "pdf2zh.v3.ir-diff",
@@ -563,26 +611,45 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="pdf2zh.evaluate",
         description="Document-level PDF translation evaluation (geometry / "
-                    "structure / translation / rendering metrics).",
+        "structure / translation / rendering metrics).",
     )
     parser.add_argument("source", help="source PDF path")
     parser.add_argument("translated", help="translated (mono) PDF path")
-    parser.add_argument("--target-lang", default="zh-CN",
-                        help="target language (default: zh-CN)")
-    parser.add_argument("--max-pages", type=int, default=None,
-                        help="limit evaluation to the first N pages")
-    parser.add_argument("--json", metavar="PATH", default=None,
-                        help="write the full report as JSON to PATH")
-    parser.add_argument("--no-ir", action="store_true",
-                        help="skip the IR snapshot section")
-    parser.add_argument("--report-dir", metavar="DIR", default=None,
-                        help="retain failure snapshots (<90) into DIR/<basename>/")
-    parser.add_argument("--report-threshold", type=float, default=90.0,
-                        help="score below which snapshots are retained (default 90)")
+    parser.add_argument(
+        "--target-lang", default="zh-CN", help="target language (default: zh-CN)"
+    )
+    parser.add_argument(
+        "--max-pages",
+        type=int,
+        default=None,
+        help="limit evaluation to the first N pages",
+    )
+    parser.add_argument(
+        "--json",
+        metavar="PATH",
+        default=None,
+        help="write the full report as JSON to PATH",
+    )
+    parser.add_argument(
+        "--no-ir", action="store_true", help="skip the IR snapshot section"
+    )
+    parser.add_argument(
+        "--report-dir",
+        metavar="DIR",
+        default=None,
+        help="retain failure snapshots (<90) into DIR/<basename>/",
+    )
+    parser.add_argument(
+        "--report-threshold",
+        type=float,
+        default=90.0,
+        help="score below which snapshots are retained (default 90)",
+    )
     args = parser.parse_args(argv)
 
     report = evaluate_translation(
-        args.source, args.translated,
+        args.source,
+        args.translated,
         target_lang=args.target_lang,
         max_pages=args.max_pages,
         include_ir=not args.no_ir,

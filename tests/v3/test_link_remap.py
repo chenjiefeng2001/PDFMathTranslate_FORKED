@@ -10,6 +10,7 @@ Two layers:
 Run with:
     python -m pytest tests/v3/test_link_remap.py -v
 """
+
 import unittest
 
 from pdf2zh.v3.link_remap import (
@@ -60,7 +61,9 @@ class TestParagraphMatching(unittest.TestCase):
         self.assertEqual(idx, 0)
 
     def test_no_match(self):
-        self.assertIsNone(match_link_to_paragraphs((0.0, 300.0, 30.0, 310.0), self.boxes))
+        self.assertIsNone(
+            match_link_to_paragraphs((0.0, 300.0, 30.0, 310.0), self.boxes)
+        )
         self.assertIsNone(match_link_to_paragraphs((0.0, 0.0, 0.0, 0.0), []))
 
 
@@ -96,7 +99,10 @@ class TestRecordsBoxes(unittest.TestCase):
     def test_extended_schema(self):
         records = [
             {
-                "x": 72.0, "y": 63.0, "width": 188.0, "height": 15.0,
+                "x": 72.0,
+                "y": 63.0,
+                "width": 188.0,
+                "height": 15.0,
                 "src_box": (72.0, 90.0, 260.0, 104.0),
                 "dst_box": (72.0, 48.0, 320.0, 63.0),
             }
@@ -125,8 +131,9 @@ class TestComputeUpdates(unittest.TestCase):
 
     def test_unmatched_link_untouched(self):
         links = [{"id": "L0", "from": (0.0, 500.0, 50.0, 520.0)}]
-        updates = compute_link_updates(links, [(72.0, 90.0, 260.0, 104.0)],
-                                       [(72.0, 48.0, 320.0, 63.0)])
+        updates = compute_link_updates(
+            links, [(72.0, 90.0, 260.0, 104.0)], [(72.0, 48.0, 320.0, 63.0)]
+        )
         self.assertEqual(updates, [])
 
     def test_mismatched_boxes_len(self):
@@ -144,8 +151,13 @@ class TestFitzIntegration(unittest.TestCase):
         page = doc.new_page(width=612, height=792)
         # "源" 布局的段落文字（作为参考，仅用于锚定预期 dst span）。
         page.insert_text((72, 104), "Source paragraph text")  # y-up baseline
-        page.insert_link({"kind": fitz.LINK_URI, "from": fitz.Rect(72, 90, 260, 104),
-                          "uri": "http://example.com"})
+        page.insert_link(
+            {
+                "kind": fitz.LINK_URI,
+                "from": fitz.Rect(72, 90, 260, 104),
+                "uri": "http://example.com",
+            }
+        )
         # 注解需要写入/回读才在 get_links() 可见（与生产路径一致：源 PDF 已含注解）。
         return fitz.open(stream=doc.tobytes(), filetype="pdf")
 
@@ -154,13 +166,18 @@ class TestFitzIntegration(unittest.TestCase):
 
         doc = self._seed_doc()
         # 译后段落实际渲染在 (72, 48..63)，而 link /Rect 仍停留在源布局 (72, 90..104)。
-        records = {0: [
-            {
-                "x": 72.0, "y": 63.0, "width": 188.0, "height": 15.0,
-                "src_box": (72.0, 90.0, 260.0, 104.0),
-                "dst_box": (72.0, 48.0, 320.0, 63.0),
-            }
-        ]}
+        records = {
+            0: [
+                {
+                    "x": 72.0,
+                    "y": 63.0,
+                    "width": 188.0,
+                    "height": 15.0,
+                    "src_box": (72.0, 90.0, 260.0, 104.0),
+                    "dst_box": (72.0, 48.0, 320.0, 63.0),
+                }
+            ]
+        }
         stats = remap_document_links(doc, records, page_offset=0)
         self.assertEqual(stats["relinked"], 1)
 
@@ -180,21 +197,27 @@ class TestFitzIntegration(unittest.TestCase):
 
     def test_out_of_range_page_skipped(self):
         doc = self._seed_doc()
-        stats = remap_document_links(doc, {5: [{"src_box": (0, 0, 10, 10),
-                                                "dst_box": (0, 0, 10, 10)}]})
+        stats = remap_document_links(
+            doc, {5: [{"src_box": (0, 0, 10, 10), "dst_box": (0, 0, 10, 10)}]}
+        )
         self.assertEqual(stats["relinked"], 0)
 
     def test_page_shift_applied(self):
         import fitz
 
         doc = self._seed_doc()
-        records = {0: [
-            {
-                "x": 72.0, "y": 63.0, "width": 188.0, "height": 15.0,
-                "src_box": (68.0, 86.0, 256.0, 100.0),
-                "dst_box": (68.0, 44.0, 316.0, 59.0),
-            }
-        ]}
+        records = {
+            0: [
+                {
+                    "x": 72.0,
+                    "y": 63.0,
+                    "width": 188.0,
+                    "height": 15.0,
+                    "src_box": (68.0, 86.0, 256.0, 100.0),
+                    "dst_box": (68.0, 44.0, 316.0, 59.0),
+                }
+            ]
+        }
         shifts = {0: (4.0, 4.0)}  # 微信等页 cropbox 偏移
         stats = remap_document_links(doc, records, page_offset=0, page_shifts=shifts)
         self.assertEqual(stats["relinked"], 1)

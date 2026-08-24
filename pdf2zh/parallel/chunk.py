@@ -43,9 +43,7 @@ class CancelToken:
 
     def __init__(self, token: str = "") -> None:
         self.token = token or uuid.uuid4().hex
-        self._path = os.path.join(
-            tempfile.gettempdir(), f"pdf2zh_cancel_{self.token}"
-        )
+        self._path = os.path.join(tempfile.gettempdir(), f"pdf2zh_cancel_{self.token}")
 
     @property
     def path(self) -> str:
@@ -155,9 +153,7 @@ class ChunkManifest:
 
     def __init__(self, total: int) -> None:
         self.total = max(0, total)
-        self.chunk_status: Dict[int, str] = {
-            i: "pending" for i in range(self.total)
-        }
+        self.chunk_status: Dict[int, str] = {i: "pending" for i in range(self.total)}
         self.failed_indices: List[int] = []
 
     def mark_running(self, idx: int) -> None:

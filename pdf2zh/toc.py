@@ -23,6 +23,7 @@ V1.19（本版）：把识别从"硬性二值判定"升级为**置信度评分 +
 
 本模块独立于 converter.py，避免 legacy 转换器继续膨胀（v3 strangulation 门控）。
 """
+
 from __future__ import annotations
 
 import re
@@ -86,15 +87,15 @@ def _score_toc(title, lead, page, page_start_x, page_right_x, page_width) -> flo
     """置信度评分（见模块 docstring 权重表）。"""
     lead_txt = lead or ""
     leader_chars = sum(lead_txt.count(c) for c in TOC_LEADER_CHARS)
-    leader_purity = (
-        leader_chars / len(lead_txt) if lead_txt and leader_chars else 0.0
-    )
+    leader_purity = leader_chars / len(lead_txt) if lead_txt and leader_chars else 0.0
     if page_width:
         page_col = 1.0 if page_start_x >= 0.8 * page_width else 0.3
     else:
         page_col = 0.4  # 几何未知 → 中性值
     start_fmt = 1.0 if _TOC_HEAD_RE.match(title) else 0.05
-    page_digits_ok = bool(re.fullmatch(r"\d{1,4}|[ivxlcdmIVXLCDM]{1,4}", (page or "").strip()))
+    page_digits_ok = bool(
+        re.fullmatch(r"\d{1,4}|[ivxlcdmIVXLCDM]{1,4}", (page or "").strip())
+    )
     digits_shape = 1.0 if page_digits_ok else 0.5
     title_len = min(1.0, len(title) / 8.0)
     return (
@@ -122,9 +123,7 @@ def looks_like_toc_text(text) -> bool:
     return bool(sm and _TOC_SPACE_HEAD.match(sm.group("title")))
 
 
-def _detect_leader(
-    text, brk, track, page_right, page_width
-):
+def _detect_leader(text, brk, track, page_right, page_width):
     """候选 A：点线引导 + 页码（支持区间/罗马）。返回 spec 或 None。"""
     m = TOC_LEADER_RE.search(text)
     if m is None:
@@ -148,8 +147,10 @@ def _detect_leader(
         return None
     page = page if page else tail
     score = _score_toc(title, lead, page, page_start_x, page_end_x, page_width)
-    mode = "full" if score >= TOC_FULL_THRESHOLD else (
-        "protect" if score >= TOC_PROTECT_THRESHOLD else None
+    mode = (
+        "full"
+        if score >= TOC_FULL_THRESHOLD
+        else ("protect" if score >= TOC_PROTECT_THRESHOLD else None)
     )
     # 区间页码（12–13）：右对齐渲染语义弱 → 一律走保护模式（标题折行、点线/页码尾部原位保留）
     if mode == "full" and re.search(r"[-–—]", page):

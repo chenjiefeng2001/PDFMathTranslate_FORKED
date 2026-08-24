@@ -16,6 +16,7 @@ Design goals (kept deliberately exportable / testable without PyMuPDF):
     fully guarded — a single bad link/record never raises into the mainline.
   * Unknown / unmatched links keep their original rect (conservative no-op).
 """
+
 from __future__ import annotations
 
 import logging
@@ -258,8 +259,12 @@ def remap_document_links(
         shift = (page_shifts or {}).get(page_no, (0.0, 0.0))
         dx, dy = shift
         if dx or dy:
-            src_boxes = [(b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in src_boxes]
-            dst_boxes = [(b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in dst_boxes]
+            src_boxes = [
+                (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in src_boxes
+            ]
+            dst_boxes = [
+                (b[0] + dx, b[1] + dy, b[2] + dx, b[3] + dy) for b in dst_boxes
+            ]
         if y_flip:
             ph = float((page_heights or {}).get(page_no, 0.0) or 0.0)
             if ph <= 0:
@@ -275,7 +280,8 @@ def remap_document_links(
             except Exception as e:
                 log.warning(
                     "link_remap: failed to re-anchor link on page %s: %s",
-                    page_no, str(e)[:120],
+                    page_no,
+                    str(e)[:120],
                 )
                 stats["skipped"] += 1
     return stats

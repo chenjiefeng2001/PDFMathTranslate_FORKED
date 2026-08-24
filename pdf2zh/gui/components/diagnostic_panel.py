@@ -24,14 +24,22 @@ def build_diagnostic_markdown(
         overview_items = [
             f"**{B('diag_graph')}**: {B('diag_node_heading')} {node_overview.get('pages', 0)}"
         ]
-        if node_overview.get('paragraphs'):
-            overview_items.append(f"{B('diag_paragraphs')} {node_overview.get('paragraphs', 0)}")
-        if node_overview.get('headings'):
-            overview_items.append(f"{B('diag_headings')} {node_overview.get('headings', 0)}")
-        if node_overview.get('figures'):
-            overview_items.append(f"{B('diag_figures')} {node_overview.get('figures', 0)}")
-        if node_overview.get('formulas'):
-            overview_items.append(f"{B('diag_formulas')} {node_overview.get('formulas', 0)}")
+        if node_overview.get("paragraphs"):
+            overview_items.append(
+                f"{B('diag_paragraphs')} {node_overview.get('paragraphs', 0)}"
+            )
+        if node_overview.get("headings"):
+            overview_items.append(
+                f"{B('diag_headings')} {node_overview.get('headings', 0)}"
+            )
+        if node_overview.get("figures"):
+            overview_items.append(
+                f"{B('diag_figures')} {node_overview.get('figures', 0)}"
+            )
+        if node_overview.get("formulas"):
+            overview_items.append(
+                f"{B('diag_formulas')} {node_overview.get('formulas', 0)}"
+            )
         parts.append(" | ".join(overview_items))
 
     # Quality scores
@@ -47,7 +55,10 @@ def build_diagnostic_markdown(
     if diagnostic_summary:
         passed = "passed" in diagnostic_summary.lower()
         marker = "OK" if passed else "WARN"
-        safe_summary = "".join(c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd" for c in diagnostic_summary)
+        safe_summary = "".join(
+            c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd"
+            for c in diagnostic_summary
+        )
         parts.append(f"\n\n**[{marker}] {B('diag_diagnosis')}**: {safe_summary}")
 
     return "\n\n".join(parts) if parts else f"*{B('diag_no_task')}*"
@@ -73,7 +84,9 @@ def build_healing_markdown(
 
     def _sanitize(text: str) -> str:
         safe = _re.sub(r"[\x00-\x1f\x7f]", " ", str(text or ""))
-        return "".join(c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd" for c in safe)
+        return "".join(
+            c if ord(c) < 0xD800 or ord(c) > 0xDFFF else "\ufffd" for c in safe
+        )
 
     has_report = False
     if isinstance(diagnostic_report, dict) and diagnostic_report:
@@ -97,7 +110,9 @@ def build_healing_markdown(
                 f"pass_rate={rate:.1f}% failed={failed}/{total}"
             )
         else:
-            parts.append(f"**[WARN] {B('diag_diagnosis')}**: {_sanitize(diagnostic_report)}")
+            parts.append(
+                f"**[WARN] {B('diag_diagnosis')}**: {_sanitize(diagnostic_report)}"
+            )
     elif diagnostic_summary:
         passed = "passed" in diagnostic_summary.lower()
         parts.append(

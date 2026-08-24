@@ -42,6 +42,7 @@ def _task(svc: RuntimeService, tid: str = "task_cd") -> str:
 def _patch_next_runner(monkeypatch, fn):
     """Patch the next-kernel adapter entry point used by _execute_babeldoc."""
     import pdf2zh.babeldoc_next_adapter as na
+
     monkeypatch.setattr(na, "run_babeldoc_next_translation", fn)
 
 
@@ -96,6 +97,7 @@ class TestEngineCooldownState:
 
     def test_cooldown_expires_after_window(self, monkeypatch):
         import pdf2zh.services.runtime_service as rs_mod
+
         monkeypatch.setattr(rs_mod, "_ENGINE_COOLDOWN_SECONDS", -1.0)
         svc = _svc()
         key = ("google", "auto", "zh-CN", ())
@@ -108,7 +110,9 @@ class TestExecuteBabeldocBreaker:
         svc = _svc()
         tid = _task(svc)
         req = TranslationRequest(
-            source_path="/tmp/a.pdf", target_lang="zh-CN", engine="google",
+            source_path="/tmp/a.pdf",
+            target_lang="zh-CN",
+            engine="google",
         )
         svc._mark_engine_unavailable(svc._engine_key(req), "rate-limited (HTTP 429)")
 
@@ -130,7 +134,9 @@ class TestExecuteBabeldocBreaker:
         svc = _svc()
         tid = _task(svc)
         req = TranslationRequest(
-            source_path="/tmp/a.pdf", target_lang="zh-CN", engine="google",
+            source_path="/tmp/a.pdf",
+            target_lang="zh-CN",
+            engine="google",
         )
 
         def boom(*args, **kwargs):
@@ -149,7 +155,9 @@ class TestExecuteBabeldocBreaker:
         svc = _svc()
         tid = _task(svc)
         req = TranslationRequest(
-            source_path="/tmp/a.pdf", target_lang="zh-CN", engine="google",
+            source_path="/tmp/a.pdf",
+            target_lang="zh-CN",
+            engine="google",
         )
 
         def boom(*args, **kwargs):
@@ -161,11 +169,15 @@ class TestExecuteBabeldocBreaker:
         assert svc._engine_cooldown_error(svc._engine_key(req)) is None
         assert svc._store.get_task(tid).status == TaskStage.FAILED.value
 
-    def test_batch_like_second_file_fast_fails_after_first_rate_limit(self, monkeypatch):
+    def test_batch_like_second_file_fast_fails_after_first_rate_limit(
+        self, monkeypatch
+    ):
         svc = _svc()
         tid = _task(svc)
         req = TranslationRequest(
-            source_path="/tmp/a.pdf", target_lang="zh-CN", engine="google",
+            source_path="/tmp/a.pdf",
+            target_lang="zh-CN",
+            engine="google",
         )
         calls = {"n": 0}
 
@@ -181,4 +193,3 @@ class TestExecuteBabeldocBreaker:
         # Second file: breaker fast-fails; the adapter must not be invoked again.
         svc._execute_babeldoc(tid, req)
         assert calls["n"] == 1
-

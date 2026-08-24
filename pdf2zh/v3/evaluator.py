@@ -55,36 +55,68 @@ class DiagnosticReport:
     def add_record(self, record: DiagnosticRecord) -> None:
         self._records.append(record)
 
-    def add(self, page_num=0, node_id="", metric="",
-            value=100.0, threshold=70.0, message="", passed=True):
-        self._records.append(DiagnosticRecord(
-            page_num=page_num, node_id=node_id,
-            metric=metric, value=value, threshold=threshold,
-            message=message, passed=passed,
-        ))
+    def add(
+        self,
+        page_num=0,
+        node_id="",
+        metric="",
+        value=100.0,
+        threshold=70.0,
+        message="",
+        passed=True,
+    ):
+        self._records.append(
+            DiagnosticRecord(
+                page_num=page_num,
+                node_id=node_id,
+                metric=metric,
+                value=value,
+                threshold=threshold,
+                message=message,
+                passed=passed,
+            )
+        )
 
     @property
-    def records(self): return list(self._records)
+    def records(self):
+        return list(self._records)
+
     @property
-    def total(self) -> int: return len(self._records)
+    def total(self) -> int:
+        return len(self._records)
+
     @property
     def passed_count(self) -> int:
         return sum(1 for r in self._records if r.passed)
+
     @property
-    def failed_count(self) -> int: return self.total - self.passed_count
+    def failed_count(self) -> int:
+        return self.total - self.passed_count
+
     @property
     def pass_rate(self) -> float:
         return (self.passed_count / max(self.total, 1)) * 100.0
+
     def to_dict(self) -> dict:
         return {
-            "total": self.total, "passed": self.passed_count,
+            "total": self.total,
+            "passed": self.passed_count,
             "failed": self.failed_count,
             "pass_rate": round(self.pass_rate, 1),
-            "records": [{"page": r.page_num, "node": r.node_id,
-                         "metric": r.metric, "value": r.value,
-                         "threshold": r.threshold, "message": r.message,
-                         "passed": r.passed} for r in self._records],
+            "records": [
+                {
+                    "page": r.page_num,
+                    "node": r.node_id,
+                    "metric": r.metric,
+                    "value": r.value,
+                    "threshold": r.threshold,
+                    "message": r.message,
+                    "passed": r.passed,
+                }
+                for r in self._records
+            ],
         }
+
     def to_text(self) -> str:
         lines = [
             "=== Diagnostic Report ===",
@@ -93,41 +125,57 @@ class DiagnosticReport:
         ]
         for r in self._records:
             s = "PASS" if r.passed else "FAIL"
-            lines.append(f"  [{s}] {r.metric} ({r.value:.1f}/{r.threshold:.1f}) page={r.page_num} node={r.node_id} {r.message}")
+            lines.append(
+                f"  [{s}] {r.metric} ({r.value:.1f}/{r.threshold:.1f}) page={r.page_num} node={r.node_id} {r.message}"
+            )
         return "\n".join(lines)
-    def clear(self): self._records.clear()
+
+    def clear(self):
+        self._records.clear()
 
 
 class EvaluationIssueMapper:
     @staticmethod
     def map_result(result: EvaluationResult) -> "IssueGraph":
         from pdf2zh.v3.evaluator import IssueGraph, Issue, IssueSeverity
+
         graph = IssueGraph()
-        thresholds = {"translation": 80.0, "semantic": 75.0,
-                      "typography": 70.0, "layout": 80.0, "consistency": 75.0}
-        smap = {"translation": result.translation_score,
-                "semantic": result.semantic_score,
-                "typography": result.typography_score,
-                "layout": result.layout_score,
-                "consistency": result.consistency_score}
-        smap2 = {"translation": IssueSeverity.MAJOR,
-                 "semantic": IssueSeverity.MAJOR,
-                 "typography": IssueSeverity.MINOR,
-                 "layout": IssueSeverity.CRITICAL,
-                 "consistency": IssueSeverity.MAJOR}
+        thresholds = {
+            "translation": 80.0,
+            "semantic": 75.0,
+            "typography": 70.0,
+            "layout": 80.0,
+            "consistency": 75.0,
+        }
+        smap = {
+            "translation": result.translation_score,
+            "semantic": result.semantic_score,
+            "typography": result.typography_score,
+            "layout": result.layout_score,
+            "consistency": result.consistency_score,
+        }
+        smap2 = {
+            "translation": IssueSeverity.MAJOR,
+            "semantic": IssueSeverity.MAJOR,
+            "typography": IssueSeverity.MINOR,
+            "layout": IssueSeverity.CRITICAL,
+            "consistency": IssueSeverity.MAJOR,
+        }
         for metric, score in smap.items():
             thresh = thresholds.get(metric, 70.0)
             if score < thresh:
                 impact = (thresh - score) * 0.5
-                graph.add_issue(Issue(
-                    issue_type=metric + "_low_score",
-                    severity=smap2.get(metric, IssueSeverity.MINOR),
-                    description=f"{metric} score ({score:.1f}) below threshold ({thresh:.1f})",
-                    module=metric, score_impact=impact,
-                    fix_hint=f"Improve {metric} quality",
-                ))
+                graph.add_issue(
+                    Issue(
+                        issue_type=metric + "_low_score",
+                        severity=smap2.get(metric, IssueSeverity.MINOR),
+                        description=f"{metric} score ({score:.1f}) below threshold ({thresh:.1f})",
+                        module=metric,
+                        score_impact=impact,
+                        fix_hint=f"Improve {metric} quality",
+                    )
+                )
         return graph
-
 
 
 # --- Evaluation Result ---
@@ -136,6 +184,7 @@ class EvaluationIssueMapper:
 @dataclass
 class EvaluationResult:
     """Scores in [0, 100] for a single evaluation run."""
+
     translation_score: float = 100.0
     semantic_score: float = 100.0
     typography_score: float = 100.0
@@ -167,6 +216,7 @@ def weighted_penalty(base: float, penalties: List[float]) -> float:
         score -= p
     return clamp(score)
 
+
 # --- Translation Evaluator ---
 
 
@@ -174,15 +224,22 @@ class TranslationEvaluator:
     """Evaluate translation completeness and fluency."""
 
     @staticmethod
-    def evaluate(original: DocumentGraph,
-                 translated: DocumentGraph) -> Tuple[float, dict]:
+    def evaluate(
+        original: DocumentGraph, translated: DocumentGraph
+    ) -> Tuple[float, dict]:
         details: dict = {}
         penalties: List[float] = []
 
-        orig_content = [n for n in original.nodes
-                        if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)]
-        trans_content = [n for n in translated.nodes
-                         if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)]
+        orig_content = [
+            n
+            for n in original.nodes
+            if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)
+        ]
+        trans_content = [
+            n
+            for n in translated.nodes
+            if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)
+        ]
         trans_ids = {n.id for n in trans_content}
 
         if orig_content:
@@ -202,8 +259,7 @@ class TranslationEvaluator:
         num_missing = 0
         for orig_node in orig_content[:50]:
             trans_node = translated.get_node(orig_node.id)
-            if (trans_node and orig_node.text.strip()
-                    and trans_node.text.strip()):
+            if trans_node and orig_node.text.strip() and trans_node.text.strip():
                 orig_nums = set(re.findall(r"\b\d{2,}\b", orig_node.text))
                 key_nums = {n for n in orig_nums if len(n) >= 2}
                 if key_nums:
@@ -228,34 +284,37 @@ class SemanticEvaluator:
     """Evaluate semantic structure preservation."""
 
     @staticmethod
-    def evaluate(original: DocumentGraph,
-                 translated: DocumentGraph) -> Tuple[float, dict]:
+    def evaluate(
+        original: DocumentGraph, translated: DocumentGraph
+    ) -> Tuple[float, dict]:
         details: dict = {}
         penalties: List[float] = []
 
-        sem_edge_types = {EdgeType.CAPTION_OF, EdgeType.FOOTNOTE_OF,
-                          EdgeType.SAME_SECTION, EdgeType.REFERENCE}
-        orig_sem = [e for e in original.edges
-                    if e.edge_type in sem_edge_types]
+        sem_edge_types = {
+            EdgeType.CAPTION_OF,
+            EdgeType.FOOTNOTE_OF,
+            EdgeType.SAME_SECTION,
+            EdgeType.REFERENCE,
+        }
+        orig_sem = [e for e in original.edges if e.edge_type in sem_edge_types]
         trans_sem_keys = {
             f"{e.source_id}->{e.target_id}|{e.edge_type.value}"
-            for e in translated.edges if e.edge_type in sem_edge_types
+            for e in translated.edges
+            if e.edge_type in sem_edge_types
         }
         if orig_sem:
             preserved = sum(
-                1 for e in orig_sem
-                if f"{e.source_id}->{e.target_id}|{e.edge_type.value}"
-                in trans_sem_keys
+                1
+                for e in orig_sem
+                if f"{e.source_id}->{e.target_id}|{e.edge_type.value}" in trans_sem_keys
             )
             ratio = preserved / len(orig_sem)
             penalties.append((1 - ratio) * 15)
             details["edge_preservation"] = round(ratio, 4)
 
-        orig_hids = {n.id for n in original.nodes
-                     if n.node_type == NodeType.HEADING}
+        orig_hids = {n.id for n in original.nodes if n.node_type == NodeType.HEADING}
         if orig_hids:
-            kept = sum(1 for hid in orig_hids
-                       if translated.get_node(hid) is not None)
+            kept = sum(1 for hid in orig_hids if translated.get_node(hid) is not None)
             ratio = kept / len(orig_hids)
             penalties.append((1 - ratio) * 10)
             details["heading_preservation"] = round(ratio, 4)
@@ -287,9 +346,12 @@ class TypographyEvaluator:
                 var_ = sum((s - avg) ** 2 for s in sizes) / len(sizes)
                 if var_ > 4.0:
                     penalties.append(min(var_ * 1.5, 10))
-                    details.setdefault("font_variance", []).append({
-                        "type": nt.value, "variance": round(var_, 2),
-                    })
+                    details.setdefault("font_variance", []).append(
+                        {
+                            "type": nt.value,
+                            "variance": round(var_, 2),
+                        }
+                    )
                     break
 
         pages: Dict[int, List[DocumentNode]] = {}
@@ -370,8 +432,9 @@ class ConsistencyEvaluator:
     """Evaluate term/glossary consistency."""
 
     @staticmethod
-    def evaluate(translated: DocumentGraph,
-                 glossary: Optional[Dict[str, str]] = None) -> Tuple[float, dict]:
+    def evaluate(
+        translated: DocumentGraph, glossary: Optional[Dict[str, str]] = None
+    ) -> Tuple[float, dict]:
         details: dict = {}
         penalties: List[float] = []
 
@@ -379,9 +442,10 @@ class ConsistencyEvaluator:
             return 100.0, {"note": "no glossary provided"}
 
         text_nodes = [
-            n for n in translated.nodes
-            if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE,
-                                   NodeType.FIGURE, NodeType.TABLE)
+            n
+            for n in translated.nodes
+            if n.node_type
+            not in (NodeType.DOCUMENT, NodeType.PAGE, NodeType.FIGURE, NodeType.TABLE)
             and n.text.strip()
         ]
 
@@ -396,8 +460,9 @@ class ConsistencyEvaluator:
                         if len(words) == 1:
                             violations += 1  # single-word term not translated
                         else:
-                            all_present = all(w.lower() in node.text.lower()
-                                              for w in words)
+                            all_present = all(
+                                w.lower() in node.text.lower() for w in words
+                            )
                             if all_present:
                                 violations += 1
 
@@ -421,6 +486,7 @@ class ConsistencyEvaluator:
 @dataclass
 class EvaluatorConfig:
     """Configuration for the Quality Evaluator."""
+
     enable_translation: bool = True
     enable_semantic: bool = True
     enable_typography: bool = True
@@ -437,8 +503,9 @@ class QualityEvaluator:
     def __init__(self, config: Optional[EvaluatorConfig] = None):
         self.config = config or EvaluatorConfig()
 
-    def evaluate(self, original: DocumentGraph,
-                 translated: DocumentGraph) -> EvaluationResult:
+    def evaluate(
+        self, original: DocumentGraph, translated: DocumentGraph
+    ) -> EvaluationResult:
         result = EvaluationResult()
         scores: Dict[str, float] = {}
         details: dict = {}
@@ -508,8 +575,8 @@ class QualityEvaluator:
         return self.diagnostic
 
 
-
 # ── Issue Graph (P2) ──────────────────────────────────────────────────────
+
 
 class IssueSeverity(Enum):
     CRITICAL = "critical"
@@ -517,9 +584,11 @@ class IssueSeverity(Enum):
     MINOR = "minor"
     INFO = "info"
 
+
 @dataclass
 class Issue:
     """A quality issue detected during evaluation."""
+
     issue_type: str
     severity: IssueSeverity
     description: str
@@ -529,41 +598,69 @@ class Issue:
     score_impact: float = 0.0
     details: dict = field(default_factory=dict)
 
+
 class IssueGraph:
     """Collection of quality issues organized by module and severity."""
+
     def __init__(self):
         self._issues = {}
+
     def add_issue(self, issue):
         module = issue.module or "general"
         if module not in self._issues:
             self._issues[module] = []
         self._issues[module].append(issue)
+
     def add_issues(self, issues):
-        for i in issues: self.add_issue(i)
+        for i in issues:
+            self.add_issue(i)
+
     def get_by_module(self, module):
         return list(self._issues.get(module, []))
+
     def get_by_severity(self, severity):
         return [i for il in self._issues.values() for i in il if i.severity == severity]
-    def get_critical(self): return self.get_by_severity(IssueSeverity.CRITICAL)
-    def get_major(self): return self.get_by_severity(IssueSeverity.MAJOR)
+
+    def get_critical(self):
+        return self.get_by_severity(IssueSeverity.CRITICAL)
+
+    def get_major(self):
+        return self.get_by_severity(IssueSeverity.MAJOR)
+
     @property
-    def total(self): return sum(len(v) for v in self._issues.values())
+    def total(self):
+        return sum(len(v) for v in self._issues.values())
+
     @property
-    def modules(self): return list(self._issues.keys())
+    def modules(self):
+        return list(self._issues.keys())
+
     @property
-    def critical_count(self): return len(self.get_critical())
+    def critical_count(self):
+        return len(self.get_critical())
+
     @property
-    def major_count(self): return len(self.get_major())
-    def clear(self): self._issues.clear()
+    def major_count(self):
+        return len(self.get_major())
+
+    def clear(self):
+        self._issues.clear()
+
     def summary(self):
-        return {"total": self.total, "critical": self.critical_count, "major": self.major_count,
-                "by_module": {m: len(v) for m, v in self._issues.items()}}
+        return {
+            "total": self.total,
+            "critical": self.critical_count,
+            "major": self.major_count,
+            "by_module": {m: len(v) for m, v in self._issues.items()},
+        }
+
 
 class RepairScheduler:
     """Schedules repair tasks based on issues found.
 
     Can optionally be bound to an IssueGraph for automatic repair scheduling.
     """
+
     def __init__(self, issue_graph=None):
         self._repairs = []
         self._issue_graph = issue_graph
@@ -572,12 +669,23 @@ class RepairScheduler:
         self._issue_graph = issue_graph
 
     def schedule(self, issue):
-        repair = {"issue_type": issue.issue_type, "node_id": issue.node_id, "module": issue.module,
-                  "action": {"overlap": "relayout", "bad_translation": "retranslate",
-                             "missing_node": "retranslate", "empty_text": "retranslate",
-                             "term_inconsistency": "retranslate", "font_mismatch": "reformat",
-                             "overflow": "relayout"}.get(issue.issue_type, "reinspect"),
-                  "priority": {"critical": 1, "major": 2, "minor": 3, "info": 4}.get(issue.severity.value, 5)}
+        repair = {
+            "issue_type": issue.issue_type,
+            "node_id": issue.node_id,
+            "module": issue.module,
+            "action": {
+                "overlap": "relayout",
+                "bad_translation": "retranslate",
+                "missing_node": "retranslate",
+                "empty_text": "retranslate",
+                "term_inconsistency": "retranslate",
+                "font_mismatch": "reformat",
+                "overflow": "relayout",
+            }.get(issue.issue_type, "reinspect"),
+            "priority": {"critical": 1, "major": 2, "minor": 3, "info": 4}.get(
+                issue.severity.value, 5
+            ),
+        }
         self._repairs.append(repair)
         return repair
 
@@ -621,8 +729,10 @@ class RepairScheduler:
 
 # ── Composite Scoring & Quality Gate (阶段十) ─────────────────────────
 
-def composite_score(result: "EvaluationResult",
-                    weights: Optional[Dict[str, float]] = None) -> float:
+
+def composite_score(
+    result: "EvaluationResult", weights: Optional[Dict[str, float]] = None
+) -> float:
     """Composite quality score in [0, 100].
 
     Default weights come from the roadmap 阶段十 quality gate; custom weights
@@ -667,46 +777,52 @@ class QualityGate:
     DEFAULT_THRESHOLD = 90.0
     DEFAULT_PAGE_THRESHOLD = 75.0
 
-    def __init__(self, threshold: float = DEFAULT_THRESHOLD,
-                 page_threshold: float = DEFAULT_PAGE_THRESHOLD,
-                 weights: Optional[Dict[str, float]] = None) -> None:
+    def __init__(
+        self,
+        threshold: float = DEFAULT_THRESHOLD,
+        page_threshold: float = DEFAULT_PAGE_THRESHOLD,
+        weights: Optional[Dict[str, float]] = None,
+    ) -> None:
         self.threshold = threshold
         self.page_threshold = page_threshold
         self.weights = weights
 
-    def evaluate(self, result: "EvaluationResult",
-                 extra: Optional[dict] = None) -> QualityGateResult:
+    def evaluate(
+        self, result: "EvaluationResult", extra: Optional[dict] = None
+    ) -> QualityGateResult:
         total = composite_score(result, self.weights)
         issues: List[str] = []
         if total < self.threshold:
-            issues.append(f"total {total:.1f} below gate "
-                          f"{self.threshold:.1f}")
+            issues.append(f"total {total:.1f} below gate " f"{self.threshold:.1f}")
         page_map: Dict[int, dict] = {}
         for page, scores in (result.per_page_scores or {}).items():
-            page_total = composite_score(
-                _ResultProxy(scores), self.weights)
+            page_total = composite_score(_ResultProxy(scores), self.weights)
             page_map[int(page)] = {"score": page_total}
             if page_total < self.page_threshold:
                 issues.append(
                     f"page {page} score {page_total:.1f} below "
-                    f"{self.page_threshold:.1f}")
+                    f"{self.page_threshold:.1f}"
+                )
         return QualityGateResult(
             passed=total >= self.threshold and not issues,
             total_score=total,
             threshold=self.threshold,
             per_page_scores=page_map,
             issues=issues,
-            snapshot=QualitySnapshot.capture(
-                result, total_score=total, extra=extra),
+            snapshot=QualitySnapshot.capture(result, total_score=total, extra=extra),
         )
 
-    def save_snapshot(self, result: "EvaluationResult",
-                      output_dir: str, tag: str = "",
-                      extra: Optional[dict] = None) -> str:
+    def save_snapshot(
+        self,
+        result: "EvaluationResult",
+        output_dir: str,
+        tag: str = "",
+        extra: Optional[dict] = None,
+    ) -> str:
         """Persist the gate snapshot and return the written path."""
         snapshot = QualitySnapshot.capture(
-            result, total_score=composite_score(result, self.weights),
-            extra=extra)
+            result, total_score=composite_score(result, self.weights), extra=extra
+        )
         return QualitySnapshot.save(snapshot, output_dir, tag=tag)
 
 
@@ -726,13 +842,17 @@ class QualitySnapshot:
     """阶段十 snapshot: JSON-able record of one quality evaluation."""
 
     @staticmethod
-    def capture(result: "EvaluationResult", total_score: Optional[float] = None,
-                extra: Optional[dict] = None) -> dict:
+    def capture(
+        result: "EvaluationResult",
+        total_score: Optional[float] = None,
+        extra: Optional[dict] = None,
+    ) -> dict:
         return {
             "schema": "pdf2zh.v3.quality-snapshot",
             "version": 1,
-            "total_score": round(total_score if total_score is not None
-                                 else float(result.total_score), 2),
+            "total_score": round(
+                total_score if total_score is not None else float(result.total_score), 2
+            ),
             "scores": {
                 "translation": round(float(result.translation_score), 1),
                 "semantic": round(float(result.semantic_score), 1),
@@ -747,6 +867,7 @@ class QualitySnapshot:
     def save(snapshot: dict, output_dir: str, tag: str = "") -> str:
         import json as _json
         import os
+
         os.makedirs(output_dir, exist_ok=True)
         name = f"quality_snapshot{'_' + tag if tag else ''}.json"
         path = os.path.join(output_dir, name)
@@ -757,6 +878,7 @@ class QualitySnapshot:
     @staticmethod
     def load(path: str) -> dict:
         import json as _json
+
         with open(path, encoding="utf-8") as fh:
             return _json.load(fh)
 
@@ -775,5 +897,8 @@ __all__ = [
     "QualityGate",
     "QualityGateResult",
     "QualitySnapshot",
-    "Issue", "IssueSeverity", "IssueGraph", "RepairScheduler",
+    "Issue",
+    "IssueSeverity",
+    "IssueGraph",
+    "RepairScheduler",
 ]

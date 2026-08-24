@@ -12,6 +12,7 @@ Default location: ``~/.cache/pdf2zh/translation_cache.db`` —— 与
 ``~/.pdf2zh/translation_cache.db``，首次使用时会自动迁移。
 可用环境变量 ``PDF2ZH_CACHE_DIR`` 覆盖基础目录。
 """
+
 import hashlib
 import logging
 import os
@@ -60,7 +61,8 @@ class TranslationCache:
             except OSError as mk_err:
                 logger.warning(
                     "PDF2ZH_CACHE_DIR %s not usable (%s); falling back to default",
-                    db_dir, str(mk_err)[:120],
+                    db_dir,
+                    str(mk_err)[:120],
                 )
                 db_dir = cls.DEFAULT_DB_DIR
                 target_full = db_dir / cls.DEFAULT_DB_NAME
@@ -73,7 +75,8 @@ class TranslationCache:
             except OSError as mk_err:
                 logger.warning(
                     "TranslationCache dir %s not writable (%s); skipping migration",
-                    db_dir, mk_err,
+                    db_dir,
+                    mk_err,
                 )
             target_full = db_dir / cls.DEFAULT_DB_NAME
             legacy = cls.LEGACY_DB_DIR / cls.DEFAULT_DB_NAME
@@ -81,7 +84,9 @@ class TranslationCache:
                 try:
                     shutil.move(str(legacy), str(target_full))
                     logger.info(
-                        "TranslationCache migrated %s -> %s", legacy, target_full,
+                        "TranslationCache migrated %s -> %s",
+                        legacy,
+                        target_full,
                     )
                 except OSError as mv_err:
                     # 迁移失败（例如旧实例仍占用库文件）时回退到旧路径，
@@ -89,7 +94,8 @@ class TranslationCache:
                     logger.warning(
                         "TranslationCache migration failed (%s); "
                         "falling back to legacy path %s",
-                        str(mv_err)[:120], legacy,
+                        str(mv_err)[:120],
+                        legacy,
                     )
                     return str(legacy)
         return str(target_full)
@@ -132,7 +138,9 @@ class TranslationCache:
         """)
         self.conn.commit()
 
-    def get(self, text: str, lang_in: str, lang_out: str, variant: str = "") -> Optional[str]:
+    def get(
+        self, text: str, lang_in: str, lang_out: str, variant: str = ""
+    ) -> Optional[str]:
         """Retrieve cached translation if available and fresh.
 
         ``variant``（如段落字体指纹）参与键计算：同文本、不同字体形态的段落
@@ -159,7 +167,14 @@ class TranslationCache:
                 return None
             return translated
 
-    def set(self, text: str, lang_in: str, lang_out: str, translation: str, variant: str = ""):
+    def set(
+        self,
+        text: str,
+        lang_in: str,
+        lang_out: str,
+        translation: str,
+        variant: str = "",
+    ):
         """Store a translation result in the cache.
 
         ``variant`` 与 :meth:`get` 的语义一致（默认空串 = 无区分）。
@@ -186,7 +201,11 @@ class TranslationCache:
         with self._lock:
             cursor = self.conn.execute("SELECT COUNT(*) FROM translations")
             count = cursor.fetchone()[0]
-        return {"entries": count, "db_path": self.db_path, "max_entries": self.MAX_ENTRIES}
+        return {
+            "entries": count,
+            "db_path": self.db_path,
+            "max_entries": self.MAX_ENTRIES,
+        }
 
     def _enforce_limits(self):
         """Remove oldest entries when over capacity."""

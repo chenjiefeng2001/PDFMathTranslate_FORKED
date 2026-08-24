@@ -1,4 +1,5 @@
 """Tests for CollisionResolver (Phase 2)."""
+
 import unittest
 from pdf2zh.collision_resolver import BoundingBox, CollisionResolver
 
@@ -59,27 +60,21 @@ class TestCollisionResolver(unittest.TestCase):
         self.obstacle = BoundingBox(150, 50, 250, 250)  # Overlaps text
 
     def test_no_obstacles_returns_original(self):
-        x, y, size = self.resolver.resolve(
-            self.text_bbox, [], 12.0
-        )
+        x, y, size = self.resolver.resolve(self.text_bbox, [], 12.0)
         self.assertEqual(x, 100)
         self.assertEqual(y, 100)
         self.assertEqual(size, 12.0)
 
     def test_non_overlapping_obstacle_returns_original(self):
         far_obstacle = BoundingBox(500, 500, 600, 600)
-        x, y, size = self.resolver.resolve(
-            self.text_bbox, [far_obstacle], 12.0
-        )
+        x, y, size = self.resolver.resolve(self.text_bbox, [far_obstacle], 12.0)
         self.assertEqual(x, 100)
         self.assertEqual(y, 100)
         self.assertEqual(size, 12.0)
 
     def test_collision_resolves(self):
         """Collision should resolve without crashing."""
-        x, y, size = self.resolver.resolve(
-            self.text_bbox, [self.obstacle], 12.0
-        )
+        x, y, size = self.resolver.resolve(self.text_bbox, [self.obstacle], 12.0)
         self.assertIsNotNone(x)
         self.assertIsNotNone(y)
         self.assertIsNotNone(size)
@@ -87,9 +82,7 @@ class TestCollisionResolver(unittest.TestCase):
     def test_collision_shifts_vertically(self):
         """Collision resolver should attempt vertical shift first."""
         obstacle = BoundingBox(100, 102, 200, 104)  # Thin strip at top edge
-        x, y, size = self.resolver.resolve(
-            self.text_bbox, [obstacle], 12.0
-        )
+        x, y, size = self.resolver.resolve(self.text_bbox, [obstacle], 12.0)
         # Should shift
         self.assertNotEqual(y, 100)
 
@@ -97,16 +90,14 @@ class TestCollisionResolver(unittest.TestCase):
         """When vertical shift can't work, font size may shrink."""
         # Large obstacle that fully contains text area
         big_obstacle = BoundingBox(50, 50, 350, 250)
-        x, y, size = self.resolver.resolve(
-            self.text_bbox, [big_obstacle], 12.0
-        )
+        x, y, size = self.resolver.resolve(self.text_bbox, [big_obstacle], 12.0)
         # Size may or may not shrink depending on strategy
         self.assertLessEqual(size, 12.0)
 
     def test_large_vertical_shift_for_line_expansion(self):
         """单行段落（lidx==0）膨胀侵占下方空间时，应获得大幅（多行）
         垂直偏移，而不是回退到缩小字号。新版语义：优先向下（正文推进方向）。"""
-        text = BoundingBox(100, 300, 500, 340)      # 单行段落
+        text = BoundingBox(100, 300, 500, 340)  # 单行段落
         obstacle = BoundingBox(100, 280, 500, 330)  # 占据约 2.5 行高度
         new_y = self.resolver._try_vertical_shift(text, [obstacle], 10.0)
         self.assertIsNotNone(new_y)
@@ -125,8 +116,8 @@ class TestCollisionResolver(unittest.TestCase):
     def test_vertical_shift_pushes_below_stacked_obstacles(self):
         """多障碍物层叠时，下推需逐层让开所有障碍物（贪心精确下推）。"""
         text = BoundingBox(100, 300, 300, 360)  # 高 60
-        a = BoundingBox(100, 280, 300, 330)    # 第一层
-        b = BoundingBox(100, 240, 300, 290)    # 第二层（与 a 紧邻）
+        a = BoundingBox(100, 280, 300, 330)  # 第一层
+        b = BoundingBox(100, 240, 300, 290)  # 第二层（与 a 紧邻）
         new_y = self.resolver._try_vertical_shift(text, [a, b], 12.0)
         self.assertIsNotNone(new_y)
         # 需越过 a 与 b 两层：b 底部 y0 = 240
@@ -138,7 +129,7 @@ class TestCollisionResolver(unittest.TestCase):
     def test_page_rect_clamps_downward_shift(self):
         """页面底部钳制：下推结果不得低于页面底边（y=0）。"""
         page_rect = BoundingBox(0, 0, 500, 700)
-        text = BoundingBox(100, 30, 300, 60)      # 接近页面底部
+        text = BoundingBox(100, 30, 300, 60)  # 接近页面底部
         obstacle = BoundingBox(100, 20, 300, 45)  # 与 text 重叠
         new_y = self.resolver._try_vertical_shift(text, [obstacle], 10.0, page_rect)
         self.assertIsNotNone(new_y)
@@ -169,7 +160,9 @@ class TestCollisionResolver(unittest.TestCase):
         text = BoundingBox(100, 600, 300, 640)
         down_ob = BoundingBox(100, 0, 300, 610)  # 占满下方 → 下推不可行
         up_ob = BoundingBox(100, 635, 300, 645)  # 与 text 顶部重叠 → 触发上推
-        new_y = self.resolver._try_vertical_shift(text, [down_ob, up_ob], 10.0, page_rect)
+        new_y = self.resolver._try_vertical_shift(
+            text, [down_ob, up_ob], 10.0, page_rect
+        )
         self.assertIsNotNone(new_y)
         self.assertLessEqual(new_y, page_rect.y1 - text.height - 10.0 + 1e-6)
         self.assertGreater(new_y, text.y0)  # 发生了上移
@@ -186,7 +179,10 @@ class TestCollisionResolver(unittest.TestCase):
     def test_resolve_return_strategy_clear(self):
         """无碰撞时返回 strategy='clear'，位置不变。"""
         x, y, size, strategy = self.resolver.resolve(
-            self.text_bbox, [BoundingBox(500, 500, 600, 600)], 12.0, return_strategy=True
+            self.text_bbox,
+            [BoundingBox(500, 500, 600, 600)],
+            12.0,
+            return_strategy=True,
         )
         self.assertEqual(strategy, "clear")
         self.assertEqual(y, 100)
@@ -201,8 +197,8 @@ class TestCollisionResolver(unittest.TestCase):
     def test_resolve_avoids_lower_noncolliding_obstacle(self):
         """向下偏移时必须避开原本未重叠的下方元素（全量障碍物探测）。"""
         text = BoundingBox(100, 100, 300, 160)
-        upper = BoundingBox(100, 150, 300, 155)    # 与 text 重叠
-        lower = BoundingBox(100, 165, 300, 170)    # 位于 text 下方
+        upper = BoundingBox(100, 150, 300, 155)  # 与 text 重叠
+        lower = BoundingBox(100, 165, 300, 170)  # 位于 text 下方
         x, y, size = self.resolver.resolve(text, [upper, lower], 10.0)
         shifted = BoundingBox(x, y, x + text.width, y + text.height)
         self.assertFalse(shifted.overlaps(upper))

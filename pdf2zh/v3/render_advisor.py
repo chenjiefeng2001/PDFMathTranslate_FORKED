@@ -20,6 +20,7 @@
 ir_snapshots 快照节点），输出是确定性的 RenderPlan dict —— 与
 image_engine / toc_semantics 同风格（引擎不建 IR，只产出决策）。
 """
+
 from __future__ import annotations
 
 import re
@@ -56,9 +57,11 @@ class RoutingDecision:
     reasons: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return {"node_id": self.node_id,
-                "render_path": self.render_path,
-                "reasons": list(self.reasons)}
+        return {
+            "node_id": self.node_id,
+            "render_path": self.render_path,
+            "reasons": list(self.reasons),
+        }
 
 
 class RenderAdvisor:
@@ -76,8 +79,11 @@ class RenderAdvisor:
 
     # ── 主入口 ─────────────────────────────────────────────────────
 
-    def plan(self, gate_verdict: Optional[dict] = None,
-             snapshot_nodes: Optional[List[dict]] = None) -> dict:
+    def plan(
+        self,
+        gate_verdict: Optional[dict] = None,
+        snapshot_nodes: Optional[List[dict]] = None,
+    ) -> dict:
         """为快照中的每个节点计算渲染路由。
 
         Args:
@@ -118,25 +124,23 @@ class RenderAdvisor:
 
     # ── 内部 ────────────────────────────────────────────────────────
 
-    def _route_node(self, node: dict, allowed: bool,
-                    overflow_ids: set) -> RoutingDecision:
+    def _route_node(
+        self, node: dict, allowed: bool, overflow_ids: set
+    ) -> RoutingDecision:
         nid = str(node.get("id", ""))
         role = str(node.get("role", "")).lower()
         reasons: List[str] = []
         # 1. 受保护对象：原位保留（即使 gate 放行也不参与重排）
         if role in _PRESERVE_FLOAT_ROLES:
-            return RoutingDecision(nid, PATH_PRESERVE_FLOAT,
-                                   [f"role:{role}"])
+            return RoutingDecision(nid, PATH_PRESERVE_FLOAT, [f"role:{role}"])
         # 2. 叠加角色：不推挤正文流
         if role in _OVERLAY_ROLES:
             return RoutingDecision(nid, PATH_OVERLAY, [f"role:{role}"])
         # 3. gate 判据：溢出节点禁止原位写回
         if nid in overflow_ids:
             if not allowed:
-                return RoutingDecision(nid, PATH_BLOCK,
-                                       ["gate:overflow-unresolved"])
-            return RoutingDecision(nid, PATH_SHIFT_DOWN,
-                                   ["gate:overflow-shift-down"])
+                return RoutingDecision(nid, PATH_BLOCK, ["gate:overflow-unresolved"])
+            return RoutingDecision(nid, PATH_SHIFT_DOWN, ["gate:overflow-shift-down"])
         # 4. gate 拒绝整页但本节点无溢出 → 仍按常规接管
         if not allowed:
             reasons.append("gate:writeback-rejected")
@@ -163,13 +167,19 @@ class RenderAdvisor:
         for r in routing.values():
             path = r.get("render_path", "?")
             counts[path] = counts.get(path, 0) + 1
-        return (f"RenderPlan admissible={plan.get('admissible')} "
-                f"overlap={plan.get('overlap_rate', 0.0):.3f} "
-                f"{dict(sorted(counts.items()))}")
+        return (
+            f"RenderPlan admissible={plan.get('admissible')} "
+            f"overlap={plan.get('overlap_rate', 0.0):.3f} "
+            f"{dict(sorted(counts.items()))}"
+        )
 
 
 __all__ = [
-    "PATH_TRANSLATE_REFIT", "PATH_SHIFT_DOWN", "PATH_PRESERVE_FLOAT",
-    "PATH_OVERLAY", "PATH_BLOCK",
-    "RoutingDecision", "RenderAdvisor",
+    "PATH_TRANSLATE_REFIT",
+    "PATH_SHIFT_DOWN",
+    "PATH_PRESERVE_FLOAT",
+    "PATH_OVERLAY",
+    "PATH_BLOCK",
+    "RoutingDecision",
+    "RenderAdvisor",
 ]

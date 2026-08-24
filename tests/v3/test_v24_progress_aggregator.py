@@ -15,6 +15,7 @@
   批量重置、文档页数重排权重、TaskState.eta 回传；
 - GUI：build_progress_bar_html 渲染「预计剩余 m:ss」。
 """
+
 import unittest
 
 from pdf2zh.v3.progress_aggregator import (
@@ -36,8 +37,15 @@ from pdf2zh.v3.progress_aggregator import (
 
 
 def _doc_counts(**kwargs) -> dict:
-    base = {"pages": 100, "paragraphs": 1500, "formulas": 40,
-            "tables": 12, "headings": 60, "lines": 8000, "images": 8}
+    base = {
+        "pages": 100,
+        "paragraphs": 1500,
+        "formulas": 40,
+        "tables": 12,
+        "headings": 60,
+        "lines": 8000,
+        "images": 8,
+    }
     base.update(kwargs)
     return base
 
@@ -55,15 +63,25 @@ class TestWorkGraph(unittest.TestCase):
         graph = build_work_graph(_doc_counts(pages=100))
         t_tasks = [t for t in graph.tasks if t.stage == "Translation"]
         self.assertEqual(len(t_tasks), 100)
-        self.assertAlmostEqual(sum(t.weight for t in t_tasks),
-                               estimate_pass_weight("Translation", _doc_counts(pages=100)))
+        self.assertAlmostEqual(
+            sum(t.weight for t in t_tasks),
+            estimate_pass_weight("Translation", _doc_counts(pages=100)),
+        )
         self.assertTrue(all(t.task_id.startswith("Translation:page") for t in t_tasks))
 
     def test_no_pages_means_single_task_per_pass(self):
         graph = build_work_graph({"paragraphs": 10})
         names = [t.task_id for t in graph.tasks]
-        self.assertEqual(names, ["Parser:doc", "SemanticAnalysis:doc",
-                                 "Translation:doc", "Layout:doc", "Render:doc"])
+        self.assertEqual(
+            names,
+            [
+                "Parser:doc",
+                "SemanticAnalysis:doc",
+                "Translation:doc",
+                "Layout:doc",
+                "Render:doc",
+            ],
+        )
 
     def test_total_weight_is_sum(self):
         graph = build_work_graph(_doc_counts(pages=50))
@@ -79,7 +97,7 @@ class TestWorkGraph(unittest.TestCase):
 class TestPassRegistry(unittest.TestCase):
     def test_default_estimate_translation_weight(self):
         # 1500 段 * 10 + 40 公式 * 25 + 12 表 * 30 + 60 标题 * 4 + 8 图 * 60
-        expected = (1500 * 10 + 40 * 25 + 12 * 30 + 60 * 4 + 8 * 60)
+        expected = 1500 * 10 + 40 * 25 + 12 * 30 + 60 * 4 + 8 * 60
         w = estimate_pass_weight("Translation", _doc_counts())
         self.assertAlmostEqual(w, float(expected))
 
@@ -101,9 +119,7 @@ class TestPassRegistry(unittest.TestCase):
             default_pass_registry.restore_defaults()
 
     def test_estimate_document_weight_units(self):
-        w = estimate_document_weight(
-            {"paragraphs": 2, "formulas": 1, "images": 1}
-        )
+        w = estimate_document_weight({"paragraphs": 2, "formulas": 1, "images": 1})
         self.assertAlmostEqual(w, 2 * 10 + 25 + 60)
 
 
@@ -162,8 +178,8 @@ class TestProgressAggregator(unittest.TestCase):
         agg.add_task("a", 50.0, stage="X")
         agg.add_task("b", 50.0, stage="X")
         agg.finish("a")
-        first = agg.get_state().percentage          # 4.0
-        second = agg.get_state().percentage         # 7.68
+        first = agg.get_state().percentage  # 4.0
+        second = agg.get_state().percentage  # 7.68
         self.assertGreater(second, first)
         self.assertLess(second, 100.0)
         self.assertAlmostEqual(first, 4.0, places=3)
@@ -174,23 +190,22 @@ class TestProgressAggregator(unittest.TestCase):
         # 时间基平滑：稀疏阶段事件（间隔秒级）快速追上 real，避免进度条
         # 长时间停在低数值；高频并行事件（100ms 级）走慢速平滑。
         now = [0.0]
-        agg = ProgressAggregator(alpha=DEFAULT_SMOOTHING_ALPHA,
-                                 now_fn=lambda: now[0])
+        agg = ProgressAggregator(alpha=DEFAULT_SMOOTHING_ALPHA, now_fn=lambda: now[0])
         for name, w in (("a", 10.0), ("b", 20.0), ("c", 30.0), ("d", 40.0)):
             agg.add_task(name, w, stage="X")
         agg.finish("a")
         now[0] += 0.1
         first = agg.get_state().percentage
         self.assertAlmostEqual(first, 0.8, places=2)  # 10 * 0.08
-        agg.finish("b")                                # real=30
+        agg.finish("b")  # real=30
         now[0] += 1.5
         mid = agg.get_state().percentage
-        self.assertGreater(mid, 20.0)                  # 稀疏事件快速收敛
+        self.assertGreater(mid, 20.0)  # 稀疏事件快速收敛
         self.assertLess(mid, 30.0)
         now[0] += 1.5
         self.assertGreater(agg.get_state().percentage, mid)
         agg.finish("c")
-        agg.finish("d")                                # real=100
+        agg.finish("d")  # real=100
         self.assertEqual(agg.get_state().percentage, 100.0)
 
     def test_smoothing_never_backwards(self):
@@ -215,9 +230,9 @@ class TestProgressAggregator(unittest.TestCase):
         agg = ProgressAggregator(alpha=1.0, now_fn=lambda: now[0])
         agg.add_task("a", 50.0, stage="X")
         agg.add_task("b", 50.0, stage="X")
-        agg.finish("a")          # t=100, done=50
+        agg.finish("a")  # t=100, done=50
         now[0] += 25.0
-        agg.finish("b")          # t=125, done=100
+        agg.finish("b")  # t=125, done=100
         st = agg.get_state()
         self.assertEqual(st.eta, 0.0)  # 全部完成 -> 无剩余
 
@@ -308,8 +323,10 @@ class TestExecutorBridge(unittest.TestCase):
 class TestRuntimeServiceIntegration(unittest.TestCase):
     def _svc(self):
         from pdf2zh.services.runtime_service import (
-            RuntimeService, TaskStage,
+            RuntimeService,
+            TaskStage,
         )
+
         return RuntimeService(), TaskStage
 
     def test_stage_mapping_preserves_checkpoints(self):
@@ -366,6 +383,7 @@ class TestRuntimeServiceIntegration(unittest.TestCase):
     def test_submit_task_initializes_aggregator_and_eta_field(self):
         svc, TS = self._svc()
         from pdf2zh.services.runtime_service import TranslationRequest
+
         tid = svc.submit_task(TranslationRequest(source_path="x.pdf"))
         state = svc.get_task_state(tid)
         self.assertIsNotNone(state)
@@ -397,22 +415,26 @@ class TestRuntimeServiceIntegration(unittest.TestCase):
 class TestGuiEtaDisplay(unittest.TestCase):
     def test_eta_rendered(self):
         from pdf2zh.gui.components.progress_panel import build_progress_bar_html
+
         html = build_progress_bar_html("translating", 55.0, "Working", eta=83.0)
         self.assertIn("预计剩余", html)
         self.assertIn("1:23", html)
 
     def test_eta_hidden_when_zero(self):
         from pdf2zh.gui.components.progress_panel import build_progress_bar_html
+
         html = build_progress_bar_html("translating", 55.0, "Working")
         self.assertNotIn("预计剩余", html)
 
     def test_eta_hidden_terminal(self):
         from pdf2zh.gui.components.progress_panel import build_progress_bar_html
+
         html = build_progress_bar_html("completed", 100.0, "Done", eta=5.0)
         self.assertNotIn("预计剩余", html)
 
     def test_format_eta(self):
         from pdf2zh.gui.components.progress_panel import _format_eta
+
         self.assertEqual(_format_eta(0), "0:00")
         self.assertEqual(_format_eta(83), "1:23")
         self.assertEqual(_format_eta(3661), "1:01:01")
@@ -422,6 +444,7 @@ class TestUploadLimit(unittest.TestCase):
     def test_resolve_max_file_size_priority(self):
         import os
         from pdf2zh.gui.entry import DEFAULT_MAX_FILE_SIZE, resolve_max_file_size
+
         self.assertEqual(resolve_max_file_size(None), DEFAULT_MAX_FILE_SIZE)
         self.assertEqual(resolve_max_file_size("200mb"), "200mb")
         self.assertEqual(resolve_max_file_size(100), "100mb")
@@ -435,6 +458,7 @@ class TestUploadLimit(unittest.TestCase):
 
     def test_cli_has_max_file_size_flag(self):
         from pdf2zh.pdf2zh import create_parser
+
         ns = create_parser().parse_args(["--interactive", "--max-file-size", "256"])
         self.assertEqual(ns.max_file_size, 256)
 

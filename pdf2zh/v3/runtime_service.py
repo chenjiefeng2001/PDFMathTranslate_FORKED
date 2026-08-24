@@ -39,9 +39,16 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional, Set
 
 from pdf2zh.v3.operators import (
-    AnalyzeOperator, LayoutOperator, OperatorContext, OperatorGraph,
-    OperatorRegistry, ParseOperator, PlanOperator, RenderOperator,
-    ReviewOperator, TranslateOperator,
+    AnalyzeOperator,
+    LayoutOperator,
+    OperatorContext,
+    OperatorGraph,
+    OperatorRegistry,
+    ParseOperator,
+    PlanOperator,
+    RenderOperator,
+    ReviewOperator,
+    TranslateOperator,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,8 +68,7 @@ class ResourceManager:
     runtime execution bounded.
     """
 
-    def __init__(self,
-                 limits: Optional[Dict[str, int]] = None) -> None:
+    def __init__(self, limits: Optional[Dict[str, int]] = None) -> None:
         self._limits: Dict[str, int] = {}
         self._sems: Dict[str, threading.BoundedSemaphore] = {}
         if limits:
@@ -76,8 +82,9 @@ class ResourceManager:
         self._sems[name] = threading.BoundedSemaphore(limit)
         return self
 
-    def acquire(self, name: str, amount: int = 1,
-                timeout: Optional[float] = None) -> bool:
+    def acquire(
+        self, name: str, amount: int = 1, timeout: Optional[float] = None
+    ) -> bool:
         """Try to reserve ``amount`` units; returns True if granted."""
         sem = self._sems.get(name)
         if sem is None:
@@ -112,10 +119,14 @@ class ResourceManager:
         return dict(self._limits)
 
     def stats(self) -> dict:
-        return {name: {"limit": self._limits.get(name, 0),
-                       "used": self.used(name),
-                       "available": self.available(name)}
-                for name in sorted(self._limits)}
+        return {
+            name: {
+                "limit": self._limits.get(name, 0),
+                "used": self.used(name),
+                "available": self.available(name),
+            }
+            for name in sorted(self._limits)
+        }
 
     def __enter__(self) -> "ResourceManager":
         return self
@@ -136,8 +147,9 @@ class SessionManager:
     can serve many documents without leaking state.
     """
 
-    def __init__(self, max_sessions: int = 32,
-                 on_evict: Optional[Callable[[str], None]] = None) -> None:
+    def __init__(
+        self, max_sessions: int = 32, on_evict: Optional[Callable[[str], None]] = None
+    ) -> None:
         if max_sessions < 1:
             raise ValueError("max_sessions must be >= 1")
         self._max = max_sessions
@@ -153,8 +165,12 @@ class SessionManager:
         with self._lock:
             return sorted(self._sessions)
 
-    def create(self, document: Any, document_id: Optional[str] = None,
-               target_lang: str = "zh-CN") -> Any:
+    def create(
+        self,
+        document: Any,
+        document_id: Optional[str] = None,
+        target_lang: str = "zh-CN",
+    ) -> Any:
         """Create a new DocumentSession for ``document``.
 
         When the session cap is reached, idle sessions (untouched for
@@ -162,8 +178,11 @@ class SessionManager:
         ``on_evict`` side-data cleanup — instead of failing outright. The
         cap is only a hard limit for *actively used* sessions.
         """
-        from pdf2zh.v3.document_runtime import DocumentSession, \
-            RuntimeCheckpoint, SessionState
+        from pdf2zh.v3.document_runtime import (
+            DocumentSession,
+            RuntimeCheckpoint,
+            SessionState,
+        )
 
         with self._lock:
             if len(self._sessions) >= self._max:
@@ -171,13 +190,20 @@ class SessionManager:
             if len(self._sessions) >= self._max:
                 raise RuntimeError(
                     f"Session limit reached ({self._max}) — all sessions are "
-                    "actively in use; close a session first")
+                    "actively in use; close a session first"
+                )
             session = DocumentSession(
-                document=document, document_id=document_id,
+                document=document,
+                document_id=document_id,
                 target_lang=target_lang,
                 checkpoint=RuntimeCheckpoint(
-                    label="initial", session_id="", state=SessionState.CREATED,
-                    graph_snapshot={}, graph_object=None))
+                    label="initial",
+                    session_id="",
+                    state=SessionState.CREATED,
+                    graph_snapshot={},
+                    graph_object=None,
+                ),
+            )
             self._sessions[session.session_id] = session
             return session
 
@@ -213,8 +239,7 @@ class SessionManager:
                 self._notify_evict(sid)
         return evicted
 
-    def _evict_idle_locked(self,
-                           max_idle_seconds: float = 600.0) -> List[str]:
+    def _evict_idle_locked(self, max_idle_seconds: float = 600.0) -> List[str]:
         """Idle-eviction variant for callers already holding ``_lock``.
 
         ``create()`` uses this at cap; must never re-acquire the (non-
@@ -241,8 +266,9 @@ class SessionManager:
         try:
             cb(session_id)
         except Exception:  # noqa: BLE001 -- cleanup must not break lifecycle
-            logger.warning("on_evict callback failed for session %s",
-                           session_id, exc_info=True)
+            logger.warning(
+                "on_evict callback failed for session %s", session_id, exc_info=True
+            )
 
     @property
     def sessions(self) -> List[str]:
@@ -254,16 +280,21 @@ class SessionManager:
 
     @property
     def active_count(self) -> int:
-        return sum(1 for s in self._sessions.values()
-                   if not getattr(s, "closed", False))
+        return sum(
+            1 for s in self._sessions.values() if not getattr(s, "closed", False)
+        )
 
     @property
     def max_sessions(self) -> int:
         return self._max
 
     def stats(self) -> dict:
-        return {"count": self.count, "active": self.active_count,
-                "max": self._max, "sessions": self.sessions}
+        return {
+            "count": self.count,
+            "active": self.active_count,
+            "max": self._max,
+            "sessions": self.sessions,
+        }
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -290,8 +321,12 @@ class IncrementalPlan:
         return round(len(self.changed) / len(self.affected), 4)
 
     def to_dict(self) -> dict:
-        return {"changed": self.changed, "affected": self.affected,
-                "ratio": self.ratio, "skipped": self.skipped}
+        return {
+            "changed": self.changed,
+            "affected": self.affected,
+            "ratio": self.ratio,
+            "skipped": self.skipped,
+        }
 
 
 class IncrementalEngine:
@@ -302,24 +337,28 @@ class IncrementalEngine:
     while unrelated subgraphs are skipped entirely.
     """
 
-    def propagate_dirty(self, execution_graph: Any,
-                        changed_ids: Iterable[str]) -> Set[str]:
+    def propagate_dirty(
+        self, execution_graph: Any, changed_ids: Iterable[str]
+    ) -> Set[str]:
         """Mark changed nodes (cascade=True) and return the dirty set."""
         for node_id in changed_ids:
             if execution_graph.has_node(node_id):
                 execution_graph.mark_dirty(node_id, cascade=True)
         return set(execution_graph.get_dirty_nodes())
 
-    def affected_nodes(self, execution_graph: Any,
-                       changed_ids: Iterable[str]) -> List[str]:
+    def affected_nodes(
+        self, execution_graph: Any, changed_ids: Iterable[str]
+    ) -> List[str]:
         """Dirty node ids in execution order, or [] if no graph available."""
         dirty = self.propagate_dirty(execution_graph, changed_ids)
         ordered = getattr(execution_graph, "get_execution_order", lambda: [])()
-        return [node.node_id for node in ordered
-                if node.node_id in dirty and node.dirty]
+        return [
+            node.node_id for node in ordered if node.node_id in dirty and node.dirty
+        ]
 
-    def plan(self, doc_before: Any, doc_after: Any,
-             execution_graph: Optional[Any] = None) -> IncrementalPlan:
+    def plan(
+        self, doc_before: Any, doc_after: Any, execution_graph: Optional[Any] = None
+    ) -> IncrementalPlan:
         """Diff two documents and plan the affected subgraph.
 
         ``doc_before`` / ``doc_after`` may be snapshot dicts or objects with
@@ -388,15 +427,16 @@ class IncrementalEngine:
                 data = {}
         else:
             data = {}
-        translations = data.get("translations", {}) \
-            if isinstance(data, dict) else {}
+        translations = data.get("translations", {}) if isinstance(data, dict) else {}
         return {str(k): str(v) for k, v in (translations or {}).items()}
 
     @staticmethod
-    def _changed_properties(before: Dict[str, Any],
-                            after: Dict[str, Any]) -> List[str]:
-        return [nid for nid in before.keys() & after.keys()
-                if before.get(nid) != after.get(nid)]
+    def _changed_properties(before: Dict[str, Any], after: Dict[str, Any]) -> List[str]:
+        return [
+            nid
+            for nid in before.keys() & after.keys()
+            if before.get(nid) != after.get(nid)
+        ]
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -413,45 +453,59 @@ class ExecutionScheduler:
     engine (skipping clean subgraphs).
     """
 
-    def __init__(self, resource_manager: Optional[ResourceManager] = None
-                 ) -> None:
+    def __init__(self, resource_manager: Optional[ResourceManager] = None) -> None:
         self.resources = resource_manager or ResourceManager()
         self._runs: List[Dict[str, Any]] = []
 
-    def plan(self, operator_graph: Any,
-             filter_names: Optional[Iterable[str]] = None) -> List[str]:
+    def plan(
+        self, operator_graph: Any, filter_names: Optional[Iterable[str]] = None
+    ) -> List[str]:
         return operator_graph.order(filter_names=filter_names)
 
-    def run(self, operator_graph: Any, ctx: Any,
-            filter_names: Optional[Iterable[str]] = None,
-            cache: Optional[Any] = None) -> Any:
+    def run(
+        self,
+        operator_graph: Any,
+        ctx: Any,
+        filter_names: Optional[Iterable[str]] = None,
+        cache: Optional[Any] = None,
+    ) -> Any:
         started = time.time()
         order = self.plan(operator_graph, filter_names)
         ctx = operator_graph.run(ctx, filter_names=order, cache=cache)
-        self._runs.append({
-            "operators": list(order),
-            "elapsed_ms": round((time.time() - started) * 1000, 4),
-            "incremental": False,
-            "cached_operators": [t["operator"] for t in
-                                 operator_graph.trace if t.get("cached")],
-        })
+        self._runs.append(
+            {
+                "operators": list(order),
+                "elapsed_ms": round((time.time() - started) * 1000, 4),
+                "incremental": False,
+                "cached_operators": [
+                    t["operator"] for t in operator_graph.trace if t.get("cached")
+                ],
+            }
+        )
         return ctx
 
-    def run_incremental(self, operator_graph: Any, ctx: Any,
-                        affected_operators: Iterable[str],
-                        cache: Optional[Any] = None) -> Any:
+    def run_incremental(
+        self,
+        operator_graph: Any,
+        ctx: Any,
+        affected_operators: Iterable[str],
+        cache: Optional[Any] = None,
+    ) -> Any:
         """Execute only the affected operators, preserving clean state."""
         started = time.time()
         affected = list(dict.fromkeys(affected_operators))
         order = self.plan(operator_graph, affected)
         ctx = operator_graph.run(ctx, filter_names=order, cache=cache)
-        self._runs.append({
-            "operators": list(order),
-            "elapsed_ms": round((time.time() - started) * 1000, 4),
-            "incremental": True,
-            "cached_operators": [t["operator"] for t in
-                                 operator_graph.trace if t.get("cached")],
-        })
+        self._runs.append(
+            {
+                "operators": list(order),
+                "elapsed_ms": round((time.time() - started) * 1000, 4),
+                "incremental": True,
+                "cached_operators": [
+                    t["operator"] for t in operator_graph.trace if t.get("cached")
+                ],
+            }
+        )
         return ctx
 
     @property
@@ -459,8 +513,7 @@ class ExecutionScheduler:
         return list(self._runs)
 
     def stats(self) -> dict:
-        return {"runs": len(self._runs),
-                "last": self._runs[-1] if self._runs else None}
+        return {"runs": len(self._runs), "last": self._runs[-1] if self._runs else None}
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -477,7 +530,8 @@ class PersistenceLayer:
 
     def __init__(self, directory: Optional[str] = None) -> None:
         self.directory = directory or os.path.join(
-            os.path.expanduser("~"), ".pdf2zh", "v7_snapshots")
+            os.path.expanduser("~"), ".pdf2zh", "v7_snapshots"
+        )
         os.makedirs(self.directory, exist_ok=True)
 
     def _path(self, snapshot: Any) -> str:
@@ -485,13 +539,15 @@ class PersistenceLayer:
         return os.path.join(
             self.directory,
             f"snapshot_{snapshot.session_id or 'anon'}_{safe_label}_"
-            f"{int(snapshot.timestamp)}.json")
+            f"{int(snapshot.timestamp)}.json",
+        )
 
     def save_snapshot(self, snapshot: Any) -> str:
         return snapshot.save(self._path(snapshot))
 
     def load_snapshot(self, path: str) -> Any:
         from pdf2zh.v3.runtime_snapshot import RuntimeSnapshot
+
         return RuntimeSnapshot.load(path)
 
     def list_snapshots(self, session_id: Optional[str] = None) -> List[str]:
@@ -499,7 +555,8 @@ class PersistenceLayer:
         return sorted(
             os.path.join(self.directory, f)
             for f in os.listdir(self.directory)
-            if f.startswith(pattern) and f.endswith(".json"))
+            if f.startswith(pattern) and f.endswith(".json")
+        )
 
     def delete_snapshot(self, path: str) -> bool:
         if not os.path.exists(path):
@@ -515,8 +572,7 @@ class PersistenceLayer:
         return None
 
     def stats(self) -> dict:
-        return {"directory": self.directory,
-                "snapshots": len(self.list_snapshots())}
+        return {"directory": self.directory, "snapshots": len(self.list_snapshots())}
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -539,28 +595,26 @@ class RuntimeNotificationBus:
         self._lock = threading.Lock()
 
     def publish(self, topic: str, data: Optional[dict] = None) -> dict:
-        event = {"topic": topic, "data": dict(data or {}),
-                 "timestamp": time.time()}
+        event = {"topic": topic, "data": dict(data or {}), "timestamp": time.time()}
         with self._lock:
             self._history.append(event)
             if len(self._history) > self._max_history:
-                self._history = self._history[-self._max_history:]
+                self._history = self._history[-self._max_history :]
             handlers = list(self._subscribers.get(topic, ()))
         for handler in handlers:
             try:
                 handler(event)
             except Exception as exc:  # pragma: no cover - defensive
-                logger.warning("Event handler for '%s' failed: %s",
-                               topic, exc)
+                logger.warning("Event handler for '%s' failed: %s", topic, exc)
         return event
 
-    def subscribe(self, topic: str,
-                  handler: Callable[[dict], None]) -> "RuntimeNotificationBus":
+    def subscribe(
+        self, topic: str, handler: Callable[[dict], None]
+    ) -> "RuntimeNotificationBus":
         self._subscribers.setdefault(topic, []).append(handler)
         return self
 
-    def unsubscribe(self, topic: str,
-                    handler: Callable[[dict], None]) -> bool:
+    def unsubscribe(self, topic: str, handler: Callable[[dict], None]) -> bool:
         handlers = self._subscribers.get(topic, [])
         if handler in handlers:
             handlers.remove(handler)
@@ -602,21 +656,25 @@ class RuntimeService:
     the service runs end-to-end out of the box.
     """
 
-    def __init__(self, document_runtime: Any = None, *,
-                 persistence_dir: Optional[str] = None,
-                 max_sessions: int = 32,
-                 max_concurrency: int = 4,
-                 max_llm_concurrency: int = 2,
-                 cache: Optional[Any] = None,
-                 knowledge: Optional[Any] = None) -> None:
+    def __init__(
+        self,
+        document_runtime: Any = None,
+        *,
+        persistence_dir: Optional[str] = None,
+        max_sessions: int = 32,
+        max_concurrency: int = 4,
+        max_llm_concurrency: int = 2,
+        cache: Optional[Any] = None,
+        knowledge: Optional[Any] = None,
+    ) -> None:
         from pdf2zh.v3.document_runtime import DocumentRuntime
         from pdf2zh.v3.knowledge_graph import KnowledgePropagator
         from pdf2zh.v3.operator_cache import OperatorResultCache
 
         self.runtime = document_runtime or DocumentRuntime()
         self.sessions = SessionManager(
-            max_sessions=max_sessions,
-            on_evict=self._release_session_side_data)
+            max_sessions=max_sessions, on_evict=self._release_session_side_data
+        )
         self.resources = ResourceManager()
         self.resources.register("concurrency", max_concurrency)
         self.resources.register("llm", max_llm_concurrency)
@@ -634,8 +692,9 @@ class RuntimeService:
             self.cache = cache if cache is not None else OperatorResultCache()
         # V7.5 cross-session knowledge graph + propagation bridge.
         self.knowledge = knowledge
-        self.knowledge_propagator = KnowledgePropagator(knowledge) \
-            if knowledge is not None else None
+        self.knowledge_propagator = (
+            KnowledgePropagator(knowledge) if knowledge is not None else None
+        )
         self._snapshots: Dict[str, List[Any]] = {}
         self._metrics: Dict[str, Any] = {}
 
@@ -654,8 +713,12 @@ class RuntimeService:
 
     # ── Session lifecycle ─────────────────────────────────────────────
 
-    def open(self, document: Any, document_id: Optional[str] = None,
-             target_lang: str = "zh-CN") -> Any:
+    def open(
+        self,
+        document: Any,
+        document_id: Optional[str] = None,
+        target_lang: str = "zh-CN",
+    ) -> Any:
         """Open a new document session managed by the runtime."""
         from pdf2zh.v3.document_runtime import SessionState
 
@@ -663,9 +726,10 @@ class RuntimeService:
         session.transition(SessionState.OPENED, event="open")
         session.transition(SessionState.READY, event="ready")
         session.last_active = time.time()
-        self.bus.publish("session.opened",
-                         {"session_id": session.session_id,
-                          "document_id": document_id})
+        self.bus.publish(
+            "session.opened",
+            {"session_id": session.session_id, "document_id": document_id},
+        )
         return session
 
     def close(self, session_id: str) -> bool:
@@ -686,9 +750,13 @@ class RuntimeService:
 
     # ── Execution ─────────────────────────────────────────────────────
 
-    def execute(self, session_id: str, *,
-                provider: Any = None,
-                changed_ids: Optional[Iterable[str]] = None) -> Any:
+    def execute(
+        self,
+        session_id: str,
+        *,
+        provider: Any = None,
+        changed_ids: Optional[Iterable[str]] = None,
+    ) -> Any:
         """Execute the operator DAG for a session.
 
         Full execution when ``changed_ids`` is None; otherwise only the
@@ -698,10 +766,14 @@ class RuntimeService:
         session = self.sessions.get(session_id)
         session.last_active = time.time()
         incremental = bool(changed_ids)
-        self.bus.publish("execute.started", {
-            "session_id": session_id, "incremental": incremental,
-            "changed": sorted(set(changed_ids or ())),
-        })
+        self.bus.publish(
+            "execute.started",
+            {
+                "session_id": session_id,
+                "incremental": incremental,
+                "changed": sorted(set(changed_ids or ())),
+            },
+        )
 
         acquired = self.resources.acquire("concurrency", timeout=60.0)
         if not acquired:
@@ -710,40 +782,45 @@ class RuntimeService:
             if incremental:
                 self._incremental_ids = list(changed_ids or ())
                 affected = self._affected_operators(session, changed_ids)
-                logger.info("Session %s: incremental re-run of %s",
-                            session_id, affected)
+                logger.info(
+                    "Session %s: incremental re-run of %s", session_id, affected
+                )
                 ctx = self.scheduler.run_incremental(
                     self.operator_graph,
                     self._build_context(session, provider),
                     affected_operators=affected,
-                    cache=self.cache)
+                    cache=self.cache,
+                )
             else:
                 self._incremental_ids = None
                 ctx = self.scheduler.run(
                     self.operator_graph,
                     self._build_context(session, provider),
-                    cache=self.cache)
+                    cache=self.cache,
+                )
         finally:
             self.resources.release("concurrency")
 
         self._commit(session, ctx)
         self._propagate_knowledge(session, ctx)
-        self.bus.publish("execute.completed", {
-            "session_id": session_id,
-            "translated": ctx.metrics.get("translated", 0),
-            "operators": [t["operator"] for t in self.operator_graph.trace],
-            "cached_operators": [t["operator"] for t in
-                                 self.operator_graph.trace
-                                 if t.get("cached")],
-        })
+        self.bus.publish(
+            "execute.completed",
+            {
+                "session_id": session_id,
+                "translated": ctx.metrics.get("translated", 0),
+                "operators": [t["operator"] for t in self.operator_graph.trace],
+                "cached_operators": [
+                    t["operator"] for t in self.operator_graph.trace if t.get("cached")
+                ],
+            },
+        )
         return self._to_pipeline_output(session, ctx)
 
-    def execute_incremental(self, session_id: str, changed_ids: Iterable[str],
-                            provider: Any = None) -> Any:
+    def execute_incremental(
+        self, session_id: str, changed_ids: Iterable[str], provider: Any = None
+    ) -> Any:
         """Convenience wrapper for incremental re-execution."""
-        return self.execute(session_id, provider=provider,
-                            changed_ids=changed_ids)
-
+        return self.execute(session_id, provider=provider, changed_ids=changed_ids)
 
     # ── Execution internals ───────────────────────────────────────────
 
@@ -789,7 +866,8 @@ class RuntimeService:
         if session.document_graph is not None:
             try:
                 property_graph = create_property_graph_from_document(
-                    session.document_graph)
+                    session.document_graph
+                )
                 session.graphs["property"] = property_graph
             except Exception:  # never break the pipeline on indexing errors
                 pass
@@ -810,12 +888,14 @@ class RuntimeService:
         """V7.5: push a finished session's knowledge into the shared graph."""
         if self.knowledge_propagator is None:
             return None
-        report = self.knowledge_propagator.propagate(ctx,
-                                                     session.session_id)
+        report = self.knowledge_propagator.propagate(ctx, session.session_id)
         self.bus.publish("knowledge.propagated", report.to_dict())
-        logger.info("Session %s → knowledge: +%d entities, +%d glossary",
-                    session.session_id, report.entities_added,
-                    report.glossary_added)
+        logger.info(
+            "Session %s → knowledge: +%d entities, +%d glossary",
+            session.session_id,
+            report.entities_added,
+            report.glossary_added,
+        )
         return report
 
     def knowledge_stats(self) -> dict:
@@ -823,8 +903,9 @@ class RuntimeService:
             return {"enabled": False}
         return {"enabled": True, **self.knowledge.stats()}
 
-    def _affected_operators(self, session: Any,
-                            changed_ids: Iterable[str]) -> List[str]:
+    def _affected_operators(
+        self, session: Any, changed_ids: Iterable[str]
+    ) -> List[str]:
         """Dirty propagation: content change → affected operators only."""
         from pdf2zh.v3.execution_graph import ExecutionGraph
 
@@ -863,17 +944,19 @@ class RuntimeService:
     def _content_blocks(session: Any) -> List[str]:
         doc = session.document
         if isinstance(doc, list):
-            return [str(b.get("id")) for b in doc
-                    if isinstance(b, dict) and b.get("id")]
+            return [
+                str(b.get("id")) for b in doc if isinstance(b, dict) and b.get("id")
+            ]
         if hasattr(doc, "nodes"):
-            return [getattr(n, "id", str(i))
-                    for i, n in enumerate(doc.nodes)
-                    if getattr(n, "text", "").strip()]
+            return [
+                getattr(n, "id", str(i))
+                for i, n in enumerate(doc.nodes)
+                if getattr(n, "text", "").strip()
+            ]
         return []
 
     def _to_pipeline_output(self, session: Any, ctx: OperatorContext) -> Any:
-        from pdf2zh.v3.transformation_pipeline import PipelineOutput, \
-            PipelineStats
+        from pdf2zh.v3.transformation_pipeline import PipelineOutput, PipelineStats
 
         review = ctx.extra.get("review", {})
         return PipelineOutput(
@@ -892,48 +975,57 @@ class RuntimeService:
             session_summary=ctx.extra.get("session_summary", {}),
         )
 
-
     # ── State snapshot / rollback (V7.2) ──────────────────────────────
 
-    def snapshot(self, session_id: str,
-                 label: str = "snapshot") -> Any:
+    def snapshot(self, session_id: str, label: str = "snapshot") -> Any:
         """Capture a full state snapshot of a session (in-memory)."""
         from pdf2zh.v3.runtime_snapshot import RuntimeSnapshot
 
         session = self.sessions.get(session_id)
         snap = RuntimeSnapshot.capture(session, label=label)
         self._snapshots.setdefault(session_id, []).append(snap)
-        self.bus.publish("snapshot.captured", {
-            "session_id": session_id, "label": label,
-            "snapshot_id": snap.snapshot_id,
-        })
+        self.bus.publish(
+            "snapshot.captured",
+            {
+                "session_id": session_id,
+                "label": label,
+                "snapshot_id": snap.snapshot_id,
+            },
+        )
         return snap
 
-    def rollback(self, session_id: str,
-                 snapshot: Any = None) -> Any:
+    def rollback(self, session_id: str, snapshot: Any = None) -> Any:
         """True rollback: restore the complete session state from a snapshot."""
         session = self.sessions.get(session_id)
         target = snapshot
         if target is None:
             snaps = self._snapshots.get(session_id, [])
             if not snaps:
-                raise ValueError(
-                    f"No in-memory snapshot for session '{session_id}'")
+                raise ValueError(f"No in-memory snapshot for session '{session_id}'")
             target = snaps[-1]
         target.restore_into(session)
         session.last_active = time.time()
-        self.bus.publish("session.rolled_back", {
-            "session_id": session_id, "label": target.label,
-        })
+        self.bus.publish(
+            "session.rolled_back",
+            {
+                "session_id": session_id,
+                "label": target.label,
+            },
+        )
         return target
 
     def persist(self, session_id: str, label: str = "snapshot") -> str:
         """Capture AND persist a snapshot to disk. Returns the file path."""
         snap = self.snapshot(session_id, label=label)
         path = self.persistence.save_snapshot(snap)
-        self.bus.publish("snapshot.saved", {
-            "session_id": session_id, "label": label, "path": path,
-        })
+        self.bus.publish(
+            "snapshot.saved",
+            {
+                "session_id": session_id,
+                "label": label,
+                "path": path,
+            },
+        )
         return path
 
     def restore(self, session_id: str, path: str) -> Any:
@@ -952,8 +1044,7 @@ class RuntimeService:
     def notify(self, topic: str, data: Optional[dict] = None) -> dict:
         return self.bus.publish(topic, data)
 
-    def on(self, topic: str,
-           handler: Callable[[dict], None]) -> "RuntimeService":
+    def on(self, topic: str, handler: Callable[[dict], None]) -> "RuntimeService":
         self.bus.subscribe(topic, handler)
         return self
 
@@ -979,14 +1070,20 @@ class RuntimeService:
             "events": self.bus.stats(),
             "operators": self.operator_graph.stats(),
             "persistence": self.persistence.stats(),
-            "cache": self.cache.stats() if self.cache is not None
-            else {"enabled": False},
+            "cache": (
+                self.cache.stats() if self.cache is not None else {"enabled": False}
+            ),
             "knowledge": self.knowledge_stats(),
         }
 
 
 __all__ = [
-    "ResourceManager", "SessionManager", "IncrementalPlan",
-    "IncrementalEngine", "ExecutionScheduler", "PersistenceLayer",
-    "RuntimeNotificationBus", "RuntimeService",
+    "ResourceManager",
+    "SessionManager",
+    "IncrementalPlan",
+    "IncrementalEngine",
+    "ExecutionScheduler",
+    "PersistenceLayer",
+    "RuntimeNotificationBus",
+    "RuntimeService",
 ]

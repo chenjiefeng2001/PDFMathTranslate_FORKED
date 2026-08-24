@@ -8,6 +8,7 @@
     0.45 <= S < 0.75 → 待定歧义（结合上下文消歧）
     S < 0.45         → 普通 TextRun
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -29,7 +30,7 @@ class FormulaObject:
 
     formula_id: str
     glyphs: List[Glyph]
-    bbox: GlyphBBox                       # (x0, y0, x1, y1)
+    bbox: GlyphBBox  # (x0, y0, x1, y1)
     baseline: float
     raw_latex_approx: Optional[str] = None
     is_display_mode: bool = False
@@ -121,10 +122,11 @@ class InlineTextRun:
 InlineObject = object
 
 
-def _glyph_slice(glyphs: Sequence[Glyph],
-                 start: int, end: int) -> Tuple[List[Glyph], GlyphBBox, float]:
+def _glyph_slice(
+    glyphs: Sequence[Glyph], start: int, end: int
+) -> Tuple[List[Glyph], GlyphBBox, float]:
     """取 [start, end] 字形切片 + bbox + 基线（按字号加权）。"""
-    seg = list(glyphs[start:end + 1])
+    seg = list(glyphs[start : end + 1])
     bbox = (
         min(g.x0 for g in seg),
         min(g.y0 for g in seg),
@@ -132,20 +134,27 @@ def _glyph_slice(glyphs: Sequence[Glyph],
         max(g.y1 for g in seg),
     )
     total_w = sum(max(g.font_size, 0.01) for g in seg)
-    baseline = (sum(g.baseline * max(g.font_size, 0.01) for g in seg) / total_w
-                if total_w > 0 else seg[0].baseline)
+    baseline = (
+        sum(g.baseline * max(g.font_size, 0.01) for g in seg) / total_w
+        if total_w > 0
+        else seg[0].baseline
+    )
     return seg, bbox, baseline
 
 
 class FormulaExtractor:
     """按 StyleRun 逐段打分，把段落切分为 FormulaObject / InlineTextRun。"""
 
-    def __init__(self, engine: Optional[FormulaConfidenceEngine] = None,
-                 threshold_high: float = 0.75,
-                 threshold_low: float = 0.45,
-                 context_resolve: bool = True) -> None:
+    def __init__(
+        self,
+        engine: Optional[FormulaConfidenceEngine] = None,
+        threshold_high: float = 0.75,
+        threshold_low: float = 0.45,
+        context_resolve: bool = True,
+    ) -> None:
         self.engine = engine or FormulaConfidenceEngine(
-            threshold_high=threshold_high, threshold_low=threshold_low)
+            threshold_high=threshold_high, threshold_low=threshold_low
+        )
         self.threshold_high = threshold_high
         self.threshold_low = threshold_low
         self.context_resolve = context_resolve
@@ -157,9 +166,12 @@ class FormulaExtractor:
 
     # ── 行级抽取 ──────────────────────────────────────────────────
 
-    def extract_line(self, line: VisualLine,
-                     layout_class: Optional[object] = None,
-                     formula_prefix: str = "formula") -> Tuple[List, List]:
+    def extract_line(
+        self,
+        line: VisualLine,
+        layout_class: Optional[object] = None,
+        formula_prefix: str = "formula",
+    ) -> Tuple[List, List]:
         """抽取单行：返回 (objects, scores)。
 
         ``objects`` 元素为 ``FormulaObject`` 或 ``InlineTextRun``；
@@ -172,33 +184,33 @@ class FormulaExtractor:
         if not runs:
             # 无 style_runs（退化场景）：整行作为单一对象
             text = line.text
-            score = self.engine.score(text, glyphs, glyphs[0].font_name,
-                                      layout_class)
-            obj = self._make_object(text, glyphs, line.bbox, line.master_baseline,
-                                    score, formula_prefix)
+            score = self.engine.score(text, glyphs, glyphs[0].font_name, layout_class)
+            obj = self._make_object(
+                text, glyphs, line.bbox, line.master_baseline, score, formula_prefix
+            )
             return [obj], [score]
         objects: List = []
         scores: List[FormulaScore] = []
-        texts = [glyphs[r.start_index:r.end_index + 1] for r in runs]
+        texts = [glyphs[r.start_index : r.end_index + 1] for r in runs]
         for i, (run, seg) in enumerate(zip(runs, texts)):
             seg_glyphs = list(seg)
             if not seg_glyphs:
                 continue
             text = "".join(g.char for g in seg_glyphs)
-            score = self.engine.score(text, seg_glyphs, run.font_name,
-                                      layout_class)
+            score = self.engine.score(text, seg_glyphs, run.font_name, layout_class)
             # 待定歧义 + 上下文消歧：相邻段同为公式则向公式倾斜
-            if (score.verdict == "ambiguous" and self.context_resolve
-                    and len(texts) > 1):
-                neighbors = [j for j in (i - 1, i + 1)
-                             if 0 <= j < len(texts)]
+            if score.verdict == "ambiguous" and self.context_resolve and len(texts) > 1:
+                neighbors = [j for j in (i - 1, i + 1) if 0 <= j < len(texts)]
                 math_neighbors = sum(
-                    1 for j in neighbors
+                    1
+                    for j in neighbors
                     if self.engine.score(
                         "".join(g.char for g in texts[j]),
                         list(texts[j]),
-                        runs[j].font_name, layout_class,
-                    ).verdict in ("formula", "ambiguous")
+                        runs[j].font_name,
+                        layout_class,
+                    ).verdict
+                    in ("formula", "ambiguous")
                 )
                 if math_neighbors >= len(neighbors):
                     score.verdict = "formula"
@@ -206,9 +218,11 @@ class FormulaExtractor:
             # 强信号消歧：明确数学字体（C_font>=0.85）+ 数学语法结构
             # （括号对 / 等号 / 运算符 / 上下标）→ 提升为公式。
             # 规范 §5.3 原则：不依赖单一字体硬编码，须字体与结构联合判定。
-            if (score.verdict == "ambiguous"
-                    and score.font >= 0.85
-                    and self._structure_hint(text)):
+            if (
+                score.verdict == "ambiguous"
+                and score.font >= 0.85
+                and self._structure_hint(text)
+            ):
                 score.verdict = "formula"
                 score.total = max(score.total, self.threshold_high)
             # 整行公式强信号（用户驱动修复 §1）：独占一行的全数学字体
@@ -216,8 +230,9 @@ class FormulaExtractor:
             # 展示公式。即使逐段打分略低也提升为公式对象 —— 修复
             # 「R1 = {(1,1), ...} 独立成行展示公式被误判为行内文本」，
             # 使 P6 真正产出 FormulaObject（Display/Inline 二分的前提）。
-            if (score.verdict != "formula"
-                    and self._whole_line_math_hint(line.glyphs, text)):
+            if score.verdict != "formula" and self._whole_line_math_hint(
+                line.glyphs, text
+            ):
                 score.verdict = "formula"
                 score.total = max(score.total, self.threshold_high)
             seg_bbox = (
@@ -227,18 +242,27 @@ class FormulaExtractor:
                 max(g.y1 for g in seg_glyphs),
             )
             total_w = sum(max(g.font_size, 0.01) for g in seg_glyphs)
-            baseline = (sum(g.baseline * max(g.font_size, 0.01)
-                            for g in seg_glyphs) / total_w
-                        if total_w > 0 else line.master_baseline)
-            obj = self._make_object(text, seg_glyphs, seg_bbox, baseline,
-                                    score, formula_prefix)
+            baseline = (
+                sum(g.baseline * max(g.font_size, 0.01) for g in seg_glyphs) / total_w
+                if total_w > 0
+                else line.master_baseline
+            )
+            obj = self._make_object(
+                text, seg_glyphs, seg_bbox, baseline, score, formula_prefix
+            )
             objects.append(obj)
             scores.append(score)
         return objects, scores
 
-    def _make_object(self, text: str, glyphs: List[Glyph], bbox: GlyphBBox,
-                     baseline: float, score: FormulaScore,
-                     formula_prefix: str):
+    def _make_object(
+        self,
+        text: str,
+        glyphs: List[Glyph],
+        bbox: GlyphBBox,
+        baseline: float,
+        score: FormulaScore,
+        formula_prefix: str,
+    ):
         if score.verdict == "formula":
             _seq = self._formula_seq
             self._formula_seq += 1
@@ -251,15 +275,22 @@ class FormulaExtractor:
                 is_display_mode=False,
                 confidence_score=score.total,
             )
-        return InlineTextRun(text=text, style_runs=[], bbox=bbox,
-                             font_size=max((g.font_size for g in glyphs),
-                                           default=12.0))
+        return InlineTextRun(
+            text=text,
+            style_runs=[],
+            bbox=bbox,
+            font_size=max((g.font_size for g in glyphs), default=12.0),
+        )
 
     # ── 段落级抽取 ────────────────────────────────────────────────
 
-    def extract_paragraph(self, para, layout_class: Optional[object] = None,
-                          formula_prefix: str = "formula",
-                          whole_line_formula_ok: bool = True) -> List:
+    def extract_paragraph(
+        self,
+        para,
+        layout_class: Optional[object] = None,
+        formula_prefix: str = "formula",
+        whole_line_formula_ok: bool = True,
+    ) -> List:
         """抽取整段：把每行切分为 InlineObject 序列并回填到 para.inline_objects。
 
         **Display/Inline 公式二分（用户驱动修复）**：行级抽取完成后，对每行
@@ -303,13 +334,17 @@ class FormulaExtractor:
             return
         para_width = max(
             float(getattr(para, "x1", 0.0) or 0.0)
-            - float(getattr(para, "x0", 0.0) or 0.0), 1e-6)
+            - float(getattr(para, "x0", 0.0) or 0.0),
+            1e-6,
+        )
         line_width = max(
             float(getattr(line, "x1", 0.0) or 0.0)
-            - float(getattr(line, "x0", 0.0) or 0.0), 1e-6)
+            - float(getattr(line, "x0", 0.0) or 0.0),
+            1e-6,
+        )
         line_size = max(
-            (float(getattr(o, "font_size", 0.0) or 0.0) for o in objs),
-            default=12.0)
+            (float(getattr(o, "font_size", 0.0) or 0.0) for o in objs), default=12.0
+        )
         center = (float(para.x0) + float(para.x1)) / 2.0
         whole_line = not texts
         for f in formulas:
@@ -319,11 +354,11 @@ class FormulaExtractor:
                 f.is_display_mode = True
                 continue
             if f.width < 2.0 * max(line_size, 1e-6):
-                continue                # 单符号：保持 Inline
+                continue  # 单符号：保持 Inline
             if f.width > 0.6 * para_width:
                 f.is_display_mode = True
                 continue
-            if f.width >= 0.5 * line_width:   # 公式占行宽主体才允许居中判定
+            if f.width >= 0.5 * line_width:  # 公式占行宽主体才允许居中判定
                 f_center = (f.x0 + f.x1) / 2.0
                 if abs(f_center - center) < 0.1 * para_width:
                     f.is_display_mode = True
@@ -348,8 +383,7 @@ class FormulaExtractor:
             # 上下文）不因「整行数学字体 + 数学结构」提升为公式对象 ——
             # 保持普通 TextRun 参与文本翻译，杜绝孤立算子行首撕裂。
             return False
-        if not all(self.engine.font_score(g.font_name) >= 0.85
-                   for g in glyphs):
+        if not all(self.engine.font_score(g.font_name) >= 0.85 for g in glyphs):
             return False
         return self._structure_hint(text)
 
@@ -380,9 +414,12 @@ class FormulaExtractor:
         对未知字符原样保留（防信息丢失），供 QA / 语义摘要消费。
         """
         from pdf2zh.formula.latex_approx import to_latex_approx
+
         return to_latex_approx(text)
 
 
 __all__ = [
-    "FormulaObject", "InlineTextRun", "FormulaExtractor",
+    "FormulaObject",
+    "InlineTextRun",
+    "FormulaExtractor",
 ]

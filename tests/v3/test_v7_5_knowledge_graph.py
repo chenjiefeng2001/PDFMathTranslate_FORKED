@@ -12,6 +12,7 @@ Covers the V7.5 iteration (see doc/v7_operator_runtime_report.md §六):
 Run with:
     python -m pytest tests/v3/test_v7_5_knowledge_graph.py -v
 """
+
 from __future__ import annotations
 
 import pytest
@@ -25,22 +26,34 @@ from pdf2zh.v3.runtime_service import RuntimeService
 from pdf2zh.v3.transformation_pipeline import PipelineConfig
 
 BLOCKS = [
-    {"id": "n0", "text": "LLMs use Transformer attention layers.",
-     "type": "paragraph", "page": 0},
+    {
+        "id": "n0",
+        "text": "LLMs use Transformer attention layers.",
+        "type": "paragraph",
+        "page": 0,
+    },
 ]
 
 
 def analysis_fixture() -> dict:
     """Shape of the analysis view produced by AnalyzeOperator."""
     return {
-        "entity": {"entities": {
-            "LLM": {"canonical": "Large Language Model", "type": "concept",
-                    "aliases": ["大语言模型"], "occurrences": 3},
-            "Transformer": {"type": "model"},
-        }},
-        "concept": {"concepts": {
-            "Neural Networks": {"parent": "ML", "children": ["Transformers"]},
-        }},
+        "entity": {
+            "entities": {
+                "LLM": {
+                    "canonical": "Large Language Model",
+                    "type": "concept",
+                    "aliases": ["大语言模型"],
+                    "occurrences": 3,
+                },
+                "Transformer": {"type": "model"},
+            }
+        },
+        "concept": {
+            "concepts": {
+                "Neural Networks": {"parent": "ML", "children": ["Transformers"]},
+            }
+        },
         "citation": {"citations": {"Vaswani2017": {"page": 3}}},
         "summary": {},
     }
@@ -57,6 +70,7 @@ def service(tmp_path) -> RuntimeService:
 
 
 # ── Unit: record propagation ─────────────────────────────────────────
+
 
 class TestKnowledgeGraph:
     def test_merge_analysis_entity_accumulation(self, graph):
@@ -84,15 +98,14 @@ class TestKnowledgeGraph:
 
     def test_merge_glossary_dict(self, graph):
         report = graph.merge_glossary(
-            {"LLM": "大语言模型", "Transformer": "变换器"}, session_id="s1")
+            {"LLM": "大语言模型", "Transformer": "变换器"}, session_id="s1"
+        )
         assert report.glossary_added == 2
-        assert graph.glossary_map() == {
-            "LLM": "大语言模型", "Transformer": "变换器"}
+        assert graph.glossary_map() == {"LLM": "大语言模型", "Transformer": "变换器"}
 
     def test_merge_glossary_pairs_and_entries(self, graph):
         graph.merge_glossary([("A", "甲"), ("B", "乙")], session_id="s1")
-        graph.merge_glossary([{"source": "C", "target": "丙"}],
-                             session_id="s2")
+        graph.merge_glossary([{"source": "C", "target": "丙"}], session_id="s2")
         assert set(graph.glossary_map()) == {"A", "B", "C"}
 
     def test_merge_glossary_glossary_manager(self, graph):
@@ -128,8 +141,10 @@ class TestKnowledgeGraph:
         loaded = KnowledgeGraph.load(path)
         assert loaded.stats() == graph.stats()
         assert loaded.glossary_map() == graph.glossary_map()
-        assert loaded.get_entity("LLM").canonical_name == \
-            graph.get_entity("LLM").canonical_name
+        assert (
+            loaded.get_entity("LLM").canonical_name
+            == graph.get_entity("LLM").canonical_name
+        )
         # to_dict / from_dict round-trips too
         rebuilt = KnowledgeGraph.from_dict(graph.to_dict())
         assert rebuilt.session_ids() == ["s1"]
@@ -150,10 +165,10 @@ class TestKnowledgeGraph:
         assert len(graph.glossary_prompt(max_terms=1).splitlines()) == 1
 
     def test_propagation_report_merge(self):
-        a = PropagationReport(session_id="s1", entities_added=1,
-                              glossary_added=2, total_entities=5)
-        b = PropagationReport(session_id="s1", glossary_added=3,
-                              total_glossary=9)
+        a = PropagationReport(
+            session_id="s1", entities_added=1, glossary_added=2, total_entities=5
+        )
+        b = PropagationReport(session_id="s1", glossary_added=3, total_glossary=9)
         a.merge(b)
         assert a.entities_added == 1
         assert a.glossary_added == 5
@@ -169,6 +184,7 @@ class TestKnowledgeGraph:
 
 
 # ── Unit: KnowledgePropagator ─────────────────────────────────────────
+
 
 class TestKnowledgePropagator:
     def test_prepare_config_clones_and_merges(self, graph):
@@ -203,8 +219,7 @@ class TestKnowledgePropagator:
 
         prop = KnowledgePropagator(graph)
         captured = prop.capture_glossary(FakeCtx())
-        assert captured == {"TF-IDF": "词频-逆文档频率",
-                            "BERT": "双向编码表示"}
+        assert captured == {"TF-IDF": "词频-逆文档频率", "BERT": "双向编码表示"}
 
     def test_capture_analysis_from_ctx(self, graph):
         class FakeCtx:
@@ -228,6 +243,7 @@ class TestKnowledgePropagator:
 
 # ── RuntimeService integration ───────────────────────────────────────
 
+
 class TestRuntimeKnowledgeIntegration:
     def test_execute_propagates_knowledge(self, service):
         kg = KnowledgeGraph("shared")
@@ -237,8 +253,11 @@ class TestRuntimeKnowledgeIntegration:
         service.execute(s.session_id)
         assert kg.stats()["entities"] > 0
         assert kg.stats()["propagations"] == 1
-        topics = [e["topic"] for e in service.bus.history()
-                  if e["topic"] == "knowledge.propagated"]
+        topics = [
+            e["topic"]
+            for e in service.bus.history()
+            if e["topic"] == "knowledge.propagated"
+        ]
         assert len(topics) == 1
         assert service.knowledge_stats()["enabled"] is True
 
@@ -260,4 +279,3 @@ class TestRuntimeKnowledgeIntegration:
         service = RuntimeService(persistence_dir=str(tmp_path), knowledge=kg)
         assert service.knowledge is kg
         assert service.knowledge_propagator is not None
-

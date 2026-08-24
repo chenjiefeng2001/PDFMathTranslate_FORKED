@@ -156,13 +156,12 @@ class ConfidenceEstimator:
     def _formula_ratio(text: str) -> float:
         if not text:
             return 0.0
-        math_chars = sum(
-            1 for ch in text if ch in "=<>≤≥∑∫√πθλμ+-×÷^_{}"
-        )
+        math_chars = sum(1 for ch in text if ch in "=<>≤≥∑∫√πθλμ+-×÷^_{}")
         return math_chars / len(text)
 
-    def estimate(self, text: str, layout_confidence: float = 1.0,
-                 glossary_coverage: float = 1.0) -> ConfidenceReport:
+    def estimate(
+        self, text: str, layout_confidence: float = 1.0, glossary_coverage: float = 1.0
+    ) -> ConfidenceReport:
         score = 1.0
         reasons: List[str] = []
         if not text:
@@ -182,7 +181,8 @@ class ConfidenceEstimator:
             reasons.append(f"low glossary coverage={glossary_coverage:.2f}")
         score = max(0.0, min(1.0, score))
         return ConfidenceReport(
-            score=score, reasons=reasons,
+            score=score,
+            reasons=reasons,
             flags_human_review=score < self.threshold,
         )
 
@@ -236,17 +236,21 @@ class PlannerChain:
       4. route translator, prompt template, chunk strategy
     """
 
-    def __init__(self, language_detector: Optional[LanguageDetector] = None,
-                 domain_detector: Optional[DomainDetector] = None,
-                 confidence_estimator: Optional[ConfidenceEstimator] = None,
-                 reasoning_memory=None) -> None:
+    def __init__(
+        self,
+        language_detector: Optional[LanguageDetector] = None,
+        domain_detector: Optional[DomainDetector] = None,
+        confidence_estimator: Optional[ConfidenceEstimator] = None,
+        reasoning_memory=None,
+    ) -> None:
         self.language_detector = language_detector or LanguageDetector()
         self.domain_detector = domain_detector or DomainDetector()
         self.confidence_estimator = confidence_estimator or ConfidenceEstimator()
         self.reasoning_memory = reasoning_memory
 
-    def _route(self, node, domains: List[str], confidence: float,
-               is_formula: bool) -> PlanDecision:
+    def _route(
+        self, node, domains: List[str], confidence: float, is_formula: bool
+    ) -> PlanDecision:
         primary = domains[0] if domains else None
         keep_formula = bool(is_formula)
         keep_numbers = primary in ("mathematics", "physics", "statistics")
@@ -275,9 +279,10 @@ class PlannerChain:
         domains = self.domain_detector.detect(text)
         layout_conf = float(getattr(node, "confidence", 1.0) or 1.0)
         report = self.confidence_estimator.estimate(text, layout_conf)
-        is_formula = bool(getattr(node, "is_math", False)) or "math" in str(
-            getattr(node, "node_type", "")
-        ).lower()
+        is_formula = (
+            bool(getattr(node, "is_math", False))
+            or "math" in str(getattr(node, "node_type", "")).lower()
+        )
         decision = self._route(node, domains, report.score, is_formula)
         decision.language = language
         decision.translatable = translatable
@@ -286,7 +291,9 @@ class PlannerChain:
         if self.reasoning_memory is not None and domains:
             for d in domains:
                 self.reasoning_memory.record_domain(
-                    d, detail="detected via planner chain", confidence=0.7,
+                    d,
+                    detail="detected via planner chain",
+                    confidence=0.7,
                     source="planner",
                 )
         return decision
@@ -296,8 +303,11 @@ class PlannerChain:
 
 
 __all__ = [
-    "LanguageDetector", "DomainDetector", "ConfidenceReport",
-    "ConfidenceEstimator", "PlanDecision", "PlannerChain", "DOMAIN_KEYWORDS",
+    "LanguageDetector",
+    "DomainDetector",
+    "ConfidenceReport",
+    "ConfidenceEstimator",
+    "PlanDecision",
+    "PlannerChain",
+    "DOMAIN_KEYWORDS",
 ]
-
-

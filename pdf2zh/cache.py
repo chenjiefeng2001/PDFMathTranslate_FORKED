@@ -31,6 +31,7 @@ class _TranslationCache(Model):
 
 class _FileCache(Model):
     """文件级别的翻译缓存：记录已翻译完成的文件的 hash -> 输出文件路径映射"""
+
     id = AutoField()
     file_hash = CharField(max_length=64, unique=True)
     file_name = CharField(max_length=512)
@@ -110,6 +111,7 @@ class TranslationCache:
 
 # ========== 文件级 Hash 缓存操作 ==========
 
+
 def compute_file_hash(file_path: str) -> str:
     """计算文件的 SHA256 哈希值"""
     sha256 = hashlib.sha256()
@@ -123,7 +125,11 @@ def get_file_cache(file_hash: str) -> Optional[dict]:
     """根据文件 hash 查找是否已有翻译缓存"""
     try:
         result = _FileCache.get_or_none(file_hash=file_hash)
-        if result is not None and os.path.exists(result.mono_path) and os.path.exists(result.dual_path):
+        if (
+            result is not None
+            and os.path.exists(result.mono_path)
+            and os.path.exists(result.dual_path)
+        ):
             return {
                 "file_hash": result.file_hash,
                 "file_name": result.file_name,
@@ -156,6 +162,7 @@ def set_file_cache(
 ) -> None:
     """记录已翻译完成的文件缓存"""
     from datetime import datetime
+
     try:
         _FileCache.create(
             file_hash=file_hash,
@@ -173,16 +180,20 @@ def set_file_cache(
         logger.debug(f"Error setting file cache: {e}")
 
 
-def check_file_cache(file_path: str, lang_in: str, lang_out: str, service: str) -> Optional[dict]:
+def check_file_cache(
+    file_path: str, lang_in: str, lang_out: str, service: str
+) -> Optional[dict]:
     """综合检查：计算文件 hash 并查看是否已有缓存"""
     try:
         file_hash = compute_file_hash(file_path)
         cache = get_file_cache(file_hash)
         if cache:
             # 验证翻译参数是否匹配
-            if (cache["lang_in"] == lang_in and
-                cache["lang_out"] == lang_out and
-                cache["service"] == service):
+            if (
+                cache["lang_in"] == lang_in
+                and cache["lang_out"] == lang_out
+                and cache["service"] == service
+            ):
                 return cache
     except Exception as e:
         logger.debug(f"Error checking file cache: {e}")

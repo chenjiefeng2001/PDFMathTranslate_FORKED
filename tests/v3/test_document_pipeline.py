@@ -5,31 +5,44 @@
 不变、不复制数据到第二份 IR）；处理器错误被容错记录；DocumentIR
 只是同图的可序列化视图。
 """
+
 import unittest
 
 import numpy as np
 
 from pdf2zh.v3.graph import (
-    DocumentGraph, DocumentNode, NodeType,
+    DocumentGraph,
+    DocumentNode,
+    NodeType,
 )
 from pdf2zh.v3.processors import (
-    NodeProcessor, NodeStage, ProcessorRegistry, STAGE_KEY,
+    NodeProcessor,
+    NodeStage,
+    ProcessorRegistry,
+    STAGE_KEY,
 )
 from pdf2zh.v3.document_pipeline import (
-    DocumentPipeline, PipelineReport, run_semantic_pipeline, view_as_ir,
+    DocumentPipeline,
+    PipelineReport,
+    run_semantic_pipeline,
+    view_as_ir,
 )
 from pdf2zh.v3.document_ir import TranslationRole, SemanticRole
 
 
 def make_node(nid, node_type, text="", page=0, bbox=(0, 0, 100, 20)):
-    return DocumentNode(id=nid, node_type=node_type, bbox=bbox, text=text, page_num=page)
+    return DocumentNode(
+        id=nid, node_type=node_type, bbox=bbox, text=text, page_num=page
+    )
 
 
 def build_synthetic_graph():
     graph = DocumentGraph()
     graph.add_node(make_node("p_toc", NodeType.PARAGRAPH, text="Chapter 3", page=0))
     graph.add_node(make_node("p_plain", NodeType.PARAGRAPH, text="Intro", page=0))
-    graph.add_node(make_node("p_formula", NodeType.PARAGRAPH, text="E = {v12} mc2", page=1))
+    graph.add_node(
+        make_node("p_formula", NodeType.PARAGRAPH, text="E = {v12} mc2", page=1)
+    )
     graph.add_node(make_node("c_code", NodeType.CODE, text="print(1)", page=1))
     img = make_node("img1", NodeType.IMAGE, page=1, bbox=(0, 0, 64, 64))
     px = np.zeros((32, 32, 3), dtype=np.uint8)
@@ -47,7 +60,7 @@ class TestDocumentPipeline(unittest.TestCase):
         before = {n.id for n in graph.nodes}
         n_nodes = len(graph.nodes)
         report = DocumentPipeline().run(graph, (NodeStage.RAW, NodeStage.SEMANTIC))
-        self.assertEqual({n.id for n in graph.nodes}, before)   # 不增不删不改建
+        self.assertEqual({n.id for n in graph.nodes}, before)  # 不增不删不改建
         self.assertEqual(len(graph.nodes), n_nodes)
         self.assertTrue(report.ok())
 
@@ -62,7 +75,9 @@ class TestDocumentPipeline(unittest.TestCase):
     def test_stage_stamp_written(self):
         graph = build_synthetic_graph()
         DocumentPipeline().run(graph, (NodeStage.RAW, NodeStage.SEMANTIC))
-        self.assertTrue(all(n.metadata.get(STAGE_KEY) == "semantic" for n in graph.nodes))
+        self.assertTrue(
+            all(n.metadata.get(STAGE_KEY) == "semantic" for n in graph.nodes)
+        )
 
     def test_caption_linked_via_finalize(self):
         graph = build_synthetic_graph()
@@ -79,7 +94,11 @@ class TestDocumentPipeline(unittest.TestCase):
             def process(self, node, graph):
                 raise RuntimeError("kaboom")
 
-        reg = ProcessorRegistry([Boom(), ])
+        reg = ProcessorRegistry(
+            [
+                Boom(),
+            ]
+        )
         graph = build_synthetic_graph()
         report = DocumentPipeline(reg).run(graph, (NodeStage.SEMANTIC,))
         self.assertFalse(report.ok())

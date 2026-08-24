@@ -18,6 +18,7 @@
 
 纯逻辑；``translate`` 只做查表，从不发起外部调用。
 """
+
 from __future__ import annotations
 
 import time
@@ -32,8 +33,7 @@ class StageInput:
     stage: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"node_id": self.node_id, "stage": self.stage,
-                "payload": self.payload}
+        return {"node_id": self.node_id, "stage": self.stage, "payload": self.payload}
 
 
 class StageInputStore:
@@ -44,7 +44,8 @@ class StageInputStore:
 
     def save_input(self, stage: str, node_id, payload: Dict[str, Any]) -> None:
         self._inputs.setdefault(stage, []).append(
-            StageInput(str(node_id), dict(payload), stage))
+            StageInput(str(node_id), dict(payload), stage)
+        )
 
     def save_inputs(self, stage: str, items: List[dict]) -> None:
         for it in items:
@@ -95,12 +96,16 @@ class TranslationMemo:
 class ReplayStep:
     node_id: str = ""
     stage: str = ""
-    status: str = "ok"            # ok | memo_hit | memo_miss | error
+    status: str = "ok"  # ok | memo_hit | memo_miss | error
     elapsed_ms: float = 0.0
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"node_id": self.node_id, "stage": self.stage,
-                "status": self.status, "elapsed_ms": round(self.elapsed_ms, 2)}
+        return {
+            "node_id": self.node_id,
+            "stage": self.stage,
+            "status": self.status,
+            "elapsed_ms": round(self.elapsed_ms, 2),
+        }
 
 
 @dataclass
@@ -121,22 +126,28 @@ class ReplayReport:
         return sum(1 for s in self.steps if s.status in ("error", "memo_miss"))
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"stage": self.stage,
-                "steps": [s.to_dict() for s in self.steps],
-                "memo_hits": self.memo_hits, "translated": self.translated,
-                "failed": self.failed}
+        return {
+            "stage": self.stage,
+            "steps": [s.to_dict() for s in self.steps],
+            "memo_hits": self.memo_hits,
+            "translated": self.translated,
+            "failed": self.failed,
+        }
 
     def summary(self) -> str:
-        return (f"Replay[{self.stage}] steps={len(self.steps)} "
-                f"memo_hit={self.memo_hits} translated={self.translated} "
-                f"failed={self.failed}")
+        return (
+            f"Replay[{self.stage}] steps={len(self.steps)} "
+            f"memo_hit={self.memo_hits} translated={self.translated} "
+            f"failed={self.failed}"
+        )
 
 
 class ReplaySystem:
     """把已存 stage 输入按序重放；翻译一律走 memo，绝不重复调用。"""
 
-    def __init__(self, store: StageInputStore,
-                 memo: Optional[TranslationMemo] = None) -> None:
+    def __init__(
+        self, store: StageInputStore, memo: Optional[TranslationMemo] = None
+    ) -> None:
         self.store = store
         self.memo = memo or TranslationMemo()
 
@@ -144,9 +155,12 @@ class ReplaySystem:
         for k, v in (pairs or {}).items():
             self.memo.store(k, v)
 
-    def replay(self, stage: str,
-               fn: Optional[Callable[[StageInput, TranslationMemo], Any]] = None,
-               record_errors: bool = True) -> ReplayReport:
+    def replay(
+        self,
+        stage: str,
+        fn: Optional[Callable[[StageInput, TranslationMemo], Any]] = None,
+        record_errors: bool = True,
+    ) -> ReplayReport:
         """按 stage 重放存好的输入；memo 命中则跳过 fn（引擎零调用）。
 
         ``fn`` 不传时只检查 memo 覆盖（miss 记 failed 不抛）。
@@ -160,7 +174,7 @@ class ReplaySystem:
                 if src:
                     try:
                         self.memo.translate(src)
-                        status = "memo_hit"      # 命中缓存 → 不再调 fn
+                        status = "memo_hit"  # 命中缓存 → 不再调 fn
                     except KeyError:
                         if fn is not None:
                             fn(item, self.memo)
@@ -172,14 +186,25 @@ class ReplaySystem:
                 status = "memo_miss" if record_errors else "ok"
             except Exception:  # noqa: BLE001 — 重放容错
                 status = "error"
-            report.steps.append(ReplayStep(
-                node_id=item.node_id, stage=stage, status=status,
-                elapsed_ms=(time.time() - t0) * 1000.0))
+            report.steps.append(
+                ReplayStep(
+                    node_id=item.node_id,
+                    stage=stage,
+                    status=status,
+                    elapsed_ms=(time.time() - t0) * 1000.0,
+                )
+            )
         return report
 
     def replay_all(self, fn=None) -> List[ReplayReport]:
         return [self.replay(stage, fn) for stage in self.store.stages()]
 
 
-__all__ = ["StageInput", "StageInputStore", "TranslationMemo",
-           "ReplayStep", "ReplayReport", "ReplaySystem"]
+__all__ = [
+    "StageInput",
+    "StageInputStore",
+    "TranslationMemo",
+    "ReplayStep",
+    "ReplayReport",
+    "ReplaySystem",
+]

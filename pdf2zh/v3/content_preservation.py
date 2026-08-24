@@ -23,6 +23,7 @@ Logo/QR/公式被保护、图文题注要翻译但编号保留 —— 全部走�
     decision = engine.decide_image(image_object)
     node_decision = engine.decide_ir_node(ir_node)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -30,7 +31,11 @@ from enum import Enum
 from typing import Dict, List, Optional, Sequence, Tuple
 
 from pdf2zh.v3.image_engine import (
-    IMAGE_POLICY, ImageClass, ImageObject, RenderMode, TranslationDecision,
+    IMAGE_POLICY,
+    ImageClass,
+    ImageObject,
+    RenderMode,
+    TranslationDecision,
 )
 from pdf2zh.v3.document_ir import DocumentIR, SemanticRole, TranslationRole
 
@@ -73,7 +78,9 @@ class PreservationDecision:
             "reasons": list(self.reasons),
             "render_mode": self.render_mode.value,
             "translation_role": self.translation_role.value,
-            "image_decision": self.image_decision.to_dict() if self.image_decision else None,
+            "image_decision": (
+                self.image_decision.to_dict() if self.image_decision else None
+            ),
         }
 
 
@@ -125,22 +132,34 @@ class DelegateSpec:
 # 语义角色默认表：所有目标动作最终收敛为 TRANSLATE / PRESERVE / OVERLAY
 ROLE_DEFAULT: Dict[SemanticRole, DelegateSpec] = {
     role: DelegateSpec(
-        PreservationAction.PRESERVE, TranslationRole.SKIP, 0.95,
+        PreservationAction.PRESERVE,
+        TranslationRole.SKIP,
+        0.95,
         "semantic_preserve",
-    ) for role in _PRESERVE_ROLES
+    )
+    for role in _PRESERVE_ROLES
 }
-ROLE_DEFAULT.update({
-    role: DelegateSpec(
-        PreservationAction.TRANSLATE, TranslationRole.TRANSLATE, 0.9,
-        "semantic_translate",
-    ) for role in _TRANSLATE_ROLES
-})
-ROLE_DEFAULT.update({
-    SemanticRole.CAPTION: DelegateSpec(
-        PreservationAction.TRANSLATE, TranslationRole.NEED_CONTEXT, 0.85,
-        "caption_number_keep",
-    ),
-})
+ROLE_DEFAULT.update(
+    {
+        role: DelegateSpec(
+            PreservationAction.TRANSLATE,
+            TranslationRole.TRANSLATE,
+            0.9,
+            "semantic_translate",
+        )
+        for role in _TRANSLATE_ROLES
+    }
+)
+ROLE_DEFAULT.update(
+    {
+        SemanticRole.CAPTION: DelegateSpec(
+            PreservationAction.TRANSLATE,
+            TranslationRole.NEED_CONTEXT,
+            0.85,
+            "caption_number_keep",
+        ),
+    }
+)
 
 
 class ContentPreservationEngine:
@@ -153,14 +172,19 @@ class ContentPreservationEngine:
       不修改 IR；如需把决策写回 IR 角色可用 ``apply_to_ir``）。
     """
 
-    def __init__(self,
-                 role_defaults: Optional[Dict[SemanticRole, DelegateSpec]] = None,
-                 image_policy: Optional[Dict[ImageClass, "object"]] = None,
-                 engine=None) -> None:
+    def __init__(
+        self,
+        role_defaults: Optional[Dict[SemanticRole, DelegateSpec]] = None,
+        image_policy: Optional[Dict[ImageClass, "object"]] = None,
+        engine=None,
+    ) -> None:
         from pdf2zh.v3.image_engine import TranslationDecisionEngine
+
         self.role_defaults = dict(role_defaults or ROLE_DEFAULT)
         self.image_policy = dict(image_policy or IMAGE_POLICY)
-        self.image_engine = engine or TranslationDecisionEngine(policy=self.image_policy)
+        self.image_engine = engine or TranslationDecisionEngine(
+            policy=self.image_policy
+        )
 
     # ── 对象决策 ─────────────────────────────────────────────────
 
@@ -204,8 +228,9 @@ class ContentPreservationEngine:
             image_decision=decision,
         )
 
-    def apply_to_ir(self, ir: DocumentIR,
-                    image_options: Optional[Sequence[ImageObject]] = None) -> List[PreservationDecision]:
+    def apply_to_ir(
+        self, ir: DocumentIR, image_options: Optional[Sequence[ImageObject]] = None
+    ) -> List[PreservationDecision]:
         """把决策写回 IR 的角色（translation/rendering），便于后续消费。
 
         仅按默认策略改写；显式设置过的节点不强行覆盖（除非它仍是默认 SKIP）。
@@ -238,11 +263,17 @@ class ContentPreservationEngine:
             # 未知角色沿用节点自身 translation 提示（显式配置优先）
             node_role = getattr(node, "translation", None)
             try:
-                node_role = TranslationRole(node_role.value if hasattr(node_role, "value") else node_role)
+                node_role = TranslationRole(
+                    node_role.value if hasattr(node_role, "value") else node_role
+                )
             except Exception:
                 node_role = TranslationRole.TRANSLATE
-            if node_role in (TranslationRole.KEEP_TERM, TranslationRole.KEEP_FORMULA,
-                             TranslationRole.KEEP_NUMBER, TranslationRole.SKIP):
+            if node_role in (
+                TranslationRole.KEEP_TERM,
+                TranslationRole.KEEP_FORMULA,
+                TranslationRole.KEEP_NUMBER,
+                TranslationRole.SKIP,
+            ):
                 return PreservationDecision(
                     object_id=getattr(node, "id", ""),
                     object_type=f"ir:{semantic_name}",
@@ -273,13 +304,19 @@ class ContentPreservationEngine:
         )
 
 
-def classify_node(node, engine: Optional[ContentPreservationEngine] = None) -> PreservationDecision:
+def classify_node(
+    node, engine: Optional[ContentPreservationEngine] = None
+) -> PreservationDecision:
     """函数式便捷入口：对任意带 semantic 属性的对象做决策。"""
     return (engine or ContentPreservationEngine()).decide_ir_node(node)
 
 
 __all__ = [
-    "PreservationAction", "PreservationDecision", "DelegateSpec",
-    "ROLE_DEFAULT", "ContentPreservationEngine", "classify_node",
+    "PreservationAction",
+    "PreservationDecision",
+    "DelegateSpec",
+    "ROLE_DEFAULT",
+    "ContentPreservationEngine",
+    "classify_node",
     "ACTION_TO_RENDER",
 ]

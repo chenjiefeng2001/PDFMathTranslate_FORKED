@@ -45,7 +45,6 @@ from pdf2zh.gui.events import (
 )
 from pdf2zh.gui.event_bridge import TaskEventBridge, EVENT_BRIDGE
 
-
 __all__ = [
     "TaskState",
     "GLOBAL_TASK_STORE",

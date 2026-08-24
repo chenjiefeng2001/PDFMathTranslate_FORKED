@@ -9,6 +9,7 @@
 ``from_model`` 扫描模型：块字体（metadata.fonts）→ fonts，图片记录
 （metadata.figures）→ images。纯数据结构 + 查询，无 I/O。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -26,9 +27,13 @@ class FontResource:
     meta: Dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
-        return {"name": self.name, "family": self.family,
-                "subset": self.subset, "size": round(self.size, 2),
-                "meta": dict(self.meta)}
+        return {
+            "name": self.name,
+            "family": self.family,
+            "subset": self.subset,
+            "size": round(self.size, 2),
+            "meta": dict(self.meta),
+        }
 
 
 @dataclass
@@ -40,10 +45,13 @@ class ImageResource:
     strategy: str = "preserve"
 
     def to_dict(self) -> dict:
-        return {"object_id": self.object_id, "page": self.page,
-                "bbox": [round(v, 2) for v in self.bbox],
-                "image_class": self.image_class,
-                "strategy": self.strategy}
+        return {
+            "object_id": self.object_id,
+            "page": self.page,
+            "bbox": [round(v, 2) for v in self.bbox],
+            "image_class": self.image_class,
+            "strategy": self.strategy,
+        }
 
 
 class ResourceManager:
@@ -81,7 +89,8 @@ class ResourceManager:
                 page=int(fig.get("page", 0) or 0),
                 bbox=tuple(float(v) for v in fig.get("bbox", (0, 0, 0, 0))),
                 image_class=fig.get("image_class", "unknown"),
-                strategy=fig.get("strategy", "preserve"))
+                strategy=fig.get("strategy", "preserve"),
+            )
         return self
 
     def summary(self) -> dict:

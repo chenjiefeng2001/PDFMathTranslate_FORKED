@@ -41,7 +41,6 @@ from pdf2zh.translation_cache import TranslationCache
 from pdf2zh.collision_resolver import CollisionResolver
 from pdf2zh.layout_graph import LayoutGraph
 
-
 NOTO_NAME = "noto"
 
 logger = logging.getLogger(__name__)
@@ -144,7 +143,6 @@ class _LayoutBatchPredictor:
         return self._flush_count, self._predicted_pages, self._infer_secs
 
 
-
 def translate_patch(
     inf: BinaryIO,
     pages: Optional[list[int]] = None,
@@ -173,15 +171,15 @@ def translate_patch(
     # 并行模式：由调用方预创建每页的新内容流 xref（保证主进程与 worker 进程编号一致）
     page_xref_map: dict = None,
     apply_page_xrefs: bool = True,
-# V8.3/V8.4: 主链路 IR 产出 + 写回前重排版门控
+    # V8.3/V8.4: 主链路 IR 产出 + 写回前重排版门控
     emit_ir: bool = False,
     relayout_gate: object = None,
     v3_output: dict = None,
-# 文本层质量预检 gate（扫描损坏检测长期实现，scan_damaged 报告 §6.2）：
-# 开启时翻译启动前对源 PDF 跑多信号融合预检，命中损坏信号 → 写入
-# v3_output["text_quality"] 并输出强警告（legacy 无 OCR 兜底）。
+    # 文本层质量预检 gate（扫描损坏检测长期实现，scan_damaged 报告 §6.2）：
+    # 开启时翻译启动前对源 PDF 跑多信号融合预检，命中损坏信号 → 写入
+    # v3_output["text_quality"] 并输出强警告（legacy 无 OCR 兜底）。
     text_quality_gate: bool = False,
-# V8.5: 采集逐篇段落源/目标几何（link_remap 桥接数据）
+    # V8.5: 采集逐篇段落源/目标几何（link_remap 桥接数据）
     link_remap: bool = False,
     # V9.0: Processor 层语义通道（RAW/SEMANTIC + TOC 结构化记录，side-channel）
     processor_channels: bool = True,
@@ -205,7 +203,6 @@ def translate_patch(
     # 阶段 3 主链路接线：渲染前以 P5–P10 SolvedUnit 几何接管 legacy 段落
     # （文本集一致才接管；公式锚点经旧 {vN} 机制逐字形还原 → 零漂移）。
     reconstruction_adopt: bool = True,
-
     **kwarg: Any,
 ) -> None:
     rsrcmgr = PDFResourceManager()
@@ -344,6 +341,7 @@ def translate_patch(
                 doc_zh.update_stream(page.page_xref, b"")
                 doc_zh[page.pageno].set_contents(page.page_xref)
             interpreter.process_page(page)
+
         if _layout_predictor is not None:
             # 批量路径（可选，PDF2ZH_LAYOUT_BATCH ≥ 2）：攒够 batch 页后一次
             # ONNX 调度批量推理，再逐页执行版面处理（进度/取消语义与逐页一致）。
@@ -373,12 +371,15 @@ def translate_patch(
                     if _pd_n % 25 == 0 or _pd_n == total_pages:
                         logger.info(
                             "layout predict so far: %d pages, avg %.3fs/page (last %.3fs)",
-                            _pd_n, _pd_secs / max(_pd_n, 1), _d_predict,
+                            _pd_n,
+                            _pd_secs / max(_pd_n, 1),
+                            _d_predict,
                         )
                     for (pg, px, _im), res in zip(_pending, results):
                         logger.debug(
                             "page %d layout predict boxes=%d",
-                            pg.pageno, len(res.boxes),
+                            pg.pageno,
+                            len(res.boxes),
                         )
                         _process_page_layout(pg, px, res)
                     _pending = []
@@ -391,7 +392,8 @@ def translate_patch(
             _prefetch = model is not None and _int_env("PDF2ZH_LAYOUT_PREFETCH", 0) >= 1
             _pf_executor = (
                 concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                if _prefetch else None
+                if _prefetch
+                else None
             )
             _pf_future = None
             _page_records = []
@@ -431,12 +433,16 @@ def translate_patch(
                     _pd_n, _pd_secs = _pd_n + 1, _pd_secs + _d_predict
                     logger.debug(
                         "page %d layout predict %.3fs boxes=%d",
-                        page.pageno, _d_predict, len(page_layout.boxes),
+                        page.pageno,
+                        _d_predict,
+                        len(page_layout.boxes),
                     )
                     if _pd_n % 25 == 0 or _pd_n == total_pages:
                         logger.info(
                             "layout predict so far: %d pages, avg %.3fs/page (last %.3fs)",
-                            _pd_n, _pd_secs / max(_pd_n, 1), _d_predict,
+                            _pd_n,
+                            _pd_secs / max(_pd_n, 1),
+                            _d_predict,
                         )
                     # 预取下一页（主线程渲染 pixmap 保证顺序，后台只做推理）
                     _pf_future = None
@@ -453,14 +459,14 @@ def translate_patch(
                             ).reshape(_nxt_pix.height, _nxt_pix.width, 3)[:, :, ::-1]
                             _pf_future = _pf_executor.submit(
                                 _prefetch_predict,
-                                model, _nxt_image,
+                                model,
+                                _nxt_image,
                                 int(_nxt_pix.height / 32) * 32,
                             )
                     _process_page_layout(page, pix, page_layout)
             finally:
                 if _pf_executor is not None:
                     _pf_executor.shutdown(wait=False, cancel_futures=True)
-
 
     # 批量路径：处理未满批的剩余页
     if _layout_predictor is not None and _pending:
@@ -471,14 +477,17 @@ def translate_patch(
             _process_page_layout(pg, px, res)
         logger.info(
             "Layout batch remainder: %d page(s) in %.3fs",
-            len(_pending), _d_predict,
+            len(_pending),
+            _d_predict,
         )
     if _layout_predictor is not None:
         _f, _p, _secs = _layout_predictor.stats()
         if _p:
             logger.info(
                 "Layout batch inference: %d ONNX call(s) for %d page(s) in %.3fs",
-                _f, _p, _secs,
+                _f,
+                _p,
+                _secs,
             )
     device.close()
     # V8.3–V9.0: 主链路 side-channel 数据回传（IR 快照 + 门控裁决 +
@@ -490,8 +499,12 @@ def translate_patch(
         v3_output["processor_reports"] = dict(getattr(device, "processor_reports", {}))
         v3_output["toc_ir_records"] = dict(getattr(device, "toc_ir_records", {}))
         v3_output["render_plans"] = dict(getattr(device, "render_plans", {}))
-        v3_output["translation_qa_records"] = dict(getattr(device, "translation_qa_records", {}))
-        v3_output["geometry_adoptions"] = dict(getattr(device, "geometry_adoptions", {}))
+        v3_output["translation_qa_records"] = dict(
+            getattr(device, "translation_qa_records", {})
+        )
+        v3_output["geometry_adoptions"] = dict(
+            getattr(device, "geometry_adoptions", {})
+        )
         v3_output["pipeline_dumps"] = dict(getattr(device, "pipeline_dumps", {}))
         v3_output["layout_violations"] = dict(
             getattr(device, "layout_violations_by_page", {})
@@ -499,9 +512,7 @@ def translate_patch(
         v3_output["reconstruction"] = dict(
             getattr(device, "reconstruction_records", {})
         )
-        v3_output["reconstruction_qa"] = dict(
-            getattr(device, "reconstruction_qa", {})
-        )
+        v3_output["reconstruction_qa"] = dict(getattr(device, "reconstruction_qa", {}))
         dm = getattr(device, "document_model", None)
         if dm is not None and hasattr(dm, "to_dict"):
             v3_output["document_model"] = dm.to_dict()
@@ -524,8 +535,7 @@ def _run_text_quality_gate(inf: BinaryIO, v3_output: dict) -> None:
     """
     path = getattr(inf, "name", "") or ""
     if not path or not os.path.exists(path) or not path.lower().endswith(".pdf"):
-        v3_output["text_quality"] = {"preflight": None, "scanned": False,
-                                     "reasons": []}
+        v3_output["text_quality"] = {"preflight": None, "scanned": False, "reasons": []}
         return
     try:
         from pdf2zh.scanned_detection import preflight_scan_check
@@ -544,8 +554,12 @@ def _run_text_quality_gate(inf: BinaryIO, v3_output: dict) -> None:
                 "; ".join(decision.reasons) or "unknown",
             )
     except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断翻译
-        v3_output["text_quality"] = {"preflight": None, "scanned": False,
-                                     "reasons": [], "error": str(exc)}
+        v3_output["text_quality"] = {
+            "preflight": None,
+            "scanned": False,
+            "reasons": [],
+            "error": str(exc),
+        }
         logger.debug("text quality gate skipped: %s", exc)
 
 
@@ -575,8 +589,9 @@ def _relink_translated_doc(doc_zh, v3_output: dict = None) -> dict:
                 heights[pno] = float(doc_zh[pno].rect.height)
             except Exception:
                 continue
-        return remap_document_links(doc_zh, records, page_offset=0,
-                                    y_flip=True, page_heights=heights)
+        return remap_document_links(
+            doc_zh, records, page_offset=0, y_flip=True, page_heights=heights
+        )
     except Exception as e:
         logger.warning("link_remap failed at doc level: %s", str(e)[:160])
         return empty
@@ -597,6 +612,7 @@ def _collect_observability(device, v3_output: dict = None) -> dict:
     try:
         from pdf2zh.v3.inspector_view import build_inspector_html
         from pdf2zh.v3.overlay_view import overlay_from_snapshot, render_svg
+
         bundle = session.bundle()
         snaps = (bundle.get("snapshots") or {}).get("snapshots") or {}
         overlays = []
@@ -605,18 +621,24 @@ def _collect_observability(device, v3_output: dict = None) -> dict:
             recs = overlay_from_snapshot(snaps.get(f"render_p{pageid}") or {})
             if not recs:
                 continue
-            overlays.append({
-                "page": f"Page {pageid}",
-                "svg": render_svg(recs, float(w or 600.0), float(h or 800.0)),
-            })
+            overlays.append(
+                {
+                    "page": f"Page {pageid}",
+                    "svg": render_svg(recs, float(w or 600.0), float(h or 800.0)),
+                }
+            )
         inspector_html = build_inspector_html(
             session.snapshot_store,
             decisions=bundle.get("decisions"),
             diagnostics=bundle.get("diagnostics"),
             overlays=overlays,
-            title=f"Inspector {bundle.get('doc_id', 'doc')}")
-        payload = {"bundle": bundle, "overlays": overlays,
-                   "inspector_html": inspector_html}
+            title=f"Inspector {bundle.get('doc_id', 'doc')}",
+        )
+        payload = {
+            "bundle": bundle,
+            "overlays": overlays,
+            "inspector_html": inspector_html,
+        }
         if v3_output is not None:
             v3_output["observability"] = payload
             return {}
@@ -641,15 +663,15 @@ def _collect_preservation_side_channel(
     ``image_render=True`` 时额外对每页栅格跑一遍完整图片渲染管线
     （OCR→决策→翻译→渲染），把摘要写入 ``v3_output["image_render_records"]``。
     """
-    empty = {"pages": 0, "objects": 0, "translated": 0, "preserved": 0,
-             "overlay": 0}
+    empty = {"pages": 0, "objects": 0, "translated": 0, "preserved": 0, "overlay": 0}
     if not getattr(doc_zh, "page_count", None):
         return empty
     if not (image_engine or content_preservation):
         return empty
     try:
         from pdf2zh.v3.image_engine import (
-            TranslationDecisionEngine, analyze_pdf_images,
+            TranslationDecisionEngine,
+            analyze_pdf_images,
         )
         from pdf2zh.v3.content_preservation import ContentPreservationEngine
     except Exception as e:
@@ -658,8 +680,11 @@ def _collect_preservation_side_channel(
     try:
         engine = TranslationDecisionEngine()
         image_objs = analyze_pdf_images(
-            doc_zh, engine=engine,
-            page_range=list(range(doc_zh.page_count)) if doc_zh.page_count < 2000 else None,
+            doc_zh,
+            engine=engine,
+            page_range=(
+                list(range(doc_zh.page_count)) if doc_zh.page_count < 2000 else None
+            ),
         )
         pres_engine = ContentPreservationEngine(engine=engine)
         rec = {}
@@ -670,8 +695,13 @@ def _collect_preservation_side_channel(
                 page_rec.append(dec.to_dict())
             rec[str(page_no)] = page_rec
 
-        stats = {"pages": len(image_objs), "objects": sum(len(v) for v in image_objs.values()),
-                 "translated": 0, "preserved": 0, "overlay": 0}
+        stats = {
+            "pages": len(image_objs),
+            "objects": sum(len(v) for v in image_objs.values()),
+            "translated": 0,
+            "preserved": 0,
+            "overlay": 0,
+        }
         for page_no, objs in image_objs.items():
             for obj in objs:
                 if obj.decision and obj.decision.render_mode.value == "overlay":
@@ -700,18 +730,22 @@ def _render_page_previews(doc_zh) -> dict:
     OCR→决策→翻译→渲染后端在真实页面上可跑通。失败页跳过（side-channel）。
     """
     import numpy as _np
+
     out: dict = {}
     try:
         from pdf2zh.v3.image_pipeline import translate_image_pixels
+
         for pno in range(doc_zh.page_count):
             try:
                 page = doc_zh[pno]
                 pix = page.get_pixmap(matrix=None)
                 px = _np.frombuffer(pix.samples, dtype=_np.uint8).reshape(
-                    pix.height, pix.width, pix.n)
+                    pix.height, pix.width, pix.n
+                )
                 rgb = px[..., :3] if pix.n >= 3 else px
                 out_bytes, summ = translate_image_pixels(
-                    rgb, object_id=f"p{pno}_render", page_num=pno)
+                    rgb, object_id=f"p{pno}_render", page_num=pno
+                )
                 out[str(pno)] = {
                     "mode": summ.render_mode,
                     "translated": summ.regions_translated,
@@ -719,8 +753,7 @@ def _render_page_previews(doc_zh) -> dict:
                     "bytes": len(out_bytes),
                 }
             except Exception as e:  # noqa: BLE001
-                logger.debug("page preview render failed p%s: %s", pno,
-                             str(e)[:120])
+                logger.debug("page preview render failed p%s: %s", pno, str(e)[:120])
     except Exception as e:  # noqa: BLE001
         logger.debug("image render channel failed: %s", str(e)[:120])
     return out
@@ -748,6 +781,7 @@ def _apply_bookmarks(
     """
     try:
         import pymupdf
+
         reader = pymupdf.open(stream=stream_bytes, filetype="pdf")
         toc = reader.get_toc()
         reader.close()
@@ -758,7 +792,9 @@ def _apply_bookmarks(
         return
     translator = None
     try:
-        translator = build_translator(service, lang_in, lang_out, envs, prompt, ignore_cache)
+        translator = build_translator(
+            service, lang_in, lang_out, envs, prompt, ignore_cache
+        )
     except Exception as e:
         logger.warning("bookmarks: translator init failed: %s", str(e)[:120])
         return
@@ -774,7 +810,9 @@ def _apply_bookmarks(
         try:
             translated = translator.translate(title)
         except Exception as e:
-            logger.warning("bookmarks: title translate failed (%r): %s", title[:30], str(e)[:120])
+            logger.warning(
+                "bookmarks: title translate failed (%r): %s", title[:30], str(e)[:120]
+            )
             translated = title
         t = (translated or "").strip() or title
         new_toc.append([lvl, t, page])
@@ -868,7 +906,6 @@ def translate_stream(
     # P5–P10 主链路接管（阶段 3）：与 reconstruction_channel 配套，经
     # **dict(locals()) 透传到 translate_patch / 并行 worker。默认 True。
     reconstruction_adopt: bool = True,
-
     **kwarg: Any,
 ):
     # 归一化翻译并发线程数：CLI 默认 4，但 API/编程方式调用时 thread 可能为 0/None，
@@ -898,15 +935,15 @@ def translate_stream(
         doc_en.save(stream)
         doc_zh = Document(stream=stream)
         page_count = doc_zh.page_count
-        logger.info("translate_stream: loaded %d pages, starting patch phase...", page_count)
+        logger.info(
+            "translate_stream: loaded %d pages, starting patch phase...", page_count
+        )
 
         # V3 passthrough: 全文档无可提取文本（扫描件 / 纯矢量 / 纯图片）时跳过
         # 字体嵌入、翻译与补丁，直接压缩写出。原路径会把全量 SourceHanSerif 字体
         # （~9-14MB）嵌入到没有任何文本使用的输出中，导致体积膨胀 10-20 倍
         # （实测 603KB -> 9.6MB，xref 中单个字体流解压后 14MB）。
-        if page_count > 0 and not any(
-            _page.get_text().strip() for _page in doc_en
-        ):
+        if page_count > 0 and not any(_page.get_text().strip() for _page in doc_en):
             logger.warning(
                 "translate_stream: no extractable text across %d page(s); "
                 "running passthrough mode (no translation, output mirrors input)",
@@ -924,15 +961,22 @@ def translate_stream(
                 doc_zh.close()
             if callable(progress_cb):
                 try:
-                    progress_cb(100.0, f"No extractable text ({page_count} page(s)); passthrough")
+                    progress_cb(
+                        100.0,
+                        f"No extractable text ({page_count} page(s)); passthrough",
+                    )
                 except Exception:
                     pass
             logger.info(
                 "translate_stream: passthrough complete (mono=%d bytes, dual=%d bytes, %.1fs)",
-                len(doc_mono), len(doc_dual), time.perf_counter() - _pt_start,
+                len(doc_mono),
+                len(doc_dual),
+                time.perf_counter() - _pt_start,
             )
             return (doc_dual, doc_mono)
-        import sys as _sys_init; _sys_init.stdout.flush()
+        import sys as _sys_init
+
+        _sys_init.stdout.flush()
         # Phase 1: Document-level font cache
         font_cache = DocumentFontCache(doc_zh)
         registered_font_name = font_cache.register(font_path)
@@ -1009,11 +1053,14 @@ def translate_stream(
         if use_text_metrics and font_path and os.path.exists(font_path):
             try:
                 from pdf2zh.text_metrics import TextMetrics as _TM
+
                 tm = _TM(font_path)
                 text_metrics[noto_name] = tm
                 text_metrics[registered_font_name] = tm
             except Exception as e:
-                logger.warning("TextMetrics init failed (falling back to legacy width): %s", e)
+                logger.warning(
+                    "TextMetrics init failed (falling back to legacy width): %s", e
+                )
 
         # === 2.0: Translation cache (L3) ===
         translation_cache_obj = None
@@ -1028,9 +1075,9 @@ def translate_stream(
         layout_graph = LayoutGraph()
 
         # Ensure 2.0 module references exist in locals
-        if 'text_metrics' not in dir():
+        if "text_metrics" not in dir():
             text_metrics = {}
-        if 'translation_cache_obj' not in dir():
+        if "translation_cache_obj" not in dir():
             translation_cache_obj = None
 
         # === 2.0: Parallel page processing (L2) ===
@@ -1041,6 +1088,7 @@ def translate_stream(
             # 并跳过并行（等价于整体串行兜底），不让预热异常重复进 worker 初始化。
             from pdf2zh.doclayout import DocLayoutModel
             from pdf2zh.parallel.errors import ParallelError
+
             if not DocLayoutModel.ensure_model_prewarmed():
                 logger.warning(
                     "Layout model prewarm failed; skipping page parallelism "
@@ -1068,7 +1116,8 @@ def translate_stream(
                 else:
                     try:
                         obj_patch = _translate_parallel(
-                            fp, dict(locals()),
+                            fp,
+                            dict(locals()),
                             workers=parallel_workers,
                             page_xref_map=page_xref_map,
                         )
@@ -1091,7 +1140,8 @@ def translate_stream(
                             "Parallel page processing failed (%s), falling back to serial: %s "
                             "(tip: fix the GPU backend or disable page parallelism with "
                             "--backend cpu / parallel_pages=False)",
-                            type(parallel_err).__name__, str(parallel_err)[:120],
+                            type(parallel_err).__name__,
+                            str(parallel_err)[:120],
                         )
                         # 并发 GPU session 冲突（多 worker 同时建 DirectML/CUDA session）
                         # 是 worker 原生崩溃最常见的诱因；在真正降级 CPU 之前，先用更少
@@ -1105,7 +1155,8 @@ def translate_stream(
                                     retry_workers,
                                 )
                                 obj_patch = _translate_parallel(
-                                    fp, dict(locals()),
+                                    fp,
+                                    dict(locals()),
                                     workers=retry_workers,
                                     page_xref_map=page_xref_map,
                                 )
@@ -1130,8 +1181,11 @@ def translate_stream(
                                 context=f"pages={page_count} workers={parallel_workers}",
                             )
                             if degraded:
-                                from pdf2zh.doclayout import ModelInstance as _RemodelInst
+                                from pdf2zh.doclayout import (
+                                    ModelInstance as _RemodelInst,
+                                )
                                 from pdf2zh.doclayout import OnnxModel as _RemodelOnnx
+
                                 try:
                                     _RemodelInst.value = _RemodelOnnx.load_available()
                                 except Exception as _remodel_err:
@@ -1149,8 +1203,11 @@ def translate_stream(
             obj_patch = translate_patch(fp, **dict(locals()))
 
         # Phase D: 并行路径的可观测 payload 经 __obs__ 私有键回传，这里并入 v3_output
-        if v3_output is not None and isinstance(obj_patch, dict) and \
-                "__obs__" in obj_patch:
+        if (
+            v3_output is not None
+            and isinstance(obj_patch, dict)
+            and "__obs__" in obj_patch
+        ):
             v3_output["observability"] = obj_patch.pop("__obs__")
 
         total_objs = len(obj_patch)
@@ -1158,25 +1215,33 @@ def translate_stream(
             try:
                 # Validate that the obj_id references a dict/stream before updating
                 xref_type = doc_zh.xref_object(obj_id, compressed=True)
-                if not xref_type.startswith('<<'):
+                if not xref_type.startswith("<<"):
                     logger.warning(
-                        'Skipping obj_id %s: not a PDF dict (xref_object starts with %r)',
-                        obj_id, xref_type[:40],
+                        "Skipping obj_id %s: not a PDF dict (xref_object starts with %r)",
+                        obj_id,
+                        xref_type[:40],
                     )
                     continue
                 doc_zh.update_stream(obj_id, ops_new.encode())
             except ValueError as ve:
                 logger.warning(
-                    'Skipping obj_id %s (ValueError: %s) — common for non-stream objects',
-                    obj_id, str(ve)[:80],
+                    "Skipping obj_id %s (ValueError: %s) — common for non-stream objects",
+                    obj_id,
+                    str(ve)[:80],
                 )
             except Exception as stream_err:
                 logger.warning(
-                    'Skipping obj_id %s update_stream error: %s',
-                    obj_id, str(stream_err)[:120],
+                    "Skipping obj_id %s update_stream error: %s",
+                    obj_id,
+                    str(stream_err)[:120],
                 )
             if idx % 5 == 0 or idx == total_objs - 1:
-                logger.info("translate_stream: updated stream %d/%d (%.0f%%)", idx + 1, total_objs, (idx + 1) / total_objs * 100)
+                logger.info(
+                    "translate_stream: updated stream %d/%d (%.0f%%)",
+                    idx + 1,
+                    total_objs,
+                    (idx + 1) / total_objs * 100,
+                )
 
         # 并行模式下 worker 进程不会修改主进程 doc_zh 的页面 /Contents，
         # 这里统一将每个页面指向其新的（已写入译文指令流的）内容流对象。
@@ -1187,7 +1252,9 @@ def translate_stream(
                 except Exception as se:
                     logger.warning(
                         "set_contents failed for page %s (xref %s): %s",
-                        _px_pageno, _px_xref, str(se)[:80],
+                        _px_pageno,
+                        _px_xref,
+                        str(se)[:80],
                     )
 
         # === V8.5: 超链接重定位（必须发生在 insert_file 合并之前，译副本才能继承修正 rect） ===
@@ -1199,16 +1266,20 @@ def translate_stream(
                 if any(link_stats["relinked"] for _ in [0]):
                     logger.info(
                         "translate_stream: relinked %d links across %d pages",
-                        link_stats["relinked"], link_stats["pages"],
+                        link_stats["relinked"],
+                        link_stats["pages"],
                     )
             except Exception as relink_err:
-                logger.warning("translate_stream: link relink skipped: %s", str(relink_err)[:160])
+                logger.warning(
+                    "translate_stream: link relink skipped: %s", str(relink_err)[:160]
+                )
 
         # === V8.6: 图片翻译 + 内容保护决策的 side-channel（仅采集回传，不改渲染） ===
         if emit_preservation:
             try:
                 pres_stats = _collect_preservation_side_channel(
-                    doc_zh, v3_output,
+                    doc_zh,
+                    v3_output,
                     image_engine=image_engine,
                     content_preservation=content_preservation,
                     image_render=image_render,
@@ -1217,17 +1288,25 @@ def translate_stream(
                     logger.info(
                         "translate_stream: preservation decided %d image objects "
                         "(translate=%d preserve=%d overlay=%d)",
-                        pres_stats["objects"], pres_stats["translated"],
-                        pres_stats["preserved"], pres_stats["overlay"],
+                        pres_stats["objects"],
+                        pres_stats["translated"],
+                        pres_stats["preserved"],
+                        pres_stats["overlay"],
                     )
             except Exception as pres_err:
-                logger.warning("translate_stream: preservation skipped: %s", str(pres_err)[:160])
+                logger.warning(
+                    "translate_stream: preservation skipped: %s", str(pres_err)[:160]
+                )
 
         logger.info("=" * 60)
-        logger.info("translate_stream: MERGING %d pages (this may take a while for large PDFs)...", page_count)
+        logger.info(
+            "translate_stream: MERGING %d pages (this may take a while for large PDFs)...",
+            page_count,
+        )
         logger.info("=" * 60)
         import time as _merge_time
         import sys as _sys
+
         try:
             _merge_start = _merge_time.time()
             logger.info("translate_stream: calling doc_en.insert_file(doc_zh)...")
@@ -1235,19 +1314,37 @@ def translate_stream(
             _sys.stderr.flush()
             doc_en.insert_file(doc_zh)
             _insert_elapsed = _merge_time.time() - _merge_start
-            logger.info("translate_stream: insert_file OK (%.1fs), reordering %d pages...", _insert_elapsed, page_count)
+            logger.info(
+                "translate_stream: insert_file OK (%.1fs), reordering %d pages...",
+                _insert_elapsed,
+                page_count,
+            )
             _sys.stdout.flush()
             for id in range(page_count):
                 doc_en.move_page(page_count + id, id * 2 + 1)
                 if id % 5 == 0 or id == page_count - 1:
-                    logger.info("translate_stream: moved page %d/%d (%.1f%% done)", id + 1, page_count, (id + 1) / page_count * 100)
+                    logger.info(
+                        "translate_stream: moved page %d/%d (%.1f%% done)",
+                        id + 1,
+                        page_count,
+                        (id + 1) / page_count * 100,
+                    )
                     _sys.stdout.flush()
                     _sys.stderr.flush()
             _merge_total = _merge_time.time() - _merge_start
-            logger.info("translate_stream: page merge complete (%d pages, %.1fs total)", page_count, _merge_total)
+            logger.info(
+                "translate_stream: page merge complete (%d pages, %.1fs total)",
+                page_count,
+                _merge_total,
+            )
         except Exception as merge_err:
-            logger.error("translate_stream: page merge failed after %.1fs: %s", _merge_time.time() - _merge_start, merge_err)
+            logger.error(
+                "translate_stream: page merge failed after %.1fs: %s",
+                _merge_time.time() - _merge_start,
+                merge_err,
+            )
             raise
+
         def _protect_math_fonts(doc):
             """保护已知数学字体不被 MuPDF subset_fonts 子集化破坏宽度"""
             try:
@@ -1257,7 +1354,9 @@ def translate_stream(
                         subtype_res = doc.xref_get_key(xref, "/Subtype")
                         if subtype_res[0] == "name" and "Type3" in str(subtype_res[1]):
                             # Type3 字体跳过子集化
-                            doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
+                            doc.xref_set_key(
+                                xref, "/Length", doc.xref_get_key(xref, "/Length")[1]
+                            )
                     except Exception:
                         pass
                     try:
@@ -1265,13 +1364,35 @@ def translate_stream(
                         if basefont_res[0] == "name":
                             bf = str(basefont_res[1])
                             math_patterns = [
-                                "CM", "CMSY", "CMEX", "CMMI", "EUFM", "MSBM", "MSAM",
-                                "STIX", "XITS", "MnSymbol", "rsfs", "txsy", "wasy", "stmary",
-                                "Symbol", "MT", "BL", "RM", "EU", "LA", "RS"
+                                "CM",
+                                "CMSY",
+                                "CMEX",
+                                "CMMI",
+                                "EUFM",
+                                "MSBM",
+                                "MSAM",
+                                "STIX",
+                                "XITS",
+                                "MnSymbol",
+                                "rsfs",
+                                "txsy",
+                                "wasy",
+                                "stmary",
+                                "Symbol",
+                                "MT",
+                                "BL",
+                                "RM",
+                                "EU",
+                                "LA",
+                                "RS",
                             ]
                             for mp in math_patterns:
                                 if mp in bf:
-                                    doc.xref_set_key(xref, "/Length", doc.xref_get_key(xref, "/Length")[1])
+                                    doc.xref_set_key(
+                                        xref,
+                                        "/Length",
+                                        doc.xref_get_key(xref, "/Length")[1],
+                                    )
                                     break
                     except Exception:
                         pass
@@ -1289,19 +1410,29 @@ def translate_stream(
                 doc_zh.subset_fonts(fallback=False)
                 logger.info("translate_stream: doc_zh subset_fonts complete")
             except Exception as subset_err:
-                logger.warning("subset_fonts failed for doc_zh: %s", str(subset_err)[:120])
+                logger.warning(
+                    "subset_fonts failed for doc_zh: %s", str(subset_err)[:120]
+                )
             logger.info("translate_stream: subsetting doc_en fonts...")
             try:
                 doc_en.subset_fonts(fallback=False)
                 logger.info("translate_stream: doc_en subset_fonts complete")
             except Exception as subset_err:
-                logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])
+                logger.warning(
+                    "subset_fonts failed for doc_en: %s", str(subset_err)[:120]
+                )
         # === 书签（/Outlines）：翻译标题并重建到 mono/dual 文档（P0-3） ===
         # 在子集化之后、写出之前重建，避免子集化影响新写入的 outline 对象。
         _apply_bookmarks(
-            doc_zh, doc_en, stream.getvalue(),
-            service=service, lang_in=lang_in, lang_out=lang_out,
-            envs=envs, prompt=prompt, ignore_cache=ignore_cache,
+            doc_zh,
+            doc_en,
+            stream.getvalue(),
+            service=service,
+            lang_in=lang_in,
+            lang_out=lang_out,
+            envs=envs,
+            prompt=prompt,
+            ignore_cache=ignore_cache,
         )
         logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
         try:
@@ -1310,7 +1441,11 @@ def translate_stream(
             # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
             # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
             doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
-            logger.info("translate_stream: doc_zh write OK (size=%d bytes, %.1fs)", len(doc_dual), _merge_time.time() - _write_start)
+            logger.info(
+                "translate_stream: doc_zh write OK (size=%d bytes, %.1fs)",
+                len(doc_dual),
+                _merge_time.time() - _write_start,
+            )
         except Exception as write_err:
             logger.error("translate_stream: doc_zh write failed: %s", write_err)
             raise
@@ -1318,17 +1453,28 @@ def translate_stream(
         try:
             _write_start = _merge_time.time()
             doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
-            logger.info("translate_stream: doc_en write OK (size=%d bytes, %.1fs)", len(doc_mono), _merge_time.time() - _write_start)
+            logger.info(
+                "translate_stream: doc_en write OK (size=%d bytes, %.1fs)",
+                len(doc_mono),
+                _merge_time.time() - _write_start,
+            )
         except Exception as write_err:
             logger.error("translate_stream: doc_en write failed: %s", write_err)
             raise
-        logger.info("translate_stream: write complete (mono=%d bytes, dual=%d bytes, total=%.1fs)", len(doc_mono), len(doc_dual), _merge_time.time() - _merge_start)
+        logger.info(
+            "translate_stream: write complete (mono=%d bytes, dual=%d bytes, total=%.1fs)",
+            len(doc_mono),
+            len(doc_dual),
+            _merge_time.time() - _merge_start,
+        )
         # V1.19: TOC 观察报告落盘（PDF2ZH_TOC_REPORT=1；无环境变量时零开销）
         if os.environ.get("PDF2ZH_TOC_REPORT", "") == "1":
             try:
                 _toc_reports = getattr(device, "_toc_reports", None) or []
                 if _toc_reports:
-                    _reports_path = stream.name if hasattr(stream, "name") and stream.name else None
+                    _reports_path = (
+                        stream.name if hasattr(stream, "name") and stream.name else None
+                    )
                     if _reports_path:
                         _dump_base = os.path.splitext(_reports_path)[0]
                     else:
@@ -1336,9 +1482,15 @@ def translate_stream(
                     _dump_path = f"{_dump_base}.toc_report.json"
                     with open(_dump_path, "w", encoding="utf-8") as _rf:
                         json.dump(_toc_reports, _rf, ensure_ascii=False, indent=1)
-                    logger.info("translate_stream: TOC report written (%d entries) -> %s", len(_toc_reports), _dump_path)
+                    logger.info(
+                        "translate_stream: TOC report written (%d entries) -> %s",
+                        len(_toc_reports),
+                        _dump_path,
+                    )
             except Exception as _dump_err:
-                logger.warning("translate_stream: TOC report dump failed: %s", str(_dump_err)[:120])
+                logger.warning(
+                    "translate_stream: TOC report dump failed: %s", str(_dump_err)[:120]
+                )
         return (doc_dual, doc_mono)
     finally:
         if doc_en is not None and not getattr(doc_en, "is_closed", False):
@@ -1397,8 +1549,6 @@ def convert_to_pdfa(input_path, output_path):
     pdf.close()
 
 
-
-
 def _init_worker_process(backend: str = None):
     """Initialize worker process: load layout model once into global singleton.
 
@@ -1440,6 +1590,7 @@ def _degrade_backend_on_crash(
         mark_cpu_degraded,
         release_model_instance,
     )
+
     prev_backend = get_backend()
     if isinstance(err, BrokenProcessPool) and mark_cpu_degraded():
         # 主进程可能已缓存 GPU session（ModelInstance 全局单例），重置为 None，
@@ -1618,8 +1769,7 @@ def _translate_parallel(
     )
     chunk_size = max(1, len(valid_pages) // workers)
     chunks = [
-        valid_pages[i:i + chunk_size]
-        for i in range(0, len(valid_pages), chunk_size)
+        valid_pages[i : i + chunk_size] for i in range(0, len(valid_pages), chunk_size)
     ]
 
     # Snapshot fp bytes once (pickle-safe bytestring)
@@ -1664,15 +1814,18 @@ def _translate_parallel(
     obs_bundles: list = []
     progress_cb = locals_dict.get("progress_cb")
     from pdf2zh.doclayout import get_backend
+
     # S4: 跨进程取消桥 —— threading.Event / mp.Event 均不可 pickle
     # （Python 3.12+ spawn 下报 "Condition objects should only be shared..."），
     # 取消信号改用 pickle-safe 的 CancelToken（临时目录标记文件）：父进程起一个
     # 轻量 daemon 线程轮询调用方 cancellation_event，触发后 set() 写标记文件，
     # 各 worker 的页循环经 is_set()（每页一次 stat）感知，≤0.5s 内到达。
     from pdf2zh.parallel.chunk import CancelToken
+
     _cancel_event_arg = locals_dict.get("cancellation_event")
     if _cancel_event_arg is not None:
         import threading as _thr
+
         _shared_cancel = CancelToken()
         _bridge_stop = _thr.Event()
 
@@ -1717,13 +1870,17 @@ def _translate_parallel(
     shared_pool = None
     try:
         from pdf2zh.parallel.pool import get_shared_pool  # noqa: PLC0415
+
         shared_pool = get_shared_pool(workers, get_backend())
     except Exception as pool_init_err:  # noqa: BLE001 -- 池初始化失败回落新建池
-        logger.warning("Warm pool unavailable (%s); falling back to per-task pool",
-                       str(pool_init_err)[:120])
+        logger.warning(
+            "Warm pool unavailable (%s); falling back to per-task pool",
+            str(pool_init_err)[:120],
+        )
         shared_pool = None
 
     if shared_pool is not None:
+
         def _shared_pool_factory(_mw, _initializer, _initargs):  # noqa: ANN001
             return shared_pool.get()
 
@@ -1747,13 +1904,16 @@ def _translate_parallel(
         if serial_indices:
             logger.warning(
                 "Incremental serial fallback for %d chunk(s): %s",
-                len(serial_indices), serial_indices,
+                len(serial_indices),
+                serial_indices,
             )
             for idx in serial_indices:
                 try:
                     chunk_result, obs_bundle = _translate_parallel_chunk(
-                        chunks[idx], fp_bytes,
-                        page_xref_map=page_xref_map, cancel_event=_shared_cancel,
+                        chunks[idx],
+                        fp_bytes,
+                        page_xref_map=page_xref_map,
+                        cancel_event=_shared_cancel,
                         **scalar_args,
                     )
                 except KeyboardInterrupt:
@@ -1762,7 +1922,8 @@ def _translate_parallel(
                     logger.error(
                         "Serial fallback for chunk %d failed (%s); deferring to "
                         "outer full-serial fallback",
-                        idx, str(serial_err)[:160],
+                        idx,
+                        str(serial_err)[:160],
                     )
                     raise PageProcessingError(
                         f"chunk {idx} serial fallback failed: {serial_err}"
@@ -1776,7 +1937,10 @@ def _translate_parallel(
             merged = obs_bundles[0]
             for extra in obs_bundles[1:]:
                 merged["bundle"]["snapshots"]["snapshots"].update(
-                    (extra.get("bundle") or {}).get("snapshots", {}).get("snapshots", {}))
+                    (extra.get("bundle") or {})
+                    .get("snapshots", {})
+                    .get("snapshots", {})
+                )
                 merged["overlays"].extend(extra.get("overlays", []))
             obj_patch["__obs__"] = merged
     finally:
@@ -1785,7 +1949,6 @@ def _translate_parallel(
         if isinstance(_shared_cancel, CancelToken):
             _shared_cancel.clear()  # 清理取消标记文件（尽力而为；异常传播时也执行）
     return obj_patch
-
 
 
 def translate(

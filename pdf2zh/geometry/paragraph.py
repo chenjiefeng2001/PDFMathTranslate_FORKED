@@ -12,6 +12,7 @@
     - 文本方向改变（Text Direction Change）
     - 垂直间距 > 1.8 × line_height
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -26,11 +27,11 @@ from pdf2zh.geometry.line import VisualLine
 class ParagraphConfig:
     """逻辑段落聚合阈值（规范书 §5.2 全部可调）。"""
 
-    line_gap_factor: float = 1.8          # 硬截断：垂直间距 > factor × line_height
-    margin_tolerance: float = 2.0         # 正向聚合：左/右对齐容差（pt）
-    gap_stability_ratio: float = 0.5      # 行间距稳定性容差 / 中位行距
-    direction_change_break: bool = True   # 文本方向改变 → 截断
-    block_break: bool = True              # Block 级障碍物分割 → 截断
+    line_gap_factor: float = 1.8  # 硬截断：垂直间距 > factor × line_height
+    margin_tolerance: float = 2.0  # 正向聚合：左/右对齐容差（pt）
+    gap_stability_ratio: float = 0.5  # 行间距稳定性容差 / 中位行距
+    direction_change_break: bool = True  # 文本方向改变 → 截断
+    block_break: bool = True  # Block 级障碍物分割 → 截断
     # 失效点 3 加固：Block 掩码与行的「交叠面积占比」≥ 阈值才截断。
     # DocLayout (YOLO) 检测框存在 1~3pt 越界是常态——若任何垂直重叠都硬裁，
     # 重构好的段落会被上游检测框二次打碎。默认 0.3（与行重叠 >30% 才算障碍）。
@@ -44,7 +45,7 @@ class LogicalParagraph:
     paragraph_id: str
     page_id: int
     lines: List[VisualLine] = field(default_factory=list)
-    inline_objects: List = field(default_factory=list)   # InlineObject 联合类型
+    inline_objects: List = field(default_factory=list)  # InlineObject 联合类型
     bbox: GlyphBBox = (0.0, 0.0, 0.0, 0.0)
     master_baseline: float = 0.0
 
@@ -106,29 +107,29 @@ def _line_height(line: VisualLine) -> float:
 
 def _same_direction(a: VisualLine, b: VisualLine) -> bool:
     """文本方向是否一致：按行内字形宽高比聚类判断旋转行。"""
+
     def _rotated(line: VisualLine) -> bool:
         if not line.glyphs:
             return False
         tall = sum(1 for g in line.glyphs if g.height > 1.2 * g.width)
         return tall / len(line.glyphs) > 0.8
+
     return _rotated(a) == _rotated(b)
 
 
-def _block_split(line: VisualLine,
-                 blocks: Sequence[GlyphBBox],
-                 iou_threshold: float = 0.3) -> bool:
+def _block_split(
+    line: VisualLine, blocks: Sequence[GlyphBBox], iou_threshold: float = 0.3
+) -> bool:
     """行与 Block 级障碍物重叠且**交叠面积占行面积 ≥ 阈值** → 段落截断。
 
     失效点 3 加固：只做「垂直重叠即截断」会令 DocLayout 检测框轻微越界
     （1~3pt 越界是常态）就把已重构段落二次打碎。此处要求障碍物与行的
     交叠面积占行面积比例达到阈值才算障碍；轻微越界的检测框不影响聚合。
     """
-    line_area = max(
-        (line.x1 - line.x0) * max(line.y1 - line.y0, 1e-6), 1e-6)
-    for (bx0, by0, bx1, by1) in blocks:
+    line_area = max((line.x1 - line.x0) * max(line.y1 - line.y0, 1e-6), 1e-6)
+    for bx0, by0, bx1, by1 in blocks:
         # 二维重叠
-        if not (line.x0 < bx1 and line.x1 > bx0
-                and line.y0 < by1 and line.y1 > by0):
+        if not (line.x0 < bx1 and line.x1 > bx0 and line.y0 < by1 and line.y1 > by0):
             continue
         ox = min(line.x1, bx1) - max(line.x0, bx0)
         oy = min(line.y1, by1) - max(line.y0, by0)
@@ -168,17 +169,18 @@ def build_logical_paragraphs(
     for idx, line in enumerate(ordered):
         if current is None:
             current = LogicalParagraph(
-                paragraph_id=f"{para_prefix}{page_id}_{idx}", page_id=page_id)
+                paragraph_id=f"{para_prefix}{page_id}_{idx}", page_id=page_id
+            )
             current.lines.append(line)
             prev = line
             continue
         assert prev is not None
-        gap = prev.master_baseline - line.master_baseline   # y-up：下行基线更小
+        gap = prev.master_baseline - line.master_baseline  # y-up：下行基线更小
         lh = max(_line_height(prev), _line_height(line), 1e-6)
 
         # ── 硬性截断条件 ─────────────────────────────────────────
         hard_break = False
-        if gap > cfg.line_gap_factor * lh:          # 垂直间距过大
+        if gap > cfg.line_gap_factor * lh:  # 垂直间距过大
             hard_break = True
         if cfg.direction_change_break and not _same_direction(prev, line):
             hard_break = True
@@ -187,7 +189,8 @@ def build_logical_paragraphs(
         if hard_break:
             _finish()
             current = LogicalParagraph(
-                paragraph_id=f"{para_prefix}{page_id}_{idx}", page_id=page_id)
+                paragraph_id=f"{para_prefix}{page_id}_{idx}", page_id=page_id
+            )
             current.lines.append(line)
             prev = line
             continue
@@ -195,7 +198,9 @@ def build_logical_paragraphs(
         # ── 正向聚合指标 ─────────────────────────────────────────
         gaps.append(gap)
         median_gap = median(gaps) if gaps else gap
-        gap_stable = abs(gap - median_gap) <= cfg.gap_stability_ratio * max(median_gap, 1e-6)
+        gap_stable = abs(gap - median_gap) <= cfg.gap_stability_ratio * max(
+            median_gap, 1e-6
+        )
         # 左/右对齐容差
         x0s = [l.x0 for l in current.lines]
         x1s = [l.x1 for l in current.lines]
@@ -207,7 +212,8 @@ def build_logical_paragraphs(
         else:
             _finish()
             current = LogicalParagraph(
-                paragraph_id=f"{para_prefix}{page_id}_{idx}", page_id=page_id)
+                paragraph_id=f"{para_prefix}{page_id}_{idx}", page_id=page_id
+            )
             current.lines.append(line)
             prev = line
 
@@ -221,12 +227,16 @@ def build_logical_paragraphs(
         )
         total_w = sum(max(l.font_size, 0.01) for l in para.lines)
         para.master_baseline = (
-            sum(l.master_baseline * max(l.font_size, 0.01) for l in para.lines) / total_w
-            if total_w > 0 else (para.lines[0].master_baseline if para.lines else 0.0)
+            sum(l.master_baseline * max(l.font_size, 0.01) for l in para.lines)
+            / total_w
+            if total_w > 0
+            else (para.lines[0].master_baseline if para.lines else 0.0)
         )
     return paragraphs
 
 
 __all__ = [
-    "LogicalParagraph", "ParagraphConfig", "build_logical_paragraphs",
+    "LogicalParagraph",
+    "ParagraphConfig",
+    "build_logical_paragraphs",
 ]

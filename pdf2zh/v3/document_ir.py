@@ -221,8 +221,10 @@ class IRNode:
         )
 
     def __repr__(self) -> str:  # pragma: no cover - debug helper
-        return (f"IRNode(id={self.id!r}, semantic={self.semantic.value}, "
-                f"text={self.text[:24]!r})")
+        return (
+            f"IRNode(id={self.id!r}, semantic={self.semantic.value}, "
+            f"text={self.text[:24]!r})"
+        )
 
 
 # ── Document IR Container ───────────────────────────────────────────────
@@ -237,8 +239,9 @@ class DocumentIR:
     Every node is stored in a flat dict keyed by id; children are references.
     """
 
-    def __init__(self, title: str = "", source_lang: str = "en",
-                 target_lang: str = "zh-cn") -> None:
+    def __init__(
+        self, title: str = "", source_lang: str = "en", target_lang: str = "zh-cn"
+    ) -> None:
         self.title = title
         self.source_lang = source_lang
         self.target_lang = target_lang
@@ -247,21 +250,32 @@ class DocumentIR:
 
     # ── Node management ──────────────────────────────────────────
 
-    def add_node(self, node_id: str,
-                 semantic: SemanticRole = SemanticRole.UNKNOWN,
-                 reading: ReadingRole = ReadingRole.UNKNOWN,
-                 translation: TranslationRole = TranslationRole.TRANSLATE,
-                 rendering: RenderingRole = RenderingRole.BLOCK,
-                 parent_id: Optional[str] = None,
-                 bbox: Optional[Tuple[float, float, float, float]] = None,
-                 text: str = "", page_num: int = 0, confidence: float = 1.0,
-                 metadata: Optional[dict] = None) -> IRNode:
+    def add_node(
+        self,
+        node_id: str,
+        semantic: SemanticRole = SemanticRole.UNKNOWN,
+        reading: ReadingRole = ReadingRole.UNKNOWN,
+        translation: TranslationRole = TranslationRole.TRANSLATE,
+        rendering: RenderingRole = RenderingRole.BLOCK,
+        parent_id: Optional[str] = None,
+        bbox: Optional[Tuple[float, float, float, float]] = None,
+        text: str = "",
+        page_num: int = 0,
+        confidence: float = 1.0,
+        metadata: Optional[dict] = None,
+    ) -> IRNode:
         """Add (or replace) a node, maintaining the parent/child linkage."""
         node = IRNode(
-            id=node_id, semantic=semantic, reading=reading,
-            translation=translation, rendering=rendering,
-            parent_id=parent_id, bbox=bbox, text=text,
-            page_num=page_num, confidence=confidence,
+            id=node_id,
+            semantic=semantic,
+            reading=reading,
+            translation=translation,
+            rendering=rendering,
+            parent_id=parent_id,
+            bbox=bbox,
+            text=text,
+            page_num=page_num,
+            confidence=confidence,
             metadata=dict(metadata or {}),
         )
         existed = node_id in self._nodes
@@ -308,22 +322,40 @@ class DocumentIR:
             return None
         return self._nodes.get(node.parent_id)
 
-    def set_roles(self, node_id: str, *,
-                  semantic: Optional[SemanticRole] = None,
-                  reading: Optional[ReadingRole] = None,
-                  translation: Optional[TranslationRole] = None,
-                  rendering: Optional[RenderingRole] = None) -> Optional[IRNode]:
+    def set_roles(
+        self,
+        node_id: str,
+        *,
+        semantic: Optional[SemanticRole] = None,
+        reading: Optional[ReadingRole] = None,
+        translation: Optional[TranslationRole] = None,
+        rendering: Optional[RenderingRole] = None,
+    ) -> Optional[IRNode]:
         node = self._nodes.get(node_id)
         if node is None:
             return None
         if semantic is not None:
-            node.semantic = semantic if isinstance(semantic, SemanticRole) else SemanticRole(semantic)
+            node.semantic = (
+                semantic
+                if isinstance(semantic, SemanticRole)
+                else SemanticRole(semantic)
+            )
         if reading is not None:
-            node.reading = reading if isinstance(reading, ReadingRole) else ReadingRole(reading)
+            node.reading = (
+                reading if isinstance(reading, ReadingRole) else ReadingRole(reading)
+            )
         if translation is not None:
-            node.translation = translation if isinstance(translation, TranslationRole) else TranslationRole(translation)
+            node.translation = (
+                translation
+                if isinstance(translation, TranslationRole)
+                else TranslationRole(translation)
+            )
         if rendering is not None:
-            node.rendering = rendering if isinstance(rendering, RenderingRole) else RenderingRole(rendering)
+            node.rendering = (
+                rendering
+                if isinstance(rendering, RenderingRole)
+                else RenderingRole(rendering)
+            )
         return node
 
     # ── Traversal ─────────────────────────────────────────────────
@@ -350,8 +382,11 @@ class DocumentIR:
 
     @property
     def root_ids(self) -> List[str]:
-        return [n.id for n in self._nodes.values()
-                if n.parent_id is None or n.parent_id not in self._nodes]
+        return [
+            n.id
+            for n in self._nodes.values()
+            if n.parent_id is None or n.parent_id not in self._nodes
+        ]
 
     def find_by_semantic(self, role: SemanticRole) -> List[IRNode]:
         if isinstance(role, str):
@@ -368,8 +403,11 @@ class DocumentIR:
 
     def find(self, text: str, case_sensitive: bool = False) -> List[IRNode]:
         needle = text if case_sensitive else text.lower()
-        return [n for n in self._nodes.values()
-                if needle in (n.text if case_sensitive else n.text.lower())]
+        return [
+            n
+            for n in self._nodes.values()
+            if needle in (n.text if case_sensitive else n.text.lower())
+        ]
 
     def to_text(self) -> str:
         return "\n".join(n.text for n in self.walk() if n.text)
@@ -470,8 +508,9 @@ class IRBuilder:
     Section nodes so the IR hierarchy stays close to the original document.
     """
 
-    def __init__(self, title: str = "", source_lang: str = "en",
-                 target_lang: str = "zh-cn") -> None:
+    def __init__(
+        self, title: str = "", source_lang: str = "en", target_lang: str = "zh-cn"
+    ) -> None:
         self.title = title
         self.source_lang = source_lang
         self.target_lang = target_lang
@@ -488,8 +527,9 @@ class IRBuilder:
             graph: DocumentGraph with .nodes / .get_node(node_id).
             use_page_sections: wrap page nodes as Section containers.
         """
-        ir = DocumentIR(title=self.title, source_lang=self.source_lang,
-                        target_lang=self.target_lang)
+        ir = DocumentIR(
+            title=self.title, source_lang=self.source_lang, target_lang=self.target_lang
+        )
         nodes = list(getattr(graph, "nodes", []) or [])
 
         page_section: Dict[int, str] = {}
@@ -499,31 +539,43 @@ class IRBuilder:
             rendering = _RENDERING_MAP.get(semantic, RenderingRole.BLOCK)
             parent_id = None
             if use_page_sections and semantic not in (
-                SemanticRole.DOCUMENT, SemanticRole.SECTION
+                SemanticRole.DOCUMENT,
+                SemanticRole.SECTION,
             ):
                 page_id = f"page_{n.page_num}"
                 if not ir.has_node(page_id):
                     ir.add_node(
-                        page_id, semantic=SemanticRole.SECTION,
+                        page_id,
+                        semantic=SemanticRole.SECTION,
                         reading=ReadingRole.MAIN_FLOW,
-                        parent_id=None, bbox=n.bbox,
-                        text=f"Page {n.page_num + 1}", page_num=n.page_num,
+                        parent_id=None,
+                        bbox=n.bbox,
+                        text=f"Page {n.page_num + 1}",
+                        page_num=n.page_num,
                     )
                 page_section.setdefault(n.page_num, page_id)
                 parent_id = page_id
 
             ir.add_node(
-                n.id, semantic=semantic, reading=ReadingRole.MAIN_FLOW,
-                translation=translation, rendering=rendering,
-                parent_id=parent_id, bbox=n.bbox, text=n.text,
-                page_num=n.page_num, confidence=n.confidence,
+                n.id,
+                semantic=semantic,
+                reading=ReadingRole.MAIN_FLOW,
+                translation=translation,
+                rendering=rendering,
+                parent_id=parent_id,
+                bbox=n.bbox,
+                text=n.text,
+                page_num=n.page_num,
+                confidence=n.confidence,
                 metadata={"node_type": getattr(n.node_type, "value", str(n.node_type))},
             )
 
         # Link follow edges into reading role hints for captions following figures.
         edges = list(getattr(graph, "edges", []) or [])
         for e in edges:
-            etype = e.edge_type.value if hasattr(e.edge_type, "value") else str(e.edge_type)
+            etype = (
+                e.edge_type.value if hasattr(e.edge_type, "value") else str(e.edge_type)
+            )
             if etype in ("caption_of", "reference"):
                 target = ir.get_node(e.target_id)
                 if target is not None:
@@ -531,17 +583,18 @@ class IRBuilder:
         return ir
 
     @staticmethod
-    def from_graph(graph, title: str = "", source_lang: str = "en",
-                   target_lang: str = "zh-cn") -> DocumentIR:
+    def from_graph(
+        graph, title: str = "", source_lang: str = "en", target_lang: str = "zh-cn"
+    ) -> DocumentIR:
         return IRBuilder(title, source_lang, target_lang).build(graph)
 
 
 __all__ = [
-    "SemanticRole", "ReadingRole", "TranslationRole", "RenderingRole",
-    "IRNode", "DocumentIR", "IRBuilder",
+    "SemanticRole",
+    "ReadingRole",
+    "TranslationRole",
+    "RenderingRole",
+    "IRNode",
+    "DocumentIR",
+    "IRBuilder",
 ]
-
-
-
-
-

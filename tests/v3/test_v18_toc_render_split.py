@@ -18,6 +18,7 @@ V1.17-3 修复（side-channel，不改 Parser）：
   非目录段不动、含公式占位符不拆、正文多行段不拆；
 - 与 converter 段落循环串联后每行被识别为 toc_line。
 """
+
 import unittest
 from unittest.mock import Mock
 
@@ -80,8 +81,14 @@ def page_digit_track(page, x_min=0.0):
 
 def merged_sstk(page):
     """模拟 converter 把 3 行目录并入一段后的 sstk/pstk/toc_track。"""
-    sstk = ["2.3 Continuous Random Variables 31 2.3.1 Uniform Random Variables 32 2.3.2 Expectations 34"]
-    pstk = [Paragraph(y=745.0, x=50.0, x0=50.0, x1=539.0, y0=725.0, y1=745.0, size=10.0, brk=True)]
+    sstk = [
+        "2.3 Continuous Random Variables 31 2.3.1 Uniform Random Variables 32 2.3.2 Expectations 34"
+    ]
+    pstk = [
+        Paragraph(
+            y=745.0, x=50.0, x0=50.0, x1=539.0, y0=725.0, y1=745.0, size=10.0, brk=True
+        )
+    ]
     toc_track = [page_digit_track(page)]
     return sstk, pstk, toc_track
 
@@ -92,10 +99,17 @@ class TestDetectTocLineSpaceColumn(unittest.TestCase):
     def test_space_column_page(self):
         # 无点线、空列页码，标题以编号开头，页码在右缘列
         spec = detect_toc_line(
-            "2.3.1 Uniform Random Variables 32", False,
-            [("2", 50, 60), ("3", 68, 78), ("1", 86, 96),
-             ("3", 520, 529), ("2", 529, 539)],
-            539, page_width=600,
+            "2.3.1 Uniform Random Variables 32",
+            False,
+            [
+                ("2", 50, 60),
+                ("3", 68, 78),
+                ("1", 86, 96),
+                ("3", 520, 529),
+                ("2", 529, 539),
+            ],
+            539,
+            page_width=600,
         )
         self.assertIsNotNone(spec)
         self.assertEqual(spec["page_digits"], "32")
@@ -105,46 +119,64 @@ class TestDetectTocLineSpaceColumn(unittest.TestCase):
 
     def test_space_column_flat_number(self):
         spec = detect_toc_line(
-            "12 Estimation 45", False,
+            "12 Estimation 45",
+            False,
             [("1", 50, 60), ("2", 60, 70), ("4", 520, 530), ("5", 530, 540)],
-            540, page_width=600,
+            540,
+            page_width=600,
         )
         self.assertIsNotNone(spec)
         self.assertEqual(spec["page_digits"], "45")
 
     def test_reject_plain_heading(self):
-        spec = detect_toc_line("5 Methodology", False, [("5", 50, 58)], 500, page_width=600)
+        spec = detect_toc_line(
+            "5 Methodology", False, [("5", 50, 58)], 500, page_width=600
+        )
         self.assertIsNone(spec)
 
     def test_reject_body_text(self):
         spec = detect_toc_line(
-            "The result is 42", False,
+            "The result is 42",
+            False,
             [("4", 200, 208), ("2", 210, 218)],
-            540, page_width=600,
+            540,
+            page_width=600,
         )
         self.assertIsNone(spec)
 
     def test_reject_page_not_right_column(self):
         spec = detect_toc_line(
-            "2.3 Estimation 24", False,
+            "2.3 Estimation 24",
+            False,
             [("2", 50, 60), ("3", 68, 78), ("2", 300, 310), ("4", 310, 320)],
-            540, page_width=600,
+            540,
+            page_width=600,
         )
         self.assertIsNone(spec)
 
     def test_reject_brk_paragraph(self):
         spec = detect_toc_line(
-            "2.3 A 31 2.3.1 B 32", True,
-            [("3", 520, 530), ("1", 529, 539)], 539, page_width=600,
+            "2.3 A 31 2.3.1 B 32",
+            True,
+            [("3", 520, 530), ("1", 529, 539)],
+            539,
+            page_width=600,
         )
         self.assertIsNone(spec)
 
     def test_leader_dot_still_works(self):
         spec = detect_toc_line(
-            "Chapter 2 Abc...............45", False,
-            [(".", 200, 201), (".", 210, 211), (".", 220, 221),
-             ("4", 520, 530), ("5", 530, 540)],
-            540, page_width=600,
+            "Chapter 2 Abc...............45",
+            False,
+            [
+                (".", 200, 201),
+                (".", 210, 211),
+                (".", 220, 221),
+                ("4", 520, 530),
+                ("5", 530, 540),
+            ],
+            540,
+            page_width=600,
         )
         self.assertIsNotNone(spec)
         self.assertEqual(spec["page_right_x"], 540)
@@ -160,7 +192,8 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
     def test_split_merged_paragraph(self):
         sstk, pstk, toc_track = merged_sstk(self.page)
         report = split_merged_toc_paragraphs(
-            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0)
+            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0
+        )
         self.assertEqual(report["split"], 1)
         self.assertEqual(len(sstk), 3)
         self.assertTrue(all(p.brk is False for p in pstk))
@@ -178,7 +211,8 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
         pstk = [Paragraph(745, 50, 50, 539, 725, 745, 10.0, False)]
         toc_track = [page_digit_track(self.page)[:2]]
         report = split_merged_toc_paragraphs(
-            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0)
+            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0
+        )
         self.assertEqual(report["split"], 0)
         self.assertEqual(len(sstk), 1)
 
@@ -187,7 +221,8 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
         pstk = [Paragraph(745, 50, 50, 539, 725, 745, 10.0, True)]
         toc_track = [page_digit_track(self.page)]
         report = split_merged_toc_paragraphs(
-            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0)
+            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0
+        )
         self.assertEqual(report["split"], 0)
 
     def test_no_split_body_paragraph(self):
@@ -198,15 +233,19 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
         pstk = [Paragraph(745, 50, 50, 260, 715, 725, 10.0, True)]
         toc_track = [[]]
         report = split_merged_toc_paragraphs(
-            Mock(), body, sstk, pstk, toc_track, page_width=600.0)
+            Mock(), body, sstk, pstk, toc_track, page_width=600.0
+        )
         self.assertEqual(report["split"], 0)
 
     def test_integration_detect_after_split(self):
         sstk, pstk, toc_track = merged_sstk(self.page)
         split_merged_toc_paragraphs(
-            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0)
-        specs = [detect_toc_line(s, p.brk, t, p.x1, page_width=600.0)
-                 for s, p, t in zip(sstk, pstk, toc_track)]
+            Mock(), self.page, sstk, pstk, toc_track, page_width=600.0
+        )
+        specs = [
+            detect_toc_line(s, p.brk, t, p.x1, page_width=600.0)
+            for s, p, t in zip(sstk, pstk, toc_track)
+        ]
         self.assertTrue(all(sp is not None for sp in specs))
         self.assertEqual(specs[1]["page_digits"], "32")
         self.assertEqual(specs[2]["page_start_x"], 520)
@@ -223,13 +262,16 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
         add_text(page, 520, 750, "vii")
         add_text(page, 50, 745, "Preface to the First Edition")
         add_text(page, 520, 745, "xi")
-        sstk = ["Preface to the Second Edition vii Preface to the First Edition xi "
-                "2.3 Continuous Random Variables 31 2.3.1 Uniform Random Variables 32 "
-                "2.3.2 Expectations 34"]
+        sstk = [
+            "Preface to the Second Edition vii Preface to the First Edition xi "
+            "2.3 Continuous Random Variables 31 2.3.1 Uniform Random Variables 32 "
+            "2.3.2 Expectations 34"
+        ]
         pstk = [Paragraph(765.0, 50.0, 50.0, 539.0, 725.0, 765.0, 10.0, True)]
         toc_track = [page_digit_track(page)]
         report = split_merged_toc_paragraphs(
-            Mock(), page, sstk, pstk, toc_track, page_width=600.0)
+            Mock(), page, sstk, pstk, toc_track, page_width=600.0
+        )
         self.assertEqual(report["split"], 1)
         self.assertEqual(len(sstk), 5)
         # 无编号的 Preface 行保留为独立物理行段落（不丢弃）
@@ -237,9 +279,11 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
         self.assertEqual(sstk[1], "Preface to the First Edition xi")
         self.assertTrue(all(p.brk is False for p in pstk))
         # 编号行仍可被 detect_toc_line 识别为目录行
-        specs = [detect_toc_line(s, p.brk, t, p.x1, page_width=600.0)
-                 for s, p, t in zip(sstk, pstk, toc_track)]
-        self.assertIsNone(specs[0])   # Preface 行非目录行
+        specs = [
+            detect_toc_line(s, p.brk, t, p.x1, page_width=600.0)
+            for s, p, t in zip(sstk, pstk, toc_track)
+        ]
+        self.assertIsNone(specs[0])  # Preface 行非目录行
         self.assertEqual(specs[2]["page_digits"], "31")
         self.assertEqual(specs[3]["page_digits"], "32")
 

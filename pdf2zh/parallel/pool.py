@@ -62,7 +62,8 @@ class SharedProcessPool:
                 self._broken = False
                 logger.info(
                     "Warm pool created: %d worker(s), backend=%s",
-                    self._max_workers, self._backend,
+                    self._max_workers,
+                    self._backend,
                 )
             return self._executor
 
@@ -113,10 +114,7 @@ def get_shared_pool(
     with _shared_pool_lock:
         if _shared_pool is None:
             _shared_pool = SharedProcessPool(max_workers=wanted, backend=backend)
-        elif (
-            _shared_pool._backend != backend
-            or _shared_pool._max_workers < wanted
-        ):
+        elif _shared_pool._backend != backend or _shared_pool._max_workers < wanted:
             _shared_pool.shutdown()
             _shared_pool = SharedProcessPool(max_workers=wanted, backend=backend)
         return _shared_pool

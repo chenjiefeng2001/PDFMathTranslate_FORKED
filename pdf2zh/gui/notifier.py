@@ -54,8 +54,7 @@ def _format_frame(event: TaskEvent) -> str:
     payload = event.to_dict()
     payload["seq"] = event.sequence
     return (
-        f"id: {event.sequence}\n"
-        f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
+        f"id: {event.sequence}\n" f"data: {json.dumps(payload, ensure_ascii=False)}\n\n"
     )
 
 
@@ -74,7 +73,9 @@ class EventNotifier:
     def __init__(self, bus=EVENT_BUS) -> None:
         self._bus = bus
         #: List of (event_loop, delivery_queue) per open connection.
-        self._subscribers: List[Tuple[Optional[asyncio.AbstractEventLoop], asyncio.Queue]] = []
+        self._subscribers: List[
+            Tuple[Optional[asyncio.AbstractEventLoop], asyncio.Queue]
+        ] = []
         self._sub_id: Optional[int] = None
 
     # ── lifecycle ───────────────────────────────────────────────────────────
@@ -106,7 +107,9 @@ class EventNotifier:
 
     def disconnect(self, queue: asyncio.Queue) -> None:
         """Remove a subscriber queue (safe to call from any context)."""
-        self._subscribers = [(loop, q) for loop, q in self._subscribers if q is not queue]
+        self._subscribers = [
+            (loop, q) for loop, q in self._subscribers if q is not queue
+        ]
 
     def subscriber_count(self) -> int:
         return len(self._subscribers)

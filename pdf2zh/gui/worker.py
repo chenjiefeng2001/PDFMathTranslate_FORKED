@@ -47,6 +47,7 @@ def _clean_stale_in_flight(max_age: float = 300.0) -> int:
     Returns the count of remaining in-flight entries after cleanup.
     """
     import time as _time
+
     now = _time.time()
     svc = get_runtime_service()
     stale = []
@@ -107,13 +108,21 @@ def submit_translation_task(
         if existing:
             ts = svc.get_task_state(existing)
             if ts and ts.status in (
-                "pending", "parsing", "normalizing", "analyzing",
-                "planning", "translating", "layouting", "rendering",
-                "evaluating", "repairing",
+                "pending",
+                "parsing",
+                "normalizing",
+                "analyzing",
+                "planning",
+                "translating",
+                "layouting",
+                "rendering",
+                "evaluating",
+                "repairing",
             ):
                 logger.info(
                     "Double-click guard: task %s already running for client %s",
-                    existing, client_id,
+                    existing,
+                    client_id,
                 )
                 return existing
         _IN_FLIGHT[client_id] = "__submitting__"
@@ -324,7 +333,6 @@ def _resolve_source_paths(
     return paths
 
 
-
 def _resolve_source_path(
     file_type: str,
     file_input: Any,
@@ -334,6 +342,8 @@ def _resolve_source_path(
     """Resolve the first source file path (legacy single-file entry point)."""
     paths = _resolve_source_paths(file_type, file_input, link_input, page_input)
     return paths[0] if paths else None
+
+
 def cancel_task(task_id: str) -> bool:
     """Cancel a running translation task."""
     svc = get_runtime_service()

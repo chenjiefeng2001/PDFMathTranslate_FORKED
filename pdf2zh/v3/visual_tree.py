@@ -69,21 +69,29 @@ class BoundingBox:
         return self.y + self.height
 
     def contains(self, other: "BoundingBox") -> bool:
-        return (self.x <= other.x and self.y <= other.y
-                and self.x1 >= other.x1 and self.y1 >= other.y1)
+        return (
+            self.x <= other.x
+            and self.y <= other.y
+            and self.x1 >= other.x1
+            and self.y1 >= other.y1
+        )
 
     def overlaps(self, other: "BoundingBox") -> bool:
-        return not (self.x1 <= other.x or other.x1 <= self.x
-                    or self.y1 <= other.y or other.y1 <= self.y)
+        return not (
+            self.x1 <= other.x
+            or other.x1 <= self.x
+            or self.y1 <= other.y
+            or other.y1 <= self.y
+        )
 
     def translate(self, dx: float, dy: float) -> "BoundingBox":
-        return BoundingBox(self.x + dx, self.y + dy,
-                           self.width, self.height)
+        return BoundingBox(self.x + dx, self.y + dy, self.width, self.height)
 
 
 @dataclass
 class VisualNode(ABC):
     """Base class for all Visual Tree nodes."""
+
     id: str
     vtype: VisualNodeType = VisualNodeType.PAGE  # override in __post_init__
     bbox: BoundingBox = field(default_factory=BoundingBox)
@@ -114,6 +122,7 @@ class VisualNode(ABC):
 @dataclass
 class TextRun(VisualNode):
     """A contiguous text span with uniform formatting."""
+
     text: str = ""
     font: str = ""
     font_size: float = 12.0
@@ -127,13 +136,16 @@ class TextRun(VisualNode):
 
     def __repr__(self):
         preview = self.text[:30] + ("..." if len(self.text) > 30 else "")
-        return (f"TextRun(id={self.id}, text='{preview}', "
-                f"font='{self.font}', size={self.font_size})")
+        return (
+            f"TextRun(id={self.id}, text='{preview}', "
+            f"font='{self.font}', size={self.font_size})"
+        )
 
 
 @dataclass
 class GlyphRun(VisualNode):
     """A shaped glyph run (post-font-shaping)."""
+
     glyphs: List[dict] = field(default_factory=list)
     font: str = ""
     font_size: float = 12.0
@@ -146,6 +158,7 @@ class GlyphRun(VisualNode):
 @dataclass
 class Page(VisualNode):
     """A single page in the Visual Tree."""
+
     width: float = 612.0
     height: float = 792.0
     page_num: int = 0
@@ -162,14 +175,17 @@ class Page(VisualNode):
         return [c for c in self.children if isinstance(c, Paragraph)]
 
     def __repr__(self):
-        return (f"Page(id={self.id}, num={self.page_num}, "
-                f"size={self.width}x{self.height}, "
-                f"children={len(self.children)})")
+        return (
+            f"Page(id={self.id}, num={self.page_num}, "
+            f"size={self.width}x{self.height}, "
+            f"children={len(self.children)})"
+        )
 
 
 @dataclass
 class Image(VisualNode):
     """An image placeholder in the Visual Tree."""
+
     image_path: str = ""
     alt_text: str = ""
     dpi: float = 72.0
@@ -181,6 +197,7 @@ class Image(VisualNode):
 @dataclass
 class Formula(VisualNode):
     """A mathematical formula."""
+
     latex: str = ""
     is_inline: bool = False
 
@@ -198,6 +215,7 @@ class DisplayCommand:
     - Content (text, binary data, or LaTeX)
     - Styling (font, size, color, alignment)
     """
+
     cmd_type: str  # "text", "image", "formula", "rect"
     x: float = 0.0
     y: float = 0.0
@@ -279,31 +297,45 @@ class VisualTree:
             for node in page.walk():
                 if isinstance(node, TextRun):
                     parent_line = self._find_parent_line(node)
-                    commands.append(DisplayCommand(
-                        cmd_type="text",
-                        x=node.bbox.x, y=node.bbox.y,
-                        width=node.bbox.width, height=node.bbox.height,
-                        text=node.text,
-                        font=node.font,
-                        font_size=node.font_size,
-                        baseline=parent_line.baseline if parent_line else node.bbox.y,
-                        page_num=page.page_num,
-                    ))
+                    commands.append(
+                        DisplayCommand(
+                            cmd_type="text",
+                            x=node.bbox.x,
+                            y=node.bbox.y,
+                            width=node.bbox.width,
+                            height=node.bbox.height,
+                            text=node.text,
+                            font=node.font,
+                            font_size=node.font_size,
+                            baseline=(
+                                parent_line.baseline if parent_line else node.bbox.y
+                            ),
+                            page_num=page.page_num,
+                        )
+                    )
                 elif isinstance(node, Image):
-                    commands.append(DisplayCommand(
-                        cmd_type="image",
-                        x=node.bbox.x, y=node.bbox.y,
-                        width=node.bbox.width, height=node.bbox.height,
-                        page_num=page.page_num,
-                    ))
+                    commands.append(
+                        DisplayCommand(
+                            cmd_type="image",
+                            x=node.bbox.x,
+                            y=node.bbox.y,
+                            width=node.bbox.width,
+                            height=node.bbox.height,
+                            page_num=page.page_num,
+                        )
+                    )
                 elif isinstance(node, Formula):
-                    commands.append(DisplayCommand(
-                        cmd_type="formula",
-                        x=node.bbox.x, y=node.bbox.y,
-                        width=node.bbox.width, height=node.bbox.height,
-                        text=node.latex,
-                        page_num=page.page_num,
-                    ))
+                    commands.append(
+                        DisplayCommand(
+                            cmd_type="formula",
+                            x=node.bbox.x,
+                            y=node.bbox.y,
+                            width=node.bbox.width,
+                            height=node.bbox.height,
+                            text=node.latex,
+                            page_num=page.page_num,
+                        )
+                    )
         # Sort by page_num, then y, then x
         commands.sort(key=lambda c: (c.page_num, c.y, c.x))
         return commands
@@ -336,15 +368,25 @@ class VisualTree:
 
     def __repr__(self):
         total_nodes = sum(1 for _ in self.walk())
-        return (f"VisualTree(pages={self.page_count}, "
-                f"total_nodes={total_nodes}, "
-                f"frozen={self._is_layout_frozen})")
+        return (
+            f"VisualTree(pages={self.page_count}, "
+            f"total_nodes={total_nodes}, "
+            f"frozen={self._is_layout_frozen})"
+        )
 
 
 __all__ = [
-    "VisualTree", "VisualNode", "VisualNodeType",
-    "BoundingBox", "Page", "Paragraph", "Line",
-    "TextRun", "GlyphRun", "Image", "Formula",
+    "VisualTree",
+    "VisualNode",
+    "VisualNodeType",
+    "BoundingBox",
+    "Page",
+    "Paragraph",
+    "Line",
+    "TextRun",
+    "GlyphRun",
+    "Image",
+    "Formula",
     "DisplayCommand",
 ]
 
@@ -352,6 +394,7 @@ __all__ = [
 @dataclass
 class Line(VisualNode):
     """A typeset line of text containing TextRuns."""
+
     baseline: float = 0.0
     line_height: float = 0.0
     alignment: str = "left"
@@ -371,13 +414,13 @@ class Line(VisualNode):
         return "".join(r.text for r in self.runs)
 
     def __repr__(self):
-        return (f"Line(id={self.id}, y={self.bbox.y:.1f}, "
-                f"text='{self.text[:30]}')")
+        return f"Line(id={self.id}, y={self.bbox.y:.1f}, " f"text='{self.text[:30]}')"
 
 
 @dataclass
 class Paragraph(VisualNode):
     """A block-level paragraph with lines."""
+
     indent: float = 0.0
     spacing_before: float = 0.0
     spacing_after: float = 0.0

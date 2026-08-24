@@ -2,6 +2,7 @@
 Overflow policy for pdf2zh 2.0.
 Provides cascading overflow resolution strategies for paragraph layout.
 """
+
 import logging
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -11,6 +12,7 @@ from pdf2zh.paragraph_style import TextBlock
 
 logger = logging.getLogger(__name__)
 
+
 class OverflowAction(Enum):
     LINE_BREAK = auto()
     EXPAND_BBOX = auto()
@@ -18,6 +20,7 @@ class OverflowAction(Enum):
     PUSH_DOWN = auto()
     NEXT_PAGE = auto()
     REDUCE_FONT = auto()
+
 
 @dataclass
 class OverflowResult:
@@ -109,7 +112,10 @@ class OverflowPolicy:
         available_height: float,
     ) -> Optional[OverflowResult]:
         """Try compressing line spacing to fit within available height."""
-        if not block.style or block.style.line_spacing <= self.max_line_spacing_compress:
+        if (
+            not block.style
+            or block.style.line_spacing <= self.max_line_spacing_compress
+        ):
             return None
 
         num_lines = len(block.lines)

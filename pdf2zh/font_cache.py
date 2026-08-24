@@ -5,6 +5,7 @@ Prevents per-page font re-embedding by caching font resources
 at the Document level. Each font style is registered once and
 reused across all pages, reducing PDF size significantly.
 """
+
 import logging
 from typing import Dict, Optional
 
@@ -51,9 +52,7 @@ class DocumentFontCache:
         self._counter += 1
         noto = Font(font_name, font_path)
         self._cache[font_path] = (font_name, noto, font_path)
-        logger.debug(
-            "Registered font '%s' -> '%s'", font_path, font_name
-        )
+        logger.debug("Registered font '%s' -> '%s'", font_path, font_name)
         return font_name
 
     def get_font(self, font_path: str) -> Optional[Font]:

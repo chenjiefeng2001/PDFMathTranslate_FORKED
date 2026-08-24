@@ -81,18 +81,18 @@ class OperatorContext:
     """
 
     session_id: str = ""
-    document: Any = None                     # input blocks / DocumentGraph
-    provider: Any = None                     # LLM provider
-    config: Any = None                       # PipelineConfig
+    document: Any = None  # input blocks / DocumentGraph
+    provider: Any = None  # LLM provider
+    config: Any = None  # PipelineConfig
     page_width: float = 612.0
     page_height: float = 792.0
 
-    document_graph: Any = None               # DocumentGraph
+    document_graph: Any = None  # DocumentGraph
     translations: Dict[str, str] = field(default_factory=dict)
     outputs: Dict[str, str] = field(default_factory=dict)
     metrics: Dict[str, Any] = field(default_factory=dict)
     graphs: Dict[str, Any] = field(default_factory=dict)  # knowledge graphs
-    extra: Dict[str, Any] = field(default_factory=dict)   # stage-local state
+    extra: Dict[str, Any] = field(default_factory=dict)  # stage-local state
 
     # ── Graph registry ────────────────────────────────────────────────
 
@@ -131,8 +131,7 @@ class Operator:
         """Optional pre-flight checks; raise before execution if invalid."""
 
     def execute(self, ctx: OperatorContext) -> OperatorContext:
-        raise NotImplementedError(
-            f"Operator '{self.name}' must implement execute()")
+        raise NotImplementedError(f"Operator '{self.name}' must implement execute()")
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__} name={self.name} v{self.version}>"
@@ -159,7 +158,8 @@ class ParseOperator(Operator):
             graph = TransformationPipeline.build_graph_from_blocks(doc)
         else:
             raise TypeError(
-                "Unsupported document: expected a block list or DocumentGraph")
+                "Unsupported document: expected a block list or DocumentGraph"
+            )
         ctx.document_graph = graph
         ctx.register_graph("document", graph)
         ctx.metrics["nodes"] = len(graph.nodes)
@@ -195,15 +195,16 @@ class PlanOperator(Operator):
     name = "plan"
 
     def execute(self, ctx: OperatorContext) -> OperatorContext:
-        from pdf2zh.v3.planner import GlossaryManager, PlannerConfig, \
-            TranslationPlanner
+        from pdf2zh.v3.planner import GlossaryManager, PlannerConfig, TranslationPlanner
 
         config = ctx.config
-        planner = TranslationPlanner(PlannerConfig(
-            source_lang=getattr(config, "source_lang", "en"),
-            target_lang=getattr(config, "target_lang", "zh-CN"),
-            model=getattr(config, "model", ""),
-        ))
+        planner = TranslationPlanner(
+            PlannerConfig(
+                source_lang=getattr(config, "source_lang", "en"),
+                target_lang=getattr(config, "target_lang", "zh-CN"),
+                model=getattr(config, "model", ""),
+            )
+        )
         glossary = GlossaryManager()
         for src, tgt in getattr(config, "glossary", {}).items():
             glossary.add_term(src, tgt)
@@ -224,8 +225,7 @@ class TranslateOperator(Operator):
     name = "translate"
 
     def execute(self, ctx: OperatorContext) -> OperatorContext:
-        from pdf2zh.v3.planner import GlossaryManager, PlannerConfig, \
-            TranslationPlanner
+        from pdf2zh.v3.planner import GlossaryManager, PlannerConfig, TranslationPlanner
         from pdf2zh.v3.transformation_pipeline import RuleBasedProvider
         from pdf2zh.v3.translator import TranslationSession, Translator
 
@@ -235,21 +235,21 @@ class TranslateOperator(Operator):
         planner = ctx.extra.get("planner")
         if planner is None:
             config = ctx.config
-            planner = TranslationPlanner(PlannerConfig(
-                source_lang=getattr(config, "source_lang", "en"),
-                target_lang=getattr(config, "target_lang", "zh-CN"),
-                model=getattr(config, "model", ""),
-            ))
+            planner = TranslationPlanner(
+                PlannerConfig(
+                    source_lang=getattr(config, "source_lang", "en"),
+                    target_lang=getattr(config, "target_lang", "zh-CN"),
+                    model=getattr(config, "model", ""),
+                )
+            )
             glossary = GlossaryManager()
             for src, tgt in getattr(config, "glossary", {}).items():
                 glossary.add_term(src, tgt)
             planner.glossary = glossary
         provider = ctx.provider
         if provider is None:
-            provider = RuleBasedProvider(getattr(ctx.config, "target_lang",
-                                                 "zh-CN"))
-        session = TranslationSession(graph=graph, planner=planner,
-                                     provider=provider)
+            provider = RuleBasedProvider(getattr(ctx.config, "target_lang", "zh-CN"))
+        session = TranslationSession(graph=graph, planner=planner, provider=provider)
         translator = Translator(session)
         incremental_ids = set(ctx.extra.get("incremental_ids") or ())
         if incremental_ids:
@@ -259,8 +259,9 @@ class TranslateOperator(Operator):
                 if node.id in incremental_ids:
                     translator.translate_node(node.id, force=True)
             existing = dict(ctx.translations)
-            existing.update({nid: text for nid, text in session.results.items()
-                             if text})
+            existing.update(
+                {nid: text for nid, text in session.results.items() if text}
+            )
             ctx.translations = existing
         else:
             translator.translate_all()
@@ -290,15 +291,18 @@ class ReviewOperator(Operator):
                 continue
             source_map[nid] = node.text
             is_formula_map[nid] = node.node_type in (
-                NodeType.FORMULA, NodeType.FORMULA_INLINE)
+                NodeType.FORMULA,
+                NodeType.FORMULA_INLINE,
+            )
         review = quality.run(
-            {nid: {"source": source_map.get(nid, ""),
-                   "translated": txt}
-             for nid, txt in ctx.translations.items() if nid in source_map},
+            {
+                nid: {"source": source_map.get(nid, ""), "translated": txt}
+                for nid, txt in ctx.translations.items()
+                if nid in source_map
+            },
             is_formula_map=is_formula_map,
         )
-        ctx.translations = dict(review.get("final_translations",
-                                           ctx.translations))
+        ctx.translations = dict(review.get("final_translations", ctx.translations))
         ctx.extra["review"] = _as_jsonable(review)
         ctx.metrics["quality_score"] = review.get("quality_score", 1.0)
         ctx.metrics["review_errors"] = review.get("errors", 0)
@@ -317,17 +321,20 @@ class LayoutOperator(Operator):
         if graph is None:
             raise ValueError("LayoutOperator requires a document graph")
         config = ctx.config
-        relayout = RelayoutEngine(RelayoutConfig(
-            reflow=getattr(config, "reflow", True),
-            float_images=getattr(config, "float_images", False),
-            overlay=getattr(config, "overlay", False),
-            chunk_line_gap=getattr(config, "line_gap", 0.0),
-        ))
+        relayout = RelayoutEngine(
+            RelayoutConfig(
+                reflow=getattr(config, "reflow", True),
+                float_images=getattr(config, "float_images", False),
+                overlay=getattr(config, "overlay", False),
+                chunk_line_gap=getattr(config, "line_gap", 0.0),
+            )
+        )
         pages: Dict[int, List[Any]] = {}
         for n in graph.nodes:
             node_type = getattr(n, "node_type", None)
-            node_type_value = node_type.value if hasattr(node_type, "value") \
-                else node_type
+            node_type_value = (
+                node_type.value if hasattr(node_type, "value") else node_type
+            )
             if node_type_value in ("page", "document"):
                 continue
             if not getattr(n, "text", "").strip():
@@ -337,7 +344,8 @@ class LayoutOperator(Operator):
             items.sort(key=lambda n: (n.y0, n.x0))
         manifest = relayout.run(
             [{"index": pn, "items": items} for pn, items in pages.items()],
-            page_width=ctx.page_width, page_height=ctx.page_height,
+            page_width=ctx.page_width,
+            page_height=ctx.page_height,
         ).to_dict()
         ctx.extra["manifest"] = manifest
         ctx.metrics["layout_blocks"] = len(manifest.get("blocks", []))
@@ -380,8 +388,13 @@ class RenderOperator(Operator):
 # ═══════════════════════════════════════════════════════════════════
 
 _BUILTIN_OPERATORS: List[Operator] = [
-    ParseOperator(), AnalyzeOperator(), PlanOperator(), TranslateOperator(),
-    ReviewOperator(), LayoutOperator(), RenderOperator(),
+    ParseOperator(),
+    AnalyzeOperator(),
+    PlanOperator(),
+    TranslateOperator(),
+    ReviewOperator(),
+    LayoutOperator(),
+    RenderOperator(),
 ]
 
 
@@ -437,16 +450,16 @@ class OperatorGraph:
         self._deps: Dict[str, Set[str]] = {}
         self._trace: List[Dict[str, Any]] = []
 
-    def add(self, op: Operator,
-            depends_on: Optional[Iterable[str]] = None) -> "OperatorGraph":
+    def add(
+        self, op: Operator, depends_on: Optional[Iterable[str]] = None
+    ) -> "OperatorGraph":
         if op.name in self._ops:
             raise ValueError(f"Operator '{op.name}' already in graph")
         self._ops[op.name] = op
         self._deps[op.name] = set(depends_on or ())
         for dep in self._deps[op.name]:
             if dep not in self._ops:
-                raise ValueError(
-                    f"Operator '{op.name}' depends on unknown '{dep}'")
+                raise ValueError(f"Operator '{op.name}' depends on unknown '{dep}'")
         return self
 
     def has(self, name: str) -> bool:
@@ -502,9 +515,12 @@ class OperatorGraph:
             raise KeyError(f"Unknown operator: {name!r}")
         return self.order(filter_names=self.dependents(name) | {name})
 
-    def run(self, ctx: OperatorContext,
-            filter_names: Optional[Iterable[str]] = None,
-            cache: Optional[Any] = None) -> OperatorContext:
+    def run(
+        self,
+        ctx: OperatorContext,
+        filter_names: Optional[Iterable[str]] = None,
+        cache: Optional[Any] = None,
+    ) -> OperatorContext:
         """Execute the DAG (or the ``filter_names`` sub-graph) over ``ctx``.
 
         When ``cache`` is provided (V7.4 cache-aside, see
@@ -530,12 +546,14 @@ class OperatorGraph:
                 ctx = op.execute(ctx)
                 if key is not None:
                     cache.put(key, ctx, op)
-            self._trace.append({
-                "operator": name,
-                "version": op.version,
-                "elapsed_ms": round((time.time() - started) * 1000, 4),
-                "cached": cached,
-            })
+            self._trace.append(
+                {
+                    "operator": name,
+                    "version": op.version,
+                    "elapsed_ms": round((time.time() - started) * 1000, 4),
+                    "cached": cached,
+                }
+            )
         return ctx
 
     @property
@@ -544,13 +562,17 @@ class OperatorGraph:
 
     def to_dict(self) -> dict:
         return {
-            "operators": [{"name": n, "depends_on": sorted(self._deps[n])}
-                          for n in self.order()],
+            "operators": [
+                {"name": n, "depends_on": sorted(self._deps[n])} for n in self.order()
+            ],
         }
 
     def stats(self) -> dict:
-        return {"operators": len(self._ops), "order": self.order(),
-                "last_run": self._trace}
+        return {
+            "operators": len(self._ops),
+            "order": self.order(),
+            "last_run": self._trace,
+        }
 
 
 class TypographyRule:
@@ -573,16 +595,25 @@ class TypographyRule:
     def __init__(self, max_overflow_ratio: float = 0.0) -> None:
         self.max_overflow_ratio = max_overflow_ratio
 
-    def apply(self, translated: str, source: str = "",
-              bbox: Optional[Tuple[float, float, float, float]] = None,
-              font_size: float = 12.0) -> Dict[str, Any]:
+    def apply(
+        self,
+        translated: str,
+        source: str = "",
+        bbox: Optional[Tuple[float, float, float, float]] = None,
+        font_size: float = 12.0,
+    ) -> Dict[str, Any]:
         """Return a typography adjustment manifest for one block."""
         from pdf2zh.v3.typography import AdaptiveTypography, GlyphProbe
+
         width = bbox[2] if bbox else 400.0
         height = bbox[3] if bbox else 20.0
         ty = AdaptiveTypography(container_width=width, font_size=font_size)
-        m = ty.metrics(translated, source=source or None,
-                       font_size=font_size, container_width=width)
+        m = ty.metrics(
+            translated,
+            source=source or None,
+            font_size=font_size,
+            container_width=width,
+        )
 
         manifest: Dict[str, Any] = {
             "rule": "adopt_source_geometry",
@@ -595,22 +626,25 @@ class TypographyRule:
         expansion = m.expansion_ratio
         total_w = GlyphProbe.text_width(translated, font_size)
         overflow_w = m.estimated_width - width
-        if (overflow_w > self.max_overflow_ratio * width
-                or total_w > width * 1.5):
-            fit = ty.auto_fit_font_size(translated, font_size,
-                                        width, max_lines=None,
-                                        target_height=height)
-            manifest.update({
-                "rule": "shrink_font",
-                "font_size": fit,
-                "line_height": ty.line_height_for(translated, fit),
-                "letter_spacing": -0.5 * (font_size - fit),
-            })
+        if overflow_w > self.max_overflow_ratio * width or total_w > width * 1.5:
+            fit = ty.auto_fit_font_size(
+                translated, font_size, width, max_lines=None, target_height=height
+            )
+            manifest.update(
+                {
+                    "rule": "shrink_font",
+                    "font_size": fit,
+                    "line_height": ty.line_height_for(translated, fit),
+                    "letter_spacing": -0.5 * (font_size - fit),
+                }
+            )
         elif m.block_height > height * 1.05:
-            manifest.update({
-                "rule": "expand_block",
-                "block_height": m.block_height,
-            })
+            manifest.update(
+                {
+                    "rule": "expand_block",
+                    "block_height": m.block_height,
+                }
+            )
         if 0.05 < GlyphProbe.cjk_fraction(translated) < 0.95:
             baseline = ty.baseline_metrics(translated, font_size)
             if baseline["cjk_dominant"]:
@@ -619,8 +653,17 @@ class TypographyRule:
 
 
 __all__ = [
-    "OperatorContext", "Operator", "ParseOperator", "AnalyzeOperator",
-    "PlanOperator", "TranslateOperator", "ReviewOperator", "LayoutOperator",
-    "RenderOperator", "OperatorRegistry", "OperatorGraph", "TypographyRule",
+    "OperatorContext",
+    "Operator",
+    "ParseOperator",
+    "AnalyzeOperator",
+    "PlanOperator",
+    "TranslateOperator",
+    "ReviewOperator",
+    "LayoutOperator",
+    "RenderOperator",
+    "OperatorRegistry",
+    "OperatorGraph",
+    "TypographyRule",
     "_as_jsonable",
 ]

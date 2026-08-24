@@ -53,8 +53,8 @@ class TestS1BoundedTranslateRetry:
         cases = (
             ("1", 1),
             ("7", 7),
-            ("0", 3),       # non-positive -> default
-            ("-3", 3),      # non-positive -> default
+            ("0", 3),  # non-positive -> default
+            ("-3", 3),  # non-positive -> default
             ("garbage", 3),  # unparseable -> default
         )
         missing = os.environ.pop("PDF2ZH_TRANSLATE_RETRY", None)

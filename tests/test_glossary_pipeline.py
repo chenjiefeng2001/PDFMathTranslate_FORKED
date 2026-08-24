@@ -6,6 +6,7 @@
 - CLI 解析器接受 ``--glossary-files``；非 babeldoc 引擎告警忽略；
 - GUI worker 的 gr.Files 值归一化。
 """
+
 from __future__ import annotations
 
 import csv
@@ -55,6 +56,7 @@ class TestExecuteBabeldocPassthrough:
         svc._store.create_task(tid)
         captured = {}
         with pytest.MonkeyPatch.context() as mp:
+
             def fake_next(**kwargs):
                 captured.update(kwargs)
                 return [{"name": "mono.pdf", "path": "/tmp/mono.pdf"}]
@@ -66,7 +68,8 @@ class TestExecuteBabeldocPassthrough:
             mp.setattr(
                 "pdf2zh.babeldoc_adapter.run_babeldoc_translation",
                 lambda **kw: (_ for _ in ()).throw(
-                    AssertionError("next kernel should have handled it")),
+                    AssertionError("next kernel should have handled it")
+                ),
             )
             try:
                 svc._execute_babeldoc(
@@ -96,8 +99,11 @@ class TestNextKernelMapping:
 
         g1 = _write_csv(tmp_path / "g1.csv")
         settings = build_next_settings(
-            service="google", lang_in="en", lang_out="zh-CN",
-            ocr_mode="off", glossary_files=[g1],
+            service="google",
+            lang_in="en",
+            lang_out="zh-CN",
+            ocr_mode="off",
+            glossary_files=[g1],
         )
         assert settings.translation.glossaries == g1
 
@@ -108,15 +114,21 @@ class TestNextKernelMapping:
         bad.write_text("nope,wrong\n", encoding="utf-8")
         with pytest.raises(gs.GlossaryError):
             build_next_settings(
-                service="google", lang_in="en", lang_out="zh-CN",
-                ocr_mode="off", glossary_files=[str(bad)],
+                service="google",
+                lang_in="en",
+                lang_out="zh-CN",
+                ocr_mode="off",
+                glossary_files=[str(bad)],
             )
 
     def test_none_leaves_kernel_default(self):
         from pdf2zh.babeldoc_next_adapter import build_next_settings
 
         settings = build_next_settings(
-            service="google", lang_in="en", lang_out="zh-CN", ocr_mode="off",
+            service="google",
+            lang_in="en",
+            lang_out="zh-CN",
+            ocr_mode="off",
         )
         assert settings.translation.glossaries is None
 
@@ -126,10 +138,15 @@ class TestCliArg:
         from pdf2zh.pdf2zh import create_parser
 
         # nargs="+" 贪婪吞掉后续位置参数：PDF 需置于旗标前或用 `--` 分隔
-        args = create_parser().parse_args([
-            "--glossary-files", "/tmp/a.csv", "/tmp/b.csv",
-            "--", "/tmp/test.pdf",
-        ])
+        args = create_parser().parse_args(
+            [
+                "--glossary-files",
+                "/tmp/a.csv",
+                "/tmp/b.csv",
+                "--",
+                "/tmp/test.pdf",
+            ]
+        )
         assert args.glossary_files == ["/tmp/a.csv", "/tmp/b.csv"]
         assert args.files == ["/tmp/test.pdf"]
 

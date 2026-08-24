@@ -9,6 +9,7 @@
 
 输出 ``VisualLine``（含 style_runs、master_baseline、is_math_line 标记）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,10 +24,10 @@ from pdf2zh.geometry.style_run import StyleRun, build_style_runs
 class VisualLineConfig:
     """视觉行重建阈值（全部基于字号自适应，无魔法硬编码）。"""
 
-    baseline_theta: float = 0.35          # §5.1-1：基线对齐容差 / 字号
-    vertical_overlap_min: float = 0.60    # §5.1-2：垂直重叠率下限
-    horizontal_ratio: float = 2.5         # §5.1-3：水平间距 / 字号
-    gap_threshold: float = 0.0            # §5.1-3：绝对间距阈值（0=自动）
+    baseline_theta: float = 0.35  # §5.1-1：基线对齐容差 / 字号
+    vertical_overlap_min: float = 0.60  # §5.1-2：垂直重叠率下限
+    horizontal_ratio: float = 2.5  # §5.1-3：水平间距 / 字号
+    gap_threshold: float = 0.0  # §5.1-3：绝对间距阈值（0=自动）
     use_baseline_tol_for_subscript: bool = True
     """下标/上标字形（字号偏小）仍并入主行：以主字号折算容差。"""
 
@@ -102,8 +103,9 @@ def _vertical_overlap_ratio(ga: Glyph, gb: Glyph) -> float:
     return max(0.0, overlap) / min(ha, hb)
 
 
-def _can_join(glyph: Glyph, line: VisualLine, cfg: VisualLineConfig,
-              median_size: float) -> bool:
+def _can_join(
+    glyph: Glyph, line: VisualLine, cfg: VisualLineConfig, median_size: float
+) -> bool:
     """判定字形能否并入既有行（§5.1 三重条件全部满足）。"""
     # 参考基线：取行内「主字形」（最大字号，正文主导）的基线。
     # 构建期 master_baseline 尚未最终计算，且行首可能是上/下标小字号字形，
@@ -147,8 +149,9 @@ class VisualLineBuilder:
     def __init__(self, config: Optional[VisualLineConfig] = None) -> None:
         self.config = config or VisualLineConfig()
 
-    def build(self, glyphs: Sequence[Glyph],
-              page_id: int = 0, line_prefix: str = "L") -> List[VisualLine]:
+    def build(
+        self, glyphs: Sequence[Glyph], page_id: int = 0, line_prefix: str = "L"
+    ) -> List[VisualLine]:
         """按主基线聚簇字形为视觉行，行内按 x 排序。
 
         两阶段构建（避免上/下标小字号字形成为行锚的「幽灵行」问题）：
@@ -180,8 +183,11 @@ class VisualLineBuilder:
                     placed = True
                     break
             if not placed:
-                lines.append(VisualLine(line_id=f"{line_prefix}{page_id}_{len(lines)}",
-                                        glyphs=[g]))
+                lines.append(
+                    VisualLine(
+                        line_id=f"{line_prefix}{page_id}_{len(lines)}", glyphs=[g]
+                    )
+                )
         # pass2: 上/下标字形并入既有主行
         for g in subs:
             placed = False
@@ -191,8 +197,11 @@ class VisualLineBuilder:
                     placed = True
                     break
             if not placed:
-                lines.append(VisualLine(line_id=f"{line_prefix}{page_id}_{len(lines)}",
-                                        glyphs=[g]))
+                lines.append(
+                    VisualLine(
+                        line_id=f"{line_prefix}{page_id}_{len(lines)}", glyphs=[g]
+                    )
+                )
         for line in lines:
             # 行内排序：仅当 x0 几何可靠（每字符 x0 基本互不相同 → 单调递增
             # 布局）才按 x0 排序；否则保持内容流序。
@@ -206,9 +215,10 @@ class VisualLineBuilder:
             line.style_runs = build_style_runs(line.glyphs)
             total_w = sum(max(g.font_size, 0.01) for g in line.glyphs)
             if total_w > 0:
-                line.master_baseline = sum(
-                    g.baseline * max(g.font_size, 0.01) for g in line.glyphs
-                ) / total_w
+                line.master_baseline = (
+                    sum(g.baseline * max(g.font_size, 0.01) for g in line.glyphs)
+                    / total_w
+                )
             else:
                 line.master_baseline = line.glyphs[0].baseline if line.glyphs else 0.0
             line.bbox = (

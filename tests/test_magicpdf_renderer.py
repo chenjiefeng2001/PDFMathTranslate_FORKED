@@ -9,6 +9,7 @@
 - ``run_magicpdf_main`` 集成：默认产出 ``{stem}_mono.pdf``，
   ``magicpdf_render=False`` 不产出。
 """
+
 import os
 import tempfile
 import unittest
@@ -22,45 +23,64 @@ from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
 # 第二页标题（缺 page_sizes → 默认 612x792）。
 PLAN = [
     {
-        "block_id": "p0_0", "page": 0, "kind": "paragraph",
-        "text": "Hello", "translated": "你好",
+        "block_id": "p0_0",
+        "page": 0,
+        "kind": "paragraph",
+        "text": "Hello",
+        "translated": "你好",
         "render_path": "translate_refit",
-        "src_box": [50, 700, 550, 720], "dst_box": [50, 700, 550, 720],
+        "src_box": [50, 700, 550, 720],
+        "dst_box": [50, 700, 550, 720],
         "font_size": 12.0,
     },
     {
-        "block_id": "p0_1", "page": 0, "kind": "formula",
-        "text": "x = a + b", "translated": "x = a + b",
+        "block_id": "p0_1",
+        "page": 0,
+        "kind": "formula",
+        "text": "x = a + b",
+        "translated": "x = a + b",
         "render_path": "preserve_float",
-        "src_box": [200, 600, 400, 620], "dst_box": [200, 600, 400, 620],
+        "src_box": [200, 600, 400, 620],
+        "dst_box": [200, 600, 400, 620],
         "font_size": 14.0,
     },
     {
-        "block_id": "p0_2", "page": 0, "kind": "code",
-        "text": "def f():", "translated": "def f():",
+        "block_id": "p0_2",
+        "page": 0,
+        "kind": "code",
+        "text": "def f():",
+        "translated": "def f():",
         "render_path": "preserve_float",
-        "src_box": [50, 550, 300, 570], "dst_box": [50, 550, 300, 570],
+        "src_box": [50, 550, 300, 570],
+        "dst_box": [50, 550, 300, 570],
         "font_size": 10.0,
     },
     # 空文本块：应被安全跳过。
     {
-        "block_id": "p0_3", "page": 0, "kind": "paragraph",
-        "text": "", "translated": "",
+        "block_id": "p0_3",
+        "page": 0,
+        "kind": "paragraph",
+        "text": "",
+        "translated": "",
         "render_path": "translate_refit",
-        "src_box": [0, 0, 0, 0], "dst_box": [0, 0, 0, 0],
+        "src_box": [0, 0, 0, 0],
+        "dst_box": [0, 0, 0, 0],
         "font_size": 12.0,
     },
     {
-        "block_id": "p1_0", "page": 1, "kind": "heading",
-        "text": "Title", "translated": "标题",
+        "block_id": "p1_0",
+        "page": 1,
+        "kind": "heading",
+        "text": "Title",
+        "translated": "标题",
         "render_path": "translate_refit",
-        "src_box": [50, 750, 550, 770], "dst_box": [50, 750, 550, 770],
+        "src_box": [50, 750, 550, 770],
+        "dst_box": [50, 750, 550, 770],
         "font_size": 18.0,
     },
 ]
 
 PAGE_SIZES = {0: [612.0, 792.0]}
-
 
 
 class TestRenderPlanToPdf(unittest.TestCase):
@@ -69,8 +89,10 @@ class TestRenderPlanToPdf(unittest.TestCase):
         self.assertTrue(pdf.startswith(b"%PDF"))
         self.assertEqual(stats["pages"], 2)
         self.assertEqual(stats["blocks"], 4)  # 空文本块被跳过
-        self.assertEqual(stats["glyphs"], len("你好") + len("x = a + b")
-                         + len("def f():") + len("标题"))
+        self.assertEqual(
+            stats["glyphs"],
+            len("你好") + len("x = a + b") + len("def f():") + len("标题"),
+        )
 
         doc = pymupdf.open(stream=pdf, filetype="pdf")
         self.assertEqual(doc.page_count, 2)
@@ -121,13 +143,20 @@ class TestRenderPlanToPdf(unittest.TestCase):
     def test_missing_dst_box_and_bad_font_size_fallbacks(self):
         entries = [
             {
-                "block_id": "p0_0", "page": 0, "kind": "paragraph",
-                "text": "Falls back", "translated": "回退",
-                "src_box": [10, 100, 200, 120], "font_size": "bad",
+                "block_id": "p0_0",
+                "page": 0,
+                "kind": "paragraph",
+                "text": "Falls back",
+                "translated": "回退",
+                "src_box": [10, 100, 200, 120],
+                "font_size": "bad",
             },
             {
-                "block_id": "p0_1", "page": 0, "kind": "paragraph",
-                "text": "No box", "translated": "无框",
+                "block_id": "p0_1",
+                "page": 0,
+                "kind": "paragraph",
+                "text": "No box",
+                "translated": "无框",
                 "font_size": -3,
             },
         ]
@@ -141,8 +170,9 @@ class TestRenderPlanToPdf(unittest.TestCase):
     def test_output_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = os.path.join(tmp, "sub", "paper_mono.pdf")
-            pdf, _ = render_plan_to_pdf(PLAN[:1], page_sizes=PAGE_SIZES,
-                                        output_path=out)
+            pdf, _ = render_plan_to_pdf(
+                PLAN[:1], page_sizes=PAGE_SIZES, output_path=out
+            )
             self.assertTrue(os.path.exists(out))
             with open(out, "rb") as fh:
                 self.assertEqual(fh.read(), pdf)
@@ -151,21 +181,26 @@ class TestRenderPlanToPdf(unittest.TestCase):
             doc.close()
 
 
-
 class TestMagicPdfCliRenderIntegration(unittest.TestCase):
     SAMPLE_MIDDLE = {
         "pdf_info": [
             [
                 {
-                    "type": "text", "bbox": [0, 0, 600, 24],
+                    "type": "text",
+                    "bbox": [0, 0, 600, 24],
                     "cls": "title",
-                    "lines": [{
-                        "bbox": [0, 0, 600, 24],
-                        "spans": [
-                            {"bbox": [0, 0, 600, 24], "content": "Hello MagicPDF",
-                             "type": "text"},
-                        ],
-                    }],
+                    "lines": [
+                        {
+                            "bbox": [0, 0, 600, 24],
+                            "spans": [
+                                {
+                                    "bbox": [0, 0, 600, 24],
+                                    "content": "Hello MagicPDF",
+                                    "type": "text",
+                                },
+                            ],
+                        }
+                    ],
                 },
             ]
         ],
@@ -174,13 +209,29 @@ class TestMagicPdfCliRenderIntegration(unittest.TestCase):
 
     def _make_args(self, render=True, **kw):
         import argparse
+
         ns = argparse.Namespace(
-            files=["paper.pdf"], output="", pages=None,
-            lang_in="en", lang_out="zh", service="google", thread=4,
-            no_parallel=False, parallel_workers=None, vfont="", vchar="",
-            envs={}, prompt=None, ignore_cache=False, compatible=False,
-            debug=False, dir=False, backend="auto", mode="fast",
-            parse_engine="magicpdf", magicpdf_ocr=False,
+            files=["paper.pdf"],
+            output="",
+            pages=None,
+            lang_in="en",
+            lang_out="zh",
+            service="google",
+            thread=4,
+            no_parallel=False,
+            parallel_workers=None,
+            vfont="",
+            vchar="",
+            envs={},
+            prompt=None,
+            ignore_cache=False,
+            compatible=False,
+            debug=False,
+            dir=False,
+            backend="auto",
+            mode="fast",
+            parse_engine="magicpdf",
+            magicpdf_ocr=False,
             magicpdf_render=render,
         )
         for k, v in kw.items():
@@ -198,18 +249,23 @@ class TestMagicPdfCliRenderIntegration(unittest.TestCase):
             pdf_path = os.path.join(tmp, "paper.pdf")
             with open(pdf_path, "w", encoding="utf-8") as fh:
                 fh.write("%PDF-1.4 placeholder")
-            with patch(
-                "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
-                return_value=True,
-            ), patch(
-                "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
-                return_value=results,
-            ), patch(
-                "pdf2zh.translator.build_translator",
-                return_value=fake_translator,
+            with (
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                    return_value=True,
+                ),
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
+                    return_value=results,
+                ),
+                patch(
+                    "pdf2zh.translator.build_translator",
+                    return_value=fake_translator,
+                ),
             ):
                 code = run_magicpdf_main(
-                    self._make_args(render=render, files=[pdf_path], output=tmp))
+                    self._make_args(render=render, files=[pdf_path], output=tmp)
+                )
             self.assertEqual(code, 0)
             mono = os.path.join(tmp, "magicpdf", "paper_mono.pdf")
             # 在临时目录生命周期内完成 PDF 校验（TemporaryDirectory 退出即清理）。

@@ -4,6 +4,7 @@ Collision resolver for pdf2zh 2.0.
 Detects and resolves text/bbox collisions during translation layout,
 preventing text-overlap with figures, tables, and formulas.
 """
+
 import logging
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BoundingBox:
     """Axis-aligned bounding box in PDF coordinates."""
+
     x0: float
     y0: float
     x1: float
@@ -127,9 +129,7 @@ class CollisionResolver:
             return result if return_strategy else result[:3]
 
         # Strategy 2: Width reduction
-        width_adjusted = self._try_width_reduction(
-            text_bbox, colliding, font_size
-        )
+        width_adjusted = self._try_width_reduction(text_bbox, colliding, font_size)
         if width_adjusted is not None:
             result = (*width_adjusted, "width")
             return result if return_strategy else result[:3]
@@ -163,9 +163,7 @@ class CollisionResolver:
         """
         height = text_bbox.height
         # ---- Priority 1: push DOWN (正文推进方向，y 减小) ----
-        y_down = self._push_down(
-            text_bbox, colliding, height, font_size, page_rect
-        )
+        y_down = self._push_down(text_bbox, colliding, height, font_size, page_rect)
         if y_down is not None:
             return y_down
         # ---- Priority 2: push UP (y 增大) ----
@@ -244,8 +242,16 @@ class CollisionResolver:
     ) -> Optional[Tuple[float, float, float]]:
         """Try reducing text width to avoid side collisions."""
         # Find side obstacles and narrow the column
-        left_obs = [o for o in colliding if o.x1 > text_bbox.x0 and o.x0 < text_bbox.x0 + text_bbox.width * 0.5]
-        right_obs = [o for o in colliding if o.x0 < text_bbox.x1 and o.x1 > text_bbox.x1 - text_bbox.width * 0.5]
+        left_obs = [
+            o
+            for o in colliding
+            if o.x1 > text_bbox.x0 and o.x0 < text_bbox.x0 + text_bbox.width * 0.5
+        ]
+        right_obs = [
+            o
+            for o in colliding
+            if o.x0 < text_bbox.x1 and o.x1 > text_bbox.x1 - text_bbox.width * 0.5
+        ]
 
         new_x0 = text_bbox.x0
         new_x1 = text_bbox.x1

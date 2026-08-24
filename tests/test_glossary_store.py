@@ -6,6 +6,7 @@
 词表库目录通过 monkeypatch ``store_dir`` 指到 tmp_path，绝不触碰真实
 ``~/.config``。
 """
+
 from __future__ import annotations
 
 import csv
@@ -35,14 +36,16 @@ def _write_csv(path, rows, encoding="utf-8"):
 
 class TestParseCsv:
     def test_valid_rows(self, tmp_path):
-        p = _write_csv(tmp_path / "g.csv", [
-            ["kernel", "内核", ""],
-            ["deadlock detection", "死锁检测", "zh-CN"],
-        ])
+        p = _write_csv(
+            tmp_path / "g.csv",
+            [
+                ["kernel", "内核", ""],
+                ["deadlock detection", "死锁检测", "zh-CN"],
+            ],
+        )
         entries = gs.parse_csv(p)
         assert len(entries) == 2
-        assert entries[0] == {"source": "kernel", "target": "内核",
-                              "tgt_lng": ""}
+        assert entries[0] == {"source": "kernel", "target": "内核", "tgt_lng": ""}
 
     def test_missing_required_column(self, tmp_path):
         p = tmp_path / "bad.csv"
@@ -52,9 +55,7 @@ class TestParseCsv:
 
     def test_blank_row_skipped_and_empty_target_rejected(self, tmp_path):
         p = tmp_path / "mixed.csv"
-        p.write_text(
-            "source,target\n\nkernel,\n", encoding="utf-8"
-        )
+        p.write_text("source,target\n\nkernel,\n", encoding="utf-8")
         with pytest.raises(gs.GlossaryError, match="第 3 行"):
             gs.parse_csv(p)
 
@@ -63,8 +64,9 @@ class TestParseCsv:
             gs.parse_csv(tmp_path / "nope.csv")
 
     def test_gb18030_decoded(self, tmp_path):
-        p = _write_csv(tmp_path / "gb.csv",
-                       [["thread", "线程", ""]], encoding="gb18030")
+        p = _write_csv(
+            tmp_path / "gb.csv", [["thread", "线程", ""]], encoding="gb18030"
+        )
         assert gs.parse_csv(p)[0]["target"] == "线程"
 
 
@@ -81,8 +83,7 @@ class TestFilterEntries:
 
 class TestStoreOps:
     def test_import_export_round_trip(self, store, tmp_path):
-        src = _write_csv(tmp_path / "my terms.csv",
-                         [["cache", "缓存", ""]])
+        src = _write_csv(tmp_path / "my terms.csv", [["cache", "缓存", ""]])
         dest = gs.import_to_store(src)
         assert dest == store / "my_terms.csv"
         exported = gs.export_from_store("my_terms", tmp_path / "out.csv")
@@ -111,8 +112,7 @@ class TestStoreOps:
         assert "error" in items["broken"]
 
     def test_resolve_store_names_traversal_safe(self, store):
-        (store / "ok.csv").write_text(
-            "source,target\nk,K\n", encoding="utf-8")
+        (store / "ok.csv").write_text("source,target\nk,K\n", encoding="utf-8")
         assert gs.resolve_store_names(["ok"]) == [str(store / "ok.csv")]
         # 不存在 → 报错而非拼出穿越路径（safe_name 已剥离 ../）
         with pytest.raises(gs.GlossaryError):
@@ -130,11 +130,14 @@ class TestLoadBabeldocGlossaries:
         assert gs.load_babeldoc_glossaries(None, "zh-CN") == []
 
     def test_load_filters_by_target_lang(self, tmp_path):
-        p = _write_csv(tmp_path / "g.csv", [
-            ["kernel", "内核", "zh-CN"],
-            ["Kernel boot", "核心引导", "en"],
-            ["cache", "缓存", ""],  # 无语言标注 → 全语种生效
-        ])
+        p = _write_csv(
+            tmp_path / "g.csv",
+            [
+                ["kernel", "内核", "zh-CN"],
+                ["Kernel boot", "核心引导", "en"],
+                ["cache", "缓存", ""],  # 无语言标注 → 全语种生效
+            ],
+        )
         gloss = gs.load_babeldoc_glossaries([str(p)], "zh-CN")[0]
         lookup_keys = set(gloss.normalized_lookup.keys())
         assert "kernel" in lookup_keys

@@ -16,6 +16,7 @@ Usage::
     m = AdaptiveTypography().metrics("机器学习模型……", source="Machine learning model")
     print(m.line_height, m.block_height, m.expansion_ratio)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,12 +24,12 @@ from typing import List, Optional
 
 # Common CJK / full-width blocks used for script detection.
 _CJK_RANGES = (
-    (0x3400, 0x4DBF),   # CJK Ext A
-    (0x4E00, 0x9FFF),   # CJK Unified
-    (0xF900, 0xFAFF),   # CJK Compatibility
-    (0xFF00, 0xFFEF),   # Full-width forms / halfwidth katakana
-    (0x3040, 0x30FF),   # Hiragana / Katakana
-    (0xAC00, 0xD7AF),   # Hangul
+    (0x3400, 0x4DBF),  # CJK Ext A
+    (0x4E00, 0x9FFF),  # CJK Unified
+    (0xF900, 0xFAFF),  # CJK Compatibility
+    (0xFF00, 0xFFEF),  # Full-width forms / halfwidth katakana
+    (0x3040, 0x30FF),  # Hiragana / Katakana
+    (0xAC00, 0xD7AF),  # Hangul
 )
 
 
@@ -43,6 +44,7 @@ def is_cjk(ch: str) -> bool:
 @dataclass
 class GlyphMetric:
     """Width / advance of a single character at a given font size."""
+
     char: str
     width: float = 0.0
     height: float = 12.0
@@ -132,8 +134,9 @@ class GlyphProbe:
         return sum(1 for ch in text if is_cjk(ch)) / len(text)
 
     @classmethod
-    def break_lines(cls, text: str, container_width: float,
-                    font_size: float = 12.0) -> List[str]:
+    def break_lines(
+        cls, text: str, container_width: float, font_size: float = 12.0
+    ) -> List[str]:
         """Greedy word wrap; CJK breaks at any char when a word is too wide."""
         words = text.split(" ")
         lines: List[str] = []
@@ -171,14 +174,13 @@ class AdaptiveTypography:
     overlapped by the *typeset* text.
     """
 
-    CJK_LINE_RATIO = 1.45      # CJK glyphs need taller line boxes
+    CJK_LINE_RATIO = 1.45  # CJK glyphs need taller line boxes
     LATIN_LINE_RATIO = 1.20
     MIXED_LINE_RATIO = 1.35
     MIN_FONT_SIZE = 6.0
     PARAGRAPH_SPACING_FACTOR = 0.5
 
-    def __init__(self, container_width: float = 450.0,
-                 font_size: float = 12.0) -> None:
+    def __init__(self, container_width: float = 450.0, font_size: float = 12.0) -> None:
         self.container_width = container_width
         self.font_size = font_size
 
@@ -220,9 +222,13 @@ class AdaptiveTypography:
 
     # ── Public API ────────────────────────────────────────────────────
 
-    def metrics(self, translated: str, source: Optional[str] = None,
-                font_size: Optional[float] = None,
-                container_width: Optional[float] = None) -> TypographyMetrics:
+    def metrics(
+        self,
+        translated: str,
+        source: Optional[str] = None,
+        font_size: Optional[float] = None,
+        container_width: Optional[float] = None,
+    ) -> TypographyMetrics:
         """Full adaptive metrics for one translated paragraph."""
         fs = font_size or self.font_size
         cw = container_width or self.container_width
@@ -241,14 +247,19 @@ class AdaptiveTypography:
             baseline_offset=line_height * 0.8,
             is_cjk_dominant=cjk_dominant,
             expansion_ratio=expansion,
-            estimated_width=max((GlyphProbe.text_width(ln, fs)
-                                 for ln in lines), default=0.0),
+            estimated_width=max(
+                (GlyphProbe.text_width(ln, fs) for ln in lines), default=0.0
+            ),
         )
 
-    def auto_fit_font_size(self, text: str, font_size: Optional[float] = None,
-                           container_width: Optional[float] = None,
-                           max_lines: Optional[int] = None,
-                           target_height: Optional[float] = None) -> float:
+    def auto_fit_font_size(
+        self,
+        text: str,
+        font_size: Optional[float] = None,
+        container_width: Optional[float] = None,
+        max_lines: Optional[int] = None,
+        target_height: Optional[float] = None,
+    ) -> float:
         """Shrink the font until the text fits (width / line / height budget).
 
         Returns the largest font size in [MIN_FONT_SIZE, original] whose
@@ -259,19 +270,18 @@ class AdaptiveTypography:
         cw = container_width or self.container_width
         while fs >= self.MIN_FONT_SIZE:
             lines = GlyphProbe.break_lines(text, cw, fs)
-            fits_width = all(
-                GlyphProbe.text_width(ln, fs) <= cw + 1e-6 for ln in lines)
+            fits_width = all(GlyphProbe.text_width(ln, fs) <= cw + 1e-6 for ln in lines)
             fits_lines = max_lines is None or len(lines) <= max_lines
-            fits_height = (target_height is None
-                           or len(lines) * self.line_height_for(text, fs)
-                           <= target_height + 1e-6)
+            fits_height = (
+                target_height is None
+                or len(lines) * self.line_height_for(text, fs) <= target_height + 1e-6
+            )
             if fits_width and fits_lines and fits_height:
                 return fs
             fs -= 0.5
         return self.MIN_FONT_SIZE
 
-    def baseline_metrics(self, text: str,
-                         font_size: Optional[float] = None) -> dict:
+    def baseline_metrics(self, text: str, font_size: Optional[float] = None) -> dict:
         """Mixed CJK / Latin baseline metrics.
 
         Latin ascenders sit lower than CJK em-boxes; when both scripts share
@@ -281,7 +291,7 @@ class AdaptiveTypography:
         fs = font_size or self.font_size
         cjk_dominant = GlyphProbe.cjk_fraction(text) >= 0.5
         if cjk_dominant:
-            ascent = fs * 0.88          # em-box top of CJK
+            ascent = fs * 0.88  # em-box top of CJK
             descent = fs * 0.12
             latin_baseline_offset = -fs * 0.12
         else:
@@ -291,14 +301,16 @@ class AdaptiveTypography:
         return {
             "ascent": ascent,
             "descent": descent,
-            "baseline_offset": ascent,          # y from box top to baseline
+            "baseline_offset": ascent,  # y from box top to baseline
             "latin_baseline_offset": latin_baseline_offset,
             "cjk_dominant": cjk_dominant,
         }
 
 
 __all__ = [
-    "is_cjk", "GlyphMetric", "TypographyMetrics",
-    "GlyphProbe", "AdaptiveTypography",
+    "is_cjk",
+    "GlyphMetric",
+    "TypographyMetrics",
+    "GlyphProbe",
+    "AdaptiveTypography",
 ]
-

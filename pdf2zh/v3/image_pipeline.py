@@ -16,6 +16,7 @@
 side-channel 纪律：像素替换只在显式调用情况下发生，翻译器失败只降级为
 原样保留。纯逻辑、无 I/O。
 """
+
 from __future__ import annotations
 
 import logging
@@ -62,9 +63,11 @@ class ImageRenderSummary:
         }
 
     def summary(self) -> str:
-        return (f"ImageRender {self.object_id} [{self.image_class}] "
-                f"mode={self.render_mode} "
-                f"translated={self.regions_translated}/{self.regions_total}")
+        return (
+            f"ImageRender {self.object_id} [{self.image_class}] "
+            f"mode={self.render_mode} "
+            f"translated={self.regions_translated}/{self.regions_total}"
+        )
 
 
 class PlateRenderer:
@@ -83,6 +86,7 @@ class SolidPlateRenderer(PlateRenderer):
 
     def render(self, text: str, height_px: int, width_px: int) -> "object":
         import numpy as np
+
         h = max(1, int(height_px))
         w = max(1, int(width_px))
         value = 70 + (hash((text or "").strip() + "|plate") % 110)
@@ -101,24 +105,33 @@ class PillowPlateRenderer(PlateRenderer):
         try:
             from PIL import Image, ImageDraw, ImageFont
             import numpy as np
+
             h, w = max(1, int(height_px)), max(1, int(width_px))
             font_size = max(6, int(h * 0.8))
             canvas = Image.new("RGB", (w, h), (255, 255, 255))
             draw = ImageDraw.Draw(canvas)
-            draw.text((2, 1), (text or " ")[: max(1, int(w / max(font_size / 2, 1)))],
-                      fill=(20, 20, 20))
+            draw.text(
+                (2, 1),
+                (text or " ")[: max(1, int(w / max(font_size / 2, 1)))],
+                fill=(20, 20, 20),
+            )
             return np.asarray(canvas, dtype=np.uint8)
         except Exception:  # noqa: BLE001 — PIL 后端失败即退化
             return SolidPlateRenderer().render(text, height_px, width_px)
 
 
-def _region_px_wh(bbox: Sequence[float], canvas_h: int, canvas_w: int) -> Tuple[int, int]:
+def _region_px_wh(
+    bbox: Sequence[float], canvas_h: int, canvas_w: int
+) -> Tuple[int, int]:
     x0, y0, x1, y1 = (float(v) for v in bbox)
     return max(1, int((y1 - y0) * canvas_h)), max(1, int((x1 - x0) * canvas_w))
 
 
-def decide_with_ocr(obj: ImageObject, ocr_backend=None,
-                    engine: Optional[TranslationDecisionEngine] = None) -> TranslationDecision:
+def decide_with_ocr(
+    obj: ImageObject,
+    ocr_backend=None,
+    engine: Optional[TranslationDecisionEngine] = None,
+) -> TranslationDecision:
     """OCR 回填区域文本后重新决策（OCR 结果进入决策链）。
 
     ``ocr_backend`` 缺省时保持空文本重新决策（与既有行为一致）。
@@ -128,21 +141,23 @@ def decide_with_ocr(obj: ImageObject, ocr_backend=None,
     if ocr_backend is not None:
         try:
             from pdf2zh.v3.ocr_engine import ocr_regions_into_object
+
             ocr_regions_into_object(obj, backend=ocr_backend)
         except Exception as e:  # noqa: BLE001 — OCR 失败只降级，不抛出
             log.debug("ImagePipeline: OCR backfill failed: %s", e)
     return (engine or TranslationDecisionEngine()).decide(obj)
 
 
-def translate_image_pixels(pixels,
-                           object_id: str = "img",
-                           page_num: int = 0,
-                           decision: Optional[TranslationDecision] = None,
-                           translate_fn: Optional[Callable[[str], str]] = None,
-                           ocr_backend=None,
-                           plate_renderer: Optional[PlateRenderer] = None,
-                           engine: Optional[TranslationDecisionEngine] = None,
-                           ) -> Tuple[bytes, ImageRenderSummary]:
+def translate_image_pixels(
+    pixels,
+    object_id: str = "img",
+    page_num: int = 0,
+    decision: Optional[TranslationDecision] = None,
+    translate_fn: Optional[Callable[[str], str]] = None,
+    ocr_backend=None,
+    plate_renderer: Optional[PlateRenderer] = None,
+    engine: Optional[TranslationDecisionEngine] = None,
+) -> Tuple[bytes, ImageRenderSummary]:
     """端到端图片翻译管线 →（渲染后 RGB bytes, 摘要）。
 
     步骤：区域检测 →（如有 OCR 后端）文本回填 → 决策 → 翻译 → 渲染。
@@ -150,14 +165,16 @@ def translate_image_pixels(pixels,
     时决策只依赖区域几何/类型（与旧行为一致）。失败一律降级不抛出。
     """
     import numpy as np
+
     arr = np.asarray(pixels)
     canvas_h, canvas_w = arr.shape[:2]
     image_class = "unknown"
 
     if decision is None:
         try:
-            obj = analyze_image_bytes(pixels, object_id=object_id,
-                                      page_num=page_num, engine=engine)
+            obj = analyze_image_bytes(
+                pixels, object_id=object_id, page_num=page_num, engine=engine
+            )
             decision = decide_with_ocr(obj, ocr_backend=ocr_backend, engine=engine)
             image_class = obj.image_class.value
         except Exception as e:  # noqa: BLE001 — 管线失败降级为保留原图
@@ -193,6 +210,7 @@ def translate_image_pixels(pixels,
         log.debug("ImagePipeline.render failed (%s): %s", object_id, e)
     if out is None:
         from pdf2zh.v3.image_renderer import render_preserve
+
         out = render_preserve(pixels)
     summary = ImageRenderSummary(
         object_id=object_id,
@@ -208,6 +226,10 @@ def translate_image_pixels(pixels,
 
 
 __all__ = [
-    "ImageRenderSummary", "PlateRenderer", "SolidPlateRenderer",
-    "PillowPlateRenderer", "decide_with_ocr", "translate_image_pixels",
+    "ImageRenderSummary",
+    "PlateRenderer",
+    "SolidPlateRenderer",
+    "PillowPlateRenderer",
+    "decide_with_ocr",
+    "translate_image_pixels",
 ]

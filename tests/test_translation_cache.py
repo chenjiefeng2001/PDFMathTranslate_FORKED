@@ -1,6 +1,7 @@
 """
 Tests for TranslationCache (pdf2zh 2.0 L3 - translation cache).
 """
+
 import os
 import tempfile
 from pathlib import Path
@@ -92,7 +93,9 @@ class TestTranslationCache:
 
     def test_default_dir_is_canonical_cache_dir(self, tmp_path, monkeypatch):
         # 默认库必须与 legacy cache.py 同目录：~/.cache/pdf2zh
-        monkeypatch.setattr(TranslationCache, "DEFAULT_DB_DIR", tmp_path / ".cache" / "pdf2zh")
+        monkeypatch.setattr(
+            TranslationCache, "DEFAULT_DB_DIR", tmp_path / ".cache" / "pdf2zh"
+        )
         monkeypatch.setattr(TranslationCache, "LEGACY_DB_DIR", tmp_path / "nope")
         monkeypatch.delenv("PDF2ZH_CACHE_DIR", raising=False)
         assert TranslationCache.resolve_default_db_path() == str(

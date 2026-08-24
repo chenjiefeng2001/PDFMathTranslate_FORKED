@@ -14,6 +14,7 @@
 时向下扩张（y-up 坐标，多行行距 = master baseline 间距），公式锚点
 保持几何不可变。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -62,8 +63,11 @@ class SolvedUnit:
             "drift_dy": round(self.drift_dy, 3),
             "lines": [l.to_dict() for l in (self.lines or [])],
             "formula_placements": [
-                {**p, "source_bbox": [round(v, 2) for v in p["source_bbox"]],
-                 "render_bbox": [round(v, 2) for v in p["render_bbox"]]}
+                {
+                    **p,
+                    "source_bbox": [round(v, 2) for v in p["source_bbox"]],
+                    "render_bbox": [round(v, 2) for v in p["render_bbox"]],
+                }
                 for p in self.formula_placements
             ],
         }
@@ -72,22 +76,27 @@ class SolvedUnit:
 class LayoutSolver:
     """三阶段坐标计算器（P9：译文变长多行自适应）。"""
 
-    def __init__(self, inline_engine: Optional[InlineLayoutEngine] = None,
-                 line_gap_ratio: float = 1.15,
-                 min_font_size: float = 5.0,
-                 container_pad: float = 4.0) -> None:
+    def __init__(
+        self,
+        inline_engine: Optional[InlineLayoutEngine] = None,
+        line_gap_ratio: float = 1.15,
+        min_font_size: float = 5.0,
+        container_pad: float = 4.0,
+    ) -> None:
         self.inline = inline_engine or InlineLayoutEngine()
-        self.line_gap_ratio = line_gap_ratio      # 行距 = font_size × ratio
+        self.line_gap_ratio = line_gap_ratio  # 行距 = font_size × ratio
         self.min_font_size = min_font_size
         self.container_pad = container_pad
 
     # ── 阶段 1：translated_bbox（逻辑目标坐标）────────────────────
 
-    def translated_box(self, unit: TranslationUnit,
-                       translated_text: str,
-                       font_size: Optional[float] = None,
-                       container_width: Optional[float] = None
-                       ) -> "tuple":
+    def translated_box(
+        self,
+        unit: TranslationUnit,
+        translated_text: str,
+        font_size: Optional[float] = None,
+        container_width: Optional[float] = None,
+    ) -> "tuple":
         """由译文文本计算逻辑目标坐标（不触碰 source_bbox）。
 
         译文变长 → 按容器宽度贪心换行 → 垂直向下扩张（y-up：基线递减）。
@@ -118,15 +127,14 @@ class LayoutSolver:
         # （恒等/行结构不变 → 零漂移）；译文变长新增行沿末行基线递减。
         src = unit.source_bbox
         src_metrics = BaselineComputer.compute(
-            [g for o in unit.inline_structure for g in getattr(o, "glyphs", [])]
-            or [])
+            [g for o in unit.inline_structure for g in getattr(o, "glyphs", [])] or []
+        )
         if src_metrics.master_baseline == 0:
             src_metrics.master_baseline = unit.master_baseline
         line_height = fs * self.line_gap_ratio
         src_baselines = list(unit.source_line_baselines)
         if not src_baselines:
-            src_baselines = [src_metrics.master_baseline
-                             or (src[3] - fs * 0.8)]
+            src_baselines = [src_metrics.master_baseline or (src[3] - fs * 0.8)]
         translated_lines: List[LayoutLine] = []
         formula_placements: List[Dict] = []
         # token ↔ 公式对象 反查表：seg.formula_id 记录的是对象级 id，
@@ -137,8 +145,8 @@ class LayoutSolver:
             if getattr(o, "formula_id", None) is not None
         }
         has_display = any(
-            getattr(o, "is_display_mode", False)
-            for o in unit.inline_structure)
+            getattr(o, "is_display_mode", False) for o in unit.inline_structure
+        )
         if not has_display:
             # ── 原路径：源行基线逐行映射（恒等译文零漂移，QA §9.2）──
             prev_baseline = src_baselines[0]
@@ -150,16 +158,18 @@ class LayoutSolver:
                     line.master_baseline = prev_baseline - line_height
                 prev_baseline = line.master_baseline
                 translated_lines.append(line)
-                self._place_line_formulas(line, formula_by_id, src, fs,
-                                          formula_placements)
+                self._place_line_formulas(
+                    line, formula_by_id, src, fs, formula_placements
+                )
         else:
             # ── Display 公式垂直流堆叠（用户驱动修复核心）──────────
             # y-up 坐标系：段落顶部 y 最大，逐元素向下（y 递减）推进。
-            cursor = float(src[3])              # 流起点 = 段落最高点
+            cursor = float(src[3])  # 流起点 = 段落最高点
             display_margin = 0.6 * line_height  # 展示公式上下留白
             for i, line in enumerate(lines):
                 line_display = any(
-                    getattr(seg, "display", False) for seg in line.segments)
+                    getattr(seg, "display", False) for seg in line.segments
+                )
                 if line_display:
                     # 展示公式行：物理高度 = 行内最大公式高度 + 上下 margin
                     f_heights = [
@@ -174,10 +184,14 @@ class LayoutSolver:
                     # 恒定），因此公式渲染几何零形变、仅随流整体落位。
                     top = cursor - display_margin
                     anchor = next(
-                        (formula_by_id[seg.formula_id][1]
-                         for seg in line.segments
-                         if getattr(seg, "display", False)
-                         and seg.formula_id in formula_by_id), None)
+                        (
+                            formula_by_id[seg.formula_id][1]
+                            for seg in line.segments
+                            if getattr(seg, "display", False)
+                            and seg.formula_id in formula_by_id
+                        ),
+                        None,
+                    )
                     if anchor is not None:
                         line.master_baseline = top - (anchor.baseline - anchor.y0)
                     else:
@@ -189,8 +203,9 @@ class LayoutSolver:
                     line.master_baseline = cursor - src_metrics.ascent
                     cursor -= line_height
                 translated_lines.append(line)
-                self._place_line_formulas(line, formula_by_id, src, fs,
-                                          formula_placements)
+                self._place_line_formulas(
+                    line, formula_by_id, src, fs, formula_placements
+                )
         # 纳入 display 公式物理高度：translated_bbox 必须覆盖公式块，
         # 否则段落容器被压缩、接管后与后续段落在垂直方向上重叠。
         t_y1 = max(l.master_baseline for l in translated_lines) + src_metrics.ascent
@@ -202,8 +217,9 @@ class LayoutSolver:
         return translated_bbox, line_count, translated_lines, formula_placements
 
     @staticmethod
-    def _place_line_formulas(line: LayoutLine, formula_by_id, src, fs,
-                             formula_placements: List[Dict]) -> None:
+    def _place_line_formulas(
+        line: LayoutLine, formula_by_id, src, fs, formula_placements: List[Dict]
+    ) -> None:
         """把一行内的公式对象落位到 ``formula_placements``（共享路径）。
 
         - **inline 公式**：源 x0 优先，与译文文本重叠时向右避让（不超容器
@@ -229,53 +245,70 @@ class LayoutSolver:
                 dy0 = formula.y0 - formula.baseline
                 dy1 = formula.y1 - formula.baseline
                 f_baseline = line.master_baseline + seg.baseline_offset
-                formula_placements.append({
-                    "formula_id": seg.formula_id,
-                    "anchor": token,
-                    "source_bbox": list(formula.bbox),
-                    "render_bbox": (f_x0, f_baseline + dy0,
-                                    f_x1, f_baseline + dy1),
-                    "baseline": f_baseline,
-                    "display": display,
-                    "collision_evaded": bool(f_x0 != formula.x0),
-                })
+                formula_placements.append(
+                    {
+                        "formula_id": seg.formula_id,
+                        "anchor": token,
+                        "source_bbox": list(formula.bbox),
+                        "render_bbox": (f_x0, f_baseline + dy0, f_x1, f_baseline + dy1),
+                        "baseline": f_baseline,
+                        "display": display,
+                        "collision_evaded": bool(f_x0 != formula.x0),
+                    }
+                )
             else:
                 text_right += max(float(getattr(seg, "width", 0.0) or 0.0), 0.0)
 
-    def _translate_objects(self, unit: TranslationUnit,
-                           translated_text: str,
-                           font_size: float) -> List:
+    def _translate_objects(
+        self, unit: TranslationUnit, translated_text: str, font_size: float
+    ) -> List:
         """把译文文本与公式锚点重组为 InlineObject 序列。"""
         from pdf2zh.formula.extractor import FormulaObject, InlineTextRun
         from pdf2zh.formula.anchor import ANCHOR_RE
+
         objects: List = []
         pos = 0
         for m in ANCHOR_RE.finditer(translated_text):
             if m.start() > pos:
-                text = translated_text[pos:m.start()]
-                objects.append(InlineTextRun(text=text, style_runs=[],
-                                             bbox=(0, 0, 0, 0),
-                                             font_size=font_size))
+                text = translated_text[pos : m.start()]
+                objects.append(
+                    InlineTextRun(
+                        text=text, style_runs=[], bbox=(0, 0, 0, 0), font_size=font_size
+                    )
+                )
             token = f"<formula_{m.group(1)}>"
             formula = unit.formula_map.get(token)
             if isinstance(formula, FormulaObject):
-                objects.append(formula)     # 公式对象几何不可变，原样嵌入
+                objects.append(formula)  # 公式对象几何不可变，原样嵌入
             pos = m.end()
         if pos < len(translated_text):
-            objects.append(InlineTextRun(text=translated_text[pos:],
-                                         style_runs=[], bbox=(0, 0, 0, 0),
-                                         font_size=font_size))
+            objects.append(
+                InlineTextRun(
+                    text=translated_text[pos:],
+                    style_runs=[],
+                    bbox=(0, 0, 0, 0),
+                    font_size=font_size,
+                )
+            )
         if not objects:
-            objects.append(InlineTextRun(text=translated_text, style_runs=[],
-                                         bbox=(0, 0, 0, 0),
-                                         font_size=font_size))
+            objects.append(
+                InlineTextRun(
+                    text=translated_text,
+                    style_runs=[],
+                    bbox=(0, 0, 0, 0),
+                    font_size=font_size,
+                )
+            )
         return objects
 
     # ── 阶段 2：render_bbox（渲染坐标）────────────────────────────
 
-    def render_box(self, translated_bbox: "GlyphBBox",
-                   page_rect: Optional["GlyphBBox"],
-                   font_size: float) -> "GlyphBBox":
+    def render_box(
+        self,
+        translated_bbox: "GlyphBBox",
+        page_rect: Optional["GlyphBBox"],
+        font_size: float,
+    ) -> "GlyphBBox":
         """把 translated_bbox 映射到渲染坐标（页面边界夹紧 + 基线保持）。
 
         P1–P4 已消除幽灵障碍物；这里只做防御性边界夹紧，**不做** y<0 的
@@ -290,22 +323,26 @@ class LayoutSolver:
         out_y1 = min(y1, p_y1 - margin)
         out_x1 = min(x1, p_x1)
         out_y0 = max(y0, p_y0 + margin)
-        if out_y1 < p_y1 - margin - font_size:   # 顶部越界：保留逻辑值
+        if out_y1 < p_y1 - margin - font_size:  # 顶部越界：保留逻辑值
             out_y1 = y1
-        if out_y0 > p_y0 + margin + font_size:   # 底部越界：保留逻辑值
+        if out_y0 > p_y0 + margin + font_size:  # 底部越界：保留逻辑值
             out_y0 = y0
         return (out_x0, out_y0, out_x1, out_y1)
 
     # ── 端到端求解 ────────────────────────────────────────────────
 
-    def solve(self, unit: TranslationUnit, translated_text: str,
-              page_rect: Optional["GlyphBBox"] = None,
-              font_size: Optional[float] = None,
-              container_width: Optional[float] = None) -> SolvedUnit:
+    def solve(
+        self,
+        unit: TranslationUnit,
+        translated_text: str,
+        page_rect: Optional["GlyphBBox"] = None,
+        font_size: Optional[float] = None,
+        container_width: Optional[float] = None,
+    ) -> SolvedUnit:
         """完整三阶段求解：source → translated → render。"""
-        (translated_bbox, line_count, lines,
-         formula_placements) = self.translated_box(
-            unit, translated_text, font_size, container_width)
+        translated_bbox, line_count, lines, formula_placements = self.translated_box(
+            unit, translated_text, font_size, container_width
+        )
         fs = font_size or self._main_font(unit)
         render_bbox = self.render_box(translated_bbox, page_rect, fs)
         return SolvedUnit(

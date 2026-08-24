@@ -6,6 +6,7 @@
     resolve_references(model)  → 每块 mentions 列表（含解析结果）
     renumber_references(model, mapping)  → 按 (type, old) → new 重写
 """
+
 from __future__ import annotations
 
 import re
@@ -16,14 +17,14 @@ from pdf2zh.v3.semantic_graph import detect_mentions, resolve_mentions
 # 按类型重写引用文本（"Figure 5" → "Figure 3"，"图5" → "图3"）；
 # group(1)=head（Fig./图…），group(2)=编号；\b 只用于英文分支（CJK 无边界）
 _RE_REF_TEXT = {
-    "figure": re.compile(r"(\bFig(?:ure)?\.?|图)\s*\.?\s*(\d+)",
-                         re.IGNORECASE),
-    "table": re.compile(r"(\bTab(?:le)?\.?|表)\s*\.?\s*(\d+)",
-                        re.IGNORECASE),
-    "equation": re.compile(r"(\bEq(?:uation)?\.?|公式)\s*\.?\s*\(?\s*"
-                           r"(\d+)\s*\)?", re.IGNORECASE),
-    "section": re.compile(r"(\bSection|Sec\.?|§|第)\s*\.?\s*"
-                          r"(\d+(?:\.\d+)*)", re.IGNORECASE),
+    "figure": re.compile(r"(\bFig(?:ure)?\.?|图)\s*\.?\s*(\d+)", re.IGNORECASE),
+    "table": re.compile(r"(\bTab(?:le)?\.?|表)\s*\.?\s*(\d+)", re.IGNORECASE),
+    "equation": re.compile(
+        r"(\bEq(?:uation)?\.?|公式)\s*\.?\s*\(?\s*" r"(\d+)\s*\)?", re.IGNORECASE
+    ),
+    "section": re.compile(
+        r"(\bSection|Sec\.?|§|第)\s*\.?\s*" r"(\d+(?:\.\d+)*)", re.IGNORECASE
+    ),
 }
 
 
@@ -38,13 +39,15 @@ def resolve_references(model) -> Dict[str, List[dict]]:
             refs = block.metadata.get("mentions", []) or []
             if refs:
                 out[bid] = [
-                    {"target_type": r["target_type"],
-                     "target_id": r["target_id"],
-                     "target": r.get("target"),
-                     "raw": r.get("raw", "")}
-                    for r in refs]
-    model.metadata["references"] = {
-        bid: refs for bid, refs in out.items()}
+                    {
+                        "target_type": r["target_type"],
+                        "target_id": r["target_id"],
+                        "target": r.get("target"),
+                        "raw": r.get("raw", ""),
+                    }
+                    for r in refs
+                ]
+    model.metadata["references"] = {bid: refs for bid, refs in out.items()}
     return out
 
 
@@ -53,11 +56,13 @@ def _rewrite(text: str, ref_type: str, old: str, new: str) -> str:
         head = m.group(1)
         sep = "" if head and not head[0].isascii() else " "
         return f"{head}{sep}{new}"
+
     return _RE_REF_TEXT[ref_type].sub(repl, text or "")
 
 
-def renumber_references(model, mapping: Dict[Tuple[str, str], str],
-                        rewrite_translated: bool = True) -> int:
+def renumber_references(
+    model, mapping: Dict[Tuple[str, str], str], rewrite_translated: bool = True
+) -> int:
     """按 {(target_type, old_id): new_id} 重写引用文本。返回改写数。
 
     同时作用于 block.text 与（rewrite_translated=True 时）译后文本，
@@ -69,14 +74,15 @@ def renumber_references(model, mapping: Dict[Tuple[str, str], str],
             for (ref_type, old_id), new_id in (mapping or {}).items():
                 if ref_type not in _RE_REF_TEXT:
                     continue
-                if _RE_REF_TEXT[ref_type].search(block.text or "") and \
-                        _ref_has_id(block.text, ref_type, old_id):
+                if _RE_REF_TEXT[ref_type].search(block.text or "") and _ref_has_id(
+                    block.text, ref_type, old_id
+                ):
                     block.text = _rewrite(block.text, ref_type, old_id, new_id)
                     count += 1
                     if rewrite_translated and block.metadata.get("translated"):
                         block.metadata["translated"] = _rewrite(
-                            block.metadata["translated"], ref_type,
-                            old_id, new_id)
+                            block.metadata["translated"], ref_type, old_id, new_id
+                        )
     return count
 
 

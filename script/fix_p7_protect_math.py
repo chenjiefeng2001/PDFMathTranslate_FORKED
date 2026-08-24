@@ -1,8 +1,9 @@
 """Fix 7: Add _protect_math_fonts and change fallback=True to fallback=False"""
-with open('pdf2zh/high_level.py', 'r', encoding='utf-8') as f:
+
+with open("pdf2zh/high_level.py", "r", encoding="utf-8") as f:
     content = f.read()
 
-old_subset = '''    if not skip_subset_fonts:
+old_subset = """    if not skip_subset_fonts:
         try:
             doc_zh.subset_fonts(fallback=True)
         except Exception as subset_err:
@@ -10,7 +11,7 @@ old_subset = '''    if not skip_subset_fonts:
         try:
             doc_en.subset_fonts(fallback=True)
         except Exception as subset_err:
-            logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])'''
+            logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])"""
 
 new_subset = '''    def _protect_math_fonts(doc):
         """保护已知数学字体不被 MuPDF subset_fonts 子集化破坏宽度"""
@@ -55,8 +56,8 @@ new_subset = '''    def _protect_math_fonts(doc):
         except Exception as subset_err:
             logger.warning("subset_fonts failed for doc_en: %s", str(subset_err)[:120])'''
 
-assert old_subset in content, 'Fix 7: subset block not found'
+assert old_subset in content, "Fix 7: subset block not found"
 content = content.replace(old_subset, new_subset, 1)
-with open('pdf2zh/high_level.py', 'w', encoding='utf-8') as f:
+with open("pdf2zh/high_level.py", "w", encoding="utf-8") as f:
     f.write(content)
 print("Fix 7 applied")

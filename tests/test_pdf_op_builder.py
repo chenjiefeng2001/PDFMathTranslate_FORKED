@@ -1,4 +1,5 @@
 """Tests for PDFOpRebuilder (Phase 1)."""
+
 import unittest
 from unittest.mock import MagicMock, patch
 from pdf2zh.pdf_op_builder import PDFOpRebuilder
@@ -27,9 +28,7 @@ class TestPDFOpRebuilder(unittest.TestCase):
 
     def test_build_tj_simple_single_char(self):
         """Simple single-char TJ should contain font and position."""
-        result = PDFOpRebuilder.build_tj_simple(
-            "A", "F1", 12.0, 100.0, 200.0
-        )
+        result = PDFOpRebuilder.build_tj_simple("A", "F1", 12.0, 100.0, 200.0)
         self.assertIn("/F1", result)
         self.assertIn("12.", result)
         self.assertIn("100.", result)
@@ -38,9 +37,7 @@ class TestPDFOpRebuilder(unittest.TestCase):
 
     def test_build_tj_simple_multi_char(self):
         """Multi-char TJ should encode all chars."""
-        result = PDFOpRebuilder.build_tj_simple(
-            "Hello", "F1", 12.0, 0.0, 0.0
-        )
+        result = PDFOpRebuilder.build_tj_simple("Hello", "F1", 12.0, 0.0, 0.0)
         self.assertIn("0048", result)  # H
         self.assertIn("0065", result)  # e
         self.assertIn("006c", result)  # l
@@ -62,7 +59,7 @@ class TestPDFOpRebuilder(unittest.TestCase):
         )
         self.assertIn("TJ", result)
         # Should contain spacing numbers
-        self.assertRegex(result, r'-?\d+\.\d+')
+        self.assertRegex(result, r"-?\d+\.\d+")
 
     def test_build_tj_single_char_justify_no_adjust(self):
         """Single-char justify should not add spacing (no gaps)."""
@@ -81,9 +78,7 @@ class TestPDFOpRebuilder(unittest.TestCase):
 
     def test_build_tj_simple_hex_encoding(self):
         """build_tj_simple should hex-encode Unicode."""
-        result = PDFOpRebuilder.build_tj_simple(
-            "测试", "F1", 14.0, 50.0, 60.0
-        )
+        result = PDFOpRebuilder.build_tj_simple("测试", "F1", 14.0, 50.0, 60.0)
         self.assertIn("6d4b", result)  # 测
         self.assertIn("8bd5", result)  # 试 in hex
 

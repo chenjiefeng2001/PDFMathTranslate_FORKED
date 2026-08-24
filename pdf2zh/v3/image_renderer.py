@@ -16,6 +16,7 @@ FullRepaint 只是决策契约。本模块给出四个模式的**像素级渲染
       的职责：字形栅格化；本模块只负责几何拼接与透明度合成）。
     - bbox 为归一化 [0,1] 坐标（与 image_engine.detect_text_regions 一致）。
 """
+
 from __future__ import annotations
 
 import logging
@@ -86,8 +87,9 @@ def render_region_replace(pixels, regions: Sequence, plates: dict) -> bytes:
     return canvas[..., :3].tobytes()
 
 
-def render_overlay(pixels, regions: Sequence, plates: dict,
-                   alpha: float = 0.55) -> bytes:
+def render_overlay(
+    pixels, regions: Sequence, plates: dict, alpha: float = 0.55
+) -> bytes:
     """Mode 2：原图 + 半透明译文 plate（图内叠加，保留背景纹理）。"""
     canvas = _to_rgb(pixels).astype(np.float32)
     h, w = canvas.shape[:2]
@@ -102,13 +104,17 @@ def render_overlay(pixels, regions: Sequence, plates: dict,
     return np.clip(canvas[..., :3], 0, 255).astype(np.uint8).tobytes()
 
 
-def render_full_repaint(pixels, regions: Sequence, plates: dict,
-                        background=(255, 255, 255)) -> bytes:
+def render_full_repaint(
+    pixels, regions: Sequence, plates: dict, background=(255, 255, 255)
+) -> bytes:
     """Mode 4：白底重排 —— 画布以背景填充，按 region 位置放回 plate。"""
     canvas = _to_rgb(pixels)
     h, w = canvas.shape[:2]
-    canvas[...] = np.array(background, dtype=np.uint8) if isinstance(background, (tuple, list)) \
+    canvas[...] = (
+        np.array(background, dtype=np.uint8)
+        if isinstance(background, (tuple, list))
         else background
+    )
     for i, reg in enumerate(regions or []):
         plate = plates.get(i)
         if plate is None:
@@ -126,10 +132,13 @@ def render_preserve(pixels) -> bytes:
 # ── 按决策派发 ───────────────────────────────────────────────────────────
 
 
-def render_image_decision(pixels, decision: Optional[TranslationDecision] = None,
-                          plates: Optional[Dict[int, object]] = None,
-                          background=(255, 255, 255),
-                          alpha: float = 0.55) -> bytes:
+def render_image_decision(
+    pixels,
+    decision: Optional[TranslationDecision] = None,
+    plates: Optional[Dict[int, object]] = None,
+    background=(255, 255, 255),
+    alpha: float = 0.55,
+) -> bytes:
     """按 ``TranslationDecision.render_mode`` 派发渲染后端。
 
     ``plates`` 是 {region_index: RGB array} 的译文字形画布；缺失的 region
@@ -155,6 +164,9 @@ def render_image_decision(pixels, decision: Optional[TranslationDecision] = None
 
 
 __all__ = [
-    "render_preserve", "render_region_replace", "render_overlay",
-    "render_full_repaint", "render_image_decision",
+    "render_preserve",
+    "render_region_replace",
+    "render_overlay",
+    "render_full_repaint",
+    "render_image_decision",
 ]

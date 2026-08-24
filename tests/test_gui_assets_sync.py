@@ -17,11 +17,7 @@ import pytest
 from pdf2zh.gui.export_assets import export_assets
 
 GENERATED_DIR = (
-    Path(__file__).resolve().parent.parent
-    / "pdf2zh"
-    / "gui"
-    / "assets"
-    / "generated"
+    Path(__file__).resolve().parent.parent / "pdf2zh" / "gui" / "assets" / "generated"
 )
 
 EXPECTED_FILES = {

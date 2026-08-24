@@ -93,7 +93,12 @@ def init_worker_process(backend: Optional[str] = None) -> None:
     _ignore_ctrl_c_in_worker()
     _register_ort_dll_dir()
 
-    from pdf2zh.doclayout import ModelInstance, OnnxModel, get_backend, set_backend  # noqa: PLC0415
+    from pdf2zh.doclayout import (
+        ModelInstance,
+        OnnxModel,
+        get_backend,
+        set_backend,
+    )  # noqa: PLC0415
 
     if backend:
         set_backend(backend)
@@ -127,6 +132,7 @@ def init_worker_process(backend: Optional[str] = None) -> None:
         _providers,
         time.perf_counter() - _t_start,
     )
+
 
 def execute_chunk(task: ChunkTask) -> ChunkResult:
     """在 worker 进程内执行一个 chunk（迁移自 ``_translate_parallel_chunk``）。
@@ -173,9 +179,7 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
         layout_graph = LayoutGraph()
         font_resolver = FontResolver(task.lang_out)
 
-        noto = (
-            _fitz.Font(task.noto_name, task.font_path) if task.font_path else None
-        )
+        noto = _fitz.Font(task.noto_name, task.font_path) if task.font_path else None
 
         text_metrics: Dict[str, Any] = {}
         if task.use_text_metrics and task.font_path:
@@ -196,9 +200,7 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
                 pass
 
         prompt = Template(task.prompt_template) if task.prompt_template else None
-        envs = (
-            json.loads(task.envs_str) if isinstance(task.envs_str, str) else {}
-        )
+        envs = json.loads(task.envs_str) if isinstance(task.envs_str, str) else {}
 
         from pdf2zh.high_level import translate_patch  # noqa: PLC0415
 
@@ -259,4 +261,3 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
             error_message=f"{type(exc).__name__}: {str(exc)[:400]}",
             is_fatal=False,
         )
-

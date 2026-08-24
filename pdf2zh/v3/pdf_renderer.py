@@ -1,6 +1,7 @@
 """
 Module: V4 PDF Renderer — VisualTree to PDF output.
 """
+
 from __future__ import annotations
 import logging
 from dataclasses import dataclass
@@ -51,6 +52,7 @@ class V4PDFRenderer:
             raise ValueError("VisualTree must be layout-frozen before rendering.")
         self.reset_stats()
         from pymupdf import Document
+
         doc = Document()
         # Group display entries by page index
         page_entries = self._group_by_page(tree.display_list)
@@ -85,11 +87,15 @@ class V4PDFRenderer:
     def _build_overlay_segments(self, tree: VisualTree) -> List[OverlaySegment]:
         """Build OverlaySegments from VisualTree display list (for external use)."""
         from pdf2zh.overlay_renderer import OverlaySegment
-        return [OverlaySegment(
-            text=e.get("text", ""),
-            bbox=e.get("bbox", (0, 0, 0, 0)),
-            font_size=e.get("font_size", 12.0),
-        ) for e in tree.display_list]
+
+        return [
+            OverlaySegment(
+                text=e.get("text", ""),
+                bbox=e.get("bbox", (0, 0, 0, 0)),
+                font_size=e.get("font_size", 12.0),
+            )
+            for e in tree.display_list
+        ]
 
     def _group_by_page(self, display_list: list) -> dict:
         """Group display list entries by page index."""
@@ -110,5 +116,3 @@ def render_visual_tree(tree: VisualTree, output_path: Optional[str] = None) -> b
 
 
 __all__ = ["RenderStats", "V4PDFRenderer", "render_visual_tree"]
-
-

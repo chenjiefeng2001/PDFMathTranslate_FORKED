@@ -14,7 +14,6 @@ import threading
 from collections import deque
 from typing import IO, Any, Deque, List, Optional
 
-
 #: 详细日志 API 的全局环形缓冲上限（条）。所有线程的日志都汇入这里，
 #: 前端 /gui/logs 接口与 _collect_logs 读取的正是这份日志（线程队列仅保留
 #: legacy "Progress:" 语义，供旧式 per-thread 消费）。

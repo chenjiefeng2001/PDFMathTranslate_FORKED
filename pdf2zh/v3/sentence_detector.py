@@ -29,10 +29,36 @@ logger = logging.getLogger(__name__)
 
 # Abbreviations that should NOT be treated as sentence endings.
 ABBREVIATIONS = {
-    "e.g.", "i.e.", "etc.", "vs.", "cf.", "al.", "fig.", "figs.", "tab.",
-    "tabs.", "eq.", "eqs.", "sec.", "ref.", "refs.", "no.", "nos.",
-    "vol.", "pp.", "ed.", "eds.", "dept.", "est.", "approx.", "min.",
-    "max.", "avg.", "viz.", "et", "al",
+    "e.g.",
+    "i.e.",
+    "etc.",
+    "vs.",
+    "cf.",
+    "al.",
+    "fig.",
+    "figs.",
+    "tab.",
+    "tabs.",
+    "eq.",
+    "eqs.",
+    "sec.",
+    "ref.",
+    "refs.",
+    "no.",
+    "nos.",
+    "vol.",
+    "pp.",
+    "ed.",
+    "eds.",
+    "dept.",
+    "est.",
+    "approx.",
+    "min.",
+    "max.",
+    "avg.",
+    "viz.",
+    "et",
+    "al",
 }
 
 SINGLE_LETTER_INITIALS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -51,8 +77,11 @@ class Sentence:
 
     def to_dict(self) -> dict:
         return {
-            "text": self.text, "start": self.start, "end": self.end,
-            "node_ids": list(self.node_ids), "is_final": self.is_final,
+            "text": self.text,
+            "start": self.start,
+            "end": self.end,
+            "node_ids": list(self.node_ids),
+            "is_final": self.is_final,
         }
 
 
@@ -81,8 +110,11 @@ class SentenceDetector:
     abbreviations (e.g., Fig., etc.) and single-letter initials (A. B.).
     """
 
-    def __init__(self, abbreviations: Optional[set] = None,
-                 extra_honorifics: Optional[set] = None) -> None:
+    def __init__(
+        self,
+        abbreviations: Optional[set] = None,
+        extra_honorifics: Optional[set] = None,
+    ) -> None:
         self.abbreviations = set(ABBREVIATIONS) | set(HONORIFICS)
         if abbreviations:
             self.abbreviations.update(abbreviations)
@@ -117,7 +149,7 @@ class SentenceDetector:
         # Single letter initial: "A. B."
         token_plain = token.rstrip(".")
         if len(token_plain) == 1 and token_plain.isalpha():
-            following = text[idx + 1:]
+            following = text[idx + 1 :]
             following = following.lstrip()
             if following:
                 nxt = following[0]
@@ -130,7 +162,7 @@ class SentenceDetector:
         if next_char in ("", "\n"):
             return True
         if next_char.isspace():
-            following = text[idx + 1:].lstrip()
+            following = text[idx + 1 :].lstrip()
             if not following:
                 return True
             first = following[0]
@@ -153,10 +185,13 @@ class SentenceDetector:
                 end = i + 1
                 while end < n and text[end].isspace():
                     end += 1
-                sentences.append(Sentence(
-                    text=text[start:end].strip(),
-                    start=start, end=end,
-                ))
+                sentences.append(
+                    Sentence(
+                        text=text[start:end].strip(),
+                        start=start,
+                        end=end,
+                    )
+                )
                 start = end
                 i = end
             else:
@@ -178,8 +213,9 @@ class ParagraphReconstructor:
       - Blank lines separate paragraphs.
     """
 
-    def __init__(self, detector: Optional[SentenceDetector] = None,
-                 line_gap_ratio: float = 1.6) -> None:
+    def __init__(
+        self, detector: Optional[SentenceDetector] = None, line_gap_ratio: float = 1.6
+    ) -> None:
         self.detector = detector or SentenceDetector()
         self.line_gap_ratio = line_gap_ratio
 
@@ -210,9 +246,13 @@ class ParagraphReconstructor:
             sentences = self.detector.split_sentences(text)
             for s in sentences:
                 s.node_ids = list(current_ids)
-            paragraphs.append(Paragraph(
-                text=text, node_ids=list(current_ids), sentences=sentences,
-            ))
+            paragraphs.append(
+                Paragraph(
+                    text=text,
+                    node_ids=list(current_ids),
+                    sentences=sentences,
+                )
+            )
             current_texts.clear()
             current_ids.clear()
 
@@ -229,7 +269,7 @@ class ParagraphReconstructor:
             is_new_para = False
             if prev_y0 is not None and y0 is not None:
                 gap = y0 - prev_y0
-                line_height = (font_size or prev_font or 10.0)
+                line_height = font_size or prev_font or 10.0
                 if gap > line_height * self.line_gap_ratio:
                     is_new_para = True
 
@@ -277,8 +317,9 @@ class ParagraphReconstructor:
 
 
 __all__ = [
-    "ABBREVIATIONS", "Sentence", "Paragraph",
-    "SentenceDetector", "ParagraphReconstructor",
+    "ABBREVIATIONS",
+    "Sentence",
+    "Paragraph",
+    "SentenceDetector",
+    "ParagraphReconstructor",
 ]
-
-

@@ -6,13 +6,16 @@ Usage:
     optimizer = LayoutOptimizer()
     positions = optimizer.optimize(elements, constraints)
 """
+
 from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 from pdf2zh.v3.layout import LayoutConstraint, ConstraintType, ConstraintSolver
+
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class LayoutElement:
@@ -24,6 +27,7 @@ class LayoutElement:
     preferred_y: Optional[float] = None
     weight: float = 1.0
 
+
 @dataclass
 class OptimizationResult:
     positions: Dict[str, float]
@@ -31,12 +35,14 @@ class OptimizationResult:
     iterations: int = 0
     feasible: bool = True
 
+
 class LayoutOptimizer:
     """Optimization-based layout solver.
 
     Uses greedy heuristic (OR-Tools CP-SAT would be used when available).
     Minimizes: overlap_penalty + whitespace_penalty + page_break_penalty.
     """
+
     def __init__(self, page_width=612.0, page_height=792.0, margin_top=50.0):
         self.page_width = page_width
         self.page_height = page_height
@@ -93,5 +99,6 @@ class LayoutOptimizer:
             if c.relationship == "cannot_overlap" and abs(src_y - tgt_y) < c.gap:
                 cost += c.weight * (c.gap - abs(src_y - tgt_y))
         return cost
+
 
 __all__ = ["LayoutElement", "OptimizationResult", "LayoutOptimizer"]

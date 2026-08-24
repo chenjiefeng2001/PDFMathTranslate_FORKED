@@ -59,12 +59,17 @@ class TestExecuteTaskRouting:
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(svc, "_apply_request_backend", lambda *a, **k: None)
             mp.setattr(svc, "_execute_legacy", lambda *a, **k: calls.append("legacy"))
-            mp.setattr(svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc"))
-            mp.setattr(svc, "_execute_magicpdf", lambda *a, **k: calls.append("magicpdf"))
+            mp.setattr(
+                svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc")
+            )
+            mp.setattr(
+                svc, "_execute_magicpdf", lambda *a, **k: calls.append("magicpdf")
+            )
             svc._execute_task(
                 tid,
                 TranslationRequest(
-                    source_path="/tmp/test.pdf", parse_engine=parse_engine,
+                    source_path="/tmp/test.pdf",
+                    parse_engine=parse_engine,
                     magicpdf_ocr=parse_engine == "magicpdf",
                 ),
             )
@@ -104,12 +109,16 @@ class TestExecuteBatchRouting:
             # test_batch_concurrency.py。
             mp.setenv("PDF2ZH_BATCH_CONCURRENCY", "1")
             mp.setattr(svc, "_execute_legacy", lambda *a, **k: calls.append("legacy"))
-            mp.setattr(svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc"))
+            mp.setattr(
+                svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc")
+            )
             mp.setattr(svc, "_execute_v4", lambda *a, **k: calls.append("v4"))
             svc._execute_batch(
                 tid,
                 TranslationRequest(
-                    source_path=files[0], files=files, parse_engine=parse_engine,
+                    source_path=files[0],
+                    files=files,
+                    parse_engine=parse_engine,
                     extra_config={"mode_choice": mode_choice},
                 ),
                 files,
@@ -223,17 +232,35 @@ class TestGuiWorkerPassThrough:
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(worker_mod, "get_runtime_service", lambda: fake_svc)
-            mp.setattr(worker_mod, "_resolve_source_paths",
-                       lambda *a, **k: ["/tmp/test.pdf"])
+            mp.setattr(
+                worker_mod, "_resolve_source_paths", lambda *a, **k: ["/tmp/test.pdf"]
+            )
             task_id = worker_mod.submit_translation_task(
-                client_id="c1", file_type="file", file_input="/tmp/test.pdf",
-                link_input="", service="google", lang_from="en", lang_to="zh",
-                page_range=None, page_input=None, threads=4,
-                skip_subset_fonts=False, ignore_cache=False, vfont="", vchar="",
-                mode_choice="auto", recaptcha_response="", fl_state=None,
-                env0="", env1="", env2="", prompt_env="",
-                backend="auto", ocr_mode="auto",
-                parse_engine="magicpdf", magicpdf_ocr="on",
+                client_id="c1",
+                file_type="file",
+                file_input="/tmp/test.pdf",
+                link_input="",
+                service="google",
+                lang_from="en",
+                lang_to="zh",
+                page_range=None,
+                page_input=None,
+                threads=4,
+                skip_subset_fonts=False,
+                ignore_cache=False,
+                vfont="",
+                vchar="",
+                mode_choice="auto",
+                recaptcha_response="",
+                fl_state=None,
+                env0="",
+                env1="",
+                env2="",
+                prompt_env="",
+                backend="auto",
+                ocr_mode="auto",
+                parse_engine="magicpdf",
+                magicpdf_ocr="on",
             )
         assert task_id == "tid_1"
         req = fake_svc.submit_task.call_args[0][0]
@@ -241,4 +268,3 @@ class TestGuiWorkerPassThrough:
         assert req.parse_engine == "magicpdf"
         assert req.magicpdf_ocr is True
         assert req.magicpdf_ocr_mode == "on"
-

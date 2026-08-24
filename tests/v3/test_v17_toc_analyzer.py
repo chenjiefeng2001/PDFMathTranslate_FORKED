@@ -12,6 +12,7 @@
 - 集成：build_document_model 对多行目录块先拆分再自扫描；
 - render_toc_entry：目录条目专用渲染（title --- page，页码不翻译）。
 """
+
 import unittest
 from unittest.mock import Mock
 
@@ -20,8 +21,12 @@ from pdfminer.layout import LTChar, LTPage
 from pdf2zh.v3.canonical_page import BlockModel, LineModel, PageModel, SpanModel
 from pdf2zh.v3.document_model import build_document_model
 from pdf2zh.v3.toc_analyzer import (
-    analyze_toc_blocks, analyze_toc_result, parse_entry_text,
-    rebuild_toc_page, render_toc_entry, split_merged_block,
+    analyze_toc_blocks,
+    analyze_toc_result,
+    parse_entry_text,
+    rebuild_toc_page,
+    render_toc_entry,
+    split_merged_block,
     split_toc_blocks,
 )
 
@@ -49,13 +54,14 @@ def make_char(x, y, text="A", size=10.0, fontname="Helvetica"):
 
 def add_text(page, x0, y, text, adv=9.0, fontname="Helvetica", size=10.0):
     for i, t in enumerate(text):
-        page.add(make_char(x0 + i * adv, y, t, fontname=fontname,
-                           size=size))
+        page.add(make_char(x0 + i * adv, y, t, fontname=fontname, size=size))
 
 
-def merged_block(text="2.3 Continuous Random Variables 31\n"
-                       "2.3.1 Uniform Random Variables 32\n"
-                       "2.3.2 Expectations 33"):
+def merged_block(
+    text="2.3 Continuous Random Variables 31\n"
+    "2.3.1 Uniform Random Variables 32\n"
+    "2.3.2 Expectations 33",
+):
     lines = [LineModel(text=ln) for ln in text.split("\n")]
     b = BlockModel(text=text, lines=lines)
     return b
@@ -64,9 +70,12 @@ def merged_block(text="2.3 Continuous Random Variables 31\n"
 def page_with_merged():
     page = PageModel(page_num=3, width=600.0, height=800.0)
     page.blocks.append(merged_block())
-    page.blocks.append(BlockModel(text="Some normal paragraph that spans",
-                                  lines=[LineModel(text="Some normal "
-                                                        "paragraph")]))
+    page.blocks.append(
+        BlockModel(
+            text="Some normal paragraph that spans",
+            lines=[LineModel(text="Some normal " "paragraph")],
+        )
+    )
     return page
 
 
@@ -95,8 +104,7 @@ class TestParseEntryText(unittest.TestCase):
         self.assertEqual(r.page, "1")
 
     def test_rejects_body_text(self):
-        self.assertIsNone(parse_entry_text("The kernel scheduler runs "
-                                           "threads."))
+        self.assertIsNone(parse_entry_text("The kernel scheduler runs " "threads."))
         self.assertIsNone(parse_entry_text("31"))
         self.assertIsNone(parse_entry_text("2.3"))
 
@@ -110,28 +118,39 @@ class TestSplitMergedBlock(unittest.TestCase):
         self.assertEqual(entries[2]["number"], "2.3.2")
 
     def test_single_line_not_split(self):
-        b = BlockModel(text="2.3 Continuous Random Variables 31",
-                       lines=[LineModel(text="2.3 Continuous Random "
-                                             "Variables 31")])
+        b = BlockModel(
+            text="2.3 Continuous Random Variables 31",
+            lines=[LineModel(text="2.3 Continuous Random " "Variables 31")],
+        )
         self.assertEqual(split_merged_block(b, 600.0), [])
 
     def test_body_block_not_split(self):
-        b = BlockModel(text="First line of paragraph.\nSecond line with 42.",
-                       lines=[LineModel(text="First line of paragraph."),
-                              LineModel(text="Second line with 42.")])
+        b = BlockModel(
+            text="First line of paragraph.\nSecond line with 42.",
+            lines=[
+                LineModel(text="First line of paragraph."),
+                LineModel(text="Second line with 42."),
+            ],
+        )
         self.assertEqual(split_merged_block(b, 600.0), [])
 
     def test_geometric_page_column(self):
         def line(text, px0):
             return LineModel(
                 text=text,
-                spans=[SpanModel(text=text, x0=50.0, x1=300.0),
-                       SpanModel(text="31", x0=px0, x1=px0 + 20.0)])
+                spans=[
+                    SpanModel(text=text, x0=50.0, x1=300.0),
+                    SpanModel(text="31", x0=px0, x1=px0 + 20.0),
+                ],
+            )
+
         b = BlockModel(
-            text="2.3 Continuous Random Variables\n"
-                 "2.3.1 Uniform Random Variables",
-            lines=[line("2.3 Continuous Random Variables", 520.0),
-                   line("2.3.1 Uniform Random Variables", 540.0)])
+            text="2.3 Continuous Random Variables\n" "2.3.1 Uniform Random Variables",
+            lines=[
+                line("2.3 Continuous Random Variables", 520.0),
+                line("2.3.1 Uniform Random Variables", 540.0),
+            ],
+        )
         entries = split_merged_block(b, 600.0)
         self.assertEqual(len(entries), 2)
         self.assertEqual(entries[0]["page"], "31")
@@ -139,13 +158,12 @@ class TestSplitMergedBlock(unittest.TestCase):
 
     def test_geometric_ignores_inner_digits(self):
         def line(text):
-            return LineModel(
-                text=text,
-                spans=[SpanModel(text=text, x0=50.0, x1=300.0)])
+            return LineModel(text=text, spans=[SpanModel(text=text, x0=50.0, x1=300.0)])
+
         b = BlockModel(
             text="2.3 Data 2024 Report\n2.3.1 Appendix B",
-            lines=[line("2.3 Data 2024 Report"),
-                   line("2.3.1 Appendix B")])
+            lines=[line("2.3 Data 2024 Report"), line("2.3.1 Appendix B")],
+        )
         entries = split_merged_block(b, 600.0)
         self.assertEqual(len(entries), 0)
 
@@ -197,10 +215,12 @@ class TestSplitTocBlocks(unittest.TestCase):
 
     def test_no_toc_page_untouched(self):
         page = PageModel(page_num=1, width=600.0, height=800.0)
-        page.blocks.append(BlockModel(text="Just a paragraph with no toc.",
-                                      lines=[LineModel(
-                                          text="Just a paragraph with no "
-                                               "toc.")]))
+        page.blocks.append(
+            BlockModel(
+                text="Just a paragraph with no toc.",
+                lines=[LineModel(text="Just a paragraph with no " "toc.")],
+            )
+        )
         self.assertEqual(split_toc_blocks(page), 0)
         self.assertEqual(len(page.blocks), 1)
 
@@ -213,8 +233,7 @@ class TestIntegrationBuildDocumentModel(unittest.TestCase):
         add_text(page, 50, 740, "5.1 Data Collection 10")
         add_text(page, 50, 735, "5.2 Processing 12")
         add_text(page, 50, 730, "5.3 Results 21")
-        add_text(page, 50, 700, "The kernel scheduler runs threads.",
-                 fontname="Times")
+        add_text(page, 50, 700, "The kernel scheduler runs threads.", fontname="Times")
         model = build_document_model([page])
         pm = model.pages[0]
         toc_blocks = [b for b in pm.blocks if b.kind == "toc"]
@@ -229,8 +248,7 @@ class TestIntegrationBuildDocumentModel(unittest.TestCase):
 
 class TestRenderTocEntry(unittest.TestCase):
     def test_render_line(self):
-        line = render_toc_entry("2.3.1", "Uniform Random Variables", "32",
-                                level=1)
+        line = render_toc_entry("2.3.1", "Uniform Random Variables", "32", level=1)
         self.assertEqual(line, "    2.3.1 Uniform Random Variables ... 32")
 
     def test_render_page_not_translated(self):

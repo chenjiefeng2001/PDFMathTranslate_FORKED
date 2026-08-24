@@ -15,6 +15,7 @@ Covers the V7 architecture iteration (see doc/v7_operator_runtime_report.md):
 Run with:
     python -m pytest tests/v3/test_v7_2_runtime_service.py -v
 """
+
 from __future__ import annotations
 
 import os
@@ -22,12 +23,16 @@ import os
 import pytest
 
 from pdf2zh.v3.graph_property import (
-    PropertyGraph, PropertySchema, create_property_graph_from_document,
+    PropertyGraph,
+    PropertySchema,
+    create_property_graph_from_document,
 )
 from pdf2zh.v3.operators import OperatorGraph, OperatorRegistry
 from pdf2zh.v3.runtime_snapshot import RuntimeSnapshot, SnapshotDiff
 from pdf2zh.v3.runtime_service import (
-    ResourceManager, RuntimeService, SessionManager,
+    ResourceManager,
+    RuntimeService,
+    SessionManager,
 )
 from pdf2zh.v3.base_graph import adapt
 
@@ -35,10 +40,18 @@ from pdf2zh.v3.base_graph import adapt
 @pytest.fixture()
 def blocks() -> list:
     return [
-        {"id": "n0", "text": "Transformer models achieve state of the art "
-                             "results.", "type": "paragraph", "page": 0},
-        {"id": "n1", "text": "E = mc^2 is a famous formula.", "type": "formula",
-         "page": 0},
+        {
+            "id": "n0",
+            "text": "Transformer models achieve state of the art " "results.",
+            "type": "paragraph",
+            "page": 0,
+        },
+        {
+            "id": "n1",
+            "text": "E = mc^2 is a famous formula.",
+            "type": "formula",
+            "page": 0,
+        },
     ]
 
 
@@ -49,11 +62,12 @@ def service(tmp_path) -> RuntimeService:
 
 # ── V7.0 Property Graph ────────────────────────────────────────────────
 
+
 class TestPropertyGraph:
     def test_index_and_query(self):
         pg = PropertyGraph(
-            name="doc",
-            schema=PropertySchema(node_types={"Paragraph": {"page"}}))
+            name="doc", schema=PropertySchema(node_types={"Paragraph": {"page"}})
+        )
         pg.add_node("n0", node_type="Paragraph", page=3, language="en")
         pg.add_node("n1", node_type="Paragraph", page=3, language="fr")
         pg.add_node("n2", node_type="Heading", page=1)
@@ -62,8 +76,10 @@ class TestPropertyGraph:
         assert pg.ids_of_type("Paragraph") == ["n0", "n1"]
         assert pg.lookup("page", 3) == ["n0", "n1"]
         # MATCH Paragraph WHERE page == 3
-        assert sorted(pg.query().where_type("Paragraph").where(page=3).ids()) \
-            == ["n0", "n1"]
+        assert sorted(pg.query().where_type("Paragraph").where(page=3).ids()) == [
+            "n0",
+            "n1",
+        ]
         # traversal
         assert pg.query().out("n0") == {"n1"}
         assert pg.query().in_("n1") == {"n0"}
@@ -77,8 +93,9 @@ class TestPropertyGraph:
         assert pg.lookup("page", 2) == ["a"]
 
     def test_schema_strict_enforced(self):
-        pg = PropertyGraph(schema=PropertySchema(
-            node_types={"Paragraph": {"page"}}, strict=True))
+        pg = PropertyGraph(
+            schema=PropertySchema(node_types={"Paragraph": {"page"}}, strict=True)
+        )
         with pytest.raises(ValueError):
             pg.add_node("a", node_type="Paragraph", unknown="x")
 
@@ -94,7 +111,8 @@ class TestPropertyGraph:
 
     def test_adapt_compatible(self, service):
         session = service.open(
-            [{"id": "x", "text": "Hi.", "type": "paragraph", "page": 0}])
+            [{"id": "x", "text": "Hi.", "type": "paragraph", "page": 0}]
+        )
         service.execute(session.session_id)
         prop = create_property_graph_from_document(session.document_graph)
         bg = adapt(prop)
@@ -102,8 +120,11 @@ class TestPropertyGraph:
 
     def test_property_graph_from_document(self, service):
         session = service.open(
-            [{"id": "a", "text": "One.", "type": "paragraph", "page": 0},
-             {"id": "b", "text": "Two.", "type": "formula", "page": 0}])
+            [
+                {"id": "a", "text": "One.", "type": "paragraph", "page": 0},
+                {"id": "b", "text": "Two.", "type": "formula", "page": 0},
+            ]
+        )
         service.execute(session.session_id)
         prop = session.graphs["property"]
         assert sorted(prop.node_types()) == ["formula", "paragraph"]
@@ -111,6 +132,7 @@ class TestPropertyGraph:
 
 
 # ── V7.2 State Snapshot ────────────────────────────────────────────────
+
 
 class TestStateSnapshot:
     def test_snapshot_capture_and_restore(self, service, blocks):
@@ -148,8 +170,10 @@ class TestStateSnapshot:
         assert not d.is_empty
 
     def test_incremental_plan_from_document_diff(self, service):
-        orig = [{"id": "n0", "text": "Alpha.", "type": "paragraph", "page": 0},
-                {"id": "n1", "text": "Beta.", "type": "paragraph", "page": 0}]
+        orig = [
+            {"id": "n0", "text": "Alpha.", "type": "paragraph", "page": 0},
+            {"id": "n1", "text": "Beta.", "type": "paragraph", "page": 0},
+        ]
         new = [dict(b) for b in orig]
         new[0]["text"] = "Alpha CHANGED."
         plan = service.incremental.plan(orig, new)
@@ -170,6 +194,7 @@ class TestStateSnapshot:
 
 # ── V7.3 Runtime Service ───────────────────────────────────────────────
 
+
 class TestRuntimeService:
     def test_session_lifecycle(self, service, blocks):
         session = service.open(blocks)
@@ -181,15 +206,17 @@ class TestRuntimeService:
         assert session.session_id not in service.sessions.list_ids()
 
     def test_incremental_run_only_affected(self, service):
-        orig = [{"id": "n0", "text": "One.", "type": "paragraph", "page": 0},
-                {"id": "n1", "text": "Two.", "type": "paragraph", "page": 0}]
+        orig = [
+            {"id": "n0", "text": "One.", "type": "paragraph", "page": 0},
+            {"id": "n1", "text": "Two.", "type": "paragraph", "page": 0},
+        ]
         s = service.open(orig)
         service.execute(s.session_id)
         s.document[0]["text"] = "One CHANGED."
         service.execute_incremental(s.session_id, ["n0"])
         trace = [t["operator"] for t in service.operator_graph.trace]
-        assert "parse" in trace          # source re-parse is required
-        assert "analyze" not in trace    # planning/analysis is skipped
+        assert "parse" in trace  # source re-parse is required
+        assert "analyze" not in trace  # planning/analysis is skipped
         assert "render" in trace
         assert service.scheduler.stats()["last"]["incremental"] is True
 
@@ -223,23 +250,38 @@ class TestRuntimeService:
 
 # ── V7.1 Operator Graph ────────────────────────────────────────────────
 
+
 class TestOperatorGraph:
     def test_execution_order_and_pruning(self, service):
         graph = service.operator_graph
         order = graph.order()
-        assert order == ["parse", "analyze", "layout", "plan", "translate",
-                         "review", "render"]
+        assert order == [
+            "parse",
+            "analyze",
+            "layout",
+            "plan",
+            "translate",
+            "review",
+            "render",
+        ]
         # pruning from 'translate' keeps only the downstream sub-graph
         pruned = graph.prune_from("translate")
         assert pruned == ["translate", "review", "render"]
         # dependents set
         assert graph.dependents("parse") == {
-            "analyze", "layout", "plan", "render", "review", "translate"}
+            "analyze",
+            "layout",
+            "plan",
+            "render",
+            "review",
+            "translate",
+        }
         assert graph.dependents("layout") == {"render"}
 
     def test_run_trace(self, service):
         session = service.open(
-            [{"id": "a", "text": "Hi.", "type": "paragraph", "page": 0}])
+            [{"id": "a", "text": "Hi.", "type": "paragraph", "page": 0}]
+        )
         out = service.execute(session.session_id)
         assert out.stats.total_nodes >= 1
         assert set(out.rendered) == {"html", "pdf", "text"}

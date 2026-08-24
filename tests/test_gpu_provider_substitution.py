@@ -20,7 +20,8 @@ from pdf2zh import doclayout as dl
 
 def _patch_exec(monkeypatch, exec_gpu):
     monkeypatch.setattr(
-        "pdf2zh.doclayout._exec_gpu_providers", lambda: set(exec_gpu),
+        "pdf2zh.doclayout._exec_gpu_providers",
+        lambda: set(exec_gpu),
     )
 
 
@@ -36,13 +37,15 @@ class TestDoclayoutSubstitution:
         assert out == ["AzureExecutionProvider", "CPUExecutionProvider"]
 
     def test_cuda_registered_but_ineffective_substitutes_dml(
-        self, monkeypatch,
+        self,
+        monkeypatch,
     ):
         # CUDA 已注册但执行级不可用（缺 DLL），DML 可执行 → 替换
         monkeypatch.setattr(
             "pdf2zh.doclayout._ort_available_providers",
             lambda: [
-                "CUDAExecutionProvider", "AzureExecutionProvider",
+                "CUDAExecutionProvider",
+                "AzureExecutionProvider",
                 "CPUExecutionProvider",
             ],
         )
@@ -97,7 +100,8 @@ class TestBabeldocSubstitution:
         monkeypatch.setattr(
             "pdf2zh.doclayout._ort_available_providers",
             lambda: [
-                "CUDAExecutionProvider", "AzureExecutionProvider",
+                "CUDAExecutionProvider",
+                "AzureExecutionProvider",
                 "CPUExecutionProvider",
             ],
         )
@@ -116,11 +120,11 @@ class TestBabeldocSubstitution:
         with caplog.at_level(logging.WARNING, logger="pdf2zh.babeldoc_onnx_backend"):
             out = bob.resolve_babeldoc_providers("cuda")
         assert out == ["CPUExecutionProvider"]
-        assert any("no GPU provider is available" in r.message
-                   for r in caplog.records)
+        assert any("no GPU provider is available" in r.message for r in caplog.records)
 
     def test_session_fallback_warning_not_duplicated_for_cpu_only_resolve(
-        self, monkeypatch,
+        self,
+        monkeypatch,
     ):
         """resolve 已降级 CPU-only 时，_patched_init 不再重复报 session 回退。"""
         # 静态验证：providers 全 CPU 时 _session_has_gpu 分支不应触发告警路径。

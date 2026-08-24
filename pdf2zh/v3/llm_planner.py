@@ -9,6 +9,7 @@ provider 缺省/失败时回退规则规划器（零 LLM 依赖）。
         ▼
     LLMRepairPlanner.plan → {"repair":"toc_split","reason":"..."}
 """
+
 from __future__ import annotations
 
 import json
@@ -46,8 +47,12 @@ class RuleRepairPlanner(RepairPlanner):
 class LLMRepairPlanner(RepairPlanner):
     """LLM 规划器：provider（v3.translator.LLMProvider 接口）决策。"""
 
-    def __init__(self, provider=None, model: str = "gpt-4o-mini",
-                 fallback: Optional[RepairPlanner] = None) -> None:
+    def __init__(
+        self,
+        provider=None,
+        model: str = "gpt-4o-mini",
+        fallback: Optional[RepairPlanner] = None,
+    ) -> None:
         self.provider = provider
         self.model = model
         self.fallback = fallback or RuleRepairPlanner()
@@ -59,13 +64,20 @@ class LLMRepairPlanner(RepairPlanner):
             "You are a document engineer. Given a document problem and "
             "evidence, choose ONE repair strategy from: "
             f"{sorted(set(RULE_MAP.values()))}. "
-            'Reply with JSON {"repair": "<strategy>", "reason": "<why>"}.')
+            'Reply with JSON {"repair": "<strategy>", "reason": "<why>"}.'
+        )
         try:
             resp = self.provider.complete(
-                [{"role": "system", "content": prompt},
-                 {"role": "user",
-                  "content": f"problem={problem} evidence={json.dumps(evidence, ensure_ascii=False)}"}],
-                model=self.model, temperature=0.0)
+                [
+                    {"role": "system", "content": prompt},
+                    {
+                        "role": "user",
+                        "content": f"problem={problem} evidence={json.dumps(evidence, ensure_ascii=False)}",
+                    },
+                ],
+                model=self.model,
+                temperature=0.0,
+            )
             payload = json.loads((resp.text or "").strip())
             chosen = str(payload.get("repair", "")).strip()
             if chosen in set(RULE_MAP.values()):
@@ -75,5 +87,4 @@ class LLMRepairPlanner(RepairPlanner):
         return self.fallback.plan(problem, evidence)
 
 
-__all__ = ["RULE_MAP", "RepairPlanner", "RuleRepairPlanner",
-           "LLMRepairPlanner"]
+__all__ = ["RULE_MAP", "RepairPlanner", "RuleRepairPlanner", "LLMRepairPlanner"]

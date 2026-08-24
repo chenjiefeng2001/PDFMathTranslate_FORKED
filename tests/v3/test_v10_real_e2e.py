@@ -10,6 +10,7 @@
 - Geometry 聚类接管：纯文本页 adopt；公式占位页回退；
 - 新侧通道：render_takeover / translation_qa 在 converter 全链跑通。
 """
+
 import io
 import os
 import tempfile
@@ -72,6 +73,7 @@ def build_converter(layout_page=0, **kwargs):
     conv.fontmap, conv.fontid = {}, {}
     conv.text_metrics = {}
     from pdf2zh.collision_resolver import CollisionResolver
+
     conv.collision_resolver = CollisionResolver()
     translator = Mock()
     translator.translate = Mock(side_effect=lambda t: "YI" + t)
@@ -99,8 +101,9 @@ class TestGeometryClusterAdoption(unittest.TestCase):
         page = LTPage(1, (0, 0, 600, 800))
         add_text(page, 50, 700, "Body text goes here")
         conv = build_converter(geometry_cluster=True, geometry_adoptions={})
-        with patch("pdf2zh.v3.geometry.chars_from_ltpage",
-                   return_value=[]):  # 模拟字符流缺失 → 不可接管
+        with patch(
+            "pdf2zh.v3.geometry.chars_from_ltpage", return_value=[]
+        ):  # 模拟字符流缺失 → 不可接管
             conv.receive_layout(page)
         report = conv.geometry_adoptions[1]
         self.assertFalse(report["adopted"])
@@ -125,8 +128,17 @@ class TestDoubleTrackInvariance(unittest.TestCase):
         conv_on = build_converter(processor_channels=True)
         conv_off.receive_layout(page_a)
         conv_on.receive_layout(page_b)
-        keys = ("text", "translated", "x", "y", "width", "height",
-                "src_box", "dst_box", "node_type")
+        keys = (
+            "text",
+            "translated",
+            "x",
+            "y",
+            "width",
+            "height",
+            "src_box",
+            "dst_box",
+            "node_type",
+        )
         off = [tuple(r.get(k) for k in keys) for r in conv_off._gate_records]
         on = [tuple(r.get(k) for k in keys) for r in conv_on._gate_records]
         self.assertEqual(off, on)
@@ -164,12 +176,17 @@ class TestRealPdfLinkRemapE2E(unittest.TestCase):
 
     def _make_pdf(self, path):
         import fitz
+
         doc = fitz.open()
         page = doc.new_page(width=612, height=792)
         page.insert_text((72, 104), "Source paragraph text", fontsize=10)
-        page.insert_link({"kind": fitz.LINK_URI,
-                          "from": fitz.Rect(72, 94, 260, 104),
-                          "uri": "http://example.com"})
+        page.insert_link(
+            {
+                "kind": fitz.LINK_URI,
+                "from": fitz.Rect(72, 94, 260, 104),
+                "uri": "http://example.com",
+            }
+        )
         doc.save(path)
         doc.close()
 
@@ -204,6 +221,7 @@ class TestRealPdfLinkRemapE2E(unittest.TestCase):
 
         # 修正后的 rect 应命中译后 dst 几何（y_flip 后的 pdfminer 空间）
         from pdf2zh.v3.link_remap import rect_iou
+
         rec = records[0][0]
         ph = doc_zh[0].rect.height
         src = rec["src_box"]

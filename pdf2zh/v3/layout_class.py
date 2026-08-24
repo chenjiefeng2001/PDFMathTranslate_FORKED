@@ -10,6 +10,7 @@
 （``cx, cy = int(child.x0), int(child.y0)``，layout 掩码以页面点尺度
 渲染）。段落级类别取段落 bbox 中心采样。
 """
+
 from __future__ import annotations
 
 import re
@@ -76,8 +77,7 @@ def heuristic_layout_class(para) -> str:
     uni_sizes = {round(s, 1) for s in sizes}
     if len(uni_sizes) == 1 and sizes[0] >= 18.0 and len(glyphs) <= 24:
         return "title"
-    if (max(sizes) > med * 1.25 and max(sizes) > min(sizes) * 1.15
-            and len(sizes) >= 3):
+    if max(sizes) > med * 1.25 and max(sizes) > min(sizes) * 1.15 and len(sizes) >= 3:
         return "title"
     return "plain text"
 

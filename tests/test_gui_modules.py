@@ -36,7 +36,6 @@ from pdf2zh.gui.logger import (
     get_stderr_capture,
 )
 
-
 # =============================================================================
 # 1. State Management Tests
 # =============================================================================
@@ -56,7 +55,9 @@ class TestTaskState:
 
     def test_with_values(self):
         s = TaskState(
-            task_id="t1", status="running", progress=50.0,
+            task_id="t1",
+            status="running",
+            progress=50.0,
             file_list=["doc.pdf"],
             result_files=[{"name": "out.pdf", "path": "/tmp/out.pdf"}],
         )
@@ -205,8 +206,13 @@ class TestThreadAwareLogHandler:
         handler = ThreadAwareLogHandler()
         tid = handler.register_thread()
         record = logging.LogRecord(
-            name="test", level=logging.INFO,
-            pathname="", lineno=0, msg="Progress: 50%", args=None, exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="Progress: 50%",
+            args=None,
+            exc_info=None,
         )
         handler.emit(record)
         q = handler.get_queue(tid)
@@ -221,8 +227,13 @@ class TestThreadAwareLogHandler:
         handler = ThreadAwareLogHandler()
         tid = handler.register_thread()
         record = logging.LogRecord(
-            name="test", level=logging.INFO,
-            pathname="", lineno=0, msg="General log", args=None, exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="General log",
+            args=None,
+            exc_info=None,
         )
         handler.emit(record)
         q = handler.get_queue(tid)
@@ -233,8 +244,12 @@ class TestThreadAwareLogHandler:
         handler = ThreadAwareLogHandler()
         for i in range(5):
             record = logging.LogRecord(
-                name="test", level=logging.INFO,
-                pathname="", lineno=0, msg=f"detail line {i}", args=None,
+                name="test",
+                level=logging.INFO,
+                pathname="",
+                lineno=0,
+                msg=f"detail line {i}",
+                args=None,
                 exc_info=None,
             )
             handler.emit(record)
@@ -265,11 +280,13 @@ class TestThreadAwareLogHandler:
 class TestDiagnosticPanel:
     def test_build_diagnostic_markdown_empty(self):
         from pdf2zh.gui.components.diagnostic_panel import build_diagnostic_markdown
+
         result = build_diagnostic_markdown()
         assert "*" in result or "等待" in result or "waiting" in result.lower()
 
     def test_build_diagnostic_markdown_with_scores(self):
         from pdf2zh.gui.components.diagnostic_panel import build_diagnostic_markdown
+
         result = build_diagnostic_markdown(
             quality_scores={
                 "translation_score": 95.0,
@@ -285,6 +302,7 @@ class TestDiagnosticPanel:
 
     def test_build_diagnostic_markdown_with_node_overview(self):
         from pdf2zh.gui.components.diagnostic_panel import build_diagnostic_markdown
+
         result = build_diagnostic_markdown(
             node_overview={
                 "pages": 5,
@@ -300,6 +318,7 @@ class TestDiagnosticPanel:
 
     def test_build_diagnostic_markdown_passed(self):
         from pdf2zh.gui.components.diagnostic_panel import build_diagnostic_markdown
+
         result = build_diagnostic_markdown(
             quality_scores={"translation_score": 100.0},
             diagnostic_summary="All checks passed",
@@ -309,6 +328,7 @@ class TestDiagnosticPanel:
     def test_create_diagnostic_panel_returns_dict(self):
         # This test only verifies the function exists and returns expected keys
         from pdf2zh.gui.components.diagnostic_panel import create_diagnostic_panel
+
         # We can't instantiate gradio components in headless mode without catching import errors
         assert callable(create_diagnostic_panel)
 
@@ -316,14 +336,18 @@ class TestDiagnosticPanel:
 class TestHealingDashboard:
     def test_healing_markdown_empty(self):
         from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+
         result = build_healing_markdown()
         assert "诊断" in result or "diagnostic" in result.lower()
 
     def test_healing_markdown_legacy_report(self):
         from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+
         result = build_healing_markdown(
             diagnostic_report={
-                "errors": 2, "warnings": 1, "admissible": False,
+                "errors": 2,
+                "warnings": 1,
+                "admissible": False,
                 "issues": [],
             },
         )
@@ -333,9 +357,13 @@ class TestHealingDashboard:
 
     def test_healing_markdown_v4_report(self):
         from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+
         result = build_healing_markdown(
             diagnostic_report={
-                "total": 10, "passed": 8, "failed": 2, "pass_rate": 80.0,
+                "total": 10,
+                "passed": 8,
+                "failed": 2,
+                "pass_rate": 80.0,
                 "records": [],
             },
         )
@@ -344,18 +372,31 @@ class TestHealingDashboard:
 
     def test_healing_markdown_actions_and_run(self):
         from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+
         result = build_healing_markdown(
             diagnostic_report={
-                "errors": 1, "warnings": 0, "admissible": False, "issues": [],
+                "errors": 1,
+                "warnings": 0,
+                "admissible": False,
+                "issues": [],
             },
             repair_records=[
-                {"code": "unicode_error", "node_id": "p1_0", "page": 1,
-                 "severity": "error", "message": "Unicode 损坏",
-                 "action": "Unicode 修复 (OCR 计划)", "status": "applied"},
+                {
+                    "code": "unicode_error",
+                    "node_id": "p1_0",
+                    "page": 1,
+                    "severity": "error",
+                    "message": "Unicode 损坏",
+                    "action": "Unicode 修复 (OCR 计划)",
+                    "status": "applied",
+                },
             ],
             heal_status={
-                "ran": True, "iterations": 1,
-                "before_errors": 1, "after_errors": 0, "improved": True,
+                "ran": True,
+                "iterations": 1,
+                "before_errors": 1,
+                "after_errors": 0,
+                "improved": True,
             },
             confidence_stats={"annotated": 12, "avg": 0.8, "min": 0.1, "max": 0.99},
         )
@@ -367,6 +408,7 @@ class TestHealingDashboard:
 
     def test_healing_markdown_failed_run(self):
         from pdf2zh.gui.components.diagnostic_panel import build_healing_markdown
+
         result = build_healing_markdown(
             diagnostic_summary="Diagnostics unavailable",
             heal_status={"ran": False, "error": "boom"},
@@ -389,11 +431,13 @@ class TestServicesLayer:
             TaskProgressEvent,
             ServiceConfig,
         )
+
         assert RuntimeService is not None
         assert TranslationRequest is not None
 
     def test_translation_request_to_dict(self):
         from pdf2zh.services.runtime_service import TranslationRequest
+
         req = TranslationRequest(
             source_path="/tmp/test.pdf",
             target_lang="zh-CN",
@@ -407,6 +451,7 @@ class TestServicesLayer:
 
     def test_task_stage_values(self):
         from pdf2zh.services.runtime_service import TaskStage
+
         stages = [s.value for s in TaskStage]
         assert "parsing" in stages
         assert "analyzing" in stages
@@ -417,6 +462,7 @@ class TestServicesLayer:
 
     def test_service_config_v4_flags(self):
         from pdf2zh.services.runtime_service import ServiceConfig
+
         config = ServiceConfig(
             use_v4_engine=True,
             use_v4_translator=True,
@@ -430,10 +476,12 @@ class TestServicesLayer:
 
     def test_task_progress_event(self):
         from pdf2zh.services.runtime_service import TaskProgressEvent
+
         event = TaskProgressEvent(
             task_id="test",
             stage="evaluating",
-            progress=95.0,            current_node_count=128,
+            progress=95.0,
+            current_node_count=128,
             diagnostics_count=3,
             message="Evaluating quality",
         )
@@ -478,10 +526,16 @@ class TestServicesLayer:
 
         svc = RuntimeService()
         with svc._batch_ctx_lock:
-            svc._batch_ctx["t3"] = type("Ctx", (), {
-                "total_files": 2, "completed_files": 0, "failed_files": 0,
-                "current_file": "a.pdf",
-            })()
+            svc._batch_ctx["t3"] = type(
+                "Ctx",
+                (),
+                {
+                    "total_files": 2,
+                    "completed_files": 0,
+                    "failed_files": 0,
+                    "current_file": "a.pdf",
+                },
+            )()
         emitted = []
         svc.add_event_listener(lambda ev: emitted.append(ev.progress))
         # File 1 translating window: 50 -> 80 (aggregated 25 -> 40)
@@ -540,19 +594,26 @@ class TestServicesLayer:
                 self.metadata = metadata or {}
 
         svc = RuntimeService()
-        dm = _StubModel({
-            "diagnostics": {
-                "errors": 0, "warnings": 1, "admissible": True,
-                "issues": [
-                    {"code": "toc_low_confidence", "node_id": "p1_0", "page": 1,
-                     "severity": "warning", "message": "low toc"},
-                ],
-            },
-            "confidence_stats": {"annotated": 3, "avg": 0.7},
-        })
-        diag, heal, recs, conf = svc._collect_legacy_diagnostics(
-            {"document_model": dm}
+        dm = _StubModel(
+            {
+                "diagnostics": {
+                    "errors": 0,
+                    "warnings": 1,
+                    "admissible": True,
+                    "issues": [
+                        {
+                            "code": "toc_low_confidence",
+                            "node_id": "p1_0",
+                            "page": 1,
+                            "severity": "warning",
+                            "message": "low toc",
+                        },
+                    ],
+                },
+                "confidence_stats": {"annotated": 3, "avg": 0.7},
+            }
         )
+        diag, heal, recs, conf = svc._collect_legacy_diagnostics({"document_model": dm})
         assert diag == dm.metadata["diagnostics"]
         assert heal is None
         assert recs and recs[0]["code"] == "toc_low_confidence"
@@ -565,7 +626,11 @@ class TestServicesLayer:
         from pdf2zh.services.runtime_service import RuntimeService
         from pdf2zh.v3.document_model import DocumentModel
         from pdf2zh.v3.canonical_page import (
-            BlockModel, GlyphModel, LineModel, PageModel, SpanModel,
+            BlockModel,
+            GlyphModel,
+            LineModel,
+            PageModel,
+            SpanModel,
         )
 
         glyph = GlyphModel(char="A", decode="notdef")
@@ -575,16 +640,22 @@ class TestServicesLayer:
         page = PageModel(page_num=1, blocks=[block])
         dm = DocumentModel(pages=[page])
         dm.metadata["diagnostics"] = {
-            "errors": 1, "warnings": 0, "admissible": False,
+            "errors": 1,
+            "warnings": 0,
+            "admissible": False,
             "issues": [
-                {"code": "unicode_error", "node_id": "p1_0", "page": 1,
-                 "severity": "error", "message": "Unicode 损坏", "evidence": {}},
+                {
+                    "code": "unicode_error",
+                    "node_id": "p1_0",
+                    "page": 1,
+                    "severity": "error",
+                    "message": "Unicode 损坏",
+                    "evidence": {},
+                },
             ],
         }
         svc = RuntimeService()
-        diag, heal, recs, conf = svc._collect_legacy_diagnostics(
-            {"document_model": dm}
-        )
+        diag, heal, recs, conf = svc._collect_legacy_diagnostics({"document_model": dm})
         assert diag is not None
         assert heal is not None
         assert heal["ran"] is True
@@ -594,14 +665,17 @@ class TestServicesLayer:
 
     def test_collect_legacy_diagnostics_no_model(self):
         from pdf2zh.services.runtime_service import RuntimeService
+
         svc = RuntimeService()
         diag, heal, recs, conf = svc._collect_legacy_diagnostics({})
         assert (diag, heal, recs, conf) == (None, None, None, None)
 
     def test_mode_presets_resolve(self):
         from pdf2zh.services.runtime_service import (
-            resolve_mode_config, ServiceConfig,
+            resolve_mode_config,
+            ServiceConfig,
         )
+
         base = ServiceConfig()
         # quick 快速：经典管线 + 关闭全部现代 side-channel
         c0 = resolve_mode_config("quick", base)
@@ -631,8 +705,10 @@ class TestServicesLayer:
 
     def test_mode_auto_and_unknown_preserve_base(self):
         from pdf2zh.services.runtime_service import (
-            resolve_mode_config, ServiceConfig,
+            resolve_mode_config,
+            ServiceConfig,
         )
+
         base = ServiceConfig(use_v4_engine=True, run_evaluation=True)
         for mode in ("auto", "", "bogus", None):
             resolved = resolve_mode_config(mode, base)
@@ -641,6 +717,7 @@ class TestServicesLayer:
 
     def test_legacy_mode_kwargs_mapping(self):
         from pdf2zh.services.runtime_service import legacy_mode_kwargs
+
         assert legacy_mode_kwargs("quick")["document_model"] is False
         assert legacy_mode_kwargs("standard")["document_model"] is True
         k2 = legacy_mode_kwargs("quality")
@@ -652,6 +729,7 @@ class TestServicesLayer:
 
     def test_resolve_pipeline_maps_every_mode_to_working_pipeline(self):
         from pdf2zh.services.runtime_service import resolve_pipeline
+
         assert resolve_pipeline("auto") == "legacy"
         assert resolve_pipeline("quick") == "legacy"
         assert resolve_pipeline("standard") == "legacy"
@@ -663,23 +741,33 @@ class TestServicesLayer:
     def test_submit_task_records_mode_choice(self, monkeypatch):
         import tempfile
         from pdf2zh.services.runtime_service import (
-            RuntimeService, TranslationRequest,
+            RuntimeService,
+            TranslationRequest,
         )
+
         svc = RuntimeService()
         monkeypatch.setattr(svc, "_execute_task", lambda tid, req: None)
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
             f.write(b"%PDF-1.4\n%%EOF\n")
             tmp = f.name
-        tid = svc.submit_task(TranslationRequest(
-            source_path=tmp, files=[tmp], target_lang="zh-CN",
-            extra_config={"mode_choice": "standard"},
-        ))
+        tid = svc.submit_task(
+            TranslationRequest(
+                source_path=tmp,
+                files=[tmp],
+                target_lang="zh-CN",
+                extra_config={"mode_choice": "standard"},
+            )
+        )
         state = svc.get_task_state(tid)
         assert state is not None
         assert state.mode_choice == "standard"
-        default_tid = svc.submit_task(TranslationRequest(
-            source_path=tmp, files=[tmp], target_lang="en",
-        ))
+        default_tid = svc.submit_task(
+            TranslationRequest(
+                source_path=tmp,
+                files=[tmp],
+                target_lang="en",
+            )
+        )
         dstate = svc.get_task_state(default_tid)
         assert dstate.mode_choice == "auto"
 
@@ -763,16 +851,23 @@ class TestV120ZipPackaging:
 
         svc = RuntimeService()
         svc._store.create_task("t_batch")
-        ctx = type("Ctx", (), {
-            "total_files": 2, "completed_files": 1, "failed_files": 0,
-            "current_file": "b.pdf",
-        })()
+        ctx = type(
+            "Ctx",
+            (),
+            {
+                "total_files": 2,
+                "completed_files": 1,
+                "failed_files": 0,
+                "current_file": "b.pdf",
+            },
+        )()
         with svc._batch_ctx_lock:
             svc._batch_ctx["t_batch"] = ctx
         a = tmp_path / "a.pdf"
         a.write_bytes(b"%PDF-1.7 a")
         svc._store.update_task(
-            "t_batch", result_files=[{"name": "a.pdf", "path": str(a)}],
+            "t_batch",
+            result_files=[{"name": "a.pdf", "path": str(a)}],
         )
         zip_path = svc._build_batch_zip("t_batch")
         assert zip_path and zip_path.endswith(".zip")
@@ -872,13 +967,23 @@ class TestV120GuiSync:
         import pdf2zh.gui.entry as entry
 
         called = []
-        for name in ("_register_preview_route", "_register_events_route", "_register_logs_route"):
+        for name in (
+            "_register_preview_route",
+            "_register_events_route",
+            "_register_logs_route",
+        ):
+
             def stub(*args, name=name, **kwargs):
                 called.append(name)
+
             monkeypatch.setattr("pdf2zh.gui.app." + name, stub)
         entry._register_custom_routes(None)
         assert "_register_logs_route" in called
-        assert called == ["_register_preview_route", "_register_events_route", "_register_logs_route"]
+        assert called == [
+            "_register_preview_route",
+            "_register_events_route",
+            "_register_logs_route",
+        ]
 
 
 # =============================================================================
@@ -889,6 +994,7 @@ class TestV120GuiSync:
 class TestImportResolution:
     def test_services_importable(self):
         from pdf2zh.services import RuntimeService, TranslationRequest
+
         assert RuntimeService is not None
 
     def test_gui_submodules_importable(self):
@@ -903,20 +1009,24 @@ class TestImportResolution:
             create_diagnostic_panel,
             build_diagnostic_markdown,
         )
+
         assert GLOBAL_TASK_STORE is not None
         assert create_upload_panel is not None
         assert build_diagnostic_markdown is not None
 
     def test_gui_app_importable(self):
         from pdf2zh.gui.app import create_gui
+
         assert create_gui is not None
 
     def test_gui_entry_importable(self):
         from pdf2zh.gui.entry import setup_gui
+
         assert setup_gui is not None
 
     def test_gui_init_has_setup_gui(self):
         import pdf2zh.gui as gui
+
         assert hasattr(gui, "setup_gui")
         assert callable(gui.setup_gui)
 
@@ -929,11 +1039,13 @@ class TestImportResolution:
 class TestWorkerModule:
     def test_get_runtime_service(self):
         from pdf2zh.gui.worker import get_runtime_service
+
         svc = get_runtime_service()
         assert svc is not None
 
     def test_cancel_task_returns_bool(self):
         from pdf2zh.gui.worker import cancel_task
+
         result = cancel_task("nonexistent_task_id")
         assert isinstance(result, bool)
 
@@ -944,6 +1056,7 @@ class TestWorkerModule:
             background_translation_worker,
             _resolve_source_path,
         )
+
         assert callable(get_runtime_service)
         assert callable(submit_translation_task)
         assert callable(background_translation_worker)
@@ -951,23 +1064,29 @@ class TestWorkerModule:
 
     def test_resolve_source_path_none(self):
         from pdf2zh.gui.worker import _resolve_source_path
+
         result = _resolve_source_path("file", None, "", None)
         assert result is None
 
-
     def test_resolve_source_paths_multi(self):
         from pdf2zh.gui.worker import _resolve_source_paths
+
         paths = _resolve_source_paths(
-            "file", ["/tmp/a.pdf", "/tmp/b.pdf"], "", None,
+            "file",
+            ["/tmp/a.pdf", "/tmp/b.pdf"],
+            "",
+            None,
         )
         assert paths == ["/tmp/a.pdf", "/tmp/b.pdf"]
 
     def test_resolve_source_paths_single(self):
         from pdf2zh.gui.worker import _resolve_source_paths
+
         assert _resolve_source_paths("file", "/tmp/a.pdf", "", None) == ["/tmp/a.pdf"]
 
     def test_resolve_source_paths_empty(self):
         from pdf2zh.gui.worker import _resolve_source_paths
+
         assert _resolve_source_paths("file", None, "", None) == []
         assert _resolve_source_paths("file", [], "", None) == []
 
@@ -979,7 +1098,10 @@ class TestWorkerModule:
                 self.path = path
 
         assert _resolve_source_paths(
-            "file", [FakeFile("/tmp/a.pdf"), FakeFile("/tmp/b.pdf")], "", None,
+            "file",
+            [FakeFile("/tmp/a.pdf"), FakeFile("/tmp/b.pdf")],
+            "",
+            None,
         ) == ["/tmp/a.pdf", "/tmp/b.pdf"]
 
 
@@ -991,18 +1113,22 @@ class TestWorkerModule:
 class TestComponentInterfaces:
     def test_upload_panel_returns_dict(self):
         from pdf2zh.gui.components.upload_panel import create_upload_panel
+
         assert callable(create_upload_panel)
 
     def test_config_panel_returns_dict(self):
         from pdf2zh.gui.components.config_panel import create_config_panel
+
         assert callable(create_config_panel)
 
     def test_progress_panel_returns_dict(self):
         from pdf2zh.gui.components.progress_panel import create_progress_panel
+
         assert callable(create_progress_panel)
 
     def test_preview_panel_returns_dict(self):
         from pdf2zh.gui.components.preview_panel import create_preview_panel
+
         assert callable(create_preview_panel)
 
 
@@ -1014,14 +1140,18 @@ class TestComponentInterfaces:
 class TestStylesModule:
     def test_token_parity_and_completeness(self):
         from pdf2zh.gui.styles import (
-            LIGHT_TOKENS, DARK_TOKENS, TOKEN_KEYS,
+            LIGHT_TOKENS,
+            DARK_TOKENS,
+            TOKEN_KEYS,
         )
+
         assert set(LIGHT_TOKENS) == set(DARK_TOKENS)
         assert set(TOKEN_KEYS) <= set(LIGHT_TOKENS)
 
     def test_token_namespaces_are_ontological(self):
         """shadow/radius/spacing/typography/motion must NOT live under --color-*."""
         from pdf2zh.gui.styles import UI_CSS
+
         assert "--radius-sm" in UI_CSS
         assert "--shadow-sm" in UI_CSS
         assert "--space-1" in UI_CSS
@@ -1034,25 +1164,36 @@ class TestStylesModule:
     def test_gradio_dark_vars_derived_from_tokens(self):
         """Gradio dark overrides are a single-source derivation of DARK_TOKENS."""
         from pdf2zh.gui.styles import (
-            DARK_TOKENS, GRADIO_DARK_VARS, build_gradio_dark_vars,
+            DARK_TOKENS,
+            GRADIO_DARK_VARS,
+            build_gradio_dark_vars,
         )
+
         assert GRADIO_DARK_VARS == build_gradio_dark_vars(DARK_TOKENS)
         # no unresolved "{token}" placeholders may leak into the CSS
         assert not any("{" in v for v in GRADIO_DARK_VARS.values())
 
     def test_component_css_uses_token_vars_only(self):
         from pdf2zh.gui.styles import COMPONENT_CSS, LIGHT_TOKENS
+
         assert "var(--color-" in COMPONENT_CSS
         assert "var(--radius-" in COMPONENT_CSS
         # hex colors may only appear inside the token palettes / gradio maps
         import re
+
         hexes = re.findall(r"#[0-9a-fA-F]{3,8}\b", COMPONENT_CSS)
         assert hexes == []
 
     def test_css_vars_all_defined_by_tokens(self):
         """Every var() referenced in the component CSS is emitted by tokens."""
         import re
-        from pdf2zh.gui.styles import COMPONENT_CSS, UI_CSS, build_token_css, LIGHT_TOKENS
+        from pdf2zh.gui.styles import (
+            COMPONENT_CSS,
+            UI_CSS,
+            build_token_css,
+            LIGHT_TOKENS,
+        )
+
         vars_used = set(re.findall(r"var\((--[a-z0-9-]+)\)", COMPONENT_CSS))
         tokens = {
             m.rstrip(":")
@@ -1065,23 +1206,27 @@ class TestStylesModule:
 
     def test_dark_mode_selector_in_ui_css(self):
         from pdf2zh.gui.styles import UI_CSS
+
         assert 'html[data-theme="dark"]' in UI_CSS
         assert ".stepbar" in UI_CSS
         assert ".theme-toggle-btn" in UI_CSS
 
     def test_session_js_persists_theme_and_client(self):
         from pdf2zh.gui.styles import SESSION_JS
+
         assert "pdf2zh_theme" in SESSION_JS
         assert "pdf2zh_client_id" in SESSION_JS
         assert "pdf2zh_last_task_id" in SESSION_JS
 
     def test_toggle_theme_js_is_frontend_only(self):
         from pdf2zh.gui.styles import TOGGLE_THEME_JS
+
         assert "data-theme" in TOGGLE_THEME_JS
         assert "localStorage" in TOGGLE_THEME_JS
 
     def test_status_badge_html(self):
         from pdf2zh.gui.styles import build_status_badge_html
+
         assert "status-success" in build_status_badge_html("completed")
         assert "status-error" in build_status_badge_html("failed")
         assert "status-running" in build_status_badge_html("translating")
@@ -1091,6 +1236,7 @@ class TestStylesModule:
     def test_i18n_copy_parity(self):
         """Every copy entry has both languages; every stage label is covered."""
         from pdf2zh.gui.i18n import T, STAGE_LABELS, B
+
         for key, (zh, en) in T.items():
             assert zh and en, key
             assert " / " in B(key)
@@ -1106,12 +1252,14 @@ class TestStylesModule:
 class TestStepBar:
     def test_idle_stepbar(self):
         from pdf2zh.gui.components.progress_panel import build_stepbar_html
+
         html = build_stepbar_html("", 0.0)
         assert "stepbar" in html
         assert html.count("step-item") == 4  # four stages
 
     def test_stepbar_is_aria_annotated(self):
         from pdf2zh.gui.components.progress_panel import build_stepbar_html
+
         html = build_stepbar_html("translating", 40.0)
         assert 'role="list"' in html
         assert 'role="listitem"' in html
@@ -1119,22 +1267,26 @@ class TestStepBar:
 
     def test_active_stage(self):
         from pdf2zh.gui.components.progress_panel import build_stepbar_html
+
         html = build_stepbar_html("translating", 40.0)
         assert "step-item active" in html
         assert "step-connector done" in html
 
     def test_completed_stepbar_all_done(self):
         from pdf2zh.gui.components.progress_panel import build_stepbar_html
+
         html = build_stepbar_html("completed", 100.0)
         assert html.count("step-item done") == 4
 
     def test_failed_stepbar_marks_error(self):
         from pdf2zh.gui.components.progress_panel import build_stepbar_html
+
         html = build_stepbar_html("failed", 10.0)
         assert "step-item error" in html
 
     def test_progress_bar_html_states(self):
         from pdf2zh.gui.components.progress_panel import build_progress_bar_html
+
         done = build_progress_bar_html("completed", 100.0, "all good")
         assert "progress-done" in done
         err = build_progress_bar_html("failed", 10.0, "boom")
@@ -1144,6 +1296,7 @@ class TestStepBar:
 
     def test_progress_bar_aria(self):
         from pdf2zh.gui.components.progress_panel import build_progress_bar_html
+
         html = build_progress_bar_html("translating", 45.0, "working")
         assert 'role="progressbar"' in html
         assert 'aria-valuenow="45.0"' in html
@@ -1157,20 +1310,21 @@ class TestStepBar:
 class TestUploadPanelSummary:
     def test_build_file_summary_html_empty(self):
         from pdf2zh.gui.components.upload_panel import build_file_summary_html
+
         assert build_file_summary_html(None) == ""
         assert build_file_summary_html([]) == ""
 
     def test_build_file_summary_html_single(self):
         from pdf2zh.gui.components.upload_panel import build_file_summary_html
-        html = build_file_summary_html(
-            {"name": "tmp/paper.pdf", "size": 2048}
-        )
+
+        html = build_file_summary_html({"name": "tmp/paper.pdf", "size": 2048})
         assert "paper.pdf" in html
         assert "已选择" in html
         assert "2.0 KB" in html
 
     def test_build_file_summary_html_multi(self):
         from pdf2zh.gui.components.upload_panel import build_file_summary_html
+
         html = build_file_summary_html(
             [
                 {"name": "a.pdf", "size": 1024},
@@ -1183,6 +1337,7 @@ class TestUploadPanelSummary:
 
     def test_build_file_summary_html_path_strings(self):
         from pdf2zh.gui.components.upload_panel import build_file_summary_html
+
         html = build_file_summary_html(["tmp/a.pdf", "tmp/b.pdf"])
         assert "a.pdf" in html
         assert "b.pdf" in html
@@ -1190,6 +1345,7 @@ class TestUploadPanelSummary:
 
     def test_build_file_summary_html_single_path(self):
         from pdf2zh.gui.components.upload_panel import build_file_summary_html
+
         html = build_file_summary_html("tmp/paper.pdf")
         assert "paper.pdf" in html
 
@@ -1208,11 +1364,12 @@ class TestUploadPanelSummary:
         assert "b.pdf" in html
         assert "× 2" in html
 
-
     def test_human_size(self):
         from pdf2zh.gui.components.upload_panel import _human_size
+
         assert _human_size(0) == "0 B"
         assert _human_size(1500) == "1.5 KB"
+
 
 # =============================================================================
 # 8. Cleanup
@@ -1227,6 +1384,7 @@ def cleanup_global_store():
     for tid in GLOBAL_TASK_STORE.list_tasks():
         GLOBAL_TASK_STORE.remove(tid)
 
+
 # =============================================================================
 # 12. App Sync Contract Tests (app.py)
 # =============================================================================
@@ -1235,6 +1393,7 @@ def cleanup_global_store():
 class TestAppSyncContract:
     def test_sync_status_arity_matches_sync_outputs(self):
         import pdf2zh.gui.app as app
+
         # Building the Blocks wires every sync output; a mismatch would raise.
         app.create_gui()
         # 16 legacy slots + stepbar rail + header badge + panel badge + retry.
@@ -1243,12 +1402,14 @@ class TestAppSyncContract:
 
     def test_sync_components_has_retry(self):
         import pdf2zh.gui.app as app
+
         assert "retry_btn" in app._SYNC_COMPONENTS
         assert len(app._SYNC_COMPONENTS) == len(app._idle_updates())
 
     def test_create_gui_wires_new_components(self):
         import inspect
         import pdf2zh.gui.app as app
+
         app.create_gui()
         src = inspect.getsource(app.create_gui)
         assert "build_stepbar_html" in src
@@ -1259,6 +1420,7 @@ class TestAppSyncContract:
     def test_result_selector_replaces_legacy_dropdown(self):
         import inspect
         import pdf2zh.gui.app as app
+
         src = inspect.getsource(app.create_gui)
         assert "result_selector" in src
         assert "result_files_dropdown" not in src
@@ -1266,6 +1428,7 @@ class TestAppSyncContract:
     def test_theme_toggle_frontend_only(self):
         import inspect
         import pdf2zh.gui.app as app
+
         src = inspect.getsource(app.create_gui)
         assert "js=TOGGLE_THEME_JS" in src
         assert "theme_toggle" in src
@@ -1275,6 +1438,7 @@ class TestAppSyncContract:
         sync-trigger button and must not construct any gr.Timer."""
         import inspect
         import pdf2zh.gui.app as app
+
         app.create_gui()
         src = inspect.getsource(app.create_gui)
         assert "gr.Timer" not in src
@@ -1284,6 +1448,7 @@ class TestAppSyncContract:
     def test_events_route_registers_on_live_app(self):
         """_register_events_route adds /gui/events to the FastAPI app."""
         import pdf2zh.gui.app as app
+
         gui = app.create_gui()
         app._register_events_route(gui)
         paths = [getattr(r, "path", None) for r in gui.app.routes]
@@ -1291,6 +1456,7 @@ class TestAppSyncContract:
 
     def test_session_js_has_sse_client(self):
         from pdf2zh.gui.styles import SESSION_JS
+
         assert "EventSource" in SESSION_JS
         assert "/gui/events" in SESSION_JS
         assert "sync-trigger" in SESSION_JS
@@ -1333,13 +1499,15 @@ class TestEventNotifier:
 
         bus = EventBus()
         ev = bus.publish(
-            TaskProgressChanged(task_id="t1", progress=42.5, stage="render", message="hi")
+            TaskProgressChanged(
+                task_id="t1", progress=42.5, stage="render", message="hi"
+            )
         )
         frame = _format_frame(ev)
         lines = frame.splitlines()
         assert lines[0] == "id: 1"
         assert lines[1].startswith("data: ")
-        data = json.loads(lines[1][len("data: "):])
+        data = json.loads(lines[1][len("data: ") :])
         assert data["event_type"] == "TaskProgressChanged"
         assert data["task_id"] == "t1"
         assert data["seq"] == 1
@@ -1364,8 +1532,12 @@ class TestEventNotifier:
         seen = []
         for frame in frames:
             lines = frame.splitlines()
-            seen.append((int(lines[0].split(":")[1].strip()),
-                         json.loads(lines[1][len("data: "):])["event_type"]))
+            seen.append(
+                (
+                    int(lines[0].split(":")[1].strip()),
+                    json.loads(lines[1][len("data: ") :])["event_type"],
+                )
+            )
         assert seen == [(3, "TaskProgressChanged"), (4, "TaskMessageChanged")]
 
     def test_sse_stream_replays_missed_events_on_reconnect(self):
@@ -1474,14 +1646,19 @@ class TestNoticeChannel:
 
         stub.listeners[0](
             RuntimeNoticeEvent(
-                task_id="t1", severity="warning", title="CPU degraded",
-                detail="worker crashed", tip="retry --backend auto",
+                task_id="t1",
+                severity="warning",
+                title="CPU degraded",
+                detail="worker crashed",
+                tip="retry --backend auto",
             )
         )
         stub.listeners[0](
             TaskProgressEvent(
-                task_id="t1", stage=TaskStage.TRANSLATING.value,
-                progress=20.0, message="hi",
+                task_id="t1",
+                stage=TaskStage.TRANSLATING.value,
+                progress=20.0,
+                message="hi",
             )
         )
         types = [e.event_type for e in got]
@@ -1510,8 +1687,10 @@ class TestNoticeChannel:
             app._render_notice_emitted(
                 acc,
                 NoticeEmitted(
-                    task_id="t9", severity="warning",
-                    title="CPU degraded", tip="restart --backend auto",
+                    task_id="t9",
+                    severity="warning",
+                    title="CPU degraded",
+                    tip="restart --backend auto",
                 ),
             )
             assert "⚠️" in app._ACTIVE_NOTICES.get("t9", "")

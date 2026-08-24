@@ -12,6 +12,7 @@
 - 5.5 Corpus Regression：Expected IR 桶对比；
 - 主链路：diagnostics/confidence 进 model.metadata。
 """
+
 import unittest
 from unittest.mock import Mock
 
@@ -43,8 +44,7 @@ def make_char(x, y, text="A", size=10.0, fontname="Helvetica"):
 
 def add_text(page, x0, y, text, adv=9.0, fontname="Helvetica", size=10.0):
     for i, t in enumerate(text):
-        page.add(make_char(x0 + i * adv, y, t, fontname=fontname,
-                           size=size))
+        page.add(make_char(x0 + i * adv, y, t, fontname=fontname, size=size))
 
 
 def build_model():
@@ -59,6 +59,7 @@ def build_model():
 class TestDiagnostics(unittest.TestCase):
     def test_clean_model_admissible(self):
         from pdf2zh.v3.diagnostics import analyze_document
+
         model = build_model()
         report = analyze_document(model)
         self.assertTrue(report.admissible)
@@ -66,6 +67,7 @@ class TestDiagnostics(unittest.TestCase):
 
     def test_unicode_error_detected(self):
         from pdf2zh.v3.diagnostics import analyze_document
+
         model = build_model()
         page = model.pages[0]
         page.blocks[2].lines[0].spans[0].glyphs[0].decode = "fffd"
@@ -77,11 +79,19 @@ class TestDiagnostics(unittest.TestCase):
     def test_toc_merged_lines_detected(self):
         from pdf2zh.v3.diagnostics import analyze_document
         from pdf2zh.v3.canonical_page import BlockModel, LineModel
+
         model = build_model()
         page = model.pages[0]
-        page.blocks.append(BlockModel(
-            text="5.1 Intro ...... 291 5.2 Arch ...... 292\n5.3 Summary ...... 293",
-            kind="paragraph", x0=0, y0=0, x1=300, y1=20))
+        page.blocks.append(
+            BlockModel(
+                text="5.1 Intro ...... 291 5.2 Arch ...... 292\n5.3 Summary ...... 293",
+                kind="paragraph",
+                x0=0,
+                y0=0,
+                x1=300,
+                y1=20,
+            )
+        )
         page.blocks[-1].lines = [
             LineModel(text="5.1 Intro ...... 291 5.2 Arch ...... 292"),
             LineModel(text="5.3 Summary ...... 293"),
@@ -94,19 +104,22 @@ class TestDiagnostics(unittest.TestCase):
     def test_toc_low_confidence_warning(self):
         from pdf2zh.v3.diagnostics import analyze_document
         from pdf2zh.v3.canonical_page import BlockModel
+
         model = build_model()
         page = model.pages[0]
-        page.blocks.append(BlockModel(
-            text="5.1 Intro ...... 291", kind="toc",
-            x0=0, y0=0, x1=200, y1=10))
-        page.blocks[-1].metadata.update({"kind": "toc",
-                                         "toc_confidence": 0.3})
+        page.blocks.append(
+            BlockModel(
+                text="5.1 Intro ...... 291", kind="toc", x0=0, y0=0, x1=200, y1=10
+            )
+        )
+        page.blocks[-1].metadata.update({"kind": "toc", "toc_confidence": 0.3})
         report = analyze_document(model)
         codes = {i.code for i in report.issues}
         self.assertIn("toc_low_confidence", codes)
 
     def test_report_dict_and_summary(self):
         from pdf2zh.v3.diagnostics import analyze_document
+
         model = build_model()
         d = analyze_document(model).to_dict()
         self.assertIn("errors", d)
@@ -117,6 +130,7 @@ class TestDiagnostics(unittest.TestCase):
 class TestConfidenceModel(unittest.TestCase):
     def test_confidence_by_kind_and_penalty(self):
         from pdf2zh.v3.diagnostics import annotate_confidence, node_confidence
+
         model = build_model()
         annotate_confidence(model)
         p1 = model.pages[0]
@@ -124,8 +138,9 @@ class TestConfidenceModel(unittest.TestCase):
         # 取公式块（role_confidence 高 → base 高）验证置信度模型。
         body = next(b for b in p1.blocks if b.kind == "formula")
         self.assertGreaterEqual(body.metadata["confidence"], 0.8)
-        self.assertEqual(body.metadata["uncertainty"],
-                         round(1.0 - body.metadata["confidence"], 3))
+        self.assertEqual(
+            body.metadata["uncertainty"], round(1.0 - body.metadata["confidence"], 3)
+        )
         self.assertIn("confidence_source", body.metadata)
         # 替换字符 → 强惩罚
         body.lines[0].spans[0].glyphs[0].decode = "fffd"
@@ -135,6 +150,7 @@ class TestConfidenceModel(unittest.TestCase):
     def test_empty_block_min_confidence(self):
         from pdf2zh.v3.diagnostics import node_confidence
         from pdf2zh.v3.canonical_page import BlockModel
+
         b = BlockModel(text="", kind="paragraph")
         b.metadata["anomaly"] = "empty_text"
         conf, _, _ = node_confidence(b)
@@ -144,6 +160,7 @@ class TestConfidenceModel(unittest.TestCase):
 class TestEvidenceFusion(unittest.TestCase):
     def test_consistent_boost(self):
         from pdf2zh.v3.evidence import fuse_evidence, fuse_verdict
+
         fused = fuse_evidence({"ocr": 0.95, "layout": 0.9, "math": 0.98})
         self.assertGreaterEqual(fused, 0.93)
         v = fuse_verdict({"ocr": 0.95, "layout": 0.9})
@@ -152,6 +169,7 @@ class TestEvidenceFusion(unittest.TestCase):
 
     def test_conflict_penalty(self):
         from pdf2zh.v3.evidence import fuse_evidence, fuse_verdict
+
         fused = fuse_evidence({"ocr": 0.95, "math": 0.1})
         self.assertLess(fused, 0.8)
         v = fuse_verdict({"ocr": 0.95, "math": 0.1})
@@ -159,17 +177,26 @@ class TestEvidenceFusion(unittest.TestCase):
 
     def test_empty_scores_default(self):
         from pdf2zh.v3.evidence import fuse_evidence
+
         self.assertEqual(fuse_evidence({}), 0.5)
 
 
 class TestRepairEngine(unittest.TestCase):
     def _merged_model(self):
         from pdf2zh.v3.canonical_page import BlockModel, LineModel
+
         model = build_model()
         page = model.pages[0]
-        page.blocks.append(BlockModel(
-            text="5.1 Intro ...... 291 5.2 Arch ...... 292\n5.3 Summary ...... 293",
-            kind="paragraph", x0=0, y0=0, x1=300, y1=20))
+        page.blocks.append(
+            BlockModel(
+                text="5.1 Intro ...... 291 5.2 Arch ...... 292\n5.3 Summary ...... 293",
+                kind="paragraph",
+                x0=0,
+                y0=0,
+                x1=300,
+                y1=20,
+            )
+        )
         page.blocks[-1].lines = [
             LineModel(text="5.1 Intro ...... 291 5.2 Arch ...... 292"),
             LineModel(text="5.3 Summary ...... 293"),
@@ -179,6 +206,7 @@ class TestRepairEngine(unittest.TestCase):
     def test_toc_split_repair_rebuilds_blocks(self):
         from pdf2zh.v3.diagnostics import analyze_document
         from pdf2zh.v3.repair_engine import RepairEngine
+
         model = self._merged_model()
         before = len(model.pages[0].blocks)
         report = analyze_document(model)
@@ -190,6 +218,7 @@ class TestRepairEngine(unittest.TestCase):
 
     def test_repair_loop_improves(self):
         from pdf2zh.v3.repair_engine import repair_loop
+
         model = self._merged_model()
         result = repair_loop(model, max_iterations=2)
         self.assertTrue(result["improved"])
@@ -198,6 +227,7 @@ class TestRepairEngine(unittest.TestCase):
     def test_unicode_repair_marks_plan(self):
         from pdf2zh.v3.diagnostics import analyze_document
         from pdf2zh.v3.repair_engine import RepairEngine
+
         model = build_model()
         page = model.pages[0]
         page.blocks[2].lines[0].spans[0].glyphs[0].decode = "fffd"
@@ -211,6 +241,7 @@ class TestRepairEngine(unittest.TestCase):
     def test_math_recovery_marks_plan(self):
         from pdf2zh.v3.diagnostics import analyze_document
         from pdf2zh.v3.repair_engine import RepairEngine
+
         model = build_model()
         formula = [b for b in model.pages[0].blocks if b.kind == "formula"][0]
         formula.metadata["formula_density"] = 0.1
@@ -223,22 +254,24 @@ class TestRepairEngine(unittest.TestCase):
 class TestLLMPlanner(unittest.TestCase):
     def test_rule_fallback(self):
         from pdf2zh.v3.llm_planner import RuleRepairPlanner
+
         p = RuleRepairPlanner()
         self.assertEqual(p.plan("toc_merged_lines", {}), "toc_split")
         self.assertEqual(p.plan("unicode_error", {}), "unicode_repair")
 
     def test_llm_planner_parses_json(self):
         from pdf2zh.v3.llm_planner import LLMRepairPlanner
+
         provider = Mock()
         resp = Mock()
         resp.text = '{"repair": "toc_split", "reason": "merged lines"}'
         provider.complete.return_value = resp
         p = LLMRepairPlanner(provider=provider)
-        self.assertEqual(p.plan("toc_merged_lines", {"lines": 2}),
-                         "toc_split")
+        self.assertEqual(p.plan("toc_merged_lines", {"lines": 2}), "toc_split")
 
     def test_llm_failure_falls_back(self):
         from pdf2zh.v3.llm_planner import LLMRepairPlanner
+
         provider = Mock()
         provider.complete.side_effect = RuntimeError("net down")
         p = LLMRepairPlanner(provider=provider)
@@ -246,16 +279,18 @@ class TestLLMPlanner(unittest.TestCase):
 
     def test_no_provider_rule(self):
         from pdf2zh.v3.llm_planner import LLMRepairPlanner
+
         p = LLMRepairPlanner(provider=None)
-        self.assertEqual(p.plan("formula_low_confidence", {}),
-                         "math_recovery")
+        self.assertEqual(p.plan("formula_low_confidence", {}), "math_recovery")
 
 
 class TestCorpusRegression(unittest.TestCase):
     def test_expected_and_compare(self):
         from pdf2zh.v3.corpus_regression import (
-            compare_expected, expected_from_model,
+            compare_expected,
+            expected_from_model,
         )
+
         model = build_model()
         expected = expected_from_model(model)
         self.assertGreaterEqual(expected["blocks"], 3)
@@ -268,12 +303,15 @@ class TestCorpusRegression(unittest.TestCase):
 
     def test_run_regression(self):
         from pdf2zh.v3.corpus_regression import (
-            expected_from_model, run_regression,
+            expected_from_model,
+            run_regression,
         )
+
         model = build_model()
         expected = expected_from_model(model)
-        report = run_regression([("academic/paper", model)],
-                                {"academic/paper": expected})
+        report = run_regression(
+            [("academic/paper", model)], {"academic/paper": expected}
+        )
         self.assertEqual(report.passed_count, 1)
         self.assertEqual(report.failed_count, 0)
         # 未登记基线 → 失败
@@ -288,15 +326,20 @@ class TestMainlineDiagnostics(unittest.TestCase):
         from pdf2zh.collision_resolver import CollisionResolver
         from pdfminer.pdfinterp import PDFResourceManager
         from unittest.mock import patch
+
         translator = Mock()
         translator.translate = Mock(side_effect=lambda t: "YI" + t)
         translator.lang_in = "en"
         translator.lang_out = "zh-CN"
         with patch("pdf2zh.converter.build_translator") as bt:
             bt.return_value = translator
-            conv = TranslateConverter(PDFResourceManager(), layout={},
-                                      lang_in="en", lang_out="zh-CN",
-                                      service="stub")
+            conv = TranslateConverter(
+                PDFResourceManager(),
+                layout={},
+                lang_in="en",
+                lang_out="zh-CN",
+                service="stub",
+            )
         conv.thread = 1
         conv.noto_name = "noto"
         noto = Mock()

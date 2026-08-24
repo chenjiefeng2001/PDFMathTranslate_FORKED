@@ -237,21 +237,31 @@ class TestOllamaTranslator(unittest.TestCase):
         ):
             proxies = _resolve_translator_proxy()
             self.assertEqual(
-                proxies, {"http": "http://pdf2zh.proxy:3128", "https": "http://pdf2zh.proxy:3128"}
+                proxies,
+                {
+                    "http": "http://pdf2zh.proxy:3128",
+                    "https": "http://pdf2zh.proxy:3128",
+                },
             )
 
         with mock.patch.dict("os.environ", {}, clear=True):
-            proxies = _resolve_translator_proxy({"PDF2ZH_PROXY": "http://ui.proxy:7890"})
+            proxies = _resolve_translator_proxy(
+                {"PDF2ZH_PROXY": "http://ui.proxy:7890"}
+            )
             self.assertEqual(
-                proxies, {"http": "http://ui.proxy:7890", "https": "http://ui.proxy:7890"}
+                proxies,
+                {"http": "http://ui.proxy:7890", "https": "http://ui.proxy:7890"},
             )
             self.assertIsNone(_resolve_translator_proxy())
 
     def test_google_session_proxy_and_bounded_timeout(self):
-        with mock.patch.dict("os.environ", {"PDF2ZH_PROXY": "http://127.0.0.1:7890"}, clear=False):
+        with mock.patch.dict(
+            "os.environ", {"PDF2ZH_PROXY": "http://127.0.0.1:7890"}, clear=False
+        ):
             t = GoogleTranslator("en", "zh", None, True)
         self.assertEqual(
-            t.session.proxies, {"http": "http://127.0.0.1:7890", "https": "http://127.0.0.1:7890"}
+            t.session.proxies,
+            {"http": "http://127.0.0.1:7890", "https": "http://127.0.0.1:7890"},
         )
         with mock.patch.object(t.session, "get") as m_get:
             m_get.return_value = mock.Mock(

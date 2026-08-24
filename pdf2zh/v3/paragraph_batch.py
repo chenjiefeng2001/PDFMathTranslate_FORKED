@@ -26,6 +26,7 @@ __all__ = ["PARA_BATCH_SEP", "batch_translate_paragraphs"]
 #: 强分隔符（文本中出现概率极低；被 LLM 改写时还原校验失败 → 逐段回退）。
 PARA_BATCH_SEP = "\n\n=====PDF2ZH_PARAGRAPH_SEP=====\n\n"
 
+
 def _translate_threads() -> int:
     """并发翻译线程数（``PDF2ZH_PARAGRAPH_BATCH_THREADS``，默认 4）。"""
     try:
@@ -129,4 +130,3 @@ def batch_translate_paragraphs(
         if news[i] is None:
             news[i] = safe_worker(texts[i], font_sigs[i])
     return news
-

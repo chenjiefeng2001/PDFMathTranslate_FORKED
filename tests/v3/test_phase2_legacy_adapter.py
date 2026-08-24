@@ -1,9 +1,13 @@
 """Tests for V3 Legacy Adapter (Module: legacy_adapter.py)."""
+
 import pytest
 from pdf2zh.v3.legacy_adapter import (
-    AdapterStats, BaseAdapter,
-    LegacyTranslatorAdapter, LegacyLayoutAdapter,
-    LegacyRendererAdapter, LegacyConverterBridge,
+    AdapterStats,
+    BaseAdapter,
+    LegacyTranslatorAdapter,
+    LegacyLayoutAdapter,
+    LegacyRendererAdapter,
+    LegacyConverterBridge,
 )
 from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType
 from pdf2zh.v3.visual_tree import VisualTree, Page, BoundingBox
@@ -17,8 +21,9 @@ class TestAdapterStats:
         assert s.errors == 0
 
     def test_to_dict(self):
-        s = AdapterStats(adapter_name="test", nodes_processed=10,
-                         nodes_adapted=8, errors=1)
+        s = AdapterStats(
+            adapter_name="test", nodes_processed=10, nodes_adapted=8, errors=1
+        )
         d = s.to_dict()
         assert d["adapter"] == "test"
         assert d["processed"] == 10
@@ -66,8 +71,12 @@ class TestLegacyTranslatorAdapter:
     def test_translate_with_default(self):
         a = LegacyTranslatorAdapter()
         g = DocumentGraph()
-        n = DocumentNode(id="n1", node_type=NodeType.PARAGRAPH,
-                         bbox=(0,0,100,50), text="Hello world")
+        n = DocumentNode(
+            id="n1",
+            node_type=NodeType.PARAGRAPH,
+            bbox=(0, 0, 100, 50),
+            text="Hello world",
+        )
         g.add_node(n)
         result = a.translate(g)
         assert result.get_node("n1") is not None
@@ -76,8 +85,14 @@ class TestLegacyTranslatorAdapter:
         a = LegacyTranslatorAdapter()
         g = DocumentGraph()
         for i in range(5):
-            g.add_node(DocumentNode(id=f"n{i}", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0,0,100,50), text=f"Text {i}"))
+            g.add_node(
+                DocumentNode(
+                    id=f"n{i}",
+                    node_type=NodeType.PARAGRAPH,
+                    bbox=(0, 0, 100, 50),
+                    text=f"Text {i}",
+                )
+            )
         a.translate(g)
         assert a.stats.nodes_processed == 5
 
@@ -95,8 +110,11 @@ class TestLegacyLayoutAdapter:
     def test_layout_with_nodes(self):
         a = LegacyLayoutAdapter()
         g = DocumentGraph()
-        g.add_node(DocumentNode(id="n1", node_type=NodeType.PARAGRAPH,
-                                bbox=(0,0,100,50), text="Test"))
+        g.add_node(
+            DocumentNode(
+                id="n1", node_type=NodeType.PARAGRAPH, bbox=(0, 0, 100, 50), text="Test"
+            )
+        )
         a.layout(g)
 
 
@@ -134,9 +152,18 @@ class TestLegacyConverterBridge:
     def test_convert_with_nodes(self):
         b = LegacyConverterBridge()
         g = DocumentGraph()
-        g.add_node(DocumentNode(id="n1", node_type=NodeType.PARAGRAPH,
-                                bbox=(0,0,100,50), text="Hello"))
-        g.add_node(DocumentNode(id="n2", node_type=NodeType.HEADING,
-                                bbox=(0,0,100,50), text="Title"))
+        g.add_node(
+            DocumentNode(
+                id="n1",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 50),
+                text="Hello",
+            )
+        )
+        g.add_node(
+            DocumentNode(
+                id="n2", node_type=NodeType.HEADING, bbox=(0, 0, 100, 50), text="Title"
+            )
+        )
         result = b.convert(g)
         assert result.get_node("n1") is not None

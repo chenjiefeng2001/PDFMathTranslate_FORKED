@@ -13,6 +13,7 @@ path, and it must stay disabled unless ``reconstruction_channel`` is on.
 Run with:
     python -m pytest tests/v3/test_v19_reconstruction_sidechannel.py -v
 """
+
 import unittest
 from unittest.mock import Mock
 
@@ -73,6 +74,7 @@ class ReconstructionSideChannelBase(unittest.TestCase):
         converter.fontid = {}
         converter.text_metrics = {}
         from pdf2zh.collision_resolver import CollisionResolver
+
         converter.collision_resolver = CollisionResolver()
         translator = Mock()
         translator.translate = Mock(side_effect=["译文"])
@@ -90,8 +92,8 @@ class ReconstructionSideChannelBase(unittest.TestCase):
 class TestReconstructionSideChannel(ReconstructionSideChannelBase):
     def test_enabled_produces_records(self):
         page = LTPage(7, (0, 0, 600, 800))
-        add_text(page, 50, 650, "Let f(x) be continuous.")   # 多字体混合行
-        add_text(page, 50, 638, "The sum converges to 2.")   # 第二行
+        add_text(page, 50, 650, "Let f(x) be continuous.")  # 多字体混合行
+        add_text(page, 50, 638, "The sum converges to 2.")  # 第二行
         conv = self.build_converter(page, reconstruction_channel=True)
         conv.receive_layout(page)
         assert conv.reconstruction_records, "channel on: expect per-page records"
@@ -99,7 +101,7 @@ class TestReconstructionSideChannel(ReconstructionSideChannelBase):
         rec = conv.reconstruction_records[7]
         assert rec["page_id"] == 7
         assert rec["glyph_count"] > 0
-        assert rec["line_count"] >= 2       # 两物理行
+        assert rec["line_count"] >= 2  # 两物理行
         assert rec["paragraph_count"] >= 1
         assert len(rec["translation_units"]) >= 1
         assert len(rec["solved_units"]) == len(rec["translation_units"])
@@ -129,7 +131,7 @@ class TestReconstructionSideChannel(ReconstructionSideChannelBase):
         add_text(page, 50, 650, "Ok")
         conv = self.build_converter(page, reconstruction_channel=True)
         conv.reconstruction_channel = True
-        conv.receive_layout(page)   # 不抛异常即通过
+        conv.receive_layout(page)  # 不抛异常即通过
 
 
 if __name__ == "__main__":

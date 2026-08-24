@@ -19,6 +19,7 @@ Span/Line/Block 逐级聚合，每个节点带 ``metadata`` 字典。**所有后
 数据源仍是 pdfminer 的 LTChar 流（Glyph Extraction 不做翻译/TOC/图片判断），
 与 ``TranslateConverter.receive_layout`` 消费同一份字符流 —— 收敛点不变。
 """
+
 from __future__ import annotations
 
 import logging
@@ -45,11 +46,16 @@ class GlyphModel:
 
     def to_dict(self) -> dict:
         return {
-            "char": self.char, "cid": self.cid, "font": self.font,
+            "char": self.char,
+            "cid": self.cid,
+            "font": self.font,
             "size": round(self.size, 2),
-            "x0": round(self.x0, 1), "y0": round(self.y0, 1),
-            "x1": round(self.x1, 1), "y1": round(self.y1, 1),
-            "decode": self.decode, "metadata": dict(self.metadata),
+            "x0": round(self.x0, 1),
+            "y0": round(self.y0, 1),
+            "x1": round(self.x1, 1),
+            "y1": round(self.y1, 1),
+            "decode": self.decode,
+            "metadata": dict(self.metadata),
         }
 
 
@@ -67,10 +73,13 @@ class SpanModel:
 
     def to_dict(self) -> dict:
         return {
-            "font": self.font, "size": round(self.size, 2),
+            "font": self.font,
+            "size": round(self.size, 2),
             "text": self.text,
-            "x0": round(self.x0, 1), "y0": round(self.y0, 1),
-            "x1": round(self.x1, 1), "y1": round(self.y1, 1),
+            "x0": round(self.x0, 1),
+            "y0": round(self.y0, 1),
+            "x1": round(self.x1, 1),
+            "y1": round(self.y1, 1),
             "glyphs": [g.to_dict() for g in self.glyphs],
             "metadata": dict(self.metadata),
         }
@@ -89,9 +98,12 @@ class LineModel:
 
     def to_dict(self) -> dict:
         return {
-            "text": self.text, "baseline": round(self.baseline, 1),
-            "x0": round(self.x0, 1), "y0": round(self.y0, 1),
-            "x1": round(self.x1, 1), "y1": round(self.y1, 1),
+            "text": self.text,
+            "baseline": round(self.baseline, 1),
+            "x0": round(self.x0, 1),
+            "y0": round(self.y0, 1),
+            "x1": round(self.x1, 1),
+            "y1": round(self.y1, 1),
             "spans": [s.to_dict() for s in self.spans],
             "metadata": dict(self.metadata),
         }
@@ -123,9 +135,12 @@ class BlockModel:
 
     def to_dict(self) -> dict:
         return {
-            "kind": self.kind, "text": self.text,
-            "x0": round(self.x0, 1), "y0": round(self.y0, 1),
-            "x1": round(self.x1, 1), "y1": round(self.y1, 1),
+            "kind": self.kind,
+            "text": self.text,
+            "x0": round(self.x0, 1),
+            "y0": round(self.y0, 1),
+            "x1": round(self.x1, 1),
+            "y1": round(self.y1, 1),
             "lines": [l.to_dict() for l in self.lines],
             "metadata": dict(self.metadata),
         }
@@ -143,7 +158,8 @@ class PageModel:
     def to_dict(self) -> dict:
         return {
             "page": self.page_num,
-            "width": round(self.width, 1), "height": round(self.height, 1),
+            "width": round(self.width, 1),
+            "height": round(self.height, 1),
             "blocks": [b.to_dict() for b in self.blocks],
             "unassigned_glyphs": [g.to_dict() for g in self.unassigned_glyphs],
             "stats": self.stats(),
@@ -151,8 +167,9 @@ class PageModel:
         }
 
     def stats(self) -> dict:
-        glyphs = sum(len(s.glyphs) for b in self.blocks
-                     for l in b.lines for s in l.spans)
+        glyphs = sum(
+            len(s.glyphs) for b in self.blocks for l in b.lines for s in l.spans
+        )
         spans = sum(len(l.spans) for b in self.blocks for l in b.lines)
         lines = sum(len(b.lines) for b in self.blocks)
         return {
@@ -162,8 +179,13 @@ class PageModel:
             "glyphs": glyphs,
             "unassigned_glyphs": len(self.unassigned_glyphs),
             "replacement_glyphs": sum(
-                1 for b in self.blocks for l in b.lines for s in l.spans
-                for g in s.glyphs if g.decode != "ok"),
+                1
+                for b in self.blocks
+                for l in b.lines
+                for s in l.spans
+                for g in s.glyphs
+                if g.decode != "ok"
+            ),
         }
 
 
@@ -204,15 +226,19 @@ def _collect_glyphs(ltpage, max_glyphs: int = 2000) -> List[GlyphModel]:
             font = getattr(child, "fontname", "") or ""
         except Exception:  # noqa: BLE001
             font = ""
-        glyphs.append(GlyphModel(
-            char=text,
-            cid=int(getattr(child, "cid", 0) or 0),
-            font=font,
-            size=float(getattr(child, "size", 0.0) or 0.0),
-            x0=float(child.x0), y0=float(child.y0),
-            x1=float(child.x1), y1=float(child.y1),
-            decode=_decode_of(text),
-        ))
+        glyphs.append(
+            GlyphModel(
+                char=text,
+                cid=int(getattr(child, "cid", 0) or 0),
+                font=font,
+                size=float(getattr(child, "size", 0.0) or 0.0),
+                x0=float(child.x0),
+                y0=float(child.y0),
+                x1=float(child.x1),
+                y1=float(child.y1),
+                decode=_decode_of(text),
+            )
+        )
     return glyphs
 
 
@@ -234,8 +260,12 @@ def _assign_and_span(glyphs: List[GlyphModel], lines, gap: float = 2.0):
             unassigned.append(g)
             continue
         spans = spans_by_line.setdefault(hit, [])
-        if spans and spans[-1].font == g.font and abs(spans[-1].size - g.size) < 0.5 \
-                and g.x0 - spans[-1].x1 <= gap:
+        if (
+            spans
+            and spans[-1].font == g.font
+            and abs(spans[-1].size - g.size) < 0.5
+            and g.x0 - spans[-1].x1 <= gap
+        ):
             last = spans[-1]
             last.glyphs.append(g)
             last.text += g.char
@@ -244,23 +274,32 @@ def _assign_and_span(glyphs: List[GlyphModel], lines, gap: float = 2.0):
             last.x1 = max(last.x1, g.x1)
             last.y1 = max(last.y1, g.y1)
         else:
-            spans.append(SpanModel(
-                font=g.font, size=g.size, text=g.char,
-                x0=g.x0, y0=g.y0, x1=g.x1, y1=g.y1, glyphs=[g],
-            ))
+            spans.append(
+                SpanModel(
+                    font=g.font,
+                    size=g.size,
+                    text=g.char,
+                    x0=g.x0,
+                    y0=g.y0,
+                    x1=g.x1,
+                    y1=g.y1,
+                    glyphs=[g],
+                )
+            )
     return spans_by_line, unassigned
 
 
-def build_page_model(ltpage, page_num: Optional[int] = None,
-                     max_glyphs: int = 2000) -> PageModel:
+def build_page_model(
+    ltpage, page_num: Optional[int] = None, max_glyphs: int = 2000
+) -> PageModel:
     """LTChar 流 → 规范页面树（Glyph → Span → Line → Block）。
 
     块/行分组复用 Geometry Engine（与 receive_layout 同一份字符流），
     只做结构恢复，不做任何翻译/TOC/图片判断。
     """
     from pdf2zh.v3.geometry import GeometryEngine, chars_from_ltpage
-    pageid = page_num if page_num is not None \
-        else getattr(ltpage, "pageid", 0)
+
+    pageid = page_num if page_num is not None else getattr(ltpage, "pageid", 0)
     page = PageModel(
         page_num=pageid,
         width=float(getattr(ltpage, "width", 0.0) or 0.0),
@@ -284,13 +323,19 @@ def build_page_model(ltpage, page_num: Optional[int] = None,
     for pi, para in enumerate(g_page.reading_order()):
         block = BlockModel(
             text=para.text,
-            x0=para.x0, y0=para.y0, x1=para.x1, y1=para.y1,
+            x0=para.x0,
+            y0=para.y0,
+            x1=para.x1,
+            y1=para.y1,
         )
         for li, line in enumerate(getattr(para, "lines", []) or []):
             lm = LineModel(
                 text=line.text,
                 baseline=float(getattr(line, "y0", 0.0) or 0.0),
-                x0=line.x0, y0=line.y0, x1=line.x1, y1=line.y1,
+                x0=line.x0,
+                y0=line.y0,
+                x1=line.x1,
+                y1=line.y1,
             )
             lm.spans = spans_by_line.get(span_i, [])
             span_i += 1
@@ -333,7 +378,8 @@ def annotate_toc(page: PageModel, toc_entries: Sequence[dict]) -> int:
 # TOC 行模式：编号? + 标题 + leader（≥3 点）+ 行尾页码 —— 块级自扫描用
 _RE_TOC_LINE = __import__("re").compile(
     r"^(?P<num>\d+(?:\.\d+)*)?\s*(?P<title>.*?)\s*"
-    r"(?P<leader>[.·…‥]{3,})\s*(?P<page>\d{1,5})\s*$")
+    r"(?P<leader>[.·…‥]{3,})\s*(?P<page>\d{1,5})\s*$"
+)
 
 
 def annotate_toc_scan(page: PageModel, lang_out: str = "zh-CN") -> int:
@@ -386,14 +432,15 @@ def annotate_formulas(page: PageModel) -> int:
         math_spans = 0
         for span in spans:
             text = span.text
-            if text and (_RE_FORMULA_SYMBOLS.match(text) or
-                         sum(1 for _ in _RE_MATH_SYMBOL.finditer(text)) >= 2):
+            if text and (
+                _RE_FORMULA_SYMBOLS.match(text)
+                or sum(1 for _ in _RE_MATH_SYMBOL.finditer(text)) >= 2
+            ):
                 span.metadata["math"] = True
                 marked += 1
                 math_spans += 1
         if spans:
-            block.metadata["formula_density"] = round(
-                math_spans / len(spans), 3)
+            block.metadata["formula_density"] = round(math_spans / len(spans), 3)
     return marked
 
 
@@ -541,8 +588,7 @@ def apply_layout_splits(page: PageModel) -> int:
                 why.append(f"size:{cur_s:.1f}>{prev_s:.1f}@{i + 1}")
             if align_flip:
                 why.append(f"align:{prev_a}->{cur_a}@{i + 1}")
-            new_blocks.append(_make_sub_block(
-                group, block, "|".join(why)))
+            new_blocks.append(_make_sub_block(group, block, "|".join(why)))
             splits += 1
             group = [block.lines[i]]
         if group:
@@ -571,7 +617,14 @@ def _make_sub_block(lines, base, provenance: str = "") -> BlockModel:
 
 
 __all__ = [
-    "GlyphModel", "SpanModel", "LineModel", "BlockModel", "PageModel",
-    "build_page_model", "annotate_toc", "annotate_formulas", "annotate_style",
+    "GlyphModel",
+    "SpanModel",
+    "LineModel",
+    "BlockModel",
+    "PageModel",
+    "build_page_model",
+    "annotate_toc",
+    "annotate_formulas",
+    "annotate_style",
     "apply_layout_splits",
 ]

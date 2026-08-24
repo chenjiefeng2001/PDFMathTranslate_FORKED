@@ -91,6 +91,7 @@ def delete_translate_task(id: str):
 
 # ── V2 RuntimeService API ─────────────────────────────────────────────────────
 
+
 @flask_app.route("/v2/translate", methods=["POST"])
 def create_translate_task_v2():
     """Submit a translation task via RuntimeService.
@@ -119,6 +120,7 @@ def create_translate_task_v2():
     stream = file.stream.read()
     # Save to temp file for RuntimeService
     import tempfile
+
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
     tmp.write(stream)
     tmp.close()
@@ -191,6 +193,7 @@ def get_translate_artifact_v2(task_id: str, format: str):
             if path and os.path.exists(path):
                 return send_file(path, "application/pdf")
     return {"error": f"No artifact for format: {format}"}, 404
+
 
 def delete_translate_task(id: str):
     result: AsyncResult = celery_app.AsyncResult(id)

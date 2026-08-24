@@ -19,6 +19,7 @@
     python -m pdf2zh.v3.qa_reconstruction_demo
     python -m pdf2zh.v3.qa_reconstruction_demo --check-overlap --pdf input.pdf
 """
+
 from __future__ import annotations
 
 import json
@@ -33,11 +34,17 @@ from pdf2zh.v3.reconstruction_pipeline import ReconstructionPipeline
 
 
 def _mk_glyph(char, x, baseline, size, font="Helv"):
-    return Glyph(char=char, bbox=(x, baseline - 0.2 * size,
-                                  x + 0.5 * size, baseline + 0.8 * size),
-                 baseline=baseline, ascent=0.8 * size, descent=-0.2 * size,
-                 font_name=font, font_size=size, page_id=0,
-                 object_id=int(x * 100))
+    return Glyph(
+        char=char,
+        bbox=(x, baseline - 0.2 * size, x + 0.5 * size, baseline + 0.8 * size),
+        baseline=baseline,
+        ascent=0.8 * size,
+        descent=-0.2 * size,
+        font_name=font,
+        font_size=size,
+        page_id=0,
+        object_id=int(x * 100),
+    )
 
 
 def build_synthetic_document():
@@ -53,18 +60,36 @@ def build_synthetic_document():
         _mk_glyph(")", 88.0, 100.0, 14, "CMMI10"),
         _mk_glyph("=", 104.0, 100.0, 14, "CMSY10"),
         _mk_glyph("x", 120.0, 100.0, 14, "CMMI10"),
-        _mk_glyph("2", 132.0, 104.0, 8, "CMR10"),   # 上标
+        _mk_glyph("2", 132.0, 104.0, 8, "CMR10"),  # 上标
         _mk_glyph("+", 144.0, 100.0, 14, "CMSY10"),
         _mk_glyph("1", 158.0, 100.0, 14, "CMR10"),
         _mk_glyph(" ", 170.0, 100.0, 12),
     ]
-    glyphs += [_mk_glyph(c, x, 100.0, 12) for c, x in
-               [("b", 182.0), ("e", 194.0), (" ", 206.0),
-                ("c", 218.0), ("o", 230.0), ("n", 242.0)]]
+    glyphs += [
+        _mk_glyph(c, x, 100.0, 12)
+        for c, x in [
+            ("b", 182.0),
+            ("e", 194.0),
+            (" ", 206.0),
+            ("c", 218.0),
+            ("o", 230.0),
+            ("n", 242.0),
+        ]
+    ]
     # 行2: "The sum ∫ x dx = 2."
-    glyphs += [_mk_glyph(c, x, 85.0, 12) for c, x in
-               [("T", 0.0), ("h", 12.0), ("e", 24.0), (" ", 36.0),
-                ("s", 48.0), ("u", 60.0), ("m", 72.0), (" ", 84.0)]]
+    glyphs += [
+        _mk_glyph(c, x, 85.0, 12)
+        for c, x in [
+            ("T", 0.0),
+            ("h", 12.0),
+            ("e", 24.0),
+            (" ", 36.0),
+            ("s", 48.0),
+            ("u", 60.0),
+            ("m", 72.0),
+            (" ", 84.0),
+        ]
+    ]
     glyphs += [
         _mk_glyph("∫", 96.0, 85.0, 18, "CMSY10"),
         _mk_glyph("x", 118.0, 85.0, 14, "CMMI10"),
@@ -85,11 +110,15 @@ def demo_synthetic() -> dict:
     print("=" * 72)
     glyphs = build_synthetic_document()
     result = ReconstructionPipeline.run_on_glyphs(glyphs, page_id=1)
-    print(f"  字形: {result.glyph_count}  视觉行: {result.line_count}  "
-          f"逻辑段落: {result.paragraph_count}  "
-          f"公式对象: {result.formula_count}")
+    print(
+        f"  字形: {result.glyph_count}  视觉行: {result.line_count}  "
+        f"逻辑段落: {result.paragraph_count}  "
+        f"公式对象: {result.formula_count}"
+    )
     for i, para in enumerate(result.paragraphs):
-        print(f"  · 段落{i}: {para.text!r}  bbox={tuple(round(v, 1) for v in para.bbox)}")
+        print(
+            f"  · 段落{i}: {para.text!r}  bbox={tuple(round(v, 1) for v in para.bbox)}"
+        )
     unit = result.translation_units[0]
     print(f"  单元: {unit.unit_id}  锚点语义: {unit.source_text_with_anchors!r}")
     for token, formula in unit.formula_map.items():
@@ -100,13 +129,18 @@ def demo_synthetic() -> dict:
     qa = patcher.synthesize(result.solved_units, unit.text, unit.formula_map)
     qa.qa["text"]["font_switch_count"] = switches
     qa.qa["text"]["font_switch_ratio"] = round(
-        len(result.translation_units) / max(switches, 1), 4)
+        len(result.translation_units) / max(switches, 1), 4
+    )
     print(f"  QA: {qa.qa['summary']}")
-    print(f"      font_switch_count={switches}  "
-          f"ratio={qa.qa['text']['font_switch_ratio']}")
-    print(f"      drift_dx/dy <= {qa.qa['formula']['max_dx']}/"
-          f"{qa.qa['formula']['max_dy']}pt  "
-          f"anchor_score={qa.qa['formula']['anchor']['anchor_score']}")
+    print(
+        f"      font_switch_count={switches}  "
+        f"ratio={qa.qa['text']['font_switch_ratio']}"
+    )
+    print(
+        f"      drift_dx/dy <= {qa.qa['formula']['max_dx']}/"
+        f"{qa.qa['formula']['max_dy']}pt  "
+        f"anchor_score={qa.qa['formula']['anchor']['anchor_score']}"
+    )
     return {"result": result.to_dict(), "qa": qa.to_dict()}
 
 
@@ -116,6 +150,7 @@ def demo_patch_apply() -> dict:
     print("[3/3] 双层补丁落位：apply_to_pdf + render_hybrid + latex_approx")
     print("=" * 72)
     import pymupdf
+
     glyphs = build_synthetic_document()
     result = ReconstructionPipeline.run_on_glyphs(glyphs, page_id=1)
     unit = result.translation_units[0]
@@ -131,11 +166,14 @@ def demo_patch_apply() -> dict:
     text = page.get_text().strip()
     print(f"  落位文本对象: {n}  页面文本: {text!r}")
     segments = patcher.to_overlay_segments(patch)
-    hybrid = OverlayRenderer(dpi=150).render_hybrid(
-        page, segments, doc.write())
+    hybrid = OverlayRenderer(dpi=150).render_hybrid(page, segments, doc.write())
     print(f"  hybrid PDF bytes: {len(hybrid)}")
-    return {"latex_approx": latex_map, "patch_count": len(patch.patches),
-            "inserted": n, "hybrid_bytes": len(hybrid)}
+    return {
+        "latex_approx": latex_map,
+        "patch_count": len(patch.patches),
+        "inserted": n,
+        "hybrid_bytes": len(hybrid),
+    }
 
 
 def demo_real_pdf(tmpdir: str) -> dict:
@@ -150,25 +188,35 @@ def demo_real_pdf(tmpdir: str) -> dict:
     print("[2/2] 真实 PDF smoke：fitz 生成混合字体页面 → pdfminer LTChar")
     print("=" * 72)
     import pymupdf
+
     pdf_path = os.path.join(tmpdir, "demo_math.pdf")
     doc = pymupdf.open()
     page = doc.new_page(width=612, height=792)
-    page.insert_text((72, 120), "Let f(x) = x^2 + 1 be a continuous function.",
-                     fontname="helv", fontsize=12)
-    page.insert_text((72, 140), "The sum of the series converges to 2.",
-                     fontname="hebo", fontsize=12)
-    page.insert_text((72, 162), "Here x denotes a real number.",
-                     fontname="tiro", fontsize=12)   # Times-Italic 变量
+    page.insert_text(
+        (72, 120),
+        "Let f(x) = x^2 + 1 be a continuous function.",
+        fontname="helv",
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 140), "The sum of the series converges to 2.", fontname="hebo", fontsize=12
+    )
+    page.insert_text(
+        (72, 162), "Here x denotes a real number.", fontname="tiro", fontsize=12
+    )  # Times-Italic 变量
     doc.save(pdf_path)
     doc.close()
     print(f"  生成 PDF: {pdf_path}")
 
     from pdfminer.high_level import extract_pages
+
     ltp = next(iter(extract_pages(pdf_path)))
     result = ReconstructionPipeline().run(ltp, page_id=0)
-    print(f"  字形: {result.glyph_count}  视觉行: {result.line_count}  "
-          f"逻辑段落: {result.paragraph_count}  "
-          f"公式对象: {result.formula_count}")
+    print(
+        f"  字形: {result.glyph_count}  视觉行: {result.line_count}  "
+        f"逻辑段落: {result.paragraph_count}  "
+        f"公式对象: {result.formula_count}"
+    )
     for para in result.paragraphs:
         print(f"  · 段落: {para.text!r}")
     return result.to_dict()
@@ -220,7 +268,8 @@ def demo_overlap_check(pdf_path: str, page_index: int = 0) -> dict:
     result = ReconstructionPipeline().run(page, page_id=page_index)
     if not result.translation_units:
         raise LayoutCollisionError(
-            f"page {page_index}: 无翻译单元可校验（PDF 无平铺 LTChar？）")
+            f"page {page_index}: 无翻译单元可校验（PDF 无平铺 LTChar？）"
+        )
 
     solver = LayoutSolver()
     solved_units = [solver.solve(u, u.text) for u in result.translation_units]
@@ -229,8 +278,9 @@ def demo_overlap_check(pdf_path: str, page_index: int = 0) -> dict:
     patcher = DualPatcher()
     patch = patcher.synthesize(solved_units, "", {})
     doc = pymupdf.open()
-    pg = doc.new_page(width=float(getattr(page, "width", 612.0) or 612.0),
-                      height=page_h)
+    pg = doc.new_page(
+        width=float(getattr(page, "width", 612.0) or 612.0), height=page_h
+    )
     patcher.apply_to_pdf(doc, 0, patch, fontname="helv")
 
     # ── 译文文本框（y-down，fitz words：x0,y0,x1,y1,word,...）──
@@ -239,14 +289,18 @@ def demo_overlap_check(pdf_path: str, page_index: int = 0) -> dict:
     formula_boxes = []
     for su in solved_units:
         for p in su.formula_placements:
-            fb = p["render_bbox"]                 # y-up
-            formula_boxes.append(
-                (fb[0], page_h - fb[3], fb[2], page_h - fb[1]))
+            fb = p["render_bbox"]  # y-up
+            formula_boxes.append((fb[0], page_h - fb[3], fb[2], page_h - fb[1]))
 
     if not formula_boxes:
         print(f"  page {page_index}: 无公式对象，跳过 IoU 校验")
-        return {"page": page_index, "text_boxes": len(text_boxes),
-                "formula_boxes": 0, "max_iou": 0.0, "ok": True}
+        return {
+            "page": page_index,
+            "text_boxes": len(text_boxes),
+            "formula_boxes": 0,
+            "max_iou": 0.0,
+            "ok": True,
+        }
 
     max_iou = 0.0
     hits = []
@@ -262,29 +316,44 @@ def demo_overlap_check(pdf_path: str, page_index: int = 0) -> dict:
             ov_h = min(tb[3], fb[3]) - max(tb[1], fb[1])
             ov_w = min(tb[2], fb[2]) - max(tb[0], fb[0])
             if ov_h >= 0.3 * fs and ov_w > 0.0:
-                hits.append((v, [round(x, 1) for x in tb],
-                             [round(x, 1) for x in fb]))
+                hits.append((v, [round(x, 1) for x in tb], [round(x, 1) for x in fb]))
     if hits:
         raise LayoutCollisionError(
             f"page {page_index}: 译文文本与公式框 2D 重叠 "
             f"max_IoU={max_iou:.4f}（要求 == 0.00），"
-            f"首例 {hits[0][1]} vs {hits[0][2]} —— 垂直流/Redact 失效")
-    print(f"  page {page_index}: IoU 校验通过 —— 文本框 {len(text_boxes)} 个，"
-          f"公式框 {len(formula_boxes)} 个，max_IoU={max_iou:.4f} == 0.00")
-    return {"page": page_index, "text_boxes": len(text_boxes),
-            "formula_boxes": len(formula_boxes), "max_iou": round(max_iou, 6),
-            "ok": True}
+            f"首例 {hits[0][1]} vs {hits[0][2]} —— 垂直流/Redact 失效"
+        )
+    print(
+        f"  page {page_index}: IoU 校验通过 —— 文本框 {len(text_boxes)} 个，"
+        f"公式框 {len(formula_boxes)} 个，max_IoU={max_iou:.4f} == 0.00"
+    )
+    return {
+        "page": page_index,
+        "text_boxes": len(text_boxes),
+        "formula_boxes": len(formula_boxes),
+        "max_iou": round(max_iou, 6),
+        "ok": True,
+    }
 
 
 def main() -> int:
     import argparse
+
     ap = argparse.ArgumentParser(
-        description="P5–P10 端到端 QA 演示（规范书 §9 + §4.1 IoU 重叠校验）")
-    ap.add_argument("--check-overlap", action="store_true",
-                    help="对 --pdf 输入执行译文/公式 2D IoU==0 校验（任意重叠抛 "
-                         "LayoutCollisionError）")
-    ap.add_argument("--pdf", default=None, metavar="INPUT.pdf",
-                    help="真实 PDF 输入路径（配合 --check-overlap）")
+        description="P5–P10 端到端 QA 演示（规范书 §9 + §4.1 IoU 重叠校验）"
+    )
+    ap.add_argument(
+        "--check-overlap",
+        action="store_true",
+        help="对 --pdf 输入执行译文/公式 2D IoU==0 校验（任意重叠抛 "
+        "LayoutCollisionError）",
+    )
+    ap.add_argument(
+        "--pdf",
+        default=None,
+        metavar="INPUT.pdf",
+        help="真实 PDF 输入路径（配合 --check-overlap）",
+    )
     args = ap.parse_args()
 
     if args.check_overlap:
@@ -309,10 +378,14 @@ def main() -> int:
         except Exception as e:  # noqa: BLE001
             print(f"  [smoke 跳过] {e}")
             traceback.print_exc(limit=2)
-    report = {"synthetic": synthetic, "patch_apply": patch_apply,
-              "real_pdf_smoke": real}
-    out = os.path.join(os.path.dirname(__file__), "..", "..",
-                       "doc", "reconstruction_qa_report.json")
+    report = {
+        "synthetic": synthetic,
+        "patch_apply": patch_apply,
+        "real_pdf_smoke": real,
+    }
+    out = os.path.join(
+        os.path.dirname(__file__), "..", "..", "doc", "reconstruction_qa_report.json"
+    )
     out = os.path.normpath(out)
     with open(out, "w", encoding="utf-8") as f:
         json.dump(report, f, ensure_ascii=False, indent=2)

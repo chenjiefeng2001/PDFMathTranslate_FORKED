@@ -77,18 +77,18 @@ _ENV_SPLIT_LIST = "PDF2ZH_BABELDOC_SPLIT_LIST_ITEMS"
 #: - 连字符分支要求后跟空白或行尾（避免 -dash 这种连字符单词误伤）。
 _LIST_ITEM_PREFIX_RE = re.compile(
     r"^\s*(?:"
-    r"\(\d{1,4}\)\s*|"                              # (1) (12)
-    r"\d{1,3}[.．)）](?!\d)|"                        # 1. 1) 1） 1． (排除 1.5)
-    r"\d{1,3}、|"                                   # 1、
-    r"\d{1,3}・|"                                   # 1・ (U+30FB)
-    r"[A-Za-z][.．.)）](?![ \t]*\d)\s|"             # a. A) (排除 Fig. 1)
-    r"[A-Za-z]、|"                                  # a、
-    r"[-–—](?:\s|$)|"                               # - – —
-    r"\([ivxlcdmIVXLCDM]{1,7}\)\s*|"                # (i) (iii)
+    r"\(\d{1,4}\)\s*|"  # (1) (12)
+    r"\d{1,3}[.．)）](?!\d)|"  # 1. 1) 1） 1． (排除 1.5)
+    r"\d{1,3}、|"  # 1、
+    r"\d{1,3}・|"  # 1・ (U+30FB)
+    r"[A-Za-z][.．.)）](?![ \t]*\d)\s|"  # a. A) (排除 Fig. 1)
+    r"[A-Za-z]、|"  # a、
+    r"[-–—](?:\s|$)|"  # - – —
+    r"\([ivxlcdmIVXLCDM]{1,7}\)\s*|"  # (i) (iii)
     r"[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]|"  # 带圈数字
-    r"\[[0-9]{1,4}\]\s*|"                           # [1] [12]
+    r"\[[0-9]{1,4}\]\s*|"  # [1] [12]
     r"第\s*(?:\d{1,4}|[一二三四五六七八九十百千]{1,4})\s*[条章]|"  # 第1条 第一条 第12章
-    r"[（(][一二三四五六七八九十百千]{1,4}[）)]"      # (一) （二）
+    r"[（(][一二三四五六七八九十百千]{1,4}[）)]"  # (一) （二）
     r")"
 )
 
@@ -111,9 +111,7 @@ _ORIGINAL_PIP: Optional[object] = None
 
 def is_list_item_line(line) -> bool:
     """判断一行是否为列表项（行首匹配编号模式）。"""
-    text = "".join(
-        (c.char_unicode or "") for c in (line.pdf_character or [])
-    )
+    text = "".join((c.char_unicode or "") for c in (line.pdf_character or []))
     return bool(_LIST_ITEM_PREFIX_RE.match(text))
 
 
@@ -228,7 +226,11 @@ def _is_continuation_paragraph(nxt, para) -> bool:
             return False
         for line in lines:
             band = _line_y_band(line)
-            if band is None or band[0] > last_band[1] + 1.0 or band[1] < last_band[0] - 1.0:
+            if (
+                band is None
+                or band[0] > last_band[1] + 1.0
+                or band[1] < last_band[0] - 1.0
+            ):
                 return False
 
     anchor = _paragraph_anchor_x(para)
@@ -259,9 +261,8 @@ def _merge_continuation_lines_in_paragraphs(self, paragraphs: List[object]) -> N
         if not _is_list_item_paragraph(para):
             i += 1
             continue
-        while (
-            i + 1 < len(paragraphs)
-            and _is_continuation_paragraph(paragraphs[i + 1], para)
+        while i + 1 < len(paragraphs) and _is_continuation_paragraph(
+            paragraphs[i + 1], para
         ):
             nxt = paragraphs.pop(i + 1)
             para.pdf_paragraph_composition.extend(nxt.pdf_paragraph_composition)
@@ -376,16 +377,11 @@ def _protect_list_prefixes_in_paragraphs(self, paragraphs: List[object]) -> None
             lead_chars = _prefix_char_count(line.pdf_character, lead_text)
             total_chars = _prefix_char_count(line.pdf_character, matched)
             prefix_len = total_chars - lead_chars
-            if (
-                prefix_len <= 0
-                or lead_chars + prefix_len > len(line.pdf_character)
-            ):
+            if prefix_len <= 0 or lead_chars + prefix_len > len(line.pdf_character):
                 new_comps.append(comp)
                 continue
-            prefix_chars = line.pdf_character[
-                lead_chars: lead_chars + prefix_len
-            ]
-            body_chars = line.pdf_character[lead_chars + prefix_len:]
+            prefix_chars = line.pdf_character[lead_chars : lead_chars + prefix_len]
+            body_chars = line.pdf_character[lead_chars + prefix_len :]
             if not body_chars:
                 # 整行都是编号（如独立的"第1条"标题行）：无正文可翻译，不保护
                 new_comps.append(comp)
@@ -446,7 +442,8 @@ def _patched_process_independent_paragraphs(self, paragraphs, median_width) -> N
             logger.warning(
                 "BabelDOC list-item processing failed (%s: %s); "
                 "continuing with original paragraphs",
-                type(exc).__name__, str(exc)[:160],
+                type(exc).__name__,
+                str(exc)[:160],
             )
 
 

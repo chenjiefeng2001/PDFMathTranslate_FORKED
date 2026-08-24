@@ -79,7 +79,11 @@ class ServiceRegistry:
                 "Use replace=True to override."
             )
         self._services[interface] = implementation
-        logger.debug("Registered service: %s → %s", interface.__name__, type(implementation).__name__)
+        logger.debug(
+            "Registered service: %s → %s",
+            interface.__name__,
+            type(implementation).__name__,
+        )
 
     def register_factory(
         self,
@@ -90,9 +94,7 @@ class ServiceRegistry:
     ) -> None:
         """Register a factory function (called once, result cached)."""
         if interface in self._factories and not replace:
-            raise ValueError(
-                f"Factory for {interface.__name__} already registered."
-            )
+            raise ValueError(f"Factory for {interface.__name__} already registered.")
         # Remove any existing singleton so next get() calls the factory
         self._services.pop(interface, None)
         self._factories[interface] = factory

@@ -211,9 +211,11 @@ class GraphRegistry:
             "registered": [k.value for k in self.registered_kinds],
             "counts": self.graph_counts(),
             "total_unique_nodes": len(all_ids),
-            "avg_coverage": round(
-                sum(self.coverage(i) for i in all_ids) / len(all_ids), 2
-            ) if all_ids else 0.0,
+            "avg_coverage": (
+                round(sum(self.coverage(i) for i in all_ids) / len(all_ids), 2)
+                if all_ids
+                else 0.0
+            ),
             "nodes_missing_in_execution": [
                 i for i in all_ids if not self.node_in(i, GraphKind.EXECUTION)
             ][:20],
@@ -221,9 +223,7 @@ class GraphRegistry:
         return report
 
     def to_dict(self) -> dict:
-        memberships = {
-            i: self.membership(i).names for i in sorted(self.all_node_ids())
-        }
+        memberships = {i: self.membership(i).names for i in sorted(self.all_node_ids())}
         return {
             "registered": [k.value for k in self.registered_kinds],
             "counts": self.graph_counts(),
@@ -235,6 +235,3 @@ class GraphRegistry:
 
 
 __all__ = ["GraphKind", "GraphMembership", "GraphRegistry"]
-
-
-

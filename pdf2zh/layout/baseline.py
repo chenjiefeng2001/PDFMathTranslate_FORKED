@@ -8,6 +8,7 @@ Baseline）**，而非简单的包围盒（BBox）边缘，防止字体切换引
 字形跨度的稳健估计（中位数），用于三阶段坐标推导（P9 solver）与
 Inline 排版（P7 inline_layout）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,10 +22,10 @@ from pdf2zh.geometry.glyph import Glyph
 class BaselineMetrics:
     """主基线几何度量（y-up 坐标系）。"""
 
-    master_baseline: float = 0.0     # 主基线 y
-    ascent: float = 0.0              # 字面升部（正数）
-    descent: float = 0.0             # 字面降部（负数）
-    line_height: float = 0.0         # ascent - descent
+    master_baseline: float = 0.0  # 主基线 y
+    ascent: float = 0.0  # 字面升部（正数）
+    descent: float = 0.0  # 字面降部（负数）
+    line_height: float = 0.0  # ascent - descent
 
     @property
     def cap_height(self) -> float:
@@ -44,8 +45,9 @@ class BaselineComputer:
     """Master Baseline 计算器（字重加权 + 稳健升/降部）。"""
 
     @staticmethod
-    def compute(glyphs: Sequence[Glyph],
-                baseline: Optional[float] = None) -> BaselineMetrics:
+    def compute(
+        glyphs: Sequence[Glyph], baseline: Optional[float] = None
+    ) -> BaselineMetrics:
         """由字形集合计算主基线几何。
 
         基线：若显式传入 ``baseline`` 则用之；否则按字号加权平均字形基线。

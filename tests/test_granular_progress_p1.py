@@ -36,7 +36,6 @@ from pdf2zh.magicpdf_cli import (
     run_magicpdf_main,
 )
 
-
 # ── magic-pdf 日志 → 结构化 detail ──────────────────────────────────────────
 
 
@@ -206,10 +205,10 @@ def test_parse_mineru_end_to_end_with_fake_engine(fake_pdf, monkeypatch):
 
     assert len(calls) == 1
     kw = calls[0]
-    assert kw["backend"] == "pipeline"          # 本地后端固定
-    assert kw["parse_method"] == "auto"          # 非 OCR 默认
-    assert kw["f_dump_middle_json"] is True      # 必须产出 middle.json
-    assert kw["f_dump_md"] is False              # 不产无关产物
+    assert kw["backend"] == "pipeline"  # 本地后端固定
+    assert kw["parse_method"] == "auto"  # 非 OCR 默认
+    assert kw["f_dump_middle_json"] is True  # 必须产出 middle.json
+    assert kw["f_dump_md"] is False  # 不产无关产物
     assert kw["p_lang_list"] == ["ch"]
     # 归一化链路复用：block 文本与页尺寸来自 middle.json
     assert len(results) == 1
@@ -249,9 +248,7 @@ def test_parse_mineru_reports_start_progress_event(fake_pdf, monkeypatch):
     assert reported[0]["raw_stage"] == "pipeline"
 
 
-def test_parse_mineru_retries_with_minimal_args_on_type_error(
-    fake_pdf, monkeypatch
-):
+def test_parse_mineru_retries_with_minimal_args_on_type_error(fake_pdf, monkeypatch):
     def do_parse(output_dir, pdf_file_names, pdf_bytes_list, p_lang_list, **kw):
         if "f_dump_middle_json" in kw:
             raise TypeError("unexpected keyword argument 'f_dump_middle_json'")
@@ -324,9 +321,7 @@ def test_make_parse_progress_none_passthrough():
 def test_parse_progress_page_interpolation_monotone():
     events: list[tuple] = []
     cb = _make_parse_progress(
-        lambda stage, pct, msg, detail=None: events.append(
-            (stage, pct, msg, detail)
-        ),
+        lambda stage, pct, msg, detail=None: events.append((stage, pct, msg, detail)),
         r"C:\dir\paper.pdf",
     )
     cb({"unit": "page", "current": 0, "total": 100})
@@ -378,11 +373,17 @@ def _service(tid: str):
 def test_magicpdf_forwarder_writes_snapshot_and_event():
     svc = _service("t_gp_p1")
     detail = {
-        "engine": "magicpdf", "raw_stage": "doc_analyze",
-        "unit": "page", "current": 320, "total": 800,
+        "engine": "magicpdf",
+        "raw_stage": "doc_analyze",
+        "unit": "page",
+        "current": 320,
+        "total": 800,
     }
     svc._emit_smooth(
-        "t_gp_p1", "analyzing", 32.25, "paper.pdf: analyzing page 320/800",
+        "t_gp_p1",
+        "analyzing",
+        32.25,
+        "paper.pdf: analyzing page 320/800",
         detail=detail,
     )
     state = svc.get_task_state("t_gp_p1")

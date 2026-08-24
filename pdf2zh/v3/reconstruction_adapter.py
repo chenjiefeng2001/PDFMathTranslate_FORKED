@@ -26,6 +26,7 @@ legacy ``receive_layout`` 渲染主链路：
 ``run_reconstruction_channel`` 依据它把 ``render_source`` 标注为
 ``reconstructed``。
 """
+
 from __future__ import annotations
 
 import logging
@@ -61,13 +62,16 @@ def legacy_to_anchor_text(text: str) -> str:
     legacy 渲染引擎用 ``{vN}`` 占位公式，P6/P9 的 ``LayoutSolver`` 只认
     ``<formula_N>`` 锚点；两者按页内公式出现顺序共享同一编号。
     """
-    return _LEGACY_FORMULA_RE.sub(lambda m: f"<formula_{m.group(1)}>",
-                                  str(text) if text is not None else "")
+    return _LEGACY_FORMULA_RE.sub(
+        lambda m: f"<formula_{m.group(1)}>", str(text) if text is not None else ""
+    )
 
 
-def _pair_key(text: Optional[str],
-              legacy_formula_texts: Optional[Dict[int, str]] = None,
-              recon_formula_texts: Optional[Dict[int, str]] = None) -> str:
+def _pair_key(
+    text: Optional[str],
+    legacy_formula_texts: Optional[Dict[int, str]] = None,
+    recon_formula_texts: Optional[Dict[int, str]] = None,
+) -> str:
     """字符序列比较键：去空白 + 公式占位符展开为**实际字形字符**。
 
     legacy 的 ``{vN}`` 与重建锚点 ``<formula_N>`` 都替换为该公式的实际字符
@@ -81,12 +85,14 @@ def _pair_key(text: Optional[str],
     t = str(text)
     if legacy_formula_texts:
         t = _LEGACY_FORMULA_RE.sub(
-            lambda m: legacy_formula_texts.get(int(m.group(1)), "{f}"), t)
+            lambda m: legacy_formula_texts.get(int(m.group(1)), "{f}"), t
+        )
     else:
         t = _LEGACY_FORMULA_KEY_RE.sub("{f}", t)
     if recon_formula_texts:
         t = _ANCHOR_FORMULA_RE.sub(
-            lambda m: recon_formula_texts.get(int(m.group(1)), "{f}"), t)
+            lambda m: recon_formula_texts.get(int(m.group(1)), "{f}"), t
+        )
     else:
         t = _ANCHOR_FORMULA_KEY_RE.sub("{f}", t)
     return re.sub(r"\s+", "", t)
@@ -117,32 +123,30 @@ def pair_legacy_to_reconstructed(
     n, m = len(sstk), len(recon_texts)
     if n == 0 or m == 0:
         return None
-    if _pair_key("".join(str(s) for s in sstk),
-                 legacy_formula_texts, recon_formula_texts) != _pair_key(
-                     "".join(str(r) for r in recon_texts),
-                     legacy_formula_texts, recon_formula_texts):
+    if _pair_key(
+        "".join(str(s) for s in sstk), legacy_formula_texts, recon_formula_texts
+    ) != _pair_key(
+        "".join(str(r) for r in recon_texts), legacy_formula_texts, recon_formula_texts
+    ):
         return None
     pairs: List[Tuple[int, int, int]] = []
     i = j = 0
     while i < n and j < m:
-        if _pair_key(sstk[i], legacy_formula_texts,
-                     recon_formula_texts) == _pair_key(
-                         recon_texts[j], legacy_formula_texts,
-                         recon_formula_texts):
+        if _pair_key(sstk[i], legacy_formula_texts, recon_formula_texts) == _pair_key(
+            recon_texts[j], legacy_formula_texts, recon_formula_texts
+        ):
             pairs.append((i, i, j))
             i += 1
             j += 1
             continue
         # 尝试把 legacy i..k 拼接匹配重建段 j
         joined = str(sstk[i])
-        target = _pair_key(recon_texts[j], legacy_formula_texts,
-                           recon_formula_texts)
+        target = _pair_key(recon_texts[j], legacy_formula_texts, recon_formula_texts)
         k = i + 1
         found = False
         while k < n:
             joined += str(sstk[k])
-            norm_joined = _pair_key(joined, legacy_formula_texts,
-                                    recon_formula_texts)
+            norm_joined = _pair_key(joined, legacy_formula_texts, recon_formula_texts)
             if norm_joined == target:
                 pairs.append((i, k, j))
                 i = k + 1
@@ -156,13 +160,11 @@ def pair_legacy_to_reconstructed(
             continue
         # 尝试把重建段 j..k 拼接匹配 legacy 段 i（反向合并）
         rjoined = str(recon_texts[j])
-        ltarget = _pair_key(sstk[i], legacy_formula_texts,
-                            recon_formula_texts)
+        ltarget = _pair_key(sstk[i], legacy_formula_texts, recon_formula_texts)
         k = j + 1
         while k < m:
             rjoined += str(recon_texts[k])
-            norm_rjoined = _pair_key(rjoined, legacy_formula_texts,
-                                     recon_formula_texts)
+            norm_rjoined = _pair_key(rjoined, legacy_formula_texts, recon_formula_texts)
             if norm_rjoined == ltarget:
                 pairs.append((i, i, j))
                 i += 1
@@ -179,41 +181,43 @@ def pair_legacy_to_reconstructed(
     return None
 
 
-def _try_match(sstk, recon_texts, li: int, ri: int,
-               legacy_formula_texts=None, recon_formula_texts=None) \
-        -> Optional[Tuple[int, int, int, int]]:
+def _try_match(
+    sstk,
+    recon_texts,
+    li: int,
+    ri: int,
+    legacy_formula_texts=None,
+    recon_formula_texts=None,
+) -> Optional[Tuple[int, int, int, int]]:
     """在 (li, ri) 处尝试三种匹配；成功返回 (ls, le, rs, re)，失败返回 None。"""
-    if _pair_key(sstk[li], legacy_formula_texts,
-                 recon_formula_texts) == _pair_key(
-                     recon_texts[ri], legacy_formula_texts,
-                     recon_formula_texts):
+    if _pair_key(sstk[li], legacy_formula_texts, recon_formula_texts) == _pair_key(
+        recon_texts[ri], legacy_formula_texts, recon_formula_texts
+    ):
         return (li, li, ri, ri)
     # legacy li..le 拼接 == recon ri
     l_acc = str(sstk[li])
-    r_target = _pair_key(recon_texts[ri], legacy_formula_texts,
-                         recon_formula_texts)
+    r_target = _pair_key(recon_texts[ri], legacy_formula_texts, recon_formula_texts)
     le = li + 1
     while le < len(sstk):
         l_acc += str(sstk[le])
-        if _pair_key(l_acc, legacy_formula_texts,
-                     recon_formula_texts) == r_target:
+        if _pair_key(l_acc, legacy_formula_texts, recon_formula_texts) == r_target:
             return (li, le, ri, ri)
-        if r_target and not r_target.startswith(_pair_key(
-                l_acc, legacy_formula_texts, recon_formula_texts)):
+        if r_target and not r_target.startswith(
+            _pair_key(l_acc, legacy_formula_texts, recon_formula_texts)
+        ):
             break
         le += 1
     # recon ri..re 拼接 == legacy li（反向合并）
     r_acc = str(recon_texts[ri])
-    l_target = _pair_key(sstk[li], legacy_formula_texts,
-                         recon_formula_texts)
+    l_target = _pair_key(sstk[li], legacy_formula_texts, recon_formula_texts)
     re_ = ri + 1
     while re_ < len(recon_texts):
         r_acc += str(recon_texts[re_])
-        if _pair_key(r_acc, legacy_formula_texts,
-                     recon_formula_texts) == l_target:
+        if _pair_key(r_acc, legacy_formula_texts, recon_formula_texts) == l_target:
             return (li, li, ri, re_)
-        if l_target and not l_target.startswith(_pair_key(
-                r_acc, legacy_formula_texts, recon_formula_texts)):
+        if l_target and not l_target.startswith(
+            _pair_key(r_acc, legacy_formula_texts, recon_formula_texts)
+        ):
             break
         re_ += 1
     return None
@@ -241,8 +245,9 @@ def pair_legacy_to_reconstructed_partial(
     skipped: List[int] = []
     li = ri = 0
     while li < n and ri < m:
-        match = _try_match(sstk, recon_texts, li, ri,
-                           legacy_formula_texts, recon_formula_texts)
+        match = _try_match(
+            sstk, recon_texts, li, ri, legacy_formula_texts, recon_formula_texts
+        )
         if match is not None:
             ls, le, rs, re = match
             pairs.append((ls, le, rs, re))
@@ -258,8 +263,9 @@ def pair_legacy_to_reconstructed_partial(
     return pairs, skipped
 
 
-def _apply_adoption(sstk, pstk, toc_track, pfkstk,
-                    pairs, built: List[AdoptedParagraph]) -> int:
+def _apply_adoption(
+    sstk, pstk, toc_track, pfkstk, pairs, built: List[AdoptedParagraph]
+) -> int:
     """原地压缩 sstk/pstk/toc_track/pfkstk；返回合并段数（Level 2 计数）。"""
     new_sstk: List[str] = []
     new_pstk: List[AdoptedParagraph] = []
@@ -267,17 +273,17 @@ def _apply_adoption(sstk, pstk, toc_track, pfkstk,
     new_pfk: List[set] = []
     merged = 0
     has_pfk = pfkstk is not None
-    for (start, end, ridx) in pairs:
+    for start, end, ridx in pairs:
         if start < end:
             merged += 1
-            new_sstk.append("".join(str(s) for s in sstk[start:end + 1]))
+            new_sstk.append("".join(str(s) for s in sstk[start : end + 1]))
             track: list = []
-            for seg in toc_track[start:end + 1]:
+            for seg in toc_track[start : end + 1]:
                 track.extend(list(seg or []))
             new_toc.append(track)
             if has_pfk:
                 pk = set()
-                for f in pfkstk[start:end + 1]:
+                for f in pfkstk[start : end + 1]:
                     pk |= set(f or [])
                 new_pfk.append(pk)
             else:
@@ -295,8 +301,9 @@ def _apply_adoption(sstk, pstk, toc_track, pfkstk,
     return merged
 
 
-def _apply_partial_adoption(sstk, pstk, toc_track, pfkstk,
-                            pairs, skipped, built: List[AdoptedParagraph]) -> int:
+def _apply_partial_adoption(
+    sstk, pstk, toc_track, pfkstk, pairs, skipped, built: List[AdoptedParagraph]
+) -> int:
     """部分接管：只压缩配对的段；``skipped`` 段保持 legacy 原样（零回归）。
 
     返回合并段数（Level 2 计数）。``pairs`` 每项 ``(ls, le, rs, re)``，
@@ -323,7 +330,7 @@ def _apply_partial_adoption(sstk, pstk, toc_track, pfkstk,
         # i 是某个 pair 的起点
         ls = i
         le = None
-        for (p_ls, p_le, _rs, _re) in pairs:
+        for p_ls, p_le, _rs, _re in pairs:
             if p_ls == ls:
                 le = p_le
                 break
@@ -338,14 +345,14 @@ def _apply_partial_adoption(sstk, pstk, toc_track, pfkstk,
             continue
         if le > ls:
             merged += 1
-            new_sstk.append("".join(str(s) for s in sstk[ls:le + 1]))
+            new_sstk.append("".join(str(s) for s in sstk[ls : le + 1]))
             track: list = []
-            for seg in toc_track[ls:le + 1]:
+            for seg in toc_track[ls : le + 1]:
                 track.extend(list(seg or []))
             new_toc.append(track)
             if has_pfk:
                 pk = set()
-                for f in pfkstk[ls:le + 1]:
+                for f in pfkstk[ls : le + 1]:
                     pk |= set(f or [])
                 new_pfk.append(pk)
         else:
@@ -364,9 +371,9 @@ def _apply_partial_adoption(sstk, pstk, toc_track, pfkstk,
     return merged
 
 
-def adopt_reconstruction_cluster(conv, ltpage, sstk, pstk,
-                                 var, varl, varf, vlen,
-                                 toc_track, pfkstk=None) -> dict:
+def adopt_reconstruction_cluster(
+    conv, ltpage, sstk, pstk, var, varl, varf, vlen, toc_track, pfkstk=None
+) -> dict:
     """P1：文本集一致时以 P5–P10 重建段落几何接管 legacy sstk/pstk。
 
     ``var/varl/varf/vlen`` 保持不动（公式 ``{vN}`` 占位符索引全局不变）；
@@ -392,7 +399,8 @@ def adopt_reconstruction_cluster(conv, ltpage, sstk, pstk,
             if var[vid]:
                 try:
                     legacy_formula_texts[vid] = "".join(
-                        ch.get_text() for ch in var[vid])
+                        ch.get_text() for ch in var[vid]
+                    )
                 except Exception:
                     pass
         recon_formula_texts: Dict[int, str] = {}
@@ -403,17 +411,23 @@ def adopt_reconstruction_cluster(conv, ltpage, sstk, pstk,
                 if _m is not None and _t:
                     recon_formula_texts[int(_m.group(1))] = _t
         pairs = pair_legacy_to_reconstructed(
-            sstk, recon_texts, legacy_formula_texts, recon_formula_texts)
+            sstk, recon_texts, legacy_formula_texts, recon_formula_texts
+        )
         partial = False
         skipped: List[int] = []
         if pairs is None:
             # 整页 all-or-nothing 失败 → 部分接管：能配的段接管，配不上的段
             # 保持 legacy（真实 PDF 一页常混有图/表/公式段，实测整页回退率 100%）
             partial_pairs, skipped = pair_legacy_to_reconstructed_partial(
-                sstk, recon_texts, legacy_formula_texts, recon_formula_texts)
+                sstk, recon_texts, legacy_formula_texts, recon_formula_texts
+            )
             if not partial_pairs:
-                return {**report, "reason": "text_mismatch",
-                        "legacy": len(sstk), "recon": len(recon_texts)}
+                return {
+                    **report,
+                    "reason": "text_mismatch",
+                    "legacy": len(sstk),
+                    "recon": len(recon_texts),
+                }
             pairs = [(ls, le, rs) for (ls, le, rs, _re) in partial_pairs]
             partial = True
         # TOC 段永不接管（目录行逐字符几何保护）：partial 模式下从 pairs 剔除
@@ -422,10 +436,11 @@ def adopt_reconstruction_cluster(conv, ltpage, sstk, pstk,
         # 正文页 100% 因 toc_present 回退。改为 ``detect_toc_line`` 的目录行
         # 结构识别（标题+点线+页码 或 章节编号+空列页码），正文数字不触发。
         from pdf2zh.toc import detect_toc_line as _detect_toc
+
         _page_w = float(getattr(ltpage, "width", 0.0) or 0.0)
         kept: List[Tuple[int, int, int]] = []
         dropped: List[int] = []
-        for (start, end, ridx) in pairs:
+        for start, end, ridx in pairs:
             _is_toc = False
             for _t in range(start, end + 1):
                 try:
@@ -434,7 +449,8 @@ def adopt_reconstruction_cluster(conv, ltpage, sstk, pstk,
                         bool(getattr(pstk[_t], "brk", False)),
                         toc_track[_t],
                         float(getattr(pstk[_t], "x1", 0.0) or 0.0),
-                        page_width=_page_w)
+                        page_width=_page_w,
+                    )
                     if _spec is not None:
                         _is_toc = True
                         break
@@ -458,7 +474,7 @@ def adopt_reconstruction_cluster(conv, ltpage, sstk, pstk,
         built: List[AdoptedParagraph] = []
         solved_units = getattr(result, "solved_units", []) or []
         paragraphs = getattr(result, "paragraphs", []) or []
-        for (start, end, ridx) in pairs:
+        for start, end, ridx in pairs:
             brk = bool(getattr(pstk[end], "brk", False))
             solved = solved_units[ridx] if ridx < len(solved_units) else None
             para = paragraphs[ridx] if ridx < len(paragraphs) else None
@@ -469,17 +485,19 @@ def adopt_reconstruction_cluster(conv, ltpage, sstk, pstk,
             else:
                 return {**report, "reason": "no_geometry", "index": ridx}
         if partial:
-            merged = _apply_partial_adoption(sstk, pstk, toc_track, pfkstk,
-                                             pairs, skipped, built)
+            merged = _apply_partial_adoption(
+                sstk, pstk, toc_track, pfkstk, pairs, skipped, built
+            )
         else:
             merged = _apply_adoption(sstk, pstk, toc_track, pfkstk, pairs, built)
         return {
-            "adopted": True, "reason": "consistent",
+            "adopted": True,
+            "reason": "consistent",
             "level": 2 if merged else 1,
             "merged_paragraphs": merged,
             "partial": partial,
             "skipped_paragraphs": len(skipped),
-            "pairs": list(pairs),   # (压缩后 legacy_idx, legacy_end, recon_idx)
+            "pairs": list(pairs),  # (压缩后 legacy_idx, legacy_end, recon_idx)
             "page": pageid,
             "paragraph_count": len(pairs),
         }
@@ -491,8 +509,14 @@ def _adopted_from_solved(solved, brk: bool) -> AdoptedParagraph:
     """SolvedUnit.render_bbox → legacy 段落几何鸭子类型（y-up 坐标系）。"""
     x0, y0, x1, y1 = solved.render_bbox
     return AdoptedParagraph(
-        y=y0, x=x0, x0=x0, x1=x1, y0=y0, y1=y1,
-        size=float(getattr(solved, "font_size", 0.0) or 12.0), brk=brk,
+        y=y0,
+        x=x0,
+        x0=x0,
+        x1=x1,
+        y0=y0,
+        y1=y1,
+        size=float(getattr(solved, "font_size", 0.0) or 12.0),
+        brk=brk,
     )
 
 
@@ -500,8 +524,14 @@ def _adopted_from_paragraph(para, brk: bool) -> AdoptedParagraph:
     """LogicalParagraph.bbox 兜底（solved_units 缺失时）。"""
     x0, y0, x1, y1 = para.bbox
     return AdoptedParagraph(
-        y=y0, x=x0, x0=x0, x1=x1, y0=y0, y1=y1,
-        size=float(getattr(para, "font_size", 0.0) or 12.0), brk=brk,
+        y=y0,
+        x=x0,
+        x0=x0,
+        x1=x1,
+        y0=y0,
+        y1=y1,
+        size=float(getattr(para, "font_size", 0.0) or 12.0),
+        brk=brk,
     )
 
 
@@ -512,4 +542,3 @@ __all__ = [
     "pair_legacy_to_reconstructed_partial",
     "adopt_reconstruction_cluster",
 ]
-

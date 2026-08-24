@@ -1,9 +1,15 @@
 """Tests for V3 Repair Runtime (Module: repair.py)."""
+
 import pytest
 from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType
 from pdf2zh.v3.evaluator import (
-    QualityEvaluator, EvaluatorConfig, EvaluationResult,
-    Issue, IssueSeverity, IssueGraph, RepairScheduler,
+    QualityEvaluator,
+    EvaluatorConfig,
+    EvaluationResult,
+    Issue,
+    IssueSeverity,
+    IssueGraph,
+    RepairScheduler,
 )
 from pdf2zh.v3.repair import RepairStats, RepairResult, RepairRuntime
 
@@ -17,8 +23,9 @@ class TestRepairStats:
         assert s.converged is False
 
     def test_to_dict(self):
-        s = RepairStats(issues_detected=5, repairs_scheduled=3,
-                        repairs_executed=2, converged=True)
+        s = RepairStats(
+            issues_detected=5, repairs_scheduled=3, repairs_executed=2, converged=True
+        )
         d = s.to_dict()
         assert d["issues_detected"] == 5
         assert d["repairs_executed"] == 2
@@ -35,8 +42,9 @@ class TestRepairResult:
 
     def test_summary_converged(self):
         ig = IssueGraph()
-        stats = RepairStats(converged=True, iterations=3,
-                            issues_detected=10, repairs_executed=8)
+        stats = RepairStats(
+            converged=True, iterations=3, issues_detected=10, repairs_executed=8
+        )
         stats.scores_before = {"total": 85.0}
         stats.scores_after = {"total": 95.0}
         r = RepairResult(success=True, stats=stats, final_issues=ig)
@@ -62,12 +70,20 @@ class TestRepairRuntime:
     def test_detect_issues_with_nodes(self):
         rt = RepairRuntime()
         g = DocumentGraph()
-        n = DocumentNode(id="n1", node_type=NodeType.PARAGRAPH,
-                         bbox=(0,0,100,50), text="Hello world")
+        n = DocumentNode(
+            id="n1",
+            node_type=NodeType.PARAGRAPH,
+            bbox=(0, 0, 100, 50),
+            text="Hello world",
+        )
         g.add_node(n)
         g2 = DocumentGraph()
-        n2 = DocumentNode(id="n1", node_type=NodeType.PARAGRAPH,
-                          bbox=(0,0,100,50), text="Hola mundo")
+        n2 = DocumentNode(
+            id="n1",
+            node_type=NodeType.PARAGRAPH,
+            bbox=(0, 0, 100, 50),
+            text="Hola mundo",
+        )
         g2.add_node(n2)
         issues = rt.detect_issues(g, g2)
         assert isinstance(issues, IssueGraph)
@@ -75,11 +91,15 @@ class TestRepairRuntime:
     def test_schedule_repairs(self):
         rt = RepairRuntime()
         ig = IssueGraph()
-        ig.add_issue(Issue(
-            issue_type="overlap", severity=IssueSeverity.CRITICAL,
-            description="Overlap on page 5", module="layout",
-            fix_hint="Relayout paragraphs",
-        ))
+        ig.add_issue(
+            Issue(
+                issue_type="overlap",
+                severity=IssueSeverity.CRITICAL,
+                description="Overlap on page 5",
+                module="layout",
+                fix_hint="Relayout paragraphs",
+            )
+        )
         repairs = rt.schedule_repairs(ig)
         assert len(repairs) >= 1
         assert repairs[0]["action"] == "relayout"
@@ -87,15 +107,21 @@ class TestRepairRuntime:
     def test_execute_repairs(self):
         rt = RepairRuntime()
         g = DocumentGraph()
-        n = DocumentNode(id="n1", node_type=NodeType.PARAGRAPH,
-                         bbox=(0,0,100,50), text="Original text")
+        n = DocumentNode(
+            id="n1",
+            node_type=NodeType.PARAGRAPH,
+            bbox=(0, 0, 100, 50),
+            text="Original text",
+        )
         g.add_node(n)
-        repairs = [{
-            "issue_type": "bad_translation",
-            "node_id": "n1",
-            "module": "translator",
-            "action": "retranslate",
-        }]
+        repairs = [
+            {
+                "issue_type": "bad_translation",
+                "node_id": "n1",
+                "module": "translator",
+                "action": "retranslate",
+            }
+        ]
         executed = rt.execute_repairs(repairs, g)
         assert len(executed) == 1
 

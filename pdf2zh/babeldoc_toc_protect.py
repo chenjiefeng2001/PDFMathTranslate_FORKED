@@ -200,8 +200,7 @@ def _offset_to_char(offsets: List[int], pos: int) -> int:
     return lo - 1
 
 
-def _split_merged_toc_line(text: str, offset_track: list,
-                           page_width) -> List[tuple]:
+def _split_merged_toc_line(text: str, offset_track: list, page_width) -> List[tuple]:
     """一行含多个目录条目时逐条拆分。
 
     对一行文本找所有\"点线 + 页码\"匹配（非行尾锚定），逐条验证：
@@ -302,7 +301,7 @@ def _try_protect_merged_line(self, page, comp, line_no: int):
 
     offsets = _char_offsets(chars)
     blocks = []
-    for (title, lead, page, title_start, lead_start, lead_end) in entries:
+    for title, lead, page, title_start, lead_start, lead_end in entries:
         ci_title = _offset_to_char(offsets, title_start)
         ci_lead = _offset_to_char(offsets, lead_start)
         ci_end = _offset_to_char(offsets, lead_end - 1) + 1
@@ -325,14 +324,18 @@ def _try_protect_merged_line(self, page, comp, line_no: int):
             except Exception:  # noqa: BLE001 -- 只读对象等极端情况，跳过标记
                 pass
         update_formula_data(formula)
-        blocks.append([
-            PdfParagraphComposition(pdf_line=title_line),
-            PdfParagraphComposition(pdf_formula=formula),
-        ])
+        blocks.append(
+            [
+                PdfParagraphComposition(pdf_line=title_line),
+                PdfParagraphComposition(pdf_formula=formula),
+            ]
+        )
         line_no += 1
         logger.info(
             "BabelDOC TOC protect (merged): entry %d/%d %r -> title=%r formula=%r",
-            len(blocks), len(entries), title,
+            len(blocks),
+            len(entries),
+            title,
             "".join((c.char_unicode or "") for c in chars[ci_title:ci_lead]),
             "".join((c.char_unicode or "") for c in chars[ci_lead:ci_end]),
         )
@@ -473,8 +476,7 @@ def _protect_toc_lines_in_page(self, page) -> None:
         if kept:
             blocks.append(kept)
         if not any(
-            len(block) == 2 and block[1].pdf_formula is not None
-            for block in blocks
+            len(block) == 2 and block[1].pdf_formula is not None for block in blocks
         ):
             # 没有目录行命中：原样保留原段落（零改动）。
             new_paragraphs.append(paragraph)
@@ -507,7 +509,8 @@ def _patched_process_page(self, page) -> None:
             logger.warning(
                 "BabelDOC TOC protect failed (%s: %s); "
                 "continuing with original paragraphs",
-                type(exc).__name__, str(exc)[:160],
+                type(exc).__name__,
+                str(exc)[:160],
             )
 
 
@@ -553,4 +556,3 @@ def reset_babeldoc_toc_protect() -> bool:
         _ORIGINAL_PROCESS_PAGE = None
         logger.info("BabelDOC TOC-protect patch restored")
         return True
-

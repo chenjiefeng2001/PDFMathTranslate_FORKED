@@ -6,12 +6,15 @@ Font size / Relations（出边）/ Children（TOC 子节点）/ Metadata。
 
 纯查询、无副作用；``inspect_all`` 输出整树摘要（诊断/CLI 用）。
 """
+
 from __future__ import annotations
 
 from typing import Dict, List, Optional
 
 from pdf2zh.v3.document_model import (
-    DocumentModel, block_id, toc_records_from_model,
+    DocumentModel,
+    block_id,
+    toc_records_from_model,
 )
 
 
@@ -25,13 +28,13 @@ def _find_block(doc: DocumentModel, bid: str):
 
 
 def _outgoing_relations(doc: DocumentModel, bid: str) -> List[dict]:
-    return [{"type": r.type, "target": r.target}
-            for r in doc.relations if r.source == bid]
+    return [
+        {"type": r.type, "target": r.target} for r in doc.relations if r.source == bid
+    ]
 
 
 def _children(doc: DocumentModel, bid: str) -> List[str]:
-    return [r.target for r in doc.relations
-            if r.type == "contains" and r.source == bid]
+    return [r.target for r in doc.relations if r.type == "contains" and r.source == bid]
 
 
 def inspect(doc: DocumentModel, bid: str) -> Optional[dict]:
@@ -51,8 +54,10 @@ def inspect(doc: DocumentModel, bid: str) -> Optional[dict]:
         "reading_order": md.get("reading_order"),
         "role": md.get("role"),
         "role_confidence": md.get("role_confidence"),
-        "style": {"fonts": md.get("fonts", {}),
-                  "multifont": md.get("multifont", False)},
+        "style": {
+            "fonts": md.get("fonts", {}),
+            "multifont": md.get("multifont", False),
+        },
         "translation_policy": md.get("translation_policy"),
         "translated": md.get("translated"),
         "render_path": md.get("render_path"),
@@ -60,10 +65,18 @@ def inspect(doc: DocumentModel, bid: str) -> Optional[dict]:
         "anomaly": md.get("anomaly"),
         "relations": _outgoing_relations(doc, bid),
         "children": _children(doc, bid),
-        "metadata": {k: v for k, v in md.items()
-                     if k not in ("fonts", "translation_policy",
-                                  "translated", "render_path",
-                                  "typography")},
+        "metadata": {
+            k: v
+            for k, v in md.items()
+            if k
+            not in (
+                "fonts",
+                "translation_policy",
+                "translated",
+                "render_path",
+                "typography",
+            )
+        },
     }
 
 
@@ -73,30 +86,34 @@ def inspect_all(doc: DocumentModel) -> List[dict]:
     for page in doc.pages:
         pno = page.page_num
         for i, b in enumerate(page.blocks):
-            out.append({
-                "block_id": block_id(pno, i),
-                "page": pno,
-                "index": i,
-                "kind": b.kind,
-                "role": b.metadata.get("role"),
-                "text": (b.text or "")[:40],
-            })
+            out.append(
+                {
+                    "block_id": block_id(pno, i),
+                    "page": pno,
+                    "index": i,
+                    "kind": b.kind,
+                    "role": b.metadata.get("role"),
+                    "text": (b.text or "")[:40],
+                }
+            )
     return out
 
 
 def inspect_toc(doc: DocumentModel) -> List[dict]:
     """目录视图：模型 toc 块的层级摘要（块 id + 编号 + 页）。"""
-    return [{
-        "block_id": r["block_id"],
-        "number": r["number"],
-        "title": r["title"],
-        "page": r["page"],
-        "translated": r["translated_title"],
-    } for r in toc_records_from_model(doc)]
+    return [
+        {
+            "block_id": r["block_id"],
+            "number": r["number"],
+            "title": r["title"],
+            "page": r["page"],
+            "translated": r["translated_title"],
+        }
+        for r in toc_records_from_model(doc)
+    ]
 
 
-def inspect_layout(doc: DocumentModel, page_num: Optional[int] = None
-                   ) -> List[dict]:
+def inspect_layout(doc: DocumentModel, page_num: Optional[int] = None) -> List[dict]:
     """Layout Inspector：逐 Paragraph 输出排版诊断行。
 
     每行给出 Source Blocks（序）、行明细（size/alignment）、Font 来源
@@ -109,32 +126,36 @@ def inspect_layout(doc: DocumentModel, page_num: Optional[int] = None
             continue
         for i, b in enumerate(page.blocks):
             md = b.metadata or {}
-            rows.append({
-                "block_id": block_id(page.page_num, i),
-                "page": page.page_num,
-                "index": i,
-                "kind": b.kind,
-                "role": md.get("role"),
-                "role_confidence": md.get("role_confidence"),
-                "text": (b.text or "")[:80],
-                "bbox": [round(v, 2) for v in b.bbox],
-                "lines": len(b.lines),
-                "line_sizes": list(md.get("line_sizes") or []),
-                "line_alignments": list(md.get("line_alignments") or []),
-                "alignment": md.get("alignment"),
-                "font_major": md.get("font_major"),
-                "font_size": round(float(md.get("font_size") or b.font_size or 0.0), 2),
-                "font_size_max": md.get("font_size_max"),
-                "font_size_ratio": md.get("font_size_ratio"),
-                "font_uniform": md.get("font_uniform"),
-                "multifont": md.get("multifont"),
-                "fonts": md.get("fonts"),
-                "layout_split": bool(md.get("layout_split")),
-                "layout_provenance": md.get("layout_provenance"),
-                "render_path": md.get("render_path"),
-                "translated": md.get("translated"),
-                "node_confidence": md.get("node_confidence"),
-            })
+            rows.append(
+                {
+                    "block_id": block_id(page.page_num, i),
+                    "page": page.page_num,
+                    "index": i,
+                    "kind": b.kind,
+                    "role": md.get("role"),
+                    "role_confidence": md.get("role_confidence"),
+                    "text": (b.text or "")[:80],
+                    "bbox": [round(v, 2) for v in b.bbox],
+                    "lines": len(b.lines),
+                    "line_sizes": list(md.get("line_sizes") or []),
+                    "line_alignments": list(md.get("line_alignments") or []),
+                    "alignment": md.get("alignment"),
+                    "font_major": md.get("font_major"),
+                    "font_size": round(
+                        float(md.get("font_size") or b.font_size or 0.0), 2
+                    ),
+                    "font_size_max": md.get("font_size_max"),
+                    "font_size_ratio": md.get("font_size_ratio"),
+                    "font_uniform": md.get("font_uniform"),
+                    "multifont": md.get("multifont"),
+                    "fonts": md.get("fonts"),
+                    "layout_split": bool(md.get("layout_split")),
+                    "layout_provenance": md.get("layout_provenance"),
+                    "render_path": md.get("render_path"),
+                    "translated": md.get("translated"),
+                    "node_confidence": md.get("node_confidence"),
+                }
+            )
     return rows
 
 
@@ -154,31 +175,56 @@ def build_layout_report(doc: DocumentModel) -> dict:
     issues: List[dict] = []
     for r in rows:
         if r["layout_split"] and r.get("layout_provenance"):
-            issues.append({
-                "kind": "split", "node": r["block_id"], "page": r["page"],
-                "why": r["layout_provenance"], "severity": "info",
-            })
+            issues.append(
+                {
+                    "kind": "split",
+                    "node": r["block_id"],
+                    "page": r["page"],
+                    "why": r["layout_provenance"],
+                    "severity": "info",
+                }
+            )
         ratio = r.get("font_size_ratio") or 0.0
         if isinstance(ratio, float) and ratio > 1.6:
-            issues.append({
-                "kind": "size_blend", "node": r["block_id"], "page": r["page"],
-                "why": f"size={r['font_size']} max={r.get('font_size_max')} "
-                       f"ratio={ratio:.2f}",
-                "severity": "warning",
-            })
+            issues.append(
+                {
+                    "kind": "size_blend",
+                    "node": r["block_id"],
+                    "page": r["page"],
+                    "why": f"size={r['font_size']} max={r.get('font_size_max')} "
+                    f"ratio={ratio:.2f}",
+                    "severity": "warning",
+                }
+            )
         aligns = r.get("line_alignments") or []
         if aligns and len(set(aligns)) > 1:
-            issues.append({
-                "kind": "align_mixed", "node": r["block_id"], "page": r["page"],
-                "why": " -> ".join(str(a) for a in aligns),
-                "severity": "info",
-            })
+            issues.append(
+                {
+                    "kind": "align_mixed",
+                    "node": r["block_id"],
+                    "page": r["page"],
+                    "why": " -> ".join(str(a) for a in aligns),
+                    "severity": "info",
+                }
+            )
     return {
         "column_names": [
-            "block_id", "kind", "role", "text", "lines", "font_size",
-            "font_size_max", "font_size_ratio", "alignment",
-            "line_alignments", "line_sizes", "font_major", "layout_split",
-            "layout_provenance", "render_path", "node_confidence",
+            "block_id",
+            "kind",
+            "role",
+            "text",
+            "lines",
+            "font_size",
+            "font_size_max",
+            "font_size_ratio",
+            "alignment",
+            "line_alignments",
+            "line_sizes",
+            "font_major",
+            "layout_split",
+            "layout_provenance",
+            "render_path",
+            "node_confidence",
         ],
         "paragraphs": rows,
         "issues": issues,
@@ -192,5 +238,10 @@ def build_layout_report(doc: DocumentModel) -> dict:
     }
 
 
-__all__ = ["inspect", "inspect_all", "inspect_toc",
-           "inspect_layout", "build_layout_report"]
+__all__ = [
+    "inspect",
+    "inspect_all",
+    "inspect_toc",
+    "inspect_layout",
+    "build_layout_report",
+]

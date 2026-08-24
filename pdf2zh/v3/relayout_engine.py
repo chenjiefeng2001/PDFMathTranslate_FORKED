@@ -71,8 +71,7 @@ def _bbox_of(item: Any) -> BoundingBox:
 
 
 def bbox_to_tuple(bb: BoundingBox) -> Tuple[float, float, float, float]:
-    return (round(bb.x, 2), round(bb.y, 2),
-            round(bb.width, 2), round(bb.height, 2))
+    return (round(bb.x, 2), round(bb.y, 2), round(bb.width, 2), round(bb.height, 2))
 
 
 class ModelSelector:
@@ -116,7 +115,9 @@ class RelayoutSolver:
     def __init__(self, order_gap: float = 2.0) -> None:
         self.order_gap = order_gap
 
-    def build_graph(self, chunks: List[List[Any]], page_num: int = 0) -> ConstraintGraph:
+    def build_graph(
+        self, chunks: List[List[Any]], page_num: int = 0
+    ) -> ConstraintGraph:
         graph = ConstraintGraph()
         prev_id: Optional[str] = None
         for chunk in chunks:
@@ -124,17 +125,25 @@ class RelayoutSolver:
             bb = ModelSelector._union(bboxes)
             cid = f"chunk_{getattr(chunk[0], 'id', '')}"
             graph.add_node(
-                cid, "text_chunk", bbox=bb, page_num=page_num,
+                cid,
+                "text_chunk",
+                bbox=bb,
+                page_num=page_num,
             )
             if prev_id is not None:
-                graph.add_edge(prev_id, cid, "must_below",
-                               priority="soft", gap=self.order_gap)
+                graph.add_edge(
+                    prev_id, cid, "must_below", priority="soft", gap=self.order_gap
+                )
             prev_id = cid
         return graph
 
-    def solve(self, chunks: List[List[Any]], page_num: int = 0,
-              page_width: Optional[float] = None,
-              page_height: Optional[float] = None) -> Dict[str, BoundingBox]:
+    def solve(
+        self,
+        chunks: List[List[Any]],
+        page_num: int = 0,
+        page_width: Optional[float] = None,
+        page_height: Optional[float] = None,
+    ) -> Dict[str, BoundingBox]:
         """Build + solve constraints, return {chunk_id: resolved BoundingBox}."""
         graph = self.build_graph(chunks, page_num=page_num)
         solver = GraphConstraintSolver(graph)
@@ -146,17 +155,22 @@ class OutputAssembler:
     """Layer C: turn solved chunk bboxes into a compact assembly manifest."""
 
     @staticmethod
-    def assemble(layout: Dict[str, BoundingBox],
-                 chunks: Optional[Dict[str, List[str]]] = None) -> List[dict]:
+    def assemble(
+        layout: Dict[str, BoundingBox], chunks: Optional[Dict[str, List[str]]] = None
+    ) -> List[dict]:
         blocks = []
         chunks = chunks or {}
         for cid, bb in layout.items():
-            blocks.append({
-                "id": cid,
-                "x": round(bb.x, 2), "y": round(bb.y, 2),
-                "w": round(bb.width, 2), "h": round(bb.height, 2),
-                "source_ids": list(chunks.get(cid, [])),
-            })
+            blocks.append(
+                {
+                    "id": cid,
+                    "x": round(bb.x, 2),
+                    "y": round(bb.y, 2),
+                    "w": round(bb.width, 2),
+                    "h": round(bb.height, 2),
+                    "source_ids": list(chunks.get(cid, [])),
+                }
+            )
         blocks.sort(key=lambda b: (b["y"], b["x"]))
         return blocks
 
@@ -170,8 +184,12 @@ class RelayoutEngine:
         self.solver = RelayoutSolver(order_gap=self.config.order_gap)
         self.assembler = OutputAssembler()
 
-    def run(self, pages: List[dict], page_width: Optional[float] = None,
-            page_height: Optional[float] = None) -> RelayoutResult:
+    def run(
+        self,
+        pages: List[dict],
+        page_width: Optional[float] = None,
+        page_height: Optional[float] = None,
+    ) -> RelayoutResult:
         """Run the full relayout over a list of page dicts.
 
         page dict: {"index": int, "items": [items with .id and .bbox]}
@@ -181,9 +199,9 @@ class RelayoutEngine:
             idx = page.get("index", 0)
             items = page.get("items", [])
             chunks = self.selector.select(items)
-            layout = self.solver.solve(chunks, page_num=idx,
-                                       page_width=page_width,
-                                       page_height=page_height)
+            layout = self.solver.solve(
+                chunks, page_num=idx, page_width=page_width, page_height=page_height
+            )
             source_map = {
                 f"chunk_{getattr(c[0], 'id', '')}": [getattr(i, "id", "") for i in c]
                 for c in chunks
@@ -195,8 +213,10 @@ class RelayoutEngine:
 
 
 __all__ = [
-    "RelayoutConfig", "RelayoutResult", "ModelSelector",
-    "RelayoutSolver", "OutputAssembler", "RelayoutEngine",
+    "RelayoutConfig",
+    "RelayoutResult",
+    "ModelSelector",
+    "RelayoutSolver",
+    "OutputAssembler",
+    "RelayoutEngine",
 ]
-
-

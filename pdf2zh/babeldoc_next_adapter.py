@@ -37,7 +37,8 @@ logger = logging.getLogger(__name__)
 #: Bundled modified pdf2zh_next kernel directory (relative to this module).
 _NEXT_KERNEL_DIR = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "kernel", "PDFMathTranslate-next.git",
+    "kernel",
+    "PDFMathTranslate-next.git",
 )
 
 _KERNEL_INSERTED = False
@@ -114,7 +115,7 @@ def _resolve_prompt_text(prompt: Any) -> Optional[str]:
         text = str(prompt)
     text = text.strip()
     if text.startswith("PROMPT="):
-        text = text[len("PROMPT="):].strip()
+        text = text[len("PROMPT=") :].strip()
     return text or None
 
 
@@ -169,7 +170,9 @@ def _build_engine_settings(service: str, envs: Optional[Dict[str, Any]]) -> Any:
     if name == "xinference":
         return XinferenceSettings(
             xinference_host=_env_get(envs, "XINFERENCE_HOST"),
-            xinference_model=model or _env_get(envs, "XINFERENCE_MODEL") or "gemma-2-it",
+            xinference_model=model
+            or _env_get(envs, "XINFERENCE_MODEL")
+            or "gemma-2-it",
         )
     if name == "openai":
         return OpenAISettings(
@@ -180,7 +183,8 @@ def _build_engine_settings(service: str, envs: Optional[Dict[str, Any]]) -> Any:
     if name in ("azure_openai", "azureopenai"):
         return AzureOpenAISettings(
             azure_openai_api_key=_env_get(envs, "AZURE_OPENAI_API_KEY"),
-            azure_openai_model=model or _env_get(envs, "AZURE_OPENAI_MODEL")
+            azure_openai_model=model
+            or _env_get(envs, "AZURE_OPENAI_MODEL")
             or "gpt-4o-mini",
             azure_openai_base_url=_env_get(envs, "AZURE_OPENAI_BASE_URL"),
             azure_openai_api_version=(
@@ -192,8 +196,7 @@ def _build_engine_settings(service: str, envs: Optional[Dict[str, Any]]) -> Any:
         return AzureSettings(
             azure_api_key=_env_get(envs, "AZURE_API_KEY"),
             azure_endpoint=(
-                _env_get(envs, "AZURE_ENDPOINT")
-                or "https://api.translator.azure.cn"
+                _env_get(envs, "AZURE_ENDPOINT") or "https://api.translator.azure.cn"
             ),
         )
     if name == "gemini":
@@ -214,17 +217,24 @@ def _build_engine_settings(service: str, envs: Optional[Dict[str, Any]]) -> Any:
     if name == "modelscope":
         return ModelScopeSettings(
             modelscope_api_key=_env_get(envs, "MODELSCOPE_API_KEY"),
-            modelscope_model=model or _env_get(envs, "MODELSCOPE_MODEL")
+            modelscope_model=model
+            or _env_get(envs, "MODELSCOPE_MODEL")
             or "Qwen/Qwen2.5-32B-Instruct",
         )
     if name in ("silicon", "siliconflow"):
         return SiliconFlowSettings(
             siliconflow_api_key=_env_get(
-                envs, "SILICONFLOW_API_KEY", "SILICON_API_KEY",
+                envs,
+                "SILICONFLOW_API_KEY",
+                "SILICON_API_KEY",
             ),
-            siliconflow_model=model or _env_get(
-                envs, "SILICONFLOW_MODEL", "SILICON_MODEL",
-            ) or "Qwen/Qwen2.5-7B-Instruct",
+            siliconflow_model=model
+            or _env_get(
+                envs,
+                "SILICONFLOW_MODEL",
+                "SILICON_MODEL",
+            )
+            or "Qwen/Qwen2.5-7B-Instruct",
             siliconflow_base_url=_env_get(envs, "SILICONFLOW_BASE_URL"),
         )
     if name == "tencent":
@@ -251,28 +261,39 @@ def _build_engine_settings(service: str, envs: Optional[Dict[str, Any]]) -> Any:
     if name == "groq":
         return GroqSettings(
             groq_api_key=_env_get(envs, "GROQ_API_KEY"),
-            groq_model=model or _env_get(envs, "GROQ_MODEL")
+            groq_model=model
+            or _env_get(envs, "GROQ_MODEL")
             or "llama-3-3-70b-versatile",
         )
     if name == "qwen":
         # GUI "Qwen" maps onto the QwenMT engine (ALI_* legacy env names too).
         return QwenMtSettings(
             qwenmt_api_key=_env_get(envs, "QWENMT_API_KEY", "ALI_API_KEY"),
-            qwenmt_model=model or _env_get(envs, "QWENMT_MODEL", "ALI_MODEL")
+            qwenmt_model=model
+            or _env_get(envs, "QWENMT_MODEL", "ALI_MODEL")
             or "qwen-mt-plus",
             qwenmt_base_url=_env_get(envs, "QWENMT_BASE_URL", "ALI_BASE_URL"),
         )
     if name in ("aliyun", "aliyun-dashscope"):
         from pdf2zh_next.config.translate_engine_model import AliyunDashScopeSettings
+
         return AliyunDashScopeSettings(
             aliyun_dashscope_api_key=_env_get(
-                envs, "ALIYUN_DASHSCOPE_API_KEY", "ALI_API_KEY",
+                envs,
+                "ALIYUN_DASHSCOPE_API_KEY",
+                "ALI_API_KEY",
             ),
-            aliyun_dashscope_model=model or _env_get(
-                envs, "ALIYUN_DASHSCOPE_MODEL", "ALI_MODEL",
-            ) or "qwen-plus-latest",
+            aliyun_dashscope_model=model
+            or _env_get(
+                envs,
+                "ALIYUN_DASHSCOPE_MODEL",
+                "ALI_MODEL",
+            )
+            or "qwen-plus-latest",
             aliyun_dashscope_base_url=_env_get(
-                envs, "ALIYUN_DASHSCOPE_BASE_URL", "ALI_BASE_URL",
+                envs,
+                "ALIYUN_DASHSCOPE_BASE_URL",
+                "ALI_BASE_URL",
             ),
         )
     if name == "claude":
@@ -284,14 +305,19 @@ def _build_engine_settings(service: str, envs: Optional[Dict[str, Any]]) -> Any:
     if name == "openai-compatible":
         return OpenAICompatibleSettings(
             openai_compatible_api_key=_env_get(
-                envs, "OPENAI_COMPATIBLE_API_KEY",
+                envs,
+                "OPENAI_COMPATIBLE_API_KEY",
             ),
             openai_compatible_base_url=_env_get(
-                envs, "OPENAI_COMPATIBLE_BASE_URL",
+                envs,
+                "OPENAI_COMPATIBLE_BASE_URL",
             ),
-            openai_compatible_model=model or _env_get(
-                envs, "OPENAI_COMPATIBLE_MODEL",
-            ) or "gpt-4o-mini",
+            openai_compatible_model=model
+            or _env_get(
+                envs,
+                "OPENAI_COMPATIBLE_MODEL",
+            )
+            or "gpt-4o-mini",
         )
 
     raise BabeldocNextUnavailableError(
@@ -386,7 +412,6 @@ def build_next_settings(
     )
 
 
-
 def run_babeldoc_next_translation(
     source_path: str,
     lang_in: str,
@@ -403,7 +428,6 @@ def run_babeldoc_next_translation(
     debug: bool = False,
     ocr_mode: Optional[str] = None,
     glossary_files: Optional[List[str]] = None,
-
 ) -> List[Dict[str, str]]:
     """Translate a document with the modified pdf2zh_next kernel pipeline.
 
@@ -427,8 +451,7 @@ def run_babeldoc_next_translation(
         from pdf2zh_next.high_level import create_babeldoc_config
     except Exception as exc:  # noqa: BLE001 -- surface an actionable message
         raise BabeldocNextUnavailableError(
-            "pdf2zh_next kernel / BabelDOC engine not available: "
-            f"{exc}"
+            "pdf2zh_next kernel / BabelDOC engine not available: " f"{exc}"
         ) from exc
 
     try:
@@ -463,6 +486,7 @@ def run_babeldoc_next_translation(
             return files
 
     from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+
     # 把后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）同步到 BabelDOC 内部
     # ONNX 会话（幂等）：显式 cuda/dml 时版面分析也走 GPU，而不是硬编码 CPU。
     from pdf2zh.babeldoc_onnx_backend import apply_babeldoc_backend
@@ -536,7 +560,8 @@ def run_babeldoc_next_translation(
             try:
                 cb_takes_detail = (
                     len(inspect.signature(progress_cb).parameters) >= 4
-                    if progress_cb is not None else False
+                    if progress_cb is not None
+                    else False
                 )
             except (TypeError, ValueError):
                 cb_takes_detail = False
@@ -566,12 +591,15 @@ def run_babeldoc_next_translation(
                             detail = _progress_detail_from_event(event)
                             if cb_takes_detail:
                                 progress_cb(
-                                    _map_babeldoc_stage(stage_name), overall,
-                                    stage_name, detail,
+                                    _map_babeldoc_stage(stage_name),
+                                    overall,
+                                    stage_name,
+                                    detail,
                                 )
                             else:
                                 progress_cb(
-                                    _map_babeldoc_stage(stage_name), overall,
+                                    _map_babeldoc_stage(stage_name),
+                                    overall,
                                     stage_name,
                                 )
                         except Exception:  # noqa: BLE001 -- progress never fatal
@@ -603,6 +631,3 @@ def run_babeldoc_next_translation(
     if result is None:
         return []
     return _collect_result_files(result)
-
-
-

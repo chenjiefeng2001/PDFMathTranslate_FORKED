@@ -5,6 +5,7 @@ Tests for the three V6 core modules.
 Run with:
     python -m pytest tests/v3/test_v6.py -v
 """
+
 from __future__ import annotations
 import time, uuid
 from typing import Dict, List, Optional
@@ -13,30 +14,55 @@ import pytest
 
 from pdf2zh.v3.visual_tree import BoundingBox
 from pdf2zh.v3.constraint_graph import (
-    ConstraintPriority, ConstraintRelation, ConstraintEdge,
-    LayoutNode, ConstraintGraph, ConstraintSolver,
+    ConstraintPriority,
+    ConstraintRelation,
+    ConstraintEdge,
+    LayoutNode,
+    ConstraintGraph,
+    ConstraintSolver,
     build_constraint_graph_from_document,
 )
 from pdf2zh.v3.translation_runtime import (
-    ChunkStatus, ConsistencyLevel,
-    TranslationChunkResult, TranslationRoute,
-    Router, ChunkScheduler, ConsistencyChecker,
-    RetryPolicy, TranslationWorkflow, TranslationRuntime,
+    ChunkStatus,
+    ConsistencyLevel,
+    TranslationChunkResult,
+    TranslationRoute,
+    Router,
+    ChunkScheduler,
+    ConsistencyChecker,
+    RetryPolicy,
+    TranslationWorkflow,
+    TranslationRuntime,
 )
 from pdf2zh.v3.document_intelligence import (
-    EntityNode, EntityRelation, EntityGraph,
-    ConceptNode, ConceptGraph,
-    CitationNode, CitationRelation, CitationGraph,
-    KnowledgeFuser, DocumentIntelligence,
+    EntityNode,
+    EntityRelation,
+    EntityGraph,
+    ConceptNode,
+    ConceptGraph,
+    CitationNode,
+    CitationRelation,
+    CitationGraph,
+    KnowledgeFuser,
+    DocumentIntelligence,
 )
 from pdf2zh.v3.graph import (
-    DocumentGraph, DocumentNode, NodeType, Edge, EdgeType,
+    DocumentGraph,
+    DocumentNode,
+    NodeType,
+    Edge,
+    EdgeType,
 )
-from pdf2zh.v3.memory import DocumentMemory, EntityEntry, GlossaryEntry as MemoryGlossaryEntry
+from pdf2zh.v3.memory import (
+    DocumentMemory,
+    EntityEntry,
+    GlossaryEntry as MemoryGlossaryEntry,
+)
 
 # ═══════════════════════════════════════════════════════════════
 # 1. ConstraintGraph Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestConstraintGraph:
     def test_add_node(self):
@@ -263,6 +289,7 @@ class TestConstraintSolver:
 # 2. TranslationRuntime Tests
 # ═══════════════════════════════════════════════════════════════
 
+
 class TestRouter:
     def test_default_routes_exist(self):
         router = Router()
@@ -270,24 +297,39 @@ class TestRouter:
 
     def test_route_paragraph(self):
         router = Router()
-        node = DocumentNode(id="n1", text="Hello", node_type=NodeType.PARAGRAPH,
-                            bbox=(0, 0, 100, 20), page_num=1)
+        node = DocumentNode(
+            id="n1",
+            text="Hello",
+            node_type=NodeType.PARAGRAPH,
+            bbox=(0, 0, 100, 20),
+            page_num=1,
+        )
         route = router.route(node)
         assert route.model == "gpt-4o"
         assert route.temperature == 0.3
 
     def test_route_heading(self):
         router = Router()
-        node = DocumentNode(id="n1", text="Introduction", node_type=NodeType.HEADING,
-                            bbox=(0, 0, 100, 20), page_num=1)
+        node = DocumentNode(
+            id="n1",
+            text="Introduction",
+            node_type=NodeType.HEADING,
+            bbox=(0, 0, 100, 20),
+            page_num=1,
+        )
         route = router.route(node)
         assert route.model == "gpt-4o-mini"
         assert route.temperature == 0.1
 
     def test_route_fallback(self):
         router = Router()
-        node = DocumentNode(id="n1", text="Unknown", node_type=NodeType.DOCUMENT,
-                            bbox=(0, 0, 100, 20), page_num=1)
+        node = DocumentNode(
+            id="n1",
+            text="Unknown",
+            node_type=NodeType.DOCUMENT,
+            bbox=(0, 0, 100, 20),
+            page_num=1,
+        )
         route = router.route(node)
         assert route.model == "gpt-4o-mini"
         assert route.temperature == 0.3
@@ -307,11 +349,26 @@ class TestRouter:
 class TestChunkScheduler:
     def test_schedule_from_plan(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="A", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
-        graph.add_node(DocumentNode(id="n2", text="B", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 30, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="A",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
+        graph.add_node(
+            DocumentNode(
+                id="n2",
+                text="B",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 30, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1", "n2"])
         scheduler = ChunkScheduler(graph)
         ordered = scheduler.schedule(plan)
@@ -319,18 +376,33 @@ class TestChunkScheduler:
 
     def test_mark_done_and_get(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="A", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="A",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         scheduler = ChunkScheduler(graph)
-        result = TranslationChunkResult(node_id="n1", source_text="A", translated_text="B",
-                                        status=ChunkStatus.DONE)
+        result = TranslationChunkResult(
+            node_id="n1", source_text="A", translated_text="B", status=ChunkStatus.DONE
+        )
         scheduler.mark_done("n1", result)
         assert scheduler.get_result("n1").translated_text == "B"
 
     def test_mark_failed(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="A", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="A",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         scheduler = ChunkScheduler(graph)
         scheduler.mark_failed("n1", "error")
         result = scheduler.get_result("n1")
@@ -339,10 +411,19 @@ class TestChunkScheduler:
 
     def test_results_property(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="A", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="A",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         scheduler = ChunkScheduler(graph)
-        result = TranslationChunkResult(node_id="n1", source_text="A", translated_text="B")
+        result = TranslationChunkResult(
+            node_id="n1", source_text="A", translated_text="B"
+        )
         scheduler.mark_done("n1", result)
         assert len(scheduler.results) == 1
 
@@ -382,14 +463,31 @@ class TestConsistencyChecker:
 class TestTranslationWorkflow:
     def test_execute_with_translate_fn(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Hello world", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
-        graph.add_node(DocumentNode(id="n2", text="Second para", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 30, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Hello world",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
+        graph.add_node(
+            DocumentNode(
+                id="n2",
+                text="Second para",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 30, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1", "n2"])
         wf = TranslationWorkflow(graph)
-        results = wf.execute(plan, translate_fn=lambda nid, text: f"[translated] {text}")
+        results = wf.execute(
+            plan, translate_fn=lambda nid, text: f"[translated] {text}"
+        )
         assert len(results) == 2
         assert results["n1"].translated_text == "[translated] Hello world"
         assert results["n1"].status == ChunkStatus.DONE
@@ -397,9 +495,17 @@ class TestTranslationWorkflow:
 
     def test_execute_empty_node_skipped(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1"])
         wf = TranslationWorkflow(graph)
         results = wf.execute(plan, translate_fn=lambda nid, text: "[translated]")
@@ -408,16 +514,26 @@ class TestTranslationWorkflow:
 
     def test_execute_with_failure_and_retry(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Hello", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Hello",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1"])
         call_count = [0]
+
         def failing_fn(nid, text):
             call_count[0] += 1
             if call_count[0] < 2:
                 raise ValueError("Transient error")
             return "success"
+
         wf = TranslationWorkflow(graph)
         results = wf.execute(plan, translate_fn=failing_fn)
         assert results["n1"].translated_text == "success"
@@ -425,11 +541,26 @@ class TestTranslationWorkflow:
 
     def test_review(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Hello", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
-        graph.add_node(DocumentNode(id="n2", text="World", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 30, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Hello",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
+        graph.add_node(
+            DocumentNode(
+                id="n2",
+                text="World",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 30, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1", "n2"])
         wf = TranslationWorkflow(graph)
         wf.execute(plan, translate_fn=lambda nid, text: f"[translated] {text}")
@@ -438,9 +569,17 @@ class TestTranslationWorkflow:
 
     def test_repair_node(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Hello", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Hello",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1"])
         wf = TranslationWorkflow(graph)
         wf.execute(plan)
@@ -457,9 +596,17 @@ class TestTranslationWorkflow:
 
     def test_apply_to_graph(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Hello", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Hello",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1"])
         wf = TranslationWorkflow(graph)
         wf.execute(plan, translate_fn=lambda nid, text: "[translated]")
@@ -469,9 +616,17 @@ class TestTranslationWorkflow:
 
     def test_stats(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Hello", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Hello",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1"])
         wf = TranslationWorkflow(graph)
         wf.execute(plan, translate_fn=lambda nid, text: "[translated]")
@@ -491,9 +646,17 @@ class TestTranslationRuntime:
 
     def test_execute(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Hello", node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Hello",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlan
+
         plan = TranslationPlan(node_ids=["n1"])
         runtime = TranslationRuntime()
         results = runtime.execute(graph, plan, translate_fn=lambda nid, text: "[ok]")
@@ -502,12 +665,27 @@ class TestTranslationRuntime:
 
     def test_batch_translate(self):
         graph1 = DocumentGraph()
-        graph1.add_node(DocumentNode(id="n1", text="A", node_type=NodeType.PARAGRAPH,
-                                     bbox=(0, 0, 100, 20), page_num=1))
+        graph1.add_node(
+            DocumentNode(
+                id="n1",
+                text="A",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         graph2 = DocumentGraph()
-        graph2.add_node(DocumentNode(id="n2", text="B", node_type=NodeType.PARAGRAPH,
-                                     bbox=(0, 0, 100, 20), page_num=1))
+        graph2.add_node(
+            DocumentNode(
+                id="n2",
+                text="B",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         from pdf2zh.v3.planner import TranslationPlanner, PlannerConfig
+
         planner = TranslationPlanner(PlannerConfig(source_lang="en", target_lang="zh"))
         runtime = TranslationRuntime()
         results_list = runtime.batch_translate([graph1, graph2], planner)
@@ -523,6 +701,7 @@ class TestTranslationRuntime:
 # ═══════════════════════════════════════════════════════════════
 # 3. DocumentIntelligence Tests
 # ═══════════════════════════════════════════════════════════════
+
 
 class TestEntityGraph:
     def test_add_entity(self):
@@ -584,15 +763,23 @@ class TestEntityGraph:
 
     def test_extract_from_text(self):
         eg = EntityGraph()
-        found = eg.extract_from_text("The BERT model uses Transformer architecture", page_num=1)
+        found = eg.extract_from_text(
+            "The BERT model uses Transformer architecture", page_num=1
+        )
         assert len(found) >= 2
 
     def test_build_from_graph_detects_abbreviations(self):
         eg = EntityGraph()
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Large Language Model (LLM)",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Large Language Model (LLM)",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         eg.build_from_graph(graph)
         assert eg.entity_count >= 2
 
@@ -670,18 +857,32 @@ class TestCitationGraph:
 
     def test_find_figure_references(self):
         cg = CitationGraph()
-        found = cg.find_citations_in_text("As shown in Figure 2 and Table 1", page_num=1)
+        found = cg.find_citations_in_text(
+            "As shown in Figure 2 and Table 1", page_num=1
+        )
         assert len(found) >= 2
 
     def test_build_from_graph(self):
         cg = CitationGraph()
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="See [1] for details",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
-        graph.add_node(DocumentNode(id="ref1", text="[1] Author 2023",
-                                    node_type=NodeType.REFERENCE,
-                                    bbox=(0, 50, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="See [1] for details",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
+        graph.add_node(
+            DocumentNode(
+                id="ref1",
+                text="[1] Author 2023",
+                node_type=NodeType.REFERENCE,
+                bbox=(0, 50, 100, 20),
+                page_num=1,
+            )
+        )
         cg.build_from_graph(graph)
         assert cg.citation_count >= 1
 
@@ -711,16 +912,34 @@ class TestKnowledgeFuser:
 
     def test_build_all(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="The Transformer model",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
-        graph.add_node(DocumentNode(id="n2", text="See [1] for details",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 30, 100, 20), page_num=1))
-        graph.add_node(DocumentNode(id="h1", text="Introduction",
-                                    node_type=NodeType.HEADING,
-                                    bbox=(0, 0, 100, 20), page_num=1,
-                                    metadata={"heading_level": 1}))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="The Transformer model",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
+        graph.add_node(
+            DocumentNode(
+                id="n2",
+                text="See [1] for details",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 30, 100, 20),
+                page_num=1,
+            )
+        )
+        graph.add_node(
+            DocumentNode(
+                id="h1",
+                text="Introduction",
+                node_type=NodeType.HEADING,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+                metadata={"heading_level": 1},
+            )
+        )
         fuser = KnowledgeFuser()
         fuser.build_all(graph)
         assert fuser.entity_graph.entity_count >= 2
@@ -730,9 +949,15 @@ class TestKnowledgeFuser:
 
     def test_get_context_for_node(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="The Transformer Model",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="The Transformer Model",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         memory = DocumentMemory()
         memory.remember_entity("Transformer", "TF")
         fuser = KnowledgeFuser(memory=memory)
@@ -745,9 +970,15 @@ class TestKnowledgeFuser:
 class TestDocumentIntelligence:
     def test_analyze(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="The Transformer (TF) model",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="The Transformer (TF) model",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         di = DocumentIntelligence(graph=graph)
         di.analyze()
         assert di._analyzed
@@ -761,9 +992,15 @@ class TestDocumentIntelligence:
 
     def test_get_context(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Transformer",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Transformer",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         di = DocumentIntelligence(graph=graph)
         context = di.get_context("n1")
         assert "text" in context
@@ -777,37 +1014,61 @@ class TestDocumentIntelligence:
 
     def test_get_entity_context(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="LLM model",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="LLM model",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         di = DocumentIntelligence(graph=graph)
         ec = di.get_entity_context()
         assert isinstance(ec, dict)
 
     def test_get_concept_context(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="h1", text="Introduction",
-                                    node_type=NodeType.HEADING,
-                                    bbox=(0, 0, 100, 20), page_num=1,
-                                    metadata={"heading_level": 1}))
+        graph.add_node(
+            DocumentNode(
+                id="h1",
+                text="Introduction",
+                node_type=NodeType.HEADING,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+                metadata={"heading_level": 1},
+            )
+        )
         di = DocumentIntelligence(graph=graph)
         cc = di.get_concept_context()
         assert isinstance(cc, dict)
 
     def test_get_citation_context(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="See [1]",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="See [1]",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         di = DocumentIntelligence(graph=graph)
         cc = di.get_citation_context()
         assert isinstance(cc, dict)
 
     def test_summary(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Test",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Test",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         di = DocumentIntelligence(graph=graph)
         summary = di.summary()
         assert "entities" in summary
@@ -816,9 +1077,15 @@ class TestDocumentIntelligence:
 
     def test_entity_graph_reused(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="LLM model",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="LLM model",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         di = DocumentIntelligence(graph=graph)
         di.analyze()
         di.analyze()  # Should not raise
@@ -826,9 +1093,15 @@ class TestDocumentIntelligence:
 
     def test_get_context_with_memory(self):
         graph = DocumentGraph()
-        graph.add_node(DocumentNode(id="n1", text="Transformer model",
-                                    node_type=NodeType.PARAGRAPH,
-                                    bbox=(0, 0, 100, 20), page_num=1))
+        graph.add_node(
+            DocumentNode(
+                id="n1",
+                text="Transformer model",
+                node_type=NodeType.PARAGRAPH,
+                bbox=(0, 0, 100, 20),
+                page_num=1,
+            )
+        )
         memory = DocumentMemory()
         memory.remember_entity("Transformer")
         di = DocumentIntelligence(graph=graph, memory=memory)

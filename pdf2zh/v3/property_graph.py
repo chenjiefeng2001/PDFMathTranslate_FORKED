@@ -116,13 +116,13 @@ class PropertySchema:
             for node_type, fields in types.items():
                 self.add_type(node_type, list(fields.values()))
 
-    def add_type(self, node_type: str,
-                 fields: List[PropertyField]) -> "PropertySchema":
+    def add_type(self, node_type: str, fields: List[PropertyField]) -> "PropertySchema":
         existing = self._types.setdefault(node_type, {})
         for f in fields:
             if f.type not in _TYPE_HINTS:
                 raise PropertySchemaError(
-                    f"Unknown type '{f.type}' for field '{f.name}'")
+                    f"Unknown type '{f.type}' for field '{f.name}'"
+                )
             existing[f.name] = f
         return self
 
@@ -142,8 +142,11 @@ class PropertySchema:
 
     def indexed_fields(self) -> List[str]:
         return sorted(
-            f.name for fields in self._types.values() for f in fields.values()
-            if f.indexed)
+            f.name
+            for fields in self._types.values()
+            for f in fields.values()
+            if f.indexed
+        )
 
     def validate(self, node_type: str, properties: Dict[str, Any]) -> List[str]:
         """Return a list of schema violations (empty means valid)."""
@@ -159,7 +162,8 @@ class PropertySchema:
             if not f.validate(properties[f.name]):
                 errors.append(
                     f"field '{f.name}' expects {f.type}, "
-                    f"got {type(properties[f.name]).__name__}")
+                    f"got {type(properties[f.name]).__name__}"
+                )
         return errors
 
     def is_valid(self, node_type: str, properties: Dict[str, Any]) -> bool:
@@ -196,7 +200,7 @@ class PropertyIndex:
         self._inverted: Dict[Any, Set[str]] = {}
         self._node_value: Dict[str, Any] = {}
         self._sorted_num: List[Tuple[float, str]] = []  # numeric range index
-        self._sorted_str: List[Tuple[str, str]] = []    # string range index
+        self._sorted_str: List[Tuple[str, str]] = []  # string range index
 
     def _key(self, value: Any) -> Any:
         try:
@@ -243,8 +247,12 @@ class PropertyIndex:
 
     def range_query(self, lo: Any, hi: Any) -> Set[str]:
         """Range lookup via bisect over the matching sorted list."""
-        if isinstance(lo, (int, float)) and not isinstance(lo, bool) or \
-                isinstance(hi, (int, float)) and not isinstance(hi, bool):
+        if (
+            isinstance(lo, (int, float))
+            and not isinstance(lo, bool)
+            or isinstance(hi, (int, float))
+            and not isinstance(hi, bool)
+        ):
             if not self._sorted_num:
                 return set()
             start = bisect.bisect_left(self._sorted_num, (float(lo), ""))
@@ -255,7 +263,6 @@ class PropertyIndex:
         start = bisect.bisect_left(self._sorted_str, (lo, ""))
         end = bisect.bisect_right(self._sorted_str, (hi, "\uffff"))
         return {nid for _, nid in self._sorted_str[start:end]}
-
 
     def contains_value(self, value: Any) -> bool:
         return bool(self._inverted.get(self._key(value)))
@@ -283,15 +290,16 @@ class PropertyIndex:
 _OPS = ("==", "!=", ">=", "<=", ">", "<", "=")
 
 _COND_RE = re.compile(
-    r"(\w+)\s*(==|!=|>=|<=|>|<|=)\s*"
-    r"(?:\"([^\"]*)\"|'([^']*)'|([+-]?\d+(?:\.\d+)?))")
+    r"(\w+)\s*(==|!=|>=|<=|>|<|=)\s*" r"(?:\"([^\"]*)\"|'([^']*)'|([+-]?\d+(?:\.\d+)?))"
+)
 
 
 class GraphQueryResult:
     """Result of a PropertyGraph query, with the execution plan used."""
 
-    def __init__(self, nodes: List[Any], plan: List[str],
-                 elapsed_ms: float, total_matched: int) -> None:
+    def __init__(
+        self, nodes: List[Any], plan: List[str], elapsed_ms: float, total_matched: int
+    ) -> None:
         self.nodes = nodes
         self.plan = plan
         self.elapsed_ms = round(elapsed_ms, 4)
@@ -373,8 +381,12 @@ class GraphQueryBuilder:
 
     def run(self) -> GraphQueryResult:
         return self._graph._execute_query(
-            kind=self._kind, conditions=self._conditions,
-            order_by=self._order_by, limit=self._limit, select=self._select)
+            kind=self._kind,
+            conditions=self._conditions,
+            order_by=self._order_by,
+            limit=self._limit,
+            select=self._select,
+        )
 
     def count(self) -> int:
         return self.run().count
@@ -402,10 +414,12 @@ def parse_cypher(query: str) -> dict:
     kind = m.group(1)
     where_part = re.search(
         r"WHERE\s+(.+?)(?=\s+ORDER\s+BY|\s+LIMIT\s+|\s+RETURN\s+|$)",
-        query, re.IGNORECASE | re.DOTALL)
+        query,
+        re.IGNORECASE | re.DOTALL,
+    )
     order_m = re.search(
-        r"ORDER\s+BY\s+([a-zA-Z0-9_]+)(?:\s+(DESC|ASC))?",
-        query, re.IGNORECASE)
+        r"ORDER\s+BY\s+([a-zA-Z0-9_]+)(?:\s+(DESC|ASC))?", query, re.IGNORECASE
+    )
     limit_m = re.search(r"LIMIT\s+(\d+)", query, re.IGNORECASE)
     return_m = re.search(r"RETURN\s+([a-zA-Z0-9_,\s]+)", query, re.IGNORECASE)
 
@@ -414,7 +428,8 @@ def parse_cypher(query: str) -> dict:
         conds = _COND_RE.findall(where_part.group(1))
         if not conds:
             raise GraphQueryError(
-                f"Could not parse WHERE clause: '{where_part.group(1)}'")
+                f"Could not parse WHERE clause: '{where_part.group(1)}'"
+            )
         for prop, op, q1, q2, num in conds:
             if q1 is not None and q1 != "":
                 value: Any = q1
@@ -426,8 +441,10 @@ def parse_cypher(query: str) -> dict:
 
     order_by = None
     if order_m:
-        order_by = (order_m.group(1), bool(order_m.group(2) and
-                                           order_m.group(2).upper() == "DESC"))
+        order_by = (
+            order_m.group(1),
+            bool(order_m.group(2) and order_m.group(2).upper() == "DESC"),
+        )
     select = None
     if return_m:
         select = [p.strip() for p in return_m.group(1).split(",") if p.strip()]
@@ -468,8 +485,12 @@ class PropertyGraph(BaseGraph):
         hits = pg.query("MATCH paragraph WHERE page == 3 ORDER BY y")
     """
 
-    def __init__(self, kind: GraphKind = GraphKind.CUSTOM, name: str = "",
-                 schema: Optional[PropertySchema] = None) -> None:
+    def __init__(
+        self,
+        kind: GraphKind = GraphKind.CUSTOM,
+        name: str = "",
+        schema: Optional[PropertySchema] = None,
+    ) -> None:
         super().__init__(kind, name)
         self._schema = schema or PropertySchema()
         self._indexes: Dict[str, PropertyIndex] = {}
@@ -481,8 +502,9 @@ class PropertyGraph(BaseGraph):
     def schema(self) -> PropertySchema:
         return self._schema
 
-    def define_schema(self, node_type: str,
-                      fields: List[PropertyField]) -> "PropertyGraph":
+    def define_schema(
+        self, node_type: str, fields: List[PropertyField]
+    ) -> "PropertyGraph":
         self._schema.add_type(node_type, fields)
         for f in fields:
             if f.indexed:
@@ -514,17 +536,16 @@ class PropertyGraph(BaseGraph):
 
     # ── Node operations (override to keep schema + indexes in sync) ──
 
-    def add_node(self, node: GraphNode,
-                 node_type: Optional[str] = None,
-                 validate: bool = True) -> "PropertyGraph":
+    def add_node(
+        self, node: GraphNode, node_type: Optional[str] = None, validate: bool = True
+    ) -> "PropertyGraph":
         if node_type is not None:
             node.label = node_type
             node.properties.setdefault("type", node_type)
         if validate and node.label and self._schema.has_type(node.label):
             errors = self._schema.validate(node.label, node.properties)
             if errors:
-                raise PropertySchemaError(
-                    f"Node '{node.id}': {'; '.join(errors)}")
+                raise PropertySchemaError(f"Node '{node.id}': {'; '.join(errors)}")
         for f in self._schema.get_fields(node.label or "").values():
             if f.indexed:
                 self._ensure_index(f.name)
@@ -551,11 +572,9 @@ class PropertyGraph(BaseGraph):
         if node is None:
             raise KeyError(f"Node '{node_id}' not found")
         if node.label and self._schema.has_type(node.label):
-            errors = self._schema.validate(node.label,
-                                           {**node.properties, key: value})
+            errors = self._schema.validate(node.label, {**node.properties, key: value})
             if errors:
-                raise PropertySchemaError(
-                    f"Node '{node_id}': {'; '.join(errors)}")
+                raise PropertySchemaError(f"Node '{node_id}': {'; '.join(errors)}")
         super().set_property(node_id, key, value)
         if key in self._indexes:
             self._indexes[key].update(node_id, value)
@@ -569,8 +588,7 @@ class PropertyGraph(BaseGraph):
             merged = {**node.properties, **props}
             errors = self._schema.validate(node.label, merged)
             if errors:
-                raise PropertySchemaError(
-                    f"Node '{node_id}': {'; '.join(errors)}")
+                raise PropertySchemaError(f"Node '{node_id}': {'; '.join(errors)}")
         for k, v in props.items():
             super().set_property(node_id, k, v)
             if k in self._indexes:
@@ -583,16 +601,18 @@ class PropertyGraph(BaseGraph):
         for idx in self._indexes.values():
             self._indexes[idx.name] = PropertyIndex(idx.name)
 
-
     # ── Query API ────────────────────────────────────────────────────
 
     def query(self, cypher: str) -> GraphQueryResult:
         """Run a Cypher-style query string against this graph."""
         params = parse_cypher(cypher)
         return self._execute_query(
-            kind=params["kind"], conditions=params["conditions"],
-            order_by=params["order_by"], limit=params["limit"],
-            select=params["select"])
+            kind=params["kind"],
+            conditions=params["conditions"],
+            order_by=params["order_by"],
+            limit=params["limit"],
+            select=params["select"],
+        )
 
     def match(self, kind: Optional[str] = None) -> GraphQueryBuilder:
         """Start a chainable query builder."""
@@ -601,8 +621,11 @@ class PropertyGraph(BaseGraph):
     def find(self, prop: str, value: Any) -> List[GraphNode]:
         """Find all nodes whose property equals value (index-accelerated)."""
         idx = self._indexes.get(prop)
-        ids = idx.lookup(value) if idx else {
-            n.id for n in self.nodes if n.properties.get(prop) == value}
+        ids = (
+            idx.lookup(value)
+            if idx
+            else {n.id for n in self.nodes if n.properties.get(prop) == value}
+        )
         return [self.get_node(i) for i in sorted(ids)]
 
     def find_by_property(self, prop: str, value: Any) -> List[GraphNode]:
@@ -611,10 +634,16 @@ class PropertyGraph(BaseGraph):
     def range(self, prop: str, lo: Any, hi: Any) -> List[GraphNode]:
         """Find all nodes whose property lies in [lo, hi]."""
         idx = self._indexes.get(prop)
-        ids = idx.range_query(lo, hi) if idx else {
-            n.id for n in self.nodes
-            if isinstance(n.properties.get(prop), _COMPARABLE)
-            and lo <= n.properties[prop] <= hi}
+        ids = (
+            idx.range_query(lo, hi)
+            if idx
+            else {
+                n.id
+                for n in self.nodes
+                if isinstance(n.properties.get(prop), _COMPARABLE)
+                and lo <= n.properties[prop] <= hi
+            }
+        )
         return [self.get_node(i) for i in sorted(ids)]
 
     def nearest(self, prop: str, value: Any, k: int = 1) -> List[GraphNode]:
@@ -638,32 +667,39 @@ class PropertyGraph(BaseGraph):
                     left -= 1
                 if len(candidates) >= k * 2:
                     break
-            ranked = sorted(candidates,
-                            key=lambda p: (abs(p[0] - value), p[1]))
+            ranked = sorted(candidates, key=lambda p: (abs(p[0] - value), p[1]))
             return [self.get_node(nid) for _, nid in ranked[:k]]
         ranked_all = sorted(
-            ((abs(n.properties[prop] - value), n.id) for n in self.nodes
-             if isinstance(n.properties.get(prop), (int, float))
-             and not isinstance(n.properties[prop], bool)),
-            key=lambda p: (p[0], p[1]))
+            (
+                (abs(n.properties[prop] - value), n.id)
+                for n in self.nodes
+                if isinstance(n.properties.get(prop), (int, float))
+                and not isinstance(n.properties[prop], bool)
+            ),
+            key=lambda p: (p[0], p[1]),
+        )
         return [self.get_node(nid) for _, nid in ranked_all[:k]]
 
     def nodes_of_type(self, node_type: str) -> List[GraphNode]:
         """All nodes of a given declared type (type-index accelerated)."""
-        return [self.get_node(i) for i in sorted(
-            self._type_index.get(node_type, set()))]
+        return [
+            self.get_node(i) for i in sorted(self._type_index.get(node_type, set()))
+        ]
 
     def type_counts(self) -> Dict[str, int]:
         return {t: len(ids) for t, ids in sorted(self._type_index.items())}
 
-
     # ── Query engine ──────────────────────────────────────────────────
 
-    def _execute_query(self, *, kind: Optional[str],
-                       conditions: List[Tuple[str, str, Any]],
-                       order_by: Optional[Tuple[str, bool]],
-                       limit: Optional[int],
-                       select: Optional[List[str]]) -> GraphQueryResult:
+    def _execute_query(
+        self,
+        *,
+        kind: Optional[str],
+        conditions: List[Tuple[str, str, Any]],
+        order_by: Optional[Tuple[str, bool]],
+        limit: Optional[int],
+        select: Optional[List[str]],
+    ) -> GraphQueryResult:
         started = time.time()
         plan: List[str] = []
 
@@ -699,8 +735,9 @@ class PropertyGraph(BaseGraph):
         matched: List[str] = []
         for nid in candidates:
             node = self._nodes[nid]
-            if all(self._matches(node, prop, op, value)
-                   for prop, op, value in conditions):
+            if all(
+                self._matches(node, prop, op, value) for prop, op, value in conditions
+            ):
                 matched.append(nid)
         matched.sort()
 
@@ -708,17 +745,16 @@ class PropertyGraph(BaseGraph):
         nodes: List[Any] = [self._nodes[nid] for nid in matched]
         if order_by is not None:
             prop, desc = order_by
-            nodes.sort(key=lambda n: (n.properties.get(prop) is None,
-                                      n.properties.get(prop)),
-                       reverse=desc)
+            nodes.sort(
+                key=lambda n: (n.properties.get(prop) is None, n.properties.get(prop)),
+                reverse=desc,
+            )
         total = len(nodes)
         if limit is not None:
             nodes = nodes[:limit]
         if select is not None:
-            nodes = [{p: n.properties.get(p) for p in select}
-                     for n in nodes]
-        return GraphQueryResult(nodes, plan, (time.time() - started) * 1000,
-                                total)
+            nodes = [{p: n.properties.get(p) for p in select} for n in nodes]
+        return GraphQueryResult(nodes, plan, (time.time() - started) * 1000, total)
 
     @staticmethod
     def _matches(node: GraphNode, prop: str, op: str, value: Any) -> bool:
@@ -745,18 +781,23 @@ class PropertyGraph(BaseGraph):
     def to_dict(self) -> dict:
         data = super().to_dict()
         data["schema"] = self._schema.to_dict()
-        data["indexes"] = [self._indexes[name].to_dict()
-                           for name in sorted(self._indexes)]
+        data["indexes"] = [
+            self._indexes[name].to_dict() for name in sorted(self._indexes)
+        ]
         return data
 
     @classmethod
-    def from_dict(cls, data: dict, kind: Optional[GraphKind] = None,
-                  name: Optional[str] = None) -> "PropertyGraph":
+    def from_dict(
+        cls, data: dict, kind: Optional[GraphKind] = None, name: Optional[str] = None
+    ) -> "PropertyGraph":
         graph = cls(
             kind=kind or GraphKind(data.get("kind", GraphKind.CUSTOM.value)),
             name=name if name is not None else data.get("name", ""),
-            schema=PropertySchema.from_dict(data.get("schema", {}))
-            if data.get("schema") else None,
+            schema=(
+                PropertySchema.from_dict(data.get("schema", {}))
+                if data.get("schema")
+                else None
+            ),
         )
         for nd in data.get("nodes", []):
             graph.add_node(GraphNode.from_dict(nd))
@@ -781,7 +822,13 @@ class PropertyGraph(BaseGraph):
 
 
 __all__ = [
-    "PropertyField", "PropertySchema", "PropertySchemaError",
-    "GraphQueryError", "PropertyIndex", "GraphQueryResult",
-    "GraphQueryBuilder", "parse_cypher", "PropertyGraph",
+    "PropertyField",
+    "PropertySchema",
+    "PropertySchemaError",
+    "GraphQueryError",
+    "PropertyIndex",
+    "GraphQueryResult",
+    "GraphQueryBuilder",
+    "parse_cypher",
+    "PropertyGraph",
 ]

@@ -4,6 +4,7 @@ Paragraph layout engine for pdf2zh 2.0.
 Provides paragraph-level text layout with proper line wrapping,
 justification, and column-aware text flow.
 """
+
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
@@ -24,6 +25,7 @@ class TextAlignment(Enum):
 @dataclass
 class TextLine:
     """A single line of laid-out text."""
+
     text: str
     x: float
     y: float
@@ -36,6 +38,7 @@ class TextLine:
 @dataclass
 class TextBlock:
     """A paragraph block containing one or more text lines."""
+
     lines: List[TextLine] = field(default_factory=list)
     x0: float = 0.0
     y0: float = 0.0
@@ -58,9 +61,7 @@ class ParagraphLayoutEngine:
         self.metrics = metrics
         self.line_spacing = line_spacing
 
-    def wrap_text(
-        self, text: str, max_width: float, font_size: float
-    ) -> List[str]:
+    def wrap_text(self, text: str, max_width: float, font_size: float) -> List[str]:
         """Wrap text to fit within max_width.
 
         Args:
@@ -97,8 +98,7 @@ class ParagraphLayoutEngine:
             words = text.split(" ")
             for word in words:
                 word_width = self.metrics.measure_string(
-                    (word + " ") if word != words[-1] else word,
-                    font_size
+                    (word + " ") if word != words[-1] else word, font_size
                 )["total_width"]
                 if current_width + word_width > max_width and current_line:
                     lines.append(current_line)
@@ -186,9 +186,10 @@ class ParagraphLayoutEngine:
         if not text:
             return False
         cjk_count = sum(
-            1 for ch in text
-            if '\u4e00' <= ch <= '\u9fff'
-            or '\u3000' <= ch <= '\u303f'
-            or '\uff00' <= ch <= '\uffef'
+            1
+            for ch in text
+            if "\u4e00" <= ch <= "\u9fff"
+            or "\u3000" <= ch <= "\u303f"
+            or "\uff00" <= ch <= "\uffef"
         )
         return (cjk_count / len(text)) >= threshold

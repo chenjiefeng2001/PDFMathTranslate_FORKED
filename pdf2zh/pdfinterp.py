@@ -240,11 +240,14 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
                 resources = self.resources.copy()
             self.device.begin_figure(xobjid, bbox, matrix)
             ctm = mult_matrix(matrix, self.ctm)
-            ops_base = interpreter.render_contents(
-                resources,
-                [xobj],
-                ctm=ctm,
-            ) or ""  # 空内容流返回 None，避免生成非法 PDF 指令串
+            ops_base = (
+                interpreter.render_contents(
+                    resources,
+                    [xobj],
+                    ctm=ctm,
+                )
+                or ""
+            )  # 空内容流返回 None，避免生成非法 PDF 指令串
             # 同步子解释器的色空间（兼容 pdfminer 新旧 API：
             # 20250506 起 ncs/scs 位于 graphicstate，旧版为解释器属性）
             sub_ncs = getattr(interpreter.graphicstate, "ncs", None) or getattr(
@@ -282,7 +285,9 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
                 log.warning(
                     "XObject %s form processing failed (%s: %s). "
                     "Restoring state and clearing XObject stream to prevent overlay.",
-                    xobjid, type(e).__name__, str(e)[:120],
+                    xobjid,
+                    type(e).__name__,
+                    str(e)[:120],
                 )
                 try:
                     if self.device._stack:
@@ -315,7 +320,9 @@ class PDFPageInterpreterEx(PDFPageInterpreter):
         else:
             ctm = (1, 0, 0, 1, -x0, -y0)
         self.device.begin_page(page, ctm)
-        ops_base = self.render_contents(page.resources, page.contents, ctm=ctm) or ""  # 空内容流安全
+        ops_base = (
+            self.render_contents(page.resources, page.contents, ctm=ctm) or ""
+        )  # 空内容流安全
         self.device.fontid = self.fontid
         self.device.fontmap = self.fontmap
         ops_new = self.device.end_page(page)

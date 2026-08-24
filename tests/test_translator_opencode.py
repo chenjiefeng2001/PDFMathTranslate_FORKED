@@ -9,6 +9,7 @@
 
 所有外部交互（subprocess / requests）均被 mock，不依赖真实 opencode 安装。
 """
+
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -21,16 +22,15 @@ def _make_translator(**env_overrides):
     set_envs 会读写 ConfigManager（持久化到 ~/.config/PDFMathTranslate/config.json），
     必须同时 mock 读/写，否则测试间会通过磁盘配置互相污染。
     """
-    with patch.object(OpenCodeTranslator, "_test_opencode"), patch.object(
-        OpenCodeTranslator, "_test_server"
-    ), patch(
-        "pdf2zh.translator.ConfigManager.get_translator_by_name", return_value=None
-    ), patch(
-        "pdf2zh.translator.ConfigManager.set_translator_by_name"
+    with (
+        patch.object(OpenCodeTranslator, "_test_opencode"),
+        patch.object(OpenCodeTranslator, "_test_server"),
+        patch(
+            "pdf2zh.translator.ConfigManager.get_translator_by_name", return_value=None
+        ),
+        patch("pdf2zh.translator.ConfigManager.set_translator_by_name"),
     ):
-        return OpenCodeTranslator(
-            "en", "zh", None, envs=env_overrides or None
-        )
+        return OpenCodeTranslator("en", "zh", None, envs=env_overrides or None)
 
 
 class TestParseOutput(unittest.TestCase):
@@ -45,7 +45,9 @@ class TestParseOutput(unittest.TestCase):
         self.assertEqual(OpenCodeTranslator._parse_output(output), "你好，世界！")
 
     def test_skips_non_json_lines(self):
-        output = "warning: something\n{\"type\":\"text\",\"part\":{\"type\":\"text\",\"text\":\"ok\"}}\n"
+        output = (
+            'warning: something\n{"type":"text","part":{"type":"text","text":"ok"}}\n'
+        )
         self.assertEqual(OpenCodeTranslator._parse_output(output), "ok")
 
     def test_empty_output_raises(self):
@@ -55,13 +57,14 @@ class TestParseOutput(unittest.TestCase):
 
 class TestFactoryRegistration(unittest.TestCase):
     def _isolated_build(self, service):
-        with patch(
-            "pdf2zh.translator.ConfigManager.get_translator_by_name",
-            return_value=None,
-        ), patch("pdf2zh.translator.ConfigManager.set_translator_by_name"), patch.object(
-            OpenCodeTranslator, "_test_opencode"
-        ), patch.object(
-            OpenCodeTranslator, "_test_server"
+        with (
+            patch(
+                "pdf2zh.translator.ConfigManager.get_translator_by_name",
+                return_value=None,
+            ),
+            patch("pdf2zh.translator.ConfigManager.set_translator_by_name"),
+            patch.object(OpenCodeTranslator, "_test_opencode"),
+            patch.object(OpenCodeTranslator, "_test_server"),
         ):
             return build_translator(service, "en", "zh")
 
@@ -166,7 +169,8 @@ class TestServeMode(unittest.TestCase):
             "parts": [{"type": "text", "text": "你好"}],
         }
         with patch(
-            "pdf2zh.translator._thread_local_session", return_value=self._fake_session(message_resp)
+            "pdf2zh.translator._thread_local_session",
+            return_value=self._fake_session(message_resp),
         ):
             out = translator.do_translate("hello")
         self.assertEqual(out, "你好")
@@ -179,7 +183,8 @@ class TestServeMode(unittest.TestCase):
             "parts": [],
         }
         with patch(
-            "pdf2zh.translator._thread_local_session", return_value=self._fake_session(message_resp)
+            "pdf2zh.translator._thread_local_session",
+            return_value=self._fake_session(message_resp),
         ):
             with self.assertRaises(ValueError):
                 translator.do_translate("hello")

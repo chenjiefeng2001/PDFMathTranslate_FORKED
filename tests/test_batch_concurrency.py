@@ -102,7 +102,8 @@ class TestConcurrentBatchExecution:
         fail = {os.path.basename(FILES[1])}
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(
-                svc, "_execute_legacy",
+                svc,
+                "_execute_legacy",
                 _fake_legacy_factory(svc, seen, fail_names=fail),
             )
             svc._execute_batch(
@@ -183,10 +184,12 @@ class TestConcurrencyEnv:
                 )
         if expected_k is None:
             # 0 -> 钳为 1 -> 串行路径，无并发日志
-            assert not any("batch concurrent execution" in r.message
-                           for r in caplog.records)
+            assert not any(
+                "batch concurrent execution" in r.message for r in caplog.records
+            )
         else:
-            recs = [r for r in caplog.records
-                    if "batch concurrent execution" in r.message]
+            recs = [
+                r for r in caplog.records if "batch concurrent execution" in r.message
+            ]
             assert len(recs) == 1
             assert f"K={expected_k}" in recs[0].getMessage()

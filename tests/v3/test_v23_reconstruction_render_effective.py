@@ -15,6 +15,7 @@
 4. **P3 白底擦除**：接管段源区域输出白底矩形（等价 redact 物理擦除），
    杜绝「原文 / 公式背景与译文重叠」。
 """
+
 from __future__ import annotations
 
 import os
@@ -36,29 +37,63 @@ from pdf2zh.v3.reconstruction_adapter import pair_legacy_to_reconstructed
 from pdf2zh.v3.reconstruction_pipeline import ReconstructionResult
 from pdf2zh.v3.reconstruction_render import build_display_marks
 
-
 # ── 测试辅助 ──────────────────────────────────────────────────────
 
 
 def mk_glyph(char, x, baseline, size, font="Helv"):
-    return Glyph(char=char, bbox=(x, baseline - 0.2 * size,
-                                  x + 0.5 * size, baseline + 0.8 * size),
-                 baseline=baseline, ascent=0.8 * size, descent=-0.2 * size,
-                 font_name=font, font_size=size, page_id=0,
-                 object_id=int(x * 100))
+    return Glyph(
+        char=char,
+        bbox=(x, baseline - 0.2 * size, x + 0.5 * size, baseline + 0.8 * size),
+        baseline=baseline,
+        ascent=0.8 * size,
+        descent=-0.2 * size,
+        font_name=font,
+        font_size=size,
+        page_id=0,
+        object_id=int(x * 100),
+    )
 
 
 def mk_display_unit():
     """文本行 + 两个展示公式行 + 后续文本行 → 含 display 公式的 TranslationUnit。"""
     glyphs = (
-        [mk_glyph(c, x, 100, 12) for x, c in
-         [(0, "("), (6, "b"), (12, ")"), (24, "D"), (36, "e"), (48, "f")]]
-        + [mk_glyph(c, x, 85, 14, "CMMI10") for x, c in
-           [(0, "R"), (12, "1"), (24, "="), (36, "{"), (48, "("), (60, "1")]]
-        + [mk_glyph(c, x, 70, 14, "CMMI10") for x, c in
-           [(0, "R"), (12, "2"), (24, "="), (36, "{"), (48, "("), (60, "1")]]
-        + [mk_glyph(c, x, 55, 12) for x, c in
-           [(0, "F"), (12, "o"), (24, "r"), (36, " "), (48, "e"), (60, "a")]]
+        [
+            mk_glyph(c, x, 100, 12)
+            for x, c in [(0, "("), (6, "b"), (12, ")"), (24, "D"), (36, "e"), (48, "f")]
+        ]
+        + [
+            mk_glyph(c, x, 85, 14, "CMMI10")
+            for x, c in [
+                (0, "R"),
+                (12, "1"),
+                (24, "="),
+                (36, "{"),
+                (48, "("),
+                (60, "1"),
+            ]
+        ]
+        + [
+            mk_glyph(c, x, 70, 14, "CMMI10")
+            for x, c in [
+                (0, "R"),
+                (12, "2"),
+                (24, "="),
+                (36, "{"),
+                (48, "("),
+                (60, "1"),
+            ]
+        ]
+        + [
+            mk_glyph(c, x, 55, 12)
+            for x, c in [
+                (0, "F"),
+                (12, "o"),
+                (24, "r"),
+                (36, " "),
+                (48, "e"),
+                (60, "a"),
+            ]
+        ]
     )
     lines = VisualLineBuilder().build(glyphs, page_id=0)
     para = build_logical_paragraphs(lines, page_id=0)[0]
@@ -69,12 +104,22 @@ def mk_display_unit():
 def make_char(x, y, text="A", size=12.0, fontname="Helvetica"):
     from pdfminer.pdfinterp import PDFGraphicState
     from pdfminer.layout import LTChar
+
     font = Mock()
     font.fontname = fontname
     font.get_descent.return_value = -0.25
-    ch = LTChar((1, 0, 0, 1, x, y), font, size, 1.0, 0.0, text,
-                textwidth=0.5, textdisp=(0.0, 0.0), ncs=Mock(),
-                graphicstate=PDFGraphicState())
+    ch = LTChar(
+        (1, 0, 0, 1, x, y),
+        font,
+        size,
+        1.0,
+        0.0,
+        text,
+        textwidth=0.5,
+        textdisp=(0.0, 0.0),
+        ncs=Mock(),
+        graphicstate=PDFGraphicState(),
+    )
     ch.cid = ord(text[0])
     ch.font = font
     return ch
@@ -98,19 +143,19 @@ class TestP1FormulaExpansionPairing(unittest.TestCase):
         公式展开为实际字形字符后，legacy 段 0 == recon 段 0+1（反向合并）。
         plain.text.pdf 实测数据：var[0]='he following essay owes its origin'。"""
         legacy = ["preface. T {v0} to a conversation"]
-        recon = ["preface.",
-                 "The following essay owes its origin to a conversation"]
+        recon = ["preface.", "The following essay owes its origin to a conversation"]
         pairs = pair_legacy_to_reconstructed(
-            legacy, recon,
-            legacy_formula_texts={0: "he following essay owes its origin"})
+            legacy,
+            recon,
+            legacy_formula_texts={0: "he following essay owes its origin"},
+        )
         self.assertEqual(pairs, [(0, 0, 0)])
         self.assertEqual(len(pairs), 1)
 
     def test_without_expansion_fails(self):
         """不展开公式（旧行为）：``{v0}`` 折叠为 ``{f}``，字符序列不一致 → 失败。"""
         legacy = ["preface. T {v0} to a conversation"]
-        recon = ["preface.",
-                 "The following essay owes its origin to a conversation"]
+        recon = ["preface.", "The following essay owes its origin to a conversation"]
         self.assertIsNone(pair_legacy_to_reconstructed(legacy, recon))
 
     def test_anchor_formula_text_expansion(self):
@@ -118,9 +163,8 @@ class TestP1FormulaExpansionPairing(unittest.TestCase):
         legacy = ["Let {v0} be"]
         recon = ["Let <formula_0> be"]
         pairs = pair_legacy_to_reconstructed(
-            legacy, recon,
-            legacy_formula_texts={0: "x"},
-            recon_formula_texts={0: "x"})
+            legacy, recon, legacy_formula_texts={0: "x"}, recon_formula_texts={0: "x"}
+        )
         self.assertEqual(pairs, [(0, 0, 0)])
 
 
@@ -146,11 +190,13 @@ class TestF2RealTranslationResolve(unittest.TestCase):
         unit = mk_display_unit()
         conv = self._mk_conv(unit)
         sstk = ["Let {v0} and {v1} be"]
-        pstk = [SimpleNamespace(x=50.0, y=100.0, x0=50.0, x1=550.0,
-                                y0=100.0, y1=116.0, size=12.0)]
+        pstk = [
+            SimpleNamespace(
+                x=50.0, y=100.0, x0=50.0, x1=550.0, y0=100.0, y1=116.0, size=12.0
+            )
+        ]
         news = ["译文 {v0} 译文 {v1} 译文"]
-        marks = build_display_marks(
-            conv, SimpleNamespace(pageid=7), sstk, pstk, news)
+        marks = build_display_marks(conv, SimpleNamespace(pageid=7), sstk, pstk, news)
         self.assertEqual(marks, {0: True, 1: True})
         # P4：render_bbox 真实化 —— display 公式物理高度下推后 y 必小于源顶
         self.assertLess(pstk[0].y, 100.0)
@@ -162,16 +208,28 @@ class TestF2RealTranslationResolve(unittest.TestCase):
 
     def test_plain_text_geometry_grows_with_translation(self):
         """纯文本段：真实译文更长（多行）→ render_bbox 高度变化 → pstk 下移。"""
-        glyphs = [mk_glyph(c, x, 100, 12) for x, c in
-                  [(0, "A"), (12, " "), (24, "s"), (36, "h"), (48, "o"),
-                   (60, "r"), (72, "t")]]
+        glyphs = [
+            mk_glyph(c, x, 100, 12)
+            for x, c in [
+                (0, "A"),
+                (12, " "),
+                (24, "s"),
+                (36, "h"),
+                (48, "o"),
+                (60, "r"),
+                (72, "t"),
+            ]
+        ]
         lines = VisualLineBuilder().build(glyphs, page_id=0)
         para = build_logical_paragraphs(lines, page_id=0)[0]
         unit = build_translation_unit(para)
         conv = self._mk_conv(unit)
         sstk = ["A short"]
-        pstk = [SimpleNamespace(x=50.0, y=100.0, x0=50.0, x1=550.0,
-                                y0=100.0, y1=116.0, size=12.0)]
+        pstk = [
+            SimpleNamespace(
+                x=50.0, y=100.0, x0=50.0, x1=550.0, y0=100.0, y1=116.0, size=12.0
+            )
+        ]
         news = ["A much longer translated sentence that wraps onto two lines"]
         build_display_marks(conv, SimpleNamespace(pageid=7), sstk, pstk, news)
         self.assertLess(pstk[0].y, 100.0)  # 两行译文 → 底边更低
@@ -181,11 +239,13 @@ class TestF2RealTranslationResolve(unittest.TestCase):
         unit = mk_display_unit()
         conv = self._mk_conv(unit)
         sstk = ["Let {v0} and {v1} be"]
-        pstk = [SimpleNamespace(x=50.0, y=100.0, x0=50.0, x1=550.0,
-                                y0=100.0, y1=116.0, size=12.0)]
-        news = ["译文 {v1} 译文 {v0} 译文"]   # 顺序无关：按 token 顺序映射
-        marks = build_display_marks(
-            conv, SimpleNamespace(pageid=7), sstk, pstk, news)
+        pstk = [
+            SimpleNamespace(
+                x=50.0, y=100.0, x0=50.0, x1=550.0, y0=100.0, y1=116.0, size=12.0
+            )
+        ]
+        news = ["译文 {v1} 译文 {v0} 译文"]  # 顺序无关：按 token 顺序映射
+        marks = build_display_marks(conv, SimpleNamespace(pageid=7), sstk, pstk, news)
         self.assertEqual(marks, {0: True, 1: True})
 
 
@@ -199,8 +259,9 @@ class TestP5UnknownFontInlineOrder(unittest.TestCase):
         """unknown 字体行内 x0 分段重置（51.9/53.5 微差非单调）：行内保持
         内容流序，不得按 x0 排序分组（修复前 "Newsis..." → "oung,Yssndit"）。"""
         text = "Newsis'manufacturedbyjournalists'CohenandYoung,1973:97"
-        glyphs = [mk_glyph(c, 51.9 if i % 2 else 53.5, 100, 11.8)
-                  for i, c in enumerate(text)]
+        glyphs = [
+            mk_glyph(c, 51.9 if i % 2 else 53.5, 100, 11.8) for i, c in enumerate(text)
+        ]
         lines = VisualLineBuilder().build(glyphs)
         self.assertEqual(len(lines), 1)
         self.assertEqual(lines[0].text, text)
@@ -229,6 +290,7 @@ class TestP5UnknownFontInlineOrder(unittest.TestCase):
 class TestFullPageFigureFlatten(unittest.TestCase):
     def _make_figure_page(self):
         from pdfminer.layout import LTFigure, LTPage
+
         page = LTPage(0, (0, 0, 612, 792))
         fig = LTFigure("fig", (0, 0, 612, 792), (1, 0, 0, 1, 0, 0))
         add_text(fig, 40, 700, "Benchmarking")
@@ -238,10 +300,12 @@ class TestFullPageFigureFlatten(unittest.TestCase):
     def test_flattens_full_page_figure(self):
         """整页型 LTFigure（面积>70%）内部字符被平铺进子元素流。"""
         from pdf2zh.v3.figure_flatten import flatten_page_children
+
         page = self._make_figure_page()
         flat = list(flatten_page_children(page, 612, 792))
         texts = "".join(
-            c.get_text() for c in flat
+            c.get_text()
+            for c in flat
             if getattr(c, "get_text", None) and c is not page._objs[0]
         )
         self.assertIn("Benchmarking", texts)
@@ -250,14 +314,18 @@ class TestFullPageFigureFlatten(unittest.TestCase):
         """局部 LTFigure（面积<70%）不平铺（避免 Logo/页眉垃圾文本）。"""
         from pdfminer.layout import LTFigure, LTPage
         from pdf2zh.v3.figure_flatten import flatten_page_children
+
         page = LTPage(0, (0, 0, 612, 792))
-        fig = LTFigure("fig", (300, 500, 400, 560), (1, 0, 0, 1, 0, 0))  # 100×60 远小于页面
+        fig = LTFigure(
+            "fig", (300, 500, 400, 560), (1, 0, 0, 1, 0, 0)
+        )  # 100×60 远小于页面
         add_text(fig, 305, 540, "LogoText")
         page.add(fig)
         flat = list(flatten_page_children(page, 612, 792))
         has_logo = any(
             getattr(c, "get_text", None) and "LogoText" in c.get_text()
-            for c in flat if c is not fig
+            for c in flat
+            if c is not fig
         )
         self.assertFalse(has_logo)
 
@@ -274,19 +342,27 @@ class TestFullPageFigureFlatten(unittest.TestCase):
         from pdf2zh.collision_resolver import CollisionResolver
         from pdf2zh.pdfinterp import PDFPageInterpreterEx
 
-        path = os.path.abspath(os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "..",
-            "file", "translate.cli.text.with.figure.pdf"))
+        path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "..",
+                "file",
+                "translate.cli.text.with.figure.pdf",
+            )
+        )
         if not os.path.exists(path):
             self.skipTest("real pdf fixture missing")
         raw = open(path, "rb").read()
-        page = list(PDFPage.create_pages(
-            PDFDocument(PDFParser(io.BytesIO(raw)))))[0]
+        page = list(PDFPage.create_pages(PDFDocument(PDFParser(io.BytesIO(raw)))))[0]
         page.pageid = 0
         page.pageno = 0
         conv = TranslateConverter(
-            PDFResourceManager(), layout={0: np.full((1200, 900), 3.0)},
-            lang_in="en", lang_out="zh-CN", service="google")
+            PDFResourceManager(),
+            layout={0: np.full((1200, 900), 3.0)},
+            lang_in="en",
+            lang_out="zh-CN",
+            service="google",
+        )
         conv.thread = 1
         conv.noto_name = "noto"
         noto = Mock()
@@ -311,12 +387,11 @@ class TestFullPageFigureFlatten(unittest.TestCase):
         conv.reconstruction_adoptions = {}
         PDFPageInterpreterEx(PDFResourceManager(), conv, {}).process_page(page)
         adopt = conv.reconstruction_adoptions.get(0) or {}
-        self.assertGreater(adopt.get("legacy", 0), 0)   # 平铺后 legacy 有段
+        self.assertGreater(adopt.get("legacy", 0), 0)  # 平铺后 legacy 有段
         rec = conv.reconstruction_records.get(0) or {}
         # P6 公式几何被计算：孤立基础运算符（模块 4 规范 §3.4）回退普通
         # 文本后，页面仍至少保留 1 个真实公式对象（如积分/属于符号）。
         self.assertGreater(rec.get("formula_count", 0), 0)
-
 
 
 class TestF3WhiteoutCoverage(unittest.TestCase):
@@ -324,7 +399,10 @@ class TestF3WhiteoutCoverage(unittest.TestCase):
         conv = TranslateConverter(
             PDFResourceManager(),
             layout={page.pageid: make_layout()},
-            lang_in="en", lang_out="zh-CN", service="google")
+            lang_in="en",
+            lang_out="zh-CN",
+            service="google",
+        )
         conv.thread = 1
         conv.noto_name = "noto"
         noto = Mock()
@@ -335,6 +413,7 @@ class TestF3WhiteoutCoverage(unittest.TestCase):
         conv.fontid = {}
         conv.text_metrics = {}
         from pdf2zh.collision_resolver import CollisionResolver
+
         conv.collision_resolver = CollisionResolver()
         translator = Mock()
         translator.translate = Mock(side_effect=lambda s: "译文" + s)
@@ -381,4 +460,3 @@ class TestF3WhiteoutCoverage(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

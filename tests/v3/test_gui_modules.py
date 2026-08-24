@@ -28,7 +28,6 @@ from pdf2zh.gui.logger import (
     get_stderr_capture,
 )
 
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # State Management Tests
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -48,7 +47,9 @@ class TestTaskState:
 
     def test_with_values(self):
         s = TaskState(
-            task_id="t1", status="running", progress=50.0,
+            task_id="t1",
+            status="running",
+            progress=50.0,
             file_list=["doc.pdf"],
             result_files=[{"name": "out.pdf", "path": "/tmp/out.pdf"}],
         )
@@ -110,6 +111,7 @@ class TestGlobalTaskStore:
 
     def test_thread_safety(self):
         errors: list[Exception] = []
+
         def worker(i: int):
             try:
                 tid = f"t{i}"
@@ -120,9 +122,12 @@ class TestGlobalTaskStore:
                 GLOBAL_TASK_STORE.remove(tid)
             except Exception as ex:
                 errors.append(ex)
+
         threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
-        for t in threads: t.start()
-        for t in threads: t.join()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
         assert not errors
 
     def test_max_concurrency(self):
@@ -155,8 +160,13 @@ class TestThreadAwareLogHandler:
         handler = ThreadAwareLogHandler()
         tid = handler.register_thread()
         record = logging.LogRecord(
-            name="test", level=logging.INFO,
-            pathname="", lineno=0, msg="Progress: 50%", args=None, exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="Progress: 50%",
+            args=None,
+            exc_info=None,
         )
         handler.emit(record)
         q = handler.get_queue(tid)
@@ -171,8 +181,13 @@ class TestThreadAwareLogHandler:
         handler = ThreadAwareLogHandler()
         tid = handler.register_thread()
         record = logging.LogRecord(
-            name="test", level=logging.INFO,
-            pathname="", lineno=0, msg="General log", args=None, exc_info=None,
+            name="test",
+            level=logging.INFO,
+            pathname="",
+            lineno=0,
+            msg="General log",
+            args=None,
+            exc_info=None,
         )
         handler.emit(record)
         q = handler.get_queue(tid)
@@ -199,6 +214,7 @@ class TestThreadAwareLogHandler:
 class TestImportResolution:
     def test_services_importable(self):
         from pdf2zh.services import RuntimeService, TranslationRequest, TaskState
+
         assert RuntimeService is not None
 
     def test_gui_submodules_importable(self):
@@ -210,11 +226,13 @@ class TestImportResolution:
         from pdf2zh.gui.components.progress_panel import create_progress_panel
         from pdf2zh.gui.components.preview_panel import create_preview_panel
         from pdf2zh.gui.components.diagnostic_panel import create_diagnostic_panel
+
         assert GLOBAL_TASK_STORE is not None
         assert create_upload_panel is not None
 
     def test_gui_app_importable(self):
         from pdf2zh.gui.app import create_gui
+
         assert create_gui is not None
 
         GLOBAL_TASK_STORE.set("t1", TaskState(task_id="t1"))

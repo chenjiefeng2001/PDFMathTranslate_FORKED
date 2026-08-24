@@ -2,6 +2,7 @@
 
 Cross-page, cross-document memory for entities, terminology, and concepts.
 """
+
 from __future__ import annotations
 import logging
 import re
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EntityEntry:
     """A named entity with metadata."""
+
     canonical_name: str
     aliases: Set[str] = field(default_factory=set)
     definition: str = ""
@@ -29,6 +31,7 @@ class EntityEntry:
 @dataclass
 class GlossaryEntry:
     """A source->target term mapping with metadata."""
+
     source: str
     target: str
     context: str = ""
@@ -39,6 +42,7 @@ class GlossaryEntry:
 @dataclass
 class AbbreviationEntry:
     """An abbreviation with its expanded form."""
+
     short: str
     long: str
     source_lang: str = "en"
@@ -47,6 +51,7 @@ class AbbreviationEntry:
 @dataclass
 class DocumentMemorySnapshot:
     """Serializable snapshot of memory state."""
+
     entities: List[dict]
     glossary: List[dict]
     abbreviations: List[dict]
@@ -71,9 +76,13 @@ class DocumentMemory:
     # ── Entity Registry ──────────────────────────────────────────
 
     def remember_entity(
-        self, canonical_name: str, *aliases: str,
-        definition: str = "", translation: str = "",
-        source_lang: str = "en", target_lang: str = "zh-cn",
+        self,
+        canonical_name: str,
+        *aliases: str,
+        definition: str = "",
+        translation: str = "",
+        source_lang: str = "en",
+        target_lang: str = "zh-cn",
         confidence: float = 1.0,
     ) -> None:
         key = canonical_name.lower()
@@ -83,9 +92,12 @@ class DocumentMemory:
             entry.translation = translation or entry.translation
         else:
             entry = EntityEntry(
-                canonical_name=canonical_name, definition=definition,
-                source_lang=source_lang, target_lang=target_lang,
-                translation=translation, confidence=confidence,
+                canonical_name=canonical_name,
+                definition=definition,
+                source_lang=source_lang,
+                target_lang=target_lang,
+                translation=translation,
+                confidence=confidence,
             )
             self._entities[key] = entry
         for alias in aliases:
@@ -111,14 +123,20 @@ class DocumentMemory:
     # ── Glossary Registry ────────────────────────────────────────
 
     def remember_glossary(
-        self, source: str, target: str,
-        context: str = "", confidence: float = 1.0,
+        self,
+        source: str,
+        target: str,
+        context: str = "",
+        confidence: float = 1.0,
         is_case_sensitive: bool = False,
     ) -> None:
         key = source if is_case_sensitive else source.lower()
         self._glossary[key] = GlossaryEntry(
-            source=source, target=target, context=context,
-            confidence=confidence, is_case_sensitive=is_case_sensitive,
+            source=source,
+            target=target,
+            context=context,
+            confidence=confidence,
+            is_case_sensitive=is_case_sensitive,
         )
 
     def lookup_glossary(self, term: str) -> Optional[GlossaryEntry]:
@@ -148,8 +166,12 @@ class DocumentMemory:
 
     # ── Abbreviation Registry ────────────────────────────────────
 
-    def remember_abbreviation(self, short: str, long: str, source_lang: str = "en") -> None:
-        self._abbreviations[short.lower()] = AbbreviationEntry(short=short, long=long, source_lang=source_lang)
+    def remember_abbreviation(
+        self, short: str, long: str, source_lang: str = "en"
+    ) -> None:
+        self._abbreviations[short.lower()] = AbbreviationEntry(
+            short=short, long=long, source_lang=source_lang
+        )
 
     def expand_abbreviation(self, short: str) -> Optional[str]:
         entry = self._abbreviations.get(short.lower())
@@ -185,13 +207,30 @@ class DocumentMemory:
 
     def take_snapshot(self) -> DocumentMemorySnapshot:
         return DocumentMemorySnapshot(
-            entities=[{"canonical_name": e.canonical_name, "aliases": list(e.aliases),
-                        "definition": e.definition, "translation": e.translation,
-                        "confidence": e.confidence} for e in self._entities.values()],
-            glossary=[{"source": g.source, "target": g.target,
-                       "context": g.context, "confidence": g.confidence} for g in self._glossary.values()],
-            abbreviations=[{"short": a.short, "long": a.long} for a in self._abbreviations.values()],
-            topics=list(self._topics), language_style=self._language_style,
+            entities=[
+                {
+                    "canonical_name": e.canonical_name,
+                    "aliases": list(e.aliases),
+                    "definition": e.definition,
+                    "translation": e.translation,
+                    "confidence": e.confidence,
+                }
+                for e in self._entities.values()
+            ],
+            glossary=[
+                {
+                    "source": g.source,
+                    "target": g.target,
+                    "context": g.context,
+                    "confidence": g.confidence,
+                }
+                for g in self._glossary.values()
+            ],
+            abbreviations=[
+                {"short": a.short, "long": a.long} for a in self._abbreviations.values()
+            ],
+            topics=list(self._topics),
+            language_style=self._language_style,
         )
 
     def restore_snapshot(self, snapshot: DocumentMemorySnapshot) -> None:
@@ -202,14 +241,20 @@ class DocumentMemory:
         self._topics = list(snapshot.topics)
         self._language_style = snapshot.language_style
         for ed in snapshot.entities:
-            self.remember_entity(ed["canonical_name"], *ed.get("aliases", []),
-                                 definition=ed.get("definition", ""),
-                                 translation=ed.get("translation", ""),
-                                 confidence=ed.get("confidence", 1.0))
+            self.remember_entity(
+                ed["canonical_name"],
+                *ed.get("aliases", []),
+                definition=ed.get("definition", ""),
+                translation=ed.get("translation", ""),
+                confidence=ed.get("confidence", 1.0),
+            )
         for gd in snapshot.glossary:
-            self.remember_glossary(gd["source"], gd["target"],
-                                   context=gd.get("context", ""),
-                                   confidence=gd.get("confidence", 1.0))
+            self.remember_glossary(
+                gd["source"],
+                gd["target"],
+                context=gd.get("context", ""),
+                confidence=gd.get("confidence", 1.0),
+            )
         for ad in snapshot.abbreviations:
             self.remember_abbreviation(ad["short"], ad["long"])
 
@@ -220,7 +265,7 @@ class DocumentMemory:
             text = node.text
             if not text:
                 continue
-            for match in re.finditer(r'\b([A-Z]{2,5})\b', text):
+            for match in re.finditer(r"\b([A-Z]{2,5})\b", text):
                 abbr = match.group(1)
                 if not self.expand_abbreviation(abbr):
                     self.remember_abbreviation(abbr, abbr)
@@ -235,6 +280,9 @@ class DocumentMemory:
 
 
 __all__ = [
-    "DocumentMemory", "DocumentMemorySnapshot",
-    "EntityEntry", "GlossaryEntry", "AbbreviationEntry",
+    "DocumentMemory",
+    "DocumentMemorySnapshot",
+    "EntityEntry",
+    "GlossaryEntry",
+    "AbbreviationEntry",
 ]

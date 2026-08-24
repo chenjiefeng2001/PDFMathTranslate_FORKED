@@ -4,6 +4,7 @@ Font Resolver for pdf2zh 2.0.
 Analyzes original PDF font properties (serif/sans-serif/monospace)
 and maps them to target language CJK fonts, preserving visual style.
 """
+
 from enum import Enum
 from typing import Optional
 

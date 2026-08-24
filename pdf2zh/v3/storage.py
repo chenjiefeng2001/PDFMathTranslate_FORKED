@@ -112,9 +112,11 @@ class CacheGraph:
     def put(self, key: str, value: Any, ttl: float | None = None) -> None:
         self._evict_expired()
         entry = CacheEntry(
-            key=key, value=value,
+            key=key,
+            value=value,
             ttl=ttl if ttl is not None else self._default_ttl,
-            created_at=time.time(), access_count=1,
+            created_at=time.time(),
+            access_count=1,
         )
         self._store[key] = entry
         self._touch(key)
@@ -162,8 +164,11 @@ class CacheGraph:
 
     def _evict_expired(self) -> None:
         now = time.time()
-        expired = [k for k, e in self._store.items()
-                   if e.ttl > 0 and now - e.created_at > e.ttl]
+        expired = [
+            k
+            for k, e in self._store.items()
+            if e.ttl > 0 and now - e.created_at > e.ttl
+        ]
         for k in expired:
             self._store.pop(k, None)
             self._remove_order(k)
@@ -180,6 +185,8 @@ class CacheGraph:
     @property
     def hits(self) -> int:
         return self._hits
+
+
 class PersistentGraph:
     """Tier 3: SQLite-backed persistent storage."""
 
@@ -199,8 +206,12 @@ class PersistentGraph:
     def _init_db(self):
         with self._lock:
             conn = self._get_conn()
-            conn.execute("CREATE TABLE IF NOT EXISTS storage (key TEXT PRIMARY KEY, value TEXT NOT NULL, value_type TEXT NOT NULL DEFAULT 'json', created_at REAL NOT NULL, updated_at REAL NOT NULL)")
-            conn.execute("CREATE TABLE IF NOT EXISTS storage_meta (key TEXT, meta_key TEXT, meta_value TEXT, PRIMARY KEY(key, meta_key))")
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS storage (key TEXT PRIMARY KEY, value TEXT NOT NULL, value_type TEXT NOT NULL DEFAULT 'json', created_at REAL NOT NULL, updated_at REAL NOT NULL)"
+            )
+            conn.execute(
+                "CREATE TABLE IF NOT EXISTS storage_meta (key TEXT, meta_key TEXT, meta_value TEXT, PRIMARY KEY(key, meta_key))"
+            )
             conn.commit()
 
     def put(self, key: str, value: Any) -> None:
@@ -208,21 +219,30 @@ class PersistentGraph:
         now = time.time()
         with self._lock:
             conn = self._get_conn()
-            conn.execute("INSERT OR REPLACE INTO storage (key, value, value_type, created_at, updated_at) VALUES (?, ?, 'json', COALESCE((SELECT created_at FROM storage WHERE key=?), ?), ?)", (key, serialized, key, now, now))
+            conn.execute(
+                "INSERT OR REPLACE INTO storage (key, value, value_type, created_at, updated_at) VALUES (?, ?, 'json', COALESCE((SELECT created_at FROM storage WHERE key=?), ?), ?)",
+                (key, serialized, key, now, now),
+            )
             conn.commit()
 
     def get(self, key):
         with self._lock:
             conn = self._get_conn()
-            row = conn.execute("SELECT value, value_type FROM storage WHERE key=?", (key,)).fetchone()
-        if row is None: return None
+            row = conn.execute(
+                "SELECT value, value_type FROM storage WHERE key=?", (key,)
+            ).fetchone()
+        if row is None:
+            return None
         self._hits += 1
         return json.loads(row["value"])
 
     def contains(self, key: str) -> bool:
         with self._lock:
             conn = self._get_conn()
-            return conn.execute("SELECT 1 FROM storage WHERE key=?", (key,)).fetchone() is not None
+            return (
+                conn.execute("SELECT 1 FROM storage WHERE key=?", (key,)).fetchone()
+                is not None
+            )
 
     def remove(self, key: str) -> bool:
         with self._lock:
@@ -234,26 +254,47 @@ class PersistentGraph:
     def clear(self) -> None:
         with self._lock:
             conn = self._get_conn()
-            conn.execute("DELETE FROM storage"); conn.execute("DELETE FROM storage_meta"); conn.commit()
+            conn.execute("DELETE FROM storage")
+            conn.execute("DELETE FROM storage_meta")
+            conn.commit()
 
     def put_meta(self, key: str, mk: str, mv: str) -> None:
         with self._lock:
-            self._get_conn().execute("INSERT OR REPLACE INTO storage_meta (key, meta_key, meta_value) VALUES (?, ?, ?)", (key, mk, mv)); self._get_conn().commit()
+            self._get_conn().execute(
+                "INSERT OR REPLACE INTO storage_meta (key, meta_key, meta_value) VALUES (?, ?, ?)",
+                (key, mk, mv),
+            )
+            self._get_conn().commit()
 
     def get_meta(self, key: str, mk: str):
         with self._lock:
-            row = self._get_conn().execute("SELECT meta_value FROM storage_meta WHERE key=? AND meta_key=?", (key, mk)).fetchone()
+            row = (
+                self._get_conn()
+                .execute(
+                    "SELECT meta_value FROM storage_meta WHERE key=? AND meta_key=?",
+                    (key, mk),
+                )
+                .fetchone()
+            )
         return row["meta_value"] if row else None
 
     def list_keys(self):
         with self._lock:
-            rows = self._get_conn().execute("SELECT key FROM storage ORDER BY updated_at DESC").fetchall()
+            rows = (
+                self._get_conn()
+                .execute("SELECT key FROM storage ORDER BY updated_at DESC")
+                .fetchall()
+            )
         return [r["key"] for r in rows]
 
     @property
     def size(self) -> int:
         with self._lock:
-            row = self._get_conn().execute("SELECT COUNT(*) as cnt FROM storage").fetchone()
+            row = (
+                self._get_conn()
+                .execute("SELECT COUNT(*) as cnt FROM storage")
+                .fetchone()
+            )
         return row["cnt"] if row else 0
 
     @property
@@ -263,8 +304,8 @@ class PersistentGraph:
     def close(self) -> None:
         with self._lock:
             if self._conn is not None:
-                self._conn.close(); self._conn = None
-
+                self._conn.close()
+                self._conn = None
 
 
 class StorageRuntime:
@@ -287,18 +328,32 @@ class StorageRuntime:
         start = time.time()
         val = self.memory.get(key)
         if val is not None:
-            self._stats.memory_hits += 1; self._update_stats(start); return val
+            self._stats.memory_hits += 1
+            self._update_stats(start)
+            return val
         val = self.cache.get(key)
         if val is not None:
-            self._stats.cache_hits += 1; self.memory.put(key, val); self._update_stats(start); return val
+            self._stats.cache_hits += 1
+            self.memory.put(key, val)
+            self._update_stats(start)
+            return val
         val = self.persistent.get(key)
         if val is not None:
-            self._stats.persistent_hits += 1; self.memory.put(key, val); self.cache.put(key, val)
-            self._update_stats(start); return val
-        self._stats.total_misses += 1; self._update_stats(start); return None
+            self._stats.persistent_hits += 1
+            self.memory.put(key, val)
+            self.cache.put(key, val)
+            self._update_stats(start)
+            return val
+        self._stats.total_misses += 1
+        self._update_stats(start)
+        return None
 
     def contains(self, key: str) -> bool:
-        return self.memory.contains(key) or self.cache.contains(key) or self.persistent.contains(key)
+        return (
+            self.memory.contains(key)
+            or self.cache.contains(key)
+            or self.persistent.contains(key)
+        )
 
     def remove(self, key: str) -> bool:
         m = self.memory.remove(key)
@@ -307,11 +362,18 @@ class StorageRuntime:
         return m or c or p
 
     def clear(self) -> None:
-        self.memory.clear(); self.cache.clear(); self.persistent.clear()
+        self.memory.clear()
+        self.cache.clear()
+        self.persistent.clear()
 
-    def clear_memory(self) -> None: self.memory.clear()
-    def clear_cache(self) -> None: self.cache.clear()
-    def clear_persistent(self) -> None: self.persistent.clear()
+    def clear_memory(self) -> None:
+        self.memory.clear()
+
+    def clear_cache(self) -> None:
+        self.cache.clear()
+
+    def clear_persistent(self) -> None:
+        self.persistent.clear()
 
     def warmup(self, keys):
         count = 0
@@ -319,7 +381,9 @@ class StorageRuntime:
             if not self.memory.contains(k):
                 val = self.persistent.get(k)
                 if val is not None:
-                    self.cache.put(k, val); self.memory.put(k, val); count += 1
+                    self.cache.put(k, val)
+                    self.memory.put(k, val)
+                    count += 1
         return count
 
     @property
@@ -332,9 +396,15 @@ class StorageRuntime:
     def _update_stats(self, start: float) -> None:
         self._stats.total_latency_ms += (time.time() - start) * 1000
 
-    def close(self) -> None: self.persistent.close()
+    def close(self) -> None:
+        self.persistent.close()
 
 
-__all__ = ["StorageTier", "StorageStats", "MemoryGraph", "CacheGraph", "PersistentGraph", "StorageRuntime"]
-
-
+__all__ = [
+    "StorageTier",
+    "StorageStats",
+    "MemoryGraph",
+    "CacheGraph",
+    "PersistentGraph",
+    "StorageRuntime",
+]

@@ -12,7 +12,6 @@ All analysis logic is centralized here rather than scattered across
 converter.py, doclayout.py, and layout_graph.py.
 """
 
-
 from __future__ import annotations
 
 __all__ = ["AnalyzerConfig", "SemanticAnalyzer"]
@@ -31,8 +30,6 @@ from pdf2zh.v3.graph import (
     EdgeType,
     NodeType,
 )
-
-
 
 # ── Configuration ───────────────────────────────────────────────────────
 
@@ -67,14 +64,11 @@ _RE_CITATION = re.compile(
 _RE_FIGURE_REF = re.compile(r"(?:Fig\.|Figure|FIG\.)\s*\d+")
 _RE_TABLE_REF = re.compile(r"(?:Tab\.|Table|TAB\.)\s*\d+")
 _RE_EQUATION = re.compile(
-    r"^[\s\d+\-*/=(){}^_\\]+$|"
-    r"(?:\beq\.?\b|\bequation\b|\bformula\b)",
+    r"^[\s\d+\-*/=(){}^_\\]+$|" r"(?:\beq\.?\b|\bequation\b|\bformula\b)",
     re.IGNORECASE,
 )
 _RE_SECTION_NUM = re.compile(
-    r"^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|"
-    r"\d+\.?\d*|"
-    r"[A-Z]\.)\s+"
+    r"^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|" r"\d+\.?\d*|" r"[A-Z]\.)\s+"
 )
 _RE_FOOTNOTE_MARK = re.compile(r"^[\d†‡*§¶‖#†‡§¶†‡•◊○●]")
 
@@ -106,7 +100,6 @@ class _RuleParagraphAdapter:
         self.lines = [_RuleParagraphAdapter._Line(self.size, font)]
         for _ in range(self.line_count - 1):
             self.lines.append(_RuleParagraphAdapter._Line(self.size, font))
-
 
 
 # ── SemanticAnalyzer ────────────────────────────────────────────────────
@@ -163,6 +156,7 @@ class SemanticAnalyzer:
     def _rule_type_map(cls) -> Dict["BlockRole", Optional[NodeType]]:
         if cls._RULE_ROLE_TO_TYPE is None:
             from pdf2zh.v3.structure import BlockRole
+
             cls._RULE_ROLE_TO_TYPE = {
                 BlockRole.PAGE_NUMBER: None,
                 BlockRole.HEADER: NodeType.HEADER,
@@ -203,8 +197,7 @@ class SemanticAnalyzer:
                 classified = StructureClassifier(
                     heading_font_ratio=self.config.heading_font_ratio,
                     body_font_size=body_size,
-                ).classify_paragraph(para, page=None,
-                                     body_font_size=body_size)
+                ).classify_paragraph(para, page=None, body_font_size=body_size)
             except Exception:  # noqa: BLE001
                 continue
             role = classified.role
@@ -217,13 +210,11 @@ class SemanticAnalyzer:
 
     @staticmethod
     def _estimate_graph_body_size(graph: DocumentGraph) -> float:
-        sizes = [n.font_size for n in graph.nodes
-                 if (n.font_size or 0) > 0 and n.text]
+        sizes = [n.font_size for n in graph.nodes if (n.font_size or 0) > 0 and n.text]
         if not sizes:
             return 12.0
         sizes.sort()
         return sizes[len(sizes) // 2]
-
 
     def _refine_headings(self, graph: DocumentGraph) -> None:
         """Refine heading detection: assign heading levels (H1-H4)."""
@@ -261,7 +252,8 @@ class SemanticAnalyzer:
             if target_type is None:
                 continue
             candidates = [
-                n for n in graph.get_nodes_on_page(cap.page_num)
+                n
+                for n in graph.get_nodes_on_page(cap.page_num)
                 if n.node_type == target_type
             ]
             if not candidates:
@@ -276,21 +268,25 @@ class SemanticAnalyzer:
                 graph.add_node(fig_node)
                 candidates = [fig_node]
             nearest = min(candidates, key=lambda n: abs(n.y0 - cap.y0))
-            graph.add_edge(Edge(
-                source_id=cap.id, target_id=nearest.id,
-                edge_type=EdgeType.CAPTION_OF,
-                priority=ConstraintPriority.HARD,
-            ))
+            graph.add_edge(
+                Edge(
+                    source_id=cap.id,
+                    target_id=nearest.id,
+                    edge_type=EdgeType.CAPTION_OF,
+                    priority=ConstraintPriority.HARD,
+                )
+            )
             nearest.metadata["has_caption"] = True
         for node in graph.get_nodes_by_type(NodeType.PARAGRAPH):
             for m in _RE_FIGURE_REF.finditer(node.text):
-                graph.add_edge(Edge(
-                    source_id=node.id,
-                    target_id=f"ref_{node.id}_{m.start()}",
-                    edge_type=EdgeType.REFERENCE,
-                    metadata={"ref_text": m.group(), "offset": m.start()},
-                ))
-
+                graph.add_edge(
+                    Edge(
+                        source_id=node.id,
+                        target_id=f"ref_{node.id}_{m.start()}",
+                        edge_type=EdgeType.REFERENCE,
+                        metadata={"ref_text": m.group(), "offset": m.start()},
+                    )
+                )
 
     def _detect_formulas(self, graph: DocumentGraph) -> None:
         """Detect formula blocks by symbol density."""
@@ -304,7 +300,7 @@ class SemanticAnalyzer:
             if sym_ratio > 0.2 and len(text) < 200:
                 node.node_type = NodeType.FORMULA
                 node.metadata["analysis"] = "symbol_density_formula"
-            elif re.search(r'\$.*\$|\\\(.*\\\)', text):
+            elif re.search(r"\$.*\$|\\\(.*\\\)", text):
                 node.metadata["has_inline_formula"] = True
 
     def _detect_footnotes(self, graph: DocumentGraph) -> None:
@@ -315,9 +311,11 @@ class SemanticAnalyzer:
         for node in list(graph.nodes):
             if node.node_type != NodeType.PARAGRAPH:
                 continue
-            if (node.font_size > 0
-                    and node.font_size < body_size * 0.9
-                    and _RE_FOOTNOTE_MARK.match(node.text.strip())):
+            if (
+                node.font_size > 0
+                and node.font_size < body_size * 0.9
+                and _RE_FOOTNOTE_MARK.match(node.text.strip())
+            ):
                 node.node_type = NodeType.FOOTNOTE
                 node.metadata["analysis"] = "font_size_footnote"
 
@@ -339,7 +337,6 @@ class SemanticAnalyzer:
                 elif node.y0 >= pb[1] and node.y0 < pb[1] + margin:
                     node.node_type = NodeType.FOOTER
                     node.metadata["analysis"] = "page_position_footer"
-
 
     def _detect_references(self, graph: DocumentGraph) -> None:
         """Detect bibliography/reference sections."""
@@ -367,10 +364,13 @@ class SemanticAnalyzer:
             while stack and stack[-1].metadata.get("heading_level", 0) >= level:
                 stack.pop()
             if stack:
-                graph.add_edge(Edge(
-                    source_id=stack[-1].id, target_id=h.id,
-                    edge_type=EdgeType.CONTAINS,
-                ))
+                graph.add_edge(
+                    Edge(
+                        source_id=stack[-1].id,
+                        target_id=h.id,
+                        edge_type=EdgeType.CONTAINS,
+                    )
+                )
             stack.append(h)
 
     def _merge_fragments(self, graph: DocumentGraph) -> None:
@@ -378,17 +378,22 @@ class SemanticAnalyzer:
         merged: Set[str] = set()
         for page_num in sorted(set(n.page_num for n in graph.nodes)):
             pn = sorted(
-                [n for n in graph.get_nodes_on_page(page_num)
-                 if n.node_type in (NodeType.PARAGRAPH, NodeType.CAPTION)
-                 and n.id not in merged],
+                [
+                    n
+                    for n in graph.get_nodes_on_page(page_num)
+                    if n.node_type in (NodeType.PARAGRAPH, NodeType.CAPTION)
+                    and n.id not in merged
+                ],
                 key=lambda n: n.y0,
             )
             i = 0
             while i < len(pn) - 1:
                 a, b = pn[i], pn[i + 1]
-                size_ok = (a.font_size == 0 or b.font_size == 0
-                           or abs(a.font_size - b.font_size)
-                           / max(a.font_size, 1) < 0.1)
+                size_ok = (
+                    a.font_size == 0
+                    or b.font_size == 0
+                    or abs(a.font_size - b.font_size) / max(a.font_size, 1) < 0.1
+                )
                 gap = abs(b.y0 - a.y0)
                 avg_h = (a.height + b.height) / 2
                 gap_ok = gap < avg_h * 1.5
@@ -397,11 +402,15 @@ class SemanticAnalyzer:
                 overlap_ok = h_ov > avg_w * (-0.2)
                 if size_ok and gap_ok and overlap_ok:
                     a.text = (a.text + " " + b.text).strip()
-                    a.bbox = (min(a.x0, b.x0), min(a.y0, b.y0),
-                              max(a.x1, b.x1), max(a.y1, b.y1))
-                    a.metadata["merged_from"] = (
-                        a.metadata.get("merged_from", []) + [b.id]
+                    a.bbox = (
+                        min(a.x0, b.x0),
+                        min(a.y0, b.y0),
+                        max(a.x1, b.x1),
+                        max(a.y1, b.y1),
                     )
+                    a.metadata["merged_from"] = a.metadata.get("merged_from", []) + [
+                        b.id
+                    ]
                     merged.add(b.id)
                     pn.pop(i + 1)
                 else:
@@ -412,9 +421,7 @@ class SemanticAnalyzer:
         """Mark paragraph boundaries for translation context."""
         for node in graph.get_nodes_by_type(NodeType.PARAGRAPH):
             text = node.text.rstrip()
-            node.metadata["is_paragraph_end"] = bool(
-                text and text[-1] in ".?!。？！)"
-            )
+            node.metadata["is_paragraph_end"] = bool(text and text[-1] in ".?!。？！)")
 
     @staticmethod
     def _estimate_body_font_size(graph: DocumentGraph) -> float:
@@ -425,10 +432,17 @@ class SemanticAnalyzer:
         return sizes[len(sizes) // 2] if sizes else 12.0
 
     @staticmethod
-    def _compute_page_bbox(nodes: List[DocumentNode]) -> Tuple[float, float, float, float]:
+    def _compute_page_bbox(
+        nodes: List[DocumentNode],
+    ) -> Tuple[float, float, float, float]:
         if not nodes:
             return (0.0, 0.0, 0.0, 0.0)
-        return (min(n.x0 for n in nodes), min(n.y0 for n in nodes),
-                max(n.x1 for n in nodes), max(n.y1 for n in nodes))
+        return (
+            min(n.x0 for n in nodes),
+            min(n.y0 for n in nodes),
+            max(n.x1 for n in nodes),
+            max(n.y1 for n in nodes),
+        )
+
 
 logger = logging.getLogger(__name__)

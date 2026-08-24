@@ -16,6 +16,7 @@
     0.45 <= S < 0.75 → 待定歧义（结合上下文消歧）
     S < 0.45         → 普通 TextRun
 """
+
 from __future__ import annotations
 
 import re
@@ -29,9 +30,28 @@ from pdf2zh.geometry.glyph import Glyph
 
 # C_font: 数学字体族关键词（Math/Sym/CM/STIX/AMS 等，规范书 §5.3）
 MATH_FONT_KEYWORDS = (
-    "math", "mathx", "mathcal", "sym", "symbol", "cmsy", "cmmi", "cmex",
-    "cmr", "cmti", "stix", "stixgeneral", "ams", "msam", "msbm", "eusm",
-    "eufm", "rsfs", "wasy", "txsy", "txmi", "latinmodernmath",
+    "math",
+    "mathx",
+    "mathcal",
+    "sym",
+    "symbol",
+    "cmsy",
+    "cmmi",
+    "cmex",
+    "cmr",
+    "cmti",
+    "stix",
+    "stixgeneral",
+    "ams",
+    "msam",
+    "msbm",
+    "eusm",
+    "eufm",
+    "rsfs",
+    "wasy",
+    "txsy",
+    "txmi",
+    "latinmodernmath",
 )
 GREEK_FONT_KEYWORDS = ("greek", "greeksym", "greekmath")
 
@@ -39,7 +59,7 @@ GREEK_FONT_KEYWORDS = ("greek", "greeksym", "greekmath")
 MATH_SYMBOL_CHARS = frozenset(
     "∫∑∏√∛∜≤≥≠≈≡≅∞±∓×÷⋅⋆∙∇∂∑∏∈∉⊂⊃⊆⊇∪∩∧∨¬∀∃⇒⇔↔→←↑↓↦⟨⟩‖"
     "⊕⊗⊙∠∥⊥∴∵−∖∅ℕℤℚℝℂ⅀∂∝≪≫∼≃≲≳≈"
-    "²³¹⁰⁻⁺⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉"   # 上/下标字符（数学强信号）
+    "²³¹⁰⁻⁺⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉"  # 上/下标字符（数学强信号）
 )
 ASCII_MATH_CHARS = frozenset("+-*/=^_{}()<>|~!\\")
 
@@ -53,8 +73,31 @@ ASCII_MATH_CHARS = frozenset("+-*/=^_{}()<>|~!\\")
 # 公式置信度，回退为普通 ``TextRun`` 参与文本翻译，杜绝「孤立算子被抽成
 # FormulaObject 并锁定绝对坐标 → 译文行首撕裂」（病灶三）。
 SINGLE_OPERATOR_WHITELIST = frozenset(
-    {"=", "+", "-", "*", "×", "÷", "≠", "<", ">", "≤", "≥",
-     "±", "∓", "∈", "∉", "⊂", "⊃", "⊆", "⊇", "∪", "∩", "∨", "∧"}
+    {
+        "=",
+        "+",
+        "-",
+        "*",
+        "×",
+        "÷",
+        "≠",
+        "<",
+        ">",
+        "≤",
+        "≥",
+        "±",
+        "∓",
+        "∈",
+        "∉",
+        "⊂",
+        "⊃",
+        "⊆",
+        "⊇",
+        "∪",
+        "∩",
+        "∨",
+        "∧",
+    }
 )
 
 
@@ -68,12 +111,12 @@ def is_math_unicode(c: str) -> bool:
     """Unicode 数学字母数字符号区域 / 希腊字母 / 数学运算符判定。"""
     code = ord(c)
     return (
-        0x1D400 <= code <= 0x1D7FF    # Mathematical Alphanumeric Symbols
-        or 0x0370 <= code <= 0x03FF   # Greek and Coptic
-        or 0x2200 <= code <= 0x22FF   # Mathematical Operators
-        or 0x27C0 <= code <= 0x27EF   # Miscellaneous Mathematical Symbols-A
-        or 0x2980 <= code <= 0x29FF   # Miscellaneous Mathematical Symbols-B
-        or 0x2100 <= code <= 0x214F   # Letterlike Symbols (ℕ ℤ ℚ ℝ ℂ ℓ)
+        0x1D400 <= code <= 0x1D7FF  # Mathematical Alphanumeric Symbols
+        or 0x0370 <= code <= 0x03FF  # Greek and Coptic
+        or 0x2200 <= code <= 0x22FF  # Mathematical Operators
+        or 0x27C0 <= code <= 0x27EF  # Miscellaneous Mathematical Symbols-A
+        or 0x2980 <= code <= 0x29FF  # Miscellaneous Mathematical Symbols-B
+        or 0x2100 <= code <= 0x214F  # Letterlike Symbols (ℕ ℤ ℚ ℝ ℂ ℓ)
     )
 
 
@@ -90,7 +133,7 @@ class FormulaScore:
     baseline: float = 0.0
     layout: float = 0.0
     total: float = 0.0
-    verdict: str = "text"          # formula / ambiguous / text
+    verdict: str = "text"  # formula / ambiguous / text
 
     def to_dict(self) -> dict:
         return {
@@ -111,9 +154,12 @@ class FormulaConfidenceEngine:
     THRESHOLD_HIGH = 0.75
     THRESHOLD_LOW = 0.45
 
-    def __init__(self, weights: Optional[Sequence[float]] = None,
-                 threshold_high: float = 0.75,
-                 threshold_low: float = 0.45) -> None:
+    def __init__(
+        self,
+        weights: Optional[Sequence[float]] = None,
+        threshold_high: float = 0.75,
+        threshold_low: float = 0.45,
+    ) -> None:
         w = tuple(weights) if weights else self.WEIGHTS
         if len(w) != 5 or abs(sum(w) - 1.0) > 1e-6:
             raise ValueError(f"weights must sum to 1.0 over 5 features: {w}")
@@ -177,7 +223,7 @@ class FormulaConfidenceEngine:
         med_size = max(median(sizes), 0.01)
         std = pstdev(baselines)
         spread = std / med_size
-        if spread >= 0.30:      # 强上下标结构
+        if spread >= 0.30:  # 强上下标结构
             return 1.0
         if spread >= 0.12:
             return 0.5 + (spread - 0.12) / 0.18 * 0.5
@@ -195,9 +241,9 @@ class FormulaConfidenceEngine:
             return 0.5
         if isinstance(layout_class, (int, float)):
             idx = int(layout_class)
-            if idx == 0:          # abandon / 公式保留区
+            if idx == 0:  # abandon / 公式保留区
                 return 1.0
-            if idx in (5, 7):     # plain text / title
+            if idx in (5, 7):  # plain text / title
                 return 0.15
             return 0.5
         name = str(layout_class).lower()
@@ -209,9 +255,13 @@ class FormulaConfidenceEngine:
 
     # ── 综合打分 ──────────────────────────────────────────────────
 
-    def score(self, text: str, glyphs: Sequence[Glyph],
-              font_name: Optional[str] = None,
-              layout_class: Optional[object] = None) -> FormulaScore:
+    def score(
+        self,
+        text: str,
+        glyphs: Sequence[Glyph],
+        font_name: Optional[str] = None,
+        layout_class: Optional[object] = None,
+    ) -> FormulaScore:
         """计算 S_formula 与判定（formula / ambiguous / text）。"""
         # 模块 4：孤立基础运算符硬性降级回退（规范 §3.4）—— 单字符
         # 基础运算符（无变量/文字上下文）强制按普通文本处理，得分压至
@@ -219,9 +269,13 @@ class FormulaConfidenceEngine:
         # 影响 —— ``is_single_operator`` 要求去空白后仅 1 个字符。
         if is_single_operator(text):
             return FormulaScore(
-                font=0.0, density=0.0, unicode=0.0,
-                baseline=0.0, layout=0.0,
-                total=0.10, verdict="text",
+                font=0.0,
+                density=0.0,
+                unicode=0.0,
+                baseline=0.0,
+                layout=0.0,
+                total=0.10,
+                verdict="text",
             )
         c_font = self.font_score(font_name or "")
         c_density = self.density_score(text)
@@ -242,13 +296,20 @@ class FormulaConfidenceEngine:
         else:
             verdict = "text"
         return FormulaScore(
-            font=c_font, density=c_density, unicode=c_unicode,
-            baseline=c_baseline, layout=c_layout,
-            total=total, verdict=verdict,
+            font=c_font,
+            density=c_density,
+            unicode=c_unicode,
+            baseline=c_baseline,
+            layout=c_layout,
+            total=total,
+            verdict=verdict,
         )
 
 
 __all__ = [
-    "FormulaScore", "FormulaConfidenceEngine",
-    "MATH_FONT_KEYWORDS", "MATH_SYMBOL_CHARS", "is_math_unicode",
+    "FormulaScore",
+    "FormulaConfidenceEngine",
+    "MATH_FONT_KEYWORDS",
+    "MATH_SYMBOL_CHARS",
+    "is_math_unicode",
 ]

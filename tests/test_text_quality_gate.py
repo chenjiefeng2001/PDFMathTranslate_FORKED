@@ -6,6 +6,7 @@
 - pdf2zh._try_auto_switch_magicpdf：命中扫描信号且 magic-pdf 可用 → 自动
   切换 parse_engine=magicpdf + OCR；不可用 → 仅警告；env 关闭 / 防重入。
 """
+
 import argparse
 import io
 import os
@@ -20,8 +21,7 @@ def make_decision(scanned=True, reasons=None):
     d = MagicMock()
     d.is_scanned = scanned
     d.reasons = reasons or ["cid_ratio"]
-    d.to_dict.return_value = {"is_scanned": scanned,
-                              "reasons": d.reasons}
+    d.to_dict.return_value = {"is_scanned": scanned, "reasons": d.reasons}
     return d
 
 
@@ -34,10 +34,12 @@ class TestTextQualityGate(unittest.TestCase):
 
     @patch("pdf2zh.scanned_detection.preflight_scan_check")
     def test_scanned_hit_writes_decision(self, mock_pre):
-        mock_pre.return_value = make_decision(scanned=True,
-                                              reasons=["cid_ratio", "fffd"])
+        mock_pre.return_value = make_decision(
+            scanned=True, reasons=["cid_ratio", "fffd"]
+        )
         v3 = {}
         with patch("pdf2zh.high_level.os.path.exists", return_value=True):
+
             class FakeFile(io.BytesIO):
                 name = "suspicious.pdf"
 
@@ -62,8 +64,11 @@ class TestTextQualityGate(unittest.TestCase):
 
 def make_args(**kw):
     ns = argparse.Namespace(
-        files=[], babeldoc=False, parse_engine="auto",
-        magicpdf_ocr=False, _auto_switch_attempted=False,
+        files=[],
+        babeldoc=False,
+        parse_engine="auto",
+        magicpdf_ocr=False,
+        _auto_switch_attempted=False,
     )
     for k, v in kw.items():
         setattr(ns, k, v)
@@ -85,8 +90,7 @@ class TestAutoSwitchMagicpdf(unittest.TestCase):
 
     @patch("pdf2zh.engine_env.available_backend")
     @patch("pdf2zh.scanned_detection.preflight_scan_check")
-    def test_switches_when_scanned_and_engine_available(
-            self, mock_pre, mock_backend):
+    def test_switches_when_scanned_and_engine_available(self, mock_pre, mock_backend):
         mock_pre.return_value = make_decision(True, ["fffd_ratio"])
         mock_backend.return_value = ("magicpdf", True)
         args = make_args(files=["scan.pdf"])
@@ -98,8 +102,7 @@ class TestAutoSwitchMagicpdf(unittest.TestCase):
 
     @patch("pdf2zh.engine_env.available_backend")
     @patch("pdf2zh.scanned_detection.preflight_scan_check")
-    def test_no_switch_when_engine_unavailable(
-            self, mock_pre, mock_backend):
+    def test_no_switch_when_engine_unavailable(self, mock_pre, mock_backend):
         mock_pre.return_value = make_decision(True, ["cid_ratio"])
         mock_backend.return_value = ("magicpdf", False)
         args = make_args(files=["scan.pdf"])

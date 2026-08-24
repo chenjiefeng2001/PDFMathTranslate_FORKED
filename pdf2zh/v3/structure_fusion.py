@@ -18,6 +18,7 @@
 输出 ``FusionReport``：分类器命中数、分析器细化数、融合后按角色的节点统计。
 融合是幂等的：重复运行不改变已定角色（避免分类器与分析器互相覆盖）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -27,7 +28,7 @@ from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType
 
 # BlockRole → NodeType 映射（BlockRole 枚举名即 value，直接查 _BLOCK_ROLE_VALUES）
 _BLOCK_ROLE_TO_TYPE: Dict[str, NodeType] = {
-    "page_number": NodeType.HEADER,       # 页码归入页眉流
+    "page_number": NodeType.HEADER,  # 页码归入页眉流
     "header": NodeType.HEADER,
     "footer": NodeType.FOOTER,
     "toc_entry": NodeType.TOC_ENTRY,
@@ -41,10 +42,17 @@ _BLOCK_ROLE_TO_TYPE: Dict[str, NodeType] = {
 }
 
 # 分类器已定角色后，分析器不再改写 node_type 的角色集合（避免互踩）
-_FROZEN_TYPES = frozenset({
-    NodeType.TOC_ENTRY, NodeType.CAPTION, NodeType.FOOTNOTE,
-    NodeType.HEADER, NodeType.FOOTER, NodeType.FORMULA, NodeType.CITATION,
-})
+_FROZEN_TYPES = frozenset(
+    {
+        NodeType.TOC_ENTRY,
+        NodeType.CAPTION,
+        NodeType.FOOTNOTE,
+        NodeType.HEADER,
+        NodeType.FOOTER,
+        NodeType.FORMULA,
+        NodeType.CITATION,
+    }
+)
 
 
 @dataclass
@@ -67,9 +75,11 @@ class FusionReport:
         }
 
     def summary(self) -> str:
-        return (f"StructureFusion classified={self.classified} "
-                f"refined={self.refined} skipped={self.skipped} "
-                f"roles={self.role_counts}")
+        return (
+            f"StructureFusion classified={self.classified} "
+            f"refined={self.refined} skipped={self.skipped} "
+            f"roles={self.role_counts}"
+        )
 
 
 class StructureFusion:
@@ -82,13 +92,15 @@ class StructureFusion:
 
     def __init__(self, classifier=None, min_confidence: float = 0.55) -> None:
         from pdf2zh.v3.structure import StructureClassifier
+
         self.classifier = classifier or StructureClassifier()
         self.min_confidence = min_confidence
 
     # ── 融合入口 ───────────────────────────────────────────────────
 
-    def fuse(self, graph: DocumentGraph,
-             pages: Optional[Sequence] = None) -> FusionReport:
+    def fuse(
+        self, graph: DocumentGraph, pages: Optional[Sequence] = None
+    ) -> FusionReport:
         """把分类器（块级）角色融合进图（节点级），再跑图级细化。"""
         report = FusionReport()
         if pages:
@@ -97,27 +109,37 @@ class StructureFusion:
             self._fuse_lightweight(graph, report)
         self._refine_graph(graph, report)
         for node in graph.nodes:
-            key = node.node_type.value if hasattr(node.node_type, "value") \
+            key = (
+                node.node_type.value
+                if hasattr(node.node_type, "value")
                 else str(node.node_type)
+            )
             report.role_counts[key] = report.role_counts.get(key, 0) + 1
         return report
 
     # ── 块级 → 图级融合 ─────────────────────────────────────────────
 
-    def _fuse_from_pages(self, graph: DocumentGraph, pages: Sequence,
-                         report: FusionReport) -> None:
+    def _fuse_from_pages(
+        self, graph: DocumentGraph, pages: Sequence, report: FusionReport
+    ) -> None:
         body = self.classifier.estimate_body_font_size(list(pages))
         for page in pages:
             for block in self.classifier.classify_page(page, body_font_size=body):
                 if block.confidence < self.min_confidence:
                     continue
-                node = self._match_node(graph, block.paragraph.text,
-                                        block.paragraph.page_num)
+                node = self._match_node(
+                    graph, block.paragraph.text, block.paragraph.page_num
+                )
                 if node is None:
                     report.skipped += 1
                     continue
-                self._apply_role(node, block.role.value, block.confidence,
-                                 report, f"classifier:{block.role.value}")
+                self._apply_role(
+                    node,
+                    block.role.value,
+                    block.confidence,
+                    report,
+                    f"classifier:{block.role.value}",
+                )
 
     def _fuse_lightweight(self, graph: DocumentGraph, report: FusionReport) -> None:
         """无几何模型时：直接用节点文本跑特征 + 判定（退化融合）。"""
@@ -127,30 +149,38 @@ class StructureFusion:
             if not (node.text or "").strip():
                 continue
             from pdf2zh.v3.structure import compute_features
+
             proxy = _NodeParagraphProxy(node)
             features = compute_features(proxy, body_font_size=None)
-            classified = self.classifier.classify_paragraph(
-                proxy, body_font_size=None)
+            classified = self.classifier.classify_paragraph(proxy, body_font_size=None)
             if classified.confidence < self.min_confidence:
                 continue
-            self._apply_role(node, classified.role.value, classified.confidence,
-                             report, "classifier:lightweight")
+            self._apply_role(
+                node,
+                classified.role.value,
+                classified.confidence,
+                report,
+                "classifier:lightweight",
+            )
 
     # ── 图级细化（analyzer 通道融合） ───────────────────────────────
 
     def _refine_graph(self, graph: DocumentGraph, report: FusionReport) -> None:
         from pdf2zh.v3.analyzer import AnalyzerConfig, SemanticAnalyzer
+
         before = {(n.id, n.node_type) for n in graph.nodes}
-        analyzer = SemanticAnalyzer(AnalyzerConfig(
-            refine_heading_levels=True,
-            detect_captions=False,       # 分类器已定 CAPTION，避免重复
-            detect_footnotes=False,
-            detect_headers_footers=True,
-            detect_sections=True,
-            detect_references=False,
-            merge_fragments=False,
-            detect_formulas=False,
-        ))
+        analyzer = SemanticAnalyzer(
+            AnalyzerConfig(
+                refine_heading_levels=True,
+                detect_captions=False,  # 分类器已定 CAPTION，避免重复
+                detect_footnotes=False,
+                detect_headers_footers=True,
+                detect_sections=True,
+                detect_references=False,
+                merge_fragments=False,
+                detect_formulas=False,
+            )
+        )
         analyzer.analyze(graph)
         for n in graph.nodes:
             if (n.id, n.node_type) not in before:
@@ -159,22 +189,31 @@ class StructureFusion:
     # ── 工具 ────────────────────────────────────────────────────────
 
     @staticmethod
-    def _match_node(graph: DocumentGraph, text: str,
-                    page_num: int) -> Optional[DocumentNode]:
+    def _match_node(
+        graph: DocumentGraph, text: str, page_num: int
+    ) -> Optional[DocumentNode]:
         for node in graph.get_nodes_on_page(page_num):
             if node.text.strip() == text.strip():
                 return node
         return None
 
-    def _apply_role(self, node: DocumentNode, role_value: str,
-                    confidence: float, report: FusionReport, note: str) -> None:
+    def _apply_role(
+        self,
+        node: DocumentNode,
+        role_value: str,
+        confidence: float,
+        report: FusionReport,
+        note: str,
+    ) -> None:
         ntype = _BLOCK_ROLE_TO_TYPE.get(role_value)
         if ntype is None:
             report.skipped += 1
             return
         # 不覆盖更专门类型（图片/表格/代码等已由 RAW 处理器定型的节点）
-        if node.node_type not in (NodeType.PARAGRAPH, NodeType.UNKNOWN) \
-                and node.node_type != ntype:
+        if (
+            node.node_type not in (NodeType.PARAGRAPH, NodeType.UNKNOWN)
+            and node.node_type != ntype
+        ):
             report.skipped += 1
             return
         if node.node_type != ntype:
@@ -238,5 +277,7 @@ class _WordProxy:
 
 
 __all__ = [
-    "FusionReport", "StructureFusion", "_BLOCK_ROLE_TO_TYPE",
+    "FusionReport",
+    "StructureFusion",
+    "_BLOCK_ROLE_TO_TYPE",
 ]

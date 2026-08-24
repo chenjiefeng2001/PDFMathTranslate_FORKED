@@ -4,6 +4,7 @@ Real physical text measurement engine for pdf2zh 2.0.
 Uses fontTools to measure glyph metrics directly from the font file,
 enabling accurate text width calculation for CJK and Latin text.
 """
+
 import logging
 from typing import Dict, List, Optional
 
@@ -108,7 +109,9 @@ class TextMetrics:
         except (KeyError, TypeError, ValueError) as exc:
             logger.warning(
                 "char_width fallback for U+%04X at size %.1f: %s",
-                ord(char), font_size, exc,
+                ord(char),
+                font_size,
+                exc,
             )
             advance = self.upem // 2
         return (advance / self.upem) * font_size

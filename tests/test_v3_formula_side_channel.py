@@ -6,6 +6,7 @@
 - apply_formula_latex：把侧通道 LaTeX 回填到模型公式块 metadata；
 - latex_channel_from_magicpdf_json：从 dump JSON 恢复通道。
 """
+
 import json
 import os
 import tempfile
@@ -33,8 +34,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 0, 300, 24],
                         "spans": [
-                            {"bbox": [0, 0, 300, 24],
-                             "content": "x = a + b", "type": "text"},
+                            {
+                                "bbox": [0, 0, 300, 24],
+                                "content": "x = a + b",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -47,8 +51,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 40, 300, 70],
                         "spans": [
-                            {"bbox": [0, 40, 300, 70],
-                             "content": "body text", "type": "text"},
+                            {
+                                "bbox": [0, 40, 300, 70],
+                                "content": "body text",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -61,8 +68,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 90, 200, 115],
                         "spans": [
-                            {"bbox": [0, 90, 200, 115],
-                             "content": "y = z", "type": "text"},
+                            {
+                                "bbox": [0, 90, 200, 115],
+                                "content": "y = z",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -71,6 +81,7 @@ SAMPLE_MIDDLE = {
     ],
     "page_info": [{"page_no": 0, "width": 612, "height": 792}],
 }
+
 
 def make_model():
     results = MagicPdfAdapter.from_middle_json(SAMPLE_MIDDLE)
@@ -137,8 +148,7 @@ class TestCollectAndApply(unittest.TestCase):
         self.assertEqual(applied, 1)
         formula = self.doc.pages[0].blocks[0]
         self.assertEqual(formula.metadata["latex"], "x = a + b")
-        self.assertEqual(
-            formula.metadata["latex_source"], "magicpdf_side_channel")
+        self.assertEqual(formula.metadata["latex_source"], "magicpdf_side_channel")
 
     def test_apply_keeps_higher_confidence_existing(self):
         # 已有 LaTeX 且置信度不低于通道时，不回填（保持既有）
@@ -147,8 +157,7 @@ class TestCollectAndApply(unittest.TestCase):
         self.doc.pages[0].blocks[0].metadata["confidence"] = 0.99
         applied = apply_formula_latex(self.doc, channel)
         self.assertEqual(applied, 0)
-        self.assertEqual(self.doc.pages[0].blocks[0].metadata["latex"],
-                         "better")
+        self.assertEqual(self.doc.pages[0].blocks[0].metadata["latex"], "better")
 
 
 class TestChannelFileIO(unittest.TestCase):
@@ -169,4 +178,3 @@ class TestChannelFileIO(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

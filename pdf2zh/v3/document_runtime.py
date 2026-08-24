@@ -43,7 +43,9 @@ from typing import Any, Dict, List, Optional
 from pdf2zh.v3.base_graph import BaseGraph, GraphKind, adapt
 from pdf2zh.v3.graph import DocumentGraph, EdgeType, NodeType
 from pdf2zh.v3.transformation_pipeline import (
-    PipelineConfig, PipelineOutput, TransformationPipeline,
+    PipelineConfig,
+    PipelineOutput,
+    TransformationPipeline,
 )
 
 logger = logging.getLogger(__name__)
@@ -67,16 +69,31 @@ class SessionState(str, Enum):
 TRANSITIONS: Dict[SessionState, set] = {
     SessionState.CREATED: {SessionState.OPENED},
     SessionState.OPENED: {SessionState.READY, SessionState.CLOSED},
-    SessionState.READY: {SessionState.EXECUTING, SessionState.PAUSED,
-                         SessionState.CLOSED},
-    SessionState.EXECUTING: {SessionState.PAUSED, SessionState.COMPLETED,
-                             SessionState.FAILED},
-    SessionState.PAUSED: {SessionState.EXECUTING, SessionState.ROLLED_BACK,
-                          SessionState.CLOSED},
-    SessionState.COMPLETED: {SessionState.PAUSED, SessionState.ROLLED_BACK,
-                             SessionState.CLOSED},
-    SessionState.FAILED: {SessionState.ROLLED_BACK, SessionState.EXECUTING,
-                          SessionState.CLOSED},
+    SessionState.READY: {
+        SessionState.EXECUTING,
+        SessionState.PAUSED,
+        SessionState.CLOSED,
+    },
+    SessionState.EXECUTING: {
+        SessionState.PAUSED,
+        SessionState.COMPLETED,
+        SessionState.FAILED,
+    },
+    SessionState.PAUSED: {
+        SessionState.EXECUTING,
+        SessionState.ROLLED_BACK,
+        SessionState.CLOSED,
+    },
+    SessionState.COMPLETED: {
+        SessionState.PAUSED,
+        SessionState.ROLLED_BACK,
+        SessionState.CLOSED,
+    },
+    SessionState.FAILED: {
+        SessionState.ROLLED_BACK,
+        SessionState.EXECUTING,
+        SessionState.CLOSED,
+    },
     SessionState.ROLLED_BACK: {SessionState.EXECUTING, SessionState.CLOSED},
     SessionState.CLOSED: set(),
 }
@@ -120,9 +137,13 @@ class DocumentSession:
     its translations, its checkpoints and its history trace.
     """
 
-    def __init__(self, document: Any, document_id: Optional[str] = None,
-                 target_lang: str = "zh-CN",
-                 checkpoint: Optional["RuntimeCheckpoint"] = None) -> None:
+    def __init__(
+        self,
+        document: Any,
+        document_id: Optional[str] = None,
+        target_lang: str = "zh-CN",
+        checkpoint: Optional["RuntimeCheckpoint"] = None,
+    ) -> None:
         self.session_id = uuid.uuid4().hex[:12]
         self.document_id = document_id or uuid.uuid4().hex[:8]
         self.document = document
@@ -135,7 +156,8 @@ class DocumentSession:
         self.outputs: Dict[str, str] = {}
         self.metrics: Dict[str, Any] = {}
         self.checkpoints: List[RuntimeCheckpoint] = (
-            [checkpoint] if checkpoint is not None else [])
+            [checkpoint] if checkpoint is not None else []
+        )
         self.graphs: Dict[str, BaseGraph] = {}  # unified graph views
         self.history: List[Dict[str, Any]] = []
         # ── V7 state components (RuntimeSnapshot capture/restore) ──────
@@ -151,8 +173,13 @@ class DocumentSession:
         self.created_at = time.time()
         self.updated_at = self.created_at
         self.closed_at: Optional[float] = None
-        self.history.append({"state": self.state.value,
-                             "timestamp": self.created_at, "event": "created"})
+        self.history.append(
+            {
+                "state": self.state.value,
+                "timestamp": self.created_at,
+                "event": "created",
+            }
+        )
 
     @property
     def document_graph(self) -> Optional[DocumentGraph]:
@@ -175,11 +202,13 @@ class DocumentSession:
             )
         self.state = target
         self.updated_at = time.time()
-        self.history.append({
-            "state": target.value,
-            "timestamp": self.updated_at,
-            "event": event,
-        })
+        self.history.append(
+            {
+                "state": target.value,
+                "timestamp": self.updated_at,
+                "event": event,
+            }
+        )
         return self
 
     @property
@@ -199,9 +228,12 @@ class DocumentRuntime:
     execution / constraint) unified behind BaseGraph.
     """
 
-    def __init__(self, pipeline: Optional[TransformationPipeline] = None,
-                 config: Optional[PipelineConfig] = None,
-                 kernel: Any = None) -> None:
+    def __init__(
+        self,
+        pipeline: Optional[TransformationPipeline] = None,
+        config: Optional[PipelineConfig] = None,
+        kernel: Any = None,
+    ) -> None:
         self.pipeline = pipeline or TransformationPipeline(config or PipelineConfig())
         self.kernel = kernel
         self.sessions: Dict[str, DocumentSession] = {}
@@ -215,17 +247,24 @@ class DocumentRuntime:
             raise KeyError(f"Unknown session '{sid}' — call open() first")
         return self.sessions[sid]
 
-    def open(self, document: Any, *, document_id: Optional[str] = None,
-             target_lang: str = "zh-CN") -> DocumentSession:
+    def open(
+        self,
+        document: Any,
+        *,
+        document_id: Optional[str] = None,
+        target_lang: str = "zh-CN",
+    ) -> DocumentSession:
         """Open a document and keep it alive inside the runtime."""
-        session = DocumentSession(document, document_id=document_id,
-                                  target_lang=target_lang)
+        session = DocumentSession(
+            document, document_id=document_id, target_lang=target_lang
+        )
         session.transition(SessionState.OPENED, event="open")
         session.transition(SessionState.READY, event="ready")
         self.sessions[session.session_id] = session
         self._active_session_id = session.session_id
-        logger.info("Document session %s opened (%s)", session.session_id,
-                    session.document_id)
+        logger.info(
+            "Document session %s opened (%s)", session.session_id, session.document_id
+        )
         return session
 
     def close(self, session_id: Optional[str] = None) -> dict:
@@ -235,13 +274,23 @@ class DocumentRuntime:
         session.closed_at = time.time()
         if self._active_session_id == session.session_id:
             self._active_session_id = None
-        return {"session_id": session.session_id, "state": session.state.value,
-                "checkpoints": len(session.checkpoints)}
+        return {
+            "session_id": session.session_id,
+            "state": session.state.value,
+            "checkpoints": len(session.checkpoints),
+        }
 
     def list_sessions(self) -> List[dict]:
-        return [{"session_id": s.session_id, "document_id": s.document_id,
-                 "state": s.state.value, "checkpoints": len(s.checkpoints),
-                 "alive": s.is_alive} for s in self.sessions.values()]
+        return [
+            {
+                "session_id": s.session_id,
+                "document_id": s.document_id,
+                "state": s.state.value,
+                "checkpoints": len(s.checkpoints),
+                "alive": s.is_alive,
+            }
+            for s in self.sessions.values()
+        ]
 
     def status(self, session_id: Optional[str] = None) -> dict:
         session = self._resolve(session_id)
@@ -257,20 +306,26 @@ class DocumentRuntime:
             "updated_at": session.updated_at,
         }
 
-
     # ── Lifecycle ──────────────────────────────────────────────────────
 
-    def execute(self, session_id: Optional[str] = None, *,
-                provider: Any = None,
-                page_width: float = 612.0,
-                page_height: float = 792.0,
-                event: str = "execute") -> PipelineOutput:
+    def execute(
+        self,
+        session_id: Optional[str] = None,
+        *,
+        provider: Any = None,
+        page_width: float = 612.0,
+        page_height: float = 792.0,
+        event: str = "execute",
+    ) -> PipelineOutput:
         """Run the whole pipeline and leave the document alive with results."""
         session = self._resolve(session_id)
-        if session.state not in (SessionState.READY, SessionState.PAUSED,
-                                 SessionState.ROLLED_BACK, SessionState.FAILED):
-            raise RuntimeError(
-                f"Cannot execute from state '{session.state.value}'")
+        if session.state not in (
+            SessionState.READY,
+            SessionState.PAUSED,
+            SessionState.ROLLED_BACK,
+            SessionState.FAILED,
+        ):
+            raise RuntimeError(f"Cannot execute from state '{session.state.value}'")
         session.transition(SessionState.EXECUTING, event=event)
         session.last_active = time.time()
         blocks = self._prepare_blocks(session.document)
@@ -278,12 +333,16 @@ class DocumentRuntime:
 
         started = time.time()
         try:
-            output = self.pipeline.run(blocks, page_width=page_width,
-                                       page_height=page_height,
-                                       provider=provider)
+            output = self.pipeline.run(
+                blocks,
+                page_width=page_width,
+                page_height=page_height,
+                provider=provider,
+            )
         except Exception as exc:  # pragma: no cover - defensive
-            session.transition(SessionState.FAILED,
-                               event=f"execute_error:{type(exc).__name__}")
+            session.transition(
+                SessionState.FAILED, event=f"execute_error:{type(exc).__name__}"
+            )
             raise
         elapsed_ms = (time.time() - started) * 1000.0
 
@@ -291,13 +350,15 @@ class DocumentRuntime:
         session.translations = dict(output.translations)
         session.outputs = dict(output.rendered or {})
         stats = output.stats
-        session.metrics.update({
-            "elapsed_ms": getattr(stats, "elapsed_ms", elapsed_ms),
-            "total_nodes": getattr(stats, "total_nodes", 0),
-            "translated": getattr(stats, "translated", 0),
-            "quality_score": getattr(stats, "quality_score", 1.0),
-            "resume_count": session.metrics.get("resume_count", 0),
-        })
+        session.metrics.update(
+            {
+                "elapsed_ms": getattr(stats, "elapsed_ms", elapsed_ms),
+                "total_nodes": getattr(stats, "total_nodes", 0),
+                "translated": getattr(stats, "translated", 0),
+                "quality_score": getattr(stats, "quality_score", 1.0),
+                "resume_count": session.metrics.get("resume_count", 0),
+            }
+        )
 
         # Build auxiliary graphs and unify them behind BaseGraph.
         session.execution_graph = _build_execution_graph(output.graph)
@@ -310,37 +371,42 @@ class DocumentRuntime:
         session.transition(SessionState.COMPLETED, event=f"{event}_done")
 
         if self.kernel is not None and hasattr(self.kernel, "telemetry"):
-            self.kernel.telemetry.record("document_runtime.execute",
-                                         elapsed_ms, success=True)
+            self.kernel.telemetry.record(
+                "document_runtime.execute", elapsed_ms, success=True
+            )
         return output
 
     def pause(self, session_id: Optional[str] = None) -> dict:
         """Pause the document mid-lifecycle, keeping a resumable checkpoint."""
         session = self._resolve(session_id)
-        if session.state not in (SessionState.EXECUTING, SessionState.READY,
-                                 SessionState.COMPLETED):
-            raise RuntimeError(
-                f"Cannot pause from state '{session.state.value}'")
+        if session.state not in (
+            SessionState.EXECUTING,
+            SessionState.READY,
+            SessionState.COMPLETED,
+        ):
+            raise RuntimeError(f"Cannot pause from state '{session.state.value}'")
         label = f"pause_{len(session.checkpoints) + 1}"
         self.snapshot(session.session_id, label=label)
         session.transition(SessionState.PAUSED, event="pause")
-        return {"session_id": session.session_id, "state": session.state.value,
-                "checkpoint": label}
+        return {
+            "session_id": session.session_id,
+            "state": session.state.value,
+            "checkpoint": label,
+        }
 
-    def resume(self, session_id: Optional[str] = None, *,
-               provider: Any = None) -> PipelineOutput:
+    def resume(
+        self, session_id: Optional[str] = None, *, provider: Any = None
+    ) -> PipelineOutput:
         """Resume a paused document from its last checkpoint."""
         session = self._resolve(session_id)
         if session.state != SessionState.PAUSED:
-            raise RuntimeError(
-                f"Cannot resume from state '{session.state.value}'")
+            raise RuntimeError(f"Cannot resume from state '{session.state.value}'")
         session.metrics["resume_count"] = session.metrics.get("resume_count", 0) + 1
-        return self.execute(session.session_id, provider=provider,
-                            event="resume")
+        return self.execute(session.session_id, provider=provider, event="resume")
 
-
-    def snapshot(self, session_id: Optional[str] = None, *,
-                 label: Optional[str] = None) -> RuntimeCheckpoint:
+    def snapshot(
+        self, session_id: Optional[str] = None, *, label: Optional[str] = None
+    ) -> RuntimeCheckpoint:
         """Explicitly capture a checkpoint of the current session state."""
         session = self._resolve(session_id)
         label = label or f"checkpoint_{len(session.checkpoints) + 1}"
@@ -348,8 +414,12 @@ class DocumentRuntime:
             snapshot_data = adapt(session.graph, GraphKind.DOCUMENT).to_dict()
             graph_object = copy.deepcopy(session.graph)
         else:
-            snapshot_data = {"kind": GraphKind.DOCUMENT.value,
-                             "name": session.document_id, "nodes": [], "edges": []}
+            snapshot_data = {
+                "kind": GraphKind.DOCUMENT.value,
+                "name": session.document_id,
+                "nodes": [],
+                "edges": [],
+            }
             graph_object = None
         checkpoint = RuntimeCheckpoint(
             label=label,
@@ -364,32 +434,49 @@ class DocumentRuntime:
         session.checkpoints.append(checkpoint)
         return checkpoint
 
-    def rollback(self, session_id: Optional[str] = None, *,
-                 checkpoint_label: Optional[str] = None) -> dict:
+    def rollback(
+        self,
+        session_id: Optional[str] = None,
+        *,
+        checkpoint_label: Optional[str] = None,
+    ) -> dict:
         """Roll the document back to a checkpoint (default: latest)."""
         session = self._resolve(session_id)
         if not session.checkpoints:
             raise RuntimeError("No checkpoints available to roll back to")
         checkpoint = self._find_checkpoint(session, checkpoint_label)
-        session.graph = copy.deepcopy(checkpoint.graph_object) \
-            if checkpoint.graph_object is not None else None
+        session.graph = (
+            copy.deepcopy(checkpoint.graph_object)
+            if checkpoint.graph_object is not None
+            else None
+        )
         session.translations = dict(checkpoint.translations)
         session.outputs = dict(checkpoint.outputs)
         session.metrics = dict(checkpoint.metrics)
-        session.base_graph = BaseGraph.from_dict(checkpoint.graph_snapshot) \
-            if checkpoint.graph_snapshot else None
+        session.base_graph = (
+            BaseGraph.from_dict(checkpoint.graph_snapshot)
+            if checkpoint.graph_snapshot
+            else None
+        )
         idx = session.checkpoints.index(checkpoint)
-        session.checkpoints = session.checkpoints[:idx + 1]
-        session.transition(SessionState.ROLLED_BACK,
-                           event=f"rollback_to:{checkpoint.label}")
-        return {"session_id": session.session_id,
-                "rollback_to": checkpoint.label,
-                "state": session.state.value,
-                "translations_restored": len(checkpoint.translations)}
+        session.checkpoints = session.checkpoints[: idx + 1]
+        session.transition(
+            SessionState.ROLLED_BACK, event=f"rollback_to:{checkpoint.label}"
+        )
+        return {
+            "session_id": session.session_id,
+            "rollback_to": checkpoint.label,
+            "state": session.state.value,
+            "translations_restored": len(checkpoint.translations),
+        }
 
-    def diff(self, session_id: Optional[str] = None, *,
-             before: Optional[str] = None,
-             after: Optional[str] = None) -> dict:
+    def diff(
+        self,
+        session_id: Optional[str] = None,
+        *,
+        before: Optional[str] = None,
+        after: Optional[str] = None,
+    ) -> dict:
         """Structural diff between two checkpoints of the same session."""
         session = self._resolve(session_id)
         if len(session.checkpoints) < 2:
@@ -402,21 +489,27 @@ class DocumentRuntime:
         gb = BaseGraph.from_dict(first.graph_snapshot)
         ga = BaseGraph.from_dict(second.graph_snapshot)
         diff = gb.diff(ga)
-        return {"before": first.label, "after": second.label,
-                "diff": diff.to_dict(), "summary": diff.summary()}
+        return {
+            "before": first.label,
+            "after": second.label,
+            "diff": diff.to_dict(),
+            "summary": diff.summary(),
+        }
 
     # ── V7.2 state snapshots (full rollback, not just graph restore) ──
 
-    def snapshot_state(self, session_id: Optional[str] = None, *,
-                       label: str = "snapshot") -> Any:
+    def snapshot_state(
+        self, session_id: Optional[str] = None, *, label: str = "snapshot"
+    ) -> Any:
         """Capture a full V7 state snapshot (every runtime component)."""
         from pdf2zh.v3.runtime_snapshot import RuntimeSnapshot
 
         session = self._resolve(session_id)
         return RuntimeSnapshot.capture(session, label=label)
 
-    def rollback_state(self, session_id: Optional[str] = None,
-                       snapshot: Any = None) -> Any:
+    def rollback_state(
+        self, session_id: Optional[str] = None, snapshot: Any = None
+    ) -> Any:
         """True rollback: restore the complete session state from a snapshot."""
         from pdf2zh.v3.runtime_snapshot import RuntimeSnapshot
 
@@ -427,13 +520,18 @@ class DocumentRuntime:
         if not isinstance(target, RuntimeSnapshot):
             raise TypeError("snapshot must be a RuntimeSnapshot")
         target.restore_into(session)
-        session.transition(SessionState.ROLLED_BACK,
-                           event=f"state_rollback:{target.label}")
+        session.transition(
+            SessionState.ROLLED_BACK, event=f"state_rollback:{target.label}"
+        )
         return target
 
-    def persist_state(self, session_id: Optional[str] = None, *,
-                      label: str = "snapshot", directory: Optional[str] = None
-                      ) -> str:
+    def persist_state(
+        self,
+        session_id: Optional[str] = None,
+        *,
+        label: str = "snapshot",
+        directory: Optional[str] = None,
+    ) -> str:
         """Capture and persist a V7 state snapshot. Returns the file path."""
         from pdf2zh.v3.runtime_service import PersistenceLayer
 
@@ -441,8 +539,7 @@ class DocumentRuntime:
         layer = PersistenceLayer(directory=directory)
         return layer.save_snapshot(snapshot)
 
-    def restore_state(self, session_id: Optional[str] = None,
-                      path: str = "") -> Any:
+    def restore_state(self, session_id: Optional[str] = None, path: str = "") -> Any:
         """Load a persisted snapshot and restore it into the session."""
         from pdf2zh.v3.runtime_service import PersistenceLayer
 
@@ -452,14 +549,18 @@ class DocumentRuntime:
     def diff_snapshots(self, before: Any, after: Any) -> dict:
         """Structural diff between two RuntimeSnapshot objects."""
         d = before.diff(after)
-        return {"before": before.label, "after": after.label,
-                "diff": d.to_dict(), "summary": d.summary()}
-
+        return {
+            "before": before.label,
+            "after": after.label,
+            "diff": d.to_dict(),
+            "summary": d.summary(),
+        }
 
     # ── Unified graph views ────────────────────────────────────────────
 
-    def register_graph(self, session_id: Optional[str], kind: GraphKind,
-                       graph: Any) -> BaseGraph:
+    def register_graph(
+        self, session_id: Optional[str], kind: GraphKind, graph: Any
+    ) -> BaseGraph:
         """Register any concrete graph as a unified BaseGraph view."""
         session = self._resolve(session_id)
         bg = graph if isinstance(graph, BaseGraph) else adapt(graph, kind=kind)
@@ -472,8 +573,9 @@ class DocumentRuntime:
 
     # ── Helpers ────────────────────────────────────────────────────────
 
-    def _find_checkpoint(self, session: DocumentSession,
-                         label: Optional[str]) -> RuntimeCheckpoint:
+    def _find_checkpoint(
+        self, session: DocumentSession, label: Optional[str]
+    ) -> RuntimeCheckpoint:
         if label is None:
             return session.checkpoints[-1]
         for cp in reversed(session.checkpoints):
@@ -485,24 +587,36 @@ class DocumentRuntime:
     def _prepare_blocks(document: Any) -> List[dict]:
         """Normalize a session document into pipeline block dicts."""
         if isinstance(document, DocumentGraph):
-            return [{
-                "id": n.id, "text": n.text,
-                "type": n.node_type.value if hasattr(n.node_type, "value")
-                        else str(n.node_type),
-                "x": n.x0, "y": n.y0,
-                "w": max(n.width, 1.0), "h": max(n.height, 1.0),
-                "page": n.page_num, "font_size": n.font_size,
-            } for n in document.nodes
-                if n.node_type not in (NodeType.PAGE, NodeType.DOCUMENT)]
+            return [
+                {
+                    "id": n.id,
+                    "text": n.text,
+                    "type": (
+                        n.node_type.value
+                        if hasattr(n.node_type, "value")
+                        else str(n.node_type)
+                    ),
+                    "x": n.x0,
+                    "y": n.y0,
+                    "w": max(n.width, 1.0),
+                    "h": max(n.height, 1.0),
+                    "page": n.page_num,
+                    "font_size": n.font_size,
+                }
+                for n in document.nodes
+                if n.node_type not in (NodeType.PAGE, NodeType.DOCUMENT)
+            ]
         if isinstance(document, list) and document and isinstance(document[0], dict):
             return document
         if isinstance(document, dict):
-            blocks = document.get("blocks") or (
-                document.get("pages") or [{}])[0].get("blocks", [])
+            blocks = document.get("blocks") or (document.get("pages") or [{}])[0].get(
+                "blocks", []
+            )
             if blocks:
                 return blocks
         raise TypeError(
-            "Unsupported document: expected blocks list, dict, or DocumentGraph")
+            "Unsupported document: expected blocks list, dict, or DocumentGraph"
+        )
 
 
 def _build_execution_graph(doc_graph: DocumentGraph) -> Any:
@@ -510,11 +624,17 @@ def _build_execution_graph(doc_graph: DocumentGraph) -> Any:
     from pdf2zh.v3.execution_graph import ExecutionGraph, ExecutionNodeState
 
     eg = ExecutionGraph()
-    content = [n for n in doc_graph.nodes
-               if n.node_type not in (NodeType.PAGE, NodeType.DOCUMENT)]
+    content = [
+        n
+        for n in doc_graph.nodes
+        if n.node_type not in (NodeType.PAGE, NodeType.DOCUMENT)
+    ]
     for n in content:
-        deps = [e.source_id for e in doc_graph.edges
-                if e.target_id == n.id and e.edge_type != EdgeType.CONTAINS]
+        deps = [
+            e.source_id
+            for e in doc_graph.edges
+            if e.target_id == n.id and e.edge_type != EdgeType.CONTAINS
+        ]
         eg.add_node(n.id, label=(n.text[:40] or n.node_type.value), depends_on=deps)
     # Follow reading order and mark nodes as translated.
     for n in sorted(content, key=lambda x: (x.page_num, x.y0, x.x0)):
@@ -527,7 +647,8 @@ def _build_execution_graph(doc_graph: DocumentGraph) -> Any:
 def _build_constraint_graph(doc_graph: DocumentGraph) -> Any:
     """Derive a ConstraintGraph from the DocumentGraph layout relations."""
     from pdf2zh.v3.constraint_graph import (
-        ConstraintGraph, build_constraint_graph_from_document,
+        ConstraintGraph,
+        build_constraint_graph_from_document,
     )
 
     cg = ConstraintGraph()
@@ -536,6 +657,9 @@ def _build_constraint_graph(doc_graph: DocumentGraph) -> Any:
 
 
 __all__ = [
-    "SessionState", "TRANSITIONS", "RuntimeCheckpoint", "DocumentSession",
+    "SessionState",
+    "TRANSITIONS",
+    "RuntimeCheckpoint",
+    "DocumentSession",
     "DocumentRuntime",
 ]

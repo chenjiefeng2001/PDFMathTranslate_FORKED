@@ -18,14 +18,18 @@ Usage::
     if result.writeback_allowed:
         legacy_apply(result.blocks)
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from pdf2zh.v3.constraint_graph import (ConstraintGraph, ConstraintRelation,
-                                        ConstraintSolver)
+from pdf2zh.v3.constraint_graph import (
+    ConstraintGraph,
+    ConstraintRelation,
+    ConstraintSolver,
+)
 from pdf2zh.v3.typography import AdaptiveTypography
 from pdf2zh.v3.visual_tree import BoundingBox
 
@@ -57,10 +61,18 @@ class GateBlock:
 
     def to_dict(self) -> dict:
         """Faithful round-trip (keys match the GateBlock fields)."""
-        return {"node_id": self.node_id, "page": self.page, "text": self.text,
-                "translated": self.translated, "x": self.x, "y": self.y,
-                "width": self.width, "height": self.height,
-                "font_size": self.font_size, "node_type": self.node_type}
+        return {
+            "node_id": self.node_id,
+            "page": self.page,
+            "text": self.text,
+            "translated": self.translated,
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height,
+            "font_size": self.font_size,
+            "node_type": self.node_type,
+        }
 
 
 @dataclass
@@ -75,12 +87,14 @@ class GatedResult:
     issues: List[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return {"overlap_rate": round(self.overlap_rate, 4),
-                "passes": self.passes,
-                "relayout_needed": self.relayout_needed,
-                "writeback_allowed": self.writeback_allowed,
-                "issues": self.issues,
-                "blocks": [b.to_dict() for b in self.blocks]}
+        return {
+            "overlap_rate": round(self.overlap_rate, 4),
+            "passes": self.passes,
+            "relayout_needed": self.relayout_needed,
+            "writeback_allowed": self.writeback_allowed,
+            "issues": self.issues,
+            "blocks": [b.to_dict() for b in self.blocks],
+        }
 
 
 def _blocks_overlap_rate(blocks: Sequence[GateBlock]) -> float:
@@ -116,22 +130,29 @@ class MainlineRelayoutGate:
         typography: injectable adaptive typography (tests / custom sizing).
     """
 
-    def __init__(self, page_width: float = 612.0, page_height: float = 792.0,
-                 margin: float = 50.0, threshold: float = 0.0,
-                 max_passes: int = 3,
-                 typography: Optional[AdaptiveTypography] = None) -> None:
+    def __init__(
+        self,
+        page_width: float = 612.0,
+        page_height: float = 792.0,
+        margin: float = 50.0,
+        threshold: float = 0.0,
+        max_passes: int = 3,
+        typography: Optional[AdaptiveTypography] = None,
+    ) -> None:
         self.page_width = page_width
         self.page_height = page_height
         self.margin = margin
         self.threshold = threshold
         self.max_passes = max_passes
         self.typography = typography or AdaptiveTypography(
-            container_width=page_width - 2 * 50.0, font_size=12.0)
+            container_width=page_width - 2 * 50.0, font_size=12.0
+        )
 
     # ── Helpers ───────────────────────────────────────────────────────
 
-    def _apply_translations(self, blocks: List[GateBlock],
-                            translations: Dict[str, str]) -> List[GateBlock]:
+    def _apply_translations(
+        self, blocks: List[GateBlock], translations: Dict[str, str]
+    ) -> List[GateBlock]:
         for b in blocks:
             b.translated = translations.get(b.node_id, b.translated)
         return blocks
@@ -139,21 +160,27 @@ class MainlineRelayoutGate:
     def _resize_by_translation(self, blocks: List[GateBlock]) -> List[GateBlock]:
         """Grow block heights to the adaptive typeset height of the text."""
         for b in blocks:
-            m = self.typography.metrics(b.translated_text,
-                                        source=b.text,
-                                        font_size=b.font_size,
-                                        container_width=b.width)
+            m = self.typography.metrics(
+                b.translated_text,
+                source=b.text,
+                font_size=b.font_size,
+                container_width=b.width,
+            )
             b.height = max(b.height, m.block_height)
             if m.expansion_ratio > 1.0:
-                b.width = min(self.page_width - 2 * 50.0,
-                              max(b.width, m.estimated_width + 4.0))
+                b.width = min(
+                    self.page_width - 2 * 50.0, max(b.width, m.estimated_width + 4.0)
+                )
         return blocks
 
     # ── Core ──────────────────────────────────────────────────────────
 
-    def run(self, blocks: Sequence[GateBlock],
-            translations: Optional[Dict[str, str]] = None,
-            order: Optional[List[Tuple[str, str]]] = None) -> GatedResult:
+    def run(
+        self,
+        blocks: Sequence[GateBlock],
+        translations: Optional[Dict[str, str]] = None,
+        order: Optional[List[Tuple[str, str]]] = None,
+    ) -> GatedResult:
         work = [GateBlock(**b.to_dict()) for b in blocks]
         if translations:
             work = self._apply_translations(work, translations)
@@ -174,9 +201,11 @@ class MainlineRelayoutGate:
         if rate > self.threshold:
             issues.append(
                 f"overlap rate {rate:.3f} above threshold "
-                f"{self.threshold:.3f} after {passes} passes")
-        overflow = [b.node_id for b in work
-                    if b.y + b.height > self.page_height - self.margin]
+                f"{self.threshold:.3f} after {passes} passes"
+            )
+        overflow = [
+            b.node_id for b in work if b.y + b.height > self.page_height - self.margin
+        ]
         if overflow:
             issues.append(f"blocks overflow the page: {overflow}")
         return GatedResult(
@@ -188,28 +217,41 @@ class MainlineRelayoutGate:
             issues=issues,
         )
 
-    def _relayout(self, blocks: List[GateBlock],
-                  order: Optional[List[Tuple[str, str]]]) -> List[GateBlock]:
+    def _relayout(
+        self, blocks: List[GateBlock], order: Optional[List[Tuple[str, str]]]
+    ) -> List[GateBlock]:
         """Re-solve vertical positions with the Kiwi constraint engine."""
         for page in sorted({b.page for b in blocks}):
             page_blocks = [b for b in blocks if b.page == page]
             cg = ConstraintGraph()
             for b in page_blocks:
-                cg.add_node(b.node_id, b.node_type,
-                            bbox=BoundingBox(b.x, b.y, b.width, b.height),
-                            page_num=b.page)
+                cg.add_node(
+                    b.node_id,
+                    b.node_type,
+                    bbox=BoundingBox(b.x, b.y, b.width, b.height),
+                    page_num=b.page,
+                )
             used: set = set()
-            for src, tgt in (order or []):
+            for src, tgt in order or []:
                 if src in cg._nodes and tgt in cg._nodes and (src, tgt) not in used:
                     used.add((src, tgt))
-                    cg.add_edge(src, tgt, ConstraintRelation.MUST_BELOW,
-                                priority="hard", gap=4.0)
+                    cg.add_edge(
+                        src,
+                        tgt,
+                        ConstraintRelation.MUST_BELOW,
+                        priority="hard",
+                        gap=4.0,
+                    )
             order_by_y = sorted(page_blocks, key=lambda b: b.y)
             for prev, nxt in zip(order_by_y, order_by_y[1:]):
                 if (prev.node_id, nxt.node_id) not in used:
-                    cg.add_edge(prev.node_id, nxt.node_id,
-                                ConstraintRelation.MUST_BELOW,
-                                priority="soft", gap=4.0)
+                    cg.add_edge(
+                        prev.node_id,
+                        nxt.node_id,
+                        ConstraintRelation.MUST_BELOW,
+                        priority="soft",
+                        gap=4.0,
+                    )
             solver = ConstraintSolver(cg, self.page_width, self.page_height)
             solver.solve(engine="auto")
             for b in page_blocks:
@@ -220,4 +262,3 @@ class MainlineRelayoutGate:
 
 
 __all__ = ["GateBlock", "GatedResult", "MainlineRelayoutGate"]
-

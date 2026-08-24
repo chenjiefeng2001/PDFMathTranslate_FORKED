@@ -14,6 +14,7 @@ V4 侧的 Translation Layer（置信度路由）与 LLM Refiner 已就位但受�
 
 规则驱动、无网络；LLM Refiner 仅在提供 provider 时参与（阶段八）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -71,14 +72,18 @@ class TranslationQAReport:
         }
 
     def summary(self) -> str:
-        return (f"MainlineQA total={self.total} "
-                f"translate={self.translate} keep={self.keep} "
-                f"flagged={self.flagged} retranslate={self.action_retranslate}")
+        return (
+            f"MainlineQA total={self.total} "
+            f"translate={self.translate} keep={self.keep} "
+            f"flagged={self.flagged} retranslate={self.action_retranslate}"
+        )
 
 
-def run_translation_qa(records: Sequence[dict],
-                       advisor: Optional[TranslationAdvisor] = None,
-                       reviewer: Optional[ReviewAgent] = None) -> TranslationQAReport:
+def run_translation_qa(
+    records: Sequence[dict],
+    advisor: Optional[TranslationAdvisor] = None,
+    reviewer: Optional[ReviewAgent] = None,
+) -> TranslationQAReport:
     """对 gate 记录逐段做「置信度路由 + Review 复检」。
 
     ``records`` 为 ``[{node_id, text, translated}, ...]``（gate 记录派生）。
@@ -103,8 +108,7 @@ def run_translation_qa(records: Sequence[dict],
             route = TRANSLATE_ROUTE if text.strip() else KEEP_ROUTE
             confidence = 1.0 if route == "keep" else 0.7
 
-        qa = QARecorder(node_id=node_id, route=route,
-                        confidence=confidence)
+        qa = QARecorder(node_id=node_id, route=route, confidence=confidence)
         if route == TRANSLATE_ROUTE:
             report.translate += 1
             try:
@@ -126,5 +130,7 @@ def run_translation_qa(records: Sequence[dict],
 
 
 __all__ = [
-    "QARecorder", "TranslationQAReport", "run_translation_qa",
+    "QARecorder",
+    "TranslationQAReport",
+    "run_translation_qa",
 ]

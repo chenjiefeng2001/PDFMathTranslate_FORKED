@@ -10,6 +10,7 @@
 每阶段的 rebuilt/cached 集合（整合 Phase 4.5 IncrementalEngine 与
 Phase 6.4 分层缓存）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -26,14 +27,19 @@ class BuildPlan:
     # {stage: {"rebuilt": [...], "cached": [...]}}
 
     def to_dict(self) -> dict:
-        return {stage: {"rebuilt": list(self.stages.get(stage, {}).get("rebuilt", [])),
-                        "cached": list(self.stages.get(stage, {}).get("cached", []))}
-                for stage in STAGE_ORDER}
+        return {
+            stage: {
+                "rebuilt": list(self.stages.get(stage, {}).get("rebuilt", [])),
+                "cached": list(self.stages.get(stage, {}).get("cached", [])),
+            }
+            for stage in STAGE_ORDER
+        }
 
     def summary(self) -> str:
         return " | ".join(
             f"{s}:{len(self.stages.get(s, {}).get('rebuilt', []))}Δ"
-            for s in STAGE_ORDER)
+            for s in STAGE_ORDER
+        )
 
 
 class DependencyGraph:
@@ -44,7 +50,7 @@ class DependencyGraph:
 
     def __init__(self) -> None:
         self._dependents: Dict[str, Set[str]] = {}  # dep -> {受影响节点}
-        self._stage_map: Dict[str, Set[str]] = {}   # node -> {阶段}
+        self._stage_map: Dict[str, Set[str]] = {}  # node -> {阶段}
 
     def add_dependency(self, depends_on: str, node_id: str) -> None:
         self._dependents.setdefault(depends_on, set()).add(node_id)
@@ -79,22 +85,26 @@ class DependencyGraph:
         for page in model.pages:
             for i, block in enumerate(page.blocks):
                 pol = block.metadata.get("translation_policy") or {}
-                self.register_block(block_id(page.page_num, i),
-                                    is_translatable=pol.get("translate", True))
+                self.register_block(
+                    block_id(page.page_num, i),
+                    is_translatable=pol.get("translate", True),
+                )
         return self
 
 
 class BuildSystem:
     """增量构建：changed_ids → 每阶段 rebuilt/cached。"""
 
-    def __init__(self, cache=None, graph: Optional[DependencyGraph] = None,
-                 incremental=None) -> None:
+    def __init__(
+        self, cache=None, graph: Optional[DependencyGraph] = None, incremental=None
+    ) -> None:
         self.cache = cache
         self.graph = graph or DependencyGraph()
         self.incremental = incremental  # Phase 4.5 IncrementalEngine
 
-    def build(self, model: DocumentModel,
-              changed_ids: Optional[Sequence[str]] = None) -> BuildPlan:
+    def build(
+        self, model: DocumentModel, changed_ids: Optional[Sequence[str]] = None
+    ) -> BuildPlan:
         plan = BuildPlan()
         if changed_ids is None:
             if self.incremental is not None:
@@ -104,14 +114,14 @@ class BuildSystem:
                 changed_ids = []
         changed = set(changed_ids or [])
         affected = self.graph.closure(changed)
-        pages = {int(bid.split("_")[0][1:]) for bid in affected
-                 if bid.startswith("p")}
+        pages = {int(bid.split("_")[0][1:]) for bid in affected if bid.startswith("p")}
         for stage in STAGE_ORDER:
             if stage in ("parse", "render"):
                 rebuilt = [f"page_{p}" for p in sorted(pages)] if affected else []
             else:
                 rebuilt = sorted(
-                    nid for nid in affected if stage in self.graph.stages_of(nid))
+                    nid for nid in affected if stage in self.graph.stages_of(nid)
+                )
             plan.stages[stage] = {"rebuilt": rebuilt, "cached": []}
         return plan
 

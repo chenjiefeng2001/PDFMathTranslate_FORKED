@@ -4,6 +4,7 @@ Overlay/transparent rendering engine for pdf2zh 2.0.
 Renders translated text on top of the original scanned page image
 with proper opacity, background masking, and position matching.
 """
+
 import io
 import logging
 from dataclasses import dataclass
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class OverlaySegment:
     """A single segment of overlay text."""
+
     text: str
     bbox: Tuple[float, float, float, float]  # x0, y0, x1, y1
     font_size: float
@@ -112,8 +114,7 @@ class OverlayRenderer:
         img_bytes = pix.tobytes("png")
         # 2. 建新 PDF：与源页同尺寸 + 原页图像
         out_doc = Document()
-        out_page = out_doc.new_page(width=page.rect.width,
-                                    height=page.rect.height)
+        out_page = out_doc.new_page(width=page.rect.width, height=page.rect.height)
         out_page.insert_image(out_page.rect, stream=img_bytes)
         # 3. 透明文本层 overlay（保留原图 + 可搜索文本 + 译文）
         for seg in segments:
@@ -156,8 +157,6 @@ def composite_overlay(
     # Composite only on masked areas
     result = original_image.copy().astype(np.float32)
     for c in range(3):
-        result[mask, c] = (
-            result[mask, c] * (1 - alpha) + overlay_image[mask, c] * alpha
-        )
+        result[mask, c] = result[mask, c] * (1 - alpha) + overlay_image[mask, c] * alpha
 
     return result.astype(np.uint8)

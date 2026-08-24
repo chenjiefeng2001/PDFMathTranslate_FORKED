@@ -11,6 +11,7 @@
 - dump_page / run_pipeline_dump 侧通道端到端；
 - dump_pdf_pipeline：真实 PDF 恒等翻译 dump（回答「提取层是否已坏」）。
 """
+
 import os
 import tempfile
 import unittest
@@ -51,6 +52,7 @@ def add_text(page, x0, y, text, adv=9.0, fontname="Helvetica"):
 def build_converter(**kwargs):
     from pdf2zh.converter import TranslateConverter
     from pdf2zh.collision_resolver import CollisionResolver
+
     translator = Mock()
     translator.translate = Mock(side_effect=lambda t: "YI" + t)
     translator.lang_in = "en"
@@ -60,7 +62,9 @@ def build_converter(**kwargs):
         conv = TranslateConverter(
             PDFResourceManager(),
             layout={},
-            lang_in="en", lang_out="zh-CN", service="stub",
+            lang_in="en",
+            lang_out="zh-CN",
+            service="stub",
         )
     conv.thread = 1
     conv.noto_name = "noto"
@@ -81,7 +85,7 @@ def build_converter(**kwargs):
 
 class TestHasReplacement(unittest.TestCase):
     def test_fffd_detected(self):
-        self.assertTrue(has_replacement("Per\uFFFDev\uFFFDuation"))
+        self.assertTrue(has_replacement("Per\ufffdev\ufffduation"))
         self.assertTrue(has_replacement("\ufffd"))
 
     def test_cid_notdef_detected(self):
@@ -95,9 +99,10 @@ class TestHasReplacement(unittest.TestCase):
 class TestGlyphDump(unittest.TestCase):
     def test_replacement_glyph_flagged(self):
         page = LTPage(1, (0, 0, 600, 800))
-        add_text(page, 50, 700, "Per")           # 正常字形
+        add_text(page, 50, 700, "Per")  # 正常字形
         add_text(page, 50 + 3 * 9, 700, "\ufffd")  # 损坏字形（同字体名）
         from pdf2zh.v3.pipeline_dump import glyph_dump
+
         glyphs = glyph_dump(page)
         chars = [g for g in glyphs if g["char"]]
         self.assertEqual(len(chars), 4)
@@ -109,6 +114,7 @@ class TestGlyphDump(unittest.TestCase):
         page = LTPage(1, (0, 0, 600, 800))
         page.add(make_char(50, 700, "(cid:53)", cid=53))
         from pdf2zh.v3.pipeline_dump import glyph_dump
+
         glyphs = glyph_dump(page)
         notdefs = [g for g in glyphs if g["decode"] == "notdef"]
         self.assertEqual(len(notdefs), 1)
@@ -118,6 +124,7 @@ class TestGlyphDump(unittest.TestCase):
         page = LTPage(1, (0, 0, 600, 800))
         page.add(make_char(50, 700, "A", size=12.0, fontname="XYZ-Bold"))
         from pdf2zh.v3.pipeline_dump import glyph_dump
+
         g = [x for x in glyph_dump(page) if x["char"] == "A"][0]
         self.assertEqual(g["font"], "XYZ-Bold")
         self.assertEqual(g["size"], 12.0)
@@ -131,11 +138,11 @@ class TestBlockLineDump(unittest.TestCase):
         add_text(page, 50, 680, "7.13")
         from pdf2zh.v3.geometry import chars_from_ltpage
         from pdf2zh.v3.pipeline_dump import block_dump, line_dump
+
         chars = chars_from_ltpage(page, page_num=1)
         blocks = block_dump(chars, page_num=1)
         lines = line_dump(chars, page_num=1)
-        self.assertTrue(any("Performance Evaluation" in b["text"]
-                            for b in blocks))
+        self.assertTrue(any("Performance Evaluation" in b["text"] for b in blocks))
         self.assertTrue(any("7.13" in l["text"] for l in lines))
         self.assertFalse(any(b["has_replacement"] for b in blocks))
 
@@ -144,6 +151,7 @@ class TestBlockLineDump(unittest.TestCase):
         add_text(page, 50, 700, "Bad \ufffd title")
         from pdf2zh.v3.geometry import chars_from_ltpage
         from pdf2zh.v3.pipeline_dump import block_dump
+
         chars = chars_from_ltpage(page, page_num=1)
         blocks = block_dump(chars, page_num=1)
         self.assertTrue(any(b["has_replacement"] for b in blocks))
@@ -152,20 +160,23 @@ class TestBlockLineDump(unittest.TestCase):
 class TestTocDump(unittest.TestCase):
     def _conv_with_toc_record(self, raw, translated="第7.13节 YI intro"):
         from pdf2zh.v3.mainline_wiring import _new_gate_record
+
         conv = build_converter()
         conv._gate_records = [
             _new_gate_record(50, 700, 300, 10, raw, translated, toc_mode=True),
-            _new_gate_record(50, 660, 300, 10,
-                             "Normal body paragraph", "YI body",
-                             toc_mode=False),
+            _new_gate_record(
+                50, 660, 300, 10, "Normal body paragraph", "YI body", toc_mode=False
+            ),
         ]
         return conv
 
     def test_toc_dump_fields_and_confidence(self):
         from pdf2zh.v3.pipeline_dump import toc_dump
+
         # 真实路径：gate 文本 = 标题余量（号段被剥离），PLAIN → 回退组合译头
-        conv = self._conv_with_toc_record("Performance Evaluation",
-                                          "第7.13节 YI Performance Evaluation")
+        conv = self._conv_with_toc_record(
+            "Performance Evaluation", "第7.13节 YI Performance Evaluation"
+        )
         entries = toc_dump(conv, 1)
         self.assertEqual(len(entries), 1)
         e = entries[0]
@@ -179,6 +190,7 @@ class TestTocDump(unittest.TestCase):
     def test_bare_multi_number_parse_not_eating_title(self):
         # v1.9 回归修复：多点编号 + 空格标题不再被单点规则吃掉标题
         from pdf2zh.v3.toc_semantics import parse_toc_entry
+
         e = parse_toc_entry("7.13 Performance Evaluation")
         self.assertEqual(e.kind.value, "section")
         self.assertEqual(e.number, "7.13")
@@ -186,8 +198,10 @@ class TestTocDump(unittest.TestCase):
 
     def test_toc_dump_flags_corrupt_title(self):
         from pdf2zh.v3.pipeline_dump import toc_dump
-        conv = self._conv_with_toc_record("\ufffd\ufffd\ufffd",
-                                          "第7.13节 YI \ufffd\ufffd")
+
+        conv = self._conv_with_toc_record(
+            "\ufffd\ufffd\ufffd", "第7.13节 YI \ufffd\ufffd"
+        )
         entries = toc_dump(conv, 1)
         e = entries[0]
         self.assertTrue(e["raw_has_replacement"])
@@ -196,8 +210,10 @@ class TestTocDump(unittest.TestCase):
 
     def test_translation_dump_pairs(self):
         from pdf2zh.v3.pipeline_dump import translation_dump
-        conv = self._conv_with_toc_record("Performance Evaluation",
-                                          "第7.13节 YI Performance Evaluation")
+
+        conv = self._conv_with_toc_record(
+            "Performance Evaluation", "第7.13节 YI Performance Evaluation"
+        )
         pairs = translation_dump(conv, 1)
         self.assertEqual(len(pairs), 2)
         toc = [p for p in pairs if p["node_type"] == "toc"][0]
@@ -207,6 +223,7 @@ class TestTocDump(unittest.TestCase):
 
     def test_layout_dump_includes_verdict(self):
         from pdf2zh.v3.pipeline_dump import layout_dump
+
         conv = self._conv_with_toc_record("Performance Evaluation")
         conv.gate_verdicts = {1: {"writeback_allowed": True, "overlap_rate": 0.0}}
         ld = layout_dump(conv, 1)
@@ -219,6 +236,7 @@ class TestRunDump(unittest.TestCase):
     def test_runs_group_same_style_and_split_on_font_change(self):
         from pdf2zh.v3.geometry import chars_from_ltpage
         from pdf2zh.v3.pipeline_dump import run_dump
+
         page = LTPage(1, (0, 0, 600, 800))
         add_text(page, 50, 700, "5.2.1 ", fontname="ABCDE+Times")
         add_text(page, 50 + 6 * 9, 700, "Parser", fontname="ABCDE+Times-Bold")
@@ -233,6 +251,7 @@ class TestRunDump(unittest.TestCase):
     def test_runs_flag_replacement(self):
         from pdf2zh.v3.geometry import chars_from_ltpage
         from pdf2zh.v3.pipeline_dump import run_dump
+
         page = LTPage(1, (0, 0, 600, 800))
         add_text(page, 50, 700, "\ufffd\ufffd")
         chars = chars_from_ltpage(page, page_num=1)
@@ -243,6 +262,7 @@ class TestRunDump(unittest.TestCase):
 class TestGlyphFontDecodeSignals(unittest.TestCase):
     def test_cid_font_without_to_unicode_flagged(self):
         from pdf2zh.v3.pipeline_dump import glyph_dump
+
         page = LTPage(1, (0, 0, 600, 800))
         ch = make_char(50, 700, "\ufffd", fontname="ABCDE+F1")
         font = Mock()
@@ -259,6 +279,7 @@ class TestGlyphFontDecodeSignals(unittest.TestCase):
 
     def test_simple_font_with_to_unicode_ok(self):
         from pdf2zh.v3.pipeline_dump import glyph_dump
+
         page = LTPage(1, (0, 0, 600, 800))
         ch = make_char(50, 700, "P", fontname="Helvetica")
         font = Mock()
@@ -276,10 +297,10 @@ class TestMergedLineDetection(unittest.TestCase):
     def test_merged_toc_lines_flagged(self):
         from pdf2zh.v3.geometry import chars_from_ltpage
         from pdf2zh.v3.pipeline_dump import line_dump
+
         # 复现「5.1 xx 291 5.2 xx 292 5.2.1 xx 292」被压成一行
         page = LTPage(1, (0, 0, 600, 800))
-        add_text(page, 50, 700,
-                 "5.1 Intro 291 5.2 Arch 292 5.2.1 Parser 292")
+        add_text(page, 50, 700, "5.1 Intro 291 5.2 Arch 292 5.2.1 Parser 292")
         chars = chars_from_ltpage(page, page_num=1)
         lines = line_dump(chars, page_num=1)
         self.assertTrue(any(l["suspected_merged_entries"] for l in lines))
@@ -287,6 +308,7 @@ class TestMergedLineDetection(unittest.TestCase):
     def test_single_toc_line_not_flagged(self):
         from pdf2zh.v3.geometry import chars_from_ltpage
         from pdf2zh.v3.pipeline_dump import line_dump
+
         page = LTPage(1, (0, 0, 600, 800))
         add_text(page, 50, 700, "5.2.1 Parser ...... 292")
         chars = chars_from_ltpage(page, page_num=1)
@@ -297,22 +319,59 @@ class TestMergedLineDetection(unittest.TestCase):
 class TestTocTree(unittest.TestCase):
     def _entries(self):
         return [
-            {"line": 0, "number": "5", "title": "Results", "page": "290",
-             "level": 1, "kind": "chapter"},
-            {"line": 1, "number": "5.1", "title": "Intro", "page": "291",
-             "level": 2, "kind": "section"},
-            {"line": 2, "number": "5.2", "title": "Arch", "page": "292",
-             "level": 2, "kind": "section"},
-            {"line": 3, "number": "5.2.1", "title": "Parser", "page": "292",
-             "level": 3, "kind": "section"},
-            {"line": 4, "number": "5.2.2", "title": "Renderer", "page": "293",
-             "level": 3, "kind": "section"},
-            {"line": 5, "number": "5.3", "title": "Summary", "page": "294",
-             "level": 2, "kind": "section"},
+            {
+                "line": 0,
+                "number": "5",
+                "title": "Results",
+                "page": "290",
+                "level": 1,
+                "kind": "chapter",
+            },
+            {
+                "line": 1,
+                "number": "5.1",
+                "title": "Intro",
+                "page": "291",
+                "level": 2,
+                "kind": "section",
+            },
+            {
+                "line": 2,
+                "number": "5.2",
+                "title": "Arch",
+                "page": "292",
+                "level": 2,
+                "kind": "section",
+            },
+            {
+                "line": 3,
+                "number": "5.2.1",
+                "title": "Parser",
+                "page": "292",
+                "level": 3,
+                "kind": "section",
+            },
+            {
+                "line": 4,
+                "number": "5.2.2",
+                "title": "Renderer",
+                "page": "293",
+                "level": 3,
+                "kind": "section",
+            },
+            {
+                "line": 5,
+                "number": "5.3",
+                "title": "Summary",
+                "page": "294",
+                "level": 2,
+                "kind": "section",
+            },
         ]
 
     def test_hierarchy_and_depths(self):
         from pdf2zh.v3.toc_tree import build_toc_tree
+
         tree = build_toc_tree(self._entries())
         by_line = {n["line"]: n for n in tree["nodes"]}
         self.assertEqual(tree["roots"], [0])
@@ -328,15 +387,40 @@ class TestTocTree(unittest.TestCase):
 
     def test_non_dotted_fallback_chain(self):
         from pdf2zh.v3.toc_tree import build_toc_tree
+
         entries = [
-            {"line": 0, "number": "第5章", "title": "结果", "page": "290",
-             "level": 1, "kind": "chapter"},
-            {"line": 1, "number": "5.1", "title": "引言", "page": "291",
-             "level": 2, "kind": "section"},
-            {"line": 2, "number": "5.2", "title": "架构", "page": "292",
-             "level": 2, "kind": "section"},
-            {"line": 3, "number": "附录A", "title": "附录", "page": "300",
-             "level": 1, "kind": "appendix"},
+            {
+                "line": 0,
+                "number": "第5章",
+                "title": "结果",
+                "page": "290",
+                "level": 1,
+                "kind": "chapter",
+            },
+            {
+                "line": 1,
+                "number": "5.1",
+                "title": "引言",
+                "page": "291",
+                "level": 2,
+                "kind": "section",
+            },
+            {
+                "line": 2,
+                "number": "5.2",
+                "title": "架构",
+                "page": "292",
+                "level": 2,
+                "kind": "section",
+            },
+            {
+                "line": 3,
+                "number": "附录A",
+                "title": "附录",
+                "page": "300",
+                "level": 1,
+                "kind": "appendix",
+            },
         ]
         tree = build_toc_tree(entries)
         by_line = {n["line"]: n for n in tree["nodes"]}
@@ -349,6 +433,7 @@ class TestTocTree(unittest.TestCase):
 class TestCanonicalPageModel(unittest.TestCase):
     def test_tree_nesting_glyph_span_line_block(self):
         from pdf2zh.v3.canonical_page import build_page_model
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 700, "5.2.1 ", fontname="ABCDE+Times")
         add_text(page, 50 + 6 * 9, 700, "Parser", fontname="ABCDE+Times-Bold")
@@ -369,6 +454,7 @@ class TestCanonicalPageModel(unittest.TestCase):
 
     def test_font_span_split(self):
         from pdf2zh.v3.canonical_page import build_page_model
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 700, "AB", fontname="F1")
         add_text(page, 50 + 2 * 9, 700, "CD", fontname="F2")
@@ -380,6 +466,7 @@ class TestCanonicalPageModel(unittest.TestCase):
 
     def test_replacement_glyph_decode_fffd(self):
         from pdf2zh.v3.canonical_page import build_page_model
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 700, "\ufffdX")
         pm = build_page_model(page, page_num=3)
@@ -388,14 +475,23 @@ class TestCanonicalPageModel(unittest.TestCase):
     def test_annotate_toc_marks_block_metadata(self):
         from pdf2zh.v3.canonical_page import annotate_toc, build_page_model
         from pdf2zh.v3.toc_semantics import parse_toc_entry
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 700, "5.2.1 Parser ...... 292")
         pm = build_page_model(page, page_num=3)
         e = parse_toc_entry("5.2.1 Parser ...... 292")
-        hits = annotate_toc(pm, [{
-            "line": 0, "number": e.number, "title": e.title,
-            "page": "292", "confidence": 0.9,
-        }])
+        hits = annotate_toc(
+            pm,
+            [
+                {
+                    "line": 0,
+                    "number": e.number,
+                    "title": e.title,
+                    "page": "292",
+                    "confidence": 0.9,
+                }
+            ],
+        )
         self.assertGreaterEqual(hits, 1)
         toc_blocks = [b for b in pm.blocks if b.metadata.get("kind") == "toc"]
         self.assertTrue(toc_blocks)
@@ -406,6 +502,7 @@ class TestCanonicalPageModel(unittest.TestCase):
     def test_annotate_toc_scan_from_tree_when_legacy_missing(self):
         # legacy 段落合并导致 gate 无 TOC 记录时，树内自扫描仍可标注
         from pdf2zh.v3.canonical_page import annotate_toc_scan, build_page_model
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 700, "5.2.1 Parser ...... 292")
         add_text(page, 50, 680, "Plain body text")
@@ -424,8 +521,11 @@ class TestCanonicalPageModel(unittest.TestCase):
         pm2 = build_page_model(page2, page_num=3)
         hits2 = annotate_toc_scan(pm2)
         self.assertGreaterEqual(hits2, 2)
-        numbers = [b.metadata["toc_number"] for b in pm2.blocks
-                   if b.metadata.get("kind") == "toc"]
+        numbers = [
+            b.metadata["toc_number"]
+            for b in pm2.blocks
+            if b.metadata.get("kind") == "toc"
+        ]
         self.assertIn("5.2.1", numbers)
         self.assertIn("5.2.2", numbers)
         # 多行块（含换行）不判定：疑似合并交行级诊断
@@ -436,20 +536,26 @@ class TestCanonicalPageModel(unittest.TestCase):
 
     def test_annotate_formulas_marks_math_spans(self):
         from pdf2zh.v3.canonical_page import annotate_formulas, build_page_model
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 700, "x^2 + y^2 = z^2")
         add_text(page, 50, 660, "Plain body text here")
         pm = build_page_model(page, page_num=3)
         marked = annotate_formulas(pm)
         self.assertGreaterEqual(marked, 1)
-        math_spans = [s for b in pm.blocks for l in b.lines
-                      for s in l.spans if s.metadata.get("math")]
+        math_spans = [
+            s
+            for b in pm.blocks
+            for l in b.lines
+            for s in l.spans
+            if s.metadata.get("math")
+        ]
         self.assertTrue(math_spans)
-        self.assertIn("formula_density",
-                      [b.metadata for b in pm.blocks][0])
+        self.assertIn("formula_density", [b.metadata for b in pm.blocks][0])
 
     def test_annotate_style_multifont_signal(self):
         from pdf2zh.v3.canonical_page import annotate_style, build_page_model
+
         page = LTPage(3, (0, 0, 600, 800))
         add_text(page, 50, 700, "AB", fontname="F1")
         add_text(page, 50 + 2 * 9, 700, "CD", fontname="F2")
@@ -461,6 +567,7 @@ class TestCanonicalPageModel(unittest.TestCase):
 
     def test_dump_page_includes_page_model(self):
         from pdf2zh.v3.mainline_wiring import run_pipeline_dump
+
         page = LTPage(2, (0, 0, 600, 800))
         add_text(page, 50, 700, "7.13 Performance Evaluation")
         conv = build_converter()
@@ -475,14 +582,21 @@ class TestCanonicalPageModel(unittest.TestCase):
 class TestDumpPageChannel(unittest.TestCase):
     def test_run_pipeline_dump_end_to_end(self):
         from pdf2zh.v3.mainline_wiring import run_pipeline_dump
+
         page = LTPage(2, (0, 0, 600, 800))
         add_text(page, 50, 700, "7.13 Performance Evaluation ...... 479")
         conv = build_converter()
         conv._gate_records = [
-            {"x": 50, "y": 700, "width": 300, "height": 20, "size": 10,
-             "text": "7.13 Performance Evaluation",
-             "translated": "第7.13节 YI Performance Evaluation",
-             "node_type": "toc"},
+            {
+                "x": 50,
+                "y": 700,
+                "width": 300,
+                "height": 20,
+                "size": 10,
+                "text": "7.13 Performance Evaluation",
+                "translated": "第7.13节 YI Performance Evaluation",
+                "node_type": "toc",
+            },
         ]
         run_pipeline_dump(conv, page)
         dump = conv.pipeline_dumps[2]
@@ -501,6 +615,7 @@ class TestDumpPdfPipeline(unittest.TestCase):
     def test_real_pdf_dump_detects_corruption(self):
         import fitz
         from pdf2zh.v3.pipeline_dump import dump_pdf_pipeline
+
         out = tempfile.mkdtemp(prefix="v11_dump_")
         path = os.path.join(out, "in.pdf")
         doc = fitz.open()

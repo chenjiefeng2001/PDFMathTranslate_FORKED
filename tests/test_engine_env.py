@@ -8,6 +8,7 @@
 - resolve_device：环境变量优先于参数；
 - mineru_install_hint：按 Python 版本给出安装建议。
 """
+
 import os
 import unittest
 from unittest.mock import patch
@@ -36,9 +37,7 @@ class TestVersionProbe(unittest.TestCase):
     def test_mineru_supported_current(self):
         # 当前解释器（>=3.14 或 3.10-3.13）与常量保持一致
         cur = python_version()
-        self.assertEqual(
-            mineru_supported(), MINERU_MAX_PY >= cur >= MINERU_MIN_PY
-        )
+        self.assertEqual(mineru_supported(), MINERU_MAX_PY >= cur >= MINERU_MIN_PY)
 
     @patch("pdf2zh.engine_env.python_version", return_value=(3, 13))
     def test_mineru_supported_py313(self, *_):

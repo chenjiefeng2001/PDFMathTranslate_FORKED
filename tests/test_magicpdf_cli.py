@@ -7,6 +7,7 @@
 - run_magicpdf_main：引擎不可用 → 熔断降级 _run_legacy_kernel；引擎可用
   → parse→bridge→translate→dump→render plan 全链路 + 退出码 0。
 """
+
 import argparse
 import json
 import os
@@ -27,7 +28,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 0, 300, 24],
                         "spans": [
-                            {"bbox": [0, 0, 300, 24], "content": "Hello MagicPDF", "type": "text"},
+                            {
+                                "bbox": [0, 0, 300, 24],
+                                "content": "Hello MagicPDF",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -117,9 +122,15 @@ class TestResolveParseEngine(unittest.TestCase):
     def test_explicit_values(self):
         from pdf2zh.pdf2zh import resolve_parse_engine
 
-        self.assertEqual(resolve_parse_engine(make_args(parse_engine="magicpdf")), "magicpdf")
-        self.assertEqual(resolve_parse_engine(make_args(parse_engine="legacy")), "legacy")
-        self.assertEqual(resolve_parse_engine(make_args(parse_engine="babeldoc")), "babeldoc")
+        self.assertEqual(
+            resolve_parse_engine(make_args(parse_engine="magicpdf")), "magicpdf"
+        )
+        self.assertEqual(
+            resolve_parse_engine(make_args(parse_engine="legacy")), "legacy"
+        )
+        self.assertEqual(
+            resolve_parse_engine(make_args(parse_engine="babeldoc")), "babeldoc"
+        )
 
 
 class TestRunMagicPdfMain(unittest.TestCase):
@@ -146,16 +157,20 @@ class TestRunMagicPdfMain(unittest.TestCase):
             with open(pdf_path, "w", encoding="utf-8") as fh:
                 fh.write("%PDF-1.4 placeholder")
 
-            with patch(
-                "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
-                return_value=True,
-            ), patch(
-                "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
-                return_value=results,
-            ), patch(
-                "pdf2zh.translator.build_translator",
-                return_value=fake_translator,
-            ) as bt:
+            with (
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                    return_value=True,
+                ),
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
+                    return_value=results,
+                ),
+                patch(
+                    "pdf2zh.translator.build_translator",
+                    return_value=fake_translator,
+                ) as bt,
+            ):
                 code = run_magicpdf_main(make_args(files=[pdf_path], output=tmp))
 
             self.assertEqual(code, 0)
@@ -167,7 +182,9 @@ class TestRunMagicPdfMain(unittest.TestCase):
                 doc_json = json.load(fh)
             self.assertEqual(doc_json["stats"]["blocks"], 2)
             # 标题与正文被翻译，译文回填 metadata
-            translated = [b["metadata"].get("translated") for b in doc_json["pages"][0]["blocks"]]
+            translated = [
+                b["metadata"].get("translated") for b in doc_json["pages"][0]["blocks"]
+            ]
             self.assertTrue(translated[0].startswith("T:"))
             bt.assert_called_once()
 
@@ -207,18 +224,23 @@ class TestTorchPreload(unittest.TestCase):
     def test_run_magicpdf_main_preloads_torch_first(self):
         """run_magicpdf_main 入口先预载 torch，再创建适配器。"""
         order = []
-        with patch(
-            "pdf2zh.magicpdf_cli._preload_torch",
-            side_effect=lambda: order.append("preload") or True,
-        ), patch(
-            "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
-            side_effect=lambda: order.append("is_available") or False,
-        ), patch(
-            "pdf2zh.magicpdf_cli._fallback_legacy",
-            return_value=0,
-        ) as fb, patch(
-            "pdf2zh.magicpdf_adapter.MagicPdfAdapter.__init__",
-            return_value=None,
+        with (
+            patch(
+                "pdf2zh.magicpdf_cli._preload_torch",
+                side_effect=lambda: order.append("preload") or True,
+            ),
+            patch(
+                "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                side_effect=lambda: order.append("is_available") or False,
+            ),
+            patch(
+                "pdf2zh.magicpdf_cli._fallback_legacy",
+                return_value=0,
+            ) as fb,
+            patch(
+                "pdf2zh.magicpdf_adapter.MagicPdfAdapter.__init__",
+                return_value=None,
+            ),
         ):
             from pdf2zh.magicpdf_cli import run_magicpdf_main
 
@@ -242,9 +264,7 @@ class TestFallbackAntiPingPong(unittest.TestCase):
             recorded["flag"] = getattr(parsed_args, "_magicpdf_fallback", False)
             return 0
 
-        with patch(
-            "pdf2zh.pdf2zh._run_legacy_kernel", side_effect=fake_legacy
-        ):
+        with patch("pdf2zh.pdf2zh._run_legacy_kernel", side_effect=fake_legacy):
             code = _fallback_legacy(ns, "engine broken")
         self.assertEqual(code, 0)
         self.assertTrue(recorded["flag"])

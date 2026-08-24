@@ -1,21 +1,29 @@
 # -*- coding: utf-8 -*-
 """Integration tests for Phase 2 pipeline components."""
+
 import os, sys, unittest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 try:
     from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType, Edge, EdgeType
     from pdf2zh.v3.scheduler import TaskGraph, Task, Executor
+
     _HAS = True
 except ImportError as e:
     _HAS = False
     print(f"Integration import error: {e}")
 
+
 @unittest.skipIf(not _HAS, "not importable")
 class TestPipelineComposition(unittest.TestCase):
     def test_graph_add_nodes(self):
         g = DocumentGraph()
-        g.add_node(DocumentNode("n1", NodeType.PARAGRAPH, (0, 0, 100, 20), text="Hello"))
-        g.add_node(DocumentNode("n2", NodeType.PARAGRAPH, (0, 30, 100, 50), text="World"))
+        g.add_node(
+            DocumentNode("n1", NodeType.PARAGRAPH, (0, 0, 100, 20), text="Hello")
+        )
+        g.add_node(
+            DocumentNode("n2", NodeType.PARAGRAPH, (0, 30, 100, 50), text="World")
+        )
         self.assertEqual(len(g.nodes), 2)
 
     def test_graph_get_node(self):
@@ -33,8 +41,14 @@ class TestPipelineComposition(unittest.TestCase):
     def test_pipeline_task_graph(self):
         tg = TaskGraph()
         tg.add_task(Task("parse", "Parse", module="parser"))
-        tg.add_task(Task("analyze", "Analyze", module="analyzer", dependencies={"parse"}))
-        tg.add_task(Task("translate", "Translate", module="translator", dependencies={"analyze"}))
+        tg.add_task(
+            Task("analyze", "Analyze", module="analyzer", dependencies={"parse"})
+        )
+        tg.add_task(
+            Task(
+                "translate", "Translate", module="translator", dependencies={"analyze"}
+            )
+        )
         exec_ = Executor(tg)
         results = exec_.run_all()
         self.assertEqual(len(results), 3)
@@ -72,5 +86,7 @@ class TestPipelineComposition(unittest.TestCase):
         self.assertAlmostEqual(n.y0, 20.0)
 
     def test_node_metadata(self):
-        n = DocumentNode("n1", NodeType.PARAGRAPH, (0, 0, 100, 20), metadata={"key": "val"})
+        n = DocumentNode(
+            "n1", NodeType.PARAGRAPH, (0, 0, 100, 20), metadata={"key": "val"}
+        )
         self.assertEqual(n.metadata["key"], "val")

@@ -7,19 +7,30 @@ Phase 2 upgrades:
   - CollisionEngine (sweep-line based collision detection)
   - Overflow / pagination improvements
 """
+
 from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType
-from pdf2zh.v3.visual_tree import VisualTree, BoundingBox, Page, Paragraph, Line, TextRun
+from pdf2zh.v3.visual_tree import (
+    VisualTree,
+    BoundingBox,
+    Page,
+    Paragraph,
+    Line,
+    TextRun,
+)
+
 # Unified single-source ConstraintPriority (report P3): layout.py reuses the
 # constraint_graph enum so the duplicated definitions can never drift again.
 from pdf2zh.v3.constraint_graph import ConstraintPriority as ConstraintType
+
 logger = logging.getLogger(__name__)
 
 
 # -- CollisionEngine (Phase 2) --
+
 
 @dataclass
 class CollisionRecord:
@@ -65,8 +76,14 @@ class CollisionEngine:
                     ovx = min(nx + nw, ox + ow) - max(nx, ox)
                     ovy = min(ny + nh, oy + oh) - max(ny, oy)
                     if ovx > cls.OVERLAP_THRESHOLD and ovy > cls.OVERLAP_THRESHOLD:
-                        sev = "critical" if ovy > 10 else ("major" if ovy > 5 else "minor")
-                        collisions.append(CollisionRecord(node.id, other.id, ovx, ovy, sev))
+                        sev = (
+                            "critical"
+                            if ovy > 10
+                            else ("major" if ovy > 5 else "minor")
+                        )
+                        collisions.append(
+                            CollisionRecord(node.id, other.id, ovx, ovy, sev)
+                        )
                 active.add(node.id)
                 active_nodes[node.id] = node
             else:
@@ -83,8 +100,8 @@ class CollisionEngine:
         return sum(1 for c in cls.detect(nodes) if c.severity == "critical")
 
 
-
 # ConstraintType unified with ConstraintPriority (imported at top).
+
 
 @dataclass
 class LayoutConstraint:
@@ -95,6 +112,7 @@ class LayoutConstraint:
     priority: int = 100
     weight: float = 1.0
     gap: float = 5.0
+
 
 class Measure:
     CJK_WIDTH = 12.0
@@ -107,7 +125,7 @@ class Measure:
         scale = font_size / 12.0
         width = 0.0
         for ch in text:
-            if '\u4e00' <= ch <= '\u9fff' or '\u3000' <= ch <= '\u303f':
+            if "\u4e00" <= ch <= "\u9fff" or "\u3000" <= ch <= "\u303f":
                 width += cls.CJK_WIDTH * scale
             else:
                 width += cls.ASCII_WIDTH * scale
@@ -128,6 +146,7 @@ class Measure:
 
 # -- InlineLayout (Phase 2) --
 
+
 @dataclass
 class GlyphMetric:
     char: str = ""
@@ -139,6 +158,7 @@ class GlyphMetric:
 
 class InlineLayout:
     """Character-level inline layout with letter/word spacing."""
+
     LETTER_SPACING = 0.5
     WORD_SPACING = 3.0
     CJK_WIDTH = 12.0
@@ -149,8 +169,13 @@ class InlineLayout:
         scale = font_size / 12.0
         is_cjk = bool("一" <= ch <= "鿿" or "　" <= ch <= "〿")
         w = cls.CJK_WIDTH if is_cjk else cls.ASCII_WIDTH
-        return GlyphMetric(char=ch, width=w * scale, height=font_size,
-                          advance=(w + cls.LETTER_SPACING) * scale, is_cjk=is_cjk)
+        return GlyphMetric(
+            char=ch,
+            width=w * scale,
+            height=font_size,
+            advance=(w + cls.LETTER_SPACING) * scale,
+            is_cjk=is_cjk,
+        )
 
     @classmethod
     def measure_word(cls, word, font_size=12.0):
@@ -197,6 +222,7 @@ class ColumnRegion:
 
 class ColumnLayout:
     """Multi-column detection and layout."""
+
     MIN_COL_GAP = 20.0
 
     @staticmethod
@@ -217,7 +243,11 @@ class ColumnLayout:
     def detect_columns(cls, nodes, page_width, margin_l=50, margin_r=50):
         """Detect column count from node x-coordinates."""
         if not nodes:
-            return 1, [ColumnRegion(x=margin_l, y=0, width=page_width - margin_l - margin_r, height=1000)]
+            return 1, [
+                ColumnRegion(
+                    x=margin_l, y=0, width=page_width - margin_l - margin_r, height=1000
+                )
+            ]
         ranges = []
         for n in nodes:
             ranges.append((cls._node_bbox_x(n), cls._node_bbox_x1(n)))
@@ -237,28 +267,47 @@ class ColumnLayout:
     @classmethod
     def assign_to_column(cls, node, columns):
         """Assign a node to the best column based on x-centroid."""
-        cx = cls._node_bbox_x(node) + (cls._node_bbox_x1(node) - cls._node_bbox_x(node)) / 2
+        cx = (
+            cls._node_bbox_x(node)
+            + (cls._node_bbox_x1(node) - cls._node_bbox_x(node)) / 2
+        )
         best = 0
         best_dist = float("inf")
         for i, col in enumerate(columns):
             col_cx = col.x + col.width / 2
             d = abs(cx - col_cx)
             if d < best_dist:
-                best_dist = d; best = i
+                best_dist = d
+                best = i
         return best
 
 
-
 class FlowResult:
-    def __init__(self, node_id: str, lines: int, width: float, height: float, overflow: bool = False):
+    def __init__(
+        self,
+        node_id: str,
+        lines: int,
+        width: float,
+        height: float,
+        overflow: bool = False,
+    ):
         self.node_id = node_id
         self.lines = lines
         self.width = width
         self.height = height
         self.overflow = overflow
 
+
 class Flow:
-    def __init__(self, page_width=612.0, page_height=792.0, margin_left=50.0, margin_right=50.0, margin_top=50.0, margin_bottom=50.0):
+    def __init__(
+        self,
+        page_width=612.0,
+        page_height=792.0,
+        margin_left=50.0,
+        margin_right=50.0,
+        margin_top=50.0,
+        margin_bottom=50.0,
+    ):
         self.page_width = page_width
         self.page_height = page_height
         self.margin_left = margin_left
@@ -278,7 +327,9 @@ class Flow:
         w = self.content_width
         lines = Measure.estimate_lines(text, font_size, w)
         h = Measure.measure_height(lines, font_size)
-        return FlowResult(node_id="", lines=lines, width=w, height=h, overflow=h > self.content_height)
+        return FlowResult(
+            node_id="", lines=lines, width=w, height=h, overflow=h > self.content_height
+        )
 
     def flow_paragraphs(self, nodes, font_size=12.0):
         y = self.margin_top
@@ -294,25 +345,51 @@ class Flow:
             results.append(fr)
         return results
 
+
 class ConstraintBuilder:
     @classmethod
     def build_from_graph(cls, graph):
         constraints = []
         for edge in graph.edges:
-            et = edge.edge_type.value if hasattr(edge.edge_type, 'value') else str(edge.edge_type)
+            et = (
+                edge.edge_type.value
+                if hasattr(edge.edge_type, "value")
+                else str(edge.edge_type)
+            )
             if et == "reading_order":
-                constraints.append(LayoutConstraint(ConstraintType.SOFT, edge.source_id, edge.target_id, "must_follow", gap=5.0))
+                constraints.append(
+                    LayoutConstraint(
+                        ConstraintType.SOFT,
+                        edge.source_id,
+                        edge.target_id,
+                        "must_follow",
+                        gap=5.0,
+                    )
+                )
             elif et in ("contain", "contains"):
-                constraints.append(LayoutConstraint(ConstraintType.HARD, edge.source_id, edge.target_id, "must_below", gap=0.0))
+                constraints.append(
+                    LayoutConstraint(
+                        ConstraintType.HARD,
+                        edge.source_id,
+                        edge.target_id,
+                        "must_below",
+                        gap=0.0,
+                    )
+                )
         return constraints
+
 
 class ConstraintSolver:
     def __init__(self):
         self._constraints = []
         self._positions = {}
-    def add_constraint(self, c): self._constraints.append(c)
+
+    def add_constraint(self, c):
+        self._constraints.append(c)
+
     def add_constraints(self, cs):
         self._constraints.extend(cs)
+
     def solve(self):
         for c in self._constraints:
             src_y = self._positions.get(c.source_id, 0.0)
@@ -327,10 +404,15 @@ class ConstraintSolver:
                 if abs(src_y - tgt_y) < c.gap:
                     self._positions[c.target_id] = max(tgt_y, src_y + c.gap + 10.0)
         return dict(self._positions)
+
     def clear(self):
-        self._constraints.clear(); self._positions.clear()
+        self._constraints.clear()
+        self._positions.clear()
+
     @property
-    def constraint_count(self): return len(self._constraints)
+    def constraint_count(self):
+        return len(self._constraints)
+
 
 class LayoutEngine:
     def __init__(self, page_width=612.0, page_height=792.0):
@@ -344,20 +426,38 @@ class LayoutEngine:
 
     def layout(self, graph):
         tree = VisualTree()
-        page = Page(id="page_1", width=self.page_width, height=self.page_height, page_num=0)
+        page = Page(
+            id="page_1", width=self.page_width, height=self.page_height, page_num=0
+        )
         cw = self.flow.content_width
         y = self.flow.margin_top
-        nodes = [n for n in graph.nodes if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)]
+        nodes = [
+            n
+            for n in graph.nodes
+            if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)
+        ]
         for node in nodes:
-            if not node.text.strip(): continue
-            para = Paragraph(id=node.id, bbox=BoundingBox(self.flow.margin_left, y, cw, 0))
+            if not node.text.strip():
+                continue
+            para = Paragraph(
+                id=node.id, bbox=BoundingBox(self.flow.margin_left, y, cw, 0)
+            )
             lines_n = Measure.estimate_lines(node.text, node.font_size or 12.0, cw)
             para_h = Measure.measure_height(lines_n, node.font_size or 12.0)
             for li in range(lines_n):
                 line_baseline = y + li * Measure.LINE_HEIGHT + 2
                 line = Line(id=f"{node.id}_l{li}", baseline=line_baseline)
-                line.bbox = BoundingBox(self.flow.margin_left, y + li * Measure.LINE_HEIGHT, cw, Measure.LINE_HEIGHT)
-                run = TextRun(id=f"{node.id}_r{li}", text=node.text[li::max(1, lines_n)], font="")
+                line.bbox = BoundingBox(
+                    self.flow.margin_left,
+                    y + li * Measure.LINE_HEIGHT,
+                    cw,
+                    Measure.LINE_HEIGHT,
+                )
+                run = TextRun(
+                    id=f"{node.id}_r{li}",
+                    text=node.text[li :: max(1, lines_n)],
+                    font="",
+                )
                 line.add_run(run)
                 para.add_line(line)
             para.bbox.height = para_h
@@ -365,7 +465,12 @@ class LayoutEngine:
             y += para_h + Measure.PARAGRAPH_SPACING
             if y > self.page_height - self.flow.margin_bottom:
                 tree.add_page(page)
-                page = Page(id=f"page_{tree.page_count + 1}", width=self.page_width, height=self.page_height, page_num=tree.page_count)
+                page = Page(
+                    id=f"page_{tree.page_count + 1}",
+                    width=self.page_width,
+                    height=self.page_height,
+                    page_num=tree.page_count,
+                )
                 y = self.flow.margin_top
         if page.children:
             tree.add_page(page)
@@ -378,36 +483,61 @@ class LayoutEngine:
 
     def layout_with_columns(self, graph):
         """Layout with automatic column detection."""
-        nodes = [n for n in graph.nodes if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)]
+        nodes = [
+            n
+            for n in graph.nodes
+            if n.node_type not in (NodeType.DOCUMENT, NodeType.PAGE)
+        ]
         ncols, columns = ColumnLayout.detect_columns(nodes, self.page_width)
         col_nodes = [[] for _ in range(ncols)]
         for n in nodes:
             ci = ColumnLayout.assign_to_column(n, columns)
             col_nodes[ci].append(n)
         tree = VisualTree()
-        page = Page(id="page_1", width=self.page_width, height=self.page_height, page_num=0)
+        page = Page(
+            id="page_1", width=self.page_width, height=self.page_height, page_num=0
+        )
         for ci, col in enumerate(columns):
             y = self.flow.margin_top
             for node in col_nodes[ci]:
                 if not node.text.strip():
                     continue
-                lines_n = Measure.estimate_lines(node.text, node.font_size or 12.0, col.width)
+                lines_n = Measure.estimate_lines(
+                    node.text, node.font_size or 12.0, col.width
+                )
                 para_h = Measure.measure_height(lines_n, node.font_size or 12.0)
-                para = Paragraph(id=node.id, bbox=BoundingBox(col.x, y, col.width, para_h))
+                para = Paragraph(
+                    id=node.id, bbox=BoundingBox(col.x, y, col.width, para_h)
+                )
                 for li in range(lines_n):
-                    line = Line(id=node.id + "_l" + str(li), y=y + li * Measure.LINE_HEIGHT,
-                                baseline=y + li * Measure.LINE_HEIGHT + 2)
-                    line.bbox = BoundingBox(col.x, y + li * Measure.LINE_HEIGHT, col.width, Measure.LINE_HEIGHT)
-                    run = TextRun(id=node.id + "_r" + str(li), text=node.text[li::max(1, lines_n)], font="")
+                    line = Line(
+                        id=node.id + "_l" + str(li),
+                        y=y + li * Measure.LINE_HEIGHT,
+                        baseline=y + li * Measure.LINE_HEIGHT + 2,
+                    )
+                    line.bbox = BoundingBox(
+                        col.x,
+                        y + li * Measure.LINE_HEIGHT,
+                        col.width,
+                        Measure.LINE_HEIGHT,
+                    )
+                    run = TextRun(
+                        id=node.id + "_r" + str(li),
+                        text=node.text[li :: max(1, lines_n)],
+                        font="",
+                    )
                     line.add_run(run)
                     para.add_line(line)
                 page.add_child(para)
                 y += para_h + Measure.PARAGRAPH_SPACING
                 if y > self.page_height - self.flow.margin_bottom:
                     tree.add_page(page)
-                    page = Page(id="page_" + str(tree.page_count + 1),
-                                width=self.page_width, height=self.page_height,
-                                page_num=tree.page_count)
+                    page = Page(
+                        id="page_" + str(tree.page_count + 1),
+                        width=self.page_width,
+                        height=self.page_height,
+                        page_num=tree.page_count,
+                    )
                     y = self.flow.margin_top
         if page.children:
             tree.add_page(page)
@@ -430,7 +560,20 @@ class LayoutEngine:
         self.constraint_solver.solve()
         return self.layout(graph)
 
-__all__ = ["ConstraintType", "LayoutConstraint", "Measure", "FlowResult",
-           "Flow", "ConstraintBuilder", "ConstraintSolver", "LayoutEngine",
-           "GlyphMetric", "InlineLayout", "ColumnRegion", "ColumnLayout",
-           "CollisionRecord", "CollisionEngine"]
+
+__all__ = [
+    "ConstraintType",
+    "LayoutConstraint",
+    "Measure",
+    "FlowResult",
+    "Flow",
+    "ConstraintBuilder",
+    "ConstraintSolver",
+    "LayoutEngine",
+    "GlyphMetric",
+    "InlineLayout",
+    "ColumnRegion",
+    "ColumnLayout",
+    "CollisionRecord",
+    "CollisionEngine",
+]

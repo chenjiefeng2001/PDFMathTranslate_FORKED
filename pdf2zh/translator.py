@@ -17,6 +17,7 @@ import requests
 import xinference_client
 from azure.ai.translation.text import TextTranslationClient
 from azure.core.credentials import AzureKeyCredential
+
 # TencentCloud SDK: lazy import to handle version incompatibility
 _tmt_available = False
 try:
@@ -26,6 +27,7 @@ try:
         TextTranslateResponse as _TextTranslateResponse,
     )
     from tencentcloud.tmt.v20180321.tmt_client import TmtClient as _TmtClient
+
     _tmt_available = True
 except ImportError:
     _tmt_credential = None
@@ -112,7 +114,6 @@ def clear_openai_client_cache() -> None:
         _openai_client_cache.clear()
 
 
-
 def _make_transport_session() -> "requests.Session":
     """Build a Session with a connection pool sized for parallel workers."""
     import requests.adapters
@@ -164,6 +165,7 @@ def _split_long_text(text: str, limit: int = _LONG_TEXT_CHUNK):
     if rest:
         chunks.append(rest)
     return chunks
+
 
 logger = logging.getLogger(__name__)
 
@@ -328,7 +330,9 @@ class GoogleTranslator(BaseTranslator):
     name = "google"
     lang_map = {"zh": "zh-CN"}
 
-    def __init__(self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs):
+    def __init__(
+        self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs
+    ):
         super().__init__(lang_in, lang_out, model, ignore_cache)
         self._session_local = threading.local()
         proxy = _resolve_translator_proxy(envs)
@@ -350,9 +354,7 @@ class GoogleTranslator(BaseTranslator):
 
     def do_translate(self, text):
         if len(text) > _LONG_TEXT_CHUNK:
-            parts = [
-                self._translate_once(chunk) for chunk in _split_long_text(text)
-            ]
+            parts = [self._translate_once(chunk) for chunk in _split_long_text(text)]
             return " ".join(p for p in parts if p)
         return self._translate_once(text)
 
@@ -375,7 +377,8 @@ class GoogleTranslator(BaseTranslator):
             logger.warning(
                 "Google Translate returned unparseable response (len=%d, status=%d). "
                 "Falling back to original text.",
-                len(response.text), response.status_code,
+                len(response.text),
+                response.status_code,
             )
             result = text
         else:
@@ -389,7 +392,9 @@ class BingTranslator(BaseTranslator):
     name = "bing"
     lang_map = {"zh": "zh-Hans"}
 
-    def __init__(self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs):
+    def __init__(
+        self, lang_in, lang_out, model, ignore_cache=False, envs=None, **kwargs
+    ):
         super().__init__(lang_in, lang_out, model, ignore_cache)
         self._session_local = threading.local()
         self._proxy = _resolve_translator_proxy(envs)
@@ -497,9 +502,7 @@ class DeepLXTranslator(BaseTranslator):
             # 安全加固：默认校验 TLS 证书。自签名/内网 DeepLX 部署可显式设
             # PDF2ZH_DEEPLX_INSECURE=1 关闭（历史版本无条件 verify=False，
             # 中间人可窃取 token）。
-            verify=(
-                os.environ.get("PDF2ZH_DEEPLX_INSECURE", "").strip() != "1"
-            ),
+            verify=(os.environ.get("PDF2ZH_DEEPLX_INSECURE", "").strip() != "1"),
             timeout=HTTP_TIMEOUT,
         )
         response.raise_for_status()
@@ -1626,11 +1629,38 @@ class OpenCodeTranslator(BaseTranslator):
 
 def build_translator_registry() -> list:
     """全部已注册翻译器类（build_translator / API / GUI 共用的单一事实来源）。"""
-    return [GoogleTranslator, BingTranslator, DeepLTranslator, DeepLXTranslator, OllamaTranslator, XinferenceTranslator, AzureOpenAITranslator,
-            OpenAITranslator, ZhipuTranslator, ModelScopeTranslator, SiliconTranslator, GeminiTranslator, AzureTranslator, TencentTranslator, DifyTranslator, AnythingLLMTranslator, ArgosTranslator, GrokTranslator, GroqTranslator, DeepseekTranslator, MiniMaxTranslator, OpenAIlikedTranslator, QwenMtTranslator, X302AITranslator, OpenCodeTranslator]
+    return [
+        GoogleTranslator,
+        BingTranslator,
+        DeepLTranslator,
+        DeepLXTranslator,
+        OllamaTranslator,
+        XinferenceTranslator,
+        AzureOpenAITranslator,
+        OpenAITranslator,
+        ZhipuTranslator,
+        ModelScopeTranslator,
+        SiliconTranslator,
+        GeminiTranslator,
+        AzureTranslator,
+        TencentTranslator,
+        DifyTranslator,
+        AnythingLLMTranslator,
+        ArgosTranslator,
+        GrokTranslator,
+        GroqTranslator,
+        DeepseekTranslator,
+        MiniMaxTranslator,
+        OpenAIlikedTranslator,
+        QwenMtTranslator,
+        X302AITranslator,
+        OpenCodeTranslator,
+    ]
 
 
-def build_translator(service, lang_in, lang_out, envs=None, prompt=None, ignore_cache=False):
+def build_translator(
+    service, lang_in, lang_out, envs=None, prompt=None, ignore_cache=False
+):
     """按 service 名构造翻译器实例（如 "google"、"ollama:model"）。
 
     模块级工厂，供正文翻译（TranslateConverter）与书签标题翻译复用。
@@ -1643,5 +1673,12 @@ def build_translator(service, lang_in, lang_out, envs=None, prompt=None, ignore_
         envs = {}
     for translator in build_translator_registry():
         if service_name == translator.name:
-            return translator(lang_in, lang_out, service_model, envs=envs, prompt=prompt, ignore_cache=ignore_cache)
+            return translator(
+                lang_in,
+                lang_out,
+                service_model,
+                envs=envs,
+                prompt=prompt,
+                ignore_cache=ignore_cache,
+            )
     raise ValueError("Unsupported translation service")

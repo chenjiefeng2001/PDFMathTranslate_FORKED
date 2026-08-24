@@ -1,11 +1,16 @@
 """
 Tests for ScanPDFProcessor (pdf2zh 2.0 L1 - scanned PDF OCR pipeline).
 """
+
 import numpy as np
 import pytest
 
 from pdf2zh.scan_pdf_processor import (
-    LayoutRegion, ScanPDFProcessor, TextSegment, _smooth, _threshold,
+    LayoutRegion,
+    ScanPDFProcessor,
+    TextSegment,
+    _smooth,
+    _threshold,
 )
 
 
@@ -54,7 +59,9 @@ class TestScanPDFProcessor:
         assert len(text_regions) >= 1
 
     def test_textsegment_dataclass(self):
-        seg = TextSegment(text="hello", bbox=(10, 20, 100, 50), confidence=0.95, page_num=1)
+        seg = TextSegment(
+            text="hello", bbox=(10, 20, 100, 50), confidence=0.95, page_num=1
+        )
         assert seg.text == "hello"
         assert seg.confidence == 0.95
 

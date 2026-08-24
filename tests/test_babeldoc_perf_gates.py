@@ -53,7 +53,8 @@ class TestPseudoProtectGate:
         monkeypatch.setattr(dlp, "_pdf_page_count", lambda p: 500)
         monkeypatch.setenv(dlp.PSEUDO_PROTECT_ENV, "off")
         assert dlp.is_pseudo_code_protection_active("/tmp/x.pdf") == (
-            False, f"{dlp.PSEUDO_PROTECT_ENV}=off",
+            False,
+            f"{dlp.PSEUDO_PROTECT_ENV}=off",
         )
         monkeypatch.setenv(dlp.PSEUDO_PROTECT_ENV, "on")
         active, reason = dlp.is_pseudo_code_protection_active("/tmp/x.pdf")
@@ -62,7 +63,9 @@ class TestPseudoProtectGate:
     def test_auto_gates_by_page_count(self, monkeypatch):
         counts = iter([10, 31])
         monkeypatch.setattr(
-            dlp, "_pdf_page_count", lambda p: next(counts),
+            dlp,
+            "_pdf_page_count",
+            lambda p: next(counts),
         )
         # 小文档：启用
         active, reason = dlp.is_pseudo_code_protection_active("/tmp/small.pdf")
@@ -93,20 +96,24 @@ class TestPseudoProtectGate:
 
         monkeypatch.setattr(dlp, "_build_with_mineru_or_paddle", _boom)
         monkeypatch.setattr(dlp, "_load_base_layout_model", _boom)
-        assert dlp.build_pseudo_code_protected_layout_model(
-            pdf_path="/tmp/big.pdf"
-        ) is None
+        assert (
+            dlp.build_pseudo_code_protected_layout_model(pdf_path="/tmp/big.pdf")
+            is None
+        )
         assert not sentinel_called
 
     def test_build_passes_through_when_enabled(self, monkeypatch):
         monkeypatch.setattr(dlp, "_pdf_page_count", lambda p: 5)
         sentinel = object()
         monkeypatch.setattr(
-            dlp, "_build_with_mineru_or_paddle", lambda p: sentinel,
+            dlp,
+            "_build_with_mineru_or_paddle",
+            lambda p: sentinel,
         )
-        assert dlp.build_pseudo_code_protected_layout_model(
-            pdf_path="/tmp/small.pdf"
-        ) is sentinel
+        assert (
+            dlp.build_pseudo_code_protected_layout_model(pdf_path="/tmp/small.pdf")
+            is sentinel
+        )
 
 
 # ── P0-2：健康文本层跳过 BabelDOC 二次扫描检测 ───────────────────────────────
@@ -139,7 +146,9 @@ class TestTrustPreflightSkip:
             lambda p, **k: self._decision(True),
         )
         assert bom.resolve_ocr_flags("auto", source_path=pdf) == (
-            True, False, False,
+            True,
+            False,
+            False,
         )
 
     def test_healthy_text_layer_skips_recheck(self, monkeypatch, tmp_path):
@@ -149,7 +158,9 @@ class TestTrustPreflightSkip:
             lambda p, **k: self._decision(False),
         )
         assert bom.resolve_ocr_flags("auto", source_path=pdf) == (
-            False, False, True,
+            False,
+            False,
+            True,
         )
 
     def test_mixed_doc_never_skips(self, monkeypatch, tmp_path):
@@ -160,11 +171,15 @@ class TestTrustPreflightSkip:
             lambda p, **k: self._decision(False),
         )
         assert bom.resolve_ocr_flags("auto", source_path=pdf) == (
-            False, True, False,
+            False,
+            True,
+            False,
         )
 
     def test_trust_preflight_zero_restores_old_behavior(
-        self, monkeypatch, tmp_path,
+        self,
+        monkeypatch,
+        tmp_path,
     ):
         pdf = _write_pdf(tmp_path, ["hello world " * 8])
         monkeypatch.setenv(bom._ENV_TRUST_PREFLIGHT, "0")
@@ -173,7 +188,9 @@ class TestTrustPreflightSkip:
             lambda p, **k: self._decision(False),
         )
         assert bom.resolve_ocr_flags("auto", source_path=pdf) == (
-            False, True, False,
+            False,
+            True,
+            False,
         )
 
     def test_preflight_failure_keeps_auto(self, monkeypatch, tmp_path):
@@ -183,10 +200,13 @@ class TestTrustPreflightSkip:
             raise RuntimeError("preflight down")
 
         monkeypatch.setattr(
-            "pdf2zh.scanned_detection.preflight_scan_check", _boom,
+            "pdf2zh.scanned_detection.preflight_scan_check",
+            _boom,
         )
         assert bom.resolve_ocr_flags("auto", source_path=pdf) == (
-            False, True, False,
+            False,
+            True,
+            False,
         )
 
     def test_non_pdf_source_untouched(self, monkeypatch):
@@ -195,7 +215,9 @@ class TestTrustPreflightSkip:
             lambda p, **k: (_ for _ in ()).throw(AssertionError("called")),
         )
         assert bom.resolve_ocr_flags("auto", source_path="/tmp/x.docx") == (
-            False, True, False,
+            False,
+            True,
+            False,
         )
 
 
@@ -212,7 +234,10 @@ class TestGpuHint:
             bob._GPU_HINT_LOGGED = False
             bob._log_gpu_acceleration_hint(["CPUExecutionProvider"])
             bob._log_gpu_acceleration_hint(["CPUExecutionProvider"])
-        msgs = [r.message for r in caplog.records
-                if "layout inference is running on CPU" in r.message]
+        msgs = [
+            r.message
+            for r in caplog.records
+            if "layout inference is running on CPU" in r.message
+        ]
         assert len(msgs) == 1
         assert "PDF2ZH_BABELDOC_BACKEND" in msgs[0]

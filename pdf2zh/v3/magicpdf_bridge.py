@@ -60,20 +60,16 @@ def interpolate_char_bboxes(
     weights = [_char_width_weight(c) for c in text]
     weight_sum = sum(weights)
     if weight_sum <= 0:
-        return [
-            {"char": c, "bbox": [x0, y0, x0, y1], "width": 0.0}
-            for c in text
-        ]
+        return [{"char": c, "bbox": [x0, y0, x0, y1], "width": 0.0} for c in text]
     avg_w = total_width / weight_sum
     glyphs: list[dict[str, Any]] = []
     cx = x0
     for ch, w in zip(text, weights):
         gw = avg_w * w
-        glyphs.append(
-            {"char": ch, "bbox": [cx, y0, cx + gw, y1], "width": gw}
-        )
+        glyphs.append({"char": ch, "bbox": [cx, y0, cx + gw, y1], "width": gw})
         cx += gw
     return glyphs
+
 
 MAGICPDF_CLS_TO_KIND: dict[str, str] = {
     "title": "heading",
@@ -155,7 +151,10 @@ class MagicPdfBridge:
             bm = BlockModel(
                 text=blk.get("text", ""),
                 kind=map_magicpdf_cls(blk.get("cls", "")),
-                x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                x0=bbox[0],
+                y0=bbox[1],
+                x1=bbox[2],
+                y1=bbox[3],
             )
             bm.metadata["magicpdf_cls"] = blk.get("cls", "")
             bm.metadata["magicpdf_type"] = blk.get("type", "")
@@ -173,8 +172,12 @@ class MagicPdfBridge:
             for line_raw in blk.get("lines", []) or []:
                 lbbox = flip_bbox(line_raw.get("bbox") or [0, 0, 0, 0], height)
                 lm = LineModel(
-                    text="", baseline=0.0,
-                    x0=lbbox[0], y0=lbbox[1], x1=lbbox[2], y1=lbbox[3],
+                    text="",
+                    baseline=0.0,
+                    x0=lbbox[0],
+                    y0=lbbox[1],
+                    x1=lbbox[2],
+                    y1=lbbox[3],
                 )
                 for span_raw in line_raw.get("spans", []) or []:
                     sbox_tl = span_raw.get("bbox") or [0, 0, 0, 0]
@@ -185,15 +188,23 @@ class MagicPdfBridge:
                         font=self.default_font,
                         size=round(size * self.size_scale, 2) if size else 0.0,
                         text=text,
-                        x0=sbox[0], y0=sbox[1], x1=sbox[2], y1=sbox[3],
+                        x0=sbox[0],
+                        y0=sbox[1],
+                        x1=sbox[2],
+                        y1=sbox[3],
                     )
                     for g in interpolate_char_bboxes(sbox_tl, text):
                         gb = flip_bbox(g["bbox"], height)
                         sm.glyphs.append(
                             GlyphModel(
-                                char=g["char"], cid=-1,
-                                font=sm.font, size=sm.size,
-                                x0=gb[0], y0=gb[1], x1=gb[2], y1=gb[3],
+                                char=g["char"],
+                                cid=-1,
+                                font=sm.font,
+                                size=sm.size,
+                                x0=gb[0],
+                                y0=gb[1],
+                                x1=gb[2],
+                                y1=gb[3],
                                 decode="ok",
                             )
                         )
@@ -239,6 +250,7 @@ class MagicPdfBridge:
                 logger.debug("magicpdf_bridge: formulas failed: %s", exc)
             try:
                 from pdf2zh.v3.toc_analyzer import split_toc_blocks
+
                 split_toc_blocks(page)
             except Exception as exc:  # noqa: BLE001
                 logger.debug("magicpdf_bridge: toc split failed: %s", exc)

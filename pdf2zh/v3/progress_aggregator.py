@@ -283,7 +283,9 @@ def build_work_graph(
             for p in range(1, pages + 1):
                 tid = f"{pass_name}:page{p}"
                 deps = [prev_page_deps[p]] if p in prev_page_deps else []
-                graph.add(WorkGraphTask(tid, per_page, stage=pass_name, dependencies=deps))
+                graph.add(
+                    WorkGraphTask(tid, per_page, stage=pass_name, dependencies=deps)
+                )
                 prev_page_deps[p] = tid
         else:
             tid = f"{pass_name}:doc"
@@ -326,7 +328,9 @@ class PassCostRegistry:
     不需要重写进度统计逻辑。
     """
 
-    def __init__(self, seed: Optional[Dict[str, Callable[[Dict[str, int]], float]]] = None) -> None:
+    def __init__(
+        self, seed: Optional[Dict[str, Callable[[Dict[str, int]], float]]] = None
+    ) -> None:
         self._passes: Dict[str, PassCostRegistration] = {}
         if seed:
             for name, fn in seed.items():
@@ -535,7 +539,8 @@ class ProgressAggregator:
     def running_weight(self) -> float:
         with self._lock:
             return sum(
-                i.weight for i in self._items.values()
+                i.weight
+                for i in self._items.values()
                 if i.lifecycle == TaskLifecycle.RUNNING
             )
 
@@ -543,7 +548,8 @@ class ProgressAggregator:
     def queued_weight(self) -> float:
         with self._lock:
             return sum(
-                i.weight for i in self._items.values()
+                i.weight
+                for i in self._items.values()
                 if i.lifecycle in (TaskLifecycle.CREATED, TaskLifecycle.QUEUED)
             )
 
@@ -551,7 +557,8 @@ class ProgressAggregator:
     def failed_weight(self) -> float:
         with self._lock:
             return sum(
-                i.weight for i in self._items.values()
+                i.weight
+                for i in self._items.values()
                 if i.lifecycle == TaskLifecycle.FAILED
             )
 
@@ -589,15 +596,18 @@ class ProgressAggregator:
             total = self._total_weight
             done = self._finished_weight_raw()
             queued = sum(
-                i.weight for i in self._items.values()
+                i.weight
+                for i in self._items.values()
                 if i.lifecycle in (TaskLifecycle.CREATED, TaskLifecycle.QUEUED)
             )
             running = sum(
-                i.weight for i in self._items.values()
+                i.weight
+                for i in self._items.values()
                 if i.lifecycle == TaskLifecycle.RUNNING
             )
             failed = sum(
-                i.weight for i in self._items.values()
+                i.weight
+                for i in self._items.values()
                 if i.lifecycle == TaskLifecycle.FAILED
             )
             raw = (done / total * 100.0) if total > 0 else 0.0
@@ -612,7 +622,8 @@ class ProgressAggregator:
                 eta = 0.0
             active = self._active_stage_locked()
             finished_tasks = sum(
-                1 for i in self._items.values()
+                1
+                for i in self._items.values()
                 if i.lifecycle in (TaskLifecycle.FINISHED, TaskLifecycle.SKIPPED)
             )
             return ProgressState(
@@ -694,9 +705,7 @@ class ProgressAggregator:
         if not window or window <= 0 or len(self._history) < 2:
             return
         cutoff = self._now() - window
-        self._history = [
-            p for p in self._history if p[0] >= cutoff
-        ]
+        self._history = [p for p in self._history if p[0] >= cutoff]
         if len(self._history) == 1:
             self._history = []
 
@@ -761,7 +770,9 @@ def bind_taskgraph(aggregator: ProgressAggregator, tasks: Sequence[object]) -> N
         )
 
 
-def make_progress_cb(aggregator: ProgressAggregator) -> Callable[[object, str, float], None]:
+def make_progress_cb(
+    aggregator: ProgressAggregator,
+) -> Callable[[object, str, float], None]:
     """构造 Executor 进度回调：``(task, status, partial) -> aggregator 事件``。
 
     状态字面量：``running`` / ``finished`` / ``failed`` / ``skipped`` /

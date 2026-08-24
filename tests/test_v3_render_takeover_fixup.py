@@ -6,6 +6,7 @@
 - 空间不足：标记 overflowed 并原地保持；
 - 正常块：保持 dst_box 不变（render_fixup=keep）。
 """
+
 import unittest
 
 from pdf2zh.v3.render_takeover import fixup_render_plan

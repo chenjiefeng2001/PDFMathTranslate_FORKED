@@ -13,7 +13,6 @@ import threading
 import time
 from typing import Optional
 
-
 logger = logging.getLogger(__name__)
 
 #: Default upload cap. The 5MB legacy default rejected real-world papers
@@ -91,7 +90,10 @@ def _startup_events_ok(port: int, timeout: float = 10.0) -> bool:
     """
     try:
         import httpx
-        resp = httpx.get(f"http://127.0.0.1:{port}/gradio_api/startup-events", timeout=timeout)
+
+        resp = httpx.get(
+            f"http://127.0.0.1:{port}/gradio_api/startup-events", timeout=timeout
+        )
         return resp.status_code == 200
     except Exception:
         return False
@@ -101,12 +103,19 @@ def _startup_events_ok(port: int, timeout: float = 10.0) -> bool:
 #: 现默认仅回环；需要局域网/远程访问时显式设 ``PDF2ZH_GUI_HOST=0.0.0.0``，
 #: 并建议同时配置 gradio auth。
 def _gui_host() -> str:
-    return (os.environ.get("PDF2ZH_GUI_HOST") or "127.0.0.1").strip() \
-        or "127.0.0.1"
+    return (os.environ.get("PDF2ZH_GUI_HOST") or "127.0.0.1").strip() or "127.0.0.1"
 
 
-def _launch(gui, *, port: int, share: bool, debug: bool, max_file_size: str,
-            akw: dict, host: Optional[str] = None):
+def _launch(
+    gui,
+    *,
+    port: int,
+    share: bool,
+    debug: bool,
+    max_file_size: str,
+    akw: dict,
+    host: Optional[str] = None,
+):
     """Run gui.launch with the transient startup-events handshake tolerated.
 
     When the handshake 502s but the server is already serving (verified by a
@@ -130,7 +139,9 @@ def _launch(gui, *, port: int, share: bool, debug: bool, max_file_size: str,
         if "startup-events" in str(exc) and _startup_events_ok(port):
             logger.info(
                 "Gradio startup-events handshake failed transiently (%s) but the "
-                "server is alive on port %d; continuing.", str(exc)[:120], port,
+                "server is alive on port %d; continuing.",
+                str(exc)[:120],
+                port,
             )
         else:
             raise
@@ -158,7 +169,9 @@ def _ensure_queue_running(gui) -> None:
             logger.debug("[pdf2zh] queue-heal: queue already running")
             return
         if not hasattr(gui, "run_startup_events"):
-            logger.warning("[pdf2zh] queue-heal: run_startup_events unavailable; skipping")
+            logger.warning(
+                "[pdf2zh] queue-heal: run_startup_events unavailable; skipping"
+            )
             return
         logger.warning("[pdf2zh] queue-heal: queue never started; starting it now")
         gui.run_startup_events()
@@ -176,7 +189,9 @@ def _queue_is_dead(gui) -> bool:
     queue = getattr(gui, "_queue", None)
     if queue is None:
         return True
-    return not getattr(queue, "active_jobs", None) or bool(getattr(queue, "stopped", True))
+    return not getattr(queue, "active_jobs", None) or bool(
+        getattr(queue, "stopped", True)
+    )
 
 
 def _start_queue_watchdog(gui, interval: float = 60.0) -> None:
@@ -203,7 +218,9 @@ def _start_queue_watchdog(gui, interval: float = 60.0) -> None:
                 logger.exception("[pdf2zh] queue-watchdog error")
 
     threading.Thread(
-        target=_watch, name="pdf2zh-queue-watchdog", daemon=True,
+        target=_watch,
+        name="pdf2zh-queue-watchdog",
+        daemon=True,
     ).start()
 
 
@@ -236,6 +253,7 @@ def setup_gui(
         completely dead.
     """
     from pdf2zh.gui.app import create_gui
+
     _sanitize_loopback_proxy()
     gui = create_gui()
     akw: dict = {}
@@ -251,12 +269,20 @@ def setup_gui(
     if port != requested:
         logger.warning(
             "Port %s is occupied by another instance; the GUI will listen on %s instead.",
-            requested, port,
+            requested,
+            port,
         )
 
     try:
-        _launch(gui, port=port, share=share, debug=debug, host=host,
-                max_file_size=resolve_max_file_size(max_file_size), akw=akw)
+        _launch(
+            gui,
+            port=port,
+            share=share,
+            debug=debug,
+            host=host,
+            max_file_size=resolve_max_file_size(max_file_size),
+            akw=akw,
+        )
     except ValueError as exc:
         msg = str(exc)
         if "localhost" in msg.lower() or "share" in msg.lower():
@@ -266,7 +292,9 @@ def setup_gui(
                 logger.info(
                     "Gradio reported 'localhost not accessible' (%s) but the "
                     "server is already serving on port %d; continuing without "
-                    "share fallback.", str(exc)[:100], port,
+                    "share fallback.",
+                    str(exc)[:100],
+                    port,
                 )
             else:
                 # 安全加固：不再自动 share=True 公网隧道回退（会把无认证的
@@ -274,7 +302,8 @@ def setup_gui(
                 logger.error(
                     "Gradio launch failed (%s). Automatic share=True fallback "
                     "was removed for security; re-run with an explicit --share "
-                    "flag if a public tunnel is really needed.", str(exc)[:150],
+                    "flag if a public tunnel is really needed.",
+                    str(exc)[:150],
                 )
                 raise
         else:

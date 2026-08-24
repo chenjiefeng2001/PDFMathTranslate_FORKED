@@ -5,6 +5,7 @@
 异常原因。此时本轮任务已回退串行，但若 GUI/CLI 持续使用 auto 后端，后续
 任务会反复崩溃 —— 因此崩溃后应把模块级后端自动降级为 CPU。
 """
+
 import unittest
 from concurrent.futures.process import BrokenProcessPool
 
@@ -128,6 +129,7 @@ class BackendDegradeTest(unittest.TestCase):
 def _dummy():
     class _Dummy:
         pass
+
     return _Dummy()
 
 

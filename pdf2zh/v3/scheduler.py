@@ -41,6 +41,7 @@ class TaskStatus(Enum):
 @dataclass
 class Task:
     """A single unit of work in the Execution Runtime."""
+
     id: str
     name: str
     module: str = ""
@@ -74,8 +75,7 @@ class Task:
 
     @property
     def is_terminal(self) -> bool:
-        return self.status in (TaskStatus.DONE, TaskStatus.FAILED,
-                               TaskStatus.SKIPPED)
+        return self.status in (TaskStatus.DONE, TaskStatus.FAILED, TaskStatus.SKIPPED)
 
     @property
     def can_retry(self) -> bool:
@@ -124,10 +124,7 @@ class TaskGraph:
         return ready
 
     def get_dependents(self, task_id: str) -> List[Task]:
-        return [
-            t for t in self._tasks.values()
-            if task_id in t.dependencies
-        ]
+        return [t for t in self._tasks.values() if task_id in t.dependencies]
 
     def clear(self) -> None:
         """Remove all tasks from the graph."""
@@ -148,13 +145,11 @@ class TaskGraph:
 
     @property
     def done_count(self) -> int:
-        return sum(1 for t in self._tasks.values()
-                   if t.status == TaskStatus.DONE)
+        return sum(1 for t in self._tasks.values() if t.status == TaskStatus.DONE)
 
     @property
     def failed_count(self) -> int:
-        return sum(1 for t in self._tasks.values()
-                   if t.status == TaskStatus.FAILED)
+        return sum(1 for t in self._tasks.values() if t.status == TaskStatus.FAILED)
 
     @property
     def is_complete(self) -> bool:
@@ -165,8 +160,7 @@ class TaskGraph:
         in_degree: Dict[str, int] = {}
         for task in self._tasks.values():
             in_degree[task.id] = len(task.dependencies)
-        queue = [t for t in self._tasks.values()
-                 if in_degree[t.id] == 0]
+        queue = [t for t in self._tasks.values() if in_degree[t.id] == 0]
         result = []
         while queue:
             queue.sort(key=lambda t: t.priority)
@@ -177,6 +171,7 @@ class TaskGraph:
                 if in_degree[dep.id] == 0:
                     queue.append(dep)
         return result
+
 
 class Executor:
     """Executes tasks from a TaskGraph with retry support.
@@ -281,17 +276,25 @@ class Scheduler:
         return self._graph
 
     def create_task(
-        self, task_id: str, name: str, *,
-        module: str = "", handler: Optional[Callable] = None,
+        self,
+        task_id: str,
+        name: str,
+        *,
+        module: str = "",
+        handler: Optional[Callable] = None,
         priority: int = 50,
         dependencies: Optional[List[str]] = None,
         max_retries: int = 2,
         weight: float = 1.0,
     ) -> Task:
         task = Task(
-            id=task_id, name=name, module=module,
-            priority=priority, handler=handler,
-            max_retries=max_retries, weight=weight,
+            id=task_id,
+            name=name,
+            module=module,
+            priority=priority,
+            handler=handler,
+            max_retries=max_retries,
+            weight=weight,
         )
         if dependencies:
             for dep in dependencies:
@@ -300,11 +303,13 @@ class Scheduler:
         return task
 
     def run(
-        self, parallel: bool = False,
+        self,
+        parallel: bool = False,
         progress_cb: Optional[Callable[[Task, str, float], None]] = None,
     ) -> List[Tuple[str, Task]]:
-        self._executor = Executor(self._graph, parallel=parallel,
-                                  progress_cb=progress_cb)
+        self._executor = Executor(
+            self._graph, parallel=parallel, progress_cb=progress_cb
+        )
         return self._executor.run_all()
 
     def run_selective(self, task_ids: Set[str]) -> List[Tuple[str, Task]]:
@@ -321,6 +326,9 @@ class Scheduler:
 
 
 __all__ = [
-    "Task", "TaskStatus", "TaskGraph",
-    "Executor", "Scheduler",
+    "Task",
+    "TaskStatus",
+    "TaskGraph",
+    "Executor",
+    "Scheduler",
 ]

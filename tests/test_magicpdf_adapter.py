@@ -6,6 +6,7 @@
 - 错误路径：文件缺失（MagicPdfParseError）/ 后端未安装（NotInstalled）；
 - middle.json 磁盘加载（load_middle_json）round-trip。
 """
+
 import json
 import os
 import tempfile
@@ -30,8 +31,16 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 0, 300, 24],
                         "spans": [
-                            {"bbox": [0, 0, 180, 24], "content": "Hello", "type": "text"},
-                            {"bbox": [180, 0, 300, 24], "content": " World", "type": "text"},
+                            {
+                                "bbox": [0, 0, 180, 24],
+                                "content": "Hello",
+                                "type": "text",
+                            },
+                            {
+                                "bbox": [180, 0, 300, 24],
+                                "content": " World",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -312,11 +321,15 @@ class TestMagicPdfConfig(unittest.TestCase):
         self.assertEqual(MODEL_NAME.UniMerNet_v2_Small, "unimernet_small")
         # 与生成配置一致
         self.assertEqual(cfg["formula-config"]["mfd_model"], MODEL_NAME.YOLO_V8_MFD)
-        self.assertEqual(cfg["formula-config"]["mfr_model"], MODEL_NAME.UniMerNet_v2_Small)
+        self.assertEqual(
+            cfg["formula-config"]["mfr_model"], MODEL_NAME.UniMerNet_v2_Small
+        )
         # 能从 model_configs.yaml 的 weights 表解析出相对路径（无 KeyError）
         weights_path = os.path.join(
             os.path.dirname(magic_pdf.__file__),
-            "resources", "model_config", "model_configs.yaml",
+            "resources",
+            "model_config",
+            "model_configs.yaml",
         )
         with open(weights_path, encoding="utf-8") as fh:
             weights = yaml.safe_load(fh)["weights"]
@@ -334,7 +347,9 @@ class TestMagicPdfConfig(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             missing = _ensure_magicpdf_models(td)
         self.assertEqual(len(missing), 3)
-        self.assertIn("Layout/YOLO/doclayout_yolo_docstructbench_imgsz1280_2501.pt", missing)
+        self.assertIn(
+            "Layout/YOLO/doclayout_yolo_docstructbench_imgsz1280_2501.pt", missing
+        )
         self.assertIn("MFD/YOLO/yolo_v8_ft.pt", missing)
         self.assertIn("MFR/unimernet_hf_small_2503", missing)
 
@@ -386,24 +401,32 @@ class TestMagicPdfConfig(unittest.TestCase):
         import pdf2zh.magicpdf_adapter as mpa
 
         tmp = tempfile.NamedTemporaryFile(suffix=".pdf", delete=False)
-        tmp.write(b"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n")
+        tmp.write(
+            b"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n"
+        )
         tmp.close()
         try:
             with tempfile.TemporaryDirectory() as td:
                 cfg_path = os.path.join(td, "magic-pdf.json")
-                with patch.dict(
-                    os.environ,
-                    {"MINERU_TOOLS_CONFIG_JSON": cfg_path},
-                    clear=False,
-                ), patch.dict(
-                    sys.modules,
-                    {
-                        "magic_pdf.data.dataset": MagicMock(),
-                        "magic_pdf.model.doc_analyze_by_custom_model": MagicMock(),
-                    },
-                    clear=False,
-                ), patch.object(
-                    mpa, "_ensure_magicpdf_models", return_value=["MFD/YOLO/yolo_v8_ft.pt"]
+                with (
+                    patch.dict(
+                        os.environ,
+                        {"MINERU_TOOLS_CONFIG_JSON": cfg_path},
+                        clear=False,
+                    ),
+                    patch.dict(
+                        sys.modules,
+                        {
+                            "magic_pdf.data.dataset": MagicMock(),
+                            "magic_pdf.model.doc_analyze_by_custom_model": MagicMock(),
+                        },
+                        clear=False,
+                    ),
+                    patch.object(
+                        mpa,
+                        "_ensure_magicpdf_models",
+                        return_value=["MFD/YOLO/yolo_v8_ft.pt"],
+                    ),
                 ):
                     adapter = MagicPdfAdapter(device="cpu", models_dir="")
                     with self.assertRaises(MagicPdfParseError) as ctx:
@@ -476,7 +499,9 @@ class TestMagicPdfDevice(unittest.TestCase):
             cfg_path = os.path.join(td, "magic-pdf.json")
             with open(cfg_path, "w", encoding="utf-8") as fh:
                 json.dump({"device-mode": "cpu", "custom": True}, fh)
-            with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=True):
+            with patch(
+                "pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=True
+            ):
                 result = _sync_magicpdf_device_mode(cfg_path, "cuda")
             self.assertEqual(result, "cuda")
             with open(cfg_path, encoding="utf-8") as fh:
@@ -492,7 +517,9 @@ class TestMagicPdfDevice(unittest.TestCase):
             cfg_path = os.path.join(td, "magic-pdf.json")
             with open(cfg_path, "w", encoding="utf-8") as fh:
                 json.dump({"device-mode": "cpu"}, fh)
-            with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=True):
+            with patch(
+                "pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=True
+            ):
                 result = _sync_magicpdf_device_mode(cfg_path, "auto")
             self.assertEqual(result, "cpu")
             with open(cfg_path, encoding="utf-8") as fh:
@@ -506,7 +533,9 @@ class TestMagicPdfDevice(unittest.TestCase):
             cfg_path = os.path.join(td, "magic-pdf.json")
             with open(cfg_path, "w", encoding="utf-8") as fh:
                 json.dump({"device-mode": "cuda"}, fh)
-            with patch("pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=False):
+            with patch(
+                "pdf2zh.magicpdf_adapter._torch_cuda_available", return_value=False
+            ):
                 with patch("pdf2zh.magicpdf_adapter.logger"):
                     result = _sync_magicpdf_device_mode(cfg_path, "auto")
             self.assertEqual(result, "cpu")
@@ -525,8 +554,14 @@ class TestMagicPdfDevice(unittest.TestCase):
             ):
                 status = get_magicpdf_device_status(requested="cuda")
         for key in (
-            "installed", "torch", "torch_cuda", "requested", "config_file",
-            "device_mode", "effective", "hint",
+            "installed",
+            "torch",
+            "torch_cuda",
+            "requested",
+            "config_file",
+            "device_mode",
+            "effective",
+            "hint",
         ):
             self.assertIn(key, status)
         self.assertEqual(status["device_mode"], "cpu")

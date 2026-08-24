@@ -73,7 +73,9 @@ def test_reassembly_failure_falls_back_to_per_segment(monkeypatch):
         return _translate_worker(text, font_sig)
 
     texts = ["para A", "para B"]
-    out = batch_translate_paragraphs(texts, ["f1", "f2"], [None, None], _recording_worker)
+    out = batch_translate_paragraphs(
+        texts, ["f1", "f2"], [None, None], _recording_worker
+    )
     # 还原失败 → 整批逐段回退：每个段落原文单独翻译（原始语义）
     assert out == [f"TR[{t}]" for t in texts]
 

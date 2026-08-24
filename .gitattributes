@@ -1,0 +1,4 @@
+# 生成的 GUI 资产必须跨平台逐字节一致（tests/test_gui_assets_sync.py
+# 做字节级漂移校验；导出器固定写 LF）。禁止 git 做任何换行翻译，
+# 避免 Windows autocrlf 检出为 CRLF 后本地测试误报漂移。
+pdf2zh/gui/assets/generated/** -text

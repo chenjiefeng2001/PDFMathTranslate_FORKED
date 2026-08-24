@@ -12,6 +12,7 @@
    bbox 强制 ``add_redact_annot`` + ``apply_redactions`` 清空旧图层，
    禁止在未擦除的物理图层上叠加新译文。
 """
+
 from __future__ import annotations
 
 import pytest
@@ -31,11 +32,17 @@ from pdf2zh.patch.dual_patcher import DualPatcher
 
 def mk_glyph(char, x, baseline, size, font="Helv"):
     """构造测试字形（与 test_p5p10_remaining 同构）。"""
-    return Glyph(char=char, bbox=(x, baseline - 0.2 * size,
-                                  x + 0.5 * size, baseline + 0.8 * size),
-                 baseline=baseline, ascent=0.8 * size, descent=-0.2 * size,
-                 font_name=font, font_size=size, page_id=0,
-                 object_id=int(x * 100))
+    return Glyph(
+        char=char,
+        bbox=(x, baseline - 0.2 * size, x + 0.5 * size, baseline + 0.8 * size),
+        baseline=baseline,
+        ascent=0.8 * size,
+        descent=-0.2 * size,
+        font_name=font,
+        font_size=size,
+        page_id=0,
+        object_id=int(x * 100),
+    )
 
 
 def _iou(a, b):
@@ -46,19 +53,23 @@ def _iou(a, b):
     ix1, iy1 = min(ax1, bx1), min(ay1, by1)
     iw, ih = max(0.0, ix1 - ix0), max(0.0, iy1 - iy0)
     inter = iw * ih
-    union = (max(0.0, ax1 - ax0) * max(0.0, ay1 - ay0)
-             + max(0.0, bx1 - bx0) * max(0.0, by1 - by0) - inter)
+    union = (
+        max(0.0, ax1 - ax0) * max(0.0, ay1 - ay0)
+        + max(0.0, bx1 - bx0) * max(0.0, by1 - by0)
+        - inter
+    )
     return inter / union if union > 1e-9 else 0.0
 
 
 def _mk_whole_line_formula_para():
     """整行公式段：两行均为 CMMI10 数学字体（模拟 R1/R2 独立成行）。"""
-    glyphs = (
-        [mk_glyph(c, x, 100, 14, "CMMI10") for x, c in
-         [(0, "R"), (12, "1"), (24, "="), (36, "{"), (48, "("), (60, "1")]]
-        + [mk_glyph(c, x, 85, 14, "CMMI10") for x, c in
-           [(0, "R"), (12, "2"), (24, "="), (36, "{"), (48, "("), (60, "1")]]
-    )
+    glyphs = [
+        mk_glyph(c, x, 100, 14, "CMMI10")
+        for x, c in [(0, "R"), (12, "1"), (24, "="), (36, "{"), (48, "("), (60, "1")]
+    ] + [
+        mk_glyph(c, x, 85, 14, "CMMI10")
+        for x, c in [(0, "R"), (12, "2"), (24, "="), (36, "{"), (48, "("), (60, "1")]
+    ]
     lines = VisualLineBuilder().build(glyphs, page_id=0)
     return build_logical_paragraphs(lines, page_id=0)[0]
 
@@ -66,12 +77,16 @@ def _mk_whole_line_formula_para():
 def _mk_mixed_inline_para():
     """混合段：``Let f(x) be`` —— 公式嵌在文本流中（Inline）。"""
     glyphs = (
-        [mk_glyph(c, x, 100, 12) for x, c in
-         [(0, "L"), (12, "e"), (24, "t"), (36, " ")]]
-        + [mk_glyph("f", 48, 100, 14, "CMMI10"),
-           mk_glyph("(", 64, 100, 14, "CMMI10"),
-           mk_glyph("x", 76, 100, 14, "CMMI10"),
-           mk_glyph(")", 88, 100, 14, "CMMI10")]
+        [
+            mk_glyph(c, x, 100, 12)
+            for x, c in [(0, "L"), (12, "e"), (24, "t"), (36, " ")]
+        ]
+        + [
+            mk_glyph("f", 48, 100, 14, "CMMI10"),
+            mk_glyph("(", 64, 100, 14, "CMMI10"),
+            mk_glyph("x", 76, 100, 14, "CMMI10"),
+            mk_glyph(")", 88, 100, 14, "CMMI10"),
+        ]
         + [mk_glyph("b", 104, 100, 12), mk_glyph("e", 116, 100, 12)]
     )
     lines = VisualLineBuilder().build(glyphs, page_id=0)
@@ -81,17 +96,47 @@ def _mk_mixed_inline_para():
 def _mk_display_flow_para():
     """用户反馈场景：文本行 + 两个展示公式行 + 后续文本行。"""
     glyphs = (
-        [mk_glyph(c, x, 100, 12) for x, c in
-         [(0, "("), (6, "b"), (12, ")"), (24, "D"), (36, "e"), (48, "f")]]
-        + [mk_glyph(c, x, 85, 14, "CMMI10") for x, c in
-           [(0, "R"), (12, "1"), (24, "="), (36, "{"), (48, "("), (60, "1")]]
-        + [mk_glyph(c, x, 70, 14, "CMMI10") for x, c in
-           [(0, "R"), (12, "2"), (24, "="), (36, "{"), (48, "("), (60, "1")]]
-        + [mk_glyph(c, x, 55, 12) for x, c in
-           [(0, "F"), (12, "o"), (24, "r"), (36, " "), (48, "e"), (60, "a")]]
+        [
+            mk_glyph(c, x, 100, 12)
+            for x, c in [(0, "("), (6, "b"), (12, ")"), (24, "D"), (36, "e"), (48, "f")]
+        ]
+        + [
+            mk_glyph(c, x, 85, 14, "CMMI10")
+            for x, c in [
+                (0, "R"),
+                (12, "1"),
+                (24, "="),
+                (36, "{"),
+                (48, "("),
+                (60, "1"),
+            ]
+        ]
+        + [
+            mk_glyph(c, x, 70, 14, "CMMI10")
+            for x, c in [
+                (0, "R"),
+                (12, "2"),
+                (24, "="),
+                (36, "{"),
+                (48, "("),
+                (60, "1"),
+            ]
+        ]
+        + [
+            mk_glyph(c, x, 55, 12)
+            for x, c in [
+                (0, "F"),
+                (12, "o"),
+                (24, "r"),
+                (36, " "),
+                (48, "e"),
+                (60, "a"),
+            ]
+        ]
     )
     lines = VisualLineBuilder().build(glyphs, page_id=0)
     return build_logical_paragraphs(lines, page_id=0)[0]
+
 
 # ── P6：Display / Inline 二分 ──────────────────────────────
 
@@ -121,11 +166,12 @@ class TestDisplayExtraction:
         杜绝译文行首撕裂成「= 是自反吗？」。
         """
         glyphs = (
-            [mk_glyph(c, x, 100, 12) for x, c in
-             [(0, "I"), (12, "s"), (24, " "), (36, "a")]]
+            [
+                mk_glyph(c, x, 100, 12)
+                for x, c in [(0, "I"), (12, "s"), (24, " "), (36, "a")]
+            ]
             + [mk_glyph("=", 48, 100, 12, "CMSY10")]
-            + [mk_glyph(c, x, 100, 12) for x, c in
-               [(66, "r"), (78, "e")]]
+            + [mk_glyph(c, x, 100, 12) for x, c in [(66, "r"), (78, "e")]]
         )
         lines = VisualLineBuilder().build(glyphs, page_id=0)
         para = build_logical_paragraphs(lines, page_id=0)[0]
@@ -140,9 +186,12 @@ class TestDisplayExtraction:
         mk = FormulaExtractor._mark_display_flags
 
         def _obj(width, x0=0.0):
-            return FormulaObject(formula_id=f"f{x0}", glyphs=[],
-                                 bbox=(x0, 90, x0 + width, 110),
-                                 baseline=100)
+            return FormulaObject(
+                formula_id=f"f{x0}",
+                glyphs=[],
+                bbox=(x0, 90, x0 + width, 110),
+                baseline=100,
+            )
 
         class _Line:
             x0, x1, font_size = 0.0, 200.0, 12.0
@@ -155,20 +204,24 @@ class TestDisplayExtraction:
         mk(objs, _Para(), _Line())
         assert objs[0].is_display_mode
         # 超宽公式（> 0.6 × 段宽）
-        objs = [_obj(140), InlineTextRun(text="t", style_runs=[],
-                                         bbox=(0, 0, 0, 0), font_size=12)]
+        objs = [
+            _obj(140),
+            InlineTextRun(text="t", style_runs=[], bbox=(0, 0, 0, 0), font_size=12),
+        ]
         mk(objs, _Para(), _Line())
         assert objs[0].is_display_mode
         # 居中公式（占行宽主体 >= 50% 且居中）
-        objs = [_obj(110, x0=45.0), InlineTextRun(text="t", style_runs=[],
-                                                  bbox=(0, 0, 0, 0),
-                                                  font_size=12)]
+        objs = [
+            _obj(110, x0=45.0),
+            InlineTextRun(text="t", style_runs=[], bbox=(0, 0, 0, 0), font_size=12),
+        ]
         mk(objs, _Para(), _Line())
         assert objs[0].is_display_mode
         # 窄公式（占行宽 < 50%，非居中非超宽）→ inline
-        objs = [_obj(40, x0=80.0), InlineTextRun(text="t", style_runs=[],
-                                                 bbox=(0, 0, 0, 0),
-                                                 font_size=12)]
+        objs = [
+            _obj(40, x0=80.0),
+            InlineTextRun(text="t", style_runs=[], bbox=(0, 0, 0, 0), font_size=12),
+        ]
         mk(objs, _Para(), _Line())
         assert not objs[0].is_display_mode
 
@@ -180,15 +233,17 @@ class TestDisplayWrap:
     def test_display_formula_own_line(self):
         """Display 公式 break before/after：独占一行，两侧文本不在同一行。"""
         eng = InlineLayoutEngine()
-        f = FormulaObject(formula_id="f0", glyphs=[],
-                          bbox=(0, 90, 50, 110), baseline=100,
-                          is_display_mode=True)
+        f = FormulaObject(
+            formula_id="f0",
+            glyphs=[],
+            bbox=(0, 90, 50, 110),
+            baseline=100,
+            is_display_mode=True,
+        )
         objs = [
-            InlineTextRun(text="文本", style_runs=[], bbox=(0, 0, 0, 0),
-                          font_size=12),
+            InlineTextRun(text="文本", style_runs=[], bbox=(0, 0, 0, 0), font_size=12),
             f,
-            InlineTextRun(text="后续", style_runs=[], bbox=(0, 0, 0, 0),
-                          font_size=12),
+            InlineTextRun(text="后续", style_runs=[], bbox=(0, 0, 0, 0), font_size=12),
         ]
         lines = eng.wrap(objs, container_width=300, font_size=12)
         assert len(lines) == 3
@@ -201,9 +256,13 @@ class TestDisplayWrap:
         """整行公式被 style_runs 切成多段时，连续 display 公式合并一行。"""
         eng = InlineLayoutEngine()
         fs = [
-            FormulaObject(formula_id=f"f{i}", glyphs=[],
-                          bbox=(i * 20, 90, i * 20 + 15, 110), baseline=100,
-                          is_display_mode=True)
+            FormulaObject(
+                formula_id=f"f{i}",
+                glyphs=[],
+                bbox=(i * 20, 90, i * 20 + 15, 110),
+                baseline=100,
+                is_display_mode=True,
+            )
             for i in range(3)
         ]
         lines = eng.wrap(fs, container_width=300, font_size=12)
@@ -232,8 +291,9 @@ class TestDisplayVerticalFlow:
             if not any(getattr(s, "display", False) for s in l.segments)
         ]
         assert text_bls, "期望存在纯文本行"
-        assert min(text_bls) < formula_bottom, \
-            "译文文本基线必须下推到展示公式下方（垂直流堆叠）"
+        assert (
+            min(text_bls) < formula_bottom
+        ), "译文文本基线必须下推到展示公式下方（垂直流堆叠）"
         # translated_bbox 必须覆盖公式物理高度
         assert solved.translated_bbox[1] <= formula_bottom + 1e-6
         # 水平：display 公式保持源 x0（零水平漂移）
@@ -252,6 +312,7 @@ class TestDisplayVerticalFlow:
         assert abs(p["render_bbox"][0] - p["source_bbox"][0]) < 1e-6
         assert abs(p["render_bbox"][1] - p["source_bbox"][1]) < 1e-6
 
+
 # ── P10：Redact 覆盖 ───────────────────────────────────────
 
 
@@ -259,6 +320,7 @@ class TestRedactCoverage:
     def _mk_solved(self):
         from pdf2zh.layout.inline_layout import InlineSegment, LayoutLine
         from pdf2zh.layout.solver import SolvedUnit
+
         return SolvedUnit(
             unit_id="u0",
             source_bbox=(10.0, 96.0, 300.0, 112.0),
@@ -266,11 +328,14 @@ class TestRedactCoverage:
             render_bbox=(10.0, 96.0, 300.0, 112.0),
             font_size=12.0,
             line_count=1,
-            lines=[LayoutLine(
-                segments=[InlineSegment(kind="text", text="translated text",
-                                        width=90.0)],
-                master_baseline=104.0,
-            )],
+            lines=[
+                LayoutLine(
+                    segments=[
+                        InlineSegment(kind="text", text="translated text", width=90.0)
+                    ],
+                    master_baseline=104.0,
+                )
+            ],
             formula_placements=[],
         )
 
@@ -280,8 +345,7 @@ class TestRedactCoverage:
         doc = pymupdf.open()
         page = doc.new_page(width=400, height=300)
         page.insert_text((20, 196), "Original English Text", fontsize=12)
-        patch = DualPatcher().synthesize([self._mk_solved()],
-                                         "translated text", {})
+        patch = DualPatcher().synthesize([self._mk_solved()], "translated text", {})
         n = DualPatcher().apply_to_pdf(doc, 0, patch, fontname="helv")
         assert n == 1
         text = doc[0].get_text()
@@ -307,35 +371,41 @@ class TestRedactCoverage:
         displays = [p for p in solved.formula_placements if p.get("display")]
         assert len(displays) == 2, "两行展示公式必须被识别"
         fs = solved.font_size
-        text_lines = [l for l in solved.lines
-                      if not any(getattr(s, "display", False)
-                                 for s in l.segments)]
+        text_lines = [
+            l
+            for l in solved.lines
+            if not any(getattr(s, "display", False) for s in l.segments)
+        ]
         assert text_lines, "必须存在文本行"
         for line in text_lines:
-            tb = (unit.source_bbox[0], line.master_baseline - fs * 0.2,
-                  unit.source_bbox[2], line.master_baseline + fs * 0.8)
+            tb = (
+                unit.source_bbox[0],
+                line.master_baseline - fs * 0.2,
+                unit.source_bbox[2],
+                line.master_baseline + fs * 0.8,
+            )
             for p in displays:
                 fb = p["render_bbox"]
                 # y-up：行框与公式框垂直分离 → 2D IoU == 0
-                assert tb[3] <= fb[1] or tb[1] >= fb[3], \
-                    f"文本行 {[round(x, 1) for x in tb]} 与公式 " \
+                assert tb[3] <= fb[1] or tb[1] >= fb[3], (
+                    f"文本行 {[round(x, 1) for x in tb]} 与公式 "
                     f"{[round(x, 1) for x in fb]} 2D 重叠"
+                )
         # 渲染冒烟：DualPatcher 真实落位到 PDF，页面产出译文文本
         pymupdf = pytest.importorskip("pymupdf")
         patch = DualPatcher().synthesize([solved], "", {})
         doc = pymupdf.open()
         page = doc.new_page(width=400, height=300)
         DualPatcher().apply_to_pdf(doc, 0, patch, fontname="helv")
-        assert any(w[4].strip() for w in page.get_text("words")), \
-            "渲染页必须含译文文本"
+        assert any(w[4].strip() for w in page.get_text("words")), "渲染页必须含译文文本"
 
     def test_iou_utility(self):
         """IoU 计算（规范 §4.1 判据）：分离框=0，重叠框>0。"""
         a = (0, 0, 10, 10)
-        assert _iou(a, (20, 0, 30, 10)) == 0.0       # 水平分离
-        assert _iou(a, (0, 20, 10, 30)) == 0.0       # 垂直分离
-        assert _iou(a, (0, 0, 10, 10)) == 1.0        # 完全重合
-        assert 0.0 < _iou(a, (5, 5, 15, 15)) < 1.0   # 部分重叠
+        assert _iou(a, (20, 0, 30, 10)) == 0.0  # 水平分离
+        assert _iou(a, (0, 20, 10, 30)) == 0.0  # 垂直分离
+        assert _iou(a, (0, 0, 10, 10)) == 1.0  # 完全重合
+        assert 0.0 < _iou(a, (5, 5, 15, 15)) < 1.0  # 部分重叠
 
     def test_single_symbol_suppressed_to_text(self):
         """孤立基础运算符（= / ≠ / +）强制回退普通文本（规范 §3.4 模块 4）。
@@ -345,11 +415,19 @@ class TestRedactCoverage:
         译文行首被撕裂成「= 是自反吗？」；修复后必须判为普通 TextRun。
         """
         from pdf2zh.formula.confidence import (
-            FormulaConfidenceEngine, is_single_operator)
+            FormulaConfidenceEngine,
+            is_single_operator,
+        )
+
         eng = FormulaConfidenceEngine()
         # 数学字体孤立运算符：总分必须 < 0.45（回退 text）
-        for ch, font in [("=", "CMSY10"), ("≠", "CMSY10"), ("+", "CMSY10"),
-                         ("=", "CMMI10"), ("<", "CMSY10")]:
+        for ch, font in [
+            ("=", "CMSY10"),
+            ("≠", "CMSY10"),
+            ("+", "CMSY10"),
+            ("=", "CMMI10"),
+            ("<", "CMSY10"),
+        ]:
             g = [mk_glyph(ch, 0, 100, 14, font)]
             s = eng.score(ch, g, font)
             assert s.verdict == "text", (ch, s.verdict)
@@ -357,15 +435,15 @@ class TestRedactCoverage:
             assert is_single_operator(ch)
         # 组合公式不受影响：``a = b`` 多字符组合不命中单运算符白名单
         text = "a=b"
-        glyphs = [mk_glyph(c, i * 12, 100, 14, "CMMI10") for i, c in
-                  enumerate(text)]
+        glyphs = [mk_glyph(c, i * 12, 100, 14, "CMMI10") for i, c in enumerate(text)]
         assert not is_single_operator(text), "组合公式不得被误伤为孤立运算符"
         # 且提取层仍把「整行组合公式」提升为公式对象（含 ``=`` 的结构信号）
         lines = VisualLineBuilder().build(glyphs, page_id=0)
         para = build_logical_paragraphs(lines, page_id=0)[0]
         objs = FormulaExtractor().extract_paragraph(para)
-        assert any(isinstance(o, FormulaObject) for o in objs), \
-            "整行组合公式仍是公式强信号"
+        assert any(
+            isinstance(o, FormulaObject) for o in objs
+        ), "整行组合公式仍是公式强信号"
 
     def test_whole_line_math_hint_rejects_lone_operator(self):
         """整行判定：独占一行的孤立 ``=`` 不再被提升为公式对象（病灶三）。"""
@@ -373,6 +451,7 @@ class TestRedactCoverage:
         ext = FormulaExtractor()
         assert not ext._whole_line_math_hint(glyphs, "=")
         # 含变量/文字组合仍提升（``R_1 = {(1,1)}`` 整行公式强信号）
-        g2 = [mk_glyph(c, i * 12, 100, 14, "CMMI10") for i, c in
-              enumerate("R1={(1,1)}")]
+        g2 = [
+            mk_glyph(c, i * 12, 100, 14, "CMMI10") for i, c in enumerate("R1={(1,1)}")
+        ]
         assert ext._whole_line_math_hint(g2, "R1={(1,1)}")

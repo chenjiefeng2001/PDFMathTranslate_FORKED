@@ -195,7 +195,6 @@ def create_config_panel() -> dict:
             info=B("config_mode_info"),
         )
 
-
         # 版面分析（BabelDOC / doclayout ONNX）推理后端开关。auto 保持原有
         # 默认行为（CPU 优先）；cuda / dml 开启 GPU 加速，GPU 不可用/崩溃时
         # 自动回退 CPU（由 doclayout.resolve_providers + 降级机制保证）。
@@ -260,14 +259,19 @@ def create_config_panel() -> dict:
         with gr.Accordion(B("config_advanced"), open=False):
             with gr.Row():
                 threads = gr.Slider(
-                    minimum=1, maximum=16, value=4, step=1,
+                    minimum=1,
+                    maximum=16,
+                    value=4,
+                    step=1,
                     label=B("config_threads"),
                 )
                 skip_subset_fonts = gr.Checkbox(
-                    value=False, label=B("config_skip_subset"),
+                    value=False,
+                    label=B("config_skip_subset"),
                 )
                 ignore_cache = gr.Checkbox(
-                    value=False, label=B("config_ignore_cache"),
+                    value=False,
+                    label=B("config_ignore_cache"),
                 )
 
             with gr.Row():

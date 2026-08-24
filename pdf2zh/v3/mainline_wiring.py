@@ -8,13 +8,25 @@ non-blocking: failures become debug logs and never affect the mainline.
   * emit_page_ir      — build a DocumentIR snapshot per page (V8.3).
   * run_writeback_gate — Constraint-Layout pre-writeback reflow gate (V8.4).
 """
+
 import logging
 
 log = logging.getLogger(__name__)
 
 
-def _new_gate_record(x0, y, x1, size, text, translated, toc_mode,
-                     lidx=0, line_height=1.2, src_y0=None, src_y1=None):
+def _new_gate_record(
+    x0,
+    y,
+    x1,
+    size,
+    text,
+    translated,
+    toc_mode,
+    lidx=0,
+    line_height=1.2,
+    src_y0=None,
+    src_y1=None,
+):
     """创建 V8.4/V8.5 段落几何记录（已回填 final 几何 + 源几何）。
 
     V8.5 超链接重定位：同时记录段落的源 bbox（pdfminer LTChar 包围盒，
@@ -26,9 +38,13 @@ def _new_gate_record(x0, y, x1, size, text, translated, toc_mode,
     if src_y0 is None or src_y1 is None:
         src_y0, src_y1 = y_bottom, y_top
     return {
-        "x": x0, "y": y, "width": width,
+        "x": x0,
+        "y": y,
+        "width": width,
         "height": height,
-        "size": size, "text": text, "translated": translated,
+        "size": size,
+        "text": text,
+        "translated": translated,
         "node_type": "toc" if toc_mode else "paragraph",
         # V8.5 link_remap bridge data（坐标系与 gate 其它字段一致，y 上为正）
         "src_box": (x0, src_y0, x1, src_y1),
@@ -54,8 +70,11 @@ def run_mainline_channels(conv, ltpage) -> None:
     if getattr(conv, "processor_channels", False) and conv._gate_records:
         run_toc_channel(conv, ltpage)
     # V8.3 后半程: gate 判据驱动的渲染路径切换（决策只存 render_plans）
-    if getattr(conv, "render_takeover", False) and conv._gate_records \
-            and conv.relayout_gate:
+    if (
+        getattr(conv, "render_takeover", False)
+        and conv._gate_records
+        and conv.relayout_gate
+    ):
         run_render_takeover(conv, ltpage)
     # 阶段六/八: 置信度路由 + Review 复检 QA（读 gate 记录，不触碰渲染）
     if getattr(conv, "translation_qa", False) and conv._gate_records:
@@ -117,8 +136,9 @@ def emit_page_ir(conv, ltpage) -> None:
         )
         conv.ir_snapshots[pageid] = snapshot_ir(ir, title=f"page_{pageid}")
     except Exception as e:
-        log.debug("V8.3 IR emission failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "V8.3 IR emission failed for page %s: %s", getattr(ltpage, "pageid", 0), e
+        )
 
 
 def run_processor_channels(conv, ltpage) -> None:
@@ -141,32 +161,41 @@ def run_processor_channels(conv, ltpage) -> None:
         page = GeometryEngine().build_page(chars, page_num=pageid)
         graph = DocumentGraph()
         for i, para in enumerate(page.reading_order()):
-            graph.add_node(DocumentNode(
-                id=f"p{pageid}_{i}",
-                node_type=NodeType.PARAGRAPH,
-                bbox=(para.x0, para.y0, para.x1, para.y1),
-                text=para.text,
-                page_num=pageid,
-                font_size=getattr(para, "avg_char_size", 0.0) or 0.0,
-                metadata={"index": i, "source": "geometry"},
-            ))
+            graph.add_node(
+                DocumentNode(
+                    id=f"p{pageid}_{i}",
+                    node_type=NodeType.PARAGRAPH,
+                    bbox=(para.x0, para.y0, para.x1, para.y1),
+                    text=para.text,
+                    page_num=pageid,
+                    font_size=getattr(para, "avg_char_size", 0.0) or 0.0,
+                    metadata={"index": i, "source": "geometry"},
+                )
+            )
         report = run_semantic_pipeline(graph)
         reports = getattr(conv, "processor_reports", {})
-        reports[pageid] = (report.to_dict() if hasattr(report, "to_dict")
-                           else {"ok": report.ok(), "errors": list(report.errors)})
+        reports[pageid] = (
+            report.to_dict()
+            if hasattr(report, "to_dict")
+            else {"ok": report.ok(), "errors": list(report.errors)}
+        )
         conv.processor_reports = reports
         # 语义类型分布（轻量侧信道，供报告/QA 用）
         type_counts = {}
         for n in graph.nodes:
-            key = n.node_type.value if hasattr(n.node_type, "value") \
-                else str(n.node_type)
+            key = (
+                n.node_type.value if hasattr(n.node_type, "value") else str(n.node_type)
+            )
             type_counts[key] = type_counts.get(key, 0) + 1
         counts = getattr(conv, "processor_type_counts", {})
         counts[pageid] = type_counts
         conv.processor_type_counts = counts
     except Exception as e:
-        log.debug("V9.0 processor channels failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "V9.0 processor channels failed for page %s: %s",
+            getattr(ltpage, "pageid", 0),
+            e,
+        )
 
 
 def run_toc_channel(conv, ltpage) -> None:
@@ -180,6 +209,7 @@ def run_toc_channel(conv, ltpage) -> None:
     """
     try:
         from pdf2zh.v3.toc_semantics import parse_toc_entry, toc_to_ir_records
+
         pageid = getattr(ltpage, "pageid", 0)
         triples = []
         for rec in getattr(conv, "_gate_records", []):
@@ -200,8 +230,9 @@ def run_toc_channel(conv, ltpage) -> None:
         stored[pageid] = records
         conv.toc_ir_records = stored
     except Exception as e:
-        log.debug("V9.0 toc channel failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "V9.0 toc channel failed for page %s: %s", getattr(ltpage, "pageid", 0), e
+        )
 
 
 def run_writeback_gate(conv, ltpage) -> None:
@@ -213,6 +244,7 @@ def run_writeback_gate(conv, ltpage) -> None:
     """
     try:
         from pdf2zh.v3.mainline_gate import GateBlock, MainlineRelayoutGate
+
         pageid = getattr(ltpage, "pageid", 0)
         page_w = float(getattr(ltpage, "width", 612.0) or 612.0)
         page_h = float(getattr(ltpage, "height", 792.0) or 792.0)
@@ -245,14 +277,16 @@ def run_writeback_gate(conv, ltpage) -> None:
                 {
                     "page": pageid,
                     "kind": "gate-blocked",
-                    "issue": " | ".join(result.issues) if result.issues
-                    else "writeback blocked",
+                    "issue": (
+                        " | ".join(result.issues)
+                        if result.issues
+                        else "writeback blocked"
+                    ),
                     "text": "",
                 }
             )
     except Exception as e:
-        log.debug("V8.4 gate failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug("V8.4 gate failed for page %s: %s", getattr(ltpage, "pageid", 0), e)
 
 
 def run_render_takeover(conv, ltpage) -> None:
@@ -264,18 +298,23 @@ def run_render_takeover(conv, ltpage) -> None:
     """
     try:
         from pdf2zh.v3.render_takeover import (
-            WritebackBlock, apply_render_plan, plan_writeback_takeover,
+            WritebackBlock,
+            apply_render_plan,
+            plan_writeback_takeover,
         )
+
         pageid = getattr(ltpage, "pageid", 0)
         blocks = [
             WritebackBlock(
                 node_id=f"p{pageid}_{i}",
                 text=rec["text"],
                 translated=rec.get("translated", rec["text"]),
-                x=rec["x"], y=rec["y"],
+                x=rec["x"],
+                y=rec["y"],
                 width=max(1.0, rec["width"]),
                 height=max(1.0, rec["height"]),
-                page=pageid, font_size=rec.get("size") or 12.0,
+                page=pageid,
+                font_size=rec.get("size") or 12.0,
                 node_type=rec.get("node_type", "paragraph"),
             )
             for i, rec in enumerate(conv._gate_records)
@@ -293,8 +332,11 @@ def run_render_takeover(conv, ltpage) -> None:
         }
         conv.render_plans = plans
     except Exception as e:
-        log.debug("V8.3 render takeover failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "V8.3 render takeover failed for page %s: %s",
+            getattr(ltpage, "pageid", 0),
+            e,
+        )
 
 
 def run_translation_qa_channel(conv, ltpage) -> None:
@@ -305,10 +347,14 @@ def run_translation_qa_channel(conv, ltpage) -> None:
     """
     try:
         from pdf2zh.v3.mainline_qa import run_translation_qa
+
         pageid = getattr(ltpage, "pageid", 0)
         records = [
-            {"node_id": f"p{pageid}_{i}", "text": rec["text"],
-             "translated": rec.get("translated", rec["text"])}
+            {
+                "node_id": f"p{pageid}_{i}",
+                "text": rec["text"],
+                "translated": rec.get("translated", rec["text"]),
+            }
             for i, rec in enumerate(conv._gate_records)
         ]
         if not records:
@@ -318,15 +364,18 @@ def run_translation_qa_channel(conv, ltpage) -> None:
         qa[pageid] = report.to_dict()
         conv.translation_qa_records = qa
         if report.action_retranslate:
-            conv._overflow_flags.append({
-                "page": pageid,
-                "kind": "translation-qa",
-                "issue": f"{report.action_retranslate} segments need retranslate",
-                "text": "",
-            })
+            conv._overflow_flags.append(
+                {
+                    "page": pageid,
+                    "kind": "translation-qa",
+                    "issue": f"{report.action_retranslate} segments need retranslate",
+                    "text": "",
+                }
+            )
     except Exception as e:
-        log.debug("translation QA failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "translation QA failed for page %s: %s", getattr(ltpage, "pageid", 0), e
+        )
 
 
 def run_pipeline_dump(conv, ltpage) -> None:
@@ -337,13 +386,15 @@ def run_pipeline_dump(conv, ltpage) -> None:
     """
     try:
         from pdf2zh.v3.pipeline_dump import dump_page
+
         pageid = getattr(ltpage, "pageid", 0)
         dumps = getattr(conv, "pipeline_dumps", {})
         dumps[pageid] = dump_page(conv, ltpage)
         conv.pipeline_dumps = dumps
     except Exception as e:
-        log.debug("pipeline dump failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "pipeline dump failed for page %s: %s", getattr(ltpage, "pageid", 0), e
+        )
 
 
 def run_document_model(conv, ltpage) -> None:
@@ -357,49 +408,55 @@ def run_document_model(conv, ltpage) -> None:
     try:
         from pdf2zh.v3.document_model import DocumentModel, build_document_model
         from pdf2zh.v3.pipeline_dump import toc_dump
+
         pageid = getattr(ltpage, "pageid", 0)
         model = getattr(conv, "document_model", None)
         if model is None or not isinstance(model, DocumentModel):
             model = build_document_model([])
             conv.document_model = model
         entries = toc_dump(conv, pageid) if getattr(conv, "_gate_records", None) else []
-        page = build_document_model([ltpage],
-                                    annotate_toc_entries={pageid: entries}).pages[0]
+        page = build_document_model(
+            [ltpage], annotate_toc_entries={pageid: entries}
+        ).pages[0]
         # 译后文本写回模型（gate 记录 → Block.metadata.translated）
         try:
             from pdf2zh.v3.document_model import annotate_translation_from_records
+
             annotate_translation_from_records(page, conv._gate_records)
         except Exception as e:  # noqa: BLE001
-            log.debug("document model translation annotation failed p%s: %s",
-                      pageid, e)
+            log.debug("document model translation annotation failed p%s: %s", pageid, e)
         model.add_page(page)
         # Phase 2：Pass 流水线（Normalize/Semantic/Policy/Typography）
         try:
             from pdf2zh.v3.doc_passes import default_pass_manager
+
             report = default_pass_manager().run(model)
             model.metadata["pass_report"] = report.to_dict()
         except Exception as e:  # noqa: BLE001
-            log.debug("document model pass pipeline failed p%s: %s",
-                      pageid, e)
+            log.debug("document model pass pipeline failed p%s: %s", pageid, e)
         # Phase 4.1：语义图（sections/belongs_to/mentions）
         try:
             from pdf2zh.v3.semantic_graph import build_semantic_relations
+
             model.metadata["semantic_graph"] = build_semantic_relations(model)
         except Exception as e:  # noqa: BLE001
             log.debug("semantic graph failed p%s: %s", pageid, e)
         # Phase 5：质量诊断 + 置信度模型（哪里错 / 多可信）
         try:
             from pdf2zh.v3.diagnostics import (
-                analyze_document, annotate_confidence,
+                analyze_document,
+                annotate_confidence,
             )
+
             model.metadata["diagnostics"] = analyze_document(model).to_dict()
             model.metadata["confidence_stats"] = annotate_confidence(model)
         except Exception as e:  # noqa: BLE001
             log.debug("diagnostics failed p%s: %s", pageid, e)
         conv.document_model = model
     except Exception as e:
-        log.debug("document model failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "document model failed for page %s: %s", getattr(ltpage, "pageid", 0), e
+        )
 
 
 def run_observability_channel(conv, ltpage) -> None:
@@ -412,6 +469,7 @@ def run_observability_channel(conv, ltpage) -> None:
     try:
         from pdf2zh.v3.canonical_page import build_page_model
         from pdf2zh.v3.observability import ObsSession, capture_snapshot
+
         pageid = getattr(ltpage, "pageid", 0)
         session = getattr(conv, "obs_session", None)
         if session is None or not isinstance(session, ObsSession):
@@ -419,7 +477,8 @@ def run_observability_channel(conv, ltpage) -> None:
             conv.obs_session = session
         session.page_dims[pageid] = (
             float(getattr(ltpage, "width", 0.0) or 0.0),
-            float(getattr(ltpage, "height", 0.0) or 0.0))
+            float(getattr(ltpage, "height", 0.0) or 0.0),
+        )
         page = build_page_model(ltpage, page_num=pageid)
         session.capture(page, "render")
         doc = session.trace.doc_id
@@ -427,15 +486,20 @@ def run_observability_channel(conv, ltpage) -> None:
             session.record(
                 f"{doc}::P{pageid}::B{i}",
                 "render:paragraph",
-                evidence={"size": float(rec.get("size", 0.0) or 0.0),
-                          "translated": 1.0 if rec.get("translated") else 0.0,
-                          "node_type": 0.9 if rec.get("node_type") == "toc" else 0.1},
+                evidence={
+                    "size": float(rec.get("size", 0.0) or 0.0),
+                    "translated": 1.0 if rec.get("translated") else 0.0,
+                    "node_type": 0.9 if rec.get("node_type") == "toc" else 0.1,
+                },
                 confidence=min(0.99, 0.5 + float(rec.get("size", 0.0) or 0.0) / 100.0),
-                source="gate", stage="render",
-                message="mainline gate record")
+                source="gate",
+                stage="render",
+                message="mainline gate record",
+            )
     except Exception as e:  # noqa: BLE001 — 可观测层永不阻断主链路
-        log.debug("observability failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "observability failed for page %s: %s", getattr(ltpage, "pageid", 0), e
+        )
 
 
 def _mark_reconstruction_render_source(conv, pageid: int, records: dict) -> None:
@@ -464,6 +528,7 @@ def _is_page_level(ltpage) -> bool:
     """判断是否页面级 LTPage（vs LTFigure/LTTextBox 等子容器）。"""
     try:
         from pdfminer.layout import LTPage as _LTPage
+
         return isinstance(ltpage, _LTPage)
     except Exception:  # noqa: BLE001
         return type(ltpage).__name__ == "LTPage"
@@ -524,33 +589,42 @@ def run_reconstruction_channel(conv, ltpage) -> None:
         results[pageid] = result
         # 失效点 1 可观测性：标注渲染数据源。真实状态由接管报告决定 ——
         # 该字段让 QA 报告直接暴露「已计算、已接线 / 已计算、未接线」。
-        rec["render_source"] = "legacy"       # 渲染前由 _mark_reconstruction_render_source 校正
+        rec["render_source"] = (
+            "legacy"  # 渲染前由 _mark_reconstruction_render_source 校正
+        )
         rec["render_consumer"] = "none"
         rec["channel_enabled"] = True
-        rec["page_level"] = True             # 页面级完整结果（覆盖 LTFigure 占位）
+        rec["page_level"] = True  # 页面级完整结果（覆盖 LTFigure 占位）
         records[pageid] = rec
         conv.reconstruction_records = records
         # §9.1/§9.2 QA 快照（供报告直接消费）
         if result.paragraphs:
             try:
                 from pdf2zh.patch.dual_patcher import DualPatcher
+
                 patcher = DualPatcher()
                 switches = patcher.count_font_switches(result.paragraphs)
                 qa = patcher.synthesize(
                     result.solved_units,
                     translated_text="".join(u.text for u in result.translation_units),
                     formula_map={
-                        k: v for u in result.translation_units
+                        k: v
+                        for u in result.translation_units
                         for k, v in u.formula_map.items()
-                    })
+                    },
+                )
                 qa.qa["text"]["font_switch_count"] = switches
-                ratio = (len(result.translation_units) / switches
-                         if switches > 0 else 1.0)
+                ratio = (
+                    len(result.translation_units) / switches if switches > 0 else 1.0
+                )
                 qa.qa["text"]["font_switch_ratio"] = round(ratio, 4)
                 conv.reconstruction_qa[pageid] = qa.to_dict()
             except Exception:  # noqa: BLE001
                 pass
         _mark_reconstruction_render_source(conv, pageid, records)
     except Exception as e:
-        log.debug("P5-P10 reconstruction failed for page %s: %s",
-                  getattr(ltpage, "pageid", 0), e)
+        log.debug(
+            "P5-P10 reconstruction failed for page %s: %s",
+            getattr(ltpage, "pageid", 0),
+            e,
+        )

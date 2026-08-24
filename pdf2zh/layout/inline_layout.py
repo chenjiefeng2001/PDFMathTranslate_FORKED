@@ -13,6 +13,7 @@
     source_bbox → translated_bbox → render_bbox
 本模块负责 Inline 换行与对象序列化；三阶段坐标计算在 solver.py（P9）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -35,7 +36,7 @@ class TranslationUnit:
 
     unit_id: str
     page_id: int
-    source_text_with_anchors: str        # 例: "Let <formula_0> be computable."
+    source_text_with_anchors: str  # 例: "Let <formula_0> be computable."
     formula_map: Dict[str, object] = field(default_factory=dict)
     source_bbox: GlyphBBox = (0.0, 0.0, 0.0, 0.0)
     inline_structure: List = field(default_factory=list)  # InlineObject[]
@@ -62,12 +63,12 @@ class TranslationUnit:
 class InlineSegment:
     """排版后的一行内的一个片段（文本或公式）。"""
 
-    kind: str                            # "text" | "formula"
+    kind: str  # "text" | "formula"
     text: str
     width: float
     formula_id: Optional[str] = None
-    baseline_offset: float = 0.0         # 相对行主基线的偏移（公式上下标）
-    display: bool = False                # 块级展示公式（独占一行，独立垂直块）
+    baseline_offset: float = 0.0  # 相对行主基线的偏移（公式上下标）
+    display: bool = False  # 块级展示公式（独占一行，独立垂直块）
 
     def to_dict(self) -> dict:
         return {
@@ -105,14 +106,17 @@ class LayoutLine:
 class InlineLayoutEngine:
     """Inline 混合排版模型：把 TranslationUnit 拆成换行后的 LayoutLine 序列。"""
 
-    def __init__(self, char_width_ratio: float = 0.5,
-                 cjk_width_ratio: float = 1.0,
-                 space_width: float = 0.28,
-                 formula_scale: float = 1.0) -> None:
-        self.char_width_ratio = char_width_ratio   # 拉丁/数字半角宽度比例
-        self.cjk_width_ratio = cjk_width_ratio     # CJK 全角宽度比例
+    def __init__(
+        self,
+        char_width_ratio: float = 0.5,
+        cjk_width_ratio: float = 1.0,
+        space_width: float = 0.28,
+        formula_scale: float = 1.0,
+    ) -> None:
+        self.char_width_ratio = char_width_ratio  # 拉丁/数字半角宽度比例
+        self.cjk_width_ratio = cjk_width_ratio  # CJK 全角宽度比例
         self.space_width = space_width
-        self.formula_scale = formula_scale         # 公式对象宽度缩放（几何锁定）
+        self.formula_scale = formula_scale  # 公式对象宽度缩放（几何锁定）
 
     # ── 宽度估计 ──────────────────────────────────────────────────
 
@@ -120,8 +124,11 @@ class InlineLayoutEngine:
         """估算文本段渲染宽度（CJK 全角、其余半角）。"""
         w = 0.0
         for c in text:
-            if "\u4e00" <= c <= "\u9fff" or "\u3000" <= c <= "\u303f" \
-                    or c in "，。；：、（）【】《》“”‘’！？":
+            if (
+                "\u4e00" <= c <= "\u9fff"
+                or "\u3000" <= c <= "\u303f"
+                or c in "，。；：、（）【】《》“”‘’！？"
+            ):
                 w += font_size * self.cjk_width_ratio
             elif c.isspace():
                 w += font_size * self.space_width
@@ -142,17 +149,23 @@ class InlineLayoutEngine:
         """InlineObject 的主基线几何（公式/文本共用 Glyph 来源）。"""
         glyphs = list(getattr(obj, "glyphs", []))
         if not glyphs and isinstance(obj, InlineTextRun):
-            return BaselineMetrics(master_baseline=0.0, ascent=obj.font_size * 0.8,
-                                   descent=-obj.font_size * 0.2,
-                                   line_height=obj.font_size)
+            return BaselineMetrics(
+                master_baseline=0.0,
+                ascent=obj.font_size * 0.8,
+                descent=-obj.font_size * 0.2,
+                line_height=obj.font_size,
+            )
         return BaselineComputer.compute(glyphs)
 
     # ── 换行 ──────────────────────────────────────────────────────
 
-    def wrap(self, objects: Sequence,
-             container_width: float,
-             font_size: float,
-             max_lines: Optional[int] = None) -> List[LayoutLine]:
+    def wrap(
+        self,
+        objects: Sequence,
+        container_width: float,
+        font_size: float,
+        max_lines: Optional[int] = None,
+    ) -> List[LayoutLine]:
         """贪心换行：把 InlineObject 序列按容器宽度拆成 LayoutLine。
 
         公式对象不折行（整体不可分割），只在其宽度超过容器时独立成行。
@@ -182,7 +195,10 @@ class InlineLayoutEngine:
                     if cw > container_width:
                         for c in chunk:
                             cchw = self.text_width(c, font_size)
-                            if current.segments and current_width + cchw > container_width:
+                            if (
+                                current.segments
+                                and current_width + cchw > container_width
+                            ):
                                 lines.append(current)
                                 current = LayoutLine()
                                 current_width = 0.0
@@ -206,9 +222,11 @@ class InlineLayoutEngine:
                 continue
             # 公式对象（含 Display 块级展示公式）
             display = bool(getattr(obj, "is_display_mode", False))
-            if (display and current.segments
-                    and not all(getattr(s, "display", False)
-                                for s in current.segments)):
+            if (
+                display
+                and current.segments
+                and not all(getattr(s, "display", False) for s in current.segments)
+            ):
                 # break before：仅在当前行含非 display 内容时触发，
                 # 连续 display 公式保持同一行（整行公式多段场景）。
                 lines.append(current)
@@ -216,8 +234,11 @@ class InlineLayoutEngine:
                 current_width = 0.0
                 if max_lines and len(lines) >= max_lines:
                     break
-            if (not display and current.segments
-                    and current_width + obj_width > container_width):
+            if (
+                not display
+                and current.segments
+                and current_width + obj_width > container_width
+            ):
                 lines.append(current)
                 current = LayoutLine()
                 current_width = 0.0
@@ -243,7 +264,8 @@ class InlineLayoutEngine:
                 nxt = objects[i + 1] if i + 1 < len(objects) else None
                 nxt_display = bool(
                     isinstance(nxt, FormulaObject)
-                    and getattr(nxt, "is_display_mode", False))
+                    and getattr(nxt, "is_display_mode", False)
+                )
                 if not nxt_display:
                     lines.append(current)
                     current = LayoutLine()
@@ -255,14 +277,17 @@ class InlineLayoutEngine:
         # 计算每行主基线（字形加权）
         for line in lines:
             if line.glyphs:
-                line.master_baseline = BaselineComputer.compute(line.glyphs).master_baseline
+                line.master_baseline = BaselineComputer.compute(
+                    line.glyphs
+                ).master_baseline
             elif line.segments:
                 line.master_baseline = 0.0
         return lines
 
 
-def build_translation_unit(para, formula_prefix: str = "formula",
-                           anchor_text: Optional[str] = None) -> TranslationUnit:
+def build_translation_unit(
+    para, formula_prefix: str = "formula", anchor_text: Optional[str] = None
+) -> TranslationUnit:
     """把 LogicalParagraph（inline_objects 已填充）转成 TranslationUnit。
 
     ``anchor_text`` 为已注入 ``<formula_x>`` 的语义文本；缺省时从
@@ -311,6 +336,9 @@ def build_translation_unit(para, formula_prefix: str = "formula",
 
 
 __all__ = [
-    "TranslationUnit", "InlineSegment", "LayoutLine", "InlineLayoutEngine",
+    "TranslationUnit",
+    "InlineSegment",
+    "LayoutLine",
+    "InlineLayoutEngine",
     "build_translation_unit",
 ]

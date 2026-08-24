@@ -11,7 +11,6 @@ representation by:
 All downstream modules consume NormalizedBlock, never RawBlock directly.
 """
 
-
 from __future__ import annotations
 
 __all__ = ["NormalizerConfig", "NormalizedBlock", "Normalizer"]
@@ -81,9 +80,7 @@ class Normalizer:
 
     def __init__(self, config: Optional[NormalizerConfig] = None):
         self.config = config or NormalizerConfig()
-        self._font_resolver = FontResolver(
-            target_lang=self.config.target_lang
-        )
+        self._font_resolver = FontResolver(target_lang=self.config.target_lang)
 
     def normalize(self, raw_blocks: List[RawBlock]) -> List[NormalizedBlock]:
         """Normalize a list of RawBlocks.
@@ -184,7 +181,7 @@ class Normalizer:
 
     @staticmethod
     def _normalize_bbox(
-        bbox: Tuple[float, float, float, float]
+        bbox: Tuple[float, float, float, float],
     ) -> Tuple[float, float, float, float]:
         """Normalize bounding box — ensure x0<=x1, y0<=y1."""
         x0, y0, x1, y1 = bbox

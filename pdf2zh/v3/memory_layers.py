@@ -35,19 +35,22 @@ class StyleEntry:
 
     key: str
     value: str
-    source: str = "manual"          # manual | detected | inherited
+    source: str = "manual"  # manual | detected | inherited
     confidence: float = 1.0
 
     def to_dict(self) -> dict:
         return {
-            "key": self.key, "value": self.value,
-            "source": self.source, "confidence": self.confidence,
+            "key": self.key,
+            "value": self.value,
+            "source": self.source,
+            "confidence": self.confidence,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "StyleEntry":
         return cls(
-            key=data["key"], value=data.get("value", ""),
+            key=data["key"],
+            value=data.get("value", ""),
             source=data.get("source", "manual"),
             confidence=data.get("confidence", 1.0),
         )
@@ -64,10 +67,14 @@ class StyleMemory:
     def __init__(self) -> None:
         self._entries: Dict[str, StyleEntry] = {}
 
-    def set_rule(self, key: str, value: str, source: str = "manual",
-                 confidence: float = 1.0) -> None:
+    def set_rule(
+        self, key: str, value: str, source: str = "manual", confidence: float = 1.0
+    ) -> None:
         self._entries[key] = StyleEntry(
-            key=key, value=value, source=source, confidence=confidence,
+            key=key,
+            value=value,
+            source=source,
+            confidence=confidence,
         )
 
     def get(self, key: str) -> Optional[str]:
@@ -127,14 +134,17 @@ class ReasoningEntry:
 
     def to_dict(self) -> dict:
         return {
-            "domain": self.domain, "detail": self.detail,
-            "confidence": self.confidence, "source": self.source,
+            "domain": self.domain,
+            "detail": self.detail,
+            "confidence": self.confidence,
+            "source": self.source,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "ReasoningEntry":
         return cls(
-            domain=data["domain"], detail=data.get("detail", ""),
+            domain=data["domain"],
+            detail=data.get("detail", ""),
             confidence=data.get("confidence", 1.0),
             source=data.get("source", "manual"),
         )
@@ -152,13 +162,20 @@ class ReasoningMemory:
         self._domains: Dict[str, ReasoningEntry] = {}
         self._topics: List[str] = []
 
-    def record_domain(self, domain: str, detail: str = "",
-                      confidence: float = 1.0, source: str = "manual") -> None:
+    def record_domain(
+        self,
+        domain: str,
+        detail: str = "",
+        confidence: float = 1.0,
+        source: str = "manual",
+    ) -> None:
         existing = self._domains.get(domain)
         if existing is None or confidence >= existing.confidence:
             self._domains[domain] = ReasoningEntry(
-                domain=domain, detail=detail,
-                confidence=confidence, source=source,
+                domain=domain,
+                detail=detail,
+                confidence=confidence,
+                source=source,
             )
 
     def add_topic(self, topic: str) -> None:
@@ -235,9 +252,13 @@ class MemoryHub:
         entity_graph    : optional EntityGraph  (numbered entities)
     """
 
-    def __init__(self, document_memory=None, style_memory: Optional[StyleMemory] = None,
-                 reasoning_memory: Optional[ReasoningMemory] = None,
-                 entity_graph=None) -> None:
+    def __init__(
+        self,
+        document_memory=None,
+        style_memory: Optional[StyleMemory] = None,
+        reasoning_memory: Optional[ReasoningMemory] = None,
+        entity_graph=None,
+    ) -> None:
         self.document_memory = document_memory
         self.style_memory = style_memory or StyleMemory()
         self.reasoning_memory = reasoning_memory or ReasoningMemory()
@@ -284,7 +305,9 @@ class MemoryHub:
 
     def learn_from_graph(self, graph) -> None:
         """Seed Style/Reasoning layers from graph content (keywords)."""
-        text = " ".join(getattr(n, "text", "") or "" for n in getattr(graph, "nodes", []) or [])
+        text = " ".join(
+            getattr(n, "text", "") or "" for n in getattr(graph, "nodes", []) or []
+        )
         lower = text.lower()
         # Simple domain keyword heuristics
         domain_keywords = {
@@ -299,7 +322,10 @@ class MemoryHub:
         for keyword, domain in domain_keywords.items():
             if keyword in lower:
                 self.reasoning_memory.record_domain(
-                    domain, detail="detected from graph", confidence=0.6, source="graph",
+                    domain,
+                    detail="detected from graph",
+                    confidence=0.6,
+                    source="graph",
                 )
         if self.document_memory is not None:
             learn = getattr(self.document_memory, "learn_from_graph", None)
@@ -322,9 +348,9 @@ class MemoryHub:
 
 
 __all__ = [
-    "StyleEntry", "StyleMemory",
-    "ReasoningEntry", "ReasoningMemory",
+    "StyleEntry",
+    "StyleMemory",
+    "ReasoningEntry",
+    "ReasoningMemory",
     "MemoryHub",
 ]
-
-

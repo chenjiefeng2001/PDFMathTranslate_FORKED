@@ -21,6 +21,7 @@ Usage::
     print(report.summary(), report.passed)
     json_text = snapshot_ir(ir, title="doc")
 """
+
 from __future__ import annotations
 
 import json
@@ -51,8 +52,15 @@ class BlockRecord:
         return self.y + self.height
 
     def to_dict(self) -> dict:
-        return {"id": self.node_id, "page": self.page, "text": self.text,
-                "x": self.x, "y": self.y, "w": self.width, "h": self.height}
+        return {
+            "id": self.node_id,
+            "page": self.page,
+            "text": self.text,
+            "x": self.x,
+            "y": self.y,
+            "w": self.width,
+            "h": self.height,
+        }
 
 
 def _item_page(item: Any, fallback: int) -> int:
@@ -83,8 +91,12 @@ def normalize_block(item: Any, fallback_page: int = 0) -> Optional[BlockRecord]:
         page = _item_page(item, fallback_page)
         bb = item.get("bbox")
         if bb is None:
-            bb = (item.get("x0", 0.0), item.get("y0", 0.0),
-                  item.get("x1", 0.0), item.get("y1", 0.0))
+            bb = (
+                item.get("x0", 0.0),
+                item.get("y0", 0.0),
+                item.get("x1", 0.0),
+                item.get("y1", 0.0),
+            )
     else:
         text = str(getattr(item, "text", ""))
         node_id = getattr(item, "id", None) or f"anon_{len(text)}"
@@ -203,24 +215,27 @@ class MigrationDiffHarness:
     """
 
     DEFAULT_THRESHOLDS = {
-        "page_diff": 1,              # V4 must not add/remove > 1 page
+        "page_diff": 1,  # V4 must not add/remove > 1 page
         "text_similarity_drop": 0.15,  # dice drop vs legacy
-        "node_match_ratio": 0.90,    # matched node ids >= 90%
-        "bbox_displacement": 40.0,   # mean drift in points
+        "node_match_ratio": 0.90,  # matched node ids >= 90%
+        "bbox_displacement": 40.0,  # mean drift in points
         "overlap_rate_delta": 0.10,  # overlap-rate increase <= 10 points
     }
 
     def __init__(self, thresholds: Optional[dict] = None) -> None:
         self.thresholds = {**self.DEFAULT_THRESHOLDS, **(thresholds or {})}
 
-    def compute(self, legacy_blocks: Sequence[Any],
-                v4_blocks: Sequence[Any],
-                pages_legacy: Optional[int] = None,
-                pages_v4: Optional[int] = None) -> MigrationDiffReport:
-        legacy = [b for b in (normalize_block(b, 0) for b in legacy_blocks)
-                  if b is not None]
-        v4 = [b for b in (normalize_block(b, 0) for b in v4_blocks)
-              if b is not None]
+    def compute(
+        self,
+        legacy_blocks: Sequence[Any],
+        v4_blocks: Sequence[Any],
+        pages_legacy: Optional[int] = None,
+        pages_v4: Optional[int] = None,
+    ) -> MigrationDiffReport:
+        legacy = [
+            b for b in (normalize_block(b, 0) for b in legacy_blocks) if b is not None
+        ]
+        v4 = [b for b in (normalize_block(b, 0) for b in v4_blocks) if b is not None]
         n_legacy = max({b.page for b in legacy}, default=-1) + 1
         n_v4 = max({b.page for b in v4}, default=-1) + 1
         pages_legacy = pages_legacy if pages_legacy is not None else n_legacy
@@ -238,17 +253,20 @@ class MigrationDiffHarness:
             if vb is not None:
                 sims.append(dice_similarity(lb.text, vb.text))
         if not sims:
-            sims = [dice_similarity(" ".join(b.text for b in legacy),
-                                    " ".join(b.text for b in v4))]
+            sims = [
+                dice_similarity(
+                    " ".join(b.text for b in legacy), " ".join(b.text for b in v4)
+                )
+            ]
         text_sim = sum(sims) / len(sims)
 
         # bbox displacement on matched ids
         displacements = [
             math.hypot(v4_map[nid].x - lb.x, v4_map[nid].y - lb.y)
-            for nid, lb in legacy_map.items() if nid in v4_map
+            for nid, lb in legacy_map.items()
+            if nid in v4_map
         ]
-        bbox_disp = (sum(displacements) / len(displacements)
-                     if displacements else 0.0)
+        bbox_disp = sum(displacements) / len(displacements) if displacements else 0.0
 
         ol_legacy = overlap_rate(legacy)
         ol_v4 = overlap_rate(v4)
@@ -256,20 +274,22 @@ class MigrationDiffHarness:
         regressions: List[str] = []
         t = self.thresholds
         if abs(pages_v4 - pages_legacy) > t["page_diff"]:
-            regressions.append(
-                f"page count drift {pages_legacy}→{pages_v4}")
+            regressions.append(f"page count drift {pages_legacy}→{pages_v4}")
         if node_match < t["node_match_ratio"]:
-            regressions.append(f"node match {node_match:.3f} < "
-                               f"{t['node_match_ratio']:.3f}")
-        if text_sim < 1.0 - t["text_similarity_drop"]:
-            regressions.append(f"text similarity {text_sim:.3f} below "
-                               f"{1.0 - t['text_similarity_drop']:.3f}")
-        if bbox_disp > t["bbox_displacement"]:
-            regressions.append(f"bbox displacement {bbox_disp:.1f} > "
-                               f"{t['bbox_displacement']:.1f}")
-        if ol_v4 - ol_legacy > t["overlap_rate_delta"]:
             regressions.append(
-                f"overlap rate rose {ol_legacy:.3f}→{ol_v4:.3f}")
+                f"node match {node_match:.3f} < " f"{t['node_match_ratio']:.3f}"
+            )
+        if text_sim < 1.0 - t["text_similarity_drop"]:
+            regressions.append(
+                f"text similarity {text_sim:.3f} below "
+                f"{1.0 - t['text_similarity_drop']:.3f}"
+            )
+        if bbox_disp > t["bbox_displacement"]:
+            regressions.append(
+                f"bbox displacement {bbox_disp:.1f} > " f"{t['bbox_displacement']:.1f}"
+            )
+        if ol_v4 - ol_legacy > t["overlap_rate_delta"]:
+            regressions.append(f"overlap rate rose {ol_legacy:.3f}→{ol_v4:.3f}")
 
         return MigrationDiffReport(
             pages_legacy=pages_legacy,
@@ -287,8 +307,15 @@ class MigrationDiffHarness:
 # ── 阶段零 IR snapshot baseline ─────────────────────────────────────
 
 
-_IR_BUCKET_KEYS = ("paragraphs", "captions", "tables", "headings",
-                   "formulas", "references", "others")
+_IR_BUCKET_KEYS = (
+    "paragraphs",
+    "captions",
+    "tables",
+    "headings",
+    "formulas",
+    "references",
+    "others",
+)
 
 
 def snapshot_ir(ir: Any, title: str = "", include_geometry: bool = True) -> dict:
@@ -319,8 +346,12 @@ def snapshot_ir(ir: Any, title: str = "", include_geometry: bool = True) -> dict
         bb = getattr(n, "bbox", None)
         if include_geometry and bb is not None:
             if hasattr(bb, "x"):
-                entry["bbox"] = (round(bb.x, 1), round(bb.y, 1),
-                                 round(bb.width, 1), round(bb.height, 1))
+                entry["bbox"] = (
+                    round(bb.x, 1),
+                    round(bb.y, 1),
+                    round(bb.width, 1),
+                    round(bb.height, 1),
+                )
             else:
                 entry["bbox"] = tuple(round(float(v), 1) for v in bb)
         if name in ("body_text", "paragraph"):
@@ -344,8 +375,10 @@ def snapshot_ir(ir: Any, title: str = "", include_geometry: bool = True) -> dict
         "version": 1,
         "title": title,
         "node_count": len(nodes),
-        **{k: sorted(v, key=lambda e: (e["page"], e["id"]))
-           for k, v in sorted(buckets.items())},
+        **{
+            k: sorted(v, key=lambda e: (e["page"], e["id"]))
+            for k, v in sorted(buckets.items())
+        },
     }
 
 
@@ -366,36 +399,54 @@ class SyntheticCorpus:
 
     def make_document_graph(self, index: int, title: str = ""):
         """Build one DocumentGraph-like object (see pdf2zh.v3.graph)."""
-        from pdf2zh.v3.graph import (DocumentGraph, DocumentNode, Edge,
-                                     EdgeType, NodeType)
+        from pdf2zh.v3.graph import (
+            DocumentGraph,
+            DocumentNode,
+            Edge,
+            EdgeType,
+            NodeType,
+        )
+
         template = self.TEMPLATES[index % len(self.TEMPLATES)]
         g = DocumentGraph()
-        g.add_node(DocumentNode(id="page_0", node_type=NodeType.PAGE,
-                                bbox=(0, 0, 612, 792), page_num=0))
+        g.add_node(
+            DocumentNode(
+                id="page_0", node_type=NodeType.PAGE, bbox=(0, 0, 612, 792), page_num=0
+            )
+        )
         if template == "paper_two_column":
-            rows = [("title", "A Two-Column Study", NodeType.HEADING, 72, 60),
-                    ("abs", "We study a new method.", NodeType.PARAGRAPH, 72, 90),
-                    ("c1", "Left column paragraph one.", NodeType.PARAGRAPH, 72, 130),
-                    ("c2", "Right column paragraph one.", NodeType.PARAGRAPH, 340, 130),
-                    ("fig", "Figure 1: Overview.", NodeType.CAPTION, 72, 300),
-                    ("ref", "References go here.", NodeType.REFERENCE, 72, 500)]
+            rows = [
+                ("title", "A Two-Column Study", NodeType.HEADING, 72, 60),
+                ("abs", "We study a new method.", NodeType.PARAGRAPH, 72, 90),
+                ("c1", "Left column paragraph one.", NodeType.PARAGRAPH, 72, 130),
+                ("c2", "Right column paragraph one.", NodeType.PARAGRAPH, 340, 130),
+                ("fig", "Figure 1: Overview.", NodeType.CAPTION, 72, 300),
+                ("ref", "References go here.", NodeType.REFERENCE, 72, 500),
+            ]
         elif template == "textbook":
-            rows = [("t", "Chapter 1", NodeType.HEADING, 72, 60),
-                    ("p1", "Definition and theorem.", NodeType.PARAGRAPH, 72, 100),
-                    ("f", "E = mc^2", NodeType.FORMULA, 72, 170),
-                    ("c", "Caption of the example.", NodeType.CAPTION, 72, 220),
-                    ("p2", "Proof sketch.", NodeType.PARAGRAPH, 72, 260),
-                    ("l", "List item A, list item B.", NodeType.LIST, 72, 320)]
+            rows = [
+                ("t", "Chapter 1", NodeType.HEADING, 72, 60),
+                ("p1", "Definition and theorem.", NodeType.PARAGRAPH, 72, 100),
+                ("f", "E = mc^2", NodeType.FORMULA, 72, 170),
+                ("c", "Caption of the example.", NodeType.CAPTION, 72, 220),
+                ("p2", "Proof sketch.", NodeType.PARAGRAPH, 72, 260),
+                ("l", "List item A, list item B.", NodeType.LIST, 72, 320),
+            ]
         else:
-            rows = [("t", "Figure Heavy Document", NodeType.HEADING, 72, 60),
-                    ("fig1", "Figure 1", NodeType.FIGURE, 72, 100),
-                    ("cap1", "Fig 1 caption.", NodeType.CAPTION, 72, 260),
-                    ("tab", "Table 1", NodeType.TABLE, 72, 320),
-                    ("cap2", "Tab 1 caption.", NodeType.CAPTION, 72, 420),
-                    ("p", "Body text after the figure.", NodeType.PARAGRAPH, 72, 470)]
+            rows = [
+                ("t", "Figure Heavy Document", NodeType.HEADING, 72, 60),
+                ("fig1", "Figure 1", NodeType.FIGURE, 72, 100),
+                ("cap1", "Fig 1 caption.", NodeType.CAPTION, 72, 260),
+                ("tab", "Table 1", NodeType.TABLE, 72, 320),
+                ("cap2", "Tab 1 caption.", NodeType.CAPTION, 72, 420),
+                ("p", "Body text after the figure.", NodeType.PARAGRAPH, 72, 470),
+            ]
         for i, (nid, text, ntype, x, y) in enumerate(rows):
-            g.add_node(DocumentNode(id=nid, node_type=ntype, text=text,
-                                    bbox=(x, y, 200, 20), page_num=0))
+            g.add_node(
+                DocumentNode(
+                    id=nid, node_type=ntype, text=text, bbox=(x, y, 200, 20), page_num=0
+                )
+            )
             g.add_edge(Edge("page_0", nid, EdgeType.CONTAINS))
             if i > 0:
                 g.add_edge(Edge(rows[i - 1][0], nid, EdgeType.FOLLOWS))
@@ -404,23 +455,24 @@ class SyntheticCorpus:
     def snapshot(self, index: int, title: str = "") -> dict:
         """IR snapshot for corpus document ``index`` (deterministic)."""
         from pdf2zh.v3.document_ir import IRBuilder
+
         g = self.make_document_graph(index, title)
         title = title or f"synthetic_{index:03d}"
-        ir = IRBuilder(title=title, source_lang="en",
-                       target_lang="zh-cn").build(g)
+        ir = IRBuilder(title=title, source_lang="en", target_lang="zh-cn").build(g)
         return snapshot_ir(ir, title=ir.title)
 
     def run(self, title_prefix: str = "corpus") -> List[dict]:
         """Build the full corpus snapshot set (P4 acceptance artifact)."""
-        return [self.snapshot(i, f"{title_prefix}_{i:03d}")
-                for i in range(self.count)]
+        return [self.snapshot(i, f"{title_prefix}_{i:03d}") for i in range(self.count)]
 
 
 __all__ = [
-    "BlockRecord", "normalize_block", "dice_similarity", "overlap_rate",
-    "MigrationDiffReport", "MigrationDiffHarness", "snapshot_ir",
+    "BlockRecord",
+    "normalize_block",
+    "dice_similarity",
+    "overlap_rate",
+    "MigrationDiffReport",
+    "MigrationDiffHarness",
+    "snapshot_ir",
     "SyntheticCorpus",
 ]
-
-
-

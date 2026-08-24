@@ -15,6 +15,7 @@
       - 非翻译公式位置偏差 Δx <= 0.5pt、Δy <= 0.5pt；
       - 锚点匹配率（Anchor Integrity Score）必须达到 100%。
 """
+
 from __future__ import annotations
 
 import re
@@ -62,7 +63,10 @@ def _ensure_cjk_font(page, fontname: str = "china-s") -> str:
     except Exception as exc:  # noqa: BLE001
         logger.warning(
             "CJK font '%s' unavailable (%s); fallback to helv "
-            "(CJK glyphs may be missing).", fontname, exc)
+            "(CJK glyphs may be missing).",
+            fontname,
+            exc,
+        )
         return "helv"
 
 
@@ -84,9 +88,9 @@ class DualPatch:
 
     source_path: str = ""
     target_path: str = ""
-    patches: List[Dict] = field(default_factory=list)     # 渲染补丁指令
+    patches: List[Dict] = field(default_factory=list)  # 渲染补丁指令
     solved_units: List[Dict] = field(default_factory=list)  # 逻辑求解记录
-    qa: Dict = field(default_factory=dict)                 # QAReport.to_dict()
+    qa: Dict = field(default_factory=dict)  # QAReport.to_dict()
 
     def to_dict(self) -> dict:
         return {
@@ -101,8 +105,8 @@ class DualPatch:
 class DualPatcher:
     """双层 PDF 补丁合成与校验管道。"""
 
-    DRIFT_TOLERANCE = 0.5            # §9.2：公式位置偏差容差（pt）
-    FONT_SWITCH_RATIO_TARGET = 0.1   # §9.1：字体切换/单元比目标
+    DRIFT_TOLERANCE = 0.5  # §9.2：公式位置偏差容差（pt）
+    FONT_SWITCH_RATIO_TARGET = 0.1  # §9.1：字体切换/单元比目标
 
     def __init__(self, renderer=None) -> None:
         """``renderer``：可选渲染引擎（OverlayRenderer / None）。
@@ -127,12 +131,16 @@ class DualPatcher:
                     prev_key = key
         return switches
 
-    def text_qa(self, unit_count: int, font_switch_count: int,
-                source_chars: int, translated_text: str,
-                source_text: str) -> Dict:
+    def text_qa(
+        self,
+        unit_count: int,
+        font_switch_count: int,
+        source_chars: int,
+        translated_text: str,
+        source_text: str,
+    ) -> Dict:
         """计算 §9.1 指标：字体切换/单元比 + 字符完整性率。"""
-        ratio = (unit_count / font_switch_count
-                 if font_switch_count > 0 else 1.0)
+        ratio = unit_count / font_switch_count if font_switch_count > 0 else 1.0
         # 字符完整性：译文锚点剥离后的非锚点字符不得丢失/重复
         src_clean = _ANCHOR_RE.sub("", source_text)
         tgt_clean = _ANCHOR_RE.sub("", translated_text)
@@ -169,17 +177,22 @@ class DualPatcher:
         placements = [p for su in solved_units for p in su.formula_placements]
         if not placements:
             # 无公式对象：以段落级坐标兜底
-            placements = [{
-                "source_bbox": list(su.source_bbox),
-                "render_bbox": list(su.render_bbox),
-            } for su in solved_units]
+            placements = [
+                {
+                    "source_bbox": list(su.source_bbox),
+                    "render_bbox": list(su.render_bbox),
+                }
+                for su in solved_units
+            ]
         inline = [p for p in placements if not p.get("display")]
         display = [p for p in placements if p.get("display")]
         pool = inline or placements
-        max_dx = max((abs(p["render_bbox"][0] - p["source_bbox"][0])
-                      for p in pool), default=0.0)
-        max_dy = max((abs(p["render_bbox"][1] - p["source_bbox"][1])
-                      for p in pool), default=0.0)
+        max_dx = max(
+            (abs(p["render_bbox"][0] - p["source_bbox"][0]) for p in pool), default=0.0
+        )
+        max_dy = max(
+            (abs(p["render_bbox"][1] - p["source_bbox"][1]) for p in pool), default=0.0
+        )
         drift_ok = max_dx <= self.DRIFT_TOLERANCE and max_dy <= self.DRIFT_TOLERANCE
         return {
             "drift_tolerance": self.DRIFT_TOLERANCE,
@@ -214,7 +227,7 @@ class DualPatcher:
             "unknown": sorted(unknown),
             "anchor_score": round(score, 4),
             "anchor_ok": score >= 1.0,
-            "anchor_matcher": "loose",   # 失效点 2 容错：宽松锚点匹配
+            "anchor_matcher": "loose",  # 失效点 2 容错：宽松锚点匹配
         }
 
     # ── 补丁合成 ──────────────────────────────────────────────────
@@ -230,22 +243,26 @@ class DualPatcher:
         lines: List[Dict] = []
         formula_ids: List[str] = []
         top_text: List[str] = []
-        for line in (solved.lines or []):
+        for line in solved.lines or []:
             parts: List[str] = []
             line_formula: List[str] = []
             for seg in line.segments:
                 if seg.formula_id:
-                    parts.append(" " * max(1, round(
-                        seg.width / max(solved.font_size * 0.5, 0.01))))
+                    parts.append(
+                        " "
+                        * max(1, round(seg.width / max(solved.font_size * 0.5, 0.01)))
+                    )
                     line_formula.append(seg.formula_id)
                 else:
                     parts.append(seg.text)
-            lines.append({
-                "text": "".join(parts),
-                "baseline": round(line.master_baseline, 2),
-                "font_size": round(solved.font_size, 2),
-                "formula_ids": line_formula,
-            })
+            lines.append(
+                {
+                    "text": "".join(parts),
+                    "baseline": round(line.master_baseline, 2),
+                    "font_size": round(solved.font_size, 2),
+                    "formula_ids": line_formula,
+                }
+            )
             formula_ids.extend(line_formula)
             top_text.extend(seg.text for seg in line.segments)
         return {
@@ -260,16 +277,20 @@ class DualPatcher:
             "lines": lines,
             "formula_ids": formula_ids,
             "display_formulas": [
-                {**p,
-                 "source_bbox": [round(v, 2) for v in p["source_bbox"]],
-                 "render_bbox": [round(v, 2) for v in p["render_bbox"]]}
-                for p in solved.formula_placements if p.get("display")
+                {
+                    **p,
+                    "source_bbox": [round(v, 2) for v in p["source_bbox"]],
+                    "render_bbox": [round(v, 2) for v in p["render_bbox"]],
+                }
+                for p in solved.formula_placements
+                if p.get("display")
             ],
         }
 
     def to_overlay_segments(self, patch: DualPatch):
         """把渲染补丁转换为 OverlaySegment 序列（供 OverlayRenderer 消费）。"""
         from pdf2zh.overlay_renderer import OverlaySegment
+
         segments = []
         for instr in patch.patches:
             if instr.get("op") != "text_show":
@@ -280,16 +301,23 @@ class DualPatcher:
                 if not text.strip():
                     continue
                 fs = float(line.get("font_size", instr.get("font_size", 12.0)))
-                segments.append(OverlaySegment(
-                    text=text,
-                    bbox=(bbox[0], float(line["baseline"]) - fs * 0.2,
-                          bbox[2], float(line["baseline"]) + fs * 0.8),
-                    font_size=fs,
-                ))
+                segments.append(
+                    OverlaySegment(
+                        text=text,
+                        bbox=(
+                            bbox[0],
+                            float(line["baseline"]) - fs * 0.2,
+                            bbox[2],
+                            float(line["baseline"]) + fs * 0.8,
+                        ),
+                        font_size=fs,
+                    )
+                )
         return segments
 
-    def apply_to_pdf(self, doc, page_index: int, patch: DualPatch,
-                     fontname: str = "china-s") -> int:
+    def apply_to_pdf(
+        self, doc, page_index: int, patch: DualPatch, fontname: str = "china-s"
+    ) -> int:
         """把渲染补丁用 PyMuPDF 直接落到 PDF 页面（遗留项 4）。
 
         - ``render_bbox`` / ``baseline`` 为 y-up（pdfminer 坐标）；PyMuPDF
@@ -324,16 +352,29 @@ class DualPatcher:
                     continue
                 src = instr.get("source_bbox") or (0, 0, 0, 0)
                 if (src[2] - src[0]) >= 1.0 and (src[3] - src[1]) >= 1.0:
-                    redact_rects.append((
-                        float(src[0]), page_h - float(src[3]),
-                        float(src[2]), page_h - float(src[1])))
+                    redact_rects.append(
+                        (
+                            float(src[0]),
+                            page_h - float(src[3]),
+                            float(src[2]),
+                            page_h - float(src[1]),
+                        )
+                    )
                 for f in instr.get("display_formulas") or []:
                     fsrc = f.get("source_bbox")
-                    if (fsrc and (fsrc[2] - fsrc[0]) >= 1.0
-                            and (fsrc[3] - fsrc[1]) >= 1.0):
-                        redact_rects.append((
-                            float(fsrc[0]), page_h - float(fsrc[3]),
-                            float(fsrc[2]), page_h - float(fsrc[1])))
+                    if (
+                        fsrc
+                        and (fsrc[2] - fsrc[0]) >= 1.0
+                        and (fsrc[3] - fsrc[1]) >= 1.0
+                    ):
+                        redact_rects.append(
+                            (
+                                float(fsrc[0]),
+                                page_h - float(fsrc[3]),
+                                float(fsrc[2]),
+                                page_h - float(fsrc[1]),
+                            )
+                        )
             if redact_rects:
                 try:
                     for r in redact_rects:
@@ -350,26 +391,35 @@ class DualPatcher:
                     text = line.get("text") or ""
                     if not text.strip():
                         continue
-                    fs = float(line.get("font_size",
-                                        instr.get("font_size", 12.0)))
+                    fs = float(line.get("font_size", instr.get("font_size", 12.0)))
                     # y-up baseline → y-down：转换正确，但防御性 clamp 到
                     # 页内，避免幽灵障碍物把基线推到页外（bbox.y0<0 类事故）。
-                    py = max(0.0, min(page_h - float(line.get("baseline", 0.0)),
-                                      max(page_h - 1.0, 0.0)))
-                    page.insert_text(point=(x0, py), text=text,
-                                     fontsize=fs, fontname=resolved_font)
+                    py = max(
+                        0.0,
+                        min(
+                            page_h - float(line.get("baseline", 0.0)),
+                            max(page_h - 1.0, 0.0),
+                        ),
+                    )
+                    page.insert_text(
+                        point=(x0, py), text=text, fontsize=fs, fontname=resolved_font
+                    )
                     count += 1
         except Exception:  # noqa: BLE001
             return count
         return count
 
-    def synthesize(self, solved_units: Sequence[SolvedUnit],
-                   translated_text: str, formula_map: Dict) -> DualPatch:
+    def synthesize(
+        self,
+        solved_units: Sequence[SolvedUnit],
+        translated_text: str,
+        formula_map: Dict,
+    ) -> DualPatch:
         """合成双层补丁并跑 QA。"""
         patches = [self.compose_render_patch(su) for su in solved_units]
         qa_text = self.text_qa(
             unit_count=len(solved_units),
-            font_switch_count=0,     # 由调用方注入（此处占位）
+            font_switch_count=0,  # 由调用方注入（此处占位）
             source_chars=0,
             translated_text=translated_text,
             source_text=translated_text,

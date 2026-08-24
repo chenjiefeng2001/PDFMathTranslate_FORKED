@@ -17,6 +17,7 @@ Usage:
     solver = ConstraintSolver(cg)
     solver.solve()
 """
+
 from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
@@ -160,24 +161,39 @@ class ConstraintGraph:
         self._edge_counter: int = 0
         self._adjacency: Dict[str, Set[str]] = {}  # node_id -> set of edge_ids
 
-    def add_node(self, node_id: str, node_type: str, *,
-                 bbox: Optional[BoundingBox] = None,
-                 min_width: float = 0.0, min_height: float = 0.0,
-                 preferred_width: float = 0.0, preferred_height: float = 0.0,
-                 max_width: float = 99999.0, max_height: float = 99999.0,
-                 page_num: int = 0, column_index: int = 0,
-                 fixed: bool = False, **metadata) -> LayoutNode:
+    def add_node(
+        self,
+        node_id: str,
+        node_type: str,
+        *,
+        bbox: Optional[BoundingBox] = None,
+        min_width: float = 0.0,
+        min_height: float = 0.0,
+        preferred_width: float = 0.0,
+        preferred_height: float = 0.0,
+        max_width: float = 99999.0,
+        max_height: float = 99999.0,
+        page_num: int = 0,
+        column_index: int = 0,
+        fixed: bool = False,
+        **metadata,
+    ) -> LayoutNode:
         if node_id in self._nodes:
             raise ValueError(f"LayoutNode '{node_id}' already exists")
         n = LayoutNode(
-            id=node_id, node_type=node_type,
+            id=node_id,
+            node_type=node_type,
             bbox=bbox or BoundingBox(),
-            min_width=min_width, min_height=min_height,
+            min_width=min_width,
+            min_height=min_height,
             preferred_width=preferred_width or (bbox.width if bbox else 0.0),
             preferred_height=preferred_height or (bbox.height if bbox else 0.0),
-            max_width=max_width, max_height=max_height,
-            page_num=page_num, column_index=column_index,
-            fixed=fixed, metadata=metadata,
+            max_width=max_width,
+            max_height=max_height,
+            page_num=page_num,
+            column_index=column_index,
+            fixed=fixed,
+            metadata=metadata,
         )
         self._nodes[node_id] = n
         self._adjacency.setdefault(node_id, set())
@@ -196,9 +212,16 @@ class ConstraintGraph:
         self._nodes.pop(node_id, None)
         self._adjacency.pop(node_id, None)
 
-    def add_edge(self, source_id: str, target_id: str, relation: str,
-                 priority: str = "hard", gap: float = 0.0,
-                 weight: float = 1.0, **metadata) -> ConstraintEdge:
+    def add_edge(
+        self,
+        source_id: str,
+        target_id: str,
+        relation: str,
+        priority: str = "hard",
+        gap: float = 0.0,
+        weight: float = 1.0,
+        **metadata,
+    ) -> ConstraintEdge:
         if source_id not in self._nodes:
             raise ValueError(f"Source node '{source_id}' not found")
         if target_id not in self._nodes:
@@ -206,10 +229,13 @@ class ConstraintGraph:
         self._edge_counter += 1
         eid = f"ce_{self._edge_counter}"
         e = ConstraintEdge(
-            source_id=source_id, target_id=target_id,
+            source_id=source_id,
+            target_id=target_id,
             relation=ConstraintRelation(relation),
             priority=ConstraintPriority(priority),
-            gap=gap, weight=weight, metadata=metadata,
+            gap=gap,
+            weight=weight,
+            metadata=metadata,
         )
         self._edges[eid] = e
         self._adjacency.setdefault(source_id, set()).add(eid)
@@ -287,7 +313,9 @@ class ConstraintGraph:
                 in_degree[neighbor] -= 1
                 if in_degree[neighbor] == 0:
                     queue.append(neighbor)
-        remaining = [self._nodes[nid] for nid in self._nodes if nid not in {n.id for n in result}]
+        remaining = [
+            self._nodes[nid] for nid in self._nodes if nid not in {n.id for n in result}
+        ]
         result.extend(remaining)
         return result
 
@@ -315,10 +343,19 @@ class ConstraintGraph:
                     if eid2 == eid:
                         continue
                     # Conflict: A must_above B AND B must_above A (same relation, swapped)
-                    if (e2.source_id == e.target_id and e2.target_id == e.source_id
-                            and e2.relation == e.relation):
-                        conflict_key = tuple(sorted([(e.source_id, e.target_id, e.relation.value),
-                                                      (e.target_id, e.source_id, e2.relation.value)]))
+                    if (
+                        e2.source_id == e.target_id
+                        and e2.target_id == e.source_id
+                        and e2.relation == e.relation
+                    ):
+                        conflict_key = tuple(
+                            sorted(
+                                [
+                                    (e.source_id, e.target_id, e.relation.value),
+                                    (e.target_id, e.source_id, e2.relation.value),
+                                ]
+                            )
+                        )
                         if conflict_key not in processed:
                             conflicts.append(e)
                             conflicts.append(e2)
@@ -331,14 +368,30 @@ class ConstraintGraph:
 
     def to_dict(self) -> dict:
         return {
-            "nodes": {nid: {"type": n.node_type, "bbox": {"x": n.bbox.x, "y": n.bbox.y,
-                                                           "w": n.bbox.width, "h": n.bbox.height},
-                            "page": n.page_num, "fixed": n.fixed}
-                      for nid, n in self._nodes.items()},
-            "edges": {eid: {"source": e.source_id, "target": e.target_id,
-                            "relation": e.relation.value, "priority": e.priority.value,
-                            "gap": e.gap}
-                      for eid, e in self._edges.items()},
+            "nodes": {
+                nid: {
+                    "type": n.node_type,
+                    "bbox": {
+                        "x": n.bbox.x,
+                        "y": n.bbox.y,
+                        "w": n.bbox.width,
+                        "h": n.bbox.height,
+                    },
+                    "page": n.page_num,
+                    "fixed": n.fixed,
+                }
+                for nid, n in self._nodes.items()
+            },
+            "edges": {
+                eid: {
+                    "source": e.source_id,
+                    "target": e.target_id,
+                    "relation": e.relation.value,
+                    "priority": e.priority.value,
+                    "gap": e.gap,
+                }
+                for eid, e in self._edges.items()
+            },
         }
 
 
@@ -366,9 +419,12 @@ class KiwiSolver:
         y = ks.solve()          # {"a": 50.0, "b": 90.0}
     """
 
-    def __init__(self, max_iterations: int = 300,
-                 tolerance: float = 1e-3,
-                 tier_max_iterations: int = 120) -> None:
+    def __init__(
+        self,
+        max_iterations: int = 300,
+        tolerance: float = 1e-3,
+        tier_max_iterations: int = 120,
+    ) -> None:
         self.max_iterations = max_iterations
         self.tolerance = tolerance
         self.tier_max_iterations = tier_max_iterations
@@ -379,10 +435,16 @@ class KiwiSolver:
 
     # ── Variable declaration ──────────────────────────────────────────
 
-    def add_variable(self, name: str, preferred: float = 0.0,
-                     weight: float = 1.0, lower: float = 0.0,
-                     upper: float = 1e9, height: float = 0.0,
-                     fixed: bool = False) -> None:
+    def add_variable(
+        self,
+        name: str,
+        preferred: float = 0.0,
+        weight: float = 1.0,
+        lower: float = 0.0,
+        upper: float = 1e9,
+        height: float = 0.0,
+        fixed: bool = False,
+    ) -> None:
         """Register a vertical variable (y of the box top)."""
         self._variables[name] = {
             "preferred": float(preferred),
@@ -394,23 +456,44 @@ class KiwiSolver:
             "fixed": bool(fixed),
         }
 
-    def add_inequality(self, below: str, above: str,
-                       gap: float = 0.0, priority: str = "soft",
-                       weight: float = 1.0) -> None:
+    def add_inequality(
+        self,
+        below: str,
+        above: str,
+        gap: float = 0.0,
+        priority: str = "soft",
+        weight: float = 1.0,
+    ) -> None:
         """Require ``y_below ≥ y_above + height_above + gap``."""
         rank = self._rank(priority)
-        self._inequalities.append({
-            "below": below, "above": above, "gap": float(gap),
-            "rank": rank, "weight": float(weight),
-        })
+        self._inequalities.append(
+            {
+                "below": below,
+                "above": above,
+                "gap": float(gap),
+                "rank": rank,
+                "weight": float(weight),
+            }
+        )
 
-    def add_equality(self, a: str, b: str, offset: float = 0.0,
-                     priority: str = "soft", weight: float = 1.0) -> None:
+    def add_equality(
+        self,
+        a: str,
+        b: str,
+        offset: float = 0.0,
+        priority: str = "soft",
+        weight: float = 1.0,
+    ) -> None:
         """Require ``y_b == y_a + offset`` (align_top / align_bottom / center)."""
-        self._equalities.append({
-            "a": a, "b": b, "offset": float(offset),
-            "rank": self._rank(priority), "weight": float(weight),
-        })
+        self._equalities.append(
+            {
+                "a": a,
+                "b": b,
+                "offset": float(offset),
+                "rank": self._rank(priority),
+                "weight": float(weight),
+            }
+        )
 
     @staticmethod
     def _rank(priority: Any) -> int:
@@ -481,10 +564,12 @@ class KiwiSolver:
         Only the hard inequalities (HARD / STRONG) constrain the window the
         stays may move in, so soft / advisory bands never lock the layout.
         """
-        hard = [ine for ine in self._inequalities
-                if ine["rank"] <= ConstraintPriority.STRONG.rank()]
-        ordered = sorted(self._variables.items(),
-                         key=lambda kv: -kv[1]["weight"])
+        hard = [
+            ine
+            for ine in self._inequalities
+            if ine["rank"] <= ConstraintPriority.STRONG.rank()
+        ]
+        ordered = sorted(self._variables.items(), key=lambda kv: -kv[1]["weight"])
         for name, var in ordered:
             if var["fixed"]:
                 continue
@@ -492,13 +577,16 @@ class KiwiSolver:
             max_decrease = var["y"] - var["lower"]
             for ine in hard:
                 if ine["below"] == name:
-                    required = (self._variables[ine["above"]]["y"]
-                                + self._variables[ine["above"]]["height"]
-                                + ine["gap"])
+                    required = (
+                        self._variables[ine["above"]]["y"]
+                        + self._variables[ine["above"]]["height"]
+                        + ine["gap"]
+                    )
                     max_decrease = min(max_decrease, var["y"] - required)
                 if ine["above"] == name:
-                    upper = (self._variables[ine["below"]]["y"]
-                             - var["height"] - ine["gap"])
+                    upper = (
+                        self._variables[ine["below"]]["y"] - var["height"] - ine["gap"]
+                    )
                     max_increase = min(max_increase, upper - var["y"])
             max_increase = max(0.0, max_increase)
             max_decrease = max(0.0, max_decrease)
@@ -515,8 +603,12 @@ class ConstraintSolver:
     greedy behaviour for debugging / A-B comparison.
     """
 
-    def __init__(self, graph: ConstraintGraph, page_width: float = 612.0,
-                 page_height: float = 792.0) -> None:
+    def __init__(
+        self,
+        graph: ConstraintGraph,
+        page_width: float = 612.0,
+        page_height: float = 792.0,
+    ) -> None:
         self.graph = graph
         self.page_width = page_width
         self.page_height = page_height
@@ -542,65 +634,85 @@ class ConstraintSolver:
         for page in sorted({n.page_num for n in nodes_map.values()}):
             page_nodes = [n for n in ordered if n.page_num == page]
             ks = KiwiSolver()
-            free = {n.id for n in page_nodes
-                    if not self.graph.get_edges_for_node(n.id)}
+            free = {n.id for n in page_nodes if not self.graph.get_edges_for_node(n.id)}
             for n in page_nodes:
                 ks.add_variable(
-                    n.id, preferred=n.bbox.y,
+                    n.id,
+                    preferred=n.bbox.y,
                     weight=2.0 if n.id in free else 1.0,
                     lower=0.0,
                     upper=max(0.0, self.page_height - n.bbox.height),
-                    height=n.bbox.height, fixed=n.fixed)
+                    height=n.bbox.height,
+                    fixed=n.fixed,
+                )
             for e in self.graph.edges:
                 if not e.enabled or e.priority.is_advisory:
                     # Advisory bands feed the stays only; they do not take
                     # part in the feasibility projection.
                     continue
                 r = e.relation
-                if r in (ConstraintRelation.MUST_BELOW,
-                         ConstraintRelation.MUST_ABOVE):
-                    below, above = ((e.target_id, e.source_id)
-                                    if r == ConstraintRelation.MUST_BELOW
-                                    else (e.source_id, e.target_id))
-                    ks.add_inequality(below=below, above=above,
-                                      gap=e.gap, priority=e.priority)
+                if r in (ConstraintRelation.MUST_BELOW, ConstraintRelation.MUST_ABOVE):
+                    below, above = (
+                        (e.target_id, e.source_id)
+                        if r == ConstraintRelation.MUST_BELOW
+                        else (e.source_id, e.target_id)
+                    )
+                    ks.add_inequality(
+                        below=below, above=above, gap=e.gap, priority=e.priority
+                    )
                 elif r == ConstraintRelation.ALIGN_TOP:
-                    ks.add_equality(a=e.source_id, b=e.target_id,
-                                    priority=e.priority)
+                    ks.add_equality(a=e.source_id, b=e.target_id, priority=e.priority)
                 elif r == ConstraintRelation.ALIGN_BOTTOM:
                     src = nodes_map.get(e.source_id)
                     tgt = nodes_map.get(e.target_id)
                     if src is not None and tgt is not None:
-                        ks.add_equality(a=e.source_id, b=e.target_id,
-                                        offset=src.bbox.height - tgt.bbox.height,
-                                        priority=e.priority)
+                        ks.add_equality(
+                            a=e.source_id,
+                            b=e.target_id,
+                            offset=src.bbox.height - tgt.bbox.height,
+                            priority=e.priority,
+                        )
                 elif r == ConstraintRelation.CENTER_Y:
                     tgt = nodes_map.get(e.target_id)
                     if tgt is not None:
-                        ks.add_variable(f"{e.target_id}__center",
-                                        preferred=0.0, fixed=True,
-                                        upper=self.page_height)
-                        ks.add_equality(a=f"{e.target_id}__center",
-                                        b=e.target_id,
-                                        offset=(self.page_height
-                                                - tgt.bbox.height) / 2.0,
-                                        priority=e.priority)
+                        ks.add_variable(
+                            f"{e.target_id}__center",
+                            preferred=0.0,
+                            fixed=True,
+                            upper=self.page_height,
+                        )
+                        ks.add_equality(
+                            a=f"{e.target_id}__center",
+                            b=e.target_id,
+                            offset=(self.page_height - tgt.bbox.height) / 2.0,
+                            priority=e.priority,
+                        )
                 elif r == ConstraintRelation.CANNOT_OVERLAP:
                     src = nodes_map.get(e.source_id)
                     tgt = nodes_map.get(e.target_id)
-                    if (src is not None and tgt is not None
-                            and src.page_num == tgt.page_num):
+                    if (
+                        src is not None
+                        and tgt is not None
+                        and src.page_num == tgt.page_num
+                    ):
                         if src.bbox.y <= tgt.bbox.y:
-                            ks.add_inequality(below=e.target_id,
-                                              above=e.source_id, gap=2.0,
-                                              priority=e.priority)
+                            ks.add_inequality(
+                                below=e.target_id,
+                                above=e.source_id,
+                                gap=2.0,
+                                priority=e.priority,
+                            )
                         else:
-                            ks.add_inequality(below=e.source_id,
-                                              above=e.target_id, gap=2.0,
-                                              priority=e.priority)
+                            ks.add_inequality(
+                                below=e.source_id,
+                                above=e.target_id,
+                                gap=2.0,
+                                priority=e.priority,
+                            )
                 elif r == ConstraintRelation.KEEP_WITH_NEXT:
-                    ks.add_inequality(below=e.target_id, above=e.source_id,
-                                      gap=0.0, priority="soft")
+                    ks.add_inequality(
+                        below=e.target_id, above=e.source_id, gap=0.0, priority="soft"
+                    )
                 # Horizontal relations (MUST_LEFT / MUST_RIGHT / ALIGN_LEFT /
                 # CENTER_X / SAME_*) are applied by the horizontal pass below.
             if ks._variables:
@@ -608,20 +720,27 @@ class ConstraintSolver:
                     n = nodes_map.get(nid)
                     if n is not None:
                         n.resolved_bbox = BoundingBox(
-                            n.bbox.x, y, n.bbox.width, n.bbox.height)
+                            n.bbox.x, y, n.bbox.width, n.bbox.height
+                        )
         # Horizontal pass + overlap safety net (shared with greedy engine).
         # Vertical relations were already resolved by the Kiwi stage above, so
         # re-applying them here would corrupt the elastic solution (the legacy
         # pass applies MUST_BELOW with inverse push semantics).
-        horizontal = (ConstraintRelation.MUST_LEFT, ConstraintRelation.MUST_RIGHT,
-                      ConstraintRelation.ALIGN_LEFT, ConstraintRelation.ALIGN_RIGHT,
-                      ConstraintRelation.CENTER_X)
+        horizontal = (
+            ConstraintRelation.MUST_LEFT,
+            ConstraintRelation.MUST_RIGHT,
+            ConstraintRelation.ALIGN_LEFT,
+            ConstraintRelation.ALIGN_RIGHT,
+            ConstraintRelation.CENTER_X,
+        )
         self._apply_constraints(
-            [e for e in self.graph.edges if e.relation in horizontal], nodes_map)
+            [e for e in self.graph.edges if e.relation in horizontal], nodes_map
+        )
         self._resolve_overlaps(nodes_map)
         self._solved = True
         return True
         self.graph.reset_all()
+
     def _solve_greedy(self) -> bool:
         """Original greedy solve (priority-grouped application)."""
         # 1. Sort topologically for ordering
@@ -629,14 +748,26 @@ class ConstraintSolver:
         nodes_map = {n.id: n for n in ordered}
 
         # 2. Collect constraints grouped by priority
-        hard_edges = [e for e in self.graph.edges
-                      if e.priority == ConstraintPriority.HARD and e.enabled]
-        soft_edges = [e for e in self.graph.edges
-                      if e.priority == ConstraintPriority.SOFT and e.enabled]
-        preferred_edges = [e for e in self.graph.edges
-                           if e.priority == ConstraintPriority.PREFERRED and e.enabled]
-        strong_edges = [e for e in self.graph.edges
-                        if e.priority == ConstraintPriority.STRONG and e.enabled]
+        hard_edges = [
+            e
+            for e in self.graph.edges
+            if e.priority == ConstraintPriority.HARD and e.enabled
+        ]
+        soft_edges = [
+            e
+            for e in self.graph.edges
+            if e.priority == ConstraintPriority.SOFT and e.enabled
+        ]
+        preferred_edges = [
+            e
+            for e in self.graph.edges
+            if e.priority == ConstraintPriority.PREFERRED and e.enabled
+        ]
+        strong_edges = [
+            e
+            for e in self.graph.edges
+            if e.priority == ConstraintPriority.STRONG and e.enabled
+        ]
 
         # 3. Apply ALL edges (not just hard) in priority order
         for edges in [hard_edges, strong_edges, soft_edges, preferred_edges]:
@@ -648,8 +779,9 @@ class ConstraintSolver:
         self._solved = True
         return True
 
-    def _apply_constraints(self, edges: List[ConstraintEdge],
-                           nodes_map: Dict[str, LayoutNode]) -> None:
+    def _apply_constraints(
+        self, edges: List[ConstraintEdge], nodes_map: Dict[str, LayoutNode]
+    ) -> None:
         for e in edges:
             source = nodes_map.get(e.source_id)
             target = nodes_map.get(e.target_id)
@@ -660,26 +792,26 @@ class ConstraintSolver:
 
             if e.relation == ConstraintRelation.MUST_ABOVE:
                 if sb.y + sb.height + e.gap > tb.y:
-                    tb = BoundingBox(tb.x, sb.y + sb.height + e.gap,
-                                     tb.width, tb.height)
+                    tb = BoundingBox(
+                        tb.x, sb.y + sb.height + e.gap, tb.width, tb.height
+                    )
                     target.resolved_bbox = tb
 
             elif e.relation == ConstraintRelation.MUST_BELOW:
                 if tb.y + tb.height + e.gap > sb.y:
-                    sb = BoundingBox(sb.x, tb.y + tb.height + e.gap,
-                                     sb.width, sb.height)
+                    sb = BoundingBox(
+                        sb.x, tb.y + tb.height + e.gap, sb.width, sb.height
+                    )
                     source.resolved_bbox = sb
 
             elif e.relation == ConstraintRelation.MUST_LEFT:
                 if sb.x + sb.width + e.gap > tb.x:
-                    tb = BoundingBox(sb.x + sb.width + e.gap, tb.y,
-                                     tb.width, tb.height)
+                    tb = BoundingBox(sb.x + sb.width + e.gap, tb.y, tb.width, tb.height)
                     target.resolved_bbox = tb
 
             elif e.relation == ConstraintRelation.MUST_RIGHT:
                 if tb.x + tb.width + e.gap > sb.x:
-                    sb = BoundingBox(tb.x + tb.width + e.gap, sb.y,
-                                     sb.width, sb.height)
+                    sb = BoundingBox(tb.x + tb.width + e.gap, sb.y, sb.width, sb.height)
                     source.resolved_bbox = sb
 
             elif e.relation == ConstraintRelation.ALIGN_LEFT:
@@ -692,8 +824,7 @@ class ConstraintSolver:
 
             elif e.relation == ConstraintRelation.CENTER_X:
                 center = sb.x + sb.width / 2
-                tb = BoundingBox(center - tb.width / 2, tb.y,
-                                 tb.width, tb.height)
+                tb = BoundingBox(center - tb.width / 2, tb.y, tb.width, tb.height)
                 target.resolved_bbox = tb
 
     def _resolve_overlaps(self, nodes_map: Dict[str, LayoutNode]) -> None:
@@ -757,24 +888,34 @@ def build_constraint_graph_from_document(graph, doc_graph) -> ConstraintGraph:
             continue
         ntype = _map_node_type(node.node_type)
         graph.add_node(
-            node.id, ntype,
-            bbox=BoundingBox(node.x0, node.y0,
-                             node.width, node.height),
+            node.id,
+            ntype,
+            bbox=BoundingBox(node.x0, node.y0, node.width, node.height),
             page_num=node.page_num,
             preferred_height=node.height,
         )
 
     for edge in doc_graph.edges:
         if edge.edge_type == EdgeType.FOLLOWS:
-            if (graph.get_node(edge.source_id) is not None
-                    and graph.get_node(edge.target_id) is not None):
-                graph.add_edge(edge.source_id, edge.target_id,
-                              "must_below", priority="soft", gap=2.0)
+            if (
+                graph.get_node(edge.source_id) is not None
+                and graph.get_node(edge.target_id) is not None
+            ):
+                graph.add_edge(
+                    edge.source_id,
+                    edge.target_id,
+                    "must_below",
+                    priority="soft",
+                    gap=2.0,
+                )
         elif edge.edge_type == EdgeType.CONTAINS:
-            if (graph.get_node(edge.source_id) is not None
-                    and graph.get_node(edge.target_id) is not None):
-                graph.add_edge(edge.source_id, edge.target_id,
-                              "keep_together", priority="soft")
+            if (
+                graph.get_node(edge.source_id) is not None
+                and graph.get_node(edge.target_id) is not None
+            ):
+                graph.add_edge(
+                    edge.source_id, edge.target_id, "keep_together", priority="soft"
+                )
 
     # Infer figure-caption constraints
     figures = doc_graph.get_nodes_by_type(NodeType.FIGURE)
@@ -783,26 +924,41 @@ def build_constraint_graph_from_document(graph, doc_graph) -> ConstraintGraph:
             if e.edge_type == EdgeType.CAPTION_OF:
                 target = doc_graph.get_node(e.target_id)
                 if target and target.node_type == NodeType.CAPTION:
-                    graph.add_edge(fig.id, target.id,
-                                  "must_below", priority="hard", gap=3.0)
+                    graph.add_edge(
+                        fig.id, target.id, "must_below", priority="hard", gap=3.0
+                    )
 
     return graph
 
 
 def _map_node_type(nt) -> str:
     mapping = {
-        "paragraph": "paragraph", "heading": "heading", "caption": "caption",
-        "figure": "figure", "table": "table", "formula": "equation",
-        "footer": "footer", "header": "header", "footnote": "footnote",
-        "reference": "reference", "abstract": "abstract",
-        "code": "code", "list": "list", "toc": "toc",
+        "paragraph": "paragraph",
+        "heading": "heading",
+        "caption": "caption",
+        "figure": "figure",
+        "table": "table",
+        "formula": "equation",
+        "footer": "footer",
+        "header": "header",
+        "footnote": "footnote",
+        "reference": "reference",
+        "abstract": "abstract",
+        "code": "code",
+        "list": "list",
+        "toc": "toc",
     }
-    name = nt.value if hasattr(nt, 'value') else str(nt).lower()
+    name = nt.value if hasattr(nt, "value") else str(nt).lower()
     return mapping.get(name, "paragraph")
 
 
 __all__ = [
-    "ConstraintPriority", "ConstraintRelation", "ConstraintEdge",
-    "LayoutNode", "ConstraintGraph", "ConstraintSolver", "KiwiSolver",
+    "ConstraintPriority",
+    "ConstraintRelation",
+    "ConstraintEdge",
+    "LayoutNode",
+    "ConstraintGraph",
+    "ConstraintSolver",
+    "KiwiSolver",
     "build_constraint_graph_from_document",
 ]

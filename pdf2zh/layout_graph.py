@@ -5,6 +5,7 @@ Builds a directed acyclic graph (DAG) of text blocks on each page
 and performs topological sort to determine correct reading order,
 handling multi-column layouts and complex document structures.
 """
+
 import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TextNode:
     """A text block node in the reading-order DAG."""
+
     id: int
     x0: float
     y0: float
@@ -28,6 +30,7 @@ class TextNode:
 @dataclass
 class LayoutGraph:
     """DAG representing the reading order of text blocks on a page."""
+
     nodes: List[TextNode] = field(default_factory=list)
     edges: Dict[int, List[int]] = field(default_factory=dict)
 
@@ -75,7 +78,9 @@ class LayoutGraph:
 
         # If cycle detected, fall back to spatial sort
         if len(sorted_ids) != len(self.nodes):
-            logger.warning("Cycle detected in reading order DAG; falling back to spatial sort")
+            logger.warning(
+                "Cycle detected in reading order DAG; falling back to spatial sort"
+            )
             return self._spatial_sort()
 
         node_map = {n.id: n for n in self.nodes}
@@ -128,10 +133,7 @@ class LayoutGraph:
             return 1
 
         # Count gaps in x-projection
-        x_intervals = sorted(
-            [(n.x0, n.x1) for n in self.nodes],
-            key=lambda x: x[0]
-        )
+        x_intervals = sorted([(n.x0, n.x1) for n in self.nodes], key=lambda x: x[0])
 
         # Merge overlapping intervals
         merged = [list(x_intervals[0])]

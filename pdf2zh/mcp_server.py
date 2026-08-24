@@ -109,15 +109,22 @@ def create_mcp_app() -> FastMCP:
         task_id = svc.submit_task(req)
 
         import time
+
         while True:
             state = svc.get_task_state(task_id)
             if state is None:
                 return "Error: task vanished"
             if state.status == "completed":
-                result = state.result_files[0].get("path", "") if state.result_files else f"Completed (task: {task_id})"
+                result = (
+                    state.result_files[0].get("path", "")
+                    if state.result_files
+                    else f"Completed (task: {task_id})"
+                )
                 if _converted_pdf:
-                    try: os.unlink(_converted_pdf)
-                    except OSError: pass
+                    try:
+                        os.unlink(_converted_pdf)
+                    except OSError:
+                        pass
                 return result
             if state.status == "failed":
                 return f"Failed: {state.error_message or state.message}"
@@ -132,6 +139,7 @@ def create_mcp_app() -> FastMCP:
         Returns JSON summary of pages, headings, paragraphs, figures, etc.
         """
         import json
+
         try:
             from pdf2zh.v3.runtime import RuntimeFacade
         except ImportError:
@@ -140,11 +148,15 @@ def create_mcp_app() -> FastMCP:
             rt = RuntimeFacade()
             rt.load(file)
             rt.analyze()
-            summary = {"file": file, "pages": len(rt.graph.pages) if hasattr(rt.graph, 'pages') else 0, "status": "analyzed"}
-            if hasattr(rt.graph, 'nodes'):
+            summary = {
+                "file": file,
+                "pages": len(rt.graph.pages) if hasattr(rt.graph, "pages") else 0,
+                "status": "analyzed",
+            }
+            if hasattr(rt.graph, "nodes"):
                 counts = {}
                 for node in rt.graph.nodes:
-                    t = getattr(node, 'type', 'unknown')
+                    t = getattr(node, "type", "unknown")
                     counts[t] = counts.get(t, 0) + 1
                 summary["node_counts"] = counts
             return json.dumps(summary, indent=2)
@@ -155,12 +167,20 @@ def create_mcp_app() -> FastMCP:
     async def get_document_diagnostics(file: str) -> str:
         """Get translation quality diagnostics and evaluation scores."""
         import json
+
         diagnostic = {"file": file, "status": "not_evaluated"}
         try:
             from pdf2zh.v3.evaluator import Evaluator
+
             ev = Evaluator()
             result = ev.evaluate(file)
-            diagnostic.update({"status": "evaluated", "quality_scores": result.get("scores", {}), "issues": result.get("issues", [])})
+            diagnostic.update(
+                {
+                    "status": "evaluated",
+                    "quality_scores": result.get("scores", {}),
+                    "issues": result.get("issues", []),
+                }
+            )
         except ImportError:
             pass
         return json.dumps(diagnostic, indent=2)

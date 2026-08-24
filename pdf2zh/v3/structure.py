@@ -22,6 +22,7 @@ Usage::
             print(role.value, round(conf, 2), para.text[:40])
     ir = to_document_ir(pages)          # → DocumentIR（可 to_json 快照）
 """
+
 from __future__ import annotations
 
 import re
@@ -31,7 +32,11 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from pdf2zh.v3.geometry import PageGeometry, Paragraph
 from pdf2zh.v3.document_ir import (
-    DocumentIR, ReadingRole, RenderingRole, SemanticRole, TranslationRole,
+    DocumentIR,
+    ReadingRole,
+    RenderingRole,
+    SemanticRole,
+    TranslationRole,
 )
 
 # ── 角色枚举 ──────────────────────────────────────────────────────────────
@@ -74,8 +79,8 @@ _SEMANTIC_BY_ROLE = {
 # ── 正则特征 ──────────────────────────────────────────────────────────────
 
 _RE_CAPTION = re.compile(
-    r"^\s*(?:Fig(?:ure)?|Fig\.?|Table|Tab\.?|Tab|图|表|图\s|表\s)"
-    r"[\s.:]?\s*\d+", re.IGNORECASE,
+    r"^\s*(?:Fig(?:ure)?|Fig\.?|Table|Tab\.?|Tab|图|表|图\s|表\s)" r"[\s.:]?\s*\d+",
+    re.IGNORECASE,
 )
 _RE_HEADING_NUM = re.compile(
     r"^(?:\d+(?:\.\d+)*|[A-Z](?:\.\d+)*|[IVXLC]+\.?|\d+[.)])\s+",
@@ -86,7 +91,9 @@ _RE_FOOTNOTE_MARK = re.compile(
     r"^(?:[†‡§¶*•◦◊○●][\s\d]|\d{1,3}[ .)]\s?)",
 )
 _RE_MATH_SYMBOL = re.compile(r"[\+\-*/=^_{}<>()~]")
-_RE_CITATION = re.compile(r"\[\d+[,\]–-]?|^\s*(?:参考文献|References?|Bibliography)\s*$", re.IGNORECASE)
+_RE_CITATION = re.compile(
+    r"\[\d+[,\]–-]?|^\s*(?:参考文献|References?|Bibliography)\s*$", re.IGNORECASE
+)
 _RE_LEADER = re.compile(r"(?:[.·…‥][\s.·…‥]*){2,}\s*\d{1,4}\s*$")
 _RE_DIGIT = re.compile(r"\d")
 _RE_PUNCT = re.compile(r"[^\w\s]")
@@ -120,8 +127,10 @@ class BlockFeatures:
     text: str = ""
 
     def to_dict(self) -> dict:
-        return {k: round(v, 4) if isinstance(v, float) else v
-                for k, v in self.__dict__.items()}
+        return {
+            k: round(v, 4) if isinstance(v, float) else v
+            for k, v in self.__dict__.items()
+        }
 
 
 @dataclass
@@ -136,15 +145,24 @@ class ClassifiedBlock:
 
 def _weight_from_font(font: str) -> float:
     low = (font or "").lower()
-    for token, w in (("black", 1.0), ("heavy", 1.0), ("bold", 0.9),
-                     ("demibold", 0.75), ("semibold", 0.7), ("medium", 0.5)):
+    for token, w in (
+        ("black", 1.0),
+        ("heavy", 1.0),
+        ("bold", 0.9),
+        ("demibold", 0.75),
+        ("semibold", 0.7),
+        ("medium", 0.5),
+    ):
         if token in low:
             return w
     return 0.0
 
 
-def compute_features(para: Paragraph, page: Optional[PageGeometry] = None,
-                     body_font_size: Optional[float] = None) -> BlockFeatures:
+def compute_features(
+    para: Paragraph,
+    page: Optional[PageGeometry] = None,
+    body_font_size: Optional[float] = None,
+) -> BlockFeatures:
     """计算 Paragraph 的特征向量（阶段三特征清单的数值化）。"""
     text = para.text
     total = max(len(text), 1)
@@ -155,8 +173,11 @@ def compute_features(para: Paragraph, page: Optional[PageGeometry] = None,
     sizes = [l.size for l in para.lines]
     f = BlockFeatures(
         font_size=max(sizes) if sizes else 0.0,
-        weight_est=max(_weight_from_font(l.words[0].font) for l in para.lines
-                       if l.words) if para.lines else 0.0,
+        weight_est=(
+            max(_weight_from_font(l.words[0].font) for l in para.lines if l.words)
+            if para.lines
+            else 0.0
+        ),
         indent=para.first_line_indent,
         alignment=para.alignment,
         line_count=para.line_count,
@@ -189,9 +210,12 @@ class StructureClassifier:
     全部不命中则归为 BODY_TEXT（正文为默认角色，与路线图一致）。
     """
 
-    def __init__(self, header_footer_margin: float = 0.06,
-                 heading_font_ratio: float = 1.15,
-                 body_font_size: Optional[float] = None) -> None:
+    def __init__(
+        self,
+        header_footer_margin: float = 0.06,
+        heading_font_ratio: float = 1.15,
+        body_font_size: Optional[float] = None,
+    ) -> None:
         self.header_footer_margin = header_footer_margin
         self.heading_font_ratio = heading_font_ratio
         self._body_font_size = body_font_size
@@ -211,34 +235,54 @@ class StructureClassifier:
 
     # ── 分类 ────────────────────────────────────────────────────────
 
-    def classify_page(self, page: PageGeometry,
-                      body_font_size: Optional[float] = None,
-                      order: Optional[Sequence[int]] = None) -> List[ClassifiedBlock]:
-        body = body_font_size or self._body_font_size or self.estimate_body_font_size([page])
-        paras = page.reading_order() if order is None else [page.paragraphs[i] for i in order]
-        return [self.classify_paragraph(p, page=page, body_font_size=body)
-                for p in paras]
+    def classify_page(
+        self,
+        page: PageGeometry,
+        body_font_size: Optional[float] = None,
+        order: Optional[Sequence[int]] = None,
+    ) -> List[ClassifiedBlock]:
+        body = (
+            body_font_size
+            or self._body_font_size
+            or self.estimate_body_font_size([page])
+        )
+        paras = (
+            page.reading_order()
+            if order is None
+            else [page.paragraphs[i] for i in order]
+        )
+        return [
+            self.classify_paragraph(p, page=page, body_font_size=body) for p in paras
+        ]
 
-    def classify_paragraph(self, para: Paragraph, page: Optional[PageGeometry] = None,
-                           body_font_size: Optional[float] = None) -> ClassifiedBlock:
-        f = compute_features(para, page=page,
-                             body_font_size=body_font_size or self._body_font_size)
+    def classify_paragraph(
+        self,
+        para: Paragraph,
+        page: Optional[PageGeometry] = None,
+        body_font_size: Optional[float] = None,
+    ) -> ClassifiedBlock:
+        f = compute_features(
+            para, page=page, body_font_size=body_font_size or self._body_font_size
+        )
         has_page_context = page is not None and len(page.paragraphs) >= 3
         role, conf = self._decide(para, f, has_page_context)
         return ClassifiedBlock(paragraph=para, role=role, confidence=conf, features=f)
 
-    def _decide(self, para: Paragraph, f: BlockFeatures,
-                has_page_context: bool) -> Tuple[BlockRole, float]:
+    def _decide(
+        self, para: Paragraph, f: BlockFeatures, has_page_context: bool
+    ) -> Tuple[BlockRole, float]:
         text = f.text.strip()
         if not text:
             return BlockRole.UNKNOWN, 0.0
 
         # 1. 页码：纯数字或罗马数字（位于页边缘时置信度更高）
-        if (_RE_PAGE_NUM.match(text) and len(text) <= 6) or \
-                (_RE_ROMAN_PAGE.match(text) and len(text) <= 8):
-            if has_page_context and \
-                    (f.position_bottom <= self.header_footer_margin or
-                     f.position_top <= self.header_footer_margin):
+        if (_RE_PAGE_NUM.match(text) and len(text) <= 6) or (
+            _RE_ROMAN_PAGE.match(text) and len(text) <= 8
+        ):
+            if has_page_context and (
+                f.position_bottom <= self.header_footer_margin
+                or f.position_top <= self.header_footer_margin
+            ):
                 return BlockRole.PAGE_NUMBER, 0.95
             return BlockRole.PAGE_NUMBER, 0.7
 
@@ -252,13 +296,19 @@ class StructureClassifier:
 
         # 4. 公式：数学符号密度（连续公式行 / 公式表达式）
         if _RE_FORMULA_SYMBOLS.match(text) or (
-                sum(1 for _ in _RE_MATH_SYMBOL.finditer(text)) >= 2 and
-                sum(1 for c in text if c.isalnum()) / max(len(text), 1) < 0.85):
+            sum(1 for _ in _RE_MATH_SYMBOL.finditer(text)) >= 2
+            and sum(1 for c in text if c.isalnum()) / max(len(text), 1) < 0.85
+        ):
             return BlockRole.FORMULA, 0.9
 
         # 5. 脚注：脚注标记开头 + 字号小于正文（标记可为 † 等符号或数字标记）
-        if f.line_count <= 1 and len(text) <= 400 and _RE_FOOTNOTE_MARK.match(text) and \
-                f.spacing_ratio and f.spacing_ratio < 0.92:
+        if (
+            f.line_count <= 1
+            and len(text) <= 400
+            and _RE_FOOTNOTE_MARK.match(text)
+            and f.spacing_ratio
+            and f.spacing_ratio < 0.92
+        ):
             return BlockRole.FOOTNOTE, 0.8
 
         # 6. 标题：字号 > 正文基准 × ratio，或带节编号且行数少
@@ -276,8 +326,11 @@ class StructureClassifier:
                 return BlockRole.FOOTER, 0.85
 
         # 8. 引用/参考文献节标题
-        if _RE_CITATION.match(text) and f.line_count <= 1 and \
-                text.startswith(("[", "References", "Bibliography", "参考文献")):
+        if (
+            _RE_CITATION.match(text)
+            and f.line_count <= 1
+            and text.startswith(("[", "References", "Bibliography", "参考文献"))
+        ):
             return BlockRole.CITATION, 0.85
 
         # 9. 默认正文
@@ -287,10 +340,13 @@ class StructureClassifier:
 # ── Document IR 升级（阶段一消费端） ─────────────────────────────────────
 
 
-def to_document_ir(pages: Sequence[PageGeometry],
-                   classifier: Optional[StructureClassifier] = None,
-                   title: str = "", source_lang: str = "en",
-                   target_lang: str = "zh-cn") -> DocumentIR:
+def to_document_ir(
+    pages: Sequence[PageGeometry],
+    classifier: Optional[StructureClassifier] = None,
+    title: str = "",
+    source_lang: str = "en",
+    target_lang: str = "zh-cn",
+) -> DocumentIR:
     """把多页几何模型 + 结构分类升级为 DocumentIR（阶段一消费端）。
 
     - 每页一个 Section 容器（ReadingRole.MAIN_FLOW）
@@ -302,10 +358,14 @@ def to_document_ir(pages: Sequence[PageGeometry],
     ir = DocumentIR(title=title, source_lang=source_lang, target_lang=target_lang)
     for page in pages:
         page_id = f"page_{page.page_num}"
-        ir.add_node(page_id, semantic=SemanticRole.SECTION,
-                    reading=ReadingRole.MAIN_FLOW,
-                    rendering=RenderingRole.BLOCK,
-                    text=f"Page {page.page_num + 1}", page_num=page.page_num)
+        ir.add_node(
+            page_id,
+            semantic=SemanticRole.SECTION,
+            reading=ReadingRole.MAIN_FLOW,
+            rendering=RenderingRole.BLOCK,
+            text=f"Page {page.page_num + 1}",
+            page_num=page.page_num,
+        )
         for para in page.reading_order():
             block = clf.classify_paragraph(para, page=page, body_font_size=body)
             nid = f"p{page.page_num}_{len(ir.get_node(page_id).children)}"
@@ -350,6 +410,10 @@ _RENDERING_BY_SEM = {
 
 
 __all__ = [
-    "BlockRole", "BlockFeatures", "ClassifiedBlock",
-    "compute_features", "StructureClassifier", "to_document_ir",
+    "BlockRole",
+    "BlockFeatures",
+    "ClassifiedBlock",
+    "compute_features",
+    "StructureClassifier",
+    "to_document_ir",
 ]

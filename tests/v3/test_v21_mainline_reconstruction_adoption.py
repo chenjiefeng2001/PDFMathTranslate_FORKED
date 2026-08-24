@@ -16,6 +16,7 @@
 Run with:
     python -m pytest tests/v3/test_v21_mainline_reconstruction_adoption.py -v
 """
+
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -36,8 +37,8 @@ from pdf2zh.layout.solver import SolvedUnit
 from pdf2zh.layout.inline_layout import TranslationUnit
 from pdf2zh.geometry.paragraph import LogicalParagraph
 
-
 # ── 测试辅助 ──────────────────────────────────────────────────────
+
 
 def make_result(page_id, texts, bbox_base=100.0):
     """由语义文本列表构造 ReconstructionResult（solved/paragraphs 平行数组）。"""
@@ -46,27 +47,45 @@ def make_result(page_id, texts, bbox_base=100.0):
         y = bbox_base - i * 20.0
         bb = (50.0, y, 550.0, y + 16.0)
         unit = TranslationUnit(
-            unit_id=f"u{i}", page_id=page_id,
-            source_text_with_anchors=t, source_bbox=bb,
+            unit_id=f"u{i}",
+            page_id=page_id,
+            source_text_with_anchors=t,
+            source_bbox=bb,
         )
         result.translation_units.append(unit)
-        result.solved_units.append(SolvedUnit(
-            unit_id=f"u{i}", source_bbox=bb, translated_bbox=bb,
-            render_bbox=bb, font_size=12.0, line_count=1,
-        ))
-        result.paragraphs.append(LogicalParagraph(
-            paragraph_id=f"p{i}", page_id=page_id, bbox=bb,
-        ))
+        result.solved_units.append(
+            SolvedUnit(
+                unit_id=f"u{i}",
+                source_bbox=bb,
+                translated_bbox=bb,
+                render_bbox=bb,
+                font_size=12.0,
+                line_count=1,
+            )
+        )
+        result.paragraphs.append(
+            LogicalParagraph(
+                paragraph_id=f"p{i}",
+                page_id=page_id,
+                bbox=bb,
+            )
+        )
     result.paragraph_count = len(texts)
     return result
 
 
 def make_pstk(n, base_y=100.0):
     return [
-        SimpleNamespace(x=50.0, y=base_y - i * 16.0,
-                        x0=50.0, x1=550.0,
-                        y0=base_y - i * 16.0, y1=base_y - i * 16.0 + 16.0,
-                        size=12.0, brk=(i == n - 1))
+        SimpleNamespace(
+            x=50.0,
+            y=base_y - i * 16.0,
+            x0=50.0,
+            x1=550.0,
+            y0=base_y - i * 16.0,
+            y1=base_y - i * 16.0 + 16.0,
+            size=12.0,
+            brk=(i == n - 1),
+        )
         for i in range(n)
     ]
 
@@ -86,8 +105,15 @@ def make_char(x, y, text="A", size=12.0, fontname="Helvetica"):
     font.fontname = fontname
     font.get_descent.return_value = -0.25
     ch = LTChar(
-        (1, 0, 0, 1, x, y), font, size, 1.0, 0.0, text,
-        textwidth=0.5, textdisp=(0.0, 0.0), ncs=Mock(),
+        (1, 0, 0, 1, x, y),
+        font,
+        size,
+        1.0,
+        0.0,
+        text,
+        textwidth=0.5,
+        textdisp=(0.0, 0.0),
+        ncs=Mock(),
         graphicstate=Mock(),
     )
     ch.cid = ord(text[0])
@@ -106,18 +132,21 @@ def make_layout(shape=(800, 600), default=3.0):
 
 # ── 归一化 ─────────────────────────────────────────────────────────
 
+
 class TestNormalizeFormulaTokens(unittest.TestCase):
     def test_legacy_formula(self):
-        self.assertEqual(normalize_formula_tokens("Let {v0} be"),
-                         "Let {formula} be")
+        self.assertEqual(normalize_formula_tokens("Let {v0} be"), "Let {formula} be")
 
     def test_anchor_formula(self):
-        self.assertEqual(normalize_formula_tokens("Let <formula_0> be"),
-                         "Let {formula} be")
+        self.assertEqual(
+            normalize_formula_tokens("Let <formula_0> be"), "Let {formula} be"
+        )
 
     def test_mixed(self):
-        self.assertEqual(normalize_formula_tokens("a {v1} b <formula_2> c"),
-                         "a {formula} b {formula} c")
+        self.assertEqual(
+            normalize_formula_tokens("a {v1} b <formula_2> c"),
+            "a {formula} b {formula} c",
+        )
 
     def test_whitespace_collapse(self):
         self.assertEqual(normalize_formula_tokens("a\n b   c"), "a b c")
@@ -128,27 +157,30 @@ class TestNormalizeFormulaTokens(unittest.TestCase):
 
 # ── 配对 ───────────────────────────────────────────────────────────
 
+
 class TestPairing(unittest.TestCase):
     def test_level1(self):
-        self.assertEqual(pair_legacy_to_reconstructed(["A", "B"], ["A", "B"]),
-                         [(0, 0, 0), (1, 1, 1)])
+        self.assertEqual(
+            pair_legacy_to_reconstructed(["A", "B"], ["A", "B"]), [(0, 0, 0), (1, 1, 1)]
+        )
 
     def test_level2_merge(self):
-        self.assertEqual(pair_legacy_to_reconstructed(["Let", " x be"], ["Let x be"]),
-                         [(0, 1, 0)])
+        self.assertEqual(
+            pair_legacy_to_reconstructed(["Let", " x be"], ["Let x be"]), [(0, 1, 0)]
+        )
 
     def test_formula_placeholder_match(self):
         self.assertEqual(
             pair_legacy_to_reconstructed(["Let {v0} be"], ["Let <formula_0> be"]),
-            [(0, 0, 0)])
+            [(0, 0, 0)],
+        )
 
     def test_mismatch(self):
         self.assertIsNone(pair_legacy_to_reconstructed(["A", "B"], ["X"]))
 
     def test_recon_splits_into_more_reverse_merge(self):
         # P5 把一段拆成多段 → 反向合并接管（字符序列一致；原契约整体回退已废弃）
-        self.assertEqual(pair_legacy_to_reconstructed(["A B"], ["A", "B"]),
-                         [(0, 0, 0)])
+        self.assertEqual(pair_legacy_to_reconstructed(["A B"], ["A", "B"]), [(0, 0, 0)])
 
     def test_empty(self):
         self.assertIsNone(pair_legacy_to_reconstructed([], ["A"]))
@@ -156,11 +188,13 @@ class TestPairing(unittest.TestCase):
 
     def test_merge_with_formula(self):
         pairs = pair_legacy_to_reconstructed(
-            ["Let {v0}", " go"], ["Let <formula_0> go"])
+            ["Let {v0}", " go"], ["Let <formula_0> go"]
+        )
         self.assertEqual(pairs, [(0, 1, 0)])
 
 
 # ── 接管（单元级）──────────────────────────────────────────────────
+
 
 class TestAdoptReconstructionCluster(unittest.TestCase):
     def test_level1_keeps_sstk_replaces_geometry(self):
@@ -172,7 +206,8 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         result = make_result(0, ["Let <formula_0> be"])
         conv = make_conv(0, result)
         report = adopt_reconstruction_cluster(
-            conv, page, sstk, pstk, [], [], [], [], toc_track, pfkstk)
+            conv, page, sstk, pstk, [], [], [], [], toc_track, pfkstk
+        )
         self.assertTrue(report["adopted"])
         self.assertEqual(report["level"], 1)
         # sstk 保持 legacy（公式占位符原样 → 旧 {vN} 机制逐字形还原）
@@ -182,26 +217,27 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         self.assertAlmostEqual(pstk[0].x1, 550.0)
         self.assertAlmostEqual(pstk[0].y0, 100.0)
         self.assertAlmostEqual(pstk[0].y1, 116.0)
-        self.assertTrue(pstk[0].brk)     # 保持 legacy brk
+        self.assertTrue(pstk[0].brk)  # 保持 legacy brk
         self.assertEqual(toc_track, [[]])
         self.assertEqual(pfkstk, [{"F1"}])
 
     def test_level2_merges_paragraphs(self):
         page = SimpleNamespace(pageid=0)
-        sstk = ["Let", " x be"]          # 多字体割裂的两个 legacy 段
+        sstk = ["Let", " x be"]  # 多字体割裂的两个 legacy 段
         pstk = make_pstk(2)
         toc_track = [[], []]
         pfkstk = [{"F1"}, {"F2"}]
-        result = make_result(0, ["Let x be"])   # P5 重建合并为一个自然段
+        result = make_result(0, ["Let x be"])  # P5 重建合并为一个自然段
         conv = make_conv(0, result)
         report = adopt_reconstruction_cluster(
-            conv, page, sstk, pstk, [], [], [], [], toc_track, pfkstk)
+            conv, page, sstk, pstk, [], [], [], [], toc_track, pfkstk
+        )
         self.assertTrue(report["adopted"])
         self.assertEqual(report["level"], 2)
         self.assertEqual(report["merged_paragraphs"], 1)
         self.assertEqual(sstk, ["Let x be"])
         self.assertEqual(len(pstk), 1)
-        self.assertTrue(pstk[0].brk)     # 取最后一段 brk
+        self.assertTrue(pstk[0].brk)  # 取最后一段 brk
         self.assertEqual(toc_track, [[]])
         self.assertEqual(pfkstk, [{"F1", "F2"}])
 
@@ -211,15 +247,20 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         sstk = ["Chapter 1 Introduction .... 5"]
         pstk = make_pstk(1)
         pstk[0].brk = False
-        toc_track = [[
-            (".", 480.0, 486.0), (".", 486.0, 492.0),
-            (".", 492.0, 498.0), (".", 498.0, 504.0),
-            ("5", 510.0, 516.0),
-        ]]
+        toc_track = [
+            [
+                (".", 480.0, 486.0),
+                (".", 486.0, 492.0),
+                (".", 492.0, 498.0),
+                (".", 498.0, 504.0),
+                ("5", 510.0, 516.0),
+            ]
+        ]
         result = make_result(0, ["Chapter 1 Introduction .... 5"])
         conv = make_conv(0, result)
         report = adopt_reconstruction_cluster(
-            conv, page, sstk, pstk, [], [], [], [], toc_track, [set()])
+            conv, page, sstk, pstk, [], [], [], [], toc_track, [set()]
+        )
         self.assertFalse(report["adopted"])
         self.assertEqual(report["reason"], "toc_present")
         self.assertEqual(sstk, ["Chapter 1 Introduction .... 5"])
@@ -228,18 +269,25 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         """P1 精判修复：正文页含页码/年份数字（track 有数字）不是目录行，
         不得因旧判据 ``any(toc_track[t])`` 误判 toc_present 而回退。"""
         page = SimpleNamespace(pageid=0, width=600.0)
-        sstk = ["Vol. 11 (1989), 263-282"]           # 正文末尾含年份/页码范围
+        sstk = ["Vol. 11 (1989), 263-282"]  # 正文末尾含年份/页码范围
         pstk = make_pstk(1)
-        toc_track = [[
-            ("1", 200.0, 208.0), ("1", 220.0, 228.0),
-            ("2", 400.0, 408.0), ("6", 420.0, 428.0),
-            ("3", 500.0, 508.0), ("2", 510.0, 518.0),
-            ("8", 520.0, 528.0), ("2", 530.0, 538.0),
-        ]]
+        toc_track = [
+            [
+                ("1", 200.0, 208.0),
+                ("1", 220.0, 228.0),
+                ("2", 400.0, 408.0),
+                ("6", 420.0, 428.0),
+                ("3", 500.0, 508.0),
+                ("2", 510.0, 518.0),
+                ("8", 520.0, 528.0),
+                ("2", 530.0, 538.0),
+            ]
+        ]
         result = make_result(0, ["Vol. 11 (1989), 263-282"])
         conv = make_conv(0, result)
         report = adopt_reconstruction_cluster(
-            conv, page, sstk, pstk, [], [], [], [], toc_track, [set()])
+            conv, page, sstk, pstk, [], [], [], [], toc_track, [set()]
+        )
         self.assertTrue(report["adopted"])
 
     def test_text_mismatch_fallback(self):
@@ -251,7 +299,8 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         conv = make_conv(0, result)
         before = (pstk[0].x0, pstk[0].y0)
         report = adopt_reconstruction_cluster(
-            conv, page, sstk, pstk, [], [], [], [], toc_track, [set()])
+            conv, page, sstk, pstk, [], [], [], [], toc_track, [set()]
+        )
         self.assertFalse(report["adopted"])
         self.assertEqual(report["reason"], "text_mismatch")
         self.assertEqual(sstk, ["A"])
@@ -262,7 +311,8 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         conv = make_conv(0, make_result(0, ["A"]))
         conv.reconstruction_channel = False
         report = adopt_reconstruction_cluster(
-            conv, page, ["A"], make_pstk(1), [], [], [], [], [[]], [set()])
+            conv, page, ["A"], make_pstk(1), [], [], [], [], [[]], [set()]
+        )
         self.assertFalse(report["adopted"])
         self.assertEqual(report["reason"], "adopt_disabled")
 
@@ -270,7 +320,8 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         page = SimpleNamespace(pageid=0)
         conv = make_conv(0, make_result(0, ["A"]), adopted=False)
         report = adopt_reconstruction_cluster(
-            conv, page, ["A"], make_pstk(1), [], [], [], [], [[]], [set()])
+            conv, page, ["A"], make_pstk(1), [], [], [], [], [[]], [set()]
+        )
         self.assertFalse(report["adopted"])
         self.assertEqual(report["reason"], "reconstruction_adopt_disabled")
 
@@ -278,21 +329,24 @@ class TestAdoptReconstructionCluster(unittest.TestCase):
         page = SimpleNamespace(pageid=0)
         conv = make_conv(0, None)
         report = adopt_reconstruction_cluster(
-            conv, page, ["A"], make_pstk(1), [], [], [], [], [[]], [set()])
+            conv, page, ["A"], make_pstk(1), [], [], [], [], [[]], [set()]
+        )
         self.assertFalse(report["adopted"])
         self.assertEqual(report["reason"], "no_reconstruction_result")
 
 
 # ── render_source 标注 ─────────────────────────────────────────────
 
+
 class TestRenderSourceMarking(unittest.TestCase):
     def test_reconstructed_when_adopted(self):
         conv = Mock()
         conv.reconstruction_records = {0: {"page_id": 0}}
         conv.reconstruction_adoptions = {
-            0: {"adopted": True, "level": 2, "merged_paragraphs": 1}}
+            0: {"adopted": True, "level": 2, "merged_paragraphs": 1}
+        }
         page = SimpleNamespace(pageid=0)
-        run_reconstruction_channel(conv, page)   # 幂等分支：只标注不重算
+        run_reconstruction_channel(conv, page)  # 幂等分支：只标注不重算
         rec = conv.reconstruction_records[0]
         self.assertEqual(rec["render_source"], "reconstructed")
         self.assertEqual(rec["render_consumer"], "legacy_renderer")
@@ -302,7 +356,8 @@ class TestRenderSourceMarking(unittest.TestCase):
         conv = Mock()
         conv.reconstruction_records = {0: {"page_id": 0}}
         conv.reconstruction_adoptions = {
-            0: {"adopted": False, "reason": "text_mismatch"}}
+            0: {"adopted": False, "reason": "text_mismatch"}
+        }
         page = SimpleNamespace(pageid=0)
         run_reconstruction_channel(conv, page)
         rec = conv.reconstruction_records[0]
@@ -313,13 +368,16 @@ class TestRenderSourceMarking(unittest.TestCase):
 
 # ── e2e：receive_layout 真实页面 ───────────────────────────────────
 
+
 class TestMainlineReconstructionAdoption(unittest.TestCase):
     def build_converter(self, page):
         rsrcmgr = PDFResourceManager()
         conv = TranslateConverter(
             rsrcmgr,
             layout={page.pageid: make_layout()},
-            lang_in="en", lang_out="zh-CN", service="google",
+            lang_in="en",
+            lang_out="zh-CN",
+            service="google",
         )
         conv.thread = 1
         conv.noto_name = "noto"
@@ -331,6 +389,7 @@ class TestMainlineReconstructionAdoption(unittest.TestCase):
         conv.fontid = {}
         conv.text_metrics = {}
         from pdf2zh.collision_resolver import CollisionResolver
+
         conv.collision_resolver = CollisionResolver()
         translator = Mock()
         translator.translate = Mock(side_effect=lambda s: "译文")
@@ -380,6 +439,3 @@ class TestMainlineReconstructionAdoption(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-

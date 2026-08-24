@@ -8,6 +8,7 @@
 - 语言族回退（zh / cht / en / 未知 → en 恒等）
 - compose_toc_title 恒等契约（None / PLAIN → 原样返回）
 """
+
 import unittest
 
 from pdf2zh.v3.toc_semantics import (

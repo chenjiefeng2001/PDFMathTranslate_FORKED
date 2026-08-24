@@ -139,7 +139,9 @@ class GraphTraversal:
     """
 
     @staticmethod
-    def dfs(start_id: str, out_edges: Callable[[str], Iterable[GraphEdge]]) -> List[str]:
+    def dfs(
+        start_id: str, out_edges: Callable[[str], Iterable[GraphEdge]]
+    ) -> List[str]:
         visited: Set[str] = set()
         order: List[str] = []
 
@@ -155,7 +157,9 @@ class GraphTraversal:
         return order
 
     @staticmethod
-    def bfs(start_id: str, out_edges: Callable[[str], Iterable[GraphEdge]]) -> List[str]:
+    def bfs(
+        start_id: str, out_edges: Callable[[str], Iterable[GraphEdge]]
+    ) -> List[str]:
         from collections import deque
 
         visited = {start_id}
@@ -235,7 +239,7 @@ class GraphTraversal:
                 if e.target_id not in color:
                     continue
                 if color[e.target_id] == GRAY:
-                    return stack[stack.index(e.target_id):] + [e.target_id]
+                    return stack[stack.index(e.target_id) :] + [e.target_id]
                 if color[e.target_id] == WHITE:
                     cyc = _visit(e.target_id)
                     if cyc:
@@ -318,15 +322,21 @@ class GraphDiff:
 
     @property
     def is_empty(self) -> bool:
-        return not (self.added_nodes or self.removed_nodes or self.updated_nodes
-                    or self.added_edges or self.removed_edges)
+        return not (
+            self.added_nodes
+            or self.removed_nodes
+            or self.updated_nodes
+            or self.added_edges
+            or self.removed_edges
+        )
 
     def to_dict(self) -> dict:
         return {
             "added_nodes": [n.to_dict() for n in self.added_nodes],
             "removed_nodes": [n.to_dict() for n in self.removed_nodes],
-            "updated_nodes": [{"id": nid, "properties": props}
-                              for nid, props in self.updated_nodes],
+            "updated_nodes": [
+                {"id": nid, "properties": props} for nid, props in self.updated_nodes
+            ],
             "added_edges": [e.to_dict() for e in self.added_edges],
             "removed_edges": [e.to_dict() for e in self.removed_edges],
         }
@@ -345,9 +355,14 @@ class GraphDiff:
 class GraphSnapshot:
     """A serializable point-in-time snapshot of a unified graph."""
 
-    def __init__(self, kind: GraphKind, name: str, data: dict,
-                 created_at: Optional[float] = None,
-                 snapshot_id: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        kind: GraphKind,
+        name: str,
+        data: dict,
+        created_at: Optional[float] = None,
+        snapshot_id: Optional[str] = None,
+    ) -> None:
         self.kind = kind
         self.name = name
         self.data = data
@@ -424,8 +439,9 @@ class BaseGraph:
     def remove_node(self, node_id: str) -> bool:
         if node_id not in self._nodes:
             return False
-        self._edges = [e for e in self._edges
-                       if e.source_id != node_id and e.target_id != node_id]
+        self._edges = [
+            e for e in self._edges if e.source_id != node_id and e.target_id != node_id
+        ]
         self._nodes.pop(node_id, None)
         self._out.pop(node_id, None)
         self._in.pop(node_id, None)
@@ -463,13 +479,17 @@ class BaseGraph:
         self._in.setdefault(edge.target_id, []).append(edge)
         return self
 
-    def remove_edge(self, source_id: str, target_id: str,
-                    relation: Optional[str] = None) -> int:
+    def remove_edge(
+        self, source_id: str, target_id: str, relation: Optional[str] = None
+    ) -> int:
         removed = 0
         remaining = []
         for e in self._edges:
-            if e.source_id == source_id and e.target_id == target_id and (
-                    relation is None or e.relation == relation):
+            if (
+                e.source_id == source_id
+                and e.target_id == target_id
+                and (relation is None or e.relation == relation)
+            ):
                 removed += 1
             else:
                 remaining.append(e)
@@ -478,8 +498,9 @@ class BaseGraph:
             self._rebuild_index()
         return removed
 
-    def get_edges(self, source_id: Optional[str] = None,
-                  target_id: Optional[str] = None) -> List[GraphEdge]:
+    def get_edges(
+        self, source_id: Optional[str] = None, target_id: Optional[str] = None
+    ) -> List[GraphEdge]:
         result = []
         for e in self._edges:
             if source_id is not None and e.source_id != source_id:
@@ -536,7 +557,6 @@ class BaseGraph:
     def reachable_from(self, start_id: str) -> Set[str]:
         return GraphTraversal.reachable([start_id], self.out_edges)
 
-
     # ── Graph algebra ──────────────────────────────────────────────────
 
     def clone(self) -> "BaseGraph":
@@ -546,13 +566,24 @@ class BaseGraph:
         merged = self.clone()
         for n in other.nodes:
             if not merged.has_node(n.id):
-                merged.add_node(GraphNode(id=n.id, kind=n.kind, label=n.label,
-                                          properties=dict(n.properties)))
+                merged.add_node(
+                    GraphNode(
+                        id=n.id,
+                        kind=n.kind,
+                        label=n.label,
+                        properties=dict(n.properties),
+                    )
+                )
         for e in other.edges:
             if merged.has_node(e.source_id) and merged.has_node(e.target_id):
-                merged.add_edge(GraphEdge(source_id=e.source_id, target_id=e.target_id,
-                                          relation=e.relation,
-                                          properties=dict(e.properties)))
+                merged.add_edge(
+                    GraphEdge(
+                        source_id=e.source_id,
+                        target_id=e.target_id,
+                        relation=e.relation,
+                        properties=dict(e.properties),
+                    )
+                )
         return merged
 
     def subgraph(self, node_ids: Iterable[str]) -> "BaseGraph":
@@ -560,12 +591,25 @@ class BaseGraph:
         sub = BaseGraph(kind=self.kind, name=f"{self.name}.sub")
         for n in self._nodes.values():
             if n.id in keep:
-                sub.add_node(GraphNode(id=n.id, kind=n.kind, label=n.label,
-                                       properties=dict(n.properties), version=n.version))
+                sub.add_node(
+                    GraphNode(
+                        id=n.id,
+                        kind=n.kind,
+                        label=n.label,
+                        properties=dict(n.properties),
+                        version=n.version,
+                    )
+                )
         for e in self._edges:
             if e.source_id in keep and e.target_id in keep:
-                sub.add_edge(GraphEdge(source_id=e.source_id, target_id=e.target_id,
-                                       relation=e.relation, properties=dict(e.properties)))
+                sub.add_edge(
+                    GraphEdge(
+                        source_id=e.source_id,
+                        target_id=e.target_id,
+                        relation=e.relation,
+                        properties=dict(e.properties),
+                    )
+                )
         return sub
 
     def clear(self) -> None:
@@ -585,8 +629,9 @@ class BaseGraph:
         }
 
     @classmethod
-    def from_dict(cls, data: dict, kind: Optional[GraphKind] = None,
-                  name: Optional[str] = None) -> "BaseGraph":
+    def from_dict(
+        cls, data: dict, kind: Optional[GraphKind] = None, name: Optional[str] = None
+    ) -> "BaseGraph":
         graph = cls(
             kind=kind or GraphKind(data.get("kind", GraphKind.CUSTOM.value)),
             name=name if name is not None else data.get("name", ""),
@@ -645,15 +690,17 @@ def _edge_parts(edge: Any) -> Optional[Tuple[str, str, str]]:
     relation = getattr(edge, "relation", None)
     if relation is None:
         edge_type = getattr(edge, "edge_type", None)
-        relation = edge_type.value if hasattr(edge_type, "value") else (
-            edge_type if isinstance(edge_type, str) else None)
+        relation = (
+            edge_type.value
+            if hasattr(edge_type, "value")
+            else (edge_type if isinstance(edge_type, str) else None)
+        )
     elif hasattr(relation, "value"):
         relation = relation.value
     return src, tgt, str(relation) if relation else "related"
 
 
-def adapt(graph: Any, kind: Optional[GraphKind] = None,
-          name: str = "") -> BaseGraph:
+def adapt(graph: Any, kind: Optional[GraphKind] = None, name: str = "") -> BaseGraph:
     """Wrap any concrete graph object as a unified BaseGraph view.
 
     Duck-typing rules (zero knowledge of the concrete classes required):
@@ -691,8 +738,11 @@ def adapt(graph: Any, kind: Optional[GraphKind] = None,
         state = getattr(node, "state", None)
         if state is not None:
             props["state"] = state.value if hasattr(state, "value") else str(state)
-        bg.add_node(GraphNode(id=str(nid), kind=selected_kind,
-                              label=str(label), properties=props))
+        bg.add_node(
+            GraphNode(
+                id=str(nid), kind=selected_kind, label=str(label), properties=props
+            )
+        )
 
     edges = getattr(graph, "edges", None)
     if edges is None and hasattr(graph, "get_edges"):
@@ -704,8 +754,11 @@ def adapt(graph: Any, kind: Optional[GraphKind] = None,
         # Graphs storing edges in an internal ``_edges`` dict (ConstraintGraph).
         internal = getattr(graph, "_edges", None)
         if isinstance(internal, dict) and internal:
-            edges = [e for e in internal.values()
-                     if getattr(e, "source_id", None) and getattr(e, "target_id", None)]
+            edges = [
+                e
+                for e in internal.values()
+                if getattr(e, "source_id", None) and getattr(e, "target_id", None)
+            ]
     if edges is None:
         # Synthesize edges from dependency fields (ExecutionGraph etc.).
         edges = []
@@ -713,11 +766,18 @@ def adapt(graph: Any, kind: Optional[GraphKind] = None,
             nid = _node_id_of(node, fallback_key=key)
             if not nid:
                 continue
-            deps = getattr(node, "dependencies", None) or getattr(node, "depends_on", None)
+            deps = getattr(node, "dependencies", None) or getattr(
+                node, "depends_on", None
+            )
             if deps:
                 for dep in deps:
-                    edges.append(GraphEdge(source_id=str(dep), target_id=str(nid),
-                                           relation="depends_on"))
+                    edges.append(
+                        GraphEdge(
+                            source_id=str(dep),
+                            target_id=str(nid),
+                            relation="depends_on",
+                        )
+                    )
     for e in edges:
         parts = _edge_parts(e)
         if parts is None and isinstance(e, GraphEdge):
@@ -750,7 +810,14 @@ def _infer_kind(graph: Any) -> GraphKind:
 
 
 __all__ = [
-    "GraphKind", "GraphNode", "GraphEdge", "GraphProperty",
-    "GraphTraversal", "GraphVisitor", "GraphDiff", "GraphSnapshot",
-    "BaseGraph", "adapt",
+    "GraphKind",
+    "GraphNode",
+    "GraphEdge",
+    "GraphProperty",
+    "GraphTraversal",
+    "GraphVisitor",
+    "GraphDiff",
+    "GraphSnapshot",
+    "BaseGraph",
+    "adapt",
 ]

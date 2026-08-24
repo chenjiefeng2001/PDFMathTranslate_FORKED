@@ -1,5 +1,6 @@
 """Tests for Form XObject text stripping (Background Stream Issue) and
 collision-obstacle injection."""
+
 import io
 import unittest
 
@@ -44,8 +45,7 @@ def build_pdf_with_xobject():
 
     # Page content: line text + invoke the XObject
     content = (
-        b"BT /F1 24 Tf 72 700 Td (Hello World) Tj ET\n"
-        b"q 72 600 200 100 cm /Fm0 Do Q"
+        b"BT /F1 24 Tf 72 700 Td (Hello World) Tj ET\n" b"q 72 600 200 100 cm /Fm0 Do Q"
     )
     content_xref = doc.get_new_xref()
     doc.update_object(content_xref, "<< /Length %d >>" % len(content))
@@ -73,8 +73,19 @@ class TestXObjectStrip(unittest.TestCase):
         self.rsrcmgr = PDFResourceManager()
         self.obj_patch = {}
         self.device = TranslateConverter(
-            self.rsrcmgr, "", "", 1, {}, "en", "zh-cn", "google",
-            "noto", pymupdf.Font("helv"), {}, None, False,
+            self.rsrcmgr,
+            "",
+            "",
+            1,
+            {},
+            "en",
+            "zh-cn",
+            "google",
+            "noto",
+            pymupdf.Font("helv"),
+            {},
+            None,
+            False,
             collision_resolver=CollisionResolver(),
         )
         self.device.translator = FakeTranslator()
@@ -90,8 +101,8 @@ class TestXObjectStrip(unittest.TestCase):
         """XObject patch must drop the original Tj operators and keep BT/ET."""
         self.interpreter.process_page(self.page)
         xobj_ops = self.obj_patch.get(self.xobj_xref, "")
-        self.assertIn("ET", xobj_ops)                      # text block kept
-        self.assertNotIn("Original English", xobj_ops)     # original text gone
+        self.assertIn("ET", xobj_ops)  # text block kept
+        self.assertNotIn("Original English", xobj_ops)  # original text gone
         self.assertNotIn("Tj", xobj_ops.replace("TJ", ""))
 
     def test_page_patch_keeps_do(self):

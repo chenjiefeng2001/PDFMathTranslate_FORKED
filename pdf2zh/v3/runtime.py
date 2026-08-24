@@ -42,14 +42,16 @@ class TransactionStatus(Enum):
 @dataclass
 class GraphVersion:
     """A version identifier in the runtime."""
+
     revision_id: str
     timestamp: float
     description: str = ""
     parent_revision: Optional[str] = None
 
     @classmethod
-    def create(cls, description: str = "",
-               parent: Optional[str] = None) -> "GraphVersion":
+    def create(
+        cls, description: str = "", parent: Optional[str] = None
+    ) -> "GraphVersion":
         return cls(
             revision_id=uuid.uuid4().hex[:12],
             timestamp=time.time(),
@@ -61,6 +63,7 @@ class GraphVersion:
 @dataclass
 class ChangeRecord:
     """Record of a single change in a transaction."""
+
     node_id: str
     field: str
     old_value: Any
@@ -83,8 +86,11 @@ class GraphTransaction:
         self._changes: Dict[str, List[ChangeRecord]] = {}
 
     def record_change(
-        self, node_id: str, field: str,
-        old_value: Any, new_value: Any,
+        self,
+        node_id: str,
+        field: str,
+        old_value: Any,
+        new_value: Any,
     ) -> None:
         if self.status != TransactionStatus.ACTIVE:
             raise RuntimeError(
@@ -101,7 +107,8 @@ class GraphTransaction:
             raise RuntimeError(f"Cannot commit {self.status.value} transaction")
         parent = self._runtime._current_version.revision_id
         new_version = GraphVersion.create(
-            description=self.description, parent=parent,
+            description=self.description,
+            parent=parent,
         )
         self._runtime._current_version = new_version
         self._runtime._revision_history.append(new_version)
@@ -110,16 +117,15 @@ class GraphTransaction:
         self.status = TransactionStatus.COMMITTED
         logger.debug(
             "Committed '%s' (rev=%s, %d changes)",
-            self.description, new_version.revision_id,
+            self.description,
+            new_version.revision_id,
             sum(len(c) for c in self._changes.values()),
         )
         return new_version.revision_id
 
     def rollback(self) -> None:
         if self.status != TransactionStatus.ACTIVE:
-            raise RuntimeError(
-                f"Cannot rollback {self.status.value} transaction"
-            )
+            raise RuntimeError(f"Cannot rollback {self.status.value} transaction")
         graph = self._runtime._graph
         for node_id, changes in self._changes.items():
             node = graph.get_node(node_id)
@@ -178,6 +184,7 @@ class GraphObserver:
 @dataclass
 class GraphSnapshot:
     """A point-in-time snapshot of a DocumentGraph."""
+
     revision_id: str
     timestamp: float
     nodes: List[dict]
@@ -260,19 +267,22 @@ class GraphRuntime:
     def take_snapshot(self, description: str = "") -> GraphSnapshot:
         nodes_data = []
         for node in self._graph.nodes:
-            nodes_data.append({
-                "id": node.id,
-                "node_type": node.node_type.value,
-                "bbox": list(node.bbox),
-                "text": node.text,
-                "page_num": node.page_num,
-                "font_size": node.font_size,
-            })
+            nodes_data.append(
+                {
+                    "id": node.id,
+                    "node_type": node.node_type.value,
+                    "bbox": list(node.bbox),
+                    "text": node.text,
+                    "page_num": node.page_num,
+                    "font_size": node.font_size,
+                }
+            )
         return GraphSnapshot(
             revision_id=self._current_version.revision_id,
             timestamp=time.time(),
             nodes=nodes_data,
-            description=description or f"Snapshot rev {self._current_version.revision_id[:8]}",
+            description=description
+            or f"Snapshot rev {self._current_version.revision_id[:8]}",
         )
 
     def restore_snapshot(self, snapshot: GraphSnapshot) -> None:
@@ -281,9 +291,11 @@ class GraphRuntime:
             node_type = nd["node_type"]
             if isinstance(node_type, str):
                 from pdf2zh.v3.graph import NodeType
+
                 node_type = NodeType(node_type)
             node = DocumentNode(
-                id=nd["id"], node_type=node_type,
+                id=nd["id"],
+                node_type=node_type,
                 bbox=tuple(nd["bbox"]),
                 text=nd.get("text", ""),
                 page_num=nd.get("page_num", 0),
@@ -306,7 +318,6 @@ class GraphRuntime:
         return self.get_version(revision_id) is not None
 
 
-
 # ── Runtime Facade (P0) ────────────────────────────────────────────────────
 
 
@@ -326,12 +337,18 @@ class RuntimeFacade:
         result = rt.evaluate()
     """
 
-    def __init__(self, config: Optional[dict] = None,
-                 feature_flags: Optional["FeatureFlags"] = None):
+    def __init__(
+        self,
+        config: Optional[dict] = None,
+        feature_flags: Optional["FeatureFlags"] = None,
+    ):
 
         self.config = config or {}
         from pdf2zh.v3.feature_flags import FeatureFlags, get_feature_flags
-        self.feature_flags = feature_flags if feature_flags is not None else get_feature_flags()
+
+        self.feature_flags = (
+            feature_flags if feature_flags is not None else get_feature_flags()
+        )
         self.source: str = ""
         self.graph: Optional[DocumentGraph] = None
         self.memory: Optional[DocumentMemory] = None
@@ -369,9 +386,11 @@ class RuntimeFacade:
         """Run semantic analysis."""
         from pdf2zh.v3.analyzer import SemanticAnalyzer, AnalyzerConfig
 
-        self._analyzer = SemanticAnalyzer(AnalyzerConfig(
-            lang_in=self.config.get("lang_in", "auto"),
-        ))
+        self._analyzer = SemanticAnalyzer(
+            AnalyzerConfig(
+                lang_in=self.config.get("lang_in", "auto"),
+            )
+        )
         self.graph = self._analyzer.analyze(self.graph)
         return self
 
@@ -379,10 +398,12 @@ class RuntimeFacade:
         """Generate translation plans."""
         from pdf2zh.v3.planner import TranslationPlanner, PlannerConfig
 
-        self._planner = TranslationPlanner(PlannerConfig(
-            source_lang=self.config.get("lang_in", "auto"),
-            target_lang=self.config.get("lang_out", "zh-cn"),
-        ))
+        self._planner = TranslationPlanner(
+            PlannerConfig(
+                source_lang=self.config.get("lang_in", "auto"),
+                target_lang=self.config.get("lang_out", "zh-cn"),
+            )
+        )
         self.plans = self._planner.plan_all(self.graph)
         return self
 
@@ -409,6 +430,7 @@ class RuntimeFacade:
         ff = self.feature_flags
         if ff.use_v4_visual_tree_builder:
             from pdf2zh.v3.visual_tree_builder import VisualTreeBuilder
+
             builder = VisualTreeBuilder(
                 page_width=self.config.get("page_width", 612),
                 page_height=self.config.get("page_height", 792),
@@ -416,6 +438,7 @@ class RuntimeFacade:
             self.tree = builder.build_from_graph(self.graph)
         else:
             from pdf2zh.v3.layout import LayoutEngine
+
             self.layout_engine = LayoutEngine(
                 page_width=self.config.get("page_width", 612),
                 page_height=self.config.get("page_height", 792),
@@ -423,7 +446,7 @@ class RuntimeFacade:
             self.tree = self.layout_engine.layout(self.graph)
 
         # Phase 2, Step 2.4: Freeze layout
-        if self.tree is not None and not getattr(self.tree, 'is_layout_frozen', False):
+        if self.tree is not None and not getattr(self.tree, "is_layout_frozen", False):
             self.tree.freeze_layout()
         return self.tree
 
@@ -449,16 +472,21 @@ class RuntimeFacade:
         if self.feature_flags.use_v4_diagnostic:
             try:
                 from pdf2zh.v3.evaluator import (
-                    DiagnosticReport, EvaluationIssueMapper,
+                    DiagnosticReport,
+                    EvaluationIssueMapper,
                 )
+
                 mapper = EvaluationIssueMapper()
                 self._diagnostic_report = mapper.map_result(
-                    self.evaluation, self.graph,
+                    self.evaluation,
+                    self.graph,
                 )
             except Exception as exc:
                 import logging
+
                 logging.getLogger(__name__).warning(
-                    "DiagnosticReport failed: %s", exc,
+                    "DiagnosticReport failed: %s",
+                    exc,
                 )
 
         return self.evaluation
@@ -478,26 +506,28 @@ class RuntimeFacade:
                 if self._diagnostic_report is not None:
                     try:
                         from pdf2zh.v3.evaluator import (
-                            IssueSeverity, RepairScheduler,
+                            IssueSeverity,
+                            RepairScheduler,
                         )
-                        critical = (
-                            self._diagnostic_report.get_issues_by_severity(
-                                IssueSeverity.CRITICAL,
-                            )
-                            + self._diagnostic_report.get_issues_by_severity(
-                                IssueSeverity.BLOCKER,
-                            )
+
+                        critical = self._diagnostic_report.get_issues_by_severity(
+                            IssueSeverity.CRITICAL,
+                        ) + self._diagnostic_report.get_issues_by_severity(
+                            IssueSeverity.BLOCKER,
                         )
                         if not critical:
                             logger.info(
                                 "No critical issues (pass %d/%d)",
-                                lp + 1, max_p,
+                                lp + 1,
+                                max_p,
                             )
                             break
 
                         logger.info(
                             "Fix pass %d/%d: %d critical issues",
-                            lp + 1, max_p, len(critical),
+                            lp + 1,
+                            max_p,
+                            len(critical),
                         )
 
                         scheduler = RepairScheduler()
@@ -512,9 +542,11 @@ class RuntimeFacade:
                             from pdf2zh.v3.translation_runtime import (
                                 TranslationRuntime,
                             )
+
                             tr = TranslationRuntime()
                             re_tn_ids = [
-                                r["node_id"] for r in repairs
+                                r["node_id"]
+                                for r in repairs
                                 if r.get("action") == "RE_TRANSLATE"
                                 and r.get("node_id")
                             ]
@@ -524,6 +556,7 @@ class RuntimeFacade:
                                     node.translated_text = None
                             if re_tn_ids:
                                 from pdf2zh.v3.planner import TranslationPlan
+
                                 plan = TranslationPlan(node_ids=re_tn_ids)
                                 tr.execute(self.graph, plan)
 
@@ -532,7 +565,8 @@ class RuntimeFacade:
 
                     except Exception as exc:
                         logger.warning(
-                            "Fix-validate loop error: %s", exc,
+                            "Fix-validate loop error: %s",
+                            exc,
                         )
                         break
 
@@ -551,7 +585,12 @@ class RuntimeFacade:
 
 
 __all__ = [
-    "RuntimeFacade", "GraphRuntime", "GraphTransaction", "GraphVersion",
-    "GraphSnapshot", "GraphObserver", "ChangeRecord",
+    "RuntimeFacade",
+    "GraphRuntime",
+    "GraphTransaction",
+    "GraphVersion",
+    "GraphSnapshot",
+    "GraphObserver",
+    "ChangeRecord",
     "TransactionStatus",
 ]

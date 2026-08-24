@@ -6,6 +6,7 @@
 - document_model._KEEP_KINDS 含 code；
 - translate_document：code 块不送翻译器（原文保留），heading/paragraph 正常翻译。
 """
+
 import unittest
 
 from pdf2zh.magicpdf_adapter import MagicPdfAdapter
@@ -23,8 +24,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 0, 300, 24],
                         "spans": [
-                            {"bbox": [0, 0, 300, 24],
-                             "content": "Title", "type": "text"},
+                            {
+                                "bbox": [0, 0, 300, 24],
+                                "content": "Title",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -37,8 +41,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 40, 300, 70],
                         "spans": [
-                            {"bbox": [0, 40, 300, 70],
-                             "content": "def f(): return 1", "type": "text"},
+                            {
+                                "bbox": [0, 40, 300, 70],
+                                "content": "def f(): return 1",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -51,8 +58,11 @@ SAMPLE_MIDDLE = {
                     {
                         "bbox": [0, 90, 300, 115],
                         "spans": [
-                            {"bbox": [0, 90, 300, 115],
-                             "content": "A normal paragraph.", "type": "text"},
+                            {
+                                "bbox": [0, 90, 300, 115],
+                                "content": "A normal paragraph.",
+                                "type": "text",
+                            },
                         ],
                     }
                 ],
@@ -68,8 +78,7 @@ class TestCodeProtection(unittest.TestCase):
         results = MagicPdfAdapter.from_middle_json(SAMPLE_MIDDLE)
         bridge = MagicPdfBridge(default_font="Helvetica")
         self.doc = bridge.to_document_model(bridge.convert_all(results))
-        self.code = next(b for b in self.doc.pages[0].blocks
-                         if b.kind == "code")
+        self.code = next(b for b in self.doc.pages[0].blocks if b.kind == "code")
 
     def test_keep_kinds_contains_code(self):
         self.assertIn("code", _KEEP_KINDS)

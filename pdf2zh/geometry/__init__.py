@@ -11,6 +11,7 @@
 
 所有模块纯 Python 实现，无外部依赖，可直接单测。
 """
+
 from __future__ import annotations
 
 from pdf2zh.geometry.glyph import (
@@ -36,9 +37,17 @@ from pdf2zh.geometry.paragraph import (
 )
 
 __all__ = [
-    "Glyph", "GlyphBBox",
-    "extract_glyphs_from_ltpage", "extract_glyphs_from_page",
-    "StyleRun", "build_style_runs", "style_runs_text",
-    "VisualLine", "VisualLineConfig", "VisualLineBuilder",
-    "LogicalParagraph", "ParagraphConfig", "build_logical_paragraphs",
+    "Glyph",
+    "GlyphBBox",
+    "extract_glyphs_from_ltpage",
+    "extract_glyphs_from_page",
+    "StyleRun",
+    "build_style_runs",
+    "style_runs_text",
+    "VisualLine",
+    "VisualLineConfig",
+    "VisualLineBuilder",
+    "LogicalParagraph",
+    "ParagraphConfig",
+    "build_logical_paragraphs",
 ]

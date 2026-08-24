@@ -59,29 +59,38 @@ class TestStartupEventsHandshakeTolerance:
         class FakeGui:
             def __init__(self):
                 self.called = 0
+
             def launch(self, **kw):
                 self.called += 1
                 if error:
                     raise error
+
         return FakeGui()
 
     def test_handshake_502_tolerated_when_server_alive(self, monkeypatch):
         from pdf2zh.gui import entry
-        gui = self._fake_gui(error=Exception(
-            "Couldn’t start the app because 'http://localhost:7860/gradio_api/"
-            "startup-events' failed (code 502)."))
+
+        gui = self._fake_gui(
+            error=Exception(
+                "Couldn’t start the app because 'http://localhost:7860/gradio_api/"
+                "startup-events' failed (code 502)."
+            )
+        )
         monkeypatch.setattr(entry, "_startup_events_ok", lambda port: True)
-        entry._launch(gui, port=7860, share=False, debug=False,
-                      max_file_size="100mb", akw={})
+        entry._launch(
+            gui, port=7860, share=False, debug=False, max_file_size="100mb", akw={}
+        )
         assert gui.called == 1
 
     def test_unrelated_launch_error_still_raises(self, monkeypatch):
         from pdf2zh.gui import entry
+
         gui = self._fake_gui(error=OSError("address already in use"))
         monkeypatch.setattr(entry, "_startup_events_ok", lambda port: True)
         try:
-            entry._launch(gui, port=7860, share=False, debug=False,
-                          max_file_size="100mb", akw={})
+            entry._launch(
+                gui, port=7860, share=False, debug=False, max_file_size="100mb", akw={}
+            )
         except OSError:
             pass
         else:
@@ -89,12 +98,14 @@ class TestStartupEventsHandshakeTolerance:
 
     def test_handshake_failure_with_dead_server_re_raises(self, monkeypatch):
         from pdf2zh.gui import entry
+
         gui = self._fake_gui(error=Exception("startup-events failed (code 502)"))
         monkeypatch.setattr(entry, "_startup_events_ok", lambda port: False)
         raised = False
         try:
-            entry._launch(gui, port=7860, share=False, debug=False,
-                          max_file_size="100mb", akw={})
+            entry._launch(
+                gui, port=7860, share=False, debug=False, max_file_size="100mb", akw={}
+            )
         except Exception:
             raised = True
         assert raised
@@ -102,6 +113,7 @@ class TestStartupEventsHandshakeTolerance:
     def test_startup_events_ok_probes_port(self, monkeypatch):
         from pdf2zh.gui import entry
         import httpx
+
         monkeypatch.setattr(httpx, "get", lambda url, timeout=10: httpx.Response(200))
         assert entry._startup_events_ok(7860) is True
 
@@ -111,17 +123,20 @@ class TestStartupEventsHandshakeTolerance:
         from pdf2zh.gui import entry
         import pdf2zh.gui.app as app_module
         from unittest.mock import MagicMock
+
         gui = MagicMock()
         gui.launch.side_effect = ValueError(
             "When localhost is not accessible, a shareable link must be created. "
-            "Please set share=True or check your proxy settings...")
+            "Please set share=True or check your proxy settings..."
+        )
         gui.block_thread = MagicMock()
         monkeypatch.setattr(app_module, "create_gui", lambda: gui)
         monkeypatch.setattr(entry, "_startup_events_ok", lambda port: True)
         monkeypatch.setattr(entry, "_find_free_port", lambda host, port: port)
         register_calls = []
         monkeypatch.setattr(
-            entry, "_register_custom_routes", lambda g: register_calls.append("routes"))
+            entry, "_register_custom_routes", lambda g: register_calls.append("routes")
+        )
         entry.setup_gui(server_port=7870)
         assert gui.launch.call_count == 1
         assert register_calls == ["routes"]
@@ -129,10 +144,13 @@ class TestStartupEventsHandshakeTolerance:
     def test_url_ok_valueerror_dead_server_still_raises(self, monkeypatch):
         from pdf2zh.gui import entry
         from unittest.mock import MagicMock
+
         gui = MagicMock()
         gui.launch.side_effect = ValueError(
-            "When localhost is not accessible, a shareable link must be created...")
+            "When localhost is not accessible, a shareable link must be created..."
+        )
         monkeypatch.setattr(entry, "_startup_events_ok", lambda port: False)
         with pytest.raises(ValueError):
-            entry._launch(gui, port=7870, share=False, debug=False,
-                          max_file_size="100mb", akw={})
+            entry._launch(
+                gui, port=7870, share=False, debug=False, max_file_size="100mb", akw={}
+            )

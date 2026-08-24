@@ -100,14 +100,10 @@ def _make_parse_progress(progress_cb, path: str):
             tot = int(d.get("total") or 0)
             if d.get("unit") == "component" or tot <= 0:
                 pct = state["pct"]
-                msg = "{}: {}".format(
-                    name, d.get("component") or "preparing models..."
-                )
+                msg = "{}: {}".format(name, d.get("component") or "preparing models...")
             else:
                 frac = max(0.0, min(1.0, cur / tot))
-                pct = _PCT_PARSE_START + frac * (
-                    _PCT_PARSE_END - _PCT_PARSE_START
-                )
+                pct = _PCT_PARSE_START + frac * (_PCT_PARSE_END - _PCT_PARSE_START)
                 msg = f"{name}: analyzing page {cur}/{tot}"
             state["pct"] = max(state["pct"], pct)
             progress_cb("analyzing", pct, msg, d)
@@ -135,8 +131,7 @@ def _write_dumps(
     logger.info("[magicpdf] parse dump: %s", parse_dump)
     logger.info("[magicpdf] document dump: %s", doc_dump)
     if channel is not None:
-        channel_dump = os.path.join(
-            magic_dir, f"{stem}_formula_channel.json")
+        channel_dump = os.path.join(magic_dir, f"{stem}_formula_channel.json")
         with open(channel_dump, "w", encoding="utf-8") as fh:
             fh.write(channel.to_json())
         logger.info("[magicpdf] formula channel dump: %s", channel_dump)
@@ -145,6 +140,7 @@ def _write_dumps(
         with open(plan_dump, "w", encoding="utf-8") as fh:
             json.dump(fixed_plan, fh, ensure_ascii=False, indent=2)
         logger.info("[magicpdf] render plan dump: %s", plan_dump)
+
 
 def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb):
     """防御性调用 ``adapter.parse``：旧版签名（无 progress_cb 形参）兼容。
@@ -156,15 +152,12 @@ def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb):
         try:
             params = inspect.signature(adapter.parse).parameters
             takes_cb = "progress_cb" in params or any(
-                p.kind is inspect.Parameter.VAR_KEYWORD
-                for p in params.values()
+                p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
             )
         except (TypeError, ValueError):  # pragma: no cover - 内置类兜底
             takes_cb = False
         if takes_cb:
-            return adapter.parse(
-                path, pages=pages, ocr=ocr, progress_cb=progress_cb
-            )
+            return adapter.parse(path, pages=pages, ocr=ocr, progress_cb=progress_cb)
     return adapter.parse(path, pages=pages, ocr=ocr)
 
 
@@ -192,8 +185,11 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
         logger.info(
             "[magicpdf] device status: requested=%s torch=%s torch_cuda=%s "
             "device-mode=%s effective=%s",
-            status["requested"], status["torch"] or "-", status["torch_cuda"],
-            status["device_mode"], status["effective"],
+            status["requested"],
+            status["torch"] or "-",
+            status["torch_cuda"],
+            status["device_mode"],
+            status["effective"],
         )
         if status.get("hint"):
             logger.warning("[magicpdf] %s", status["hint"])
@@ -235,14 +231,18 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
                 if decision.is_scanned:
                     logger.warning(
                         "[magicpdf] %s 预检命中扫描/损坏信号 (%s)，自动开启 OCR",
-                        path, "; ".join(decision.reasons) or "unknown",
+                        path,
+                        "; ".join(decision.reasons) or "unknown",
                     )
                     ocr = True
             except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断解析
                 logger.debug("[magicpdf] preflight skipped: %s", exc)
         try:
             results = _adapter_parse(
-                adapter, path, parsed_args.pages, ocr,
+                adapter,
+                path,
+                parsed_args.pages,
+                ocr,
                 _make_parse_progress(progress_cb, path),
             )
         except Exception as exc:  # noqa: BLE001 -- 熔断降级
@@ -256,7 +256,8 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
 
             if progress_cb is not None:
                 progress_cb(
-                    "translating", _PCT_TRANSLATE,
+                    "translating",
+                    _PCT_TRANSLATE,
                     f"{os.path.basename(path)}: translating blocks...",
                 )
             translator = build_translator(
@@ -286,7 +287,11 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
         plan = render_plan_from_model(doc)
         fixed_plan, fixup_stats = fixup_render_plan(plan)
         _write_dumps(
-            path, results, doc, magic_dir, channel=channel,
+            path,
+            results,
+            doc,
+            magic_dir,
+            channel=channel,
             fixed_plan=fixed_plan,
         )
         # §12.3 渲染接管：fixup 后的渲染计划 → 译后 mono PDF（默认开启，
@@ -296,7 +301,8 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
 
             if progress_cb is not None:
                 progress_cb(
-                    "rendering", _PCT_RENDER,
+                    "rendering",
+                    _PCT_RENDER,
                     f"{os.path.basename(path)}: rendering mono PDF...",
                 )
             page_sizes = {
@@ -308,18 +314,23 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
             mono_pdf = os.path.join(magic_dir, f"{stem}_mono.pdf")
             try:
                 _, render_stats = render_plan_to_pdf(
-                    fixed_plan, page_sizes=page_sizes,
+                    fixed_plan,
+                    page_sizes=page_sizes,
                     output_path=mono_pdf,
                 )
                 logger.info(
                     "[magicpdf] %s: mono PDF 已渲染（%d 页, %d 块, %d 字形）→ %s",
-                    path, render_stats["pages"], render_stats["blocks"],
-                    render_stats["glyphs"], mono_pdf,
+                    path,
+                    render_stats["pages"],
+                    render_stats["blocks"],
+                    render_stats["glyphs"],
+                    mono_pdf,
                 )
             except Exception as exc:  # noqa: BLE001 -- 渲染失败不阻断转储
                 logger.warning(
                     "[magicpdf] %s mono PDF 渲染失败（保留 JSON 转储）: %s",
-                    path, exc,
+                    path,
+                    exc,
                 )
         glyphs = (
             sum(
@@ -334,10 +345,15 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
         logger.info(
             "[magicpdf] %s: %d 页, %d 块, %d 字形, 翻译 %s, 保留 %s, "
             "渲染计划 %d 项, 公式LaTeX %d, fixup(shift=%d/overflow=%d)",
-            path, len(doc.pages), len(plan), glyphs,
-            stats.get("translated", 0), stats.get("preserved", 0),
-            len(plan), formula_applied,
-            fixup_stats.get("shifted", 0), fixup_stats.get("overflowed", 0),
+            path,
+            len(doc.pages),
+            len(plan),
+            glyphs,
+            stats.get("translated", 0),
+            stats.get("preserved", 0),
+            len(plan),
+            formula_applied,
+            fixup_stats.get("shifted", 0),
+            fixup_stats.get("overflowed", 0),
         )
     return 0
-

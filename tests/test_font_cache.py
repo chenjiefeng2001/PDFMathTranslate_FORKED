@@ -1,4 +1,5 @@
 """Tests for DocumentFontCache (Phase 1)."""
+
 import unittest
 from unittest.mock import MagicMock, patch
 from unittest.mock import patch, MagicMock

@@ -123,6 +123,8 @@ class TestPredictBatch(unittest.TestCase):
         self.assertEqual(len(results), 2)
         # 不支持动态 batch：降级为两次 batch=1 调度（等价逐页）
         self.assertEqual(sess.runs, [(1, 3, 800, 608), (1, 3, 384, 288)])
+
+
 class _RecordingModel:
     """记录 predict/predict_batch 调用的假模型。"""
 
@@ -138,8 +140,7 @@ class _RecordingModel:
     def predict_batch(self, images):
         self.batch_sizes.append(len(images))
         return [
-            YoloResult(boxes=np.zeros((0, 6), np.float32), names={})
-            for _ in images
+            YoloResult(boxes=np.zeros((0, 6), np.float32), names={}) for _ in images
         ]
 
 
@@ -229,12 +230,9 @@ class TestRealModelBatch(unittest.TestCase):
 
     def test_batch_vs_single_structure(self):
         rng = np.random.default_rng(42)
-        imgs = [
-            rng.integers(0, 255, (800, 600, 3), dtype=np.uint8) for _ in range(3)
-        ]
+        imgs = [rng.integers(0, 255, (800, 600, 3), dtype=np.uint8) for _ in range(3)]
         single = [
-            self.model.predict(im, imgsz=int(im.shape[0] / 32) * 32)[0]
-            for im in imgs
+            self.model.predict(im, imgsz=int(im.shape[0] / 32) * 32)[0] for im in imgs
         ]
         batch = self.model.predict_batch(imgs)
         self.assertEqual(len(batch), 3)
@@ -247,4 +245,3 @@ class TestRealModelBatch(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

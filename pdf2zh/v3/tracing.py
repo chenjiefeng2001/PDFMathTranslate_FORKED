@@ -12,6 +12,7 @@ Usage::
             pass
     tree = tracer.export()
 """
+
 from __future__ import annotations
 import logging
 import time
@@ -71,9 +72,9 @@ class Tracer:
     def set_enabled(self, enabled: bool) -> None:
         self._enabled = enabled
 
-    def start_span(self, operation: str,
-                   attributes: Optional[Dict[str, Any]] = None
-                   ) -> TraceSpan:
+    def start_span(
+        self, operation: str, attributes: Optional[Dict[str, Any]] = None
+    ) -> TraceSpan:
         if not self._enabled:
             span = TraceSpan(operation=operation, span_id="disabled")
             return span
@@ -106,9 +107,9 @@ class Tracer:
         if self._telemetry:
             self._telemetry.record(span.operation, span.duration)
 
-    def span(self, operation: str,
-             attributes: Optional[Dict[str, Any]] = None
-             ) -> "_SpanContext":
+    def span(
+        self, operation: str, attributes: Optional[Dict[str, Any]] = None
+    ) -> "_SpanContext":
         return _SpanContext(self, operation, attributes)
 
     def get_span(self, span_id: str) -> Optional[TraceSpan]:
@@ -133,6 +134,7 @@ class Tracer:
                 "attributes": dict(span.attributes),
                 "children": [_serialize(c) for c in span.children],
             }
+
         return [_serialize(r) for r in self.get_trace_tree()]
 
     def clear(self) -> None:
@@ -152,8 +154,12 @@ class Tracer:
 class _SpanContext:
     """Context manager for tracing spans."""
 
-    def __init__(self, tracer: Tracer, operation: str,
-                 attributes: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(
+        self,
+        tracer: Tracer,
+        operation: str,
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> None:
         self._tracer = tracer
         self._operation = operation
         self._attributes = attributes
@@ -170,5 +176,7 @@ class _SpanContext:
 
 
 __all__ = [
-    "TraceSpan", "Tracer", "_SpanContext",
+    "TraceSpan",
+    "Tracer",
+    "_SpanContext",
 ]

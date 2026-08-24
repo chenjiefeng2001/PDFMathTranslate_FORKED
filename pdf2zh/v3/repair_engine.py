@@ -19,6 +19,7 @@ Repair Pipeline：
 注：与 V4 ``repair.py``（RepairRuntime 自愈闭环）互补 —— 本模块面向
 统一文档模型的诊断驱动修复。
 """
+
 from __future__ import annotations
 
 import logging
@@ -43,9 +44,14 @@ class RepairResult:
     detail: str = ""
 
     def to_dict(self) -> dict:
-        return {"issue": self.issue_code, "node_id": self.node_id,
-                "action": self.action, "repaired": self.repaired,
-                "strategy": self.strategy, "detail": self.detail}
+        return {
+            "issue": self.issue_code,
+            "node_id": self.node_id,
+            "action": self.action,
+            "repaired": self.repaired,
+            "strategy": self.strategy,
+            "detail": self.detail,
+        }
 
 
 @dataclass
@@ -59,14 +65,18 @@ class RepairReport:
         return sum(1 for r in self.results if r.repaired)
 
     def to_dict(self) -> dict:
-        return {"results": [r.to_dict() for r in self.results],
-                "before_errors": self.before_errors,
-                "after_errors": self.after_errors,
-                "repaired": self.repaired_count}
+        return {
+            "results": [r.to_dict() for r in self.results],
+            "before_errors": self.before_errors,
+            "after_errors": self.after_errors,
+            "repaired": self.repaired_count,
+        }
 
     def summary(self) -> str:
-        return (f"Repair repaired={self.repaired_count}/{len(self.results)} "
-                f"errors {self.before_errors}→{self.after_errors}")
+        return (
+            f"Repair repaired={self.repaired_count}/{len(self.results)} "
+            f"errors {self.before_errors}→{self.after_errors}"
+        )
 
 
 class RepairStrategy:
@@ -100,31 +110,49 @@ class TOCSplitRepair(RepairStrategy):
                     target = (page, i, block)
                     break
         if target is None:
-            return RepairResult(issue.code, issue.node_id, "none", False,
-                                self.name, "block not found")
+            return RepairResult(
+                issue.code, issue.node_id, "none", False, self.name, "block not found"
+            )
         page, idx, block = target
-        lines = [(l.text or "").strip() for l in block.lines
-                 if (l.text or "").strip()]
+        lines = [(l.text or "").strip() for l in block.lines if (l.text or "").strip()]
         new_blocks = []
         for text in lines:
             if _RE_DOTTED.search(text) or _RE_LEADER.search(text):
-                nb = BlockModel(text=text, kind="toc",
-                                x0=block.x0, y0=block.y0,
-                                x1=block.x1, y1=block.y1)
-                nb.metadata.update({"kind": "toc", "toc_scan": True,
-                                    "toc_confidence": 0.5})
+                nb = BlockModel(
+                    text=text,
+                    kind="toc",
+                    x0=block.x0,
+                    y0=block.y0,
+                    x1=block.x1,
+                    y1=block.y1,
+                )
+                nb.metadata.update(
+                    {"kind": "toc", "toc_scan": True, "toc_confidence": 0.5}
+                )
                 new_blocks.append(nb)
             else:
-                nb = BlockModel(text=text, kind="paragraph",
-                                x0=block.x0, y0=block.y0,
-                                x1=block.x1, y1=block.y1)
+                nb = BlockModel(
+                    text=text,
+                    kind="paragraph",
+                    x0=block.x0,
+                    y0=block.y0,
+                    x1=block.x1,
+                    y1=block.y1,
+                )
                 new_blocks.append(nb)
         if len(new_blocks) <= 1:
-            return RepairResult(issue.code, issue.node_id, "none", False,
-                                self.name, "no lines to split")
-        page.blocks[idx:idx + 1] = new_blocks
-        return RepairResult(issue.code, issue.node_id, "split", True,
-                            self.name, f"{len(new_blocks)} blocks rebuilt")
+            return RepairResult(
+                issue.code, issue.node_id, "none", False, self.name, "no lines to split"
+            )
+        page.blocks[idx : idx + 1] = new_blocks
+        return RepairResult(
+            issue.code,
+            issue.node_id,
+            "split",
+            True,
+            self.name,
+            f"{len(new_blocks)} blocks rebuilt",
+        )
 
 
 class UnicodeRepair(RepairStrategy):
@@ -142,11 +170,17 @@ class UnicodeRepair(RepairStrategy):
                     "action": "ocr_fallback",
                     "reason": "ToUnicode/CMap 解码失败，需 OCR 重建",
                 }
-                return RepairResult(issue.code, issue.node_id,
-                                    "ocr_fallback", True, self.name,
-                                    "marked for OCR fallback")
-        return RepairResult(issue.code, issue.node_id, "none", False,
-                            self.name, "block not found")
+                return RepairResult(
+                    issue.code,
+                    issue.node_id,
+                    "ocr_fallback",
+                    True,
+                    self.name,
+                    "marked for OCR fallback",
+                )
+        return RepairResult(
+            issue.code, issue.node_id, "none", False, self.name, "block not found"
+        )
 
 
 class MathRecoveryRepair(RepairStrategy):
@@ -164,11 +198,17 @@ class MathRecoveryRepair(RepairStrategy):
                     "action": "latex_ocr",
                     "reason": "公式重建置信度低，走 LaTeX OCR",
                 }
-                return RepairResult(issue.code, issue.node_id,
-                                    "latex_ocr", True, self.name,
-                                    "marked for LaTeX OCR")
-        return RepairResult(issue.code, issue.node_id, "none", False,
-                            self.name, "block not found")
+                return RepairResult(
+                    issue.code,
+                    issue.node_id,
+                    "latex_ocr",
+                    True,
+                    self.name,
+                    "marked for LaTeX OCR",
+                )
+        return RepairResult(
+            issue.code, issue.node_id, "none", False, self.name, "block not found"
+        )
 
 
 class EmptyBlockRepair(RepairStrategy):
@@ -182,17 +222,27 @@ class EmptyBlockRepair(RepairStrategy):
             for i, block in enumerate(page.blocks):
                 if block_id(page.page_num, i) != issue.node_id:
                     continue
-                block.metadata["repair"] = {"action": "drop_placeholder",
-                                            "reason": "empty text block"}
-                return RepairResult(issue.code, issue.node_id,
-                                    "drop_placeholder", True, self.name,
-                                    "marked for cleanup")
-        return RepairResult(issue.code, issue.node_id, "none", False,
-                            self.name, "block not found")
+                block.metadata["repair"] = {
+                    "action": "drop_placeholder",
+                    "reason": "empty text block",
+                }
+                return RepairResult(
+                    issue.code,
+                    issue.node_id,
+                    "drop_placeholder",
+                    True,
+                    self.name,
+                    "marked for cleanup",
+                )
+        return RepairResult(
+            issue.code, issue.node_id, "none", False, self.name, "block not found"
+        )
 
 
 DEFAULT_STRATEGIES = [
-    TOCSplitRepair(), UnicodeRepair(), MathRecoveryRepair(),
+    TOCSplitRepair(),
+    UnicodeRepair(),
+    MathRecoveryRepair(),
     EmptyBlockRepair(),
 ]
 
@@ -200,16 +250,16 @@ DEFAULT_STRATEGIES = [
 class RepairEngine:
     """修复引擎：按 issue 选择策略（可经 RepairPlanner 决策）。"""
 
-    def __init__(self, strategies: Optional[List[RepairStrategy]] = None,
-                 planner=None) -> None:
+    def __init__(
+        self, strategies: Optional[List[RepairStrategy]] = None, planner=None
+    ) -> None:
         self.strategies = list(strategies or DEFAULT_STRATEGIES)
         self.planner = planner  # RepairPlanner：复杂决策交给它
 
     def _choose(self, issue) -> Optional[RepairStrategy]:
         if self.planner is not None:
             try:
-                chosen = self.planner.plan(issue.code,
-                                           dict(issue.evidence))
+                chosen = self.planner.plan(issue.code, dict(issue.evidence))
                 for s in self.strategies:
                     if s.name == chosen and s.can_repair(issue):
                         return s
@@ -220,29 +270,37 @@ class RepairEngine:
                 return s
         return None
 
-    def repair(self, model: DocumentModel,
-               report: DiagnosticReport) -> RepairReport:
+    def repair(self, model: DocumentModel, report: DiagnosticReport) -> RepairReport:
         before = report.error_count
         out = RepairReport(before_errors=before)
         for issue in report.issues:
             strategy = self._choose(issue)
             if strategy is None:
-                out.results.append(RepairResult(
-                    issue.code, issue.node_id, "none", False, "",
-                    "no strategy"))
+                out.results.append(
+                    RepairResult(
+                        issue.code, issue.node_id, "none", False, "", "no strategy"
+                    )
+                )
                 continue
             try:
                 result = strategy.repair(model, issue)
             except Exception as e:  # noqa: BLE001
-                result = RepairResult(issue.code, issue.node_id, "none",
-                                      False, strategy.name, str(e)[:120])
+                result = RepairResult(
+                    issue.code,
+                    issue.node_id,
+                    "none",
+                    False,
+                    strategy.name,
+                    str(e)[:120],
+                )
             out.results.append(result)
         out.after_errors = analyze_document(model).error_count
         return out
 
 
-def repair_loop(model: DocumentModel, max_iterations: int = 2,
-                engine: Optional[RepairEngine] = None) -> dict:
+def repair_loop(
+    model: DocumentModel, max_iterations: int = 2, engine: Optional[RepairEngine] = None
+) -> dict:
     """修复闭环：analyze → repair → re-analyze，直到不再改善。"""
     engine = engine or RepairEngine()
     iterations = 0
@@ -251,23 +309,37 @@ def repair_loop(model: DocumentModel, max_iterations: int = 2,
     for _ in range(max(1, max_iterations)):
         report = analyze_document(model)
         if report.admissible:
-            return {"iterations": iterations, "before_errors": before,
-                    "after_errors": 0, "improved": True,
-                    "report": report.to_dict()}
+            return {
+                "iterations": iterations,
+                "before_errors": before,
+                "after_errors": 0,
+                "improved": True,
+                "report": report.to_dict(),
+            }
         rr = engine.repair(model, report)
         last_report = rr
         iterations += 1
         if rr.after_errors >= rr.before_errors:
             break
     after = analyze_document(model).error_count
-    return {"iterations": iterations, "before_errors": before,
-            "after_errors": after, "improved": after < before,
-            "report": last_report.to_dict() if last_report else None}
+    return {
+        "iterations": iterations,
+        "before_errors": before,
+        "after_errors": after,
+        "improved": after < before,
+        "report": last_report.to_dict() if last_report else None,
+    }
 
 
 __all__ = [
-    "RepairResult", "RepairReport", "RepairStrategy",
-    "TOCSplitRepair", "UnicodeRepair", "MathRecoveryRepair",
-    "EmptyBlockRepair", "DEFAULT_STRATEGIES", "RepairEngine",
+    "RepairResult",
+    "RepairReport",
+    "RepairStrategy",
+    "TOCSplitRepair",
+    "UnicodeRepair",
+    "MathRecoveryRepair",
+    "EmptyBlockRepair",
+    "DEFAULT_STRATEGIES",
+    "RepairEngine",
     "repair_loop",
 ]

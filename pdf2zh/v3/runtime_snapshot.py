@@ -42,8 +42,18 @@ from typing import Any, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 _COMPONENTS = (
-    "graphs", "knowledge", "cache", "memory", "workflow", "telemetry",
-    "diagnostics", "plugins", "queue", "translations", "outputs", "metrics",
+    "graphs",
+    "knowledge",
+    "cache",
+    "memory",
+    "workflow",
+    "telemetry",
+    "diagnostics",
+    "plugins",
+    "queue",
+    "translations",
+    "outputs",
+    "metrics",
 )
 
 
@@ -104,13 +114,17 @@ class RuntimeSnapshot:
     # ── Capture / restore ─────────────────────────────────────────────
 
     @classmethod
-    def capture(cls, session: Any, label: str = "snapshot",
-                state: Optional[str] = None) -> "RuntimeSnapshot":
+    def capture(
+        cls, session: Any, label: str = "snapshot", state: Optional[str] = None
+    ) -> "RuntimeSnapshot":
         """Capture a full state snapshot from a DocumentSession (or any
         object exposing the same component attributes)."""
         state = state or getattr(session, "state", None)
-        state_value = state.value if hasattr(state, "value") else (
-            state if isinstance(state, str) else "unknown")
+        state_value = (
+            state.value
+            if hasattr(state, "value")
+            else (state if isinstance(state, str) else "unknown")
+        )
         return cls(
             label=label,
             session_id=getattr(session, "session_id", ""),
@@ -144,7 +158,6 @@ class RuntimeSnapshot:
         session.translations = dict(self.translations)
         session.outputs = dict(self.outputs)
         session.metrics = dict(self.metrics)
-
 
     # ── Serialization ─────────────────────────────────────────────────
 
@@ -256,8 +269,7 @@ class SnapshotDiff:
     removed_components: List[str] = field(default_factory=list)
 
     @classmethod
-    def between(cls, before: RuntimeSnapshot,
-                after: RuntimeSnapshot) -> "SnapshotDiff":
+    def between(cls, before: RuntimeSnapshot, after: RuntimeSnapshot) -> "SnapshotDiff":
         d = cls(before=before.label, after=after.label)
         for name in _COMPONENTS:
             if getattr(before, name) != getattr(after, name):
@@ -266,8 +278,9 @@ class SnapshotDiff:
 
     @property
     def is_empty(self) -> bool:
-        return not (self.updated_components or self.added_components
-                    or self.removed_components)
+        return not (
+            self.updated_components or self.added_components or self.removed_components
+        )
 
     @property
     def changed(self) -> bool:
@@ -293,5 +306,7 @@ class SnapshotDiff:
 
 
 __all__ = [
-    "RuntimeSnapshot", "SnapshotDiff", "_serialize",
+    "RuntimeSnapshot",
+    "SnapshotDiff",
+    "_serialize",
 ]

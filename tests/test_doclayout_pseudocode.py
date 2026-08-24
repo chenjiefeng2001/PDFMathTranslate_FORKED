@@ -152,7 +152,9 @@ class TestProtectPage:
         detector = _FakeDetector([(100.0, 100.0, 400.0, 300.0)])
         model = PseudoCodeProtectedLayoutModel(base_model=None, detector=detector)
         result = _make_result([[100, 100, 400, 300, 0.5, 0]], {0: "plain text"})
-        model._protect_page(_FakeGeometry(np.zeros((600, 600, 3), dtype=np.uint8)), result)
+        model._protect_page(
+            _FakeGeometry(np.zeros((600, 600, 3), dtype=np.uint8)), result
+        )
         assert result.names[int(result.boxes[0].cls)] == "algorithm"
 
 
@@ -224,9 +226,7 @@ def _install_fake_render(monkeypatch, on_predict=None):
 
 
 def _fake_mupdf_doc(n_pages: int) -> dict:
-    return {
-        i: types.SimpleNamespace(page_number=i) for i in range(n_pages)
-    }
+    return {i: types.SimpleNamespace(page_number=i) for i in range(n_pages)}
 
 
 class _Cfg:

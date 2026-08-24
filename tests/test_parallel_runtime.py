@@ -164,6 +164,7 @@ class TestCancelToken:
         tok.clear()
         assert not tok.is_set()
 
+
 class TestChunkManifest:
     def test_lifecycle(self):
         m = ChunkManifest(4)
@@ -423,9 +424,7 @@ class TestWorkerHardening:
             return object()
 
         monkeypatch.setattr(dl.ModelInstance, "value", None)
-        monkeypatch.setattr(
-            dl.OnnxModel, "load_available", staticmethod(fake_load)
-        )
+        monkeypatch.setattr(dl.OnnxModel, "load_available", staticmethod(fake_load))
         monkeypatch.setattr(parallel_worker, "_register_ort_dll_dir", lambda: None)
         parallel_worker.init_worker_process("cpu")
         assert calls["load"] == 1
@@ -466,7 +465,9 @@ class TestEnsureModelPrewarmed:
         monkeypatch.setattr(dl, "get_doclayout_onnx_model_path", lambda: missing)
         assert dl.DocLayoutModel.ensure_model_prewarmed() is None
 
-    def test_compiled_provider_skips_cache_but_returns_path(self, monkeypatch, tmp_path):
+    def test_compiled_provider_skips_cache_but_returns_path(
+        self, monkeypatch, tmp_path
+    ):
         import pdf2zh.doclayout as dl
 
         pth = tmp_path / "model.onnx"
@@ -577,4 +578,3 @@ class TestHighLevelDelegation:
         monkeypatch.setattr(parallel_worker, "init_worker_process", fake_init)
         hl._init_worker_process("cpu")
         assert seen["backend"] == "cpu"
-

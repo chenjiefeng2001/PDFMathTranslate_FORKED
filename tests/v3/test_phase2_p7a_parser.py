@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 """Parser module tests."""
+
 import os, sys, unittest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 try:
     from pdf2zh.v3.parser import PDFParser, RawBlock, RawBlockType, RawSpan
+
     _HAS = True
 except ImportError as e:
     print(f"Parser import error: {e}")
     _HAS = False
+
 
 @unittest.skipIf(not _HAS, "V3 parser not importable")
 class TestRawBlock(unittest.TestCase):
@@ -49,6 +53,7 @@ class TestRawBlock(unittest.TestCase):
         parser = PDFParser()
         with self.assertRaises(Exception):
             parser.parse(None)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

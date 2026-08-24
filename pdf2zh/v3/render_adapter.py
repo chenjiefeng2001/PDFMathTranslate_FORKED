@@ -24,7 +24,7 @@ class RenderBlock:
     """A positioned, translated text/image block ready for output."""
 
     id: str
-    kind: str          # paragraph | heading | figure | table | caption | formula
+    kind: str  # paragraph | heading | figure | table | caption | formula
     text: str
     x: float = 0.0
     y: float = 0.0
@@ -35,10 +35,15 @@ class RenderBlock:
 
     def to_dict(self) -> dict:
         return {
-            "id": self.id, "kind": self.kind, "text": self.text,
-            "x": round(self.x, 2), "y": round(self.y, 2),
-            "w": round(self.w, 2), "h": round(self.h, 2),
-            "image_path": self.image_path, "style": dict(self.style),
+            "id": self.id,
+            "kind": self.kind,
+            "text": self.text,
+            "x": round(self.x, 2),
+            "y": round(self.y, 2),
+            "w": round(self.w, 2),
+            "h": round(self.h, 2),
+            "image_path": self.image_path,
+            "style": dict(self.style),
         }
 
 
@@ -77,9 +82,7 @@ class HTMLFloatRenderer:
                     f"<tr><td>{_html.escape(cell)}</td></tr>"
                     for cell in b.text.split("\t")
                 )
-                parts.append(
-                    f"<div class='table block' id='{b.id}'>{cells}</div>"
-                )
+                parts.append(f"<div class='table block' id='{b.id}'>{cells}</div>")
             elif b.kind == "caption":
                 parts.append(
                     f"<div class='caption block' id='{b.id}'>{_html.escape(b.text)}</div>"
@@ -123,20 +126,29 @@ class RenderAdapter:
         self.text_renderer = TextRenderer()
 
     @staticmethod
-    def build_blocks(manifest: dict, translations: Dict[str, str],
-                     image_map: Optional[Dict[str, str]] = None) -> List[RenderBlock]:
+    def build_blocks(
+        manifest: dict,
+        translations: Dict[str, str],
+        image_map: Optional[Dict[str, str]] = None,
+    ) -> List[RenderBlock]:
         """Convert a relayout manifest + translations into RenderBlocks."""
         image_map = image_map or {}
         blocks = []
         for b in manifest.get("blocks", []):
             bid = b.get("id", "")
             text = translations.get(bid, b.get("text", ""))
-            blocks.append(RenderBlock(
-                id=bid, kind="paragraph", text=text,
-                x=b.get("x", 0.0), y=b.get("y", 0.0),
-                w=b.get("w", 0.0), h=b.get("h", 0.0),
-                image_path=image_map.get(bid),
-            ))
+            blocks.append(
+                RenderBlock(
+                    id=bid,
+                    kind="paragraph",
+                    text=text,
+                    x=b.get("x", 0.0),
+                    y=b.get("y", 0.0),
+                    w=b.get("w", 0.0),
+                    h=b.get("h", 0.0),
+                    image_path=image_map.get(bid),
+                )
+            )
         return blocks
 
     def render(self, blocks: List[RenderBlock], fmt: str = "html") -> bytes:
@@ -167,10 +179,14 @@ class RenderAdapter:
         objects = [
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            (f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {width} {height}] "
-             f"/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>"),
-            (f"<< /Length {len(stream.encode('latin-1', 'replace'))} >>\n"
-             f"stream\n{stream}\nendstream"),
+            (
+                f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {width} {height}] "
+                f"/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>"
+            ),
+            (
+                f"<< /Length {len(stream.encode('latin-1', 'replace'))} >>\n"
+                f"stream\n{stream}\nendstream"
+            ),
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
         ]
         out = bytearray(b"%PDF-1.4\n")
@@ -191,6 +207,8 @@ class RenderAdapter:
 
 
 __all__ = [
-    "RenderBlock", "HTMLFloatRenderer", "TextRenderer", "RenderAdapter",
+    "RenderBlock",
+    "HTMLFloatRenderer",
+    "TextRenderer",
+    "RenderAdapter",
 ]
-

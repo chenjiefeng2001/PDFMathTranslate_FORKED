@@ -3,21 +3,25 @@
 覆盖：标题（字号比/节编号）、题注、目录行、页码、页眉页脚、
 脚注、公式、正文默认、特征向量计算、DocumentIR 升级与序列化快照。
 """
+
 import pytest
 
 from pdf2zh.v3.geometry import Line, PageGeometry, Paragraph, Word, Char
 from pdf2zh.v3.structure import (
-    BlockFeatures, BlockRole, StructureClassifier, compute_features,
+    BlockFeatures,
+    BlockRole,
+    StructureClassifier,
+    compute_features,
     to_document_ir,
 )
 from pdf2zh.v3.document_ir import SemanticRole
 from pdf2zh.v3.migration_diff import snapshot_ir
 
 
-def _para(text, y0, size=10.0, x0=72.0, x1=400.0, font="Helvetica",
-          weight=None):
-    ch = Char(text=text, x0=x0, y0=y0, x1=x1, y1=y0 + size,
-              size=size, font=weight or font)
+def _para(text, y0, size=10.0, x0=72.0, x1=400.0, font="Helvetica", weight=None):
+    ch = Char(
+        text=text, x0=x0, y0=y0, x1=x1, y1=y0 + size, size=size, font=weight or font
+    )
     return Paragraph([Line([Word([ch])])])
 
 
@@ -53,10 +57,12 @@ class TestClassifier:
     def test_heading_by_font_ratio(self):
         body = 10.0
         para = _para("Chapter 3: Results", 700, size=18.0)
-        page = _page([_para("body one", 660, size=10.0),
-                      _para("body two", 640, size=10.0), para])
+        page = _page(
+            [_para("body one", 660, size=10.0), _para("body two", 640, size=10.0), para]
+        )
         block = StructureClassifier(body_font_size=body).classify_paragraph(
-            para, page=page, body_font_size=body)
+            para, page=page, body_font_size=body
+        )
         assert block.role is BlockRole.HEADING
         assert block.confidence >= 0.7
 
@@ -94,23 +100,28 @@ class TestClassifier:
 
     def test_header_at_top(self):
         para = _para("Annual Report 2026", 760)
-        page = _page([para, _para("body", 600), _para("body2", 580),
-                      _para("body3", 560)])
+        page = _page(
+            [para, _para("body", 600), _para("body2", 580), _para("body3", 560)]
+        )
         block = StructureClassifier().classify_paragraph(para, page=page)
         assert block.role is BlockRole.HEADER
 
     def test_footer_at_bottom(self):
         para = _para("Page footer text", 40)
-        page = _page([_para("body", 600), _para("body2", 580),
-                      _para("body3", 560), para])
+        page = _page(
+            [_para("body", 600), _para("body2", 580), _para("body3", 560), para]
+        )
         block = StructureClassifier().classify_paragraph(para, page=page)
         assert block.role is BlockRole.FOOTER
 
     def test_footnote_mark_small_font(self):
         para = _para("1 See the appendix.", 60, size=8.0)
-        page = _page([_para("body", 500, size=10.0), _para("body2", 480, size=10.0), para])
+        page = _page(
+            [_para("body", 500, size=10.0), _para("body2", 480, size=10.0), para]
+        )
         block = StructureClassifier(body_font_size=10.0).classify_paragraph(
-            para, page=page, body_font_size=10.0)
+            para, page=page, body_font_size=10.0
+        )
         assert block.role is BlockRole.FOOTNOTE
 
     def test_formula_symbol_line(self):
@@ -124,10 +135,12 @@ class TestClassifier:
         assert block.role is BlockRole.BODY_TEXT
 
     def test_body_font_median_estimate(self):
-        paras = [_para("title", 700, size=18.0),
-                 _para("a", 600, size=10.0),
-                 _para("b", 580, size=10.0),
-                 _para("c", 560, size=10.0)]
+        paras = [
+            _para("title", 700, size=18.0),
+            _para("a", 600, size=10.0),
+            _para("b", 580, size=10.0),
+            _para("c", 560, size=10.0),
+        ]
         clf = StructureClassifier()
         assert clf.estimate_body_font_size([_page(paras)]) == pytest.approx(10.0)
 

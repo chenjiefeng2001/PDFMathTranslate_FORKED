@@ -10,6 +10,7 @@
 QA（§9.2 Anchor Integrity Score）：译文返回后 ``<formula_x>`` 占位符
 的提取匹配率必须达到 100%。
 """
+
 from __future__ import annotations
 
 import re
@@ -20,8 +21,7 @@ _FORMULA_PLACEHOLDER_RE = re.compile(r"<formula_\d+>")
 
 # 宽松锚点变体（真实 LLM 污染容忍，失效点 2）：
 #   <formula_0> / < formula_0 > / <formula 0> / <FORMULA_0> / <formula0>
-LOOSE_ANCHOR_RE = re.compile(
-    r"<\s*[Ff][Oo][Rr][Mm][Uu][Ll][Aa]\s*[ _]?\s*(\d+)\s*>")
+LOOSE_ANCHOR_RE = re.compile(r"<\s*[Ff][Oo][Rr][Mm][Uu][Ll][Aa]\s*[ _]?\s*(\d+)\s*>")
 
 
 def normalize_anchor_token(token: str) -> Optional[str]:
@@ -37,9 +37,9 @@ def extract_anchors_loose(text: str) -> List[str]:
     return [f"<formula_{m.group(1)}>" for m in LOOSE_ANCHOR_RE.finditer(text or "")]
 
 
-def repair_anchors(translated: str,
-                   formula_map: Dict[str, object],
-                   source_text: Optional[str] = None) -> str:
+def repair_anchors(
+    translated: str, formula_map: Dict[str, object], source_text: Optional[str] = None
+) -> str:
     """容错还原锚点（真实 LLM 锚点污染的兜底，§9.2）。
 
     1. 译文中的锚点变体（``< formula_0 >``/``<FORMULA_0>``/``<formula 0>``/
@@ -50,10 +50,12 @@ def repair_anchors(translated: str,
        锚点落位），完整性由 QA ``anchor_ok`` 标记，不由 repair 静默吞掉。
     """
     if not formula_map:
-        return LOOSE_ANCHOR_RE.sub(lambda m: f"<formula_{m.group(1)}>",
-                                   translated or "")
-    normalized = LOOSE_ANCHOR_RE.sub(lambda m: f"<formula_{m.group(1)}>",
-                                     translated or "")
+        return LOOSE_ANCHOR_RE.sub(
+            lambda m: f"<formula_{m.group(1)}>", translated or ""
+        )
+    normalized = LOOSE_ANCHOR_RE.sub(
+        lambda m: f"<formula_{m.group(1)}>", translated or ""
+    )
     found = extract_anchors_loose(normalized)
     expected = list(formula_map.keys())
     missing = [k for k in expected if k not in found]
@@ -72,14 +74,17 @@ def repair_anchors(translated: str,
 class AnchorProtector:
     """``<formula_x>`` 占位符注入与还原。"""
 
-    def __init__(self, placeholder_prefix: str = "formula",
-                 reserved_token: str = "<formula_{}>") -> None:
+    def __init__(
+        self, placeholder_prefix: str = "formula", reserved_token: str = "<formula_{}>"
+    ) -> None:
         self.prefix = placeholder_prefix
         self.token = reserved_token
 
     # ── 注入 ──────────────────────────────────────────────────────
 
-    def inject(self, text: str, formula_bboxes: Optional[List] = None) -> Tuple[str, Dict[str, object]]:
+    def inject(
+        self, text: str, formula_bboxes: Optional[List] = None
+    ) -> Tuple[str, Dict[str, object]]:
         """把文本中的公式占位符替换为锚点（若文本已含 ``<formula_x>`` 则保留）。
 
         返回 (anchored_text, formula_map)。``formula_bboxes`` 为与锚点
@@ -91,6 +96,7 @@ class AnchorProtector:
             token = self.token.format(m.group(1))
             formula_map[token] = m.group(1)
             return token
+
         new_text = _FORMULA_PLACEHOLDER_RE.sub(_repl, text)
         return new_text, formula_map
 
@@ -103,27 +109,26 @@ class AnchorProtector:
 
     # ── 还原 ──────────────────────────────────────────────────────
 
-    def restore(self, translated: str,
-                formula_map: Dict[str, object]) -> str:
+    def restore(self, translated: str, formula_map: Dict[str, object]) -> str:
         """把译文中的锚点替换为渲染占位符（保持锚点便于 Layout Solver 落位）。"""
         if not formula_map:
             return translated
-        return ANCHOR_RE.sub(
-            lambda m: f"<formula_{m.group(1)}>", translated)
+        return ANCHOR_RE.sub(lambda m: f"<formula_{m.group(1)}>", translated)
 
-    def replace_with_text(self, translated: str,
-                          formula_texts: Dict[str, str]) -> str:
+    def replace_with_text(self, translated: str, formula_texts: Dict[str, str]) -> str:
         """把锚点替换为公式原文本（用于纯文本摘要/日志，不用于渲染）。"""
+
         def _repl(m: "re.Match[str]") -> str:
             key = f"<formula_{m.group(1)}>"
             return formula_texts.get(key, key)
+
         return ANCHOR_RE.sub(_repl, translated)
 
     # ── 完整性校验（§9.2 Anchor Integrity Score）──────────────────
 
-    def integrity_score(self, translated: str,
-                        formula_map: Dict[str, object],
-                        loose: bool = True) -> float:
+    def integrity_score(
+        self, translated: str, formula_map: Dict[str, object], loose: bool = True
+    ) -> float:
         """锚点匹配率：期望锚点集合与译文实际锚点集合的交叠率。
 
         ``loose=True`` 时用宽松匹配（容忍真实 LLM 的 ``< formula_0 >``/
@@ -142,11 +147,16 @@ class AnchorProtector:
         # 2. 译文不得引入未知锚点（幻觉扣分）
         unknown = found - expected
         matched = len(expected & found)
-        return matched / (len(expected) + len(unknown)) if (expected or unknown) else 1.0
+        return (
+            matched / (len(expected) + len(unknown)) if (expected or unknown) else 1.0
+        )
 
-    def repair(self, translated: str,
-               formula_map: Dict[str, object],
-               source_text: Optional[str] = None) -> str:
+    def repair(
+        self,
+        translated: str,
+        formula_map: Dict[str, object],
+        source_text: Optional[str] = None,
+    ) -> str:
         """容错还原 + 缺失回退（真实 LLM 锚点污染的兜底）。"""
         return repair_anchors(translated, formula_map, source_text)
 
@@ -162,7 +172,12 @@ def anchors_in_text_loose(text: str) -> List[str]:
 
 
 __all__ = [
-    "AnchorProtector", "ANCHOR_RE", "LOOSE_ANCHOR_RE",
-    "normalize_anchor_token", "anchors_in_text", "anchors_in_text_loose",
-    "extract_anchors_loose", "repair_anchors",
+    "AnchorProtector",
+    "ANCHOR_RE",
+    "LOOSE_ANCHOR_RE",
+    "normalize_anchor_token",
+    "anchors_in_text",
+    "anchors_in_text_loose",
+    "extract_anchors_loose",
+    "repair_anchors",
 ]

@@ -263,15 +263,11 @@ class TestEventBus:
         def worker(tag):
             try:
                 for i in range(150):
-                    bus.publish(
-                        TaskProgressChanged(task_id=tag, progress=float(i))
-                    )
+                    bus.publish(TaskProgressChanged(task_id=tag, progress=float(i)))
             except Exception as exc:  # pragma: no cover
                 errors.append(exc)
 
-        threads = [
-            threading.Thread(target=worker, args=(f"t{n}",)) for n in range(4)
-        ]
+        threads = [threading.Thread(target=worker, args=(f"t{n}",)) for n in range(4)]
         for t in threads:
             t.start()
         for t in threads:
@@ -356,16 +352,22 @@ class TestTaskEventBridge:
 
         stream = [
             TaskProgressEvent(
-                task_id="t1", stage=TaskStage.PARSING.value,
-                progress=5.0, message="Starting...",
+                task_id="t1",
+                stage=TaskStage.PARSING.value,
+                progress=5.0,
+                message="Starting...",
             ),
             TaskProgressEvent(
-                task_id="t1", stage=TaskStage.PARSING.value,
-                progress=10.0, message="Parsing PDF...",
+                task_id="t1",
+                stage=TaskStage.PARSING.value,
+                progress=10.0,
+                message="Parsing PDF...",
             ),
             TaskProgressEvent(
-                task_id="t1", stage=TaskStage.TRANSLATING.value,
-                progress=50.0, message="Translating...",
+                task_id="t1",
+                stage=TaskStage.TRANSLATING.value,
+                progress=50.0,
+                message="Translating...",
             ),
         ]
         for e in stream:
@@ -391,9 +393,7 @@ class TestTaskEventBridge:
         bridge = TaskEventBridge(bus=bus, service=svc)
         bridge.start()
         svc.listeners[0](
-            TaskProgressEvent(
-                task_id="t1", stage=TaskStage.PENDING.value, progress=0.0
-            )
+            TaskProgressEvent(task_id="t1", stage=TaskStage.PENDING.value, progress=0.0)
         )
         types = [e.event_type for e in bus.replay("t1")]
         assert "TaskStarted" not in types
@@ -421,8 +421,10 @@ class TestTaskEventBridge:
         bridge.start()
         svc.listeners[0](
             TaskProgressEvent(
-                task_id="t1", stage=TaskStage.COMPLETED.value,
-                progress=100.0, message="Complete!",
+                task_id="t1",
+                stage=TaskStage.COMPLETED.value,
+                progress=100.0,
+                message="Complete!",
             )
         )
         types = [e.event_type for e in bus.replay("t1")]
@@ -437,14 +439,10 @@ class TestTaskEventBridge:
             "DiagnosticsUpdated",
         ):
             assert expected in types, expected
-        file_ev = [
-            e for e in bus.replay("t1") if e.event_type == "FileGenerated"
-        ][0]
+        file_ev = [e for e in bus.replay("t1") if e.event_type == "FileGenerated"][0]
         assert file_ev.files[0]["name"] == "dual.pdf"
         assert file_ev.zip_path == str(out_file)
-        preview_ev = [
-            e for e in bus.replay("t1") if e.event_type == "PreviewReady"
-        ][0]
+        preview_ev = [e for e in bus.replay("t1") if e.event_type == "PreviewReady"][0]
         assert preview_ev.preview_path == str(out_file)
 
     def test_failed_publishes_task_failed(self):
@@ -459,13 +457,13 @@ class TestTaskEventBridge:
         bridge.start()
         svc.listeners[0](
             TaskProgressEvent(
-                task_id="t1", stage=TaskStage.FAILED.value,
-                progress=100.0, message="boom",
+                task_id="t1",
+                stage=TaskStage.FAILED.value,
+                progress=100.0,
+                message="boom",
             )
         )
-        failed = [
-            e for e in bus.replay("t1") if e.event_type == "TaskFailed"
-        ][0]
+        failed = [e for e in bus.replay("t1") if e.event_type == "TaskFailed"][0]
         assert failed.message == "boom"
 
     def test_integration_with_real_runtime_service(self):
@@ -651,8 +649,9 @@ class TestDeltaSync:
             "TaskSkipped",
         ):
             assert expected in types, expected
-        cancelled = [e for e in EVENT_BUS.replay("t1")
-                     if e.event_type == "TaskCancelled"][0]
+        cancelled = [
+            e for e in EVENT_BUS.replay("t1") if e.event_type == "TaskCancelled"
+        ][0]
         assert cancelled.message == "Cancelled by user"
 
     def test_event_renderers_are_registered_for_every_event(self):

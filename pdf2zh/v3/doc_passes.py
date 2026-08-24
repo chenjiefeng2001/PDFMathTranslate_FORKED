@@ -17,6 +17,7 @@ Pass 语义：
   任何 Pass 改坏模型立即可见；
 - 新增能力 = ``manager.add(Pass)``，不改 Parser。
 """
+
 from __future__ import annotations
 
 import logging
@@ -51,8 +52,12 @@ class PassDiffEntry:
     after: object = None
 
     def to_dict(self) -> dict:
-        return {"block_id": self.block_id, "field": self.field,
-                "before": self.before, "after": self.after}
+        return {
+            "block_id": self.block_id,
+            "field": self.field,
+            "before": self.before,
+            "after": self.after,
+        }
 
 
 @dataclass
@@ -64,9 +69,13 @@ class PassResult:
     diff: List[PassDiffEntry] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return {"pass": self.pass_name, "ok": self.ok,
-                "stats": dict(self.stats), "errors": list(self.errors),
-                "diff": [d.to_dict() for d in self.diff]}
+        return {
+            "pass": self.pass_name,
+            "ok": self.ok,
+            "stats": dict(self.stats),
+            "errors": list(self.errors),
+            "diff": [d.to_dict() for d in self.diff],
+        }
 
 
 @dataclass
@@ -82,14 +91,18 @@ class PassRunReport:
         return len(self.results) - self.ok_count
 
     def to_dict(self) -> dict:
-        return {"passes": [r.to_dict() for r in self.results],
-                "ok": self.ok_count, "failed": self.failed_count}
+        return {
+            "passes": [r.to_dict() for r in self.results],
+            "ok": self.ok_count,
+            "failed": self.failed_count,
+        }
 
     def summary(self) -> str:
         parts = " | ".join(
             f"{r.pass_name}={'ok' if r.ok else 'FAIL'}"
             + (f"({len(r.diff)}Δ)" if r.diff else "")
-            for r in self.results)
+            for r in self.results
+        )
         return f"PassRun ok={self.ok_count}/{len(self.results)} :: {parts}"
 
 
@@ -99,6 +112,7 @@ def _snapshot(doc: DocumentModel) -> Dict[str, dict]:
         pno = page.page_num
         for i, b in enumerate(page.blocks):
             from pdf2zh.v3.document_model import block_id
+
             pol = b.metadata.get("translation_policy") or {}
             snap[block_id(pno, i)] = {
                 "kind": b.kind,
@@ -108,22 +122,24 @@ def _snapshot(doc: DocumentModel) -> Dict[str, dict]:
     return snap
 
 
-def _diff_snapshots(before: Dict[str, dict], after: Dict[str, dict]) -> List[PassDiffEntry]:
+def _diff_snapshots(
+    before: Dict[str, dict], after: Dict[str, dict]
+) -> List[PassDiffEntry]:
     entries: List[PassDiffEntry] = []
     for bid, a in (after or {}).items():
         b = (before or {}).get(bid, {})
         for field in ("kind", "translate", "policy_translate"):
             if b.get(field) != a.get(field):
-                entries.append(PassDiffEntry(bid, field, b.get(field),
-                                             a.get(field)))
+                entries.append(PassDiffEntry(bid, field, b.get(field), a.get(field)))
     return entries
 
 
 class PassManager:
     """Pass 流水线：add(Pass) → run(doc) → PassRunReport（含 PassDiff）。"""
 
-    def __init__(self, passes: Optional[Sequence[DocumentPass]] = None,
-                 track_diff: bool = True) -> None:
+    def __init__(
+        self, passes: Optional[Sequence[DocumentPass]] = None, track_diff: bool = True
+    ) -> None:
         self.passes: List[DocumentPass] = list(passes or [])
         self.track_diff = track_diff
 
@@ -143,11 +159,15 @@ class PassManager:
                 errors.append(f"{type(e).__name__}: {str(e)[:160]}")
                 log.debug("Pass %s failed: %s", p.name, errors[-1])
             after = _snapshot(doc) if self.track_diff else None
-            report.results.append(PassResult(
-                pass_name=p.name, ok=not errors, stats=stats,
-                errors=errors,
-                diff=_diff_snapshots(before, after)
-                if before is not None else []))
+            report.results.append(
+                PassResult(
+                    pass_name=p.name,
+                    ok=not errors,
+                    stats=stats,
+                    errors=errors,
+                    diff=_diff_snapshots(before, after) if before is not None else [],
+                )
+            )
         return report
 
 
@@ -171,9 +191,13 @@ class NormalizePass(DocumentPass):
     name = "normalize"
 
     def run(self, doc: DocumentModel) -> dict:
-        stats = {"normalized_blocks": 0, "spaces_collapsed": 0,
-                 "zero_width_removed": 0, "anomalies": 0,
-                 "reading_order": 0}
+        stats = {
+            "normalized_blocks": 0,
+            "spaces_collapsed": 0,
+            "zero_width_removed": 0,
+            "anomalies": 0,
+            "reading_order": 0,
+        }
         for page in doc.pages:
             for i, block in enumerate(page.blocks):
                 block.metadata["reading_order"] = i
@@ -184,15 +208,16 @@ class NormalizePass(DocumentPass):
                     block.text = fixed
                     stats["normalized_blocks"] += 1
                     stats["spaces_collapsed"] += max(
-                        0, len(_MULTI_SPACE_RE.findall(orig)))
-                    stats["zero_width_removed"] += len(
-                        _ZERO_WIDTH_RE.findall(orig))
+                        0, len(_MULTI_SPACE_RE.findall(orig))
+                    )
+                    stats["zero_width_removed"] += len(_ZERO_WIDTH_RE.findall(orig))
                 if not fixed.strip():
                     block.metadata["anomaly"] = "empty_text"
                     stats["anomalies"] += 1
                 if page.unassigned_glyphs:
-                    block.metadata["anomaly"] = \
+                    block.metadata["anomaly"] = (
                         f"orphan_glyphs:{len(page.unassigned_glyphs)}"
+                    )
                     stats["anomalies"] += 1
         return stats
 
@@ -202,7 +227,9 @@ class NormalizePass(DocumentPass):
 _RE_CODE_KW = re.compile(
     r"\b(?:def|class|function|import|export|return|if|else|elif|for|while|"
     r"try|except|catch|switch|case|break|continue|var|let|const|void|int|"
-    r"float|double|char|struct|enum|lambda|yield|pass)\b", re.IGNORECASE)
+    r"float|double|char|struct|enum|lambda|yield|pass)\b",
+    re.IGNORECASE,
+)
 _RE_CELL_SEP = re.compile(r"\s{2,}|\||\t")
 
 
@@ -221,13 +248,13 @@ def detect_table_block(block) -> Optional[int]:
     lines = [(l.text or "") for l in getattr(block, "lines", []) or []]
     if len(lines) < 2:
         return None
-    cells_per_line = [len(_RE_CELL_SEP.split(l.strip())) for l in lines
-                      if l.strip()]
+    cells_per_line = [len(_RE_CELL_SEP.split(l.strip())) for l in lines if l.strip()]
     if not cells_per_line:
         return None
     wide = [c for c in cells_per_line if c >= 3]
     if len(wide) >= max(1, int(len(cells_per_line) * 0.6)):
         from statistics import median
+
         return int(median(cells_per_line))
     return None
 
@@ -241,8 +268,7 @@ class SemanticPass(DocumentPass):
         self.classifier = classifier
 
     def run(self, doc: DocumentModel) -> dict:
-        stats = {"roles": 0, "toc": 0, "formula_spans": 0,
-                 "code": 0, "tables": 0}
+        stats = {"roles": 0, "toc": 0, "formula_spans": 0, "code": 0, "tables": 0}
         for page in doc.pages:
             # 先做 code/table：覆盖构建期 roles 的误判（如公式样代码），
             # 避免后续 roles/toc/formula 跳过已定型块
@@ -269,51 +295,72 @@ class SemanticPass(DocumentPass):
 
 # ── 2.4 TranslationPolicyPass ────────────────────────────────────────────
 
-_KEEP_KINDS = frozenset({"formula", "figure", "image", "table", "code",
-                         "header", "footer", "page_number"})
+_KEEP_KINDS = frozenset(
+    {"formula", "figure", "image", "table", "code", "header", "footer", "page_number"}
+)
 
 # 题注编号提取（与 CaptionNodeProcessor 同源）
 _RE_CAPTION_NUMBER = re.compile(
     r"^\s*(?:(?:fig(?:ure)?|tab(?:le)?|图|表|公式|equation)\.?\s*"
     r"\.?\s*)?([0-9]+(?:\.[0-9]+)*)\s*[.:、：）)\-–—]?\s*(.*)$",
-    re.IGNORECASE)
+    re.IGNORECASE,
+)
 
 
 def translation_policy_for(block) -> dict:
     """为单个块生成翻译策略（Phase 5 决策的 Pass 化）。"""
     kind = block.kind
     if kind in _KEEP_KINDS:
-        return {"translate": False, "partial": False,
-                "preserve_format": True, "preserve_case": True,
-                "preserve_math": kind == "formula",
-                "preserve_code": kind == "code",
-                "preserve_number": False,
-                "source_text": "",
-                "reason": f"kind:{kind}"}
+        return {
+            "translate": False,
+            "partial": False,
+            "preserve_format": True,
+            "preserve_case": True,
+            "preserve_math": kind == "formula",
+            "preserve_code": kind == "code",
+            "preserve_number": False,
+            "source_text": "",
+            "reason": f"kind:{kind}",
+        }
     if kind == "toc":
         title = block.metadata.get("toc_title") or ""
-        return {"translate": True, "partial": True,
-                "preserve_format": True, "preserve_case": False,
-                "preserve_math": False, "preserve_code": False,
-                "preserve_number": True,
-                "source_text": title or (block.text or ""),
-                "reason": "toc:title_only"}
+        return {
+            "translate": True,
+            "partial": True,
+            "preserve_format": True,
+            "preserve_case": False,
+            "preserve_math": False,
+            "preserve_code": False,
+            "preserve_number": True,
+            "source_text": title or (block.text or ""),
+            "reason": "toc:title_only",
+        }
     if kind == "caption":
         m = _RE_CAPTION_NUMBER.match(block.text or "")
         number = m.group(1) if m and m.group(1) else ""
         rest = (m.group(2) or "").strip() if m else (block.text or "")
-        return {"translate": True, "partial": bool(number),
-                "preserve_format": True, "preserve_case": False,
-                "preserve_math": False, "preserve_code": False,
-                "preserve_number": bool(number),
-                "source_text": rest or (block.text or ""),
-                "reason": "caption:keep_number" if number else "caption"}
-    return {"translate": True, "partial": False,
-            "preserve_format": True, "preserve_case": False,
-            "preserve_math": False, "preserve_code": False,
-            "preserve_number": False,
-            "source_text": block.text or "",
-            "reason": "body"}
+        return {
+            "translate": True,
+            "partial": bool(number),
+            "preserve_format": True,
+            "preserve_case": False,
+            "preserve_math": False,
+            "preserve_code": False,
+            "preserve_number": bool(number),
+            "source_text": rest or (block.text or ""),
+            "reason": "caption:keep_number" if number else "caption",
+        }
+    return {
+        "translate": True,
+        "partial": False,
+        "preserve_format": True,
+        "preserve_case": False,
+        "preserve_math": False,
+        "preserve_code": False,
+        "preserve_number": False,
+        "source_text": block.text or "",
+        "reason": "body",
+    }
 
 
 class TranslationPolicyPass(DocumentPass):
@@ -348,31 +395,39 @@ class TypographyPass(DocumentPass):
 
     name = "typography"
 
-    def __init__(self, default_adv_ratio: float = 0.5,
-                 overflow_ratio: float = 1.15) -> None:
+    def __init__(
+        self, default_adv_ratio: float = 0.5, overflow_ratio: float = 1.15
+    ) -> None:
         self.default_adv_ratio = default_adv_ratio
         self.overflow_ratio = overflow_ratio
 
     def run(self, doc: DocumentModel) -> dict:
         from pdf2zh.v3.typography_engine import (
-            build_width_map, line_break, measure, widow_orphan_flag,
+            build_width_map,
+            line_break,
+            measure,
+            widow_orphan_flag,
         )
+
         stats = {"measured": 0, "overflow_blocks": 0, "short_paragraphs": 0}
         for page in doc.pages:
             for i, block in enumerate(page.blocks):
-                text = (block.metadata.get("translated")
-                        or block.text or "").strip()
+                text = (block.metadata.get("translated") or block.text or "").strip()
                 if not text:
                     continue
                 widths = build_width_map(block)
-                default_adv = max(block.font_size * self.default_adv_ratio,
-                                  1.0) if block.font_size else 5.0
+                default_adv = (
+                    max(block.font_size * self.default_adv_ratio, 1.0)
+                    if block.font_size
+                    else 5.0
+                )
+
                 def mfn(s):  # noqa: E306
                     return measure(s, widths, default_adv)
+
                 max_w = max(block.x1 - block.x0, 1.0)
                 lines = line_break(text, max_w, mfn)
-                overflow = any(mfn(l) > max_w * self.overflow_ratio
-                               for l in lines)
+                overflow = any(mfn(l) > max_w * self.overflow_ratio for l in lines)
                 if overflow:
                     stats["overflow_blocks"] += 1
                 short = widow_orphan_flag(len(lines))
@@ -393,18 +448,30 @@ class TypographyPass(DocumentPass):
 
 def default_pass_manager(track_diff: bool = True) -> PassManager:
     """推荐流水线：Normalize → Semantic → TranslationPolicy → Typography。"""
-    return PassManager([
-        NormalizePass(),
-        SemanticPass(),
-        TranslationPolicyPass(),
-        TypographyPass(),
-    ], track_diff=track_diff)
+    return PassManager(
+        [
+            NormalizePass(),
+            SemanticPass(),
+            TranslationPolicyPass(),
+            TypographyPass(),
+        ],
+        track_diff=track_diff,
+    )
 
 
 __all__ = [
-    "DocumentPass", "PassDiffEntry", "PassResult", "PassRunReport",
-    "PassManager", "normalize_text", "NormalizePass",
-    "SemanticPass", "detect_code_block", "detect_table_block",
-    "TranslationPolicyPass", "translation_policy_for",
-    "TypographyPass", "default_pass_manager",
+    "DocumentPass",
+    "PassDiffEntry",
+    "PassResult",
+    "PassRunReport",
+    "PassManager",
+    "normalize_text",
+    "NormalizePass",
+    "SemanticPass",
+    "detect_code_block",
+    "detect_table_block",
+    "TranslationPolicyPass",
+    "translation_policy_for",
+    "TypographyPass",
+    "default_pass_manager",
 ]

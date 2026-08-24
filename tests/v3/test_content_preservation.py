@@ -3,16 +3,24 @@
 覆盖：统一动作收敛（TRANSLATE/PRESERVE/OVERLAY）、语义角色默认策略、
 图片委托决策、apply_to_ir 角色写回、serialization。
 """
+
 import unittest
 
 import numpy as np
 
 from pdf2zh.v3.content_preservation import (
-    ACTION_TO_RENDER, PreservationAction, PreservationDecision,
-    ContentPreservationEngine, classify_node,
+    ACTION_TO_RENDER,
+    PreservationAction,
+    PreservationDecision,
+    ContentPreservationEngine,
+    classify_node,
 )
 from pdf2zh.v3.document_ir import (
-    DocumentIR, IRNode, RenderingRole, SemanticRole, TranslationRole,
+    DocumentIR,
+    IRNode,
+    RenderingRole,
+    SemanticRole,
+    TranslationRole,
 )
 from pdf2zh.v3.image_engine import ImageClass, ImageObject, TextRegion
 
@@ -21,22 +29,36 @@ def _build_ir():
     ir = DocumentIR(title="t", source_lang="en", target_lang="zh-cn")
     page = ir.add_node("page_0", semantic=SemanticRole.SECTION, page_num=0)
     nodes = {
-        "body": ir.add_node("body", semantic=SemanticRole.BODY_TEXT,
-                            parent_id="page_0", text="hello world"),
-        "heading": ir.add_node("h1", semantic=SemanticRole.HEADING,
-                               parent_id="page_0", text="Overview"),
-        "figure": ir.add_node("fig", semantic=SemanticRole.FIGURE,
-                              parent_id="page_0", text="figure"),
-        "formula": ir.add_node("fml", semantic=SemanticRole.FORMULA,
-                               parent_id="page_0", text="E=mc^2"),
-        "table": ir.add_node("tbl", semantic=SemanticRole.TABLE,
-                             parent_id="page_0", text="table"),
-        "caption": ir.add_node("cap", semantic=SemanticRole.CAPTION,
-                               parent_id="page_0", text="Fig 1: results"),
-        "code": ir.add_node("code", semantic=SemanticRole.CODE,
-                            parent_id="page_0", text="print(1)"),
-        "header": ir.add_node("hdr", semantic=SemanticRole.HEADER,
-                              parent_id="page_0", text="company"),
+        "body": ir.add_node(
+            "body",
+            semantic=SemanticRole.BODY_TEXT,
+            parent_id="page_0",
+            text="hello world",
+        ),
+        "heading": ir.add_node(
+            "h1", semantic=SemanticRole.HEADING, parent_id="page_0", text="Overview"
+        ),
+        "figure": ir.add_node(
+            "fig", semantic=SemanticRole.FIGURE, parent_id="page_0", text="figure"
+        ),
+        "formula": ir.add_node(
+            "fml", semantic=SemanticRole.FORMULA, parent_id="page_0", text="E=mc^2"
+        ),
+        "table": ir.add_node(
+            "tbl", semantic=SemanticRole.TABLE, parent_id="page_0", text="table"
+        ),
+        "caption": ir.add_node(
+            "cap",
+            semantic=SemanticRole.CAPTION,
+            parent_id="page_0",
+            text="Fig 1: results",
+        ),
+        "code": ir.add_node(
+            "code", semantic=SemanticRole.CODE, parent_id="page_0", text="print(1)"
+        ),
+        "header": ir.add_node(
+            "hdr", semantic=SemanticRole.HEADER, parent_id="page_0", text="company"
+        ),
     }
     return ir, nodes
 
@@ -59,8 +81,9 @@ class TestRoleDefaults(unittest.TestCase):
 
     def test_table_preserved(self):
         ir, n = _build_ir()
-        self.assertEqual(self.engine.decide_ir_node(n["table"]).action,
-                         PreservationAction.PRESERVE)
+        self.assertEqual(
+            self.engine.decide_ir_node(n["table"]).action, PreservationAction.PRESERVE
+        )
 
     def test_formula_preserved(self):
         ir, n = _build_ir()
@@ -76,13 +99,15 @@ class TestRoleDefaults(unittest.TestCase):
 
     def test_header_preserved(self):
         ir, n = _build_ir()
-        self.assertEqual(self.engine.decide_ir_node(n["header"]).action,
-                         PreservationAction.PRESERVE)
+        self.assertEqual(
+            self.engine.decide_ir_node(n["header"]).action, PreservationAction.PRESERVE
+        )
 
     def test_code_preserved(self):
         ir, n = _build_ir()
-        self.assertEqual(self.engine.decide_ir_node(n["code"]).action,
-                         PreservationAction.PRESERVE)
+        self.assertEqual(
+            self.engine.decide_ir_node(n["code"]).action, PreservationAction.PRESERVE
+        )
 
 
 class TestDecideWholeIR(unittest.TestCase):
@@ -90,8 +115,9 @@ class TestDecideWholeIR(unittest.TestCase):
         ir, _ = _build_ir()
         decisions = ContentPreservationEngine().decide_ir(ir)
         ids = {d.object_id for d in decisions}
-        self.assertEqual(ids, {"page_0", "body", "h1", "fig", "fml", "tbl",
-                               "cap", "code", "hdr"})
+        self.assertEqual(
+            ids, {"page_0", "body", "h1", "fig", "fml", "tbl", "cap", "code", "hdr"}
+        )
 
     def test_decisions_serializable(self):
         ir, _ = _build_ir()
@@ -103,27 +129,34 @@ class TestDecideWholeIR(unittest.TestCase):
 
 class TestImageDelegate(unittest.TestCase):
     def test_preserve_image_protected(self):
-        obj = ImageObject(id="i1", image_class=ImageClass.LOGO,
-                          features={"color_count": 4})
+        obj = ImageObject(
+            id="i1", image_class=ImageClass.LOGO, features={"color_count": 4}
+        )
         d = ContentPreservationEngine().decide_image(obj)
         self.assertEqual(d.action, PreservationAction.PRESERVE)
         self.assertEqual(d.object_type, "image:logo")
 
     def test_translate_image_whitelisted(self):
         obj = ImageObject(id="i2", image_class=ImageClass.DIAGRAM)
-        obj.regions = [TextRegion(bbox=(0, 0, 0.5, 0.1), text="build a module",
-                                  ocr_confidence=0.9)]
+        obj.regions = [
+            TextRegion(bbox=(0, 0, 0.5, 0.1), text="build a module", ocr_confidence=0.9)
+        ]
         d = ContentPreservationEngine().decide_image(obj)
         self.assertEqual(d.action, PreservationAction.TRANSLATE)
         self.assertEqual(d.render_mode.value, "region_replace")
 
     def test_overlay_image(self):
         obj = ImageObject(id="i3", image_class=ImageClass.SCREENSHOT)
-        obj.regions = [TextRegion(bbox=(0, 0, 0.5, 0.1), text="click save button",
-                                  ocr_confidence=0.95)]
+        obj.regions = [
+            TextRegion(
+                bbox=(0, 0, 0.5, 0.1), text="click save button", ocr_confidence=0.95
+            )
+        ]
         d = ContentPreservationEngine().decide_image(obj)
         self.assertTrue(d.image_decision is not None)
-        self.assertIn(d.action, {PreservationAction.TRANSLATE, PreservationAction.OVERLAY})
+        self.assertIn(
+            d.action, {PreservationAction.TRANSLATE, PreservationAction.OVERLAY}
+        )
 
     def test_image_decision_cached_on_object(self):
         obj = ImageObject(id="i4", image_class=ImageClass.PHOTO)
@@ -136,8 +169,11 @@ class TestImageDelegate(unittest.TestCase):
 
     def test_decision_dict_roundtrip(self):
         obj = ImageObject(id="i5", image_class=ImageClass.CHART)
-        obj.regions = [TextRegion(bbox=(0, 0, 0.5, 0.1), text="annual sales by region",
-                                  ocr_confidence=0.9)]
+        obj.regions = [
+            TextRegion(
+                bbox=(0, 0, 0.5, 0.1), text="annual sales by region", ocr_confidence=0.9
+            )
+        ]
         d = ContentPreservationEngine().decide_image(obj)
         out = d.to_dict()
         self.assertEqual(out["object_id"], "i5")
@@ -168,8 +204,9 @@ class TestApplyToIR(unittest.TestCase):
 
 class TestUnknownFallback(unittest.TestCase):
     def test_custom_node_preserve_hint(self):
-        node = IRNode(id="z", semantic=SemanticRole.UNKNOWN,
-                      translation=TranslationRole.KEEP_TERM)
+        node = IRNode(
+            id="z", semantic=SemanticRole.UNKNOWN, translation=TranslationRole.KEEP_TERM
+        )
         d = ContentPreservationEngine().decide_ir_node(node)
         self.assertEqual(d.action, PreservationAction.PRESERVE)
         self.assertEqual(d.translation_role, TranslationRole.KEEP_TERM)
@@ -182,9 +219,13 @@ class TestUnknownFallback(unittest.TestCase):
 
 class TestActionRenderMap(unittest.TestCase):
     def test_map_consistency(self):
-        self.assertEqual(ACTION_TO_RENDER[PreservationAction.PRESERVE].value, "preserve")
+        self.assertEqual(
+            ACTION_TO_RENDER[PreservationAction.PRESERVE].value, "preserve"
+        )
         self.assertEqual(ACTION_TO_RENDER[PreservationAction.OVERLAY].value, "overlay")
-        self.assertEqual(ACTION_TO_RENDER[PreservationAction.TRANSLATE].value, "region_replace")
+        self.assertEqual(
+            ACTION_TO_RENDER[PreservationAction.TRANSLATE].value, "region_replace"
+        )
 
 
 if __name__ == "__main__":

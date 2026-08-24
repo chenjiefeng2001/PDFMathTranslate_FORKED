@@ -5,6 +5,7 @@ Reconstructs TJ/Tj instruction streams for Chinese/CJK text,
 replacing the old fixed-spacing approach with proper character
 spacing that supports both left-aligned and justified alignment.
 """
+
 import logging
 from typing import Dict, List, Optional
 

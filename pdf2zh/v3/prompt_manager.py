@@ -43,7 +43,8 @@ class PromptTemplate:
 
     def to_dict(self) -> dict:
         return {
-            "name": self.name, "task": self.task,
+            "name": self.name,
+            "task": self.task,
             "extra_instructions": self.extra_instructions,
         }
 
@@ -129,9 +130,12 @@ class ContextBuilder:
 class PromptManager:
     """Assemble system + style + domain + glossary + task into a prompt."""
 
-    def __init__(self, context_builder: Optional[ContextBuilder] = None,
-                 templates: Optional[Dict[str, PromptTemplate]] = None,
-                 target_lang: str = "zh-cn") -> None:
+    def __init__(
+        self,
+        context_builder: Optional[ContextBuilder] = None,
+        templates: Optional[Dict[str, PromptTemplate]] = None,
+        target_lang: str = "zh-cn",
+    ) -> None:
         self.context_builder = context_builder or ContextBuilder()
         self.templates = templates or DEFAULT_TEMPLATES
         self.target_lang = target_lang
@@ -191,8 +195,13 @@ class PromptManager:
             parts.append(f"[Entities] Keep these proper nouns unchanged: {lines}")
         return "\n".join(parts)
 
-    def build_prompt(self, text: str, semantic=None, is_formula: bool = False,
-                     keep_numbers: bool = False) -> dict:
+    def build_prompt(
+        self,
+        text: str,
+        semantic=None,
+        is_formula: bool = False,
+        keep_numbers: bool = False,
+    ) -> dict:
         """Assemble the full chat prompt payload."""
         template = self.get_template(semantic)
         system = self._build_system()
@@ -215,13 +224,13 @@ class PromptManager:
         """Build a JSON batch prompt from chunk dicts with node_ids."""
         items = []
         for chunk in chunks:
-            items.append({
-                "node_id": chunk.get("node_id", ""),
-                "text": chunk.get("text", ""),
-                "instruction": self.get_template(
-                    chunk.get("semantic")
-                ).task,
-            })
+            items.append(
+                {
+                    "node_id": chunk.get("node_id", ""),
+                    "text": chunk.get("text", ""),
+                    "instruction": self.get_template(chunk.get("semantic")).task,
+                }
+            )
         return {
             "system": self._build_system(),
             "user": (
@@ -233,5 +242,3 @@ class PromptManager:
 
 
 __all__ = ["PromptTemplate", "ContextBuilder", "PromptManager", "DEFAULT_TEMPLATES"]
-
-

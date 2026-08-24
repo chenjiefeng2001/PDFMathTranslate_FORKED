@@ -9,6 +9,7 @@
 - 真实 fitz 合成 PDF 经 PDFPageInterpreterEx + TranslateConverter
   （stub 翻译器 + stub 布局矩阵）端到端产出 v3 side-channel 数据。
 """
+
 import io
 import os
 import tempfile
@@ -73,6 +74,7 @@ class ProcessorChannelsBase(unittest.TestCase):
         converter.fontid = {}
         converter.text_metrics = {}
         from pdf2zh.collision_resolver import CollisionResolver
+
         converter.collision_resolver = CollisionResolver()
         translator = Mock()
         translator.translate = Mock(side_effect=lambda t: "YI" + t)
@@ -104,14 +106,15 @@ class TestProcessorChannels(ProcessorChannelsBase):
 
     def test_toc_channel_structured_records(self):
         all_records = []
-        for pageid, line in [(2, "1. Introduction .......... 3"),
-                             (3, "2. Methods .............. 12")]:
+        for pageid, line in [
+            (2, "1. Introduction .......... 3"),
+            (3, "2. Methods .............. 12"),
+        ]:
             page = LTPage(pageid, (0, 0, 600, 800))
             add_text(page, 50, 700, line)
             conv = self.build_converter(page, processor_channels=True)
             conv.receive_layout(page)
-            all_records.extend(
-                getattr(conv, "toc_ir_records", {}).get(pageid, []))
+            all_records.extend(getattr(conv, "toc_ir_records", {}).get(pageid, []))
         assert all_records, "TOC 目录行应产出结构化记录"
         kinds = {r["kind"] for r in all_records}
         assert "section" in kinds
@@ -128,8 +131,9 @@ class TestProcessorChannels(ProcessorChannelsBase):
         page = LTPage(4, (0, 0, 600, 800))
         add_text(page, 50, 700, "Hello world")
         conv = self.build_converter(page, processor_channels=True)
-        with patch("pdf2zh.v3.geometry.chars_from_ltpage",
-                   side_effect=RuntimeError("boom")):
+        with patch(
+            "pdf2zh.v3.geometry.chars_from_ltpage", side_effect=RuntimeError("boom")
+        ):
             conv.receive_layout(page)  # 不得抛异常
 
 
@@ -138,10 +142,13 @@ class TestRealPdfE2E(unittest.TestCase):
 
     def _make_pdf(self, path):
         import fitz
+
         doc = fitz.open()
         # page 0：正文段落；page 1：目录行单行（多行会与 stub 布局合并成段）
-        for (text, y) in [("Chapter 3: Results", 720),
-                          ("1. Introduction .......... 3", 300)]:
+        for text, y in [
+            ("Chapter 3: Results", 720),
+            ("1. Introduction .......... 3", 300),
+        ]:
             page = doc.new_page(width=612, height=792)
             page.insert_text((72, y), text, fontsize=10)
         doc.save(path)
@@ -170,7 +177,9 @@ class TestRealPdfE2E(unittest.TestCase):
             conv = TranslateConverter(
                 rsrcmgr,
                 layout={0: make_layout()},
-                lang_in="en", lang_out="zh-CN", service="stub",
+                lang_in="en",
+                lang_out="zh-CN",
+                service="stub",
             )
             conv.thread = 1
             conv.noto_name = "noto"
@@ -181,6 +190,7 @@ class TestRealPdfE2E(unittest.TestCase):
             conv.fontmap, conv.fontid = {}, {}
             conv.text_metrics = {}
             from pdf2zh.collision_resolver import CollisionResolver
+
             conv.collision_resolver = CollisionResolver()
             conv.processor_channels = True
             obj_patch = {}

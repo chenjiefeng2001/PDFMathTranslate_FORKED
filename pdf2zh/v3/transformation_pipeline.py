@@ -18,18 +18,30 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple
 
 from pdf2zh.v3.graph import (
-    DocumentGraph, DocumentNode, NodeType, Edge, EdgeType,
-    DocumentGraphBuilder, GraphBuildConfig,
+    DocumentGraph,
+    DocumentNode,
+    NodeType,
+    Edge,
+    EdgeType,
+    DocumentGraphBuilder,
+    GraphBuildConfig,
 )
 from pdf2zh.v3.planner import PlannerConfig, TranslationPlanner, GlossaryManager
 from pdf2zh.v3.translator import (
-    LLMProvider, LLMResponse, TranslationSession, Translator,
-    TranslationStats, MockLLMProvider,
+    LLMProvider,
+    LLMResponse,
+    TranslationSession,
+    Translator,
+    TranslationStats,
+    MockLLMProvider,
 )
 from pdf2zh.v3.review_agent import QualityPipeline, ReviewAgent, ReviewResult
 from pdf2zh.v3.relayout_engine import RelayoutEngine, RelayoutConfig
 from pdf2zh.v3.render_adapter import (
-    RenderAdapter, RenderBlock, HTMLFloatRenderer, TextRenderer,
+    RenderAdapter,
+    RenderBlock,
+    HTMLFloatRenderer,
+    TextRenderer,
 )
 from pdf2zh.v3.visual_tree import BoundingBox
 
@@ -120,21 +132,27 @@ class PipelineOutput:
             "session": self.session_summary,
         }
 
+
 class TransformationPipeline:
     """Compose parse -> graph -> plan -> translate -> review -> relayout -> render."""
 
-    def __init__(self, config: Optional[PipelineConfig] = None,
-                 provider: Optional[LLMProvider] = None) -> None:
+    def __init__(
+        self,
+        config: Optional[PipelineConfig] = None,
+        provider: Optional[LLMProvider] = None,
+    ) -> None:
         self.config = config or PipelineConfig()
         self.provider = provider or RuleBasedProvider(self.config.target_lang)
         self._reviewer = ReviewAgent(glossary=self.config.glossary)
         self._quality = QualityPipeline(reviewer=self._reviewer)
-        self._relayout = RelayoutEngine(RelayoutConfig(
-            reflow=self.config.reflow,
-            float_images=self.config.float_images,
-            overlay=self.config.overlay,
-            chunk_line_gap=self.config.line_gap,
-        ))
+        self._relayout = RelayoutEngine(
+            RelayoutConfig(
+                reflow=self.config.reflow,
+                float_images=self.config.float_images,
+                overlay=self.config.overlay,
+                chunk_line_gap=self.config.line_gap,
+            )
+        )
         self._render = RenderAdapter(formats=self.config.formats)
 
     # ── Graph construction ───────────────────────────────────────────
@@ -145,8 +163,12 @@ class TransformationPipeline:
         graph = DocumentGraph()
         for i, b in enumerate(blocks):
             nid = b.get("id", f"node_{i}")
-            x0, y0, w, h = (b.get("x", 0.0), b.get("y", 0.0),
-                            b.get("w", 100.0), b.get("h", 14.0))
+            x0, y0, w, h = (
+                b.get("x", 0.0),
+                b.get("y", 0.0),
+                b.get("w", 100.0),
+                b.get("h", 14.0),
+            )
             node = DocumentNode(
                 id=nid,
                 node_type=NodeType(b.get("type", "paragraph")),
@@ -167,21 +189,28 @@ class TransformationPipeline:
             y0 = min(n.y0 for n in page_nodes)
             x1 = max(n.x1 for n in page_nodes)
             y1 = max(n.y1 for n in page_nodes)
-            graph.add_node(DocumentNode(
-                id=page_id, node_type=NodeType.PAGE,
-                bbox=(x0, y0, x1, y1), text=f"Page {pn + 1}", page_num=pn,
-            ))
+            graph.add_node(
+                DocumentNode(
+                    id=page_id,
+                    node_type=NodeType.PAGE,
+                    bbox=(x0, y0, x1, y1),
+                    text=f"Page {pn + 1}",
+                    page_num=pn,
+                )
+            )
             for n in page_nodes:
-                graph.add_edge(Edge(source_id=page_id, target_id=n.id,
-                                    edge_type=EdgeType.CONTAINS))
+                graph.add_edge(
+                    Edge(source_id=page_id, target_id=n.id, edge_type=EdgeType.CONTAINS)
+                )
         ordered = sorted(graph.nodes, key=lambda n: (n.page_num, n.y0, n.x0))
         prev = None
         for n in ordered:
             if n.node_type in (NodeType.PAGE, NodeType.DOCUMENT):
                 continue
             if prev is not None:
-                graph.add_edge(Edge(source_id=prev.id, target_id=n.id,
-                                    edge_type=EdgeType.FOLLOWS))
+                graph.add_edge(
+                    Edge(source_id=prev.id, target_id=n.id, edge_type=EdgeType.FOLLOWS)
+                )
             prev = n
         return graph
 
@@ -198,48 +227,61 @@ class TransformationPipeline:
             items.sort(key=lambda n: (n.y0, n.x0))
         return pages
 
-
-
     # ── Main entry points ────────────────────────────────────────────
 
-    def run_text(self, texts: List[str],
-                 page_width: float = 612.0,
-                 page_height: float = 792.0) -> PipelineOutput:
+    def run_text(
+        self, texts: List[str], page_width: float = 612.0, page_height: float = 792.0
+    ) -> PipelineOutput:
         """Run the pipeline over a list of plain-text blocks (headless friendly)."""
         blocks = []
         for i, text in enumerate(texts):
-            blocks.append({
-                "id": f"n{i}", "text": text, "type": "paragraph",
-                "x": 72.0, "y": 100.0 + i * 20.0,
-                "w": 468.0, "h": 14.0, "page": 0,
-            })
+            blocks.append(
+                {
+                    "id": f"n{i}",
+                    "text": text,
+                    "type": "paragraph",
+                    "x": 72.0,
+                    "y": 100.0 + i * 20.0,
+                    "w": 468.0,
+                    "h": 14.0,
+                    "page": 0,
+                }
+            )
         return self.run(blocks, page_width=page_width, page_height=page_height)
 
-    def run(self, blocks: List[Dict],
-            page_width: float = 612.0,
-            page_height: float = 792.0,
-            provider: Optional[LLMProvider] = None) -> PipelineOutput:
+    def run(
+        self,
+        blocks: List[Dict],
+        page_width: float = 612.0,
+        page_height: float = 792.0,
+        provider: Optional[LLMProvider] = None,
+    ) -> PipelineOutput:
         """Run the pipeline over a list of content block dicts."""
         started = time.time()
         graph = self.build_graph_from_blocks(blocks)
         session = self._translate(graph, provider)
         translations = dict(session.results)
         review = self._quality.run(
-            {nid: {"source": n.text, "translated": txt}
-             for nid, txt in translations.items()
-             if (n := graph.get_node(nid)) is not None},
+            {
+                nid: {"source": n.text, "translated": txt}
+                for nid, txt in translations.items()
+                if (n := graph.get_node(nid)) is not None
+            },
             is_formula_map={
-                nid: graph.get_node(nid).node_type in
-                (NodeType.FORMULA, NodeType.FORMULA_INLINE)
+                nid: graph.get_node(nid).node_type
+                in (NodeType.FORMULA, NodeType.FORMULA_INLINE)
                 for nid in translations
                 if graph.get_node(nid) is not None
             },
         )
         final_translations = review["final_translations"]
         manifest = self._relayout.run(
-            [{"index": pn, "items": items}
-             for pn, items in self._graph_to_items(graph).items()],
-            page_width=page_width, page_height=page_height,
+            [
+                {"index": pn, "items": items}
+                for pn, items in self._graph_to_items(graph).items()
+            ],
+            page_width=page_width,
+            page_height=page_height,
         ).to_dict()
         # Map chunk ids -> node translations for rendering.
         render_translations = {}
@@ -260,8 +302,11 @@ class TransformationPipeline:
 
         elapsed_ms = (time.time() - started) * 1000.0
         stats = PipelineStats(
-            total_nodes=sum(1 for n in graph.nodes
-                            if n.node_type not in (NodeType.PAGE, NodeType.DOCUMENT)),
+            total_nodes=sum(
+                1
+                for n in graph.nodes
+                if n.node_type not in (NodeType.PAGE, NodeType.DOCUMENT)
+            ),
             translated=len(translations),
             review_errors=review["errors"],
             quality_score=review["quality_score"],
@@ -277,19 +322,24 @@ class TransformationPipeline:
             session_summary=session.summary(),
         )
 
-    def _translate(self, graph: DocumentGraph,
-                   provider: Optional[LLMProvider] = None) -> TranslationSession:
-        planner = TranslationPlanner(PlannerConfig(
-            source_lang=self.config.source_lang,
-            target_lang=self.config.target_lang,
-            model=self.config.model,
-        ))
+    def _translate(
+        self, graph: DocumentGraph, provider: Optional[LLMProvider] = None
+    ) -> TranslationSession:
+        planner = TranslationPlanner(
+            PlannerConfig(
+                source_lang=self.config.source_lang,
+                target_lang=self.config.target_lang,
+                model=self.config.model,
+            )
+        )
         glossary_mgr = GlossaryManager()
         for src, tgt in self.config.glossary.items():
             glossary_mgr.add_term(src, tgt)
         planner.glossary = glossary_mgr
         session = TranslationSession(
-            graph=graph, planner=planner, provider=provider or self.provider,
+            graph=graph,
+            planner=planner,
+            provider=provider or self.provider,
         )
         translator = Translator(session)
         translator.translate_all()
@@ -297,6 +347,9 @@ class TransformationPipeline:
 
 
 __all__ = [
-    "PipelineConfig", "PipelineStats", "RuleBasedProvider",
-    "PipelineOutput", "TransformationPipeline",
+    "PipelineConfig",
+    "PipelineStats",
+    "RuleBasedProvider",
+    "PipelineOutput",
+    "TransformationPipeline",
 ]

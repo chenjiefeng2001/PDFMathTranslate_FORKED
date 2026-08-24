@@ -13,6 +13,7 @@ BBox · Baseline · LineHeight · Ascender · Descender · 字号 ——
 
 纯计算 + 字符串产出，无 I/O 副作用。
 """
+
 from __future__ import annotations
 
 import json
@@ -34,14 +35,17 @@ class LineMetrics:
     glyph_count: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"node_id": self.node_id, "text": self.text,
-                "bbox": [round(v, 2) for v in self.bbox],
-                "baseline": round(self.baseline, 2),
-                "line_height": round(self.line_height, 2),
-                "ascender": round(self.ascender, 2),
-                "descender": round(self.descender, 2),
-                "font_size": round(self.font_size, 2),
-                "glyph_count": self.glyph_count}
+        return {
+            "node_id": self.node_id,
+            "text": self.text,
+            "bbox": [round(v, 2) for v in self.bbox],
+            "baseline": round(self.baseline, 2),
+            "line_height": round(self.line_height, 2),
+            "ascender": round(self.ascender, 2),
+            "descender": round(self.descender, 2),
+            "font_size": round(self.font_size, 2),
+            "glyph_count": self.glyph_count,
+        }
 
 
 def _line_metrics(pno: int, bi: int, li: int, line) -> LineMetrics:
@@ -61,10 +65,19 @@ def _line_metrics(pno: int, bi: int, li: int, line) -> LineMetrics:
     return LineMetrics(
         node_id=f"P{pno}::B{bi}::L{li}",
         text=line.text or "",
-        bbox=(float(line.x0 or 0.0), float(line.y0 or 0.0),
-              float(line.x1 or 0.0), float(line.y1 or 0.0)),
-        baseline=base, line_height=lh, ascender=asc,
-        descender=desc, font_size=size, glyph_count=len(glyphs))
+        bbox=(
+            float(line.x0 or 0.0),
+            float(line.y0 or 0.0),
+            float(line.x1 or 0.0),
+            float(line.y1 or 0.0),
+        ),
+        baseline=base,
+        line_height=lh,
+        ascender=asc,
+        descender=desc,
+        font_size=size,
+        glyph_count=len(glyphs),
+    )
 
 
 def line_metrics_from_page(page, page_num: Optional[int] = None) -> List[LineMetrics]:
@@ -97,16 +110,28 @@ def line_metrics_from_snapshot(snapshot: Optional[Dict[str, Any]]) -> List[LineM
             if baseline and y0:
                 asc = (y1 or baseline) - baseline
                 desc = baseline - y0
-            out.append(LineMetrics(
-                node_id=f"{nid}::{ln}", text=ldata.get("text", ""),
-                bbox=(x0, y0, x1, y1), baseline=baseline,
-                line_height=lh, ascender=asc, descender=desc,
-                font_size=size, glyph_count=0))
+            out.append(
+                LineMetrics(
+                    node_id=f"{nid}::{ln}",
+                    text=ldata.get("text", ""),
+                    bbox=(x0, y0, x1, y1),
+                    baseline=baseline,
+                    line_height=lh,
+                    ascender=asc,
+                    descender=desc,
+                    font_size=size,
+                    glyph_count=0,
+                )
+            )
     return out
 
 
-def render_svg(metrics: List[LineMetrics], width: float = 600.0,
-               height: float = 800.0, flip_y: bool = True) -> str:
+def render_svg(
+    metrics: List[LineMetrics],
+    width: float = 600.0,
+    height: float = 800.0,
+    flip_y: bool = True,
+) -> str:
     """把排版度量渲染成 SVG 标注字符串。坐标一致，y 默认翻转成自顶向下。"""
     parts: List[str] = [
         f'<svg xmlns="http://www.w3.org/2000/svg" '
@@ -114,7 +139,8 @@ def render_svg(metrics: List[LineMetrics], width: float = 600.0,
         f'viewBox="0 0 {width:.1f} {height:.1f}" '
         f'font-family="monospace">',
         f'<rect x="0" y="0" width="{width:.1f}" height="{height:.1f}" '
-        f'fill="#ffffff" stroke="#bbbbbb"/>']
+        f'fill="#ffffff" stroke="#bbbbbb"/>',
+    ]
     for m in metrics:
         x0, y0, x1, y1 = m.bbox
         if flip_y:
@@ -126,36 +152,46 @@ def render_svg(metrics: List[LineMetrics], width: float = 600.0,
         parts.append(
             f'<rect x="{x0:.1f}" y="{top:.1f}" width="{max(0.0, x1 - x0):.1f}" '
             f'height="{max(0.0, bottom - top):.1f}" fill="rgba(38,105,190,0.12)" '
-            f'stroke="#3b82c4" stroke-width="1"/>')
+            f'stroke="#3b82c4" stroke-width="1"/>'
+        )
         parts.append(
             f'<line x1="{x0:.1f}" y1="{baseline:.1f}" x2="{x1:.1f}" '
-            f'y2="{baseline:.1f}" stroke="#e53935" stroke-width="1.2"/>')
+            f'y2="{baseline:.1f}" stroke="#e53935" stroke-width="1.2"/>'
+        )
         # ascender（baseline 上方 = 更小 y）与 descender（下方）刻度
         asc_y = baseline - m.ascender
         desc_y = baseline + m.descender
         parts.append(
             f'<line x1="{x0 - 2:.1f}" y1="{asc_y:.1f}" x2="{x0 - 2:.1f}" '
-            f'y2="{baseline:.1f}" stroke="#8e24aa" stroke-width="1"/>')
+            f'y2="{baseline:.1f}" stroke="#8e24aa" stroke-width="1"/>'
+        )
         parts.append(
             f'<line x1="{x0 + 2:.1f}" y1="{desc_y:.1f}" x2="{x0 + 2:.1f}" '
-            f'y2="{baseline:.1f}" stroke="#8e24aa" stroke-width="1"/>')
+            f'y2="{baseline:.1f}" stroke="#8e24aa" stroke-width="1"/>'
+        )
         label = (m.text or "")[:16]
         if label:
             label_y = (min(y0, y1) - 3) if not flip_y else (max(y0, y1) + 3)
             parts.append(
                 f'<text x="{x0 + 2:.1f}" y="{label_y:.1f}" '
-                f'font-size="9" fill="#333">{esc(label)}</text>')
+                f'font-size="9" fill="#333">{esc(label)}</text>'
+            )
     parts.append("</svg>")
     return "\n".join(parts)
 
 
 def esc(s: str) -> str:
-    return (s.replace("&", "&amp;").replace("<", "&lt;")
-            .replace(">", "&gt;").replace('"', "&quot;"))
+    return (
+        s.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
 
 
-def render_html(metrics: List[LineMetrics], width: float = 600.0,
-                height: float = 800.0) -> str:
+def render_html(
+    metrics: List[LineMetrics], width: float = 600.0, height: float = 800.0
+) -> str:
     """排版 Debug 的独立 HTML 查看器（内嵌 SVG + 度量表）。"""
     svg = render_svg(metrics, width, height)
     rows = "".join(
@@ -164,7 +200,8 @@ def render_html(metrics: List[LineMetrics], width: float = 600.0,
         f"<td>{m.baseline:.1f}</td><td>{m.line_height:.1f}</td>"
         f"<td>{m.ascender:.1f}</td><td>{m.descender:.1f}</td>"
         f"<td>{m.font_size:.1f}</td></tr>"
-        for m in metrics)
+        for m in metrics
+    )
     return f"""<!doctype html><meta charset="utf-8"><title>LayoutDebug</title>
 <body style="font-family:monospace">
 <h3>Layout Debug ({len(metrics)} lines)</h3>{svg}<table border="1"
@@ -174,10 +211,15 @@ cellspacing="0"><tr><th>node</th><th>text</th><th>bbox</th><th>baseline</th>
 
 
 def metrics_json(metrics: List[LineMetrics]) -> str:
-    return json.dumps([m.to_dict() for m in metrics], ensure_ascii=False,
-                      indent=2)
+    return json.dumps([m.to_dict() for m in metrics], ensure_ascii=False, indent=2)
 
 
-__all__ = ["LineMetrics", "line_metrics_from_page",
-           "line_metrics_from_snapshot", "render_svg", "render_html",
-           "metrics_json", "esc"]
+__all__ = [
+    "LineMetrics",
+    "line_metrics_from_page",
+    "line_metrics_from_snapshot",
+    "render_svg",
+    "render_html",
+    "metrics_json",
+    "esc",
+]

@@ -6,6 +6,7 @@
 
 渲染只读 Document（含 translated/kind），无 PDF 依赖。
 """
+
 from __future__ import annotations
 
 import html as _html
@@ -14,8 +15,9 @@ from pdf2zh.v3.document_model import DocumentModel
 
 
 def _text_of(block) -> str:
-    return (block.metadata.get("translated")
-            or block.text or "").strip() or (block.text or "")
+    return (block.metadata.get("translated") or block.text or "").strip() or (
+        block.text or ""
+    )
 
 
 def export_markdown(doc: DocumentModel) -> str:
@@ -27,21 +29,21 @@ def export_markdown(doc: DocumentModel) -> str:
             if not text:
                 continue
             if kind == "heading":
-                level = min(6, max(1, int(block.metadata.get(
-                    "heading_level", 1) or 1)))
+                level = min(6, max(1, int(block.metadata.get("heading_level", 1) or 1)))
                 out.append(f"{'#' * level} {text}")
             elif kind == "toc":
                 num = block.metadata.get("toc_number", "")
                 page_no = block.metadata.get("toc_page", "")
                 title = block.metadata.get("toc_title", text)
-                out.append(f"- {num} {title} {'....' if page_no else ''} {page_no}".strip())
+                out.append(
+                    f"- {num} {title} {'....' if page_no else ''} {page_no}".strip()
+                )
             elif kind == "formula":
                 out.append(f"$${text}$$")
             elif kind == "code":
                 out.append(f"```\n{text}\n```")
             elif kind == "table":
-                out.append("| " + " | ".join(text.replace("|", "/").split())
-                           + " |")
+                out.append("| " + " | ".join(text.replace("|", "/").split()) + " |")
             elif kind == "caption":
                 out.append(f"*{text}*")
             else:
@@ -60,7 +62,9 @@ def export_html(doc: DocumentModel) -> str:
                 continue
             kind = block.kind
             if kind == "heading":
-                body.append(f"<h{min(6, max(1, int(block.metadata.get('heading_level', 1) or 1)))}>{text}</h{min(6, max(1, int(block.metadata.get('heading_level', 1) or 1)))}>")
+                body.append(
+                    f"<h{min(6, max(1, int(block.metadata.get('heading_level', 1) or 1)))}>{text}</h{min(6, max(1, int(block.metadata.get('heading_level', 1) or 1)))}>"
+                )
             elif kind == "toc":
                 body.append(f'<div class="toc">{text}</div>')
             elif kind == "formula":
@@ -68,15 +72,16 @@ def export_html(doc: DocumentModel) -> str:
             elif kind == "code":
                 body.append(f"<pre><code>{text}</code></pre>")
             elif kind == "table":
-                body.append(f"<div class=\"table\">{text}</div>")
+                body.append(f'<div class="table">{text}</div>')
             elif kind == "caption":
                 body.append(f"<figcaption>{text}</figcaption>")
             else:
                 body.append(f"<p>{text}</p>")
         body.append("</section>")
-    return ("<!DOCTYPE html><html><head><meta charset='utf-8'>"
-            "<title>export</title></head><body>"
-            + "\n".join(body) + "</body></html>")
+    return (
+        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+        "<title>export</title></head><body>" + "\n".join(body) + "</body></html>"
+    )
 
 
 def export_text(doc: DocumentModel) -> str:

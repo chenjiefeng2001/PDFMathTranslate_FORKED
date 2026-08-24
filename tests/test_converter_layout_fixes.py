@@ -9,6 +9,7 @@
 - S5: 行高下限采用字形度量（CJK 不低于 1.3），压缩失败输出 QA 溢出标记
 - S6: 表格边框 / 公式块边界线条登记为障碍物
 """
+
 import re
 import unittest
 from unittest.mock import Mock
@@ -59,8 +60,15 @@ def make_zone_layout(zone_cls_map, shape=(800, 600), default=3.0):
 
 
 class ConverterCollisionBase(unittest.TestCase):
-    def build_converter(self, page, translations, layout_arr, noto_width=12.0,
-                        text_metrics=None, collision_resolver=None):
+    def build_converter(
+        self,
+        page,
+        translations,
+        layout_arr,
+        noto_width=12.0,
+        text_metrics=None,
+        collision_resolver=None,
+    ):
         rsrcmgr = PDFResourceManager()
         converter = TranslateConverter(
             rsrcmgr,
@@ -80,6 +88,7 @@ class ConverterCollisionBase(unittest.TestCase):
         converter.text_metrics = text_metrics or {}
         if collision_resolver is None:
             from pdf2zh.collision_resolver import CollisionResolver
+
             collision_resolver = CollisionResolver()
         converter.collision_resolver = collision_resolver
         translator = Mock()
@@ -99,8 +108,8 @@ class TestPushDownChain(ConverterCollisionBase):
 
     def test_second_paragraph_pushed_below_expanded_first(self):
         page = LTPage(1, (0, 0, 600, 800))
-        add_text(page, 50, 648, "He")   # 段落1：字符 y0 = 660
-        add_text(page, 50, 628, "Wo")   # 段落2：字符 y0 = 640
+        add_text(page, 50, 648, "He")  # 段落1：字符 y0 = 660
+        add_text(page, 50, 628, "Wo")  # 段落2：字符 y0 = 640
         layout_arr = make_zone_layout({(45, 630, 70, 650): 4.0})
         conv = self.build_converter(
             page,
@@ -116,17 +125,23 @@ class TestPushDownChain(ConverterCollisionBase):
 
     def test_three_paragraph_chain_push_down(self):
         page = LTPage(1, (0, 0, 600, 800))
-        add_text(page, 50, 678, "AAA")   # 段落1：y0 = 690
-        add_text(page, 50, 658, "BBB")   # 段落2：y0 = 670
-        add_text(page, 50, 638, "CC")    # 段落3：y0 = 650
-        layout_arr = make_zone_layout({
-            (45, 685, 80, 700): 4.0,
-            (45, 665, 80, 680): 5.0,
-            (45, 645, 80, 660): 6.0,
-        })
+        add_text(page, 50, 678, "AAA")  # 段落1：y0 = 690
+        add_text(page, 50, 658, "BBB")  # 段落2：y0 = 670
+        add_text(page, 50, 638, "CC")  # 段落3：y0 = 650
+        layout_arr = make_zone_layout(
+            {
+                (45, 685, 80, 700): 4.0,
+                (45, 665, 80, 680): 5.0,
+                (45, 645, 80, 660): 6.0,
+            }
+        )
         conv = self.build_converter(
             page,
-            translations=["这是一个非常长的中文测试段落用于膨胀", "中文段落测试", "结束"],
+            translations=[
+                "这是一个非常长的中文测试段落用于膨胀",
+                "中文段落测试",
+                "结束",
+            ],
             layout_arr=layout_arr,
         )
         conv.receive_layout(page)
@@ -149,7 +164,9 @@ class TestSingleLineWrap(ConverterCollisionBase):
         layout_arr = make_zone_layout({})
         conv = self.build_converter(
             page,
-            translations=["这是一个非常长的中文句子用来验证换行行为是否正确生效并且不会超出右边界这是第二行内容用来确保产生多行折行效果"],
+            translations=[
+                "这是一个非常长的中文句子用来验证换行行为是否正确生效并且不会超出右边界这是第二行内容用来确保产生多行折行效果"
+            ],
             layout_arr=layout_arr,
         )
         ops = conv.receive_layout(page)

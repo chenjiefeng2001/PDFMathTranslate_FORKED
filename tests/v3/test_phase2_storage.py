@@ -1,8 +1,13 @@
 """Tests for V3 Storage Runtime (Module: storage.py)."""
+
 import os, time, tempfile, pytest
 from pdf2zh.v3.storage import (
-    StorageTier, StorageStats, MemoryGraph,
-    CacheGraph, PersistentGraph, StorageRuntime,
+    StorageTier,
+    StorageStats,
+    MemoryGraph,
+    CacheGraph,
+    PersistentGraph,
+    StorageRuntime,
 )
 
 
@@ -34,14 +39,16 @@ class TestMemoryGraph:
 
     def test_clear(self):
         mg = MemoryGraph()
-        mg.put("k1", "v1"); mg.put("k2", "v2")
+        mg.put("k1", "v1")
+        mg.put("k2", "v2")
         mg.clear()
         assert mg.size == 0
         assert mg.hits == 0
 
     def test_size(self):
         mg = MemoryGraph()
-        mg.put("k1", "v1"); mg.put("k2", "v2")
+        mg.put("k1", "v1")
+        mg.put("k2", "v2")
         assert mg.size == 2
 
     def test_hits(self):
@@ -52,12 +59,14 @@ class TestMemoryGraph:
 
     def test_keys(self):
         mg = MemoryGraph()
-        mg.put("a", 1); mg.put("b", 2)
+        mg.put("a", 1)
+        mg.put("b", 2)
         assert set(mg.keys()) == {"a", "b"}
 
     def test_overwrite(self):
         mg = MemoryGraph()
-        mg.put("k1", "v1"); mg.put("k1", "v2")
+        mg.put("k1", "v1")
+        mg.put("k1", "v2")
         assert mg.get("k1") == "v2"
 
 
@@ -90,13 +99,15 @@ class TestCacheGraph:
 
     def test_clear(self):
         cg = CacheGraph()
-        cg.put("k1", "v1"); cg.put("k2", "v2")
+        cg.put("k1", "v1")
+        cg.put("k2", "v2")
         cg.clear()
         assert cg.size == 0
 
     def test_lru_eviction(self):
         cg = CacheGraph(max_size=2, default_ttl=300.0)
-        cg.put("a", 1); cg.put("b", 2)
+        cg.put("a", 1)
+        cg.put("b", 2)
         cg.put("c", 3)
         assert cg.get("a") is None
         assert cg.get("b") == 2
@@ -104,7 +115,8 @@ class TestCacheGraph:
 
     def test_size(self):
         cg = CacheGraph(max_size=10)
-        cg.put("a", 1); cg.put("b", 2)
+        cg.put("a", 1)
+        cg.put("b", 2)
         assert cg.size == 2
 
     def test_hits(self):
@@ -155,7 +167,8 @@ class TestPersistentGraph:
 
     def test_clear(self, db_path):
         pg = PersistentGraph(db_path)
-        pg.put("k1", "v1"); pg.put("k2", "v2")
+        pg.put("k1", "v1")
+        pg.put("k2", "v2")
         pg.clear()
         assert pg.size == 0
         pg.close()
@@ -170,7 +183,8 @@ class TestPersistentGraph:
 
     def test_list_keys(self, db_path):
         pg = PersistentGraph(db_path)
-        pg.put("a", 1); pg.put("b", 2)
+        pg.put("a", 1)
+        pg.put("b", 2)
         assert sorted(pg.list_keys()) == ["a", "b"]
         pg.close()
 
@@ -182,7 +196,8 @@ class TestPersistentGraph:
 
     def test_size(self, db_path):
         pg = PersistentGraph(db_path)
-        pg.put("a", 1); pg.put("b", 2)
+        pg.put("a", 1)
+        pg.put("b", 2)
         assert pg.size == 2
         pg.close()
 
@@ -210,7 +225,8 @@ class TestStorageRuntime:
 
     def test_clear(self):
         rt = StorageRuntime()
-        rt.save("k1", "v1"); rt.save("k2", "v2")
+        rt.save("k1", "v1")
+        rt.save("k2", "v2")
         rt.clear()
         assert rt.contains("k1") is False
 
@@ -227,7 +243,8 @@ class TestStorageRuntime:
     def test_warmup(self):
         rt = StorageRuntime()
         rt.save("k1", "v1")
-        rt.clear_memory(); rt.clear_cache()
+        rt.clear_memory()
+        rt.clear_cache()
         n = rt.warmup(["k1"])
         assert n == 1
         assert rt.memory.contains("k1") is True
@@ -236,7 +253,8 @@ class TestStorageRuntime:
     def test_cache_promotion(self):
         rt = StorageRuntime()
         rt.save("k1", "v_persist")
-        rt.clear_memory(); rt.clear_cache()
+        rt.clear_memory()
+        rt.clear_cache()
         val = rt.load("k1")
         assert val == "v_persist"
         assert rt.memory.contains("k1") is True

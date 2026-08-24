@@ -22,12 +22,15 @@ stays functional in every environment.
 Usage: python patch_gradio_startup_events.py <path_to_blocks.py>
 Idempotent: a second run no-ops; v1/v2 patched files are upgraded in place.
 """
+
 import re
 import sys
 import pathlib
 
 PATTERN_MARKER = "# [pdf2zh patch] startup-events handshake"
-V3_MARKER = "# [pdf2zh patch] startup-events handshake v3 (loopback probe + NO_PROXY injection)"
+V3_MARKER = (
+    "# [pdf2zh patch] startup-events handshake v3 (loopback probe + NO_PROXY injection)"
+)
 
 VARIANTS = [
     # gradio 5.21 (verified) / any 5.2x with timeout=None
@@ -172,7 +175,9 @@ def patch_file(path: str) -> bool:
         content, n = UPGRADE_RE.subn(UPGRADE_REPL, content, count=1)
         if n > 0:
             p.write_text(content, encoding="utf-8")
-            print(f"Upgraded {p.name}: v1/v2 -> v3 (loopback probe + NO_PROXY injection + braces fix)")
+            print(
+                f"Upgraded {p.name}: v1/v2 -> v3 (loopback probe + NO_PROXY injection + braces fix)"
+            )
             return True
         if OLD_FAILURE_BLOCK in content:  # v1 残余（无本地启动回退）→ 失败分支替换
             content = content.replace(OLD_FAILURE_BLOCK, NEW_FAILURE_BLOCK, 1)

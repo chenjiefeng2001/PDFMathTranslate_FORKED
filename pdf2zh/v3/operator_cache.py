@@ -26,6 +26,7 @@ Usage::
     ctx2 = graph.run(OperatorContext(document=...), cache=cache)  # hit → restore
     print(cache.stats())
 """
+
 from __future__ import annotations
 
 import copy
@@ -42,6 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 # ── Path access helpers ──────────────────────────────────────────────
+
 
 def _get_path(ctx: Any, path: str) -> Any:
     """Read a dotted path from an OperatorContext.
@@ -106,6 +108,7 @@ def _copy_value(value: Any) -> Any:
 
 # ── Cache specification ──────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class OperatorCacheSpec:
     """Which ctx paths an operator reads (inputs) and writes (outputs)."""
@@ -118,32 +121,50 @@ class OperatorCacheSpec:
 CACHE_SPECS: Dict[str, OperatorCacheSpec] = {
     "parse": OperatorCacheSpec(
         inputs=("document",),
-        outputs=("document_graph", "graphs.document", "metrics.nodes")),
+        outputs=("document_graph", "graphs.document", "metrics.nodes"),
+    ),
     "analyze": OperatorCacheSpec(
-        inputs=("document_graph",),
-        outputs=("extra.analysis", "metrics.entities")),
+        inputs=("document_graph",), outputs=("extra.analysis", "metrics.entities")
+    ),
     "plan": OperatorCacheSpec(
-        inputs=("config",),
-        outputs=("extra.planner", "metrics.glossary_terms")),
+        inputs=("config",), outputs=("extra.planner", "metrics.glossary_terms")
+    ),
     "translate": OperatorCacheSpec(
-        inputs=("document_graph", "config", "translations",
-                "extra.incremental_ids", "provider"),
-        outputs=("translations", "metrics.translated",
-                 "extra.session_summary",
-                 # translate mutates the graph (translated_text on nodes), so
-                 # the mutated graph is part of its observable output — caching
-                 # it keeps review's input signature coherent across sessions.
-                 "document_graph", "graphs.document")),
+        inputs=(
+            "document_graph",
+            "config",
+            "translations",
+            "extra.incremental_ids",
+            "provider",
+        ),
+        outputs=(
+            "translations",
+            "metrics.translated",
+            "extra.session_summary",
+            # translate mutates the graph (translated_text on nodes), so
+            # the mutated graph is part of its observable output — caching
+            # it keeps review's input signature coherent across sessions.
+            "document_graph",
+            "graphs.document",
+        ),
+    ),
     "review": OperatorCacheSpec(
         inputs=("translations", "config", "document_graph"),
-        outputs=("translations", "metrics.quality_score",
-                 "metrics.review_errors", "extra.review")),
+        outputs=(
+            "translations",
+            "metrics.quality_score",
+            "metrics.review_errors",
+            "extra.review",
+        ),
+    ),
     "layout": OperatorCacheSpec(
         inputs=("document_graph", "config", "translations"),
-        outputs=("extra.manifest", "metrics.layout_blocks")),
+        outputs=("extra.manifest", "metrics.layout_blocks"),
+    ),
     "render": OperatorCacheSpec(
         inputs=("extra.manifest", "translations", "config"),
-        outputs=("outputs", "metrics.formats")),
+        outputs=("outputs", "metrics.formats"),
+    ),
 }
 
 
@@ -168,12 +189,13 @@ class OperatorCacheEntry:
         }
 
 
-def build_cache_key(op_name: str, op_version: str,
-                    input_view: Dict[str, Any]) -> str:
+def build_cache_key(op_name: str, op_version: str, input_view: Dict[str, Any]) -> str:
     """Content-addressed cache key from an operator's input view."""
     from pdf2zh.v3.operators import _as_jsonable
-    payload = json.dumps(_as_jsonable(input_view), sort_keys=True,
-                         ensure_ascii=False, default=str)
+
+    payload = json.dumps(
+        _as_jsonable(input_view), sort_keys=True, ensure_ascii=False, default=str
+    )
     digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()
     return f"{op_name}:{op_version}:{digest}"
 
@@ -200,7 +222,6 @@ def apply_outputs(ctx: Any, outputs: Dict[str, Any]) -> None:
         _set_path(ctx, path, _copy_value(value))
 
 
-
 class OperatorResultCache:
     """In-memory LRU cache of operator results (cache-aside).
 
@@ -209,8 +230,7 @@ class OperatorResultCache:
     so the cache never shares mutable state with an executing session.
     """
 
-    def __init__(self, max_entries: int = 256,
-                 deepcopy_outputs: bool = True) -> None:
+    def __init__(self, max_entries: int = 256, deepcopy_outputs: bool = True) -> None:
         if max_entries < 1:
             raise ValueError("max_entries must be >= 1")
         self.max_entries = max_entries
@@ -235,8 +255,9 @@ class OperatorResultCache:
                 self._skips += 1
             return None
         view = input_view_of(ctx, spec)
-        return build_cache_key(getattr(op, "name", "?"),
-                               getattr(op, "version", "?"), view)
+        return build_cache_key(
+            getattr(op, "name", "?"), getattr(op, "version", "?"), view
+        )
 
     def get(self, key: Optional[str]) -> Optional[OperatorCacheEntry]:
         if key is None:
@@ -320,8 +341,13 @@ def get_operator_cache_key(ctx: Any, op: Any) -> Optional[str]:
 
 
 __all__ = [
-    "OperatorCacheSpec", "OperatorCacheEntry", "OperatorResultCache",
-    "CACHE_SPECS", "build_cache_key", "input_view_of", "output_view_of",
-    "apply_outputs", "get_operator_cache_key",
+    "OperatorCacheSpec",
+    "OperatorCacheEntry",
+    "OperatorResultCache",
+    "CACHE_SPECS",
+    "build_cache_key",
+    "input_view_of",
+    "output_view_of",
+    "apply_outputs",
+    "get_operator_cache_key",
 ]
-

@@ -82,7 +82,9 @@ def _ensure_magicpdf_models(models_dir: str) -> list[str]:
         return []
     weights_path = os.path.join(
         os.path.dirname(magic_pdf.__file__),
-        "resources", "model_config", "model_configs.yaml",
+        "resources",
+        "model_config",
+        "model_configs.yaml",
     )
     try:
         with open(weights_path, encoding="utf-8") as fh:
@@ -127,7 +129,7 @@ def _cuda_torch_install_hint() -> str:
     """torch 无 CUDA 时的安装指引（magic-pdf 的 torch 模型必须 CUDA 版 torch）。"""
     return (
         "magic-pdf 的 torch 模型（MFD/MFR/OCR/layoutreader）需要 CUDA 版 PyTorch："
-        "python -m pip install -U \"torch\" --index-url https://download.pytorch.org/whl/cu126 "
+        'python -m pip install -U "torch" --index-url https://download.pytorch.org/whl/cu126 '
         "（按本机 CUDA 版本选 cu121/cu124/cu126），装好后 torch.cuda.is_available()=True 才会走 GPU"
     )
 
@@ -201,7 +203,8 @@ def _sync_magicpdf_device_mode(cfg_file: str, device: str) -> str:
                 json.dump(cfg, fh, ensure_ascii=False, indent=2)
             logger.info(
                 "[magicpdf] 已把 %s device-mode 从 %s 补写为 cuda",
-                cfg_file, current or "(缺省)",
+                cfg_file,
+                current or "(缺省)",
             )
         except OSError as exc:  # noqa: BLE001 -- 补写失败不阻断解析
             logger.warning("[magicpdf] 补写 device-mode 失败: %s", exc)
@@ -210,7 +213,9 @@ def _sync_magicpdf_device_mode(cfg_file: str, device: str) -> str:
         logger.warning(
             "[magicpdf] 配置 %s device-mode=cuda 但 torch 无 CUDA（当前 torch=%s），"
             "本次解析按 cpu 运行；%s",
-            cfg_file, _torch_version() or "-", _cuda_torch_install_hint(),
+            cfg_file,
+            _torch_version() or "-",
+            _cuda_torch_install_hint(),
         )
         return "cpu"
     if current:
@@ -269,7 +274,9 @@ def _ensure_magicpdf_config(device: str = "auto", models_dir: str = "") -> str:
         logger.warning(
             "[magicpdf] 检测到 %s 缺失，已自动生成最小配置 "
             "(device-mode=%s, models-dir=%s)",
-            cfg_file, config["device-mode"], config["models-dir"],
+            cfg_file,
+            config["device-mode"],
+            config["models-dir"],
         )
     except OSError as exc:  # noqa: BLE001 -- 配置生成失败不阻断解析尝试
         logger.warning("[magicpdf] 自动生成配置 %s 失败: %s", cfg_file, exc)
@@ -286,7 +293,8 @@ def _ensure_magicpdf_layoutreader(cfg_file: str, models_dir: str) -> None:
     """
     layoutreader_dir = os.path.join(
         os.path.expanduser(models_dir or "~/.cache/magic-pdf/models"),
-        "ReadingOrder", "layout_reader",
+        "ReadingOrder",
+        "layout_reader",
     )
     if not os.path.exists(os.path.join(layoutreader_dir, "config.json")):
         return
@@ -303,7 +311,8 @@ def _ensure_magicpdf_layoutreader(cfg_file: str, models_dir: str) -> None:
             json.dump(cfg, fh, ensure_ascii=False, indent=2)
         logger.info(
             "[magicpdf] 已向 %s 补写 layoutreader-model-dir=%s",
-            cfg_file, layoutreader_dir,
+            cfg_file,
+            layoutreader_dir,
         )
     except OSError as exc:  # noqa: BLE001 -- 补写失败不阻断解析
         logger.warning("[magicpdf] 补写 layoutreader-model-dir 失败: %s", exc)
@@ -343,9 +352,9 @@ def get_magicpdf_device_status(requested: str = "auto", models_dir: str = "") ->
     if os.path.exists(config_file):
         try:
             with open(config_file, encoding="utf-8") as fh:
-                device_mode = str(
-                    (json.load(fh).get("device-mode") or "")
-                ).strip().lower()
+                device_mode = (
+                    str((json.load(fh).get("device-mode") or "")).strip().lower()
+                )
         except Exception:  # noqa: BLE001 -- 配置不可读视为未生成
             pass
     effective = _normalize_magicpdf_device(device_mode or requested)
@@ -643,8 +652,12 @@ def _run_mineru_process(
     炸 UnicodeDecodeError；这里显式固定 utf-8 并容忍坏字节。
     """
     return subprocess.run(
-        cmd, capture_output=True, text=True,
-        encoding="utf-8", errors="replace", timeout=timeout,
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout,
     )
 
 
@@ -670,7 +683,8 @@ def _find_mineru_middle_json(root_dir: str) -> Optional[str]:
     if len(candidates) > 1:
         logger.warning(
             "[mineru] multiple middle.json found under %s; using %s",
-            root_dir, candidates[0][1],
+            root_dir,
+            candidates[0][1],
         )
     return candidates[0][1]
 
@@ -696,6 +710,7 @@ def _build_do_parse_kwargs(
 
 class MagicPdfParseError(RuntimeError):
     """PDF 解析失败（文件缺失 / 解析管线内部错误）。"""
+
 
 @dataclass
 class MagicPdfParseResult:
@@ -756,13 +771,12 @@ def _as_float(value: Any, default: float = 0.0) -> float:
     except (TypeError, ValueError):
         return default
 
+
 def _normalize_span(raw: Any) -> dict[str, Any]:
     bbox = _as_bbox(raw.get("bbox") if isinstance(raw, dict) else None)
     content = ""
     if isinstance(raw, dict):
-        content = str(
-            raw.get("content") or raw.get("text") or raw.get("chars") or ""
-        )
+        content = str(raw.get("content") or raw.get("text") or raw.get("chars") or "")
     elif isinstance(raw, str):
         content = raw
     return {
@@ -853,6 +867,7 @@ def _page_info_lookup(page_info: Any) -> dict[int, dict[str, Any]]:
             lookup[no] = pi
     return lookup
 
+
 def _normalize_blocks(
     middle: dict[str, Any],
     backend: str,
@@ -902,7 +917,7 @@ def _normalize_blocks(
     if pdf_info is None:
         pdf_info = [p.get("blocks") for p in (middle.get("pages") or [])]
     results: list[MagicPdfParseResult] = []
-    
+
     for idx, page_blocks in enumerate(pdf_info or []):
         # 页码过滤（0 基）
         if target_pages and idx not in target_pages:
@@ -924,7 +939,7 @@ def _normalize_blocks(
             info = page_info.get(idx, {})
             width = _as_float(info.get("width"))
             height = _as_float(info.get("height"))
-            
+
         blocks = [_normalize_block(b) for b in (raw_blocks or [])]
         results.append(
             MagicPdfParseResult(
@@ -937,6 +952,7 @@ def _normalize_blocks(
             )
         )
     return results
+
 
 class MagicPdfAdapter:
     """magic-pdf / MinerU 统一解析适配器（懒加载双后端）。
@@ -1032,9 +1048,7 @@ class MagicPdfAdapter:
                 doc_analyze,
             )
         except Exception as exc:
-            raise MagicPdfNotInstalledError(
-                f"magic-pdf import failed: {exc}"
-            ) from exc
+            raise MagicPdfNotInstalledError(f"magic-pdf import failed: {exc}") from exc
         # magic-pdf 1.x 要求 ~/magic-pdf.json 必须存在，否则 read_config() 直接
         # FileNotFoundError。解析前确保配置已就绪（已存在则原样保留）。
         cfg_file = _ensure_magicpdf_config(
@@ -1053,7 +1067,7 @@ class MagicPdfAdapter:
             hint = (
                 "magic-pdf 模型缺失（{}）。请先下载 PDF-Extract-Kit 模型：\n"
                 "  pip install modelscope && "
-                "python -c \"from modelscope import snapshot_download; "
+                'python -c "from modelscope import snapshot_download; '
                 "snapshot_download('opendatalab/PDF-Extract-Kit-1.0', "
                 "local_dir=r'{}')\""
             ).format(
@@ -1163,7 +1177,9 @@ class MagicPdfAdapter:
         try:
             pdf_bytes = read_fn(pdf_path)
         except Exception:  # noqa: BLE001 -- read_fn 兼容图片输入，失败回退直读
-            logger.debug("[mineru] read_fn failed; reading file directly", exc_info=True)
+            logger.debug(
+                "[mineru] read_fn failed; reading file directly", exc_info=True
+            )
             pdf_bytes = _read_pdf_bytes(pdf_path)
         if not isinstance(pdf_bytes, (bytes, bytearray)):
             pdf_bytes = _read_pdf_bytes(pdf_path)
@@ -1277,14 +1293,10 @@ class MagicPdfAdapter:
         import shutil
         import subprocess
 
-        worker = (
-            Path(__file__).resolve().parent / "kernel" / "mineru_worker.py"
-        )
+        worker = Path(__file__).resolve().parent / "kernel" / "mineru_worker.py"
         owned_dir = out_dir is None
         work_dir = out_dir or tempfile.mkdtemp(prefix="pdf2zh_mineru_sub_")
-        timeout = int(
-            os.environ.get("PDF2ZH_MINERU_TIMEOUT", "").strip() or 3600
-        )
+        timeout = int(os.environ.get("PDF2ZH_MINERU_TIMEOUT", "").strip() or 3600)
         if progress_cb is not None:
             try:
                 progress_cb(

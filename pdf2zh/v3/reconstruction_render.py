@@ -12,12 +12,12 @@ P1 适配器用**恒等译文**求 ``SolvedUnit.render_bbox``，真实译文更�
 
 失败仅 debug 日志，回退 adapter 几何（零回归）。
 """
+
 from __future__ import annotations
 
 from typing import Dict, List
 
-from pdf2zh.v3.reconstruction_adapter import (
-    _ANCHOR_FORMULA_RE, _LEGACY_FORMULA_RE)
+from pdf2zh.v3.reconstruction_adapter import _ANCHOR_FORMULA_RE, _LEGACY_FORMULA_RE
 
 __all__ = ["run_render_resolve", "build_display_marks"]
 
@@ -57,49 +57,55 @@ def build_display_marks(conv, ltpage, sstk, pstk, news) -> Dict[int, bool]:
     from pdf2zh.layout.solver import LayoutSolver
 
     pageid = getattr(ltpage, "pageid", 0)
-    adopt = (getattr(conv, "reconstruction_adoptions", {}) or {}).get(
-        pageid) or {}
+    adopt = (getattr(conv, "reconstruction_adoptions", {}) or {}).get(pageid) or {}
     pairs = adopt.get("pairs") or []
     result = (getattr(conv, "reconstruction_results", {}) or {}).get(pageid)
     display_marks: Dict[int, bool] = {}
     source_bboxes: Dict[int, list] = {}
-    if not pairs or result is None or not getattr(
-            result, "translation_units", None):
+    if not pairs or result is None or not getattr(result, "translation_units", None):
         return display_marks
     page_rect = None
     _pr = getattr(conv, "_page_rect", None)
     if _pr is not None:
         page_rect = (_pr.x0, _pr.y0, _pr.x1, _pr.y1)
     solver = LayoutSolver()
-    for (li, _le, ridx) in pairs:
+    for li, _le, ridx in pairs:
         if li >= len(pstk) or ridx >= len(result.translation_units):
             continue
         para = pstk[li]
         unit = result.translation_units[ridx]
-        vids = [int(m.group(1)) for m in
-                _LEGACY_FORMULA_RE.finditer(str(sstk[li]))]
-        token_keys = sorted(getattr(unit, "formula_map", {}) or {},
-                            key=_anchor_num)
+        vids = [int(m.group(1)) for m in _LEGACY_FORMULA_RE.finditer(str(sstk[li]))]
+        token_keys = sorted(getattr(unit, "formula_map", {}) or {}, key=_anchor_num)
         if token_keys:
             real_text = _legacy_to_unit_text(str(news[li]), token_keys)
         else:
             real_text = str(news[li])
         solved = solver.solve(
-            unit, real_text, page_rect=page_rect,
+            unit,
+            real_text,
+            page_rect=page_rect,
             font_size=float(getattr(para, "size", 12.0) or 12.0),
-            container_width=max(1.0, float(para.x1) - float(para.x0)))
+            container_width=max(1.0, float(para.x1) - float(para.x0)),
+        )
         rb = solved.render_bbox
         para.y, para.x, para.x0, para.x1, para.y0, para.y1 = (
-            rb[1], rb[0], rb[0], rb[2], rb[1], rb[3])
+            rb[1],
+            rb[0],
+            rb[0],
+            rb[2],
+            rb[1],
+            rb[3],
+        )
         source_bboxes[li] = [round(v, 2) for v in solved.source_bbox]
-        for fp in (solved.formula_placements or []):
+        for fp in solved.formula_placements or []:
             if fp.get("display") and fp.get("anchor"):
                 n = _anchor_num(fp["anchor"])
                 if 0 <= n < len(vids):
                     display_marks[vids[n]] = True
     conv._render_source_bboxes = {
         **getattr(conv, "_render_source_bboxes", {}),
-        pageid: source_bboxes}
+        pageid: source_bboxes,
+    }
     return display_marks
 
 
@@ -111,4 +117,5 @@ def run_render_resolve(conv, ltpage, sstk, pstk, news) -> None:
     marks = build_display_marks(conv, ltpage, sstk, pstk, news)
     conv._render_display_marks = {
         **getattr(conv, "_render_display_marks", {}),
-        pageid: marks}
+        pageid: marks,
+    }

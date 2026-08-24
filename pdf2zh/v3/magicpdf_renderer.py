@@ -21,6 +21,7 @@ y 向下。本模块统一翻转（``y_flip = page_height - y``）后交给 pymu
 纯数据进出：输入 render_plan（list[dict]）+ page_sizes（{pno: [w, h]}），
 输出 PDF bytes 与统计；不触碰 legacy converter / BabelDOC 渲染。
 """
+
 from __future__ import annotations
 
 import logging
@@ -89,9 +90,7 @@ def _insert_text_wrapped(
         sep = " " if cur else ""
         trial = f"{cur}{sep}{tok}"
         if cur and _width(trial) > max_w:
-            page.insert_text(
-                (x, y), cur, fontsize=font_size, fontname=effective_font
-            )
+            page.insert_text((x, y), cur, fontsize=font_size, fontname=effective_font)
             y += line_h
             if y > bottom:
                 return
@@ -152,9 +151,7 @@ def render_plan_to_pdf(
             text = _entry_text(entry)
             if not text:
                 continue
-            box = list(
-                entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0]
-            )
+            box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
             if len(box) != 4:
                 box = [0, 0, 0, 0]
             rect = pymupdf.Rect(_flip_v3_box(box, h))

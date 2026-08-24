@@ -1,4 +1,5 @@
 """Tests for OverlayRenderer (Phase 4)."""
+
 import unittest
 from unittest.mock import MagicMock, patch
 import numpy as np
@@ -29,8 +30,10 @@ class TestOverlaySegment(unittest.TestCase):
 class MockDoc:
     def new_page(self, width=0, height=0):
         return MagicMock()
+
     def write(self, **kwargs):
         return b"%PDF-1.7 overlay"
+
 
 class TestOverlayRenderer(unittest.TestCase):
     """Test overlay rendering logic."""
@@ -60,9 +63,7 @@ class TestOverlayRenderer(unittest.TestCase):
             mock_doc.new_page.return_value = mock_page
             mock_doc.write.return_value = b"%PDF-1.7 overlay"
 
-            result = self.renderer.render_overlay(
-                self.mock_page, segments
-            )
+            result = self.renderer.render_overlay(self.mock_page, segments)
             self.assertIsInstance(result, bytes)
             self.assertIn(b"overlay", result)
 
@@ -75,9 +76,7 @@ class TestOverlayRenderer(unittest.TestCase):
             mock_doc.new_page.return_value = mock_page
             mock_doc.write.return_value = b"%PDF-1.7 empty"
 
-            result = self.renderer.render_overlay(
-                self.mock_page, []
-            )
+            result = self.renderer.render_overlay(self.mock_page, [])
             self.assertIsInstance(result, bytes)
 
     def test_whitespace_segment_skipped(self):
@@ -96,9 +95,7 @@ class TestOverlayRenderer(unittest.TestCase):
             mock_doc.new_page.return_value = mock_page
             mock_doc.write.return_value = b"%PDF-1.7 whitespace"
 
-            result = self.renderer.render_overlay(
-                self.mock_page, segments
-            )
+            result = self.renderer.render_overlay(self.mock_page, segments)
             self.assertIsInstance(result, bytes)
 
     def test_dpi_scale(self):

@@ -10,11 +10,18 @@ typed Edge objects. Unlike a flat list or tree, a graph natively supports:
   - Layout constraints (ConstraintEdge)
 """
 
-
 from __future__ import annotations
 
-__all__ = ["NodeType", "EdgeType", "ConstraintPriority", "Edge",
-           "DocumentNode", "DocumentGraph", "GraphBuildConfig", "DocumentGraphBuilder"]
+__all__ = [
+    "NodeType",
+    "EdgeType",
+    "ConstraintPriority",
+    "Edge",
+    "DocumentNode",
+    "DocumentGraph",
+    "GraphBuildConfig",
+    "DocumentGraphBuilder",
+]
 
 import hashlib
 import logging
@@ -30,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 class NodeType(Enum):
     """Semantic node types in the DocumentGraph."""
+
     UNKNOWN = "unknown"
     DOCUMENT = "document"
     PAGE = "page"
@@ -59,6 +67,7 @@ class NodeType(Enum):
 
 class EdgeType(Enum):
     """Typed edges in the DocumentGraph."""
+
     CONTAINS = "contains"
     FOLLOWS = "follows"
     PRECEDES = "precedes"
@@ -85,6 +94,7 @@ class ConstraintPriority(Enum):
 @dataclass
 class Edge:
     """A typed, directed edge in the DocumentGraph."""
+
     source_id: str
     target_id: str
     edge_type: EdgeType
@@ -96,6 +106,7 @@ class Edge:
 @dataclass
 class DocumentNode:
     """A node in the DocumentGraph — one document element."""
+
     id: str
     node_type: NodeType
     bbox: Tuple[float, float, float, float]
@@ -131,7 +142,6 @@ class DocumentNode:
     @property
     def y1(self) -> float:
         return self.bbox[3]
-
 
 
 # ── DocumentGraph ───────────────────────────────────────────────────────
@@ -215,10 +225,8 @@ class DocumentGraph:
         # 整个任务卡在 analyzing、任务队列被锁死）。
         return iter(self.nodes)
 
-
     def __getitem__(self, node_id: str) -> Optional[DocumentNode]:
         return self._node_map.get(node_id)
-
 
 
 # ── Graph Build Configuration ───────────────────────────────────────────
@@ -227,6 +235,7 @@ class DocumentGraph:
 @dataclass
 class GraphBuildConfig:
     """Configuration for the DocumentGraphBuilder."""
+
     generate_node_ids: bool = True
     add_reading_edges: bool = True
     reading_edge_margin: float = 5.0
@@ -294,11 +303,13 @@ class DocumentGraphBuilder:
             )
             graph.add_node(page_node)
             for node in page_nodes:
-                graph.add_edge(Edge(
-                    source_id=page_id,
-                    target_id=node.id,
-                    edge_type=EdgeType.CONTAINS,
-                ))
+                graph.add_edge(
+                    Edge(
+                        source_id=page_id,
+                        target_id=node.id,
+                        edge_type=EdgeType.CONTAINS,
+                    )
+                )
 
         # Add reading-order edges
         if self.config.add_reading_edges:
@@ -314,15 +325,15 @@ class DocumentGraphBuilder:
         text = block.text.strip()
         if not text:
             return NodeType.PARAGRAPH
-        if (block.font_size_avg >= self.HEADING_MIN_SIZE
-                and len(text) <= self.HEADING_MAX_CHARS
-                and "\n" not in text):
+        if (
+            block.font_size_avg >= self.HEADING_MIN_SIZE
+            and len(text) <= self.HEADING_MAX_CHARS
+            and "\n" not in text
+        ):
             return NodeType.HEADING
         if text.lower().startswith(self.CAPTION_PREFIXES):
             return NodeType.CAPTION
         return NodeType.PARAGRAPH
-
-
 
     def _add_reading_edges(self, graph: DocumentGraph) -> None:
         """Add FOLLOWS edges between content nodes in reading order.
@@ -333,7 +344,8 @@ class DocumentGraphBuilder:
 
         for page_num in sorted(set(n.page_num for n in graph.nodes)):
             content_nodes = [
-                n for n in graph.get_nodes_on_page(page_num)
+                n
+                for n in graph.get_nodes_on_page(page_num)
                 if n.node_type not in (NodeType.PAGE, NodeType.DOCUMENT)
             ]
             if len(content_nodes) < 2:
@@ -341,25 +353,31 @@ class DocumentGraphBuilder:
 
             lg = LayoutGraph()
             for i, node in enumerate(content_nodes):
-                lg.add_node(TextNode(
-                    id=i,
-                    x0=node.x0, y0=node.y0,
-                    x1=node.x1, y1=node.y1,
-                    text=node.text,
-                    font_size=node.font_size,
-                    page_num=node.page_num,
-                ))
+                lg.add_node(
+                    TextNode(
+                        id=i,
+                        x0=node.x0,
+                        y0=node.y0,
+                        x1=node.x1,
+                        y1=node.y1,
+                        text=node.text,
+                        font_size=node.font_size,
+                        page_num=node.page_num,
+                    )
+                )
 
             sorted_nodes = lg.topological_sort()
             sorted_ids = [content_nodes[sn.id].id for sn in sorted_nodes]
 
             for i in range(len(sorted_ids) - 1):
-                graph.add_edge(Edge(
-                    source_id=sorted_ids[i],
-                    target_id=sorted_ids[i + 1],
-                    edge_type=EdgeType.FOLLOWS,
-                    weight=1.0,
-                    priority=ConstraintPriority.SOFT,
-                ))
+                graph.add_edge(
+                    Edge(
+                        source_id=sorted_ids[i],
+                        target_id=sorted_ids[i + 1],
+                        edge_type=EdgeType.FOLLOWS,
+                        weight=1.0,
+                        priority=ConstraintPriority.SOFT,
+                    )
+                )
 
     PREFERRED = "preferred"

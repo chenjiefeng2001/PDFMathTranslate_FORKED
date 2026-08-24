@@ -15,6 +15,7 @@ LTChar 流），但没有对比机制验证"Geometry 聚类 是否与 legacy
 "聚类是否可用 GeometryEngine 替换" —— 一致则允许接管，否则保留
 legacy。纯 Python + numpy 可选（文本相似度用 Dice，无重依赖）。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -31,8 +32,12 @@ class GeometryMergeReport:
     matched: int = 0
     text_similarity: float = 1.0
     bbox_displacement: float = 0.0
-    legacy_rows: List[Tuple[str, float, float, float, float]] = field(default_factory=list)
-    geometry_rows: List[Tuple[str, float, float, float, float]] = field(default_factory=list)
+    legacy_rows: List[Tuple[str, float, float, float, float]] = field(
+        default_factory=list
+    )
+    geometry_rows: List[Tuple[str, float, float, float, float]] = field(
+        default_factory=list
+    )
 
     @property
     def consistent(self) -> bool:
@@ -55,10 +60,12 @@ class GeometryMergeReport:
 
     def summary(self) -> str:
         verdict = "CONSISTENT" if self.consistent else "DIVERGE"
-        return (f"[{verdict}] p{self.page} "
-                f"legacy={self.legacy_count} geometry={self.geometry_count} "
-                f"sim={self.text_similarity:.3f} "
-                f"bboxΔ={self.bbox_displacement:.2f}")
+        return (
+            f"[{verdict}] p{self.page} "
+            f"legacy={self.legacy_count} geometry={self.geometry_count} "
+            f"sim={self.text_similarity:.3f} "
+            f"bboxΔ={self.bbox_displacement:.2f}"
+        )
 
 
 def dice_similarity(a: str, b: str) -> float:
@@ -90,9 +97,9 @@ class AdoptedParagraph:
     brk: bool = False
 
 
-def adopt_geometry_cluster(conv, ltpage, sstk: List[str],
-                           pstk: List, var, varl, varf,
-                           toc_track: List, vlen) -> Optional[dict]:
+def adopt_geometry_cluster(
+    conv, ltpage, sstk: List[str], pstk: List, var, varl, varf, toc_track: List, vlen
+) -> Optional[dict]:
     """P1：双轨对比一致时以 GeometryEngine 段落替换 legacy sstk/pstk。
 
     原地修改传入的列表（sstk/pstk/toc_track），只在**文本内容完全一致且
@@ -104,64 +111,94 @@ def adopt_geometry_cluster(conv, ltpage, sstk: List[str],
     """
     try:
         from pdf2zh.v3.geometry import GeometryEngine, chars_from_ltpage
+
         pageid = getattr(ltpage, "pageid", 0)
         chars = chars_from_ltpage(ltpage, page_num=pageid)
         if not chars:
             return {"adopted": False, "reason": "no_chars", "page": pageid}
         g_paras = GeometryEngine().build_page(chars, page_num=pageid).reading_order()
         if len(sstk) != len(g_paras):
-            return {"adopted": False, "reason": "count_mismatch",
-                    "page": pageid, "legacy": len(sstk),
-                    "geometry": len(g_paras)}
+            return {
+                "adopted": False,
+                "reason": "count_mismatch",
+                "page": pageid,
+                "legacy": len(sstk),
+                "geometry": len(g_paras),
+            }
         for i in range(len(sstk)):
             s = (sstk[i] or "").strip()
             g = (g_paras[i].text or "").strip()
             if s != g:
                 # 容忍：legacy 含公式占位符 {vN}，geometry 为原始公式文本
-                if not (g and s.startswith("{v") and "}" in s
-                        and s.count(" ") == 0):
-                    return {"adopted": False, "reason": "text_mismatch",
-                            "page": pageid, "index": i}
+                if not (g and s.startswith("{v") and "}" in s and s.count(" ") == 0):
+                    return {
+                        "adopted": False,
+                        "reason": "text_mismatch",
+                        "page": pageid,
+                        "index": i,
+                    }
         new_pstk: List = []
         for p in g_paras:
             size = getattr(p, "avg_char_size", 0.0) or 0.0
-            new_pstk.append(AdoptedParagraph(
-                y=p.y0, x=p.x0, x0=p.x0, x1=p.x1,
-                y0=p.y0, y1=p.y1, size=float(size) or 12.0,
-            ))
+            new_pstk.append(
+                AdoptedParagraph(
+                    y=p.y0,
+                    x=p.x0,
+                    x0=p.x0,
+                    x1=p.x1,
+                    y0=p.y0,
+                    y1=p.y1,
+                    size=float(size) or 12.0,
+                )
+            )
         sstk[:] = [p.text for p in g_paras]
         pstk[:] = new_pstk
         toc_track[:] = [[] for _ in range(len(g_paras))]
-        return {"adopted": True, "reason": "consistent", "page": pageid,
-                "paragraph_count": len(g_paras)}
+        return {
+            "adopted": True,
+            "reason": "consistent",
+            "page": pageid,
+            "paragraph_count": len(g_paras),
+        }
     except Exception as e:  # noqa: BLE001 — 接管失败回退 legacy
-        return {"adopted": False, "reason": str(e)[:120],
-                "page": getattr(ltpage, "pageid", 0)}
+        return {
+            "adopted": False,
+            "reason": str(e)[:120],
+            "page": getattr(ltpage, "pageid", 0),
+        }
 
 
-def _rows_from_gate_records(records: Sequence[dict]) -> List[Tuple[str, float, float, float, float]]:
+def _rows_from_gate_records(
+    records: Sequence[dict],
+) -> List[Tuple[str, float, float, float, float]]:
     """legacy ``_gate_records`` → (text, x, y, width, height)。"""
     rows: List[Tuple[str, float, float, float, float]] = []
     for rec in records or []:
         text = str(rec.get("text", ""))
         if not text:
             continue
-        rows.append((
-            rec.get("text", ""),
-            float(rec.get("x", 0.0)), float(rec.get("y", 0.0)),
-            float(rec.get("width", 0.0)), float(rec.get("height", 0.0)),
-        ))
+        rows.append(
+            (
+                rec.get("text", ""),
+                float(rec.get("x", 0.0)),
+                float(rec.get("y", 0.0)),
+                float(rec.get("width", 0.0)),
+                float(rec.get("height", 0.0)),
+            )
+        )
     return rows
 
 
-def rows_from_geometry(chars, page_num: int = 0,
-                       max_rows: Optional[int] = None) -> List[Tuple[str, float, float, float, float]]:
+def rows_from_geometry(
+    chars, page_num: int = 0, max_rows: Optional[int] = None
+) -> List[Tuple[str, float, float, float, float]]:
     """Geometry Engine 段落 → (text, x, y, width, height)。
 
     Geometry 坐标系 y 向上（PDF），legacy gate 记录同样 y 向上；
     两者直接对比无需翻转。
     """
     from pdf2zh.v3.geometry import GeometryEngine
+
     if not chars:
         return []
     page = GeometryEngine().build_page(chars, page_num=page_num)
@@ -173,9 +210,12 @@ def rows_from_geometry(chars, page_num: int = 0,
     return rows
 
 
-def merge_geometry_and_legacy(chars, legacy_rows: Sequence[Tuple[str, float, float, float, float]],
-                              page_num: int = 0,
-                              gate_records: Optional[Sequence[dict]] = None) -> GeometryMergeReport:
+def merge_geometry_and_legacy(
+    chars,
+    legacy_rows: Sequence[Tuple[str, float, float, float, float]],
+    page_num: int = 0,
+    gate_records: Optional[Sequence[dict]] = None,
+) -> GeometryMergeReport:
     """双轨对比：Geometry 聚类 vs legacy 聚类。
 
     ``gate_records`` 存在时优先作为 legacy 输入（含真实渲染几何），否则
@@ -183,8 +223,9 @@ def merge_geometry_and_legacy(chars, legacy_rows: Sequence[Tuple[str, float, flo
     """
     if gate_records is not None:
         legacy_rows = _rows_from_gate_records(gate_records)
-    geometry_rows = rows_from_geometry(chars, page_num=page_num,
-                                       max_rows=max(len(legacy_rows), 1) + 2)
+    geometry_rows = rows_from_geometry(
+        chars, page_num=page_num, max_rows=max(len(legacy_rows), 1) + 2
+    )
     report = GeometryMergeReport(
         page=page_num,
         legacy_count=len(legacy_rows),
@@ -224,7 +265,10 @@ def merge_geometry_and_legacy(chars, legacy_rows: Sequence[Tuple[str, float, flo
 
 
 __all__ = [
-    "GeometryMergeReport", "dice_similarity",
-    "rows_from_geometry", "merge_geometry_and_legacy",
-    "AdoptedParagraph", "adopt_geometry_cluster",
+    "GeometryMergeReport",
+    "dice_similarity",
+    "rows_from_geometry",
+    "merge_geometry_and_legacy",
+    "AdoptedParagraph",
+    "adopt_geometry_cluster",
 ]

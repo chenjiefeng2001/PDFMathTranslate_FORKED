@@ -281,7 +281,9 @@ def create_api_app(
         except Exception as exc:  # noqa: BLE001 -- 预热失败不阻断服务
             logger.warning("translator registry prewarm skipped: %s", str(exc)[:120])
 
-    threading.Thread(target=_prewarm_registry, name="registry-prewarm", daemon=True).start()
+    threading.Thread(
+        target=_prewarm_registry, name="registry-prewarm", daemon=True
+    ).start()
 
     svc = service or get_runtime_service()
     app = FastAPI(title="pdf2zh API", version="1.0.0")
@@ -373,9 +375,7 @@ def create_api_app(
     def _engine_cls(name: str):
         from pdf2zh.translator import build_translator_registry
 
-        cls = next(
-            (c for c in build_translator_registry() if c.name == name), None
-        )
+        cls = next((c for c in build_translator_registry() if c.name == name), None)
         if cls is None:
             raise HTTPException(404, f"engine not found: {name}")
         return cls
@@ -459,6 +459,7 @@ def create_api_app(
                 TranslationConfig,
                 WatermarkOutputMode,
             )
+
             # tiktoken 的编码插件经 entry_points 动态加载（frozen 环境常见
             # 缺件点），导入成功不等于运行时可用，这里按 babeldoc 实际用法
             # 直接实例化一次 o200k_base。
@@ -496,7 +497,10 @@ def create_api_app(
             with path.open("rb") as fh:
                 for chunk in iter(lambda: fh.read(1 << 20), b""):
                     digest.update(chunk)
-            sha_ok = digest.hexdigest() == DOCLAYOUT_YOLO_DOCSTRUCTBENCH_IMGSZ1024ONNX_SHA3_256
+            sha_ok = (
+                digest.hexdigest()
+                == DOCLAYOUT_YOLO_DOCSTRUCTBENCH_IMGSZ1024ONNX_SHA3_256
+            )
         return {
             "path": str(path),
             "exists": exists,
@@ -601,9 +605,7 @@ def create_api_app(
         for gf in glossaries or []:
             if not gf.filename:
                 continue
-            glossary_dir = (
-                Path(tempfile.gettempdir()) / "pdf2zh_api_glossaries"
-            )
+            glossary_dir = Path(tempfile.gettempdir()) / "pdf2zh_api_glossaries"
             glossary_dir.mkdir(parents=True, exist_ok=True)
             gdest = glossary_dir / f"{uuid.uuid4().hex[:8]}_{Path(gf.filename).name}"
             await _save_upload(gf, gdest)
@@ -686,7 +688,8 @@ def create_api_app(
         except Exception as exc:
             raise HTTPException(404, str(exc))
         return FileResponse(
-            export_tmp, filename=f"{name}.csv",
+            export_tmp,
+            filename=f"{name}.csv",
             media_type="text/csv",
         )
 
@@ -748,9 +751,7 @@ def create_api_app(
     ) -> StreamingResponse:
         _require_state(task_id)
         if not _sse_slots.acquire(timeout=5.0):
-            raise HTTPException(
-                503, "too many concurrent event streams; retry later"
-            )
+            raise HTTPException(503, "too many concurrent event streams; retry later")
         # 断线续传游标：优先取浏览器 EventSource 自动回传的 Last-Event-ID，
         # 其次 ?since= 查询参数（非浏览器客户端）。
         last_event_id = 0
@@ -763,7 +764,9 @@ def create_api_app(
             last_event_id = since
         return StreamingResponse(
             _event_stream(
-                svc, task_id, start_seq=max(0, last_event_id),
+                svc,
+                task_id,
+                start_seq=max(0, last_event_id),
                 release=_sse_slots.release,
             ),
             media_type="text/event-stream",
@@ -801,7 +804,9 @@ def create_api_app(
 
 
 async def _event_stream(
-    svc: RuntimeService, task_id: str, start_seq: int = 0,
+    svc: RuntimeService,
+    task_id: str,
+    start_seq: int = 0,
     release=None,
 ) -> AsyncIterator[str]:
     """SSE 桥（游标轮询泵）：帧携带绝对序号，天然支持 Last-Event-ID 续传。
@@ -828,7 +833,8 @@ async def _event_stream(
                 state = svc.get_task_state(task_id)
                 if state is None:
                     loop.call_soon_threadsafe(
-                        _put, _sse_frame("error", {"message": f"Unknown task: {task_id}"})
+                        _put,
+                        _sse_frame("error", {"message": f"Unknown task: {task_id}"}),
                     )
                     return
                 events = svc.get_task_events(task_id, since=cursor)

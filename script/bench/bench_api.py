@@ -46,13 +46,15 @@ def main() -> int:
             for _ in range(args.n):
                 _, _, elapsed = http_json("GET", base + path)
                 samples_ms.append(elapsed * 1000)
-            rows.append((
-                name,
-                f"{median(samples_ms):.1f}",
-                f"{pct(samples_ms, 0.95):.1f}",
-                f"{pct(samples_ms, 0.99):.1f}",
-                f"{max(samples_ms):.1f}",
-            ))
+            rows.append(
+                (
+                    name,
+                    f"{median(samples_ms):.1f}",
+                    f"{pct(samples_ms, 0.95):.1f}",
+                    f"{pct(samples_ms, 0.99):.1f}",
+                    f"{max(samples_ms):.1f}",
+                )
+            )
 
         print_table(
             f"read latency (n={args.n})",

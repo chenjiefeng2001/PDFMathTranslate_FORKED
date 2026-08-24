@@ -6,17 +6,24 @@
     fuse_evidence({"ocr":0.95, "layout":0.90, "math":0.98}) → 0.93
     fuse_evidence({"ocr":0.95, "math":0.10})               → 0.53（矛盾惩罚）
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Dict, Optional, Sequence
 
-DEFAULT_WEIGHTS = {"ocr": 1.0, "layout": 1.0, "font": 0.8,
-                   "math": 1.0, "structure": 1.0}
+DEFAULT_WEIGHTS = {
+    "ocr": 1.0,
+    "layout": 1.0,
+    "font": 0.8,
+    "math": 1.0,
+    "structure": 1.0,
+}
 
 
-def fuse_evidence(scores: Dict[str, float],
-                  weights: Optional[Dict[str, float]] = None) -> float:
+def fuse_evidence(
+    scores: Dict[str, float], weights: Optional[Dict[str, float]] = None
+) -> float:
     """加权平均 + 一致性加成/矛盾惩罚。
 
     - 极差 ≤ 0.15 → 一致，+0.05（封顶 0.99）；
@@ -34,8 +41,9 @@ def fuse_evidence(scores: Dict[str, float],
     spread = max(scores.values()) - min(scores.values())
     if spread <= 0.15:
         fused += 0.05
-    elif any(v >= 0.8 for v in scores.values()) and \
-            any(v < 0.3 for v in scores.values()):
+    elif any(v >= 0.8 for v in scores.values()) and any(
+        v < 0.3 for v in scores.values()
+    ):
         fused *= 0.8
     return max(0.0, min(fused, 0.99))
 
@@ -48,26 +56,34 @@ class FusedVerdict:
     consistent: bool = True
 
     def to_dict(self) -> dict:
-        return {"confidence": round(self.confidence, 3),
-                "sources": {k: round(v, 3) for k, v in self.sources.items()},
-                "spread": round(self.spread, 3),
-                "consistent": self.consistent}
+        return {
+            "confidence": round(self.confidence, 3),
+            "sources": {k: round(v, 3) for k, v in self.sources.items()},
+            "spread": round(self.spread, 3),
+            "consistent": self.consistent,
+        }
 
     def summary(self) -> str:
         tag = "CONSISTENT" if self.consistent else "CONFLICT"
-        return (f"EvidenceFusion {tag} confidence={self.confidence:.3f} "
-                f"spread={self.spread:.3f}")
+        return (
+            f"EvidenceFusion {tag} confidence={self.confidence:.3f} "
+            f"spread={self.spread:.3f}"
+        )
 
 
-def fuse_verdict(scores: Dict[str, float],
-                 weights: Optional[Dict[str, float]] = None) -> FusedVerdict:
+def fuse_verdict(
+    scores: Dict[str, float], weights: Optional[Dict[str, float]] = None
+) -> FusedVerdict:
     conf = fuse_evidence(scores, weights)
     vals = list((scores or {}).values())
     spread = (max(vals) - min(vals)) if vals else 0.0
     consistent = spread <= 0.15
-    return FusedVerdict(confidence=conf, sources=dict(scores or {}),
-                        spread=spread, consistent=consistent)
+    return FusedVerdict(
+        confidence=conf,
+        sources=dict(scores or {}),
+        spread=spread,
+        consistent=consistent,
+    )
 
 
-__all__ = ["DEFAULT_WEIGHTS", "fuse_evidence", "FusedVerdict",
-           "fuse_verdict"]
+__all__ = ["DEFAULT_WEIGHTS", "fuse_evidence", "FusedVerdict", "fuse_verdict"]

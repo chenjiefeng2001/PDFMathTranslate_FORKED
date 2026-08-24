@@ -12,6 +12,7 @@
       snapshot_ir）产出与老路径同构的快照 JSON —— 迁移闭环里用它把
       emit_page_ir 平滑切到新出口而不改变基线语义。
 """
+
 from __future__ import annotations
 
 from typing import Optional, Sequence
@@ -31,8 +32,7 @@ def deprecated_note() -> str:
     return DEPRECATION_NOTE
 
 
-def converged_snapshot(graph, title: str = "",
-                       include_geometry: bool = True) -> dict:
+def converged_snapshot(graph, title: str = "", include_geometry: bool = True) -> dict:
     """用唯一视图出口（IRBuilder.from_graph）产出快照。
 
     与 ``structure.to_document_ir`` + ``snapshot_ir`` 输出同构
@@ -45,10 +45,12 @@ def converged_snapshot(graph, title: str = "",
     has_nodes = getattr(graph, "nodes", None) is not None
     if has_nodes:
         from pdf2zh.v3.document_pipeline import view_as_ir
+
         ir = view_as_ir(graph, title=title)
     else:
         # PageGeometry 序列：走老路径后仍是同构快照（兼容迁移）
         from pdf2zh.v3.structure import StructureClassifier, to_document_ir
+
         ir = to_document_ir(graph, classifier=StructureClassifier(), title=title)
     return snapshot_ir(ir, title=title, include_geometry=include_geometry)
 
@@ -69,6 +71,9 @@ def snapshot_consistency(legacy_snapshot: dict, converged_snapshot_: dict) -> di
 
 
 __all__ = [
-    "DEPRECATED_VIEWS", "DEPRECATION_NOTE",
-    "deprecated_note", "converged_snapshot", "snapshot_consistency",
+    "DEPRECATED_VIEWS",
+    "DEPRECATION_NOTE",
+    "deprecated_note",
+    "converged_snapshot",
+    "snapshot_consistency",
 ]

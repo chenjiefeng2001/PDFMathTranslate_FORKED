@@ -3,6 +3,7 @@
 These tests require a real font file. If no font file is found,
 the tests are skipped gracefully.
 """
+
 import os
 import unittest
 import tempfile
@@ -111,9 +112,7 @@ class TestTextMetrics(unittest.TestCase):
         result_12 = self.metrics.measure_string("Hello", 12.0)
         result_24 = self.metrics.measure_string("Hello", 24.0)
         self.assertAlmostEqual(
-            result_24["ascent"] / result_12["ascent"],
-            2.0,
-            delta=0.01
+            result_24["ascent"] / result_12["ascent"], 2.0, delta=0.01
         )
 
     def test_char_spacing_adds_width(self):

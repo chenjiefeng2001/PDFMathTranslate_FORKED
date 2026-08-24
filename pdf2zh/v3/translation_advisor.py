@@ -17,6 +17,7 @@ V4 侧的 Translation Layer（置信度路由）与 LLM Refiner 已就位但未�
 输出 ``TranslationAdvisorReport``（逐段 route/confidence/reason）。
 与 v3 全部引擎同风格：纯逻辑、无 I/O、失败即跳过。
 """
+
 from __future__ import annotations
 
 import re
@@ -25,7 +26,10 @@ from typing import List, Optional
 
 from pdf2zh.v3.image_engine import is_probably_brand_or_technical
 from pdf2zh.v3.processors import (
-    NodeProcessor, NodeStage, get_semantic, set_policy,
+    NodeProcessor,
+    NodeStage,
+    get_semantic,
+    set_policy,
 )
 from pdf2zh.v3.graph import DocumentGraph, DocumentNode
 
@@ -97,8 +101,9 @@ class LLMRefiner:
     None 时一切跳过（零开销）。provider 接口即 v3.translator.LLMProvider。
     """
 
-    def __init__(self, provider=None, min_confidence: float = 0.6,
-                 model: str = "gpt-4o-mini") -> None:
+    def __init__(
+        self, provider=None, min_confidence: float = 0.6, model: str = "gpt-4o-mini"
+    ) -> None:
         self.provider = provider
         self.min_confidence = min_confidence
         self.model = model
@@ -113,18 +118,22 @@ class LLMRefiner:
             return verdict
         try:
             messages = [
-                {"role": "system",
-                 "content": "Decide if this text should be translated or kept "
-                            "as-is (brand/technical/code/number). Reply KEEP or TRANSLATE."},
+                {
+                    "role": "system",
+                    "content": "Decide if this text should be translated or kept "
+                    "as-is (brand/technical/code/number). Reply KEEP or TRANSLATE.",
+                },
                 {"role": "user", "content": f"Text: {verdict.text[:200]}"},
             ]
-            resp = self.provider.complete(messages, model=self.model,
-                                          temperature=0.0)
+            resp = self.provider.complete(messages, model=self.model, temperature=0.0)
             answer = (resp.text or "").strip().upper()
             if answer.startswith("KEEP"):
-                return RouteVerdict(verdict.text, KEEP_ROUTE,
-                                    max(verdict.confidence, 0.7),
-                                    "refiner:llm_keep")
+                return RouteVerdict(
+                    verdict.text,
+                    KEEP_ROUTE,
+                    max(verdict.confidence, 0.7),
+                    "refiner:llm_keep",
+                )
             verdict.reason = verdict.reason + " (refiner:llm_translate)"
             return verdict
         except Exception:  # noqa: BLE001 — Refiner 失败即跳过
@@ -152,16 +161,21 @@ class TranslationAdvisorReport:
         }
 
     def summary(self) -> str:
-        return (f"TranslationAdvisor total={self.total} "
-                f"translate={self.translate} keep={self.keep} "
-                f"refined={self.refined}")
+        return (
+            f"TranslationAdvisor total={self.total} "
+            f"translate={self.translate} keep={self.keep} "
+            f"refined={self.refined}"
+        )
 
 
 class TranslationAdvisor:
     """路由 + Refiner 的组合入口。"""
 
-    def __init__(self, router: Optional[MainlineTranslationRouter] = None,
-                 refiner: Optional[LLMRefiner] = None) -> None:
+    def __init__(
+        self,
+        router: Optional[MainlineTranslationRouter] = None,
+        refiner: Optional[LLMRefiner] = None,
+    ) -> None:
         self.router = router or MainlineTranslationRouter()
         self.refiner = refiner
 
@@ -189,8 +203,11 @@ class TranslationAdvisorProcessor(NodeProcessor):
     stages = (NodeStage.TRANSLATION,)
     target_types = None
 
-    def __init__(self, router: Optional[MainlineTranslationRouter] = None,
-                 refiner: Optional[LLMRefiner] = None) -> None:
+    def __init__(
+        self,
+        router: Optional[MainlineTranslationRouter] = None,
+        refiner: Optional[LLMRefiner] = None,
+    ) -> None:
         self.router = router or MainlineTranslationRouter()
         self.refiner = refiner
 
@@ -198,6 +215,7 @@ class TranslationAdvisorProcessor(NodeProcessor):
         if node.node_type is None:
             return
         from pdf2zh.v3.processors import POLICY_KEY
+
         if POLICY_KEY in node.metadata:
             return  # 已有专门策略（TOC/公式/图片…）不覆盖
         verdict = self.router.decide(node.text)
@@ -209,8 +227,12 @@ class TranslationAdvisorProcessor(NodeProcessor):
 
 
 __all__ = [
-    "KEEP_ROUTE", "TRANSLATE_ROUTE",
-    "RouteVerdict", "MainlineTranslationRouter", "LLMRefiner",
-    "TranslationAdvisorReport", "TranslationAdvisor",
+    "KEEP_ROUTE",
+    "TRANSLATE_ROUTE",
+    "RouteVerdict",
+    "MainlineTranslationRouter",
+    "LLMRefiner",
+    "TranslationAdvisorReport",
+    "TranslationAdvisor",
     "TranslationAdvisorProcessor",
 ]

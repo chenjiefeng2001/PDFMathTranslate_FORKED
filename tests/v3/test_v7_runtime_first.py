@@ -15,22 +15,38 @@ Covers the V6.1 roadmap iteration (迭代后的报告，见 doc/v6_1_runtime_fir
 Run with:
     python -m pytest tests/v3/test_v7_runtime_first.py -v
 """
+
 from __future__ import annotations
 
 import pytest
 
 from pdf2zh.v3.base_graph import (
-    BaseGraph, GraphNode, GraphEdge, GraphKind, GraphDiff,
-    GraphSnapshot, GraphVisitor, adapt,
+    BaseGraph,
+    GraphNode,
+    GraphEdge,
+    GraphKind,
+    GraphDiff,
+    GraphSnapshot,
+    GraphVisitor,
+    adapt,
 )
 from pdf2zh.v3.document_runtime import (
-    DocumentRuntime, DocumentSession, RuntimeCheckpoint, SessionState,
+    DocumentRuntime,
+    DocumentSession,
+    RuntimeCheckpoint,
+    SessionState,
 )
 from pdf2zh.v3.graph import (
-    DocumentGraph, DocumentNode, NodeType, Edge, EdgeType,
+    DocumentGraph,
+    DocumentNode,
+    NodeType,
+    Edge,
+    EdgeType,
 )
 from pdf2zh.v3.constraint_graph import (
-    ConstraintGraph, ConstraintRelation, build_constraint_graph_from_document,
+    ConstraintGraph,
+    ConstraintRelation,
+    build_constraint_graph_from_document,
 )
 from pdf2zh.v3.execution_graph import ExecutionGraph, ExecutionNodeState
 
@@ -38,14 +54,25 @@ from pdf2zh.v3.execution_graph import ExecutionGraph, ExecutionNodeState
 def _doc_graph() -> DocumentGraph:
     """A tiny two-paragraph DocumentGraph used across adapt tests."""
     g = DocumentGraph()
-    page = DocumentNode(id="page_0", node_type=NodeType.PAGE,
-                        bbox=(0, 0, 612, 792), page_num=0)
-    a = DocumentNode(id="a", node_type=NodeType.PARAGRAPH,
-                     bbox=(72, 100, 540, 114), text="First paragraph.",
-                     page_num=0, font_size=11)
-    b = DocumentNode(id="b", node_type=NodeType.PARAGRAPH,
-                     bbox=(72, 130, 540, 144), text="Second paragraph.",
-                     page_num=0, font_size=11)
+    page = DocumentNode(
+        id="page_0", node_type=NodeType.PAGE, bbox=(0, 0, 612, 792), page_num=0
+    )
+    a = DocumentNode(
+        id="a",
+        node_type=NodeType.PARAGRAPH,
+        bbox=(72, 100, 540, 114),
+        text="First paragraph.",
+        page_num=0,
+        font_size=11,
+    )
+    b = DocumentNode(
+        id="b",
+        node_type=NodeType.PARAGRAPH,
+        bbox=(72, 130, 540, 144),
+        text="Second paragraph.",
+        page_num=0,
+        font_size=11,
+    )
     g.add_node(page)
     g.add_node(a)
     g.add_node(b)
@@ -58,18 +85,35 @@ def _doc_graph() -> DocumentGraph:
 def _blocks() -> list:
     """Two pipeline-ready paragraph blocks."""
     return [
-        {"id": "n0", "text": "Deep learning is powerful.",
-         "type": "paragraph", "x": 72, "y": 100, "w": 468, "h": 14,
-         "page": 0, "font_size": 11},
-        {"id": "n1", "text": "Attention is all you need.",
-         "type": "paragraph", "x": 72, "y": 120, "w": 468, "h": 14,
-         "page": 0, "font_size": 11},
+        {
+            "id": "n0",
+            "text": "Deep learning is powerful.",
+            "type": "paragraph",
+            "x": 72,
+            "y": 100,
+            "w": 468,
+            "h": 14,
+            "page": 0,
+            "font_size": 11,
+        },
+        {
+            "id": "n1",
+            "text": "Attention is all you need.",
+            "type": "paragraph",
+            "x": 72,
+            "y": 120,
+            "w": 468,
+            "h": 14,
+            "page": 0,
+            "font_size": 11,
+        },
     ]
 
 
 # ═══════════════════════════════════════════════════════════════════
 # BaseGraph — 统一图骨架
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestBaseGraphBasics:
     def test_add_nodes_and_edges(self):
@@ -253,6 +297,7 @@ class TestBaseGraphAlgebra:
 # adapt() — 鸭子类型统一适配
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestAdapt:
     def test_adapt_document_graph(self):
         bg = adapt(_doc_graph())
@@ -280,8 +325,9 @@ class TestAdapt:
         assert bg.kind == GraphKind.EXECUTION
         assert bg.node_count == 2
         # edges synthesized from depends_on
-        assert [(e.source_id, e.target_id, e.relation) for e in bg.edges] \
-            == [("a", "b", "depends_on")]
+        assert [(e.source_id, e.target_id, e.relation) for e in bg.edges] == [
+            ("a", "b", "depends_on")
+        ]
         assert bg.get_node("a").properties["state"] == "translated"
         assert bg.topological_sort() == ["a", "b"]
 
@@ -295,6 +341,7 @@ class TestAdapt:
 # ═══════════════════════════════════════════════════════════════════
 # DocumentSession — 状态机
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestSessionStateMachine:
     def test_legal_lifecycle(self):
@@ -328,6 +375,7 @@ class TestSessionStateMachine:
 # ═══════════════════════════════════════════════════════════════════
 # DocumentRuntime — 文档运行时（Runtime First）
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestDocumentRuntimeLifecycle:
     def test_full_lifecycle(self):
@@ -406,6 +454,7 @@ class TestDocumentRuntimeLifecycle:
 # ═══════════════════════════════════════════════════════════════════
 # DocumentRuntime — 多图统一视图
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestDocumentRuntimeGraphs:
     def test_three_unified_views(self):

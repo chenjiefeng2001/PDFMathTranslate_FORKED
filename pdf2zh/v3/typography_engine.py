@@ -12,6 +12,7 @@ DocumentModel 里的字形 bbox（build_width_map），不依赖字体文件。
 
 CJK 行逐字可断、拉丁按词；断行/对齐结果只标注，不修改模型文本。
 """
+
 from __future__ import annotations
 
 import re
@@ -20,7 +21,8 @@ from typing import Callable, Dict, List, Optional
 # CJK 范围（断行策略：逐字可断）
 _RE_CJK = re.compile(
     r"[\u2E80-\u2EFF\u3000-\u303F\u3040-\u30FF\u3400-\u4DBF"
-    r"\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]")
+    r"\u4E00-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]"
+)
 
 
 def build_width_map(block) -> Dict[str, float]:
@@ -35,8 +37,9 @@ def build_width_map(block) -> Dict[str, float]:
     return widths
 
 
-def measure(text: str, widths: Optional[Dict[str, float]] = None,
-            default_adv: float = 5.0) -> float:
+def measure(
+    text: str, widths: Optional[Dict[str, float]] = None, default_adv: float = 5.0
+) -> float:
     """文本宽度：逐字符查宽度表，缺失用默认字宽。"""
     widths = widths or {}
     total = 0.0
@@ -59,9 +62,12 @@ def _tokens(text: str) -> List[str]:
     return out
 
 
-def line_break(text: str, max_width: float,
-               measure_fn: Callable[[str], float],
-               max_lines: int = 200) -> List[str]:
+def line_break(
+    text: str,
+    max_width: float,
+    measure_fn: Callable[[str], float],
+    max_lines: int = 200,
+) -> List[str]:
     """贪心断行：行超宽且单 token 可放下时换行；单 token 超宽则逐字硬切。"""
     if not text:
         return []
@@ -107,8 +113,9 @@ def line_break(text: str, max_width: float,
     return lines
 
 
-def justify_advances(text: str, line_width: float,
-                     measure_fn: Callable[[str], float]) -> List[float]:
+def justify_advances(
+    text: str, line_width: float, measure_fn: Callable[[str], float]
+) -> List[float]:
     """行对齐：返回逐字符 advance（原宽 + 均分增量）。
 
     CJK 行在字符间均分；拉丁行在词间空格均分。无法分配时零扩展。
@@ -122,14 +129,14 @@ def justify_advances(text: str, line_width: float,
     if _RE_CJK.search(text):
         # 增量只加在前 n-1 个字符后（行尾不加），总增量恰为 extra
         per = extra / (n - 1)
-        return [measure_fn(ch) + (per if i < n - 1 else 0.0)
-                for i, ch in enumerate(text)]
+        return [
+            measure_fn(ch) + (per if i < n - 1 else 0.0) for i, ch in enumerate(text)
+        ]
     gaps = [i for i, ch in enumerate(text) if ch.isspace()]
     advances = [measure_fn(ch) for ch in text]
     if not gaps:
         per = extra / (n - 1)
-        return [a + (per if i < n - 1 else 0.0)
-                for i, a in enumerate(advances)]
+        return [a + (per if i < n - 1 else 0.0) for i, a in enumerate(advances)]
     per = extra / len(gaps)
     for i in gaps:
         advances[i] += per
@@ -142,6 +149,9 @@ def widow_orphan_flag(line_count: int, is_paragraph: bool = True) -> bool:
 
 
 __all__ = [
-    "build_width_map", "measure", "line_break",
-    "justify_advances", "widow_orphan_flag",
+    "build_width_map",
+    "measure",
+    "line_break",
+    "justify_advances",
+    "widow_orphan_flag",
 ]

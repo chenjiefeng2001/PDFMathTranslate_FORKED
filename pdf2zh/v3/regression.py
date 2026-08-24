@@ -15,6 +15,7 @@ stage 集合 + 每 stage 的 sha256 —— CI 跑一遍新引擎，diff 旧基�
 
 复用 ``corpus_regression.RegressionReport`` 的结果结构，保持报告口径一致。
 """
+
 from __future__ import annotations
 
 import glob
@@ -25,21 +26,24 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from pdf2zh.v3.corpus_regression import (
-    RegressionReport, RegressionResult,
+    RegressionReport,
+    RegressionResult,
 )
 
 
 def canonical_json(value: Any) -> str:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True,
-                      separators=(",", ":"))
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
 def snapshot_hash(snapshot: Optional[Dict[str, Any]]) -> str:
     """快照内容哈希（doc_id/trace_id/timestamp 不入 —— 只对内容敏感）。"""
     if not snapshot:
         return "empty"
-    content = {k: v for k, v in snapshot.items()
-               if k not in ("doc_id", "timestamp", "trace_id")}
+    content = {
+        k: v
+        for k, v in snapshot.items()
+        if k not in ("doc_id", "timestamp", "trace_id")
+    }
     return hashlib.sha256(canonical_json(content).encode("utf-8")).hexdigest()[:16]
 
 
@@ -52,16 +56,25 @@ def _stage_hashes(snapshots: Sequence[Dict[str, Any]]) -> Dict[str, str]:
     return out
 
 
-def record_for(stem: str, snapshots: Sequence[Dict[str, Any]],
-               extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def record_for(
+    stem: str,
+    snapshots: Sequence[Dict[str, Any]],
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     hashes = _stage_hashes(snapshots)
-    return {"stem": stem, "stages": sorted(hashes),
-            "hashes": hashes, "extra": extra or {}}
+    return {
+        "stem": stem,
+        "stages": sorted(hashes),
+        "hashes": hashes,
+        "extra": extra or {},
+    }
 
 
-def build_baseline_dir(out_dir: str,
-                       cases: Sequence[Tuple[str, Sequence[Dict[str, Any]]]],
-                       extra_map: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+def build_baseline_dir(
+    out_dir: str,
+    cases: Sequence[Tuple[str, Sequence[Dict[str, Any]]]],
+    extra_map: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
     """把 (stem, [snapshots...]) 逐用例写成 <stem>.obs.json 基线。
 
     返回 manifest；同一 stem 重复记录只保留最后一次。
@@ -101,66 +114,86 @@ def diff_records(a: Dict[str, Any], b: Dict[str, Any]) -> Dict[str, Any]:
         ha, hb = a.get("hashes", {}).get(s), b.get("hashes", {}).get(s)
         if ha != hb:
             changed[s] = {"a": ha or None, "b": hb or None}
-    return {"stem": a.get("stem"), "consistent": not changed and sa == sb,
-            "changed_stages": changed,
-            "stages_a": sorted(sa), "stages_b": sorted(sb)}
+    return {
+        "stem": a.get("stem"),
+        "consistent": not changed and sa == sb,
+        "changed_stages": changed,
+        "stages_a": sorted(sa),
+        "stages_b": sorted(sb),
+    }
 
 
 def diff_baselines(baseline_a: str, baseline_b: str) -> List[Dict[str, Any]]:
-    files_a = {os.path.basename(p)
-               for p in glob.glob(os.path.join(baseline_a, "*.obs.json"))}
-    files_b = {os.path.basename(p)
-               for p in glob.glob(os.path.join(baseline_b, "*.obs.json"))}
+    files_a = {
+        os.path.basename(p) for p in glob.glob(os.path.join(baseline_a, "*.obs.json"))
+    }
+    files_b = {
+        os.path.basename(p) for p in glob.glob(os.path.join(baseline_b, "*.obs.json"))
+    }
     out: List[Dict[str, Any]] = []
     for name in sorted(files_a | files_b):
         rec = diff_records(
             _load_record(os.path.join(baseline_a, name)),
-            _load_record(os.path.join(baseline_b, name)))
+            _load_record(os.path.join(baseline_b, name)),
+        )
         out.append(rec)
     return out
 
 
 def run_snapshot_regression(
-        cases: Sequence[Tuple[str, Sequence[Dict[str, Any]]]],
-        baseline_dir: str) -> RegressionReport:
+    cases: Sequence[Tuple[str, Sequence[Dict[str, Any]]]], baseline_dir: str
+) -> RegressionReport:
     """跑快照回归：每个用例与基线目录比对（缺失基线记为失败）。"""
     report = RegressionReport()
     if not os.path.isdir(baseline_dir):
         for stem, _ in cases:
-            report.results.append(RegressionResult(
-                stem, False, {"missing_baseline_dir": True}))
+            report.results.append(
+                RegressionResult(stem, False, {"missing_baseline_dir": True})
+            )
         return report
     for stem, snaps in cases:
         rec = record_for(stem, snaps)
         base = _load_record(os.path.join(baseline_dir, f"{stem}.obs.json"))
         if base is None:
-            report.results.append(RegressionResult(
-                stem, False, {"missing_expected": True}))
+            report.results.append(
+                RegressionResult(stem, False, {"missing_expected": True})
+            )
             continue
         diffs = diff_records(base, rec)
         changed = diffs.get("changed_stages") or {}
-        report.results.append(RegressionResult(
-            stem, bool(diffs.get("consistent")), changed))
+        report.results.append(
+            RegressionResult(stem, bool(diffs.get("consistent")), changed)
+        )
     return report
 
 
-def record_session(stem: str, session_bundle: Dict[str, Any],
-                   out_dir: str, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def record_session(
+    stem: str,
+    session_bundle: Dict[str, Any],
+    out_dir: str,
+    extra: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """把 ObsSession.bundle() 落成基线记录（+ 全量快照 JSON）。"""
     os.makedirs(out_dir, exist_ok=True)
-    snaps = ((session_bundle.get("snapshots") or {}).get("snapshots") or {})
+    snaps = (session_bundle.get("snapshots") or {}).get("snapshots") or {}
     snap_list = [snaps[s] for s in sorted(snaps)]
     rec = record_for(stem, snap_list, extra)
-    with open(os.path.join(out_dir, f"{stem}.obs.json"), "w",
-              encoding="utf-8") as f:
+    with open(os.path.join(out_dir, f"{stem}.obs.json"), "w", encoding="utf-8") as f:
         json.dump(rec, f, ensure_ascii=False, indent=2)
-    with open(os.path.join(out_dir, f"{stem}.snapshots.json"), "w",
-              encoding="utf-8") as f:
-        json.dump({s: snaps[s] for s in sorted(snaps)},
-                  f, ensure_ascii=False, indent=2)
+    with open(
+        os.path.join(out_dir, f"{stem}.snapshots.json"), "w", encoding="utf-8"
+    ) as f:
+        json.dump({s: snaps[s] for s in sorted(snaps)}, f, ensure_ascii=False, indent=2)
     return rec
 
 
-__all__ = ["canonical_json", "snapshot_hash", "record_for",
-           "build_baseline_dir", "diff_records", "diff_baselines",
-           "run_snapshot_regression", "record_session"]
+__all__ = [
+    "canonical_json",
+    "snapshot_hash",
+    "record_for",
+    "build_baseline_dir",
+    "diff_records",
+    "diff_baselines",
+    "run_snapshot_regression",
+    "record_session",
+]

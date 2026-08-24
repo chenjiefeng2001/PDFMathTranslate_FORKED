@@ -8,6 +8,7 @@
   * P7/P8/P9: Inline 换行 + Master Baseline + 三阶段坐标
   * P10: DualPatch 双层补丁合成 + QA（§9.1/§9.2）
 """
+
 from __future__ import annotations
 
 from pdf2zh.geometry.glyph import Glyph
@@ -28,10 +29,17 @@ def mk_glyph(char, x, baseline, size, font="Helv", y0=None, y1=None):
     """构造测试字形（y-up：baseline 为基线 y，bbox 由基线推算）。"""
     y0 = y0 if y0 is not None else baseline - 0.2 * size
     y1 = y1 if y1 is not None else baseline + 0.8 * size
-    return Glyph(char=char, bbox=(x, y0, x + 0.5 * size, y1),
-                 baseline=baseline, ascent=0.8 * size, descent=-0.2 * size,
-                 font_name=font, font_size=size, page_id=0,
-                 object_id=int(x * 100))
+    return Glyph(
+        char=char,
+        bbox=(x, y0, x + 0.5 * size, y1),
+        baseline=baseline,
+        ascent=0.8 * size,
+        descent=-0.2 * size,
+        font_name=font,
+        font_size=size,
+        page_id=0,
+        object_id=int(x * 100),
+    )
 
 
 # ── P5: Glyph / StyleRun / VisualLine / LogicalParagraph ──────────────
@@ -60,7 +68,7 @@ class TestGlyphAndStyleRun:
     def test_style_runs_subscript_new_size(self):
         glyphs = [
             mk_glyph("a", 0, 100, 12, "Helv"),
-            mk_glyph("1", 12, 96, 8, "Helv"),   # 下标：字号 8
+            mk_glyph("1", 12, 96, 8, "Helv"),  # 下标：字号 8
             mk_glyph("b", 20, 100, 12, "Helv"),
         ]
         runs = build_style_runs(glyphs)
@@ -70,26 +78,25 @@ class TestGlyphAndStyleRun:
 
 class TestVisualLineReconstruction:
     def test_same_baseline_joins(self):
-        glyphs = [mk_glyph(c, x, 100, 12) for x, c in
-                  [(0, "H"), (12, "e"), (24, "l"), (36, "l"), (48, "o")]]
+        glyphs = [
+            mk_glyph(c, x, 100, 12)
+            for x, c in [(0, "H"), (12, "e"), (24, "l"), (36, "l"), (48, "o")]
+        ]
         line = VisualLineBuilder().build(glyphs, page_id=0)[0]
         assert line.text == "Hello"
         assert abs(line.master_baseline - 100) < 1.0
 
     def test_font_switch_within_line_stays_one_line(self):
-        glyphs = (
-            [mk_glyph("H", x, 100, 12, "Helv") for x in range(0, 30, 10)]
-            + [mk_glyph("x", x, 100, 12, "CMMI10") for x in range(30, 60, 10)]
-        )
+        glyphs = [mk_glyph("H", x, 100, 12, "Helv") for x in range(0, 30, 10)] + [
+            mk_glyph("x", x, 100, 12, "CMMI10") for x in range(30, 60, 10)
+        ]
         line = VisualLineBuilder().build(glyphs, page_id=0)[0]
         assert line.text == "HHHxxx"
         assert len(line.style_runs) == 2
 
     def test_baseline_drift_separates_lines(self):
-        glyphs = [mk_glyph(c, x, 100, 12) for x, c in
-                  [(0, "A"), (12, "B"), (24, "C")]]
-        glyphs += [mk_glyph(c, x, 85, 12) for x, c in
-                   [(0, "D"), (12, "E"), (24, "F")]]
+        glyphs = [mk_glyph(c, x, 100, 12) for x, c in [(0, "A"), (12, "B"), (24, "C")]]
+        glyphs += [mk_glyph(c, x, 85, 12) for x, c in [(0, "D"), (12, "E"), (24, "F")]]
         lines = VisualLineBuilder().build(glyphs, page_id=0)
         assert len(lines) == 2
         assert lines[0].text == "ABC"
@@ -103,7 +110,7 @@ class TestVisualLineReconstruction:
         """
         glyphs = [
             mk_glyph("x", 120, 100, 14, "CMMI10"),
-            mk_glyph("2", 132, 104, 8, "CMR10"),   # 上标（先按基线排最前）
+            mk_glyph("2", 132, 104, 8, "CMR10"),  # 上标（先按基线排最前）
             mk_glyph("+", 144, 100, 14, "CMSY10"),
             mk_glyph("1", 158, 100, 14, "CMR10"),
         ]
@@ -115,7 +122,7 @@ class TestVisualLineReconstruction:
         """回归：下标字形并入主行（基线 -4，字号 8pt）。"""
         glyphs = [
             mk_glyph("a", 0, 100, 12, "Helv"),
-            mk_glyph("1", 12, 96, 8, "Helv"),    # 下标
+            mk_glyph("1", 12, 96, 8, "Helv"),  # 下标
             mk_glyph("b", 20, 100, 12, "Helv"),
         ]
         lines = VisualLineBuilder().build(glyphs, page_id=0)
@@ -134,18 +141,18 @@ class TestLogicalParagraph:
         lines = VisualLineBuilder().build(rows, page_id=0)
         assert len(lines) == 2
         paras = build_logical_paragraphs(lines, page_id=0)
-        assert len(paras) == 1          # 字体切换不碎裂段落
+        assert len(paras) == 1  # 字体切换不碎裂段落
         assert paras[0].line_count == 2
 
     def test_large_gap_splits_paragraph(self):
         """§5.2 硬截断：垂直间距 > 1.8 × line_height。"""
         rows = []
-        for base_y in (100.0, 60.0):    # 40pt 间距 >> 1.8×12
-            rows.extend(mk_glyph(c, x, base_y, 12)
-                        for x, c in [(0, "A"), (12, "B")])
+        for base_y in (100.0, 60.0):  # 40pt 间距 >> 1.8×12
+            rows.extend(mk_glyph(c, x, base_y, 12) for x, c in [(0, "A"), (12, "B")])
         lines = VisualLineBuilder().build(rows, page_id=0)
         paras = build_logical_paragraphs(lines, page_id=0)
         assert len(paras) == 2
+
 
 # ── P6: Formula Confidence / Extraction / Anchor ──────────────────────
 
@@ -166,15 +173,15 @@ class TestFormulaConfidence:
 
     def test_unicode_region(self):
         eng = FormulaConfidenceEngine()
-        assert eng.unicode_score("𝑓𝑥") >= 0.9          # Math Alphanumeric
+        assert eng.unicode_score("𝑓𝑥") >= 0.9  # Math Alphanumeric
         assert eng.unicode_score("hello") < 0.2
 
     def test_baseline_spread(self):
         eng = FormulaConfidenceEngine()
         glyphs = [
             mk_glyph("x", 0, 100, 12),
-            mk_glyph("1", 12, 95, 8),     # 下标
-            mk_glyph("2", 20, 104, 8),    # 上标
+            mk_glyph("1", 12, 95, 8),  # 下标
+            mk_glyph("2", 20, 104, 8),  # 上标
         ]
         assert eng.baseline_score(glyphs) > 0.3
 
@@ -190,8 +197,7 @@ class TestFormulaConfidence:
 
     def test_plain_text_verdict(self):
         eng = FormulaConfidenceEngine()
-        plain = [mk_glyph(c, x, 100, 12) for x, c in
-                 [(0, "h"), (12, "e"), (24, "l")]]
+        plain = [mk_glyph(c, x, 100, 12) for x, c in [(0, "h"), (12, "e"), (24, "l")]]
         s = eng.score("hel", plain, font_name="Helvetica")
         assert s.verdict == "text"
 
@@ -199,14 +205,17 @@ class TestFormulaConfidence:
 class TestFormulaExtraction:
     def _mk_mixed_paragraph(self):
         glyphs = (
-            [mk_glyph(c, x, 100, 12) for x, c in
-             [(0, "L"), (12, "e"), (24, "t"), (36, " ")]]
-            + [mk_glyph("f", 48, 100, 14, "CMMI10"),
-               mk_glyph("(", 64, 100, 14, "CMMI10"),
-               mk_glyph("x", 76, 100, 14, "CMMI10"),
-               mk_glyph(")", 88, 100, 14, "CMMI10")]
-            + [mk_glyph("b", 104, 100, 12),
-               mk_glyph("e", 116, 100, 12)]
+            [
+                mk_glyph(c, x, 100, 12)
+                for x, c in [(0, "L"), (12, "e"), (24, "t"), (36, " ")]
+            ]
+            + [
+                mk_glyph("f", 48, 100, 14, "CMMI10"),
+                mk_glyph("(", 64, 100, 14, "CMMI10"),
+                mk_glyph("x", 76, 100, 14, "CMMI10"),
+                mk_glyph(")", 88, 100, 14, "CMMI10"),
+            ]
+            + [mk_glyph("b", 104, 100, 12), mk_glyph("e", 116, 100, 12)]
         )
         lines = VisualLineBuilder().build(glyphs, page_id=0)
         return build_logical_paragraphs(lines, page_id=0)[0]
@@ -239,6 +248,8 @@ class TestFormulaExtraction:
         prot = AnchorProtector()
         _, fmap = prot.protect("A <formula_0> B <formula_1> C")
         assert prot.integrity_score("X <formula_0> Y <formula_1> Z", fmap) == 1.0
+
+
 # ── P7/P8/P9: Inline Layout / Baseline / Solver ───────────────────────
 
 
@@ -262,8 +273,9 @@ class TestInlineLayout:
 
     def test_wrap_multiline(self):
         eng = InlineLayoutEngine()
-        objs = [InlineTextRun(text="a" * 30, style_runs=[], bbox=(0, 0, 0, 0),
-                              font_size=10)]
+        objs = [
+            InlineTextRun(text="a" * 30, style_runs=[], bbox=(0, 0, 0, 0), font_size=10)
+        ]
         lines = eng.wrap(objs, container_width=100, font_size=10)
         assert len(lines) >= 2
 
@@ -271,8 +283,7 @@ class TestInlineLayout:
 class TestLayoutSolver:
     def _mk_unit(self):
         glyphs = (
-            [mk_glyph(c, x, 100, 12) for x, c in
-             [(0, "L"), (12, "e"), (24, "t")]]
+            [mk_glyph(c, x, 100, 12) for x, c in [(0, "L"), (12, "e"), (24, "t")]]
             + [mk_glyph("x", 36, 100, 14, "CMMI10")]
             + [mk_glyph("b", 48, 100, 12), mk_glyph("e", 60, 100, 12)]
         )
@@ -284,8 +295,7 @@ class TestLayoutSolver:
     def test_three_stage_coordinates(self):
         unit = self._mk_unit()
         solver = LayoutSolver()
-        solved = solver.solve(unit, "Let <formula_0> be",
-                              page_rect=(0, 0, 600, 800))
+        solved = solver.solve(unit, "Let <formula_0> be", page_rect=(0, 0, 600, 800))
         assert solved.translated_bbox[0] == solved.source_bbox[0]
         assert solved.line_count >= 1
         assert solved.to_dict()["unit_id"]
@@ -295,7 +305,7 @@ class TestLayoutSolver:
         src = unit.source_bbox
         solver = LayoutSolver()
         solver.translated_box(unit, "Let <formula_0> be long translation")
-        assert unit.source_bbox == src   # §6.2 source immutable
+        assert unit.source_bbox == src  # §6.2 source immutable
 
     def test_multiline_identity_solve_zero_drift(self):
         """回归：多行段落恒等译文时公式对象级漂移必须为 0。
@@ -303,16 +313,17 @@ class TestLayoutSolver:
         两行混合段落（行基线 100/85），恒等译文（unit.text）应保持
         行级基线映射 → 公式 render_bbox == source_bbox（§9.2 容差）。"""
         glyphs = (
-            [mk_glyph(c, x, 100, 12) for x, c in
-             [(0, "L"), (12, "e"), (24, "t"), (36, " ")]] +
-            [mk_glyph(c, x, 100, 14, "CMMI10") for x, c in
-             [(48, "f"), (64, "("), (76, "x"), (88, ")")]] +
-            [mk_glyph(c, x, 100, 12) for x, c in
-             [(104, "b"), (116, "e")]] +
-            [mk_glyph(c, x, 85, 12) for x, c in
-             [(0, "T"), (12, "h"), (24, "e")]] +
-            [mk_glyph("∫", 36, 85, 18, "CMSY10"),
-             mk_glyph("x", 58, 85, 14, "CMMI10")]
+            [
+                mk_glyph(c, x, 100, 12)
+                for x, c in [(0, "L"), (12, "e"), (24, "t"), (36, " ")]
+            ]
+            + [
+                mk_glyph(c, x, 100, 14, "CMMI10")
+                for x, c in [(48, "f"), (64, "("), (76, "x"), (88, ")")]
+            ]
+            + [mk_glyph(c, x, 100, 12) for x, c in [(104, "b"), (116, "e")]]
+            + [mk_glyph(c, x, 85, 12) for x, c in [(0, "T"), (12, "h"), (24, "e")]]
+            + [mk_glyph("∫", 36, 85, 18, "CMSY10"), mk_glyph("x", 58, 85, 14, "CMMI10")]
         )
         lines = VisualLineBuilder().build(glyphs, page_id=0)
         assert len(lines) == 2, f"期望 2 视觉行: {[l.text for l in lines]}"
@@ -328,8 +339,9 @@ class TestLayoutSolver:
         for p in solved.formula_placements:
             dx = abs(p["render_bbox"][0] - p["source_bbox"][0])
             dy = abs(p["render_bbox"][1] - p["source_bbox"][1])
-            assert dx <= 0.5 and dy <= 0.5, (
-                f"公式 {p['formula_id']} 漂移 dx={dx:.3f} dy={dy:.3f}")
+            assert (
+                dx <= 0.5 and dy <= 0.5
+            ), f"公式 {p['formula_id']} 漂移 dx={dx:.3f} dy={dy:.3f}"
 
 
 # ── P10: Dual Patch + QA ──────────────────────────────────────────────
@@ -346,9 +358,9 @@ class TestDualPatchQA:
                 rows.append(mk_glyph(c, x, base_y, 12, font))
         lines = VisualLineBuilder().build(rows, page_id=0)
         paras = build_logical_paragraphs(lines, page_id=0)
-        assert len(paras) == 1          # 1 段落（不碎裂）
+        assert len(paras) == 1  # 1 段落（不碎裂）
         switches = patcher.count_font_switches(paras)
-        assert switches >= 4            # 每行至少 2 次切换 × 3 行
+        assert switches >= 4  # 每行至少 2 次切换 × 3 行
         ratio = 1 / switches if switches else 1.0
         assert ratio < 0.1
 
@@ -357,9 +369,12 @@ class TestDualPatchQA:
         patcher = DualPatcher()
         # 译文 == 源文（未翻译直出）：锚点剥离后无丢失无重复
         qa = patcher.text_qa(
-            unit_count=1, font_switch_count=0, source_chars=6,
+            unit_count=1,
+            font_switch_count=0,
+            source_chars=6,
             translated_text="设 <formula_0> 为连续函数。",
-            source_text="设 <formula_0> 为连续函数。")
+            source_text="设 <formula_0> 为连续函数。",
+        )
         assert qa["retention_ok"] is True
         assert qa["loss_rate"] == 0.0
 
@@ -388,17 +403,23 @@ class TestDualPatchQA:
 class TestReconstructionPipeline:
     def test_full_pipeline_on_glyphs(self):
         glyphs = (
-            [mk_glyph(c, x, 100, 12) for x, c in
-             [(0, "L"), (12, "e"), (24, "t"), (36, " ")]]
-            + [mk_glyph("f", 48, 100, 14, "CMMI10"),
-               mk_glyph("(", 64, 100, 14, "CMMI10"),
-               mk_glyph("x", 76, 100, 14, "CMMI10"),
-               mk_glyph(")", 88, 100, 14, "CMMI10")]
-            + [mk_glyph("b", 104, 100, 12),
-               mk_glyph("e", 116, 100, 12),
-               mk_glyph("c", 128, 100, 12),
-               mk_glyph("o", 140, 100, 12),
-               mk_glyph("n", 152, 100, 12)]
+            [
+                mk_glyph(c, x, 100, 12)
+                for x, c in [(0, "L"), (12, "e"), (24, "t"), (36, " ")]
+            ]
+            + [
+                mk_glyph("f", 48, 100, 14, "CMMI10"),
+                mk_glyph("(", 64, 100, 14, "CMMI10"),
+                mk_glyph("x", 76, 100, 14, "CMMI10"),
+                mk_glyph(")", 88, 100, 14, "CMMI10"),
+            ]
+            + [
+                mk_glyph("b", 104, 100, 12),
+                mk_glyph("e", 116, 100, 12),
+                mk_glyph("c", 128, 100, 12),
+                mk_glyph("o", 140, 100, 12),
+                mk_glyph("n", 152, 100, 12),
+            ]
         )
         result = ReconstructionPipeline.run_on_glyphs(glyphs, page_id=3)
         assert result.glyph_count == len(glyphs)

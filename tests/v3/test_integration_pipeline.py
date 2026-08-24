@@ -20,9 +20,11 @@ logger = logging.getLogger(__name__)
 def sample_pdf_path():
     """Return path to a minimal valid PDF."""
     base = Path(__file__).resolve().parent.parent
-    candidates = [base / "samples" / "simple.pdf",
-                  base / "samples" / "paper.pdf",
-                  base / "fixtures" / "sample.pdf"]
+    candidates = [
+        base / "samples" / "simple.pdf",
+        base / "samples" / "paper.pdf",
+        base / "fixtures" / "sample.pdf",
+    ]
     for c in candidates:
         if c.exists():
             return str(c)
@@ -47,11 +49,16 @@ def sample_pdf_path():
 def sample_graph():
     """Create a simple DocumentGraph with one text node."""
     from pdf2zh.v3.graph import DocumentGraph, DocumentNode, NodeType
+
     g = DocumentGraph()
-    g.add_node(DocumentNode(
-        id="n1", text="Test paragraph.", node_type=NodeType.PARAGRAPH,
-        bbox=(0.0, 0.0, 100.0, 20.0),
-    ))
+    g.add_node(
+        DocumentNode(
+            id="n1",
+            text="Test paragraph.",
+            node_type=NodeType.PARAGRAPH,
+            bbox=(0.0, 0.0, 100.0, 20.0),
+        )
+    )
     return g
 
 
@@ -59,6 +66,7 @@ def sample_graph():
 def cleanup_flags():
     yield
     from pdf2zh.v3.feature_flags import reset_feature_flags
+
     reset_feature_flags()
 
 
@@ -70,6 +78,7 @@ class TestFeatureFlags:
 
     def test_default_all_disabled(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
+
         f = FeatureFlags()
         assert f.use_v4_engine is False
         assert f.use_v4_translator is False
@@ -79,6 +88,7 @@ class TestFeatureFlags:
 
     def test_master_switch_enables_all(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
+
         f = FeatureFlags(use_v4_engine=True)
         assert f.use_v4_translator is True
         assert f.use_v4_layout is True
@@ -86,12 +96,14 @@ class TestFeatureFlags:
 
     def test_individual_toggle(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
+
         f = FeatureFlags(use_v4_translator=True)
         assert f.use_v4_translator is True
         assert f.use_v4_layout is False
 
     def test_enable_disable_all(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
+
         f = FeatureFlags()
         f.enable_all()
         assert f.use_v4_engine is True
@@ -99,8 +111,13 @@ class TestFeatureFlags:
         assert f.use_v4_engine is False
 
     def test_singleton(self):
-        from pdf2zh.v3.feature_flags import (get_feature_flags,
-            set_feature_flags, reset_feature_flags, FeatureFlags)
+        from pdf2zh.v3.feature_flags import (
+            get_feature_flags,
+            set_feature_flags,
+            reset_feature_flags,
+            FeatureFlags,
+        )
+
         reset_feature_flags()
         f1 = get_feature_flags()
         f2 = get_feature_flags()
@@ -113,6 +130,7 @@ class TestFeatureFlags:
 
     def test_summary(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
+
         s = FeatureFlags(use_v4_engine=True).summary()
         assert "enabled" in s
 
@@ -126,23 +144,27 @@ class TestRuntimeFacadePipeline:
     def test_init_with_flags(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
         from pdf2zh.v3.runtime import RuntimeFacade
+
         f = FeatureFlags(use_v4_translator=True)
         rt = RuntimeFacade(config={}, feature_flags=f)
         assert rt.feature_flags.use_v4_translator is True
 
     def test_init_defaults(self):
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade()
         assert rt.feature_flags is not None
 
     def test_pipeline_runs(self, sample_pdf_path):
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade()
         result = rt.pipeline(sample_pdf_path, fmt="pdf")
         assert result is not None
 
     def test_pipeline_populates(self, sample_pdf_path):
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade()
         rt.pipeline(sample_pdf_path)
         assert rt.graph is not None
@@ -150,6 +172,7 @@ class TestRuntimeFacadePipeline:
 
     def test_load_method(self, sample_pdf_path):
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade()
         rt.load(sample_pdf_path)
         assert rt.source == sample_pdf_path
@@ -157,6 +180,7 @@ class TestRuntimeFacadePipeline:
 
     def test_analyze_plan_translate(self, sample_graph):
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade()
         rt.graph = sample_graph
         rt.analyze()
@@ -168,6 +192,7 @@ class TestRuntimeFacadePipeline:
 
     def test_render_produces_bytes(self, sample_pdf_path):
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade()
         rt.load(sample_pdf_path)
         rt.layout()
@@ -176,6 +201,7 @@ class TestRuntimeFacadePipeline:
 
     def test_summary(self, sample_pdf_path):
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade()
         rt.pipeline(sample_pdf_path)
         s = rt.summary()
@@ -190,23 +216,27 @@ class TestLegacyCompatAdapter:
 
     def test_adapter_init(self):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         a = LegacyCompatAdapter()
         assert a.stats["calls"] == 0
 
     def test_adapter_load(self, sample_pdf_path):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         a = LegacyCompatAdapter()
         g = a.load(sample_pdf_path)
         assert g is not None
 
     def test_adapter_translate(self, sample_graph):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         a = LegacyCompatAdapter()
         g = a.translate_graph(sample_graph)
         assert len([n for n in g.nodes if n.translated_text]) > 0
 
     def test_adapter_layout_render(self, sample_graph):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         a = LegacyCompatAdapter()
         g = a.translate_graph(sample_graph)
         r = a.layout_and_render(g, fmt="pdf")
@@ -214,12 +244,14 @@ class TestLegacyCompatAdapter:
 
     def test_adapter_pipeline(self, sample_pdf_path):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         a = LegacyCompatAdapter()
         r = a.run_pipeline(sample_pdf_path)
         assert isinstance(r, bytes) and len(r) > 0
 
     def test_adapter_output_file(self, sample_pdf_path):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as t:
             op = t.name
         try:
@@ -228,16 +260,19 @@ class TestLegacyCompatAdapter:
             a.layout_and_render(g, output_path=op)
             assert os.path.getsize(op) > 0
         finally:
-            if os.path.exists(op): os.unlink(op)
+            if os.path.exists(op):
+                os.unlink(op)
 
     def test_adapter_stats(self, sample_pdf_path):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         a = LegacyCompatAdapter()
         a.load(sample_pdf_path)
         assert a.stats["load"] == 1
 
     def test_adapter_facade_property(self, sample_pdf_path):
         from pdf2zh.v3.legacy_adapter import LegacyCompatAdapter
+
         a = LegacyCompatAdapter()
         assert a.facade is None
         try:
@@ -256,6 +291,7 @@ class TestTranslationWorkflow:
     def test_workflow_creates_results(self, sample_graph):
         from pdf2zh.v3.translation_runtime import TranslationWorkflow
         from pdf2zh.v3.planner import TranslationPlan
+
         wf = TranslationWorkflow(sample_graph)
         r = wf.execute(TranslationPlan(node_ids=["n1"]))
         assert len(r) > 0 and "n1" in r
@@ -263,6 +299,7 @@ class TestTranslationWorkflow:
     def test_workflow_apply_to_graph(self, sample_graph):
         from pdf2zh.v3.translation_runtime import TranslationWorkflow
         from pdf2zh.v3.planner import TranslationPlan
+
         wf = TranslationWorkflow(sample_graph)
         wf.execute(TranslationPlan(node_ids=["n1"]))
         wf.apply_to_graph()
@@ -272,6 +309,7 @@ class TestTranslationWorkflow:
     def test_workflow_review(self, sample_graph):
         from pdf2zh.v3.translation_runtime import TranslationWorkflow
         from pdf2zh.v3.planner import TranslationPlan
+
         wf = TranslationWorkflow(sample_graph)
         wf.execute(TranslationPlan(node_ids=["n1"]))
         issues = wf.review()
@@ -279,13 +317,14 @@ class TestTranslationWorkflow:
 
     def test_router(self, sample_graph):
         from pdf2zh.v3.translation_runtime import Router
+
         r = Router()
         route = r.route(list(sample_graph.nodes)[0])
         assert route.model != ""
 
     def test_chunk_scheduler(self, sample_graph):
-        from pdf2zh.v3.translation_runtime import (ChunkScheduler,
-            TranslationPlan)
+        from pdf2zh.v3.translation_runtime import ChunkScheduler, TranslationPlan
+
         s = ChunkScheduler(sample_graph)
         plan = TranslationPlan(node_ids=["n1"])
         ordered = s.schedule(plan)
@@ -293,28 +332,32 @@ class TestTranslationWorkflow:
 
     def test_retry_policy(self):
         from pdf2zh.v3.translation_runtime import RetryPolicy
+
         p = RetryPolicy()
         assert p.should_retry(0, "") is True
         assert p.should_retry(3, "timeout") is False
 
     def test_consistency_checker(self, sample_graph):
         from pdf2zh.v3.translation_runtime import ConsistencyChecker
+
         c = ConsistencyChecker()
-        score = c.check("n1", "Hello", "Bonjour",
-                        {"n1": MagicMock(source_text="Hello")})
+        score = c.check(
+            "n1", "Hello", "Bonjour", {"n1": MagicMock(source_text="Hello")}
+        )
         assert isinstance(score, float) and 0.0 <= score <= 1.0
 
     def test_translation_runtime_execute(self, sample_graph):
         from pdf2zh.v3.translation_runtime import TranslationRuntime
         from pdf2zh.v3.planner import TranslationPlan
+
         rt = TranslationRuntime()
-        results = rt.execute(sample_graph,
-                             TranslationPlan(node_ids=["n1"]))
+        results = rt.execute(sample_graph, TranslationPlan(node_ids=["n1"]))
         assert len(results) > 0
 
     def test_translation_runtime_stats(self, sample_graph):
         from pdf2zh.v3.translation_runtime import TranslationRuntime
         from pdf2zh.v3.planner import TranslationPlan
+
         rt = TranslationRuntime()
         rt.execute(sample_graph, TranslationPlan(node_ids=["n1"]))
         s = rt.stats()
@@ -323,8 +366,8 @@ class TestTranslationWorkflow:
 
     def test_translation_runtime_batch(self, sample_graph):
         from pdf2zh.v3.translation_runtime import TranslationRuntime
-        from pdf2zh.v3.planner import (TranslationPlanner,
-                                       PlannerConfig)
+        from pdf2zh.v3.planner import TranslationPlanner, PlannerConfig
+
         rt = TranslationRuntime()
         planner = TranslationPlanner(PlannerConfig())
         results = rt.batch_translate([sample_graph], planner)
@@ -333,6 +376,7 @@ class TestTranslationWorkflow:
     def test_apply_to_graph_with_transaction(self, sample_graph):
         from pdf2zh.v3.translation_runtime import TranslationWorkflow
         from pdf2zh.v3.planner import TranslationPlan
+
         wf = TranslationWorkflow(sample_graph)
         wf.execute(TranslationPlan(node_ids=["n1"]))
         wf.apply_to_graph(use_transaction=True)
@@ -349,6 +393,7 @@ class TestFeatureFlagIntegration:
     def test_v4_translator_flag(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade(
             feature_flags=FeatureFlags(use_v4_translator=True),
         )
@@ -357,6 +402,7 @@ class TestFeatureFlagIntegration:
     def test_v4_layout_flag(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade(
             feature_flags=FeatureFlags(use_v4_layout=True),
         )
@@ -365,6 +411,7 @@ class TestFeatureFlagIntegration:
     def test_visual_tree_builder_flag(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade(
             feature_flags=FeatureFlags(
                 use_v4_visual_tree_builder=True,
@@ -375,6 +422,7 @@ class TestFeatureFlagIntegration:
     def test_fix_validate_loop_flag(self):
         from pdf2zh.v3.feature_flags import FeatureFlags
         from pdf2zh.v3.runtime import RuntimeFacade
+
         rt = RuntimeFacade(
             feature_flags=FeatureFlags(
                 use_v4_fix_validate_loop=True,

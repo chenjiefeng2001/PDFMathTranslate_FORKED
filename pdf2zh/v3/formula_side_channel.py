@@ -94,8 +94,7 @@ def collect_formula_latex(model) -> FormulaLatexChannel:
     for page in getattr(model, "pages", []) or []:
         for i, block in enumerate(page.blocks):
             kind = block.kind
-            latex = block.metadata.get("latex") or block.metadata.get(
-                "formula_latex")
+            latex = block.metadata.get("latex") or block.metadata.get("formula_latex")
             if kind not in FORMULA_KINDS or not latex:
                 continue
             channel.register(
@@ -146,7 +145,9 @@ def latex_channel_from_magicpdf_json(path: str) -> FormulaLatexChannel:
 
 
 __all__ = [
-    "FormulaLatexChannel", "FORMULA_KINDS",
-    "collect_formula_latex", "apply_formula_latex",
+    "FormulaLatexChannel",
+    "FORMULA_KINDS",
+    "collect_formula_latex",
+    "apply_formula_latex",
     "latex_channel_from_magicpdf_json",
 ]

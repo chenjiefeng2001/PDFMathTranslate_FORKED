@@ -92,10 +92,13 @@ class CatalogChannel:
 class MultiChannelRewriter:
     """Route each chunk to a channel, collect results, merge into a plan."""
 
-    def __init__(self, text_channel: Optional[TextChannel] = None,
-                 formula_channel: Optional[FormulaChannel] = None,
-                 verbatim_channel: Optional[VerbatimChannel] = None,
-                 catalog_channel: Optional[CatalogChannel] = None) -> None:
+    def __init__(
+        self,
+        text_channel: Optional[TextChannel] = None,
+        formula_channel: Optional[FormulaChannel] = None,
+        verbatim_channel: Optional[VerbatimChannel] = None,
+        catalog_channel: Optional[CatalogChannel] = None,
+    ) -> None:
         self.text_channel = text_channel or TextChannel()
         self.formula_channel = formula_channel or FormulaChannel()
         self.verbatim_channel = verbatim_channel or VerbatimChannel()
@@ -104,27 +107,40 @@ class MultiChannelRewriter:
     # ── Channel routing ───────────────────────────────────────────
 
     @staticmethod
-    def route_for(semantic: Optional[SemanticRole],
-                  translation_role: Optional[TranslationRole],
-                  text: str) -> str:
+    def route_for(
+        semantic: Optional[SemanticRole],
+        translation_role: Optional[TranslationRole],
+        text: str,
+    ) -> str:
         """Pick the channel name for a chunk."""
         if translation_role == TranslationRole.KEEP_FORMULA or semantic in (
-            SemanticRole.FORMULA, SemanticRole.FORMULA_INLINE,
+            SemanticRole.FORMULA,
+            SemanticRole.FORMULA_INLINE,
         ):
             return "formula"
-        if translation_role in (TranslationRole.KEEP_NUMBER,
-                                TranslationRole.SKIP,
-                                TranslationRole.TRACK):
+        if translation_role in (
+            TranslationRole.KEEP_NUMBER,
+            TranslationRole.SKIP,
+            TranslationRole.TRACK,
+        ):
             return "verbatim"
-        if semantic in (SemanticRole.HEADING, SemanticRole.REFERENCE,
-                        SemanticRole.BIBLIOGRAPHY, SemanticRole.ABSTRACT):
+        if semantic in (
+            SemanticRole.HEADING,
+            SemanticRole.REFERENCE,
+            SemanticRole.BIBLIOGRAPHY,
+            SemanticRole.ABSTRACT,
+        ):
             return "catalog"
         return "text"
 
-    def translate_chunk(self, node_id: str, text: str,
-                        semantic: Optional[SemanticRole] = None,
-                        translation_role: Optional[TranslationRole] = None,
-                        is_formula: bool = False) -> ChannelResult:
+    def translate_chunk(
+        self,
+        node_id: str,
+        text: str,
+        semantic: Optional[SemanticRole] = None,
+        translation_role: Optional[TranslationRole] = None,
+        is_formula: bool = False,
+    ) -> ChannelResult:
         """Translate one chunk through its routed channel."""
         semantic = semantic or SemanticRole.BODY_TEXT
         translation_role = translation_role or TranslationRole.TRANSLATE
@@ -142,25 +158,31 @@ class MultiChannelRewriter:
             translated = self.text_channel.translate(text)
 
         return ChannelResult(
-            channel=channel, node_id=node_id, text=text,
-            translated=translated, confidence=1.0,
+            channel=channel,
+            node_id=node_id,
+            text=text,
+            translated=translated,
+            confidence=1.0,
         )
 
     def translate_batch(self, chunks: List[dict]) -> List[ChannelResult]:
         """Translate a list of chunk dicts (node_id/text/semantic/translation)."""
         results = []
         for chunk in chunks:
-            results.append(self.translate_chunk(
-                node_id=chunk.get("node_id", ""),
-                text=chunk.get("text", ""),
-                semantic=chunk.get("semantic"),
-                translation_role=chunk.get("translation_role"),
-                is_formula=chunk.get("is_formula", False),
-            ))
+            results.append(
+                self.translate_chunk(
+                    node_id=chunk.get("node_id", ""),
+                    text=chunk.get("text", ""),
+                    semantic=chunk.get("semantic"),
+                    translation_role=chunk.get("translation_role"),
+                    is_formula=chunk.get("is_formula", False),
+                )
+            )
         return results
 
-    def merge_into_dict(self, chunks: List[dict],
-                        results: List[ChannelResult]) -> Dict[str, str]:
+    def merge_into_dict(
+        self, chunks: List[dict], results: List[ChannelResult]
+    ) -> Dict[str, str]:
         """Produce {node_id: translated} from chunks and channel results."""
         merged: Dict[str, str] = {}
         for chunk, result in zip(chunks, results):
@@ -172,7 +194,10 @@ class MultiChannelRewriter:
 
 
 __all__ = [
-    "ChannelResult", "FormulaChannel", "VerbatimChannel",
-    "TextChannel", "CatalogChannel", "MultiChannelRewriter",
+    "ChannelResult",
+    "FormulaChannel",
+    "VerbatimChannel",
+    "TextChannel",
+    "CatalogChannel",
+    "MultiChannelRewriter",
 ]
-

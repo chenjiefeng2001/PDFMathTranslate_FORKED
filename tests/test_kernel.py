@@ -147,6 +147,7 @@ class TestLegacyKernelVersion(unittest.TestCase):
     def test_version(self):
         from pdf2zh import __version__
         from pdf2zh.kernel.legacy import LegacyKernel
+
         k = LegacyKernel()
         self.assertEqual(k.version, __version__)
 
@@ -661,8 +662,13 @@ class TestCLIKernelPipeline(unittest.TestCase):
     @patch("pdf2zh.doclayout.OnnxModel")
     @patch("pdf2zh.doclayout.ModelInstance")
     def test_cli_fast_mode_routes_through_kernel(
-        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch,
-        mock_isfile
+        self,
+        mock_model_inst,
+        mock_onnx,
+        mock_set_backend,
+        mock_get,
+        mock_switch,
+        mock_isfile,
     ):
         """Verify --mode fast goes through KernelRegistry."""
         mock_kernel = MagicMock()
@@ -684,8 +690,13 @@ class TestCLIKernelPipeline(unittest.TestCase):
     @patch("pdf2zh.doclayout.OnnxModel")
     @patch("pdf2zh.doclayout.ModelInstance")
     def test_cli_precise_mode_routes_through_kernel(
-        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch,
-        mock_isfile
+        self,
+        mock_model_inst,
+        mock_onnx,
+        mock_set_backend,
+        mock_get,
+        mock_switch,
+        mock_isfile,
     ):
         """Verify --mode precise goes through KernelRegistry."""
         mock_kernel = MagicMock()
@@ -707,8 +718,13 @@ class TestCLIKernelPipeline(unittest.TestCase):
     @patch("pdf2zh.doclayout.OnnxModel")
     @patch("pdf2zh.doclayout.ModelInstance")
     def test_cli_service_model_syntax_passed_through(
-        self, mock_model_inst, mock_onnx, mock_set_backend, mock_get, mock_switch,
-        mock_isfile
+        self,
+        mock_model_inst,
+        mock_onnx,
+        mock_set_backend,
+        mock_get,
+        mock_switch,
+        mock_isfile,
     ):
         """Verify 'openai:gpt-4' service syntax is passed to TranslateRequest."""
         mock_kernel = MagicMock()

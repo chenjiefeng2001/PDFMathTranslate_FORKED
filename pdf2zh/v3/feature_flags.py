@@ -115,10 +115,16 @@ class FeatureFlags:
 
     def summary(self) -> str:
         """Return a human-readable summary of enabled features."""
-        enabled = [k for k, v in self._as_dict().items()
-                   if isinstance(v, bool) and v and k != "use_v4_feature_flags"]
-        disabled = [k for k, v in self._as_dict().items()
-                    if isinstance(v, bool) and not v and k != "use_v4_feature_flags"]
+        enabled = [
+            k
+            for k, v in self._as_dict().items()
+            if isinstance(v, bool) and v and k != "use_v4_feature_flags"
+        ]
+        disabled = [
+            k
+            for k, v in self._as_dict().items()
+            if isinstance(v, bool) and not v and k != "use_v4_feature_flags"
+        ]
         return (
             f"FeatureFlags: {len(enabled)} enabled, {len(disabled)} disabled\n"
             f"  Enabled: {', '.join(sorted(enabled))}\n"
@@ -155,8 +161,9 @@ class FeatureFlags:
         self.use_v4_repair_scheduler = False
         self.use_v4_fix_validate_loop = False
 
-    def evaluate(self, *, page_num: int = 0, doc_type: str = "pdf",
-                 user_id: str = "anonymous") -> bool:
+    def evaluate(
+        self, *, page_num: int = 0, doc_type: str = "pdf", user_id: str = "anonymous"
+    ) -> bool:
         """Decide whether the V4 engine is active for this document.
 
         When a ``rollout_policy`` is configured it wins over the static
@@ -164,8 +171,8 @@ class FeatureFlags:
         """
         if self.rollout_policy is not None:
             return self.rollout_policy.enabled(
-                page_num=page_num, doc_type=doc_type, user_id=user_id,
-                flags=self)
+                page_num=page_num, doc_type=doc_type, user_id=user_id, flags=self
+            )
         return self.use_v4_engine
 
     def record_fallback(self, event: dict) -> None:
@@ -202,6 +209,7 @@ def reset_feature_flags() -> None:
 # V8.2 Rollout Rules Engine
 # ═══════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class RolloutDecision:
     """Outcome of evaluating a rollout policy."""
@@ -216,8 +224,9 @@ class RolloutRule:
 
     name: str = "base"
 
-    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
-                user_id: str = "anonymous") -> bool:
+    def matches(
+        self, *, page_num: int = 0, doc_type: str = "pdf", user_id: str = "anonymous"
+    ) -> bool:
         raise NotImplementedError
 
 
@@ -239,11 +248,13 @@ class PercentRolloutRule(RolloutRule):
     def _bucket(value: str) -> int:
         # stable cross-process hash (built-in hash() is salted per run)
         import hashlib
+
         digest = hashlib.md5(value.encode("utf-8")).hexdigest()
         return int(digest[:8], 16) % 100
 
-    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
-                user_id: str = "anonymous") -> bool:
+    def matches(
+        self, *, page_num: int = 0, doc_type: str = "pdf", user_id: str = "anonymous"
+    ) -> bool:
         if self.key == "page":
             h = self._bucket(f"page:{page_num}")
         else:
@@ -264,8 +275,9 @@ class PageRangeRolloutRule(RolloutRule):
         self.include_external = include_external
         self.name = f"pages_{sorted(self.pages)}"
 
-    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
-                user_id: str = "anonymous") -> bool:
+    def matches(
+        self, *, page_num: int = 0, doc_type: str = "pdf", user_id: str = "anonymous"
+    ) -> bool:
         if page_num in self.pages:
             return True
         if self.include_external and self.pages:
@@ -280,8 +292,9 @@ class DocTypeRolloutRule(RolloutRule):
         self.doc_types = set(doc_types)
         self.name = f"doc_types_{sorted(self.doc_types)}"
 
-    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
-                user_id: str = "anonymous") -> bool:
+    def matches(
+        self, *, page_num: int = 0, doc_type: str = "pdf", user_id: str = "anonymous"
+    ) -> bool:
         return doc_type in self.doc_types
 
 
@@ -292,8 +305,9 @@ class UserAllowlistRolloutRule(RolloutRule):
         self.users = set(users)
         self.name = f"users_{len(self.users)}"
 
-    def matches(self, *, page_num: int = 0, doc_type: str = "pdf",
-                user_id: str = "anonymous") -> bool:
+    def matches(
+        self, *, page_num: int = 0, doc_type: str = "pdf", user_id: str = "anonymous"
+    ) -> bool:
         return user_id in self.users
 
 
@@ -307,24 +321,35 @@ class RolloutPolicy:
         self.rules.append(rule)
         return self
 
-    def decide(self, *, page_num: int = 0, doc_type: str = "pdf",
-               user_id: str = "anonymous", flags: Optional[FeatureFlags] = None) -> RolloutDecision:
+    def decide(
+        self,
+        *,
+        page_num: int = 0,
+        doc_type: str = "pdf",
+        user_id: str = "anonymous",
+        flags: Optional[FeatureFlags] = None,
+    ) -> RolloutDecision:
         for rule in self.rules:
-            if rule.matches(page_num=page_num, doc_type=doc_type,
-                            user_id=user_id):
-                return RolloutDecision(enabled=True,
-                                       reason=f"matched rule {rule.name}",
-                                       rule=rule.name)
+            if rule.matches(page_num=page_num, doc_type=doc_type, user_id=user_id):
+                return RolloutDecision(
+                    enabled=True, reason=f"matched rule {rule.name}", rule=rule.name
+                )
         # No rule matched → conservative default: keep legacy unless the
         # static master switch is on.
         enabled = bool(flags) and flags.use_v4_engine
         return RolloutDecision(enabled=enabled, reason="no rule matched")
 
-    def enabled(self, *, page_num: int = 0, doc_type: str = "pdf",
-                user_id: str = "anonymous",
-                flags: Optional[FeatureFlags] = None) -> bool:
-        return self.decide(page_num=page_num, doc_type=doc_type,
-                           user_id=user_id, flags=flags).enabled
+    def enabled(
+        self,
+        *,
+        page_num: int = 0,
+        doc_type: str = "pdf",
+        user_id: str = "anonymous",
+        flags: Optional[FeatureFlags] = None,
+    ) -> bool:
+        return self.decide(
+            page_num=page_num, doc_type=doc_type, user_id=user_id, flags=flags
+        ).enabled
 
 
 class FallbackTelemetry:
@@ -335,7 +360,7 @@ class FallbackTelemetry:
     """
 
     def __init__(self, backend=None) -> None:
-        self.backend = backend   # optional callable(event) external sink
+        self.backend = backend  # optional callable(event) external sink
         self._events: list = []
 
     def record(self, event: dict) -> None:

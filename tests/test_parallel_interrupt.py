@@ -176,6 +176,7 @@ class TestInterruptFlag:
         interrupt_mod.mark_interrupted()
         t.join(2.0)
         assert result.get("seen") is True
+
     def test_cancel_only_task_running_never_exits(self):
         # GUI cancel_only + 任务运行中（_exit_armed False）：任何次数 Ctrl+C 都
         # 不抛 KeyboardInterrupt（应用不退出），只取消任务 —— 防止 Windows 终端
@@ -290,7 +291,9 @@ class TestInterruptFlag:
         try:
             interrupt_mod.reset_interrupt_flag()
             interrupt_mod._cancel_only_mode = True
-            monkeypatch.setattr(interrupt_mod, "_interpreter_is_finalizing", lambda: True)
+            monkeypatch.setattr(
+                interrupt_mod, "_interpreter_is_finalizing", lambda: True
+            )
             interrupt_mod._on_sigint(signal.SIGINT, None)
             assert interrupt_mod.is_interrupted() is True
         finally:
@@ -381,22 +384,24 @@ class TestInterruptFlag:
             monkeypatch.setattr(svc, "_emit_event", lambda *a, **k: None)
             monkeypatch.setattr(svc, "_sync_feature_flags", lambda *a, **k: None)
             monkeypatch.setattr(
-                rs, "resolve_mode_config",
+                rs,
+                "resolve_mode_config",
                 lambda mode, config: _types.SimpleNamespace(use_v4_engine=False),
             )
             monkeypatch.setattr(svc, "_execute_legacy", lambda *a, **k: None)
-            svc._execute_task("t_terminal", _types.SimpleNamespace(
-                extra_config={"mode_choice": "auto"},
-                resolved_files=lambda: [1],
-            ))
+            svc._execute_task(
+                "t_terminal",
+                _types.SimpleNamespace(
+                    extra_config={"mode_choice": "auto"},
+                    resolved_files=lambda: [1],
+                ),
+            )
             assert im._first_ctrl_c_handled is True
             with pytest.raises(KeyboardInterrupt):
                 im._on_sigint(signal.SIGINT, None)  # 空闲态一次即关闭
         finally:
             im._cancel_only_mode = old_mode
             im.reset_interrupt_flag()
-
-
 
 
 # ── worker SIGINT 免疫 ──────────────────────────────────────────────────
@@ -450,7 +455,9 @@ class TestCoordinatorInterruptShortCircuit:
         coord = TaskCoordinator(max_workers=2)
         t0 = time.monotonic()
         with pytest.raises(KeyboardInterrupt):
-            coord.run(_tasks(4), executor_factory=_thread_executor_factory, task_fn=slow_fn)
+            coord.run(
+                _tasks(4), executor_factory=_thread_executor_factory, task_fn=slow_fn
+            )
         elapsed = time.monotonic() - t0
         assert elapsed < 2.0  # 0.2s 置位 + 0.5s 轮询 → 远早于 3s 的 chunk 完成
 
@@ -459,13 +466,17 @@ class TestCoordinatorInterruptShortCircuit:
         interrupt_mod.mark_interrupted()
         coord = TaskCoordinator(max_workers=2)
         with pytest.raises(KeyboardInterrupt):
-            coord.run(_tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a))
+            coord.run(
+                _tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a)
+            )
 
     def test_pool_broken_without_interrupt_keeps_bootstrap_semantics(self):
         """未中断时池崩语义不变：仍抛 WorkerBootstrapError（整体串行兜底入口）。"""
         coord = TaskCoordinator(max_workers=2)
         with pytest.raises(WorkerBootstrapError):
-            coord.run(_tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a))
+            coord.run(
+                _tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a)
+            )
 
     def test_normal_run_unaffected_by_flag_module(self):
         """旗标默认 False：正常任务完整跑完，不进任何短路分支。"""
@@ -480,7 +491,6 @@ class TestCoordinatorInterruptShortCircuit:
         assert serial == []
         assert sorted(obj) == [0, 1, 2, 3]
         assert not obs
-
 
 
 # ── 中断即终止 worker（V3-5：Ctrl+C 后不再跑完 chunk 才退出）──────────────────
@@ -527,7 +537,9 @@ class TestForceTerminateWorkers:
         interrupt_mod.mark_interrupted()
         coord = TaskCoordinator(max_workers=2)
         with pytest.raises(KeyboardInterrupt):
-            coord.run(_tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a))
+            coord.run(
+                _tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a)
+            )
         assert len(calls) == 1
 
     def test_direct_keyboard_interrupt_also_terminates(self, monkeypatch):
@@ -544,7 +556,9 @@ class TestForceTerminateWorkers:
         )
         coord = TaskCoordinator(max_workers=2)
         with pytest.raises(KeyboardInterrupt):
-            coord.run(_tasks(3), executor_factory=_thread_executor_factory, task_fn=boom_fn)
+            coord.run(
+                _tasks(3), executor_factory=_thread_executor_factory, task_fn=boom_fn
+            )
         assert len(calls) == 1
 
     def test_normal_completion_does_not_terminate(self, monkeypatch):
@@ -574,6 +588,7 @@ class TestForceTerminateWorkers:
         )
         coord = TaskCoordinator(max_workers=2)
         with pytest.raises(WorkerBootstrapError):
-            coord.run(_tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a))
+            coord.run(
+                _tasks(3), executor_factory=lambda w, i, a: BrokenPoolExecutor(w, i, a)
+            )
         assert calls == []
-

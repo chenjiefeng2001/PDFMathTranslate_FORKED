@@ -35,7 +35,9 @@ CONFIGS = {
 }
 
 
-def run_one(handle_base: str, pdf: Path, name: str, fields: dict[str, str]) -> dict[str, Any]:
+def run_one(
+    handle_base: str, pdf: Path, name: str, fields: dict[str, str]
+) -> dict[str, Any]:
     body, ctype = multipart_body(
         pdf,
         {
@@ -48,8 +50,11 @@ def run_one(handle_base: str, pdf: Path, name: str, fields: dict[str, str]) -> d
     )
     submit_started = time.perf_counter()
     status, resp, _ = http_json(
-        "POST", handle_base + "/api/tasks",
-        body=body, headers={"Content-Type": ctype}, timeout=60.0,
+        "POST",
+        handle_base + "/api/tasks",
+        body=body,
+        headers={"Content-Type": ctype},
+        timeout=60.0,
     )
     submit_ms = (time.perf_counter() - submit_started) * 1000
     if status != 200:
@@ -137,13 +142,19 @@ def main() -> int:
             rows.append((r["config"], r["error"], "-", "-", "-"))
             continue
         stage_summary = " ".join(f"{k}:{v}s" for k, v in r["stage_s"].items())
-        rows.append((
-            r["config"],
-            f"{r['wall_s']}s",
-            f"{r['submit_ms']}ms",
-            f"{r['peak_rss_mb']:.0f}MB" if isinstance(r["peak_rss_mb"], (int, float)) else "-",
-            stage_summary,
-        ))
+        rows.append(
+            (
+                r["config"],
+                f"{r['wall_s']}s",
+                f"{r['submit_ms']}ms",
+                (
+                    f"{r['peak_rss_mb']:.0f}MB"
+                    if isinstance(r["peak_rss_mb"], (int, float))
+                    else "-"
+                ),
+                stage_summary,
+            )
+        )
     print_table(
         f"translate pipeline ({args.pages}p, engine=google, ignore_cache)",
         rows,

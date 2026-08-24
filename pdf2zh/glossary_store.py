@@ -15,6 +15,7 @@
     python -m pdf2zh.glossary_store export NAME [DEST]
     python -m pdf2zh.glossary_store list
 """
+
 from __future__ import annotations
 
 import csv
@@ -104,8 +105,9 @@ def _normalize_tgt_lng(lang: str) -> str:
     return str(lang or "").strip().lower().replace("-", "_")
 
 
-def filter_entries_for(entries: List[Dict[str, str]], lang_out: str
-                       ) -> List[Dict[str, str]]:
+def filter_entries_for(
+    entries: List[Dict[str, str]], lang_out: str
+) -> List[Dict[str, str]]:
     """按目标语过滤词条（与上游 from_csv 语义一致；空 tgt_lng 全语种生效）。"""
     want = _normalize_tgt_lng(lang_out)
     out = []
@@ -127,8 +129,9 @@ def safe_name(name: str) -> str:
 # ── 库操作 ────────────────────────────────────────────────────────────────────
 
 
-def import_to_store(src: Any, name: Optional[str] = None,
-                    overwrite: bool = True) -> Path:
+def import_to_store(
+    src: Any, name: Optional[str] = None, overwrite: bool = True
+) -> Path:
     """校验并拷贝词表进库。返回库内路径。"""
     entries = parse_csv(src)  # 先校验再落库
     del entries
@@ -140,8 +143,7 @@ def import_to_store(src: Any, name: Optional[str] = None,
     return dest
 
 
-def export_from_store(name: str, dest: Any,
-                      bom: bool = True) -> Path:
+def export_from_store(name: str, dest: Any, bom: bool = True) -> Path:
     """从库导出词表到 ``dest``（默认 UTF-8 BOM，Excel 直开不乱码）。"""
     src = store_dir() / f"{safe_name(name)}.csv"
     if not src.is_file():
@@ -149,12 +151,19 @@ def export_from_store(name: str, dest: Any,
     entries = parse_csv(src)
     buf = io.StringIO(newline="")
     writer = csv.DictWriter(
-        buf, fieldnames=["source", "target", "tgt_lng"], doublequote=True,
+        buf,
+        fieldnames=["source", "target", "tgt_lng"],
+        doublequote=True,
     )
     writer.writeheader()
     for e in entries:
-        writer.writerow({"source": e["source"], "target": e["target"],
-                         "tgt_lng": e.get("tgt_lng") or ""})
+        writer.writerow(
+            {
+                "source": e["source"],
+                "target": e["target"],
+                "tgt_lng": e.get("tgt_lng") or "",
+            }
+        )
     dest = Path(dest)
     if dest.parent and str(dest.parent):
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -170,7 +179,9 @@ def list_store() -> List[Dict[str, Any]]:
     out = []
     for p in sorted(store_dir().glob("*.csv")):
         item: Dict[str, Any] = {
-            "name": p.stem, "path": str(p), "entries": None,
+            "name": p.stem,
+            "path": str(p),
+            "entries": None,
         }
         try:
             item["entries"] = len(parse_csv(p))
@@ -212,10 +223,7 @@ def load_babeldoc_glossaries(paths: Optional[List[str]], lang_out: str) -> list:
             "BabelDOC 词表引擎不可用（babeldoc 未安装？）：glossary 仅在 "
             "babeldoc 解析链路生效"
         ) from exc
-    return [
-        Glossary.from_csv(Path(p), target_lang_out=lang_out)
-        for p in paths
-    ]
+    return [Glossary.from_csv(Path(p), target_lang_out=lang_out) for p in paths]
 
 
 # ── CLI 管理入口 ──────────────────────────────────────────────────────────────
@@ -243,7 +251,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         results = []
         for p in args.paths:
             dest = import_to_store(
-                p, name=args.name if len(args.paths) == 1 else None,
+                p,
+                name=args.name if len(args.paths) == 1 else None,
             )
             results.append(str(dest))
         print(json.dumps(results, ensure_ascii=False))

@@ -28,10 +28,7 @@ class TestOverflowPolicy(unittest.TestCase):
     def test_compress_line_spacing(self):
         """Overflow should trigger line spacing compression."""
         block = TextBlock(
-            lines=[
-                TextLine(f"Line {i}", 0, 0, 50, 12, 12.0)
-                for i in range(5)
-            ],
+            lines=[TextLine(f"Line {i}", 0, 0, 50, 12, 12.0) for i in range(5)],
             style=ParagraphStyle(font_size=12.0, line_spacing=2.0),
         )
         total = sum(l.height for l in block.lines)
@@ -62,34 +59,35 @@ class TestOverflowPolicy(unittest.TestCase):
     def test_reduce_font(self):
         """Large overflow should trigger font size reduction."""
         block = TextBlock(
-            lines=[
-                TextLine(f"Long line {i}", 0, 0, 200, 12, 12.0)
-                for i in range(50)
-            ],
+            lines=[TextLine(f"Long line {i}", 0, 0, 200, 12, 12.0) for i in range(50)],
             style=self.style,
         )
         result = self.policy.resolve(block, 20.0)
         self.assertIn(
             result.action,
-            [OverflowAction.REDUCE_FONT, OverflowAction.COMPRESS_LINE_SPACING,
-             OverflowAction.PUSH_DOWN, OverflowAction.EXPAND_BBOX],
+            [
+                OverflowAction.REDUCE_FONT,
+                OverflowAction.COMPRESS_LINE_SPACING,
+                OverflowAction.PUSH_DOWN,
+                OverflowAction.EXPAND_BBOX,
+            ],
         )
 
     def test_expand_bbox_as_fallback(self):
         """When all strategies fail, expand bbox."""
         block = TextBlock(
-            lines=[
-                TextLine("X", 0, 0, 200, 12, 12.0)
-                for i in range(100)
-            ],
+            lines=[TextLine("X", 0, 0, 200, 12, 12.0) for i in range(100)],
             style=ParagraphStyle(font_size=12.0, line_spacing=1.0),
         )
         result = self.policy.resolve(block, 5.0)
         self.assertIsNotNone(result)
-        self.assertIn(result.action, [
-            OverflowAction.EXPAND_BBOX,
-            OverflowAction.REDUCE_FONT,
-        ])
+        self.assertIn(
+            result.action,
+            [
+                OverflowAction.EXPAND_BBOX,
+                OverflowAction.REDUCE_FONT,
+            ],
+        )
 
     def test_min_font_scale_enforced(self):
         """Font should not shrink below 4pt."""

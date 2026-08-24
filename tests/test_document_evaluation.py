@@ -3,6 +3,7 @@
 用 pymupdf 合成 PDF 验证：四组指标（几何/结构/翻译/渲染）可计算、
 碰撞可检出、CLI 可运行、评测报告可序列化。
 """
+
 import json
 import os
 import tempfile
@@ -10,7 +11,9 @@ import tempfile
 import pytest
 
 from pdf2zh.evaluate import (
-    build_profile, evaluate_translation, main,
+    build_profile,
+    evaluate_translation,
+    main,
 )
 
 
@@ -22,9 +25,10 @@ def pdfs_dir():
 
 def _make_pdf(path, lines, page_size=(612, 792)):
     import fitz
+
     doc = fitz.open()
     page = doc.new_page(width=page_size[0], height=page_size[1])
-    for (text, x, y, size) in lines:
+    for text, x, y, size in lines:
         page.insert_text((x, y), text, fontsize=size)
     doc.save(path)
     doc.close()
@@ -33,17 +37,20 @@ def _make_pdf(path, lines, page_size=(612, 792)):
 @pytest.fixture(scope="module")
 def clean_pdf(pdfs_dir):
     path = os.path.join(pdfs_dir, "clean.pdf")
-    _make_pdf(path, [
-        ("Chapter 3: Results", 72, 720, 18),
-        ("Left column first paragraph line one.", 72, 690, 10),
-        ("Left column second paragraph line two.", 72, 675, 10),
-        ("Right column paragraph begins here.", 330, 690, 10),
-        ("Right column continued second line.", 330, 675, 10),
-        ("Figure 1: Overview of the system.", 72, 630, 10),
-        ("1. Introduction .......... 3", 72, 200, 10),
-        ("2. Methods .............. 12", 72, 185, 10),
-        ("42", 280, 30, 10),
-    ])
+    _make_pdf(
+        path,
+        [
+            ("Chapter 3: Results", 72, 720, 18),
+            ("Left column first paragraph line one.", 72, 690, 10),
+            ("Left column second paragraph line two.", 72, 675, 10),
+            ("Right column paragraph begins here.", 330, 690, 10),
+            ("Right column continued second line.", 330, 675, 10),
+            ("Figure 1: Overview of the system.", 72, 630, 10),
+            ("1. Introduction .......... 3", 72, 200, 10),
+            ("2. Methods .............. 12", 72, 185, 10),
+            ("42", 280, 30, 10),
+        ],
+    )
     return path
 
 
@@ -51,14 +58,17 @@ def clean_pdf(pdfs_dir):
 def overlapping_pdf(pdfs_dir):
     path = os.path.join(pdfs_dir, "overlap.pdf")
     # 同一位置两次插入 → 必然重叠
-    _make_pdf(path, [
-        ("Chapter 3: Results", 72, 720, 18),
-        ("Overlapping paragraph one.", 72, 690, 10),
-        ("Overlapping paragraph one.", 72, 690, 10),
-        ("Overlapping paragraph two.", 72, 675, 10),
-        ("Overlapping paragraph two.", 72, 675, 10),
-        ("42", 280, 30, 10),
-    ])
+    _make_pdf(
+        path,
+        [
+            ("Chapter 3: Results", 72, 720, 18),
+            ("Overlapping paragraph one.", 72, 690, 10),
+            ("Overlapping paragraph one.", 72, 690, 10),
+            ("Overlapping paragraph two.", 72, 675, 10),
+            ("Overlapping paragraph two.", 72, 675, 10),
+            ("42", 280, 30, 10),
+        ],
+    )
     return path
 
 
@@ -66,15 +76,19 @@ def overlapping_pdf(pdfs_dir):
 def chinese_pdf(pdfs_dir):
     path = os.path.join(pdfs_dir, "chinese.pdf")
     import fitz
+
     doc = fitz.open()
     page = doc.new_page(width=612, height=792)
     page.insert_font(fontname="china-s")
-    page.insert_text((72, 700), "第三章：实验结果与分析",
-                     fontname="china-s", fontsize=14)
-    page.insert_text((72, 670), "本节介绍实验设置与主要结论。",
-                     fontname="china-s", fontsize=10)
-    page.insert_text((72, 650), "模型在多个基准上取得了显著提升。",
-                     fontname="china-s", fontsize=10)
+    page.insert_text(
+        (72, 700), "第三章：实验结果与分析", fontname="china-s", fontsize=14
+    )
+    page.insert_text(
+        (72, 670), "本节介绍实验设置与主要结论。", fontname="china-s", fontsize=10
+    )
+    page.insert_text(
+        (72, 650), "模型在多个基准上取得了显著提升。", fontname="china-s", fontsize=10
+    )
     doc.save(path)
     doc.close()
     return path

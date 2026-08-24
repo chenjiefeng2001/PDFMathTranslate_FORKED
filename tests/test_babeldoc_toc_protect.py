@@ -117,18 +117,21 @@ class TestMergedTocLine:
     def test_single_entry_line_not_merged(self):
         chars = _mk_chars("1 G. Müller .......... 27")
         track = btp._build_offset_track(chars)
-        assert btp._split_merged_toc_line(
-            "1 G. Müller .......... 27", track, 600.0
-        ) == []
+        assert (
+            btp._split_merged_toc_line("1 G. Müller .......... 27", track, 600.0) == []
+        )
 
     def test_prose_line_not_merged(self):
         chars = _mk_chars("This is a normal sentence with 12 words and 3 numbers.")
         track = btp._build_offset_track(chars)
-        assert btp._split_merged_toc_line(
-            "This is a normal sentence with 12 words and 3 numbers.",
-            track,
-            600.0,
-        ) == []
+        assert (
+            btp._split_merged_toc_line(
+                "This is a normal sentence with 12 words and 3 numbers.",
+                track,
+                600.0,
+            )
+            == []
+        )
 
     def test_try_protect_merged_line_splits_every_entry(self):
         comp = _mk_comp(self.MERGED)
@@ -146,17 +149,13 @@ class TestMergedTocLine:
         # 每条标题不再含点线/页码残留；公式以点线开头
         joined = ""
         for blk in blocks:
-            title = "".join(
-                c.char_unicode or "" for c in blk[0].pdf_line.pdf_character
-            )
+            title = "".join(c.char_unicode or "" for c in blk[0].pdf_line.pdf_character)
             formula = "".join(
                 c.char_unicode or "" for c in blk[1].pdf_formula.pdf_character
             )
             joined += " " + title
             assert formula.lstrip().startswith(".")
-            assert all(
-                c.formula_layout_id for c in blk[1].pdf_formula.pdf_character
-            )
+            assert all(c.formula_layout_id for c in blk[1].pdf_formula.pdf_character)
         assert "388" not in joined and "389" not in joined and "390" not in joined
 
     def test_merged_line_page_level_split(self):
@@ -318,17 +317,22 @@ class TestTryProtectLine:
         assert comps[0].pdf_line is not None
         assert comps[1].pdf_formula is not None
         # 标题行仅保留标题字符
-        assert "".join(
-            c.char_unicode or "" for c in comps[0].pdf_line.pdf_character
-        ) == "1 G. Müller "
+        assert (
+            "".join(c.char_unicode or "" for c in comps[0].pdf_line.pdf_character)
+            == "1 G. Müller "
+        )
         # 公式含点线+页码
         assert "".join(
             c.char_unicode or "" for c in comps[1].pdf_formula.pdf_character
         ).startswith("..")
         # 普通段落保持原文
-        assert "".join(
-            c.char_unicode or "" for c in plain_para.pdf_paragraph_composition[0].pdf_line.pdf_character
-        ) == "This is a normal sentence."
+        assert (
+            "".join(
+                c.char_unicode or ""
+                for c in plain_para.pdf_paragraph_composition[0].pdf_line.pdf_character
+            )
+            == "This is a normal sentence."
+        )
         # 独立段落 box 已重算（非零）
         assert toc_para.box.x < toc_para.box.x2
 
@@ -397,4 +401,3 @@ class TestPatchLifecycle:
         finally:
             ParagraphFinder.process_page = original
             btp.reset_babeldoc_toc_protect()
-

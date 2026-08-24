@@ -20,6 +20,7 @@ Library::
     syn_manifest = build_synthetic_corpus("baseline_syn/", count=100)
     diffs = diff_corpora("baseline/", "baseline_new/")
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,22 +35,37 @@ from pdf2zh.v3.ir_convergence import converged_snapshot
 from pdf2zh.v3.migration_diff import snapshot_ir
 from pdf2zh.v3.structure import StructureClassifier, to_document_ir
 
-_IR_BUCKET_KEYS = ("paragraphs", "captions", "tables", "headings",
-                   "formulas", "references", "others")
+_IR_BUCKET_KEYS = (
+    "paragraphs",
+    "captions",
+    "tables",
+    "headings",
+    "formulas",
+    "references",
+    "others",
+)
 
 
-def _snapshot_for_pdf(path: str, max_pages: Optional[int],
-                      target_lang: str) -> Dict[str, Any]:
+def _snapshot_for_pdf(
+    path: str, max_pages: Optional[int], target_lang: str
+) -> Dict[str, Any]:
     """单个真实 PDF → IR 快照（确定性、无参考依赖）。"""
     prof = build_profile(path, target_lang=target_lang, max_pages=max_pages)
-    ir = to_document_ir(prof.pages, classifier=StructureClassifier(),
-                        title=os.path.basename(path), target_lang=target_lang)
+    ir = to_document_ir(
+        prof.pages,
+        classifier=StructureClassifier(),
+        title=os.path.basename(path),
+        target_lang=target_lang,
+    )
     return snapshot_ir(ir, title=os.path.basename(path))
 
 
-def build_corpus_baseline(pdf_dir: str, out_dir: str,
-                          max_pages: Optional[int] = None,
-                          target_lang: str = "zh-CN") -> List[Dict[str, Any]]:
+def build_corpus_baseline(
+    pdf_dir: str,
+    out_dir: str,
+    max_pages: Optional[int] = None,
+    target_lang: str = "zh-CN",
+) -> List[Dict[str, Any]]:
     """对 ``pdf_dir`` 下所有 *.pdf 生成 IR 快照基线，写入 ``out_dir``。
 
     返回 manifest（每文档：stem / 页数 / 字符数 / 节点数 / 快照文件路径）。
@@ -62,40 +78,50 @@ def build_corpus_baseline(pdf_dir: str, out_dir: str,
     for path in pdfs:
         stem = os.path.splitext(os.path.basename(path))[0]
         try:
-            prof = build_profile(path, target_lang=target_lang,
-                                 max_pages=max_pages)
+            prof = build_profile(path, target_lang=target_lang, max_pages=max_pages)
             snapshot = snapshot_ir(
-                to_document_ir(prof.pages, classifier=StructureClassifier(),
-                               title=os.path.basename(path),
-                               target_lang=target_lang),
+                to_document_ir(
+                    prof.pages,
+                    classifier=StructureClassifier(),
+                    title=os.path.basename(path),
+                    target_lang=target_lang,
+                ),
                 title=os.path.basename(path),
             )
             out_path = os.path.join(out_dir, f"{stem}.ir.json")
             with open(out_path, "w", encoding="utf-8") as f:
                 json.dump(snapshot, f, ensure_ascii=False, indent=2)
-            manifest.append({
-                "file": os.path.basename(path),
-                "stem": stem,
-                "pages": prof.page_count,
-                "chars": prof.char_count,
-                "node_count": snapshot.get("node_count", 0),
-                "snapshot": out_path,
-            })
+            manifest.append(
+                {
+                    "file": os.path.basename(path),
+                    "stem": stem,
+                    "pages": prof.page_count,
+                    "chars": prof.char_count,
+                    "node_count": snapshot.get("node_count", 0),
+                    "snapshot": out_path,
+                }
+            )
         except Exception as e:  # noqa: BLE001 — 单文档失败不中断语料构建
-            manifest.append({
-                "file": os.path.basename(path),
-                "stem": stem,
-                "error": str(e)[:200],
-            })
+            manifest.append(
+                {
+                    "file": os.path.basename(path),
+                    "stem": stem,
+                    "error": str(e)[:200],
+                }
+            )
     manifest_path = os.path.join(out_dir, "manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
     return manifest
 
 
-def build_synthetic_corpus(out_dir: str, count: int = 100, seed: int = 42,
-                           title_prefix: str = "synthetic",
-                           converged: bool = False) -> List[Dict[str, Any]]:
+def build_synthetic_corpus(
+    out_dir: str,
+    count: int = 100,
+    seed: int = 42,
+    title_prefix: str = "synthetic",
+    converged: bool = False,
+) -> List[Dict[str, Any]]:
     """合成语料 IR 基线（V8.7 P2 扩展）：确定性、无需真实 PDF。
 
     ``converged=True`` 时经 V9.0 唯一视图出口（IRBuilder.from_graph）产出
@@ -103,6 +129,7 @@ def build_synthetic_corpus(out_dir: str, count: int = 100, seed: int = 42,
     """
     os.makedirs(out_dir, exist_ok=True)
     from pdf2zh.v3.migration_diff import SyntheticCorpus
+
     corpus = SyntheticCorpus(count=count, seed=seed)
     manifest: List[Dict[str, Any]] = []
     for i in range(count):
@@ -114,15 +141,17 @@ def build_synthetic_corpus(out_dir: str, count: int = 100, seed: int = 42,
         out_path = os.path.join(out_dir, f"{title}.ir.json")
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(snapshot, f, ensure_ascii=False, indent=2)
-        manifest.append({
-            "file": f"{title}.ir.json",
-            "stem": title,
-            "pages": 1,
-            "chars": 0,
-            "node_count": snapshot.get("node_count", 0),
-            "snapshot": out_path,
-            "source": "synthetic",
-        })
+        manifest.append(
+            {
+                "file": f"{title}.ir.json",
+                "stem": title,
+                "pages": 1,
+                "chars": 0,
+                "node_count": snapshot.get("node_count", 0),
+                "snapshot": out_path,
+                "source": "synthetic",
+            }
+        )
     manifest_path = os.path.join(out_dir, "manifest.json")
     with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
@@ -153,8 +182,12 @@ def diff_corpora(baseline_a: str, baseline_b: str) -> List[Dict[str, Any]]:
     计数全相等视为一致）。仅存在于一侧的文档标记 missing_a/missing_b。
     """
     diffs: List[Dict[str, Any]] = []
-    files_a = {os.path.basename(p) for p in glob.glob(os.path.join(baseline_a, "*.ir.json"))}
-    files_b = {os.path.basename(p) for p in glob.glob(os.path.join(baseline_b, "*.ir.json"))}
+    files_a = {
+        os.path.basename(p) for p in glob.glob(os.path.join(baseline_a, "*.ir.json"))
+    }
+    files_b = {
+        os.path.basename(p) for p in glob.glob(os.path.join(baseline_b, "*.ir.json"))
+    }
     for name in sorted(files_a | files_b):
         path_a = os.path.join(baseline_a, name)
         path_b = os.path.join(baseline_b, name)
@@ -168,13 +201,14 @@ def diff_corpora(baseline_a: str, baseline_b: str) -> List[Dict[str, Any]]:
             continue
         ca = _bucket_counts(snap_a)
         cb = _bucket_counts(snap_b)
-        changed = {k: {"a": ca[k], "b": cb[k]}
-                   for k in sorted(ca) if ca[k] != cb[k]}
-        diffs.append({
-            "stem": name,
-            "consistent": not changed,
-            "changed_buckets": changed,
-        })
+        changed = {k: {"a": ca[k], "b": cb[k]} for k in sorted(ca) if ca[k] != cb[k]}
+        diffs.append(
+            {
+                "stem": name,
+                "consistent": not changed,
+                "changed_buckets": changed,
+            }
+        )
     return diffs
 
 
@@ -189,13 +223,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_build.add_argument("out_dir")
     p_build.add_argument("--max-pages", type=int, default=None)
     p_build.add_argument("--target-lang", default="zh-CN")
-    p_syn = sub.add_parser("synthetic", help="build deterministic synthetic IR baseline")
+    p_syn = sub.add_parser(
+        "synthetic", help="build deterministic synthetic IR baseline"
+    )
     p_syn.add_argument("out_dir")
     p_syn.add_argument("--count", type=int, default=100)
     p_syn.add_argument("--seed", type=int, default=42)
     p_syn.add_argument("--prefix", default="synthetic")
-    p_syn.add_argument("--converged", action="store_true",
-                       help="经 V9.0 唯一视图出口（IRBuilder.from_graph）产出")
+    p_syn.add_argument(
+        "--converged",
+        action="store_true",
+        help="经 V9.0 唯一视图出口（IRBuilder.from_graph）产出",
+    )
     p_diff = sub.add_parser("diff", help="compare two IR baselines")
     p_diff.add_argument("baseline_a")
     p_diff.add_argument("baseline_b")
@@ -203,8 +242,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.command == "build":
         manifest = build_corpus_baseline(
-            args.pdf_dir, args.out_dir,
-            max_pages=args.max_pages, target_lang=args.target_lang,
+            args.pdf_dir,
+            args.out_dir,
+            max_pages=args.max_pages,
+            target_lang=args.target_lang,
         )
         ok = [m for m in manifest if "error" not in m]
         failed = [m for m in manifest if "error" in m]
@@ -214,18 +255,26 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
     if args.command == "synthetic":
         manifest = build_synthetic_corpus(
-            args.out_dir, count=args.count, seed=args.seed,
-            title_prefix=args.prefix, converged=args.converged,
+            args.out_dir,
+            count=args.count,
+            seed=args.seed,
+            title_prefix=args.prefix,
+            converged=args.converged,
         )
         ok = [m for m in manifest if "error" not in m]
         print(f"built {len(ok)} synthetic snapshots into {args.out_dir}")
         return 0
     diffs = diff_corpora(args.baseline_a, args.baseline_b)
-    inconsistent = [d for d in diffs if not d.get("consistent", False)
-                    or "missing_a" in d or "missing_b" in d]
-    print(f"diffed {len(diffs)} documents: "
-          f"{len(diffs) - len(inconsistent)} consistent, "
-          f"{len(inconsistent)} changed")
+    inconsistent = [
+        d
+        for d in diffs
+        if not d.get("consistent", False) or "missing_a" in d or "missing_b" in d
+    ]
+    print(
+        f"diffed {len(diffs)} documents: "
+        f"{len(diffs) - len(inconsistent)} consistent, "
+        f"{len(inconsistent)} changed"
+    )
     for d in inconsistent:
         print(json.dumps(d, ensure_ascii=False))
     return 0 if not inconsistent else 1

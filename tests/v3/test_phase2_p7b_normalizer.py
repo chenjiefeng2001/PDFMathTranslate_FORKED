@@ -1,21 +1,30 @@
 # -*- coding: utf-8 -*-
 """Normalizer module tests."""
+
 import os, sys, unittest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 try:
     from pdf2zh.v3.normalizer import Normalizer, NormalizerConfig, NormalizedBlock
     from pdf2zh.v3.parser import RawBlock, RawBlockType, RawSpan
     from pdf2zh.font_resolver import FontStyle
+
     _HAS = True
 except ImportError as e:
     _HAS = False
     print(f"Normalizer import error: {e}")
 
+
 def NB(**kw):
-    defaults = dict(page_num=0, font_size_avg=12.0,
-                    font_style=FontStyle.SERIF, font_name_original="Times")
+    defaults = dict(
+        page_num=0,
+        font_size_avg=12.0,
+        font_style=FontStyle.SERIF,
+        font_name_original="Times",
+    )
     defaults.update(kw)
     return NormalizedBlock(**defaults)
+
 
 @unittest.skipIf(not _HAS, "not importable")
 class TestNormalizerConfig(unittest.TestCase):
@@ -28,6 +37,7 @@ class TestNormalizerConfig(unittest.TestCase):
         cfg = NormalizerConfig(lang_in="en", normalize_unicode=False)
         self.assertEqual(cfg.lang_in, "en")
         self.assertFalse(cfg.normalize_unicode)
+
 
 @unittest.skipIf(not _HAS, "not importable")
 class TestNormalizedBlock(unittest.TestCase):
@@ -56,6 +66,7 @@ class TestNormalizedBlock(unittest.TestCase):
         nb = NB(text="test", bbox=(0, 0, 100, 20), page_num=2)
         self.assertEqual(nb.page_num, 2)
 
+
 @unittest.skipIf(not _HAS, "not importable")
 class TestNormalizer(unittest.TestCase):
     def test_instantiation(self):
@@ -73,8 +84,10 @@ class TestNormalizer(unittest.TestCase):
 
     def test_text_block(self):
         n = Normalizer()
-        rb = RawBlock(block_type=RawBlockType.TEXT,
-                      spans=[RawSpan(text="Hello", font_name="Times", font_size=12.0)])
+        rb = RawBlock(
+            block_type=RawBlockType.TEXT,
+            spans=[RawSpan(text="Hello", font_name="Times", font_size=12.0)],
+        )
         result = n.normalize([rb])
         self.assertEqual(len(result), 1)
 
@@ -93,13 +106,18 @@ class TestNormalizer(unittest.TestCase):
     def test_multi_block(self):
         n = Normalizer()
         rbs = [
-            RawBlock(block_type=RawBlockType.TEXT,
-                     spans=[RawSpan(text="Line 1", font_name="Times", font_size=12.0)]),
-            RawBlock(block_type=RawBlockType.TEXT,
-                     spans=[RawSpan(text="Line 2", font_name="Times", font_size=10.0)]),
+            RawBlock(
+                block_type=RawBlockType.TEXT,
+                spans=[RawSpan(text="Line 1", font_name="Times", font_size=12.0)],
+            ),
+            RawBlock(
+                block_type=RawBlockType.TEXT,
+                spans=[RawSpan(text="Line 2", font_name="Times", font_size=10.0)],
+            ),
         ]
         result = n.normalize(rbs)
         self.assertEqual(len(result), 2)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

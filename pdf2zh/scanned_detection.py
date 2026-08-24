@@ -83,8 +83,7 @@ class TextQualityStats:
     @property
     def replacement_ratio(self) -> float:
         """替换字符 / 未定义 CID 的合并比例（报告的核心损坏信号）。"""
-        return _safe_ratio(
-            self.cid_notdef_chars + self.fffd_chars, self.total_chars)
+        return _safe_ratio(self.cid_notdef_chars + self.fffd_chars, self.total_chars)
 
     @property
     def broken_ratio(self) -> float:
@@ -156,7 +155,6 @@ def _is_control_char(ch: str) -> bool:
     return ord(ch) < 0x20 or (0x7F <= ord(ch) < 0xA0)
 
 
-
 @dataclass
 class GlyphSignals:
     """字体解码信号（``analyze_glyph_signals`` 产出，来自 glyph_dump 记录）。"""
@@ -172,8 +170,7 @@ class GlyphSignals:
 
     @property
     def decode_failure_ratio(self) -> float:
-        return _safe_ratio(
-            self.notdef_glyphs + self.fffd_glyphs, self.total_glyphs)
+        return _safe_ratio(self.notdef_glyphs + self.fffd_glyphs, self.total_glyphs)
 
     def to_dict(self) -> dict:
         return {
@@ -181,8 +178,7 @@ class GlyphSignals:
             "no_to_unicode": self.no_to_unicode,
             "notdef_glyphs": self.notdef_glyphs,
             "fffd_glyphs": self.fffd_glyphs,
-            "to_unicode_missing_ratio": round(
-                self.to_unicode_missing_ratio, 4),
+            "to_unicode_missing_ratio": round(self.to_unicode_missing_ratio, 4),
             "decode_failure_ratio": round(self.decode_failure_ratio, 4),
         }
 
@@ -225,10 +221,7 @@ def layout_image_ratio(blocks: Sequence[dict]) -> float:
         area = (box[2] - box[0]) * (box[3] - box[1])
         total_area += area
         kind = str(blk.get("kind") or blk.get("cls") or blk.get("type") or "")
-        is_image = (
-            blk.get("has_image")
-            or kind.lower() in {"figure", "image", "table"}
-        )
+        is_image = blk.get("has_image") or kind.lower() in {"figure", "image", "table"}
         if is_image:
             image_area += area
     return _safe_ratio(image_area, total_area)
@@ -241,8 +234,7 @@ def _block_bbox(blk: dict) -> Optional[List[float]]:
     for key in ("x0", "y0", "x1", "y1"):
         if key not in blk:
             return None
-    return [float(blk["x0"]), float(blk["y0"]),
-            float(blk["x1"]), float(blk["y1"])]
+    return [float(blk["x0"]), float(blk["y0"]), float(blk["x1"]), float(blk["y1"])]
 
 
 def ocr_crosscheck(texts: Sequence[str], ocr_texts: Sequence[str]) -> float:
@@ -267,7 +259,6 @@ def ocr_crosscheck(texts: Sequence[str], ocr_texts: Sequence[str]) -> float:
     return sum(scores) / len(scores)
 
 
-
 def _ssim_approx(a, b) -> float:
     """简化全局 SSIM（0..1）—— numpy-only，供像素差异信号使用。
 
@@ -287,12 +278,10 @@ def _ssim_approx(a, b) -> float:
     cov = ((a - mu_a) * (b - mu_b)).mean()
     c1 = (0.01 * 255.0) ** 2
     c2 = (0.03 * 255.0) ** 2
-    denom = ((mu_a ** 2 + mu_b ** 2 + c1) * (var_a + var_b + c2))
+    denom = (mu_a**2 + mu_b**2 + c1) * (var_a + var_b + c2)
     if denom <= 1e-12:
         return 0.0
-    return float(
-        ((2 * mu_a * mu_b + c1) * (2 * cov + c2)) / denom
-    )
+    return float(((2 * mu_a * mu_b + c1) * (2 * cov + c2)) / denom)
 
 
 def render_page_image(pdf_path: str, page_index: int, dpi: int = 72):
@@ -306,7 +295,8 @@ def render_page_image(pdf_path: str, page_index: int, dpi: int = 72):
             import numpy as np
 
             arr = np.frombuffer(pix.samples, dtype=np.uint8).reshape(
-                pix.height, pix.width, pix.n)
+                pix.height, pix.width, pix.n
+            )
             if pix.n >= 3:
                 return arr[:, :, :3]
             return arr
@@ -352,8 +342,7 @@ def _try_load_babeldoc_detector():
         return None
 
 
-def _approx_text_visibility_score(pdf_path: str,
-                                  max_pages: int = DEFAULT_MAX_PAGES):
+def _approx_text_visibility_score(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
     """近似「文本层可见性」：全文本层渲染 vs 空白底图的差异度。
 
     扫描件（文本层不可见/缺失）→ 与空白底图高度相似（SSIM→1）；
@@ -375,7 +364,8 @@ def _approx_text_visibility_score(pdf_path: str,
                 page = doc[idx]
                 pix = page.get_pixmap(dpi=72)
                 arr = np.frombuffer(pix.samples, dtype=np.uint8).reshape(
-                    pix.height, pix.width, pix.n)
+                    pix.height, pix.width, pix.n
+                )
                 rgb = arr[:, :, :3] if pix.n >= 3 else arr
                 gray = rgb.mean(axis=2)
                 # 空白底图：与该页平均灰度的纯色图（文本层可见时差异大）。
@@ -388,7 +378,6 @@ def _approx_text_visibility_score(pdf_path: str,
     except Exception as exc:  # noqa: BLE001
         logger.debug("approx text-visibility signal failed: %s", exc)
         return None
-
 
 
 @dataclass
@@ -426,17 +415,20 @@ class ScanDecision:
 
     @property
     def reasons(self) -> List[str]:
-        return [f"{s.name}: {s.value:.3f} >= {s.threshold:.2f}"
-                for s in self.signals if s.triggered]
+        return [
+            f"{s.name}: {s.value:.3f} >= {s.threshold:.2f}"
+            for s in self.signals
+            if s.triggered
+        ]
 
     def to_dict(self) -> dict:
         return {
             "is_scanned": self.is_scanned,
             "signals": [s.to_dict() for s in self.signals],
-            "text_quality": self.text_quality.to_dict()
-            if self.text_quality else None,
-            "glyph_signals": self.glyph_signals.to_dict()
-            if self.glyph_signals else None,
+            "text_quality": self.text_quality.to_dict() if self.text_quality else None,
+            "glyph_signals": (
+                self.glyph_signals.to_dict() if self.glyph_signals else None
+            ),
             "reasons": self.reasons,
             "note": self.note,
         }
@@ -461,7 +453,6 @@ def fused_scan_decision(
         glyph_signals=glyph_signals,
         note=note,
     )
-
 
 
 # ── 预检：PDF 文件 → 融合判定 ────────────────────────────────────────────────
@@ -515,7 +506,8 @@ def _page_font_table(page) -> Dict[str, Dict[str, bool]]:
         resources = resolve1(getattr(page, "resources", None))
         fonts = (
             resolve1(_dict_get(resources, "Font"))
-            if isinstance(resources, dict) else None
+            if isinstance(resources, dict)
+            else None
         )
         if not isinstance(fonts, dict):
             return table
@@ -573,8 +565,9 @@ def _extract_pdf_samples(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
                 logger.debug("preflight page %s extract failed: %s", pageno, exc)
                 continue
             cur = device.cur_item
-            chars = [o for o in getattr(cur, "_objs", []) if
-                     o.__class__.__name__ == "LTChar"]
+            chars = [
+                o for o in getattr(cur, "_objs", []) if o.__class__.__name__ == "LTChar"
+            ]
             page_texts.append("".join(c.get_text() or "" for c in chars))
             font_table = _page_font_table(page)
             for ch in chars:
@@ -589,14 +582,20 @@ def _extract_pdf_samples(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
                     # 简单字体：内建编码即可解码，缺 ToUnicode 属常态非损坏
                     has_to_unicode = True
                 char = ch.get_text() or ""
-                glyph_records.append({
-                    "char": char,
-                    "has_to_unicode": has_to_unicode,
-                    "decode": "notdef" if _RE_CID_NOTDEF.search(char) else
-                              ("fffd" if "\ufffd" in char else "ok"),
-                    "is_replacement": bool(_RE_CID_NOTDEF.search(char)
-                                           or "\ufffd" in char),
-                })
+                glyph_records.append(
+                    {
+                        "char": char,
+                        "has_to_unicode": has_to_unicode,
+                        "decode": (
+                            "notdef"
+                            if _RE_CID_NOTDEF.search(char)
+                            else ("fffd" if "\ufffd" in char else "ok")
+                        ),
+                        "is_replacement": bool(
+                            _RE_CID_NOTDEF.search(char) or "\ufffd" in char
+                        ),
+                    }
+                )
     return page_texts, glyph_records
 
 
@@ -627,66 +626,83 @@ def preflight_scan_check(
     if pdf_path and os.path.exists(pdf_path) and pdf_path.lower().endswith(".pdf"):
         try:
             page_texts, glyph_records = _extract_pdf_samples(
-                pdf_path, max_pages=max_pages)
+                pdf_path, max_pages=max_pages
+            )
             text_quality = analyze_text_quality(page_texts)
             glyph_signals = analyze_glyph_signals(glyph_records)
         except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断翻译
             logger.debug("preflight text extraction failed: %s", exc)
 
-    signals.append(ScannedSignal(
-        name="text_cid_fffd",
-        value=max(text_quality.cid_notdef_ratio, text_quality.fffd_ratio),
-        threshold=TEXT_BROKEN_RATIO_THRESHOLD,
-        detail=f"(cid:N)/� 占比 {text_quality.replacement_ratio:.3f}",
-    ))
-    signals.append(ScannedSignal(
-        name="text_broken_pages",
-        value=text_quality.broken_page_ratio,
-        threshold=PAGE_BROKEN_THRESHOLD,
-        detail=(f"{text_quality.broken_pages}/{text_quality.pages} 页含损坏"
-                f"信号（>={TEXT_BROKEN_RATIO_THRESHOLD:.0%}）"),
-    ))
-    signals.append(ScannedSignal(
-        name="font_to_unicode",
-        value=glyph_signals.to_unicode_missing_ratio,
-        threshold=TO_UNICODE_MISSING_THRESHOLD,
-        detail=f"ToUnicode 缺失率 {glyph_signals.to_unicode_missing_ratio:.3f}",
-    ))
+    signals.append(
+        ScannedSignal(
+            name="text_cid_fffd",
+            value=max(text_quality.cid_notdef_ratio, text_quality.fffd_ratio),
+            threshold=TEXT_BROKEN_RATIO_THRESHOLD,
+            detail=f"(cid:N)/� 占比 {text_quality.replacement_ratio:.3f}",
+        )
+    )
+    signals.append(
+        ScannedSignal(
+            name="text_broken_pages",
+            value=text_quality.broken_page_ratio,
+            threshold=PAGE_BROKEN_THRESHOLD,
+            detail=(
+                f"{text_quality.broken_pages}/{text_quality.pages} 页含损坏"
+                f"信号（>={TEXT_BROKEN_RATIO_THRESHOLD:.0%}）"
+            ),
+        )
+    )
+    signals.append(
+        ScannedSignal(
+            name="font_to_unicode",
+            value=glyph_signals.to_unicode_missing_ratio,
+            threshold=TO_UNICODE_MISSING_THRESHOLD,
+            detail=f"ToUnicode 缺失率 {glyph_signals.to_unicode_missing_ratio:.3f}",
+        )
+    )
 
     # 信号 4：提取文本 vs OCR 文本一致性（可选）。
     if ocr_texts:
         cross = ocr_crosscheck(page_texts, ocr_texts)
-        signals.append(ScannedSignal(
-            name="ocr_crosscheck",
-            value=1.0 - cross,
-            threshold=0.5,
-            detail=f"提取/OCR 字符 Jaccard 差异 {1.0 - cross:.3f}",
-        ))
+        signals.append(
+            ScannedSignal(
+                name="ocr_crosscheck",
+                value=1.0 - cross,
+                threshold=0.5,
+                detail=f"提取/OCR 字符 Jaccard 差异 {1.0 - cross:.3f}",
+            )
+        )
 
     # 信号 5：图像面积占比（可选）。
     if blocks_by_page:
         ratios = [layout_image_ratio(b or []) for b in blocks_by_page]
         avg = sum(ratios) / len(ratios) if ratios else 0.0
-        signals.append(ScannedSignal(
-            name="image_ratio",
-            value=avg,
-            threshold=IMAGE_RATIO_THRESHOLD,
-            detail=f"图像块面积占比 {avg:.3f}",
-        ))
+        signals.append(
+            ScannedSignal(
+                name="image_ratio",
+                value=avg,
+                threshold=IMAGE_RATIO_THRESHOLD,
+                detail=f"图像块面积占比 {avg:.3f}",
+            )
+        )
 
     # 信号 1：SSIM 像素相似度（best-effort，BabelDOC 或近似）。
     if pdf_path and os.path.exists(pdf_path):
         ssim = ssim_scanned_signal(pdf_path, max_pages=max_pages)
         if ssim is not None:
-            signals.append(ScannedSignal(
-                name="pixel_ssim",
-                value=ssim,
-                threshold=0.95,
-                detail="文本层可见性 SSIM（≈BabelDOC DetectScannedFile）",
-            ))
+            signals.append(
+                ScannedSignal(
+                    name="pixel_ssim",
+                    value=ssim,
+                    threshold=0.95,
+                    detail="文本层可见性 SSIM（≈BabelDOC DetectScannedFile）",
+                )
+            )
 
     return fused_scan_decision(
-        signals, text_quality=text_quality, glyph_signals=glyph_signals,
+        signals,
+        text_quality=text_quality,
+        glyph_signals=glyph_signals,
         note="任一信号命中阈值即触发 OCR（报告 §6.3 多信号融合）",
     )
 
@@ -705,11 +721,22 @@ def recommend_ocr_flags(decision: ScanDecision):
 
 
 __all__ = [
-    "TextQualityStats", "GlyphSignals", "ScannedSignal", "ScanDecision",
-    "analyze_text_quality", "analyze_glyph_signals", "layout_image_ratio",
-    "ocr_crosscheck", "fused_scan_decision", "preflight_scan_check",
-    "ssim_scanned_signal", "render_page_image", "recommend_ocr_flags",
-    "TEXT_BROKEN_RATIO_THRESHOLD", "PAGE_BROKEN_THRESHOLD",
-    "TO_UNICODE_MISSING_THRESHOLD", "IMAGE_RATIO_THRESHOLD",
+    "TextQualityStats",
+    "GlyphSignals",
+    "ScannedSignal",
+    "ScanDecision",
+    "analyze_text_quality",
+    "analyze_glyph_signals",
+    "layout_image_ratio",
+    "ocr_crosscheck",
+    "fused_scan_decision",
+    "preflight_scan_check",
+    "ssim_scanned_signal",
+    "render_page_image",
+    "recommend_ocr_flags",
+    "TEXT_BROKEN_RATIO_THRESHOLD",
+    "PAGE_BROKEN_THRESHOLD",
+    "TO_UNICODE_MISSING_THRESHOLD",
+    "IMAGE_RATIO_THRESHOLD",
     "DEFAULT_MAX_PAGES",
 ]

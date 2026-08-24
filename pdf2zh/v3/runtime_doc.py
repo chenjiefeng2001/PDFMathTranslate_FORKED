@@ -16,6 +16,7 @@ Runtime API（浏览器 DOM API 式）：
     runtime.query() / translate(fn) / build() / render_page(pno)
     runtime.export("markdown") / inspect(node_id)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -23,7 +24,8 @@ from typing import Callable, Dict, List, Optional, Sequence
 
 from pdf2zh.v3.cache import DocumentCache
 from pdf2zh.v3.document_model import (
-    DocumentModel, block_id,
+    DocumentModel,
+    block_id,
 )
 from pdf2zh.v3.exports import export_html, export_markdown, export_text
 from pdf2zh.v3.query import DocumentQuery, query
@@ -37,8 +39,7 @@ class NodeRevision:
     value: object = None
 
     def to_dict(self) -> dict:
-        return {"version": self.version, "field": self.field,
-                "value": self.value}
+        return {"version": self.version, "field": self.field, "value": self.value}
 
 
 class VersionManager:
@@ -92,9 +93,12 @@ class VersionManager:
 class DocumentRuntime:
     """文档运行时：长期存在、可查询、可修改、可增量更新。"""
 
-    def __init__(self, model: Optional[DocumentModel] = None,
-                 cache: Optional[DocumentCache] = None,
-                 resources: Optional[ResourceManager] = None) -> None:
+    def __init__(
+        self,
+        model: Optional[DocumentModel] = None,
+        cache: Optional[DocumentCache] = None,
+        resources: Optional[ResourceManager] = None,
+    ) -> None:
         self.model = model or DocumentModel()
         self.versions = VersionManager()
         self.cache = cache or DocumentCache()
@@ -110,8 +114,7 @@ class DocumentRuntime:
         self.resources = ResourceManager().from_model(model)
         for page in model.pages:
             for i, block in enumerate(page.blocks):
-                self.versions.record(block_id(page.page_num, i),
-                                     "text", block.text)
+                self.versions.record(block_id(page.page_num, i), "text", block.text)
         return self
 
     def query(self) -> DocumentQuery:
@@ -132,8 +135,12 @@ class DocumentRuntime:
         if page is not None:
             self.cache.invalidate_page(page)
         self._edits[node_id] = dict(fields)
-        return {"ok": True, "node_id": node_id, "fields": dict(fields),
-                "version": self.versions.version(node_id)}
+        return {
+            "ok": True,
+            "node_id": node_id,
+            "fields": dict(fields),
+            "version": self.versions.version(node_id),
+        }
 
     def undo(self, node_id: str) -> Optional[dict]:
         """撤销该节点最近一次编辑（恢复字段值）。"""
@@ -148,22 +155,28 @@ class DocumentRuntime:
             self.cache.invalidate_page(page)
         return {"node_id": node_id, "reverted": rev.to_dict()}
 
-    def translate(self, translate_fn: Callable[[str], str],
-                  context_aware: bool = False) -> dict:
+    def translate(
+        self, translate_fn: Callable[[str], str], context_aware: bool = False
+    ) -> dict:
         """翻译（带缓存；context_aware 走上下文翻译）。"""
         if context_aware:
             from pdf2zh.v3.context_translation import (
                 translate_document_context_aware,
             )
+
             return translate_document_context_aware(
-                self.model, lambda t, c: self.cache.translate(t, translate_fn))
+                self.model, lambda t, c: self.cache.translate(t, translate_fn)
+            )
         from pdf2zh.v3.document_model import translate_document
+
         return translate_document(
-            self.model, lambda t: self.cache.translate(t, translate_fn))
+            self.model, lambda t: self.cache.translate(t, translate_fn)
+        )
 
     def build(self, changed_ids: Optional[Sequence[str]] = None) -> dict:
         """增量构建计划（dirty 才重建）。"""
         from pdf2zh.v3.build_system import BuildSystem, DependencyGraph
+
         graph = DependencyGraph().from_model(self.model)
         system = BuildSystem(cache=self.cache, graph=graph)
         plan = system.build(self.model, changed_ids)
@@ -180,14 +193,17 @@ class DocumentRuntime:
             if page.page_num != pno:
                 continue
             for i, block in enumerate(page.blocks):
-                plan.append({
-                    "block_id": block_id(pno, i),
-                    "kind": block.kind,
-                    "text": block.metadata.get("translated", block.text),
-                    "bbox": [round(v, 2) for v in block.bbox],
-                    "render_path": block.metadata.get("render_path",
-                                                      "translate_refit"),
-                })
+                plan.append(
+                    {
+                        "block_id": block_id(pno, i),
+                        "kind": block.kind,
+                        "text": block.metadata.get("translated", block.text),
+                        "bbox": [round(v, 2) for v in block.bbox],
+                        "render_path": block.metadata.get(
+                            "render_path", "translate_refit"
+                        ),
+                    }
+                )
         result = {"page": pno, "blocks": plan, "cached": False}
         self.cache.set("render", key, result)
         return result
@@ -205,15 +221,18 @@ class DocumentRuntime:
     def inspect(self, node_id: str) -> Optional[dict]:
         """DevTools 式节点视图（Phase 6.9：含版本/缓存状态）。"""
         from pdf2zh.v3.document_inspector import inspect
+
         view = inspect(self.model, node_id)
         if view is None:
             return None
         view["version"] = self.versions.version(node_id)
         view["version_history"] = [
-            r.to_dict() for r in self.versions.history_of(node_id)[-5:]]
+            r.to_dict() for r in self.versions.history_of(node_id)[-5:]
+        ]
         view["cached_pages"] = [
             {"layer": layer, "size": self.cache.layers[layer].size}
-            for layer in self.cache.layers]
+            for layer in self.cache.layers
+        ]
         view["resource_fonts"] = list(self.resources.fonts)
         return view
 
@@ -235,9 +254,11 @@ class DocumentRuntime:
         return None
 
     def summary(self) -> str:
-        return (f"DocumentRuntime pages={len(self.model.pages)} "
-                f"versions={self.versions._counter} "
-                f"cache={self.cache.stats().summary()}")
+        return (
+            f"DocumentRuntime pages={len(self.model.pages)} "
+            f"versions={self.versions._counter} "
+            f"cache={self.cache.stats().summary()}"
+        )
 
 
 __all__ = ["NodeRevision", "VersionManager", "DocumentRuntime"]

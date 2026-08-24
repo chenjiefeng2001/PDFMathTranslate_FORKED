@@ -14,6 +14,7 @@ Covers the V7.6 iteration (see doc/v7_operator_runtime_report.md §六):
 Run with:
     python -m pytest tests/v3/test_v7_6_remote_runtime.py -v
 """
+
 from __future__ import annotations
 
 import urllib.request
@@ -29,8 +30,12 @@ from pdf2zh.v3.remote_runtime import (
 from pdf2zh.v3.runtime_service import RuntimeService
 
 BLOCKS = [
-    {"id": "n0", "text": "Transformer models work well.",
-     "type": "paragraph", "page": 0},
+    {
+        "id": "n0",
+        "text": "Transformer models work well.",
+        "type": "paragraph",
+        "page": 0,
+    },
 ]
 
 
@@ -47,6 +52,7 @@ def server_and_client(tmp_path):
 
 
 # ── Transport protocol ───────────────────────────────────────────────
+
 
 class TestRuntimeTransport:
     def test_protocol_verbs_raise_not_implemented(self):
@@ -67,6 +73,7 @@ class TestRuntimeTransport:
 
 
 # ── Server + client lifecycle ────────────────────────────────────────
+
 
 class TestRemoteLifecycle:
     def test_health_and_stats(self, server_and_client):
@@ -115,8 +122,7 @@ class TestRemoteLifecycle:
         rollback = client.rollback(session_id, label="milestone-1")
         assert rollback["rolled_back_to"] == "milestone-1"
 
-    def test_rollback_without_label_falls_back_to_latest(self,
-                                                         server_and_client):
+    def test_rollback_without_label_falls_back_to_latest(self, server_and_client):
         service, client = server_and_client
         session_id = client.open_session(BLOCKS)["session_id"]
         client.execute(session_id)
@@ -135,6 +141,7 @@ class TestRemoteLifecycle:
 
 # ── Error semantics ──────────────────────────────────────────────────
 
+
 class TestRemoteErrors:
     def test_unknown_session_is_404(self, server_and_client):
         _, client = server_and_client
@@ -149,8 +156,10 @@ class TestRemoteErrors:
 
         request = urllib.request.Request(
             f"{client.base_url}/v1/sessions/{session_id}/execute",
-            data=b"{broken json", method="POST",
-            headers={"Content-Type": "application/json"})
+            data=b"{broken json",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
         with pytest.raises(HTTPError) as exc:
             with urllib.request.urlopen(request) as _:
                 pass
@@ -175,6 +184,7 @@ class TestRemoteErrors:
 
 
 # ── Server lifecycle ─────────────────────────────────────────────────
+
 
 class TestServerLifecycle:
     def test_context_manager_and_ephemeral_port(self, tmp_path):
