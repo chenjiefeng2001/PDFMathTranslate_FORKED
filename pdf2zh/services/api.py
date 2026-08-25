@@ -304,9 +304,7 @@ def create_api_app(
 
                 download_remote_fonts("zh")
             except Exception as font_exc:  # noqa: BLE001 -- 字体预热失败不致命
-                logger.debug(
-                    "remote font prewarm skipped: %s", str(font_exc)[:120]
-                )
+                logger.debug("remote font prewarm skipped: %s", str(font_exc)[:120])
             logger.info(
                 "layout model prewarmed in %.1fs",
                 time.perf_counter() - started,

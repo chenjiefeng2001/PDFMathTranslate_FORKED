@@ -988,7 +988,9 @@ def _normalize_page_selection(pages: Any, page_count: int) -> list[int]:
     return sorted(p for p in sel if 0 <= p < page_count)
 
 
-def _slice_pdf_for_pages(pdf_path: str, pages: Any) -> tuple[Optional[str], Optional[dict[int, int]]]:
+def _slice_pdf_for_pages(
+    pdf_path: str, pages: Any
+) -> tuple[Optional[str], Optional[dict[int, int]]]:
     """页切片（性能基准报告 P0 #1）：pages 为严格子集时预切片 PDF。
 
     magic-pdf/MinerU 的 ``doc_analyze`` 无视页选择扫全部页（730 页书实测

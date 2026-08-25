@@ -21,21 +21,49 @@ def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except Exception:
-        print(json.dumps({"ok": False, "error": "bad payload", "error_type": "ValueError"}))
+        print(
+            json.dumps(
+                {"ok": False, "error": "bad payload", "error_type": "ValueError"}
+            )
+        )
         return 1
     name = str(payload.get("source_path") or "")
     if name.endswith("boom.pdf"):
-        print(json.dumps({"ok": False, "error": "FileNotFoundError: boom", "error_type": "FileNotFoundError"}))
+        print(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": "FileNotFoundError: boom",
+                    "error_type": "FileNotFoundError",
+                }
+            )
+        )
         return 1
     if name.endswith("unavail.pdf"):
-        print(json.dumps({"ok": False, "error": "kernel missing", "error_type": "BabeldocNextUnavailableError"}))
+        print(
+            json.dumps(
+                {
+                    "ok": False,
+                    "error": "kernel missing",
+                    "error_type": "BabeldocNextUnavailableError",
+                }
+            )
+        )
         return 2
     if name.endswith("slow.pdf"):
         time.sleep(120)
         print(json.dumps({"ok": False, "error": "killed", "error_type": "KilledError"}))
         return 1
-    print(json.dumps({"progress": True, "stage": "translating", "pct": 50.0, "msg": "half"}))
-    print(json.dumps({"ok": True, "files": [{"name": "a_mono.pdf", "path": "x/a_mono.pdf"}]}))
+    print(
+        json.dumps(
+            {"progress": True, "stage": "translating", "pct": 50.0, "msg": "half"}
+        )
+    )
+    print(
+        json.dumps(
+            {"ok": True, "files": [{"name": "a_mono.pdf", "path": "x/a_mono.pdf"}]}
+        )
+    )
     return 0
 
 

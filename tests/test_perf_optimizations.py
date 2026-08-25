@@ -26,7 +26,6 @@ from pdf2zh.babeldoc_next_adapter import (
     run_babeldoc_next_translation_subprocess,
 )
 
-
 # ── 共享夹具 ────────────────────────────────────────────────────────────────
 
 
@@ -160,7 +159,9 @@ class TestTranslateStreamSliceSplice:
                     pz = dual.new_page()
                     pz.insert_text((72, 72), f"DUAL-Z{j}")
                 return dual.tobytes(), mono.tobytes()
-            return real_ts(stream, pages=pages, _allow_slice_splice=_allow_slice_splice, **kw)
+            return real_ts(
+                stream, pages=pages, _allow_slice_splice=_allow_slice_splice, **kw
+            )
 
         monkeypatch.setattr(high_level, "translate_stream", fake_ts)
         return calls
@@ -275,7 +276,9 @@ class TestMagicPdfPageSlice:
         seen: dict = {}
         slice_paths: list = []
 
-        def fake_parse_by_backend(self, backend, path, pages=None, ocr=False, progress_cb=None):
+        def fake_parse_by_backend(
+            self, backend, path, pages=None, ocr=False, progress_cb=None
+        ):
             seen["backend"] = backend
             seen["path_pages"] = _page_count(open(path, "rb").read())
             seen["pages_arg"] = pages
@@ -301,7 +304,9 @@ class TestMagicPdfPageSlice:
         pdf.write_bytes(_make_pdf(3))
         seen: dict = {}
 
-        def fake_parse_by_backend(self, backend, path, pages=None, ocr=False, progress_cb=None):
+        def fake_parse_by_backend(
+            self, backend, path, pages=None, ocr=False, progress_cb=None
+        ):
             seen["path"] = path
             seen["pages_arg"] = pages
             return []
@@ -324,9 +329,7 @@ class TestBabeldocNextWorker:
         monkeypatch.setattr(
             "pdf2zh.babeldoc_next_adapter.run_babeldoc_next_translation", fake_impl
         )
-        monkeypatch.setattr(
-            "sys.stdin", io.StringIO(json.dumps(payload))
-        )
+        monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
         rc = worker_mod.main()
         out = capsys.readouterr().out.strip().splitlines()
         frames = [json.loads(line) for line in out if line.strip()]
@@ -388,7 +391,9 @@ class TestBabeldocSubprocessRunner:
 
     @pytest.fixture()
     def stub_worker(self, monkeypatch):
-        monkeypatch.setenv("PDF2ZH_BABELDOC_WORKER_MODULE", "tests.stub_babeldoc_worker")
+        monkeypatch.setenv(
+            "PDF2ZH_BABELDOC_WORKER_MODULE", "tests.stub_babeldoc_worker"
+        )
 
     def _runner_kwargs(self, tmp_path, name="ok.pdf"):
         return dict(
@@ -437,9 +442,7 @@ class TestLayoutModelPrewarm:
         sentinel = object()
         loaded = {}
         monkeypatch.setattr(ModelInstance, "value", None, raising=False)
-        monkeypatch.setattr(
-            OnnxModel, "load_available", staticmethod(lambda: sentinel)
-        )
+        monkeypatch.setattr(OnnxModel, "load_available", staticmethod(lambda: sentinel))
 
         import pdf2zh.services.api as api_mod
 

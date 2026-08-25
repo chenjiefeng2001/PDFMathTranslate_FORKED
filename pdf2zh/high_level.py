@@ -902,7 +902,9 @@ def _slice_pdf_pages(stream: bytes, sel: List[int]) -> Tuple[bytes, Dict[int, in
         src.close()
 
 
-def _splice_mono_pages(original: bytes, translated_slice: bytes, sel: List[int]) -> bytes:
+def _splice_mono_pages(
+    original: bytes, translated_slice: bytes, sel: List[int]
+) -> bytes:
     """把切片 mono 的译页原位回贴进原文档（替换选中页，其余页原样保留）。
 
     从最后一个选中页向前处理：译页追加到末尾 → move 到目标位（原页后移
@@ -999,7 +1001,9 @@ def _interleave_dual_pages(original: bytes, slice_dual: bytes, sel: List[int]) -
         src.close()
 
 
-def _remap_slice_local_pages(v3_output: Optional[dict], page_map: Dict[int, int]) -> None:
+def _remap_slice_local_pages(
+    v3_output: Optional[dict], page_map: Dict[int, int]
+) -> None:
     """把 v3_output 里以页号为键的 side-channel 字典重映射回原文档页号。
 
     ir_snapshots / gate_verdicts / processor_reports 等均按 pageno（int）

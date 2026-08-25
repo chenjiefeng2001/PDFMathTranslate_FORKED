@@ -565,9 +565,7 @@ def run_babeldoc_next_translation(
                 build_pseudo_code_protected_layout_model,
             )
 
-            fused_model = build_pseudo_code_protected_layout_model(
-                pdf_path=work_path
-            )
+            fused_model = build_pseudo_code_protected_layout_model(pdf_path=work_path)
             if fused_model is not None:
                 config.doc_layout_model = fused_model
         except Exception:  # noqa: BLE001 -- never break the BabelDOC pipeline
@@ -771,7 +769,9 @@ def run_babeldoc_next_translation_subprocess(
         except Exception as exc:  # noqa: BLE001 -- 读流失败记录后按退出码处理
             reader_err.append(str(exc))
 
-    reader = threading.Thread(target=_read_stdout, name="babeldoc-worker-reader", daemon=True)
+    reader = threading.Thread(
+        target=_read_stdout, name="babeldoc-worker-reader", daemon=True
+    )
     reader.start()
 
     def _cancel_watcher() -> None:
@@ -784,7 +784,9 @@ def run_babeldoc_next_translation_subprocess(
                 pass
             threading.Event().wait(_SUBPROCESS_CANCEL_POLL)
 
-    watcher = threading.Thread(target=_cancel_watcher, name="babeldoc-worker-watch", daemon=True)
+    watcher = threading.Thread(
+        target=_cancel_watcher, name="babeldoc-worker-watch", daemon=True
+    )
     watcher.start()
 
     try:

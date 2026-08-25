@@ -41,7 +41,13 @@ def main() -> int:
         _emit({"ok": False, "error": f"bad payload: {exc}", "error_type": "ValueError"})
         return 1
     if not isinstance(payload, dict):
-        _emit({"ok": False, "error": "payload must be an object", "error_type": "ValueError"})
+        _emit(
+            {
+                "ok": False,
+                "error": "payload must be an object",
+                "error_type": "ValueError",
+            }
+        )
         return 1
 
     # 懒导入：内核缺失时走 unavailable 退出码（父进程降级 legacy 适配器）。
