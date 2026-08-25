@@ -43,6 +43,8 @@ export interface TaskState {
   total_files: number;
   completed_files: number;
   failed_files: number;
+  /** 逐文件失败明细（批量任务）：{file, error} */
+  file_failures?: { file: string; error: string }[] | null;
   result_files: ResultFile[];
   result_zip: string | null;
   preview_path: string | null;

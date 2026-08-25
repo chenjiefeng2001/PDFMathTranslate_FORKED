@@ -103,6 +103,7 @@ class PDFParser:
         pdf_path: str,
         dpi: int = 300,
         layout_model=None,
+        max_pages: Optional[int] = None,
     ) -> List[RawBlock]:
         """Parse a PDF file into RawBlocks.
 
@@ -110,6 +111,9 @@ class PDFParser:
             pdf_path: Path to a PDF file.
             dpi: Rendering DPI for layout analysis.
             layout_model: Optional DocLayout OnnxModel instance.
+            max_pages: Optional cap on the number of pages parsed
+                (first N pages, in document order). ``None`` parses all
+                pages. Useful to bound runtime on very large documents.
 
         Returns:
             List of RawBlock in page order (not reading order).
@@ -132,6 +136,8 @@ class PDFParser:
             interpreter = PDFPageInterpreter(rsrcmgr, device)
 
             for page_num, page in enumerate(PDFPage.create_pages(doc)):
+                if max_pages is not None and page_num >= max_pages:
+                    break
                 page_image = None
                 if layout_model is not None:
                     page_image = self._render_page_to_image(pdf_path, page_num, dpi)

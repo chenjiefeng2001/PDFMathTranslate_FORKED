@@ -1,27 +1,24 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
+rem ============================================================
+rem PDFMathTranslate one-click installer (parallel edition).
+rem Heavy lifting lives in setup-assets.ps1:
+rem   - python embed + get-pip downloaded concurrently (PS jobs,
+rem     disjoint outputs, deterministic Wait-Job join)
+rem   - setuptools + pdf2zh installed in ONE pip pass
+rem     (concurrent pip would race on site-packages)
+rem ============================================================
+set "SCRIPT_DIR=%~dp0"
+set "EXITCODE=0"
 
-set PYTHON_URL=https://www.python.org/ftp/python/3.12.7/python-3.12.7-embed-amd64.zip
-set PIP_URL=https://bootstrap.pypa.io/get-pip.py
-set HF_ENDPOINT=https://hf-mirror.com
-set PIP_MIRROR=https://mirrors.aliyun.com/pypi/simple
-
-if not exist pdf2zh_dist/python.exe (
-    powershell -Command "& {Invoke-WebRequest -Uri !PYTHON_URL! -OutFile python.zip}"
-    powershell -Command "& {Expand-Archive -Path python.zip -DestinationPath pdf2zh_dist -Force}"
-    del python.zip
-    echo import site >> pdf2zh_dist/python312._pth
+where pwsh >nul 2>nul
+if %errorlevel%==0 (
+    pwsh -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%setup-assets.ps1"
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%setup-assets.ps1"
 )
-cd pdf2zh_dist
+if %errorlevel% NEQ 0 set "EXITCODE=%errorlevel%"
 
-if not exist Scripts/pip.exe (
-    powershell -Command "& {Invoke-WebRequest -Uri !PIP_URL! -OutFile get-pip.py}"
-    python get-pip.py
-)
-path Scripts
-
-pip install --no-warn-script-location --upgrade setuptools -i !PIP_MIRROR!
-pip install --no-warn-script-location --upgrade pdf2zh -i !PIP_MIRROR!
-pdf2zh -i
-
+echo.
 pause
+exit /b %EXITCODE%

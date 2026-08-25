@@ -20,7 +20,8 @@ export function getTask(taskId: string): Promise<TaskState> {
 }
 
 export interface SubmitParams {
-  file?: File | null;
+  /** 批量上传：一个或多个文件，逐个以重复的 ``files`` 部件发送。 */
+  files?: File[];
   sourcePath?: string;
   targetLang: string;
   sourceLang: string;
@@ -38,7 +39,9 @@ export interface SubmitParams {
 
 export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
   const form = new FormData();
-  if (params.file) form.append("file", params.file);
+  for (const f of params.files ?? []) {
+    if (f) form.append("files", f);
+  }
   if (params.sourcePath) form.append("source_path", params.sourcePath);
   form.append("target_lang", params.targetLang);
   form.append("source_lang", params.sourceLang);
@@ -142,6 +145,12 @@ export function selftestMagicpdf(): Promise<{ ok: boolean; backend: string; hint
 export function artifactUrl(taskId: string, index: number): string {
   const base = resolveApiBaseForHref();
   return `${base}/api/tasks/${taskId}/artifacts/${index}`;
+}
+
+/** 批量任务「全部下载（ZIP）」地址。 */
+export function resultZipUrl(taskId: string): string {
+  const base = resolveApiBaseForHref();
+  return `${base}/api/tasks/${taskId}/result-zip`;
 }
 
 function resolveApiBaseForHref(): string {

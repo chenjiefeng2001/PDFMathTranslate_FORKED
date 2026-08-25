@@ -238,6 +238,35 @@ def legacy_mode_kwargs(mode_choice: Optional[str]) -> Dict[str, Any]:
     )
 
 
+def _parse_page_range_to_indices(page_range: Optional[str]) -> Optional[List[int]]:
+    """把 ``"1-5, 8"`` 形式的页码串转成 0 基页号列表（与 CLI 语义一致）。
+
+    babeldoc / magicpdf 链路直接消费字符串；legacy 的 ``translate_stream``
+    需要 ``list[int]``。空串/None 返回 None（= 全部页）。
+    """
+    raw = (page_range or "").strip()
+    if not raw:
+        return None
+    indices: List[int] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start, _, end = part.partition("-")
+            try:
+                lo, hi = int(start.strip()), int(end.strip())
+            except ValueError:
+                continue
+            indices.extend(range(lo - 1, hi))
+        else:
+            try:
+                indices.append(int(part) - 1)
+            except ValueError:
+                continue
+    return indices or None
+
+
 # ── Data Models ──────────────────────────────────────────────────────────────
 
 
@@ -1818,6 +1847,7 @@ class RuntimeService:
             extra_config.pop("mode_choice", None)
             doc_dual, doc_mono = translate_stream(
                 file_bytes,
+                pages=_parse_page_range_to_indices(request.page_range),
                 lang_in=request.source_lang,
                 lang_out=request.target_lang,
                 service=request.engine,
@@ -2275,6 +2305,21 @@ class RuntimeService:
         except Exception:  # noqa: BLE001 -- next-kernel import is best effort
             BabeldocNextUnavailableError = None
             run_babeldoc_next_translation = None
+        # P0 #3（RSS 泄积治理）：PDF2ZH_BABELDOC_SUBPROCESS=1 时每任务跑在
+        # 一次性子进程里（进程退出归还全部原生内存）；签名/契约与进程内
+        # 版本一致。默认仍走进程内路径（行为不变）。
+        _next_runner = run_babeldoc_next_translation
+        if run_babeldoc_next_translation is not None and os.environ.get(
+            "PDF2ZH_BABELDOC_SUBPROCESS", ""
+        ) in ("1", "true", "True"):
+            try:
+                from pdf2zh.babeldoc_next_adapter import (
+                    run_babeldoc_next_translation_subprocess as _next_runner,
+                )
+            except Exception:  # noqa: BLE001 -- runner 缺失时保持进程内
+                logger.warning(
+                    "babeldoc subprocess runner unavailable; using in-process kernel"
+                )
 
         config = config or self.config
         total_files = self._batch_total(task_id)
@@ -2324,9 +2369,9 @@ class RuntimeService:
         try:
             result_files = None
             engine_label = "BabelDOC (pdf2zh_next kernel)"
-            if run_babeldoc_next_translation is not None:
+            if _next_runner is not None:
                 try:
-                    result_files = run_babeldoc_next_translation(
+                    result_files = _next_runner(
                         source_path=request.source_path,
                         lang_in=request.source_lang,
                         lang_out=request.target_lang,
@@ -2404,6 +2449,14 @@ class RuntimeService:
                 total_files=total_files,
             )
             return
+        if _next_runner is run_babeldoc_next_translation:
+            # 进程内路径的 RSS 缓解（子进程模式随进程退出自动归还）：
+            # babeldoc 内核任务结束后做一次全代回收，尽早释放可回收的
+            # ONNX/缓存引用。无法根治泄积（见基准报告 Bug #4），根治靠
+            # PDF2ZH_BABELDOC_SUBPROCESS=1。
+            import gc as _gc
+
+            _gc.collect()
         dual = next(
             (f["path"] for f in result_files if "dual" in f["name"]),
             result_files[0]["path"],

@@ -1,0 +1,47 @@
+{
+ "result": {
+  "tag": "probe-ds_block",
+  "task_id": "task_06fde772ea89",
+  "status": "watchdog-timeout",
+  "error": "exceeded 15.0 min watchdog",
+  "wall_seconds": 900.114,
+  "peak_rss_mb": 1101.4,
+  "stages_seconds": {
+   "parsing": 9.124,
+   "translating": 890.536
+  },
+  "pages_total_from_events": null,
+  "per_page_seconds": [],
+  "page_marks_raw": [],
+  "event_count": 3
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": 0.45369270000082906,
+   "wall": 1787616935.95231,
+   "stage": "parsing",
+   "progress": 0.4,
+   "message": "Starting...",
+   "detail": null
+  },
+  {
+   "seq": 2,
+   "ts": 9.578147300002456,
+   "wall": 1787616944.8883715,
+   "stage": "parsing",
+   "progress": 9.99442384792318,
+   "message": "Parsing (Legacy)...",
+   "detail": null
+  },
+  {
+   "seq": 3,
+   "ts": 9.578154000002542,
+   "wall": 1787616944.9189615,
+   "stage": "translating",
+   "progress": 4.0,
+   "message": "Translating...",
+   "detail": null
+  }
+ ]
+}

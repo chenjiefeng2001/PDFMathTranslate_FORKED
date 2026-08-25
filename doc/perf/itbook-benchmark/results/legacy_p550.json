@@ -1,0 +1,120 @@
+{
+ "result": {
+  "tag": "legacy_p550",
+  "task_id": "task_d15491e3d042",
+  "status": "completed",
+  "error": null,
+  "wall_seconds": 1342.58,
+  "peak_rss_mb": 655.0,
+  "stages_seconds": {
+   "parsing": 0.198,
+   "rendering": 0.0,
+   "translating": 1342.38
+  },
+  "pages_total_from_events": null,
+  "per_page_seconds": [],
+  "page_marks_raw": [],
+  "event_count": 11
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": 0.0011869999980262946,
+   "wall": 1787623635.929148,
+   "stage": "parsing",
+   "progress": 0.4,
+   "message": "Starting...",
+   "detail": null
+  },
+  {
+   "seq": 2,
+   "ts": 0.001191899998957524,
+   "wall": 1787623635.9292696,
+   "stage": "parsing",
+   "progress": 0.4009847115376364,
+   "message": "Parsing (Legacy)...",
+   "detail": null
+  },
+  {
+   "seq": 3,
+   "ts": 0.1996406999969622,
+   "wall": 1787623635.959105,
+   "stage": "translating",
+   "progress": 4.0,
+   "message": "Translating...",
+   "detail": null
+  },
+  {
+   "seq": 4,
+   "ts": 1172.6260657999992,
+   "wall": 1787624808.50895,
+   "stage": "translating",
+   "progress": 38.0,
+   "message": "Translating 1/5 chunk(s)",
+   "detail": null
+  },
+  {
+   "seq": 5,
+   "ts": 1177.5169936999991,
+   "wall": 1787624813.3984635,
+   "stage": "translating",
+   "progress": 45.86432808052912,
+   "message": "Translating 2/5 chunk(s)",
+   "detail": null
+  },
+  {
+   "seq": 6,
+   "ts": 1186.655671499997,
+   "wall": 1787624822.4705253,
+   "stage": "translating",
+   "progress": 53.995781054889314,
+   "message": "Translating 3/5 chunk(s)",
+   "detail": null
+  },
+  {
+   "seq": 7,
+   "ts": 1190.3228709999967,
+   "wall": 1787624826.1916468,
+   "stage": "translating",
+   "progress": 61.64040009544937,
+   "message": "Translating 4/5 chunk(s)",
+   "detail": null
+  },
+  {
+   "seq": 8,
+   "ts": 1227.4984052,
+   "wall": 1787624863.2981236,
+   "stage": "translating",
+   "progress": 66.66666666666649,
+   "message": "Translating 5/5 chunk(s)",
+   "detail": null
+  },
+  {
+   "seq": 9,
+   "ts": 1342.5795673999964,
+   "wall": 1787624978.4178407,
+   "stage": "rendering",
+   "progress": 66.66666666666667,
+   "message": "Merging pages...",
+   "detail": null
+  },
+  {
+   "seq": 10,
+   "ts": 1342.5795765999974,
+   "wall": 1787624978.4179113,
+   "stage": "rendering",
+   "progress": 66.66666666666667,
+   "message": "Subsetting fonts...",
+   "detail": null
+  },
+  {
+   "seq": 11,
+   "ts": 1342.5795786999988,
+   "wall": 1787624978.4179802,
+   "stage": "rendering",
+   "progress": 66.6676871308012,
+   "message": "Writing output files...",
+   "detail": null
+  }
+ ]
+}

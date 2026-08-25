@@ -1,0 +1,17 @@
+{
+ "sample_paragraphs": 6,
+ "engines": {
+  "google": {
+   "n": 6,
+   "avg_s": 0.818,
+   "min_s": 0.275,
+   "max_s": 1.156
+  },
+  "deepseek": {
+   "n": 6,
+   "avg_s": 1.638,
+   "min_s": 1.309,
+   "max_s": 2.137
+  }
+ }
+}

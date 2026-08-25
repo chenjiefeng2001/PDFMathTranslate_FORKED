@@ -954,6 +954,108 @@ def _normalize_blocks(
     return results
 
 
+def _normalize_page_selection(pages: Any, page_count: int) -> list[int]:
+    """归一化页选择为去重升序的 0 基页号列表（剔除越界/非法项）。
+
+    兼容 str（``"1-5, 8"`` / 逗号列表）/ list / tuple / set / None。
+    与 :func:`_normalize_blocks` 的过滤语义一致。
+    """
+    if pages is None or pages == "" or pages == "all":
+        return []
+    sel: set[int] = set()
+    if isinstance(pages, str):
+        for part in pages.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if "-" in part:
+                try:
+                    start, end = part.split("-", 1)
+                    sel.update(range(int(start), int(end) + 1))
+                except ValueError:
+                    pass
+            else:
+                try:
+                    sel.add(int(part))
+                except ValueError:
+                    pass
+    elif isinstance(pages, (list, tuple, set)):
+        for p in pages:
+            try:
+                sel.add(int(p))
+            except (TypeError, ValueError):
+                pass
+    return sorted(p for p in sel if 0 <= p < page_count)
+
+
+def _slice_pdf_for_pages(pdf_path: str, pages: Any) -> tuple[Optional[str], Optional[dict[int, int]]]:
+    """页切片（性能基准报告 P0 #1）：pages 为严格子集时预切片 PDF。
+
+    magic-pdf/MinerU 的 ``doc_analyze`` 无视页选择扫全部页（730 页书实测
+    ~40 分钟 / 13GB RSS）；切片后只分析选中页，页号经 ``page_map`` 还原。
+
+    Returns:
+        ``(切片临时文件路径, {切片局部页号: 原页号})``；不需要切片时
+        返回 ``(None, None)``。调用方负责删除临时文件。
+    """
+    if pages is None or pages == "" or pages == "all":
+        return None, None
+    if os.environ.get("PDF2ZH_NO_MAGICPDF_SLICE", "") in ("1", "true", "True"):
+        return None, None
+    try:
+        import pymupdf
+
+        with pymupdf.open(pdf_path) as src:
+            total = src.page_count
+        sel = _normalize_page_selection(pages, total)
+        if not sel or len(sel) >= total:
+            return None, None
+
+        page_map: dict[int, int] = {}
+        fd, tmp_path = tempfile.mkstemp(prefix="pdf2zh_slice_", suffix=".pdf")
+        os.close(fd)
+        try:
+            with pymupdf.open(pdf_path) as src, pymupdf.open() as out:
+                for new_idx, orig_idx in enumerate(sel):
+                    out.insert_pdf(src, from_page=orig_idx, to_page=orig_idx)
+                    page_map[new_idx] = orig_idx
+                out.save(tmp_path, garbage=4, deflate=True)
+        except Exception:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
+        logger.info(
+            "[magicpdf] page slice: %d/%d page(s) -> %s",
+            len(sel),
+            total,
+            tmp_path,
+        )
+        return tmp_path, page_map
+    except Exception as exc:  # noqa: BLE001 -- 切片失败退回全文档解析
+        logger.warning(
+            "[magicpdf] page slice failed (%s); analyzing full document",
+            str(exc)[:160],
+        )
+        return None, None
+
+
+def _remap_magicpdf_result_pages(
+    results: list[MagicPdfParseResult], page_map: Optional[dict[int, int]]
+) -> None:
+    """把切片局部页号（page_num / raw["page_no"]）还原为原文档页号。"""
+    if not page_map:
+        return
+    for r in results:
+        orig = page_map.get(r.page_num)
+        if orig is None:
+            continue
+        r.page_num = orig
+        if isinstance(r.raw, dict):
+            r.raw["page_no"] = orig
+
+
 class MagicPdfAdapter:
     """magic-pdf / MinerU 统一解析适配器（懒加载双后端）。
 
@@ -1007,23 +1109,58 @@ class MagicPdfAdapter:
         ``progress_cb(detail_dict)``（可选）接收解析期细粒度计数（页级/
         组件加载），结构与 BabelDOC 适配器的 detail 约定一致；任何引擎
         不支持时静默降级为粗粒度事件，绝不阻断解析。
+
+        ``pages`` 为严格子集时自动预切片 PDF（只对选中页执行昂贵的
+        ``doc_analyze``），结果页号还原为原文档编号；切片失败自动回退
+        全文档解析。
         """
         if not pdf_path or not os.path.exists(pdf_path):
             raise MagicPdfParseError(f"PDF file not found: {pdf_path}")
         backend = self.backend()
+        if backend not in ("mineru", "magicpdf"):
+            from pdf2zh.engine_env import mineru_install_hint
+
+            raise MagicPdfNotInstalledError(
+                "magic-pdf / MinerU is not installed in this environment. "
+                + mineru_install_hint()
+            )
+
+        slice_path, page_map = _slice_pdf_for_pages(pdf_path, pages)
+        try:
+            if slice_path is not None:
+                results = self._parse_by_backend(
+                    backend,
+                    slice_path,
+                    pages=None,
+                    ocr=ocr,
+                    progress_cb=progress_cb,
+                )
+                _remap_magicpdf_result_pages(results, page_map)
+                return results
+            return self._parse_by_backend(
+                backend, pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
+            )
+        finally:
+            if slice_path is not None:
+                try:
+                    os.unlink(slice_path)
+                except OSError:
+                    pass
+
+    def _parse_by_backend(
+        self,
+        backend: str,
+        pdf_path: str,
+        pages: list[int] | None = None,
+        ocr: bool = False,
+        progress_cb: Optional[MagicPdfProgressCB] = None,
+    ) -> list[MagicPdfParseResult]:
         if backend == "mineru":
             return self._parse_mineru(
                 pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
             )
-        if backend == "magicpdf":
-            return self._parse_magicpdf(
-                pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
-            )
-        from pdf2zh.engine_env import mineru_install_hint
-
-        raise MagicPdfNotInstalledError(
-            "magic-pdf / MinerU is not installed in this environment. "
-            + mineru_install_hint()
+        return self._parse_magicpdf(
+            pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
         )
 
     def _parse_magicpdf(

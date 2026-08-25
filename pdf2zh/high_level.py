@@ -13,7 +13,7 @@ from asyncio import CancelledError
 from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 from string import Template
-from typing import Any, BinaryIO, List, Optional, Dict
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
 import numpy as np
 import requests
@@ -855,6 +855,171 @@ def _resolve_parallel_settings(
     return pages, parallel_workers
 
 
+# ── 页切片-回贴（slice-splice，性能基准报告 P0 #2）───────────────────────────
+#
+# 基准结论（doc/perf/itbook-benchmark/report.md）：legacy 链路单页运行 ~93s，
+# 其中 ~90s 是与所选页数无关的全文档固定开销 —— 字体 xref 广播 O(xrefs)、
+# doc_en.insert_file(doc_zh) 全量对象复制、逐页 move_page 交错（730 页书
+# 实测占绝对主导）。pages 过滤只跳过版面推理，不缩减这些 O(全文档) 阶段。
+#
+# 切片-回贴：pages 为严格子集时，把原文档切成仅含选中页的切片 → 在切片上
+# 跑完整翻译主流程（所有 O(N) 阶段 N=切片页数）→ 译页回贴原文档：
+#   - mono：原位替换选中页（保留原文档对象图/TOC/跨页链接）；
+#   - dual：逐页交错重建（选中页 = 原页 + 译页；未选中页 = 原页 ×2，与
+#     全文档 merge 的既有语义一致）。
+# 任何异常都整体回退全文档路径（绝不因优化引入失败）。emit_ir /
+# document_model / observability 打开时停用（这些产物按全文档页号索引，
+# 消费方假设全文档语义）。PDF2ZH_NO_SLICE_SPLICE=1 全局关闭。
+
+
+def _normalize_slice_pages(pages: Any, page_count: int) -> List[int]:
+    """归一化页选择为去重升序的 0 基页号列表（剔除越界项）。"""
+    sel: set = set()
+    for p in pages or []:
+        try:
+            pi = int(p)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= pi < page_count:
+            sel.add(pi)
+    return sorted(sel)
+
+
+def _slice_pdf_pages(stream: bytes, sel: List[int]) -> Tuple[bytes, Dict[int, int]]:
+    """把 PDF 切成仅含 ``sel`` 页的切片；返回 (切片字节, {切片页号: 原页号})。"""
+    import pymupdf
+
+    src = pymupdf.open(stream=stream, filetype="pdf")
+    out = pymupdf.open()
+    try:
+        page_map: Dict[int, int] = {}
+        for new_idx, orig_idx in enumerate(sel):
+            out.insert_pdf(src, from_page=orig_idx, to_page=orig_idx)
+            page_map[new_idx] = orig_idx
+        return out.tobytes(deflate=True, garbage=4), page_map
+    finally:
+        out.close()
+        src.close()
+
+
+def _splice_mono_pages(original: bytes, translated_slice: bytes, sel: List[int]) -> bytes:
+    """把切片 mono 的译页原位回贴进原文档（替换选中页，其余页原样保留）。
+
+    从最后一个选中页向前处理：译页追加到末尾 → move 到目标位（原页后移
+    一位）→ 删除被顶出的原页。倒序保证已回贴区域不受后续插入影响；
+    TOC 在改动前快照、完成后原样恢复（页序不变 → 页号映射不变）。
+    """
+    import pymupdf
+
+    src = pymupdf.open(stream=original, filetype="pdf")
+    tsl = pymupdf.open(stream=translated_slice, filetype="pdf")
+    try:
+        toc = src.get_toc(simple=True)
+        for j in range(len(sel) - 1, -1, -1):
+            orig = sel[j]
+            src.insert_pdf(tsl, from_page=j, to_page=j, start_at=src.page_count)
+            src.move_page(src.page_count - 1, orig)
+            src.delete_page(orig + 1)
+        if toc:
+            src.set_toc(toc)
+        return src.tobytes(deflate=True, garbage=4)
+    finally:
+        tsl.close()
+        src.close()
+
+
+def _interleave_dual_pages(original: bytes, slice_dual: bytes, sel: List[int]) -> bytes:
+    """重建全文档 dual：逐页 [原页, 译页]（未选中页 [原页, 原页副本]）。
+
+    与全文档 merge（insert_file + move_page 交错）产出结构一致；TOC 页号
+    重映射到译页（原 1 基页 p → dual 1 基 2p）。
+
+    性能关键：按「连续游程」分组插入（每次 insert_pdf 拷贝一整段页区间），
+    而非逐页拷贝 —— 730 页文档单页回贴从 ~1460 次 insert 降到 ~2×游程数次
+    （实测逐页重建 324s → 游程重建秒级）。译页先用 ``select`` 压缩成按选中
+    顺序排列的紧凑文档，游程内即可整段范围插入。
+    """
+    import pymupdf
+
+    src = pymupdf.open(stream=original, filetype="pdf")
+    tsl = pymupdf.open(stream=slice_dual, filetype="pdf")
+    out = pymupdf.open()
+    try:
+        # 译页压缩：slice dual 的奇数位（0 基 2j+1）是第 j 个选中页的译页；
+        # select 后 zh[j] 即第 j 个选中页的译页（按选中顺序）。
+        zh = pymupdf.open(stream=slice_dual, filetype="pdf")
+        try:
+            zh.select([2 * j + 1 for j in range(len(sel))])
+        except Exception:  # noqa: BLE001 -- 压缩失败逐页兜底
+            zh.close()
+            zh = None
+
+        # 连续选中页游程分组：[(起始原页, 结束原页, 切片起始序号), ...]
+        runs: List[List[int]] = []
+        for j, orig in enumerate(sel):
+            if runs and orig == runs[-1][1] + 1:
+                runs[-1][1] = orig
+            else:
+                runs.append([orig, orig, j])
+
+        cursor = 0
+
+        def _emit_unselected(a: int, b: int) -> None:
+            # 未选中段：原页 + 原页副本（与全文档 merge 语义一致）
+            out.insert_pdf(src, from_page=a, to_page=b)
+            out.insert_pdf(src, from_page=a, to_page=b)
+
+        for a, b, ja in runs:
+            if cursor < a:
+                _emit_unselected(cursor, a - 1)
+            out.insert_pdf(src, from_page=a, to_page=b)
+            if zh is not None:
+                out.insert_pdf(zh, from_page=ja, to_page=ja + (b - a))
+            else:
+                for j in range(ja, ja + (b - a) + 1):
+                    out.insert_pdf(tsl, from_page=2 * j + 1, to_page=2 * j + 1)
+            cursor = b + 1
+        if cursor < src.page_count:
+            _emit_unselected(cursor, src.page_count - 1)
+
+        toc = src.get_toc(simple=True)
+        if toc:
+            out.set_toc(
+                [
+                    [lvl, title, 2 * p if 0 < p <= src.page_count else p]
+                    for lvl, title, p in toc
+                ]
+            )
+        return out.tobytes(deflate=True, garbage=4)
+    finally:
+        out.close()
+        if zh is not None:
+            zh.close()
+        tsl.close()
+        src.close()
+
+
+def _remap_slice_local_pages(v3_output: Optional[dict], page_map: Dict[int, int]) -> None:
+    """把 v3_output 里以页号为键的 side-channel 字典重映射回原文档页号。
+
+    ir_snapshots / gate_verdicts / processor_reports 等均按 pageno（int）
+    键控；切片翻译期间写的是切片局部页号，回贴后统一还原。仅处理
+    「全 int 键」的顶层字典，其余结构原样保留（绝不抛错）。
+    """
+    if not v3_output or not page_map:
+        return
+    for key, val in list(v3_output.items()):
+        if (
+            isinstance(val, dict)
+            and val
+            and all(isinstance(k, int) for k in val.keys())
+        ):
+            try:
+                v3_output[key] = {page_map.get(k, k): v for k, v in val.items()}
+            except Exception:  # noqa: BLE001 -- 诊断通道重映射永不致命
+                pass
+
+
 def translate_stream(
     stream: bytes,
     pages: Optional[list[int]] = None,
@@ -906,11 +1071,98 @@ def translate_stream(
     # P5–P10 主链路接管（阶段 3）：与 reconstruction_channel 配套，经
     # **dict(locals()) 透传到 translate_patch / 并行 worker。默认 True。
     reconstruction_adopt: bool = True,
+    # 内部开关：切片-回贴递归调用时置 False，防止无限递归。
+    _allow_slice_splice: bool = True,
     **kwarg: Any,
 ):
+    # ── 页切片-回贴（P0 #2）：pages 为严格子集时只在切片上跑翻译主流程 ──
+    # 必须放在一切重工作之前（字体嵌入/xref 广播/merge 都是 O(全文档)）。
+    if (
+        _allow_slice_splice
+        and pages
+        and not emit_ir
+        and not document_model
+        and not observability
+        and os.environ.get("PDF2ZH_NO_SLICE_SPLICE", "") not in ("1", "true", "True")
+    ):
+        try:
+            _probe = Document(stream=stream)
+            try:
+                _total = _probe.page_count
+            finally:
+                _probe.close()
+            _sel = _normalize_slice_pages(pages, _total)
+        except Exception:  # noqa: BLE001 -- 探测失败走全文档路径
+            _sel, _total = [], 0
+        if _sel and 0 < len(_sel) < _total:
+            try:
+                _slice_bytes, _page_map = _slice_pdf_pages(stream, _sel)
+                _dual_s, _mono_s = translate_stream(
+                    _slice_bytes,
+                    pages=None,
+                    lang_in=lang_in,
+                    lang_out=lang_out,
+                    service=service,
+                    thread=thread,
+                    vfont=vfont,
+                    vchar=vchar,
+                    callback=callback,
+                    cancellation_event=cancellation_event,
+                    model=model,
+                    envs=envs,
+                    prompt=prompt,
+                    skip_subset_fonts=skip_subset_fonts,
+                    ignore_cache=ignore_cache,
+                    use_text_metrics=use_text_metrics,
+                    use_translation_cache=use_translation_cache,
+                    parallel_pages=parallel_pages,
+                    parallel_workers=parallel_workers,
+                    emit_ir=emit_ir,
+                    relayout_gate=relayout_gate,
+                    v3_output=v3_output,
+                    relink_links=relink_links,
+                    image_engine=image_engine,
+                    content_preservation=content_preservation,
+                    emit_preservation=emit_preservation,
+                    processor_channels=processor_channels,
+                    render_takeover=render_takeover,
+                    translation_qa=translation_qa,
+                    geometry_cluster=geometry_cluster,
+                    image_render=image_render,
+                    toc_split=toc_split,
+                    pipeline_dump=pipeline_dump,
+                    document_model=document_model,
+                    observability=observability,
+                    progress_cb=progress_cb,
+                    reconstruction_adopt=reconstruction_adopt,
+                    _allow_slice_splice=False,
+                    **kwarg,
+                )
+                # 译页回贴失败也走全文档兜底 —— 输出正确性优先于速度。
+                _mono_full = _splice_mono_pages(stream, _mono_s, _sel)
+                _dual_full = _interleave_dual_pages(stream, _dual_s, _sel)
+                _remap_slice_local_pages(v3_output, _page_map)
+                logger.info(
+                    "translate_stream: slice-splice complete "
+                    "(%d/%d pages, mono=%d B, dual=%d B)",
+                    len(_sel),
+                    _total,
+                    len(_mono_full),
+                    len(_dual_full),
+                )
+                return _dual_full, _mono_full
+            except CancelledError:
+                raise
+            except Exception as slice_exc:  # noqa: BLE001 -- 优化绝不破坏翻译
+                logger.warning(
+                    "translate_stream: slice-splice failed (%s); "
+                    "falling back to full-document path",
+                    str(slice_exc)[:200],
+                )
+
     # 归一化翻译并发线程数：CLI 默认 4，但 API/编程方式调用时 thread 可能为 0/None，
     # TranslateConverter 内部 ThreadPoolExecutor(max_workers=0) 会抛 ValueError，
-    # 导致整页翻译失败（并行路径中表现为 worker 崩溃、串行路径中整份 PDF 空白）。
+    # 导致整页翻译失败（并行路径中表现为 worker 崩溃、串行路径整份 PDF 空白）。
     thread = thread if thread and thread > 0 else 4
     parallel_pages, parallel_workers = _resolve_parallel_settings(
         parallel_pages, parallel_workers, default_pages=True

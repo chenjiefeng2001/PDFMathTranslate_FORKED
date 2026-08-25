@@ -285,6 +285,39 @@ def create_api_app(
         target=_prewarm_registry, name="registry-prewarm", daemon=True
     ).start()
 
+    # P0（基准报告）：主进程 doclayout 模型 + 远程字体预热。legacy 首任务
+    # 实测 ~15s 冷加载（L_block parsing=14.9s：OnnxModel.load_available +
+    # download_remote_fonts 磁盘/网络成本）全部发生在第一个用户任务内；
+    # 这里后台提前完成，把成本移出用户感知路径。并行池预热只覆盖 worker
+    # 进程，主进程 ModelInstance 单例仍需单独预热（runtime_service 直传）。
+    def _prewarm_layout_model() -> None:
+        if os.environ.get("PDF2ZH_NO_WARMUP", "") in ("1", "true", "True"):
+            return
+        try:
+            started = time.perf_counter()
+            from pdf2zh.doclayout import ModelInstance, OnnxModel
+
+            if ModelInstance.value is None:
+                ModelInstance.value = OnnxModel.load_available()
+            try:
+                from pdf2zh.high_level import download_remote_fonts
+
+                download_remote_fonts("zh")
+            except Exception as font_exc:  # noqa: BLE001 -- 字体预热失败不致命
+                logger.debug(
+                    "remote font prewarm skipped: %s", str(font_exc)[:120]
+                )
+            logger.info(
+                "layout model prewarmed in %.1fs",
+                time.perf_counter() - started,
+            )
+        except Exception as exc:  # noqa: BLE001 -- 预热失败不阻断服务
+            logger.warning("layout model prewarm skipped: %s", str(exc)[:120])
+
+    threading.Thread(
+        target=_prewarm_layout_model, name="layout-model-prewarm", daemon=True
+    ).start()
+
     svc = service or get_runtime_service()
     app = FastAPI(title="pdf2zh API", version="1.0.0")
 
@@ -560,6 +593,7 @@ def create_api_app(
     @app.post("/api/tasks")
     async def submit_task(
         file: Optional[UploadFile] = File(default=None),
+        files: Optional[List[UploadFile]] = File(default=None),
         source_path: str = Form(default=""),
         target_lang: str = Form(default="zh-CN"),
         source_lang: str = Form(default="auto"),
@@ -576,17 +610,36 @@ def create_api_app(
         glossaries: Optional[List[UploadFile]] = File(default=None),
         glossary_files: str = Form(default=""),
     ) -> Dict[str, str]:
-        resolved_path = source_path.strip()
-        if file is not None and file.filename:
+        # 批量上传：``files``（可重复的 multipart 部件）优先；兼容旧的单文件
+        # ``file`` 字段与 ``source_path`` 本地路径。所有路径统一进入
+        # ``TranslationRequest.files``，由运行时服务按数量自动路由
+        # 单文件/批量执行器（批量含逐文件进度、失败续行、结果 ZIP）。
+        upload_parts: List[UploadFile] = [
+            f for f in (files or []) if f is not None and f.filename
+        ]
+        if not upload_parts and file is not None and file.filename:
+            upload_parts.append(file)
+
+        resolved_paths: List[str] = []
+        if upload_parts:
             upload_dir = Path(tempfile.gettempdir()) / "pdf2zh_api_uploads"
             upload_dir.mkdir(parents=True, exist_ok=True)
-            safe_name = f"{uuid.uuid4().hex[:8]}_{Path(file.filename).name}"
-            dest = upload_dir / safe_name
-            await _save_upload(file, dest)
-            resolved_path = str(dest)
+            for part in upload_parts:
+                safe_name = f"{uuid.uuid4().hex[:8]}_{Path(part.filename).name}"
+                dest = upload_dir / safe_name
+                await _save_upload(part, dest)
+                resolved_paths.append(str(dest))
 
-        if resolved_path:
-            _validate_source_path(resolved_path)
+        legacy_path = source_path.strip()
+        if not resolved_paths and legacy_path:
+            resolved_paths = [legacy_path]
+        elif resolved_paths and legacy_path:
+            # 混合提交：本地路径追加到上传列表尾部，保持两者都参与批量。
+            resolved_paths.append(legacy_path)
+
+        for p in resolved_paths:
+            _validate_source_path(p)
+        resolved_path = resolved_paths[0] if resolved_paths else ""
 
         extra: Dict[str, Any] = {}
         if extra_config.strip():
@@ -635,6 +688,7 @@ def create_api_app(
 
         request = TranslationRequest(
             source_path=resolved_path,
+            files=resolved_paths,
             target_lang=target_lang,
             source_lang=source_lang,
             engine=engine,
@@ -797,6 +851,19 @@ def create_api_app(
         if not path or not Path(path).exists():
             raise HTTPException(404, f"Artifact file missing: {path}")
         return FileResponse(path, filename=Path(path).name)
+
+    @app.get("/api/tasks/{task_id}/result-zip")
+    def download_result_zip(task_id: str) -> FileResponse:
+        """批量任务「全部下载」：返回运行时打包好的结果 ZIP。"""
+        state = _require_state(task_id)
+        path = state.result_zip or ""
+        if not path or not Path(path).exists():
+            raise HTTPException(404, "result zip not available for this task")
+        return FileResponse(
+            path,
+            filename=f"pdf2zh-{task_id}-results.zip",
+            media_type="application/zip",
+        )
 
     _mount_spa(app)
 

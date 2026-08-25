@@ -1,0 +1,378 @@
+{
+ "result": {
+  "tag": "B_p550",
+  "task_id": "task_3b1af903a7da",
+  "status": "completed",
+  "error": null,
+  "wall_seconds": 60.122,
+  "peak_rss_mb": 4716.6,
+  "stages_seconds": {
+   "analyzing": 8.482,
+   "layouting": 5.346,
+   "parsing": 8.6,
+   "rendering": 30.081,
+   "translating": 7.612
+  },
+  "pages_total_from_events": 2,
+  "per_page_seconds": [
+   1.229,
+   0.46
+  ],
+  "page_marks_raw": [
+   {
+    "t": 7.371605500000442,
+    "current": 0,
+    "total": 0
+   },
+   {
+    "t": 8.60083520000262,
+    "current": 1,
+    "total": 2
+   },
+   {
+    "t": 9.060669100002997,
+    "current": 2,
+    "total": 2
+   }
+  ],
+  "event_count": 24
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": 0.0010816000030899886,
+   "wall": 1787628784.5929203,
+   "stage": "parsing",
+   "progress": 0.4,
+   "message": "Starting...",
+   "detail": null
+  },
+  {
+   "seq": 2,
+   "ts": 0.0010857000015676022,
+   "wall": 1787628784.5930338,
+   "stage": "parsing",
+   "progress": 0.40044806717172265,
+   "message": "BabelDOC engine starting...",
+   "detail": null
+  },
+  {
+   "seq": 3,
+   "ts": 7.371605500000442,
+   "wall": 1787628791.8542473,
+   "stage": "parsing",
+   "progress": 9.977467390479967,
+   "message": "Parse PDF and Create Intermediate Representation",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Parse PDF and Create Intermediate Representation",
+    "unit": "page",
+    "current": 0,
+    "total": 0
+   }
+  },
+  {
+   "seq": 4,
+   "ts": 7.522159500000271,
+   "wall": 1787628792.1029968,
+   "stage": "parsing",
+   "progress": 14.471661371323153,
+   "message": "Parse PDF and Create Intermediate Representation",
+   "detail": null
+  },
+  {
+   "seq": 5,
+   "ts": 7.522164900001371,
+   "wall": 1787628792.1137483,
+   "stage": "parsing",
+   "progress": 14.471661371323153,
+   "message": "Parse PDF and Create Intermediate Representation",
+   "detail": null
+  },
+  {
+   "seq": 6,
+   "ts": 8.60083520000262,
+   "wall": 1787628793.1808755,
+   "stage": "analyzing",
+   "progress": 17.79604222703554,
+   "message": "Parse Page Layout",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Parse Page Layout",
+    "unit": "page",
+    "current": 1,
+    "total": 2
+   }
+  },
+  {
+   "seq": 7,
+   "ts": 9.060669100002997,
+   "wall": 1787628793.506593,
+   "stage": "analyzing",
+   "progress": 20.42527736967738,
+   "message": "Parse Page Layout",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Parse Page Layout",
+    "unit": "page",
+    "current": 2,
+    "total": 2
+   }
+  },
+  {
+   "seq": 8,
+   "ts": 11.41767990000153,
+   "wall": 1787628795.8705122,
+   "stage": "analyzing",
+   "progress": 28.66617591200042,
+   "message": "Parse Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Parse Paragraphs",
+    "unit": "",
+    "current": 1,
+    "total": 1
+   }
+  },
+  {
+   "seq": 9,
+   "ts": 13.743133200001466,
+   "wall": 1787628798.1763573,
+   "stage": "analyzing",
+   "progress": 29.804968355036383,
+   "message": "Parse Formulas and Styles",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Parse Formulas and Styles",
+    "unit": "",
+    "current": 1,
+    "total": 1
+   }
+  },
+  {
+   "seq": 10,
+   "ts": 17.083319100001972,
+   "wall": 1787628801.6259937,
+   "stage": "translating",
+   "progress": 29.98901202129207,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 1,
+    "total": 22
+   }
+  },
+  {
+   "seq": 11,
+   "ts": 18.783222699999897,
+   "wall": 1787628803.2293987,
+   "stage": "translating",
+   "progress": 41.587723485435696,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 4,
+    "total": 22
+   }
+  },
+  {
+   "seq": 12,
+   "ts": 19.40463020000243,
+   "wall": 1787628803.9481378,
+   "stage": "translating",
+   "progress": 45.42262412059129,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 6,
+    "total": 22
+   }
+  },
+  {
+   "seq": 13,
+   "ts": 19.554832000001625,
+   "wall": 1787628804.138316,
+   "stage": "translating",
+   "progress": 46.42852616600034,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 7,
+    "total": 22
+   }
+  },
+  {
+   "seq": 14,
+   "ts": 19.85542130000249,
+   "wall": 1787628804.426209,
+   "stage": "translating",
+   "progress": 48.14464833764334,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 8,
+    "total": 22
+   }
+  },
+  {
+   "seq": 15,
+   "ts": 21.293773300003522,
+   "wall": 1787628805.7339773,
+   "stage": "translating",
+   "progress": 56.701705514320054,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 11,
+    "total": 22
+   }
+  },
+  {
+   "seq": 16,
+   "ts": 21.4442678000014,
+   "wall": 1787628806.0242603,
+   "stage": "translating",
+   "progress": 58.57346004264472,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 13,
+    "total": 22
+   }
+  },
+  {
+   "seq": 17,
+   "ts": 21.75930210000297,
+   "wall": 1787628806.283865,
+   "stage": "translating",
+   "progress": 60.329597871999695,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 14,
+    "total": 22
+   }
+  },
+  {
+   "seq": 18,
+   "ts": 22.38089620000028,
+   "wall": 1787628806.8814642,
+   "stage": "translating",
+   "progress": 64.1245759747948,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 21,
+    "total": 22
+   }
+  },
+  {
+   "seq": 19,
+   "ts": 22.53133550000348,
+   "wall": 1787628806.9846308,
+   "stage": "translating",
+   "progress": 65.8452328373673,
+   "message": "Translate Paragraphs",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Translate Paragraphs",
+    "unit": "paragraph",
+    "current": 22,
+    "total": 22
+   }
+  },
+  {
+   "seq": 20,
+   "ts": 24.695507200001884,
+   "wall": 1787628809.1385171,
+   "stage": "layouting",
+   "progress": 81.82086186237207,
+   "message": "Typesetting",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Typesetting",
+    "unit": "",
+    "current": 1,
+    "total": 2
+   }
+  },
+  {
+   "seq": 21,
+   "ts": 24.695516200001293,
+   "wall": 1787628809.2142866,
+   "stage": "layouting",
+   "progress": 82.01550314099345,
+   "message": "Typesetting",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Typesetting",
+    "unit": "",
+    "current": 2,
+    "total": 2
+   }
+  },
+  {
+   "seq": 22,
+   "ts": 30.041182500001014,
+   "wall": 1787628814.4338357,
+   "stage": "rendering",
+   "progress": 92.42339437315539,
+   "message": "Generate drawing instructions",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Generate drawing instructions",
+    "unit": "",
+    "current": 1,
+    "total": 1
+   }
+  },
+  {
+   "seq": 23,
+   "ts": 43.18263740000111,
+   "wall": 1787628827.7404687,
+   "stage": "rendering",
+   "progress": 94.99996087769398,
+   "message": "Save PDF",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Save PDF",
+    "unit": "",
+    "current": 1,
+    "total": 2
+   }
+  },
+  {
+   "seq": 24,
+   "ts": 57.42719920000309,
+   "wall": 1787628841.990554,
+   "stage": "rendering",
+   "progress": 100.0,
+   "message": "Save PDF",
+   "detail": {
+    "engine": "babeldoc",
+    "raw_stage": "Save PDF",
+    "unit": "",
+    "current": 2,
+    "total": 2
+   }
+  }
+ ]
+}

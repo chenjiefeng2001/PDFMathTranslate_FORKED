@@ -187,22 +187,54 @@ jobs:
           $artifactsDir = "$env:GITHUB_WORKSPACE/artifacts"
           New-Item -ItemType Directory -Force -Path $artifactsDir | Out-Null
 
-          # zip #1: WITH offline assets (fonts/models bundled)
-          $stageWith = "$env:GITHUB_WORKSPACE/stage_with_assets"
-          New-Item -ItemType Directory -Force -Path "$stageWith/pdf2zh" | Out-Null
-          Copy-Item -Path "$buildDir/*" -Destination "$stageWith/pdf2zh" -Recurse -Force
-          Compress-Archive -Path "$stageWith/pdf2zh" `
-            -DestinationPath "$artifactsDir/pdf2zh-$tag-with-assets-win64.zip" `
-            -CompressionLevel Optimal
+          # ------------------------------------------------------------------
+          # 并行化说明：两个 zip 的 staging 目录互不相交（共享源 buildDir 只读，
+          # 各自写私有 staging），压缩输出也是两个不同文件 => 无写写竞争；
+          # ThrottleLimit=2 有界并发 => 无资源争用与饥饿；
+          # ForEach-Object -Parallel 阻塞直至全部完成 => 确定性汇合、无泄漏。
+          # ------------------------------------------------------------------
 
-          # zip #2: WITHOUT offline assets (downloaded at first run)
-          $stageNo = "$env:GITHUB_WORKSPACE/stage_no_assets"
-          New-Item -ItemType Directory -Force -Path "$stageNo/pdf2zh" | Out-Null
-          Copy-Item -Path "$buildDir/*" -Destination "$stageNo/pdf2zh" -Recurse -Force
-          Get-ChildItem -Path $stageNo -Filter "offline_assets_*.zip" -Recurse | Remove-Item -Force
-          Compress-Archive -Path "$stageNo/pdf2zh" `
-            -DestinationPath "$artifactsDir/pdf2zh-$tag-win64.zip" `
-            -CompressionLevel Optimal
+          # 并行阶段 1：staging 复制
+          $stages = @(
+            @{ Name = "with-assets"; Dir = "$env:GITHUB_WORKSPACE/stage_with_assets" },
+            @{ Name = "no-assets"; Dir = "$env:GITHUB_WORKSPACE/stage_no_assets" }
+          )
+          $stageResults = $stages | ForEach-Object -ThrottleLimit 2 -Parallel {
+            $s = $_
+            try {
+              New-Item -ItemType Directory -Force -Path (Join-Path $s.Dir "pdf2zh") | Out-Null
+              Copy-Item -Path (Join-Path $using:buildDir "*") -Destination (Join-Path $s.Dir "pdf2zh") -Recurse -Force
+              [pscustomobject]@{ Name = $s.Name; Ok = $true; Error = "" }
+            } catch {
+              [pscustomobject]@{ Name = $s.Name; Ok = $false; Error = $_.Exception.Message }
+            }
+          }
+          foreach ($r in $stageResults) {
+            if (-not $r.Ok) { Write-Host "::error::staging 失败 [$($r.Name)]: $($r.Error)" }
+          }
+          if (@($stageResults | Where-Object { -not $_.Ok }).Count -gt 0) { exit 1 }
+
+          # 串行步骤：仅从 no-assets staging 剔除离线资源包（必须在压缩前）
+          Get-ChildItem -Path "$env:GITHUB_WORKSPACE/stage_no_assets" -Filter "offline_assets_*.zip" -Recurse | Remove-Item -Force
+
+          # 并行阶段 2：压缩（CPU 密集，双核并行收益最大）
+          $zips = @(
+            @{ Name = "with-assets"; Source = "$env:GITHUB_WORKSPACE/stage_with_assets/pdf2zh"; Dest = Join-Path $artifactsDir "pdf2zh-$tag-with-assets-win64.zip" },
+            @{ Name = "no-assets"; Source = "$env:GITHUB_WORKSPACE/stage_no_assets/pdf2zh"; Dest = Join-Path $artifactsDir "pdf2zh-$tag-win64.zip" }
+          )
+          $zipResults = $zips | ForEach-Object -ThrottleLimit 2 -Parallel {
+            $z = $_
+            try {
+              Compress-Archive -Path $z.Source -DestinationPath $z.Dest -CompressionLevel Optimal
+              [pscustomobject]@{ Name = $z.Name; Ok = $true; Error = "" }
+            } catch {
+              [pscustomobject]@{ Name = $z.Name; Ok = $false; Error = $_.Exception.Message }
+            }
+          }
+          foreach ($r in $zipResults) {
+            if (-not $r.Ok) { Write-Host "::error::压缩失败 [$($r.Name)]: $($r.Error)" }
+          }
+          if (@($zipResults | Where-Object { -not $_.Ok }).Count -gt 0) { exit 1 }
 
           Write-Host "==== Release packages ===="
           Get-ChildItem $artifactsDir | Select-Object Name, Length

@@ -25,6 +25,7 @@ import {
   getTask,
   listGlossaries,
   listTasks,
+  resultZipUrl,
   selftestMagicpdf,
 } from "../api/endpoints";
 import type { ResultFile, TaskState } from "../api/types";
@@ -168,12 +169,15 @@ export default function Dashboard() {
   }, [activeId]);
 
   async function onSubmit(values: Record<string, unknown>) {
-    const file = values.file;
-    const raw = Array.isArray(file) ? file[0] : undefined;
-    const blob = raw?.originFileObj ?? null;
-    if (!blob || submitting) return;
+    // 批量提交：fileList 中的所有文件作为一个批量任务发送；
+    // 后端按数量自动路由单文件/批量执行器（逐文件进度 + 结果 ZIP）。
+    const picked = Array.isArray(values.file) ? values.file : [];
+    const blobs = picked
+      .map((f: { originFileObj?: File | null }) => f?.originFileObj ?? null)
+      .filter((b: File | null): b is File => !!b);
+    if (blobs.length === 0 || submitting) return;
     const taskId = await submit({
-      file: blob,
+      files: blobs,
       targetLang: (values.target_lang as string) || "zh-CN",
       sourceLang: (values.source_lang as string) || "auto",
       engine: (values.engine as string) || "google",
@@ -201,7 +205,13 @@ export default function Dashboard() {
   }
 
   const artifacts: ResultFile[] = active?.result_files ?? [];
-  const selectedName = Form.useWatch("file", form)?.[0]?.name as string | undefined;
+  const pickedFiles = (Form.useWatch("file", form) ?? []) as {
+    name?: string;
+  }[];
+  const selectedCount = pickedFiles.length;
+  const selectedNames = pickedFiles
+    .map((f) => f.name)
+    .filter((n): n is string => !!n);
 
   return (
     <div style={{ maxWidth: 960, margin: "0 auto", padding: 24, display: "grid", gap: 16 }}>
@@ -223,12 +233,21 @@ export default function Dashboard() {
           output_dir: initialOutputDir,
         }}
       >
-        {/* 文件上传 */}
-        <Card title={t("ui.section_upload")}>
+        {/* 文件上传（支持多选/拖入多个，批量翻译） */}
+        <Card
+          title={t("ui.section_upload")}
+          extra={
+            selectedCount > 0 ? (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t("ui.upload_selected_prefix")}
+                {selectedNames.length > 0 ? selectedNames.join("、") : `${selectedCount} file(s)`}
+              </Typography.Text>
+            ) : undefined
+          }
+        >
           <Form.Item name="file" valuePropName="fileList" getValueFromEvent={(e) => e?.fileList}>
             <Upload.Dragger
-              multiple={false}
-              maxCount={1}
+              multiple
               accept=".pdf,.docx"
               beforeUpload={() => false}
               disabled={submitting}
@@ -368,8 +387,17 @@ export default function Dashboard() {
             ]}
           />
 
-          <Button type="primary" htmlType="submit" loading={submitting} disabled={!selectedName} block size="large">
-            {t("ui.progress_translate")}
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={submitting}
+            disabled={selectedCount === 0}
+            block
+            size="large"
+          >
+            {selectedCount > 1
+              ? `${t("ui.progress_translate")} · ${t("ui.batch_count", { count: selectedCount })}`
+              : t("ui.progress_translate")}
           </Button>
         </Card>
       </Form>
@@ -447,24 +475,56 @@ export default function Dashboard() {
       )}
 
       {/* 预览与下载 */}
-      {artifacts.length > 0 && activeId && (
+      {activeId && (
         <Card title={t("ui.section_preview")}>
-          <Space direction="vertical" size={12} style={{ width: "100%" }}>
-            <div>
-              <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
-                {t("ui.preview_output")}
-              </Typography.Text>
-              <Space wrap size={8}>
-                {artifacts.map((f, i) => (
-                  <ArtifactDownload
-                    key={i}
-                    name={f.name || `artifact-${i}`}
-                    url={artifactUrl(activeId, i)}
-                  />
-                ))}
-              </Space>
-            </div>
-            <div>
+          {/* 批量失败明细 */}
+          {(active?.failed_files ?? 0) > 0 && (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={t("ui.batch_failed_files", { count: active?.failed_files ?? 0 })}
+              description={
+                <List
+                  size="small"
+                  dataSource={active?.file_failures ?? []}
+                  renderItem={(item) => (
+                    <List.Item style={{ paddingInline: 0 }}>
+                      <Typography.Text delete style={{ fontSize: 12 }}>
+                        {item.file}
+                      </Typography.Text>
+                      <Typography.Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                        {item.error}
+                      </Typography.Text>
+                    </List.Item>
+                  )}
+                />
+              }
+            />
+          )}
+          {artifacts.length > 0 ? (
+            <Space direction="vertical" size={12} style={{ width: "100%" }}>
+              <div>
+                <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+                  {t("ui.preview_output")}
+                </Typography.Text>
+                <Space wrap size={8}>
+                  {artifacts.map((f, i) => (
+                    <ArtifactDownload
+                      key={i}
+                      name={f.name || `artifact-${i}`}
+                      url={artifactUrl(activeId, i)}
+                    />
+                  ))}
+                  {artifacts.length > 0 && (
+                    <ArtifactDownload
+                      name={t("ui.download_all_zip")}
+                      url={resultZipUrl(activeId)}
+                    />
+                  )}
+                </Space>
+              </div>
+              <div>
               <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
                 {t("ui.preview_title")}
               </Typography.Text>
@@ -492,8 +552,9 @@ export default function Dashboard() {
               >
                 <PdfPreview key={previewIndex} url={artifactUrl(activeId, previewIndex)} />
               </Suspense>
-            </div>
-          </Space>
+              </div>
+            </Space>
+          ) : null}
         </Card>
       )}
     </div>

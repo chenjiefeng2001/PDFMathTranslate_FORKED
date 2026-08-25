@@ -1,0 +1,177 @@
+{
+ "result": {
+  "tag": "M_p400",
+  "task_id": "task_25cc77129f7e",
+  "status": "completed",
+  "error": null,
+  "wall_seconds": 2492.817,
+  "peak_rss_mb": 13103.4,
+  "stages_seconds": {
+   "analyzing": 2491.784,
+   "completed": 0.0,
+   "parsing": 0.879,
+   "rendering": 0.151,
+   "translating": 0.0
+  },
+  "pages_total_from_events": 730,
+  "per_page_seconds": [],
+  "page_marks_raw": [
+   {
+    "t": 0.8820265999966068,
+    "current": 0,
+    "total": 730
+   },
+   {
+    "t": 10.629019100000733,
+    "current": 200,
+    "total": 730
+   },
+   {
+    "t": 706.0471682999996,
+    "current": 400,
+    "total": 730
+   },
+   {
+    "t": 1332.9348672999986,
+    "current": 600,
+    "total": 730
+   },
+   {
+    "t": 1975.4494847999958,
+    "current": 730,
+    "total": 730
+   }
+  ],
+  "event_count": 10
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": 0.003003799996804446,
+   "wall": 1787636613.4125457,
+   "stage": "parsing",
+   "progress": 0.4,
+   "message": "Starting...",
+   "detail": null
+  },
+  {
+   "seq": 2,
+   "ts": 0.0030073000016273,
+   "wall": 1787636613.413729,
+   "stage": "parsing",
+   "progress": 0.4094746103929676,
+   "message": "magic-pdf/MinerU parsing...",
+   "detail": null
+  },
+  {
+   "seq": 3,
+   "ts": 0.8820265999966068,
+   "wall": 1787636614.1360984,
+   "stage": "analyzing",
+   "progress": 4.748822079291718,
+   "message": "itbook-export.pdf: analyzing page 0/730",
+   "detail": {
+    "engine": "magicpdf",
+    "raw_stage": "doc_analyze",
+    "unit": "page",
+    "current": 0,
+    "total": 730
+   }
+  },
+  {
+   "seq": 4,
+   "ts": 10.629019100000733,
+   "wall": 1787636623.999806,
+   "stage": "analyzing",
+   "progress": 22.324055663543586,
+   "message": "itbook-export.pdf: analyzing page 200/730",
+   "detail": {
+    "engine": "magicpdf",
+    "raw_stage": "doc_analyze",
+    "unit": "page",
+    "current": 200,
+    "total": 730,
+    "batch_current": 1,
+    "batch_total": 4
+   }
+  },
+  {
+   "seq": 5,
+   "ts": 706.0471682999996,
+   "wall": 1787637319.3102553,
+   "stage": "analyzing",
+   "progress": 30.0,
+   "message": "itbook-export.pdf: analyzing page 400/730",
+   "detail": {
+    "engine": "magicpdf",
+    "raw_stage": "doc_analyze",
+    "unit": "page",
+    "current": 400,
+    "total": 730,
+    "batch_current": 2,
+    "batch_total": 4
+   }
+  },
+  {
+   "seq": 6,
+   "ts": 1332.9348672999986,
+   "wall": 1787637946.196296,
+   "stage": "analyzing",
+   "progress": 40.0,
+   "message": "itbook-export.pdf: analyzing page 600/730",
+   "detail": {
+    "engine": "magicpdf",
+    "raw_stage": "doc_analyze",
+    "unit": "page",
+    "current": 600,
+    "total": 730,
+    "batch_current": 3,
+    "batch_total": 4
+   }
+  },
+  {
+   "seq": 7,
+   "ts": 1975.4494847999958,
+   "wall": 1787638588.7123156,
+   "stage": "analyzing",
+   "progress": 40.0,
+   "message": "itbook-export.pdf: analyzing page 730/730",
+   "detail": {
+    "engine": "magicpdf",
+    "raw_stage": "doc_analyze",
+    "unit": "page",
+    "current": 730,
+    "total": 730,
+    "batch_current": 4,
+    "batch_total": 4
+   }
+  },
+  {
+   "seq": 8,
+   "ts": 2492.6660802999977,
+   "wall": 1787639105.9194481,
+   "stage": "translating",
+   "progress": 62.0,
+   "message": "itbook-export.pdf: translating blocks...",
+   "detail": null
+  },
+  {
+   "seq": 9,
+   "ts": 2492.6661012999975,
+   "wall": 1787639106.0245478,
+   "stage": "rendering",
+   "progress": 63.92986916271145,
+   "message": "itbook-export.pdf: rendering mono PDF...",
+   "detail": null
+  },
+  {
+   "seq": 10,
+   "ts": 2492.8166750999953,
+   "wall": 1787639106.1722162,
+   "stage": "completed",
+   "progress": 100.0,
+   "message": "Completed (MagicPDF)",
+   "detail": null
+  }
+ ]
+}

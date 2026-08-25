@@ -22,6 +22,40 @@ logger = logging.getLogger(__name__)
 
 # -- Fixtures ----------------------------------------------------------
 
+# Upper bound on pages parsed per PDF. pdfminer layout analysis is
+# O(n^2) per page; fixtures in tests/file/ include a 730-page book
+# (itbook-export.pdf) that would otherwise stall the whole module.
+_MAX_PARSE_PAGES = 30
+
+
+def _page_count(pdf_path: str) -> int:
+    """Cheap page enumeration (xref only, no content stream processing)."""
+    from pdfminer.pdfdocument import PDFDocument
+    from pdfminer.pdfpage import PDFPage
+    from pdfminer.pdfparser import PDFParser as PDFMinerParser
+
+    with open(pdf_path, "rb") as fp:
+        doc = PDFDocument(PDFMinerParser(fp))
+        return sum(1 for _ in PDFPage.create_pages(doc))
+
+
+def _graph_has_text(graph) -> bool:
+    return any(
+        hasattr(n, "text") and getattr(n, "text", "") and n.text.strip()
+        for n in graph.nodes
+    )
+
+
+def _yields_text(pdf_path: str) -> bool:
+    """Probe whether the document's first page yields a text-bearing graph."""
+    from pdf2zh.v3.graph import DocumentGraphBuilder
+    from pdf2zh.v3.normalizer import Normalizer, NormalizerConfig
+    from pdf2zh.v3.parser import PDFParser
+
+    raw = PDFParser().parse(pdf_path, max_pages=1)
+    normalized = Normalizer(NormalizerConfig(lang_in="auto")).normalize(raw)
+    return _graph_has_text(DocumentGraphBuilder().build(normalized))
+
 
 @pytest.fixture(scope="session")
 def real_pdf_dir() -> Path:
@@ -36,7 +70,7 @@ def real_pdf_dir() -> Path:
     pytest.skip(f"No PDF directory found (tried: {[str(d) for d in candidates]})")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def real_pdf_paths(real_pdf_dir) -> List[str]:
     """Return paths to all real PDF test files."""
     pdfs = sorted(real_pdf_dir.glob("*.pdf"))
@@ -45,31 +79,70 @@ def real_pdf_paths(real_pdf_dir) -> List[str]:
     return [str(p) for p in pdfs]
 
 
+@pytest.fixture(scope="session")
+def small_real_pdf_paths(real_pdf_paths) -> List[str]:
+    """Text-bearing PDFs whose full page count fits within _MAX_PARSE_PAGES.
+
+    Used by tests that parse a document WITHOUT a page cap (RuntimeFacade),
+    so neither the 730-page book nor text-less fixtures (empty graph ->
+    vacuous/failed assertions) can stall or break them.
+    """
+    bounded = []
+    for p in real_pdf_paths:
+        try:
+            n = _page_count(p)
+        except Exception:  # noqa: BLE001 -- unreadable fixture: skip it
+            logger.info("Skipping %s: page count failed", Path(p).name)
+            continue
+        if not (0 < n <= _MAX_PARSE_PAGES):
+            continue
+        try:
+            if not _yields_text(p):
+                logger.info("Skipping %s: no extractable text layer", Path(p).name)
+                continue
+        except Exception:  # noqa: BLE001 -- probe failure: skip it
+            logger.info("Skipping %s: text probe failed", Path(p).name)
+            continue
+        bounded.append(p)
+    return bounded
+
+
+@pytest.fixture(scope="session")
+def normalized_pdfs(real_pdf_paths) -> List:
+    """Parse+normalize every real PDF exactly once per session.
+
+    pdfminer parsing dominates runtime by ~100x versus normalize/build, so
+    the expensive stage is cached here (capped at ``_MAX_PARSE_PAGES`` pages
+    per document); ``parsed_graphs`` then rebuilds fresh graphs cheaply per
+    test, keeping tests independent of each other's graph mutations.
+    """
+    from pdf2zh.v3.parser import PDFParser
+    from pdf2zh.v3.normalizer import Normalizer, NormalizerConfig
+
+    results = []
+    for pdf_path in real_pdf_paths:
+        raw = PDFParser().parse(pdf_path, max_pages=_MAX_PARSE_PAGES)
+        normalized = Normalizer(NormalizerConfig(lang_in="auto")).normalize(raw)
+        results.append((pdf_path, normalized))
+    return results
+
+
 @pytest.fixture
-def parsed_graphs(real_pdf_paths) -> List:
-    """Parse all real PDFs into DocumentGraph objects.
+def parsed_graphs(normalized_pdfs) -> List:
+    """Build fresh DocumentGraphs (per test) from session-cached parse output.
 
     PDFs without an extractable text layer (e.g. vector-outline or scanned
     pages) are skipped: the V4 text pipeline has nothing to analyze for them,
     and every text-content assertion below would otherwise fail on an empty
     graph.
     """
-    from pdf2zh.v3.parser import PDFParser
-    from pdf2zh.v3.normalizer import Normalizer, NormalizerConfig
     from pdf2zh.v3.graph import DocumentGraphBuilder
 
     results = []
-    for pdf_path in real_pdf_paths:
-        parser = PDFParser()
-        raw = parser.parse(pdf_path)
-        normalizer = Normalizer(NormalizerConfig(lang_in="auto"))
-        normalized = normalizer.normalize(raw)
+    for pdf_path, normalized in normalized_pdfs:
         builder = DocumentGraphBuilder()
         graph = builder.build(normalized)
-        if not any(
-            hasattr(n, "text") and getattr(n, "text", "") and n.text.strip()
-            for n in graph.nodes
-        ):
+        if not _graph_has_text(graph):
             logger.info("Skipping %s: no extractable text layer", Path(pdf_path).name)
             continue
         results.append((pdf_path, graph))
@@ -295,8 +368,10 @@ class TestRuntimeFacadeOnRealData:
     """Full RuntimeFacade pipeline with real PDFs."""
 
     @pytest.fixture
-    def first_real_pdf(self, real_pdf_paths) -> str:
-        return real_pdf_paths[0]
+    def first_real_pdf(self, small_real_pdf_paths) -> str:
+        if not small_real_pdf_paths:
+            pytest.skip("no small real PDF available for uncapped parsing")
+        return small_real_pdf_paths[0]
 
     def test_load_parse_real_pdf(self, first_real_pdf):
         from pdf2zh.v3.runtime import RuntimeFacade
@@ -370,8 +445,10 @@ class TestModelRouterIntegration:
     """Verify ModelRouter routes all 9 NodeTypes."""
 
     @pytest.fixture
-    def first_real_pdf(self, real_pdf_paths) -> str:
-        return real_pdf_paths[0]
+    def first_real_pdf(self, small_real_pdf_paths) -> str:
+        if not small_real_pdf_paths:
+            pytest.skip("no small real PDF available for uncapped parsing")
+        return small_real_pdf_paths[0]
 
     def test_router_has_all_routes(self):
         from pdf2zh.v3.translator import ModelRouter

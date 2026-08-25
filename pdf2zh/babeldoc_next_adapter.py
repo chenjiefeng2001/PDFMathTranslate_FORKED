@@ -554,21 +554,41 @@ def run_babeldoc_next_translation(
         config = create_babeldoc_config(settings, Path(work_path))
         # Fuse the default doclayout model with a PP-DocLayoutV2 pseudo-code
         # (``algorithm``) detector so algorithm blocks survive translation
-        # untouched. Falls back to the kernel default (``None``) on any error.
+        # untouched. The fused builder returns ``None`` when protection is
+        # disabled (e.g. documents above the 30-page auto-skip cap); in that
+        # case — and on any build error — fall back to BabelDOC's own default
+        # layout model, because ``create_babeldoc_config`` deliberately leaves
+        # ``doc_layout_model=None`` and the pipeline would otherwise crash
+        # with ``'NoneType' object has no attribute 'handle_document'``.
         try:
             from pdf2zh.doclayout_pseudocode import (
                 build_pseudo_code_protected_layout_model,
             )
 
-            config.doc_layout_model = build_pseudo_code_protected_layout_model(
+            fused_model = build_pseudo_code_protected_layout_model(
                 pdf_path=work_path
             )
+            if fused_model is not None:
+                config.doc_layout_model = fused_model
         except Exception:  # noqa: BLE001 -- never break the BabelDOC pipeline
             logger.warning(
                 "pseudo-code protection model unavailable; "
-                "using kernel default layout model",
+                "using BabelDOC default layout model",
                 exc_info=True,
             )
+        if config.doc_layout_model is None:
+            try:
+                from babeldoc.docvision.doclayout import (
+                    DocLayoutModel as _BabelDocDocLayoutModel,
+                )
+
+                config.doc_layout_model = _BabelDocDocLayoutModel.load_onnx()
+            except Exception:  # noqa: BLE001 -- last-resort diagnostics only
+                logger.error(
+                    "failed to load BabelDOC default doclayout model; "
+                    "the translation will fail",
+                    exc_info=True,
+                )
 
         async def _drive() -> Optional[Any]:
             nonlocal cancelled
@@ -647,3 +667,156 @@ def run_babeldoc_next_translation(
     if result is None:
         return []
     return _collect_result_files(result)
+
+
+# ── 子进程隔离（性能基准报告 P0 #3 / Bug #4）───────────────────────────────
+#
+# babeldoc 内核在进程内连续任务 RSS 稳定增长（实测 6 次 +2GB，ONNX 会话 /
+# il_creater / BabelDOC 内部缓存无法确定性释放）。PDF2ZH_BABELDOC_SUBPROCESS=1
+# 时改走 :func:`run_babeldoc_next_translation_subprocess`：每任务一个全新
+# 子进程（NDJSON 协议，见 pdf2zh.babeldoc_next_worker），进程退出即把全部
+# 原生内存归还 OS。签名/返回契约与进程内版本完全一致，运行时服务可无感切换。
+
+#: 子进程模式下轮询取消信号的间隔（秒）。
+_SUBPROCESS_CANCEL_POLL = 1.0
+
+
+def run_babeldoc_next_translation_subprocess(
+    source_path: str,
+    lang_in: str,
+    lang_out: str,
+    service: str,
+    pages: Optional[str] = None,
+    envs: Optional[Dict[str, Any]] = None,
+    prompt: Optional[Any] = None,
+    ignore_cache: bool = False,
+    qps: int = 4,
+    output_dir: Optional[str] = None,
+    progress_cb: Optional[Callable[[str, float, str], None]] = None,
+    cancelled_check: Optional[Callable[[], bool]] = None,
+    debug: bool = False,
+    ocr_mode: Optional[str] = None,
+    glossary_files: Optional[List[str]] = None,
+) -> List[Dict[str, str]]:
+    """在一次性子进程中执行 :func:`run_babeldoc_next_translation`。
+
+    契约与进程内版本一致（含 ``BabeldocNextUnavailableError`` 软失败语义
+    与取消行为）；差异：
+      - ``cancelled_check`` 由看门狗线程轮询，命中即 kill 子进程并以
+        ``_BabeldocNextCancelledError`` 结束（内核协作式取消点不可跨进程）；
+      - 进度经子进程 NDJSON 帧转发（0.2s 事件节奏不变）。
+    """
+
+    import json as _json
+    import subprocess as _subprocess
+
+    payload = {
+        "source_path": source_path,
+        "lang_in": lang_in,
+        "lang_out": lang_out,
+        "service": service,
+        "pages": pages,
+        "envs": envs,
+        "prompt": prompt if isinstance(prompt, (str, type(None))) else str(prompt),
+        "ignore_cache": bool(ignore_cache),
+        "qps": int(qps or 4),
+        "output_dir": output_dir,
+        "debug": bool(debug),
+        "ocr_mode": ocr_mode,
+        "glossary_files": list(glossary_files or []),
+    }
+
+    proc = _subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            # 测试可注入轻量 stub worker（避免真实内核导入成本）。
+            os.environ.get(
+                "PDF2ZH_BABELDOC_WORKER_MODULE", "pdf2zh.babeldoc_next_worker"
+            ),
+        ],
+        stdin=_subprocess.PIPE,
+        stdout=_subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    )
+    final: Dict[str, Any] = {}
+    reader_err: List[str] = []
+
+    def _read_stdout() -> None:
+        try:
+            for line in proc.stdout or []:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    frame = _json.loads(line)
+                except ValueError:
+                    continue
+                if frame.get("progress"):
+                    if progress_cb is not None:
+                        try:
+                            progress_cb(
+                                str(frame.get("stage") or ""),
+                                float(frame.get("pct") or 0.0),
+                                str(frame.get("msg") or ""),
+                                frame.get("detail"),
+                            )
+                        except Exception:  # noqa: BLE001 -- progress never fatal
+                            pass
+                else:
+                    final.update(frame)
+                    return
+        except Exception as exc:  # noqa: BLE001 -- 读流失败记录后按退出码处理
+            reader_err.append(str(exc))
+
+    reader = threading.Thread(target=_read_stdout, name="babeldoc-worker-reader", daemon=True)
+    reader.start()
+
+    def _cancel_watcher() -> None:
+        while proc.poll() is None:
+            try:
+                if cancelled_check is not None and cancelled_check():
+                    proc.kill()
+                    return
+            except Exception:  # noqa: BLE001 -- 取消探测失败不致命
+                pass
+            threading.Event().wait(_SUBPROCESS_CANCEL_POLL)
+
+    watcher = threading.Thread(target=_cancel_watcher, name="babeldoc-worker-watch", daemon=True)
+    watcher.start()
+
+    try:
+        try:
+            proc.stdin.write(_json.dumps(payload, ensure_ascii=False, default=str))
+            proc.stdin.close()
+        except Exception:  # noqa: BLE001 -- worker 提前退出时写 stdin 失败
+            pass
+        rc = proc.wait()
+        reader.join(timeout=10)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+
+    if cancelled_check is not None:
+        try:
+            if cancelled_check():
+                raise _BabeldocNextCancelledError()
+        except _BabeldocNextCancelledError:
+            raise
+        except Exception:  # noqa: BLE001
+            pass
+
+    if not final:
+        raise RuntimeError(
+            "babeldoc-next subprocess produced no result "
+            f"(exit={rc}, reader_error={reader_err[:1]})"
+        )
+    if final.get("ok"):
+        return [dict(f) for f in (final.get("files") or [])]
+    error_type = str(final.get("error_type") or "")
+    message = str(final.get("error") or "babeldoc-next subprocess failed")
+    if error_type == "BabeldocNextUnavailableError":
+        raise BabeldocNextUnavailableError(message)
+    raise RuntimeError(message)

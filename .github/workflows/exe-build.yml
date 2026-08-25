@@ -56,18 +56,31 @@ jobs:
           Write-Host "==== 复制代码到 dep_build ===="
           Get-ChildItem -Path "./" -Exclude "dep_build", "build" | Copy-Item -Destination "./dep_build" -Recurse -Force
 
-          Write-Host "==== 下载并解压 Python ${{ env.WIN_EXE_PYTHON_VERSION }} ===="
-          Write-Host "pythonUrl: https://www.python.org/ftp/python/${{ env.WIN_EXE_PYTHON_VERSION }}/python-${{ env.WIN_EXE_PYTHON_VERSION }}-embed-amd64.zip"
+          Write-Host "==== 并行下载并解压 Python / PyStand（有界并发；各任务写独立文件、解压到独立目录 => 无竞争）===="
           $pythonUrl = "https://www.python.org/ftp/python/${{ env.WIN_EXE_PYTHON_VERSION }}/python-${{ env.WIN_EXE_PYTHON_VERSION }}-embed-amd64.zip"
-          $pythonZip = "./dep_build/python.zip"
-          Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonZip
-          Expand-Archive -Path $pythonZip -DestinationPath "./build/runtime" -Force
-
-          Write-Host "==== 下载并解压 PyStand ===="
-          $pystandUrl = "https://github.com/skywind3000/PyStand/releases/download/1.1.4/PyStand-v1.1.4-exe.zip"
-          $pystandZip = "./dep_build/PyStand.zip"
-          Invoke-WebRequest -Uri $pystandUrl -OutFile $pystandZip
-          Expand-Archive -Path $pystandZip -DestinationPath "./dep_build/PyStand" -Force
+          $dlTasks = @(
+            @{ Name = "python"; Url = $pythonUrl; Zip = "./dep_build/python.zip"; Dest = "./build/runtime" },
+            @{ Name = "pystand"; Url = "https://github.com/skywind3000/PyStand/releases/download/1.1.4/PyStand-v1.1.4-exe.zip"; Zip = "./dep_build/PyStand.zip"; Dest = "./dep_build/PyStand" }
+          )
+          $dlResults = $dlTasks | ForEach-Object -ThrottleLimit 2 -Parallel {
+            $t = $_
+            try {
+              $ProgressPreference = "SilentlyContinue"
+              Invoke-WebRequest -Uri $t.Url -OutFile $t.Zip -ErrorAction Stop
+              if ((Get-Item -LiteralPath $t.Zip).Length -eq 0) { throw "downloaded zip is empty: $($t.Zip)" }
+              Expand-Archive -Path $t.Zip -DestinationPath $t.Dest -Force -ErrorAction Stop
+              [pscustomobject]@{ Name = $t.Name; Ok = $true; Error = "" }
+            } catch {
+              [pscustomobject]@{ Name = $t.Name; Ok = $false; Error = $_.Exception.Message }
+            }
+          }
+          # 确定性汇合：全部任务结束后统一聚合错误并快速失败
+          foreach ($r in $dlResults) { Write-Host ("  [{0}] {1}" -f $(if ($r.Ok) { "ok" } else { "FAIL" }), $r.Name) }
+          $dlFailed = @($dlResults | Where-Object { -not $_.Ok })
+          if ($dlFailed.Count -gt 0) {
+            foreach ($f in $dlFailed) { Write-Host "::error::下载/解压失败 [$($f.Name)]: $($f.Error)" }
+            exit 1
+          }
 
           Write-Host "==== 复制 PyStand.exe 到 build 并重命名 ===="
           $pystandExe = "./dep_build/PyStand/PyStand-x64-CLI/PyStand.exe"
@@ -139,23 +152,48 @@ jobs:
       - name: Delete offline assets and cache
         shell: pwsh
         run: |
-          Write-Host "==== 查找并删除离线资源包 ===="
-          $offlineAssetsPath = Get-ChildItem -Path "./build" -Filter "offline_assets_*.zip" -Recurse | Select-Object -First 1 -ExpandProperty FullName
-          if ($offlineAssetsPath) {
-            Write-Host "找到离线资源包: $offlineAssetsPath"
-            Remove-Item -Path $offlineAssetsPath -Force
-            Write-Host "已删除离线资源包"
-          } else {
-            Write-Host "未找到离线资源包"
+          # 并行删除两类互不相交的目标（离线资源包 / babeldoc 缓存）：
+          # 独立路径 => 无竞争；ThrottleLimit=2 有界并发 => 无资源争用；
+          # ForEach-Object -Parallel 自动等待全部完成 => 确定性汇合、无泄漏。
+          Write-Host "==== 并行删除离线资源包与缓存目录 ===="
+          $buildDir = (Resolve-Path "./build").Path
+          $cachePath = Join-Path $env:USERPROFILE "/.cache/babeldoc"
+          $delTasks = @(
+            @{ Name = "offline-assets" },
+            @{ Name = "babeldoc-cache" }
+          )
+          $delResults = $delTasks | ForEach-Object -ThrottleLimit 2 -Parallel {
+            $t = $_
+            try {
+              if ($t.Name -eq "offline-assets") {
+                $found = Get-ChildItem -Path $using:buildDir -Filter "offline_assets_*.zip" -Recurse
+                if ($found) {
+                  foreach ($f in $found) {
+                    Write-Host "找到离线资源包: $($f.FullName)"
+                    Remove-Item -LiteralPath $f.FullName -Force
+                  }
+                  Write-Host "已删除离线资源包"
+                } else {
+                  Write-Host "未找到离线资源包"
+                }
+              } else {
+                if (Test-Path -LiteralPath $using:cachePath) {
+                  Remove-Item -LiteralPath $using:cachePath -Recurse -Force
+                  Write-Host "已删除缓存目录: $($using:cachePath)"
+                } else {
+                  Write-Host "缓存目录不存在: $($using:cachePath)"
+                }
+              }
+              [pscustomobject]@{ Name = $t.Name; Ok = $true; Error = "" }
+            } catch {
+              [pscustomobject]@{ Name = $t.Name; Ok = $false; Error = $_.Exception.Message }
+            }
           }
-          
-          Write-Host "==== 删除缓存目录 ===="
-          $cachePath = "$env:USERPROFILE/.cache/babeldoc"
-          if (Test-Path $cachePath) {
-            Remove-Item -Path $cachePath -Recurse -Force
-            Write-Host "已删除缓存目录: $cachePath"
-          } else {
-            Write-Host "缓存目录不存在: $cachePath"
+          foreach ($r in $delResults) { Write-Host ("  [{0}] {1}" -f $(if ($r.Ok) { "ok" } else { "FAIL" }), $r.Name) }
+          $delFailed = @($delResults | Where-Object { -not $_.Ok })
+          if ($delFailed.Count -gt 0) {
+            foreach ($f in $delFailed) { Write-Host "::error::删除失败 [$($f.Name)]: $($f.Error)" }
+            exit 1
           }
 
       - name: Test - Translate without offline assets

@@ -1,0 +1,47 @@
+{
+ "result": {
+  "tag": "smoke_block",
+  "task_id": "task_d3e799196743",
+  "status": "watchdog-timeout",
+  "error": "exceeded 12.0 min watchdog",
+  "wall_seconds": 720.116,
+  "peak_rss_mb": 1102.2,
+  "stages_seconds": {
+   "parsing": 9.921,
+   "translating": 708.744
+  },
+  "pages_total_from_events": null,
+  "per_page_seconds": [],
+  "page_marks_raw": [],
+  "event_count": 3
+ },
+ "events": [
+  {
+   "seq": 1,
+   "ts": 1.4511927000003197,
+   "wall": 1787616002.0351765,
+   "stage": "parsing",
+   "progress": 0.4,
+   "message": "Starting...",
+   "detail": null
+  },
+  {
+   "seq": 2,
+   "ts": 11.371927299998788,
+   "wall": 1787616011.8115084,
+   "stage": "parsing",
+   "progress": 9.997232738710144,
+   "message": "Parsing (Legacy)...",
+   "detail": null
+  },
+  {
+   "seq": 3,
+   "ts": 11.371934499999043,
+   "wall": 1787616011.8461604,
+   "stage": "translating",
+   "progress": 4.0,
+   "message": "Translating...",
+   "detail": null
+  }
+ ]
+}

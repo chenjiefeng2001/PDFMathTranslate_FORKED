@@ -54,7 +54,11 @@ const SPA_OVERLAY = {
       settings_credential_overwrite_ph: "已配置 {{mask}}，输入新值可覆盖",
       settings_credential_clear: "清除",
       settings_credential_will_clear: "将清除",
-      upload_formats_hint: "支持 PDF / DOCX，可拖入或点击选择；选中后可在下方列表移除或再次选择进行替换。",
+      upload_formats_hint:
+        "支持 PDF / DOCX，可拖入或点击选择；选中后可在下方列表移除或再次选择进行替换。",
+      batch_count: "批量 {{count}} 个文件",
+      download_all_zip: "全部下载（ZIP）",
+      batch_failed_files: "{{count}} 个文件翻译失败",
       settings_models: "版面模型（GPU）",
       settings_models_hint:
         "doclayout ONNX 模型用于 GPU 加速的版面分析，按需下载到本地缓存（~/.cache/babeldoc），不随安装包分发。首次翻译前建议先下载。",
@@ -121,6 +125,9 @@ const SPA_OVERLAY = {
       settings_credential_will_clear: "will be cleared",
       upload_formats_hint:
         "Accepts PDF / DOCX. Drag & drop or click to select; remove or replace the file in the list below.",
+      batch_count: "Batch · {{count}} files",
+      download_all_zip: "Download all (ZIP)",
+      batch_failed_files: "{{count}} file(s) failed",
       settings_models: "Layout model (GPU)",
       settings_models_hint:
         "The doclayout ONNX model powers GPU-accelerated layout analysis. It is downloaded on demand into the local cache (~/.cache/babeldoc) and is not shipped with the installer.",
