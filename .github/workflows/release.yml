@@ -292,52 +292,19 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
 
-      # [1/3] sidecar：在 uv 管理的项目环境内跑 PyInstaller（onedir）
-      - name: Build API sidecar (PyInstaller onedir)
+      # 统一走 script/build-tauri.ps1（与本地桌面构建同一份实现），三段链路一致：
+      #   [1/3] sidecar (PyInstaller onedir) / [2/3] SPA / [3/3] tauri NSIS。
+      - name: Sync deps + pyinstaller (uv)
         shell: pwsh
         run: |
           uv sync --python "${{ env.WIN_EXE_PYTHON_VERSION }}"
           uv pip install pyinstaller
-          uv run python -m PyInstaller deploy/pdf2zh-api-sidecar.spec `
-            --noconfirm `
-            --workpath deploy/_build_sidecar/_work `
-            --distpath deploy/_build_sidecar/dist
-          if (-not (Test-Path "deploy/_build_sidecar/dist/pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe")) {
-            throw "sidecar exe missing after PyInstaller"
-          }
 
-      - name: Refresh Tauri sidecar binaries
+      - name: Build desktop (script/build-tauri.ps1)
         shell: pwsh
         run: |
-          $target = "frontend/src-tauri/binaries/pdf2zh-api-sidecar"
-          if (Test-Path $target) { Remove-Item -LiteralPath $target -Recurse -Force }
-          New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
-          Copy-Item -LiteralPath "deploy/_build_sidecar/dist/pdf2zh-api-sidecar" `
-            -Destination $target -Recurse -Force
-          Get-ChildItem $target | Select-Object -First 5 Name
-
-      # [2/3] SPA 静态产物
-      - name: Build SPA (tsc + vite)
-        working-directory: frontend
-        shell: pwsh
-        run: |
-          npm ci --no-fund --no-audit
-          npm run build
-          if (-not (Test-Path "dist/index.html")) { throw "SPA dist/index.html missing" }
-
-      # [3/3] Tauri 打包：以 release tag 覆盖 conf 内的占位 version，
-      # 安装器文件名随之携带正确版本号。
-      - name: Tauri build (NSIS bundle)
-        shell: pwsh
-        env:
-          TAURI_VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          $override = Join-Path $env:RUNNER_TEMP "tauri.version.json"
-          @{ version = $env:TAURI_VERSION } | ConvertTo-Json | Set-Content -Encoding utf8 $override
-          Set-Location frontend
-          npx tauri build --config $override
-          if ($LASTEXITCODE -ne 0) { throw "tauri build failed ($LASTEXITCODE)" }
-          Set-Location ..
+          ./script/build-tauri.ps1 -UseUv `
+            -TauriVersion "${{ needs.version.outputs.version }}"
 
       - name: Verify bundle artifacts
         shell: pwsh

@@ -30,7 +30,13 @@ param(
     [switch]$SkipWeb,
     [switch]$SkipBundle,
     [switch]$DebugBuild,
-    [string]$Python = "python"
+    [string]$Python = "python",
+    # -UseUv：sidecar 用 `uv run python -m PyInstaller`（CI 在 uv 环境内构建）；
+    # 前端依赖用 `npm ci` 而非 `npm install`（可复现锁定）。
+    [switch]$UseUv,
+    # -TauriVersion：以该版本号覆盖 tauri.conf.json 占位 version，使安装器
+    # 文件名携带正确版本；等价于 release.yml 内的临时 override 配置。
+    [string]$TauriVersion = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,9 +62,13 @@ foreach ($tool in @("node", "npm", "cargo")) {
     }
 }
 if (-not $SkipSidecar) {
-    & $Python -m PyInstaller --version *> $null
+    if ($UseUv) {
+        uv run python -m PyInstaller --version *> $null
+    } else {
+        & $Python -m PyInstaller --version *> $null
+    }
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "ERROR: PyInstaller not available for interpreter '$Python'." -ForegroundColor Red
+        Write-Host "ERROR: PyInstaller not available (UseUv=$UseUv)." -ForegroundColor Red
         exit 1
     }
 }
@@ -68,8 +78,13 @@ if (-not $SkipSidecar) {
     Write-Host "==== [1/3] Building pdf2zh-api-sidecar (PyInstaller onedir) ===="
     Push-Location $ProjectRoot
     try {
-        & $Python -m PyInstaller $SpecFile --noconfirm `
-            --workpath $PyInstWork --distpath $PyInstDist
+        if ($UseUv) {
+            uv run python -m PyInstaller $SpecFile --noconfirm `
+                --workpath $PyInstWork --distpath $PyInstDist
+        } else {
+            & $Python -m PyInstaller $SpecFile --noconfirm `
+                --workpath $PyInstWork --distpath $PyInstDist
+        }
         if ($LASTEXITCODE -ne 0) {
             Write-Host "ERROR: PyInstaller failed (exit $LASTEXITCODE)." -ForegroundColor Red
             exit 1
@@ -102,10 +117,15 @@ if (-not $SkipWeb) {
     Push-Location $FrontendDir
     try {
         if (-not (Test-Path (Join-Path $FrontendDir "node_modules"))) {
-            Write-Host "  node_modules missing, running npm install ..."
-            npm install
+            if ($UseUv) {
+                Write-Host "  node_modules missing, running npm ci ..."
+                npm ci
+            } else {
+                Write-Host "  node_modules missing, running npm install ..."
+                npm install
+            }
             if ($LASTEXITCODE -ne 0) {
-                Write-Host "ERROR: npm install failed." -ForegroundColor Red
+                Write-Host "ERROR: npm install/ci failed." -ForegroundColor Red
                 exit 1
             }
         }
@@ -130,6 +150,11 @@ Write-Host "==== [3/3] Tauri v2 build (cargo + NSIS bundle) ===="
 $tauriArgs = @("tauri", "build")
 if ($DebugBuild) { $tauriArgs += "--debug" }
 if ($SkipBundle) { $tauriArgs += "--no-bundle" }
+if ($TauriVersion) {
+    $override = Join-Path $env:TEMP ("tauri.version." + [guid]::NewGuid().ToString("N") + ".json")
+    @{ version = $TauriVersion } | ConvertTo-Json | Set-Content -Encoding utf8 $override
+    $tauriArgs += "--config"; $tauriArgs += $override
+}
 
 Push-Location $FrontendDir
 try {

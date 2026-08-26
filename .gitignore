@@ -220,3 +220,14 @@ frontend/src-tauri/binaries/*
 *.pyd
 *.onnx
 *.pth
+
+# ── CLI green build outputs (script/build-win64.ps1) ───────────────
+# 该目录会落一个完整 Python 运行时（~1.4GB），绝不入库；
+# 若历史提交已跟踪了 script/build/，用 `git rm --cached -r script/build` 解除跟踪。
+script/build/
+dep_build/
+build/
+dist/
+
+# WinRAR archive produced by script/build-win64.ps1 -DownloadVCRedist
+*.rar

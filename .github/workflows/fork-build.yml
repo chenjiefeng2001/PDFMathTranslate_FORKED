@@ -167,83 +167,24 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
 
-      - name: 执行所有任务（创建目录、下载、解压、复制文件、安装依赖）
+      # 统一走 script/build-win64.ps1（与 release.yml / python-publish.yml / exe-build.yml
+      # 同一份实现），确保 gradio 长路径 & startup-events 补丁一定被应用；内联副本
+      # 会因漏打补丁而产出无法在 Windows 启动的构建。-GenerateOfflineAssets 已在构建
+      # 期产出离线资源包，故本作业直接上传带资源的成品。
+      - name: Build Windows executable (canonical script/build-win64.ps1)
         shell: pwsh
         run: |
-          Write-Host "==== 创建必要的目录 ===="
-          New-Item -Path "./build" -ItemType Directory -Force
-          New-Item -Path "./build/runtime" -ItemType Directory -Force
-          New-Item -Path "./dep_build" -ItemType Directory -Force
-
-          Write-Host "==== 复制代码到 dep_build ===="
-          Get-ChildItem -Path "./" -Exclude "dep_build", "build" | Copy-Item -Destination "./dep_build" -Recurse -Force
-
-          Write-Host "==== 并行下载 Python / VCRedist / PyStand（有界并发；各任务写独立文件 => 无竞争）===="
-          $pythonUrl = "https://www.python.org/ftp/python/${{ env.WIN_EXE_PYTHON_VERSION }}/python-${{ env.WIN_EXE_PYTHON_VERSION }}-embed-amd64.zip"
-          Write-Host "pythonUrl: $pythonUrl"
-          $dlTasks = @(
-            @{ Name = "python"; Url = $pythonUrl; Zip = "./dep_build/python.zip"; Dest = "./build/runtime" },
-            @{ Name = "pystand"; Url = "https://github.com/skywind3000/PyStand/releases/download/1.1.4/PyStand-v1.1.4-exe.zip"; Zip = "./dep_build/PyStand.zip"; Dest = "./dep_build/PyStand" },
-            @{ Name = "vcredist"; Url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"; Zip = "./build/无法运行请安装vc_redist.x64.exe"; Dest = "" }
-          )
-          # 有界并发(ThrottleLimit=2)：独立输出文件 => 无竞争；确定性汇合后统一失败
-          $dlResults = $dlTasks | ForEach-Object -ThrottleLimit 2 -Parallel {
-            $t = $_
-            try {
-              $ProgressPreference = "SilentlyContinue"
-              Invoke-WebRequest -Uri $t.Url -OutFile $t.Zip -ErrorAction Stop
-              if ((Get-Item -LiteralPath $t.Zip).Length -eq 0) { throw "downloaded file is empty: $($t.Zip)" }
-              if ($t.Dest) {
-                Expand-Archive -Path $t.Zip -DestinationPath $t.Dest -Force -ErrorAction Stop
-              }
-              [pscustomobject]@{ Name = $t.Name; Ok = $true; Error = "" }
-            } catch {
-              [pscustomobject]@{ Name = $t.Name; Ok = $false; Error = $_.Exception.Message }
-            }
-          }
-          foreach ($r in $dlResults) { Write-Host ("  [{0}] {1}" -f $(if ($r.Ok) { "ok" } else { "FAIL" }), $r.Name) }
-          $dlFailed = @($dlResults | Where-Object { -not $_.Ok })
-          if ($dlFailed.Count -gt 0) {
-            foreach ($f in $dlFailed) { Write-Host "::error::下载/解压失败 [$($f.Name)]: $($f.Error)" }
-            exit 1
-          }
-          Write-Host "已下载 Visual C++ Redistributable 安装程序到: ./build/无法运行请安装vc_redist.x64.exe"
-
-          Write-Host "==== 复制 PyStand.exe 到 build 并重命名 ===="
-          $pystandExe = "./dep_build/PyStand/PyStand-x64-CLI/PyStand.exe"
-          $destExe = "./build/pdf2zh.exe"
-          if (Test-Path $pystandExe) {
-              Copy-Item -Path $pystandExe -Destination $destExe -Force
-          } else {
-              Write-Host "错误: PyStand.exe 未找到！"
-              exit 1
-          }
-          Write-Host "==== 创建 Python venv 在 dep_build ===="
-          uv venv ./dep_build/venv
-
-          ./dep_build/venv/Scripts/activate
-
-          Write-Host "==== 在 venv 环境中安装项目依赖 ===="
-          uv pip install .
-
-          Write-Host "==== 复制 venv/Lib/site-packages 到 build/ ===="
-          Copy-Item -Path "./dep_build/venv/Lib/site-packages" -Destination "./build/site-packages" -Recurse -Force
-
-          Write-Host "==== 复制 script/_pystand_static.int 到 build/ ===="
-          $staticFile = "./script/_pystand_static.int"
-          $destStatic = "./build/_pystand_static.int"
-          if (Test-Path $staticFile) {
-              Copy-Item -Path $staticFile -Destination $destStatic -Force
-          } else {
-              Write-Host "错误: script/_pystand_static.int 未找到！"
-              exit 1
-          }
+          ./script/build-win64.ps1 `
+            -PythonVersion "${{ env.WIN_EXE_PYTHON_VERSION }}" `
+            -CleanBabelDoc `
+            -DownloadVCRedist `
+            -GenerateOfflineAssets
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: win64-exe
-          path: ./build
+          name: win64-exe-with-assets
+          path: ./script/build
           if-no-files-found: error
           compression-level: 1
           include-hidden-files: true
@@ -258,47 +199,34 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: Download build artifact
+      - name: Download build artifact (with offline assets)
         uses: actions/download-artifact@v8
         with:
-          name: win64-exe
-          path: ./build
+          name: win64-exe-with-assets
+          path: ./script/build
 
       - name: Test show version (online mode)
         run: |
-          ./build/pdf2zh.exe --version
-      
+          ./script/build/pdf2zh.exe --version
+
       - name: Test - Translate a PDF file with plain text only (online mode)
         run: |
-          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
+          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
 
       - name: Test - Translate a PDF file figure
         run: |
-          ./build/pdf2zh.exe ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
+          ./script/build/pdf2zh.exe ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
 
       - name: Test - Translate without offline assets (online mode)
         run: |
-          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
-          
+          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
+
       - name: Upload test results
         uses: actions/upload-artifact@v7
         with:
           name: test-results
           path: ./tests/file/
           if-no-files-found: error
-
-      - name: Setup uv with Python ${{ env.WIN_EXE_PYTHON_VERSION }}
-        uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41 # v7.1.2
-        with:
-          python-version: ${{ env.WIN_EXE_PYTHON_VERSION }}
-          enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
-
-      - name: Generate offline assets
-        shell: pwsh
-        run: |
-          Write-Host "==== 生成离线资源包 ===="
-          uv run --active babeldoc --generate-offline-assets ./build
 
       - name: Delete cache
         shell: pwsh
@@ -316,7 +244,7 @@ jobs:
         run: |
           Write-Host "==== 测试离线资源包 ===="
           New-Item -Path "./tests/file/offline_result" -ItemType Directory -Force
-          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file/offline_result
+          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file/offline_result
 
       - name: Upload offline test results
         uses: actions/upload-artifact@v7
@@ -329,7 +257,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: win64-exe-with-assets
-          path: ./build
+          path: ./script/build
           if-no-files-found: error
           compression-level: 1
           include-hidden-files: true

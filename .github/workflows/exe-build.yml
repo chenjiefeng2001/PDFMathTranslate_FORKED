@@ -38,87 +38,23 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
 
-      - name: 执行所有任务（创建目录、下载、解压、复制文件、安装依赖）
+      # 统一走 script/build-win64.ps1（与 release.yml / python-publish.yml 同一份
+      # 实现），确保 gradio 长路径 & startup-events 补丁一定被应用；内联副本会因
+      # 漏打补丁而产出无法在 Windows 启动的构建。
+      - name: Build Windows executable (canonical script/build-win64.ps1)
         shell: pwsh
         run: |
-          Write-Host "==== 删除 babeldoctemp1234567 文件夹 ===="
-          if (Test-Path "./babeldoctemp1234567") {
-              Remove-Item -Path "./babeldoctemp1234567" -Recurse -Force
-              Write-Host "babeldoctemp1234567 文件夹已成功删除"
-          } else {
-              Write-Host "babeldoctemp1234567 文件夹不存在，无需删除"
-          }
-          Write-Host "==== 创建必要的目录 ===="
-          New-Item -Path "./build" -ItemType Directory -Force
-          New-Item -Path "./build/runtime" -ItemType Directory -Force
-          New-Item -Path "./dep_build" -ItemType Directory -Force
-
-          Write-Host "==== 复制代码到 dep_build ===="
-          Get-ChildItem -Path "./" -Exclude "dep_build", "build" | Copy-Item -Destination "./dep_build" -Recurse -Force
-
-          Write-Host "==== 并行下载并解压 Python / PyStand（有界并发；各任务写独立文件、解压到独立目录 => 无竞争）===="
-          $pythonUrl = "https://www.python.org/ftp/python/${{ env.WIN_EXE_PYTHON_VERSION }}/python-${{ env.WIN_EXE_PYTHON_VERSION }}-embed-amd64.zip"
-          $dlTasks = @(
-            @{ Name = "python"; Url = $pythonUrl; Zip = "./dep_build/python.zip"; Dest = "./build/runtime" },
-            @{ Name = "pystand"; Url = "https://github.com/skywind3000/PyStand/releases/download/1.1.4/PyStand-v1.1.4-exe.zip"; Zip = "./dep_build/PyStand.zip"; Dest = "./dep_build/PyStand" }
-          )
-          $dlResults = $dlTasks | ForEach-Object -ThrottleLimit 2 -Parallel {
-            $t = $_
-            try {
-              $ProgressPreference = "SilentlyContinue"
-              Invoke-WebRequest -Uri $t.Url -OutFile $t.Zip -ErrorAction Stop
-              if ((Get-Item -LiteralPath $t.Zip).Length -eq 0) { throw "downloaded zip is empty: $($t.Zip)" }
-              Expand-Archive -Path $t.Zip -DestinationPath $t.Dest -Force -ErrorAction Stop
-              [pscustomobject]@{ Name = $t.Name; Ok = $true; Error = "" }
-            } catch {
-              [pscustomobject]@{ Name = $t.Name; Ok = $false; Error = $_.Exception.Message }
-            }
-          }
-          # 确定性汇合：全部任务结束后统一聚合错误并快速失败
-          foreach ($r in $dlResults) { Write-Host ("  [{0}] {1}" -f $(if ($r.Ok) { "ok" } else { "FAIL" }), $r.Name) }
-          $dlFailed = @($dlResults | Where-Object { -not $_.Ok })
-          if ($dlFailed.Count -gt 0) {
-            foreach ($f in $dlFailed) { Write-Host "::error::下载/解压失败 [$($f.Name)]: $($f.Error)" }
-            exit 1
-          }
-
-          Write-Host "==== 复制 PyStand.exe 到 build 并重命名 ===="
-          $pystandExe = "./dep_build/PyStand/PyStand-x64-CLI/PyStand.exe"
-          $destExe = "./build/pdf2zh.exe"
-          if (Test-Path $pystandExe) {
-              Copy-Item -Path $pystandExe -Destination $destExe -Force
-          } else {
-              Write-Host "错误: PyStand.exe 未找到！"
-              exit 1
-          }
-          Write-Host "==== 创建 Python venv 在 dep_build ===="
-          uv venv ./dep_build/venv
-
-          ./dep_build/venv/Scripts/activate
-
-          Write-Host "==== 在 venv 环境中安装项目依赖 ===="
-          uv pip install .
-
-          Write-Host "==== 复制 venv/Lib/site-packages 到 build/ ===="
-          Copy-Item -Path "./dep_build/venv/Lib/site-packages" -Destination "./build/site-packages" -Recurse -Force
-
-          Write-Host "==== 复制 script/_pystand_static.int 到 build/ ===="
-          $staticFile = "./script/_pystand_static.int"
-          $destStatic = "./build/_pystand_static.int"
-          if (Test-Path $staticFile) {
-              Copy-Item -Path $staticFile -Destination $destStatic -Force
-          } else {
-              Write-Host "错误: script/_pystand_static.int 未找到！"
-              exit 1
-          }
-
-          uv run --active babeldoc --generate-offline-assets ./build
+          ./script/build-win64.ps1 `
+            -PythonVersion "${{ env.WIN_EXE_PYTHON_VERSION }}" `
+            -CleanBabelDoc `
+            -DownloadVCRedist `
+            -GenerateOfflineAssets
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
         with:
           name: win64-exe
-          path: ./build
+          path: ./script/build
           if-no-files-found: error
           compression-level: 9
           include-hidden-files: true
@@ -135,19 +71,19 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: win64-exe
-          path: ./build
+          path: ./script/build
 
       - name: Test show version
         run: |
-          ./build/pdf2zh.exe --version
-      
+          ./script/build/pdf2zh.exe --version
+       
       - name: Test - Translate a PDF file with plain text only
         run: |
-          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
+          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
 
       - name: Test - Translate a PDF file figure
         run: |
-          ./build/pdf2zh.exe ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
+          ./script/build/pdf2zh.exe ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
 
       - name: Delete offline assets and cache
         shell: pwsh
@@ -156,7 +92,7 @@ jobs:
           # 独立路径 => 无竞争；ThrottleLimit=2 有界并发 => 无资源争用；
           # ForEach-Object -Parallel 自动等待全部完成 => 确定性汇合、无泄漏。
           Write-Host "==== 并行删除离线资源包与缓存目录 ===="
-          $buildDir = (Resolve-Path "./build").Path
+          $buildDir = (Resolve-Path "./script/build").Path
           $cachePath = Join-Path $env:USERPROFILE "/.cache/babeldoc"
           $delTasks = @(
             @{ Name = "offline-assets" },
@@ -198,7 +134,7 @@ jobs:
 
       - name: Test - Translate without offline assets
         run: |
-          ./build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
+          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
           
       - name: Upload test results
         uses: actions/upload-artifact@v7
