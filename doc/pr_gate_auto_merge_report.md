@@ -61,7 +61,19 @@ tauri v2 在 ubuntu 需 apt 装 webkitgtk 系列依赖，重且脆；Windows run
 | changes 路径分类干跑 | ✅ src-tauri/frontend/python 三类命中符合预期 |
 | `set -e` 陷阱排查 | ✅ 条件赋值改用 if 形式，避免 `[[ ]] && cmd` 短路退出 |
 
-## 5. 后续可选
+## 5. 追加：移除 push 触发的重型构建（同日）
+
+落地 pr-gate 后，push 到 main 仍会触发 `fork-test`（完整 Python 测试矩阵）与 `frontend-build`（npm 构建），对直接推送形成重复验证。调整：
+
+| 工作流 | 调整 | 理由 |
+|---|---|---|
+| `fork-test.yml` | push → 仅 `workflow_dispatch` | 重型矩阵（pytest + 双 PDF 翻译 + uv build ×4 job）不应随每次 push 空转；PR 场景由 `python-test.yml` 自身的 pull_request 触发覆盖 |
+| `frontend-build.yml` | 移除 push 触发，保留 pull_request | 构建产物在合并前的 PR 上已验证；pr-gate 依赖的是其 **pull_request** 触发器，自动合并不受影响 |
+| `black.format.yml` / `python-publish.yml` | 不动 | 前者为秒级 lint，后者在 fork 被 `is_main_repo` 守卫空跑 |
+
+关键约束核对：pr-gate 的 `auto-merge` 预期工作流（Black、python-test、frontend-build）全部依赖 **pull_request 触发器**，本次改动零影响。
+
+## 6. 后续可选
 
 - 前端目前仅有 tsc/vite 构建，可补 eslint 门禁；
 - `cargo test` 在 Windows runner 首次冷跑较慢，如超时可加二进制缓存或降级为 clippy-only。

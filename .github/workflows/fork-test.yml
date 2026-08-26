@@ -1,8 +1,10 @@
 name: fork-test
 
 on:
-  push:
-    branches: [ "main", "master" ]
+  # 不再随 push 到 main 自动运行完整测试矩阵（重：pytest + 双 PDF 翻译 +
+  # uv build × 2×2）；PR 场景由 python-test.yml 的 pull_request 触发覆盖，
+  # 需要手动全量验证时在此页 Run workflow 即可。
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io

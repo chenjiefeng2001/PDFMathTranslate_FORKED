@@ -1,9 +1,8 @@
 name: frontend-build
 
 on:
-  push:
-    branches: [main]
-    paths: ["frontend/**", ".github/workflows/frontend-build.yml"]
+  # 仅 PR 触发：push 到 main 的重复构建无消费方（产物在合并前的 PR 已验证）；
+  # pr-gate 的自动合并依赖本工作流的 pull_request 触发器，保持不变。
   pull_request:
     paths: ["frontend/**", ".github/workflows/frontend-build.yml"]
 
