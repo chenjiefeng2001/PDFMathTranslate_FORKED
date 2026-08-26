@@ -21,7 +21,6 @@ import os
 import subprocess
 import sys
 
-
 #: ``probe_mineru_override`` 的探测结果缓存（按解释器路径），避免每次探测
 #: 都启动子进程（mineru 在 venv 内的可导入性只需校验一次）。
 _OVERRIDE_PROBE_CACHE: dict[str, bool] = {}
@@ -153,9 +152,12 @@ def probe_mineru_override() -> str | None:
     ok = False
     try:
         result = subprocess.run(
-            [python, "-c",
-             "import importlib.util, sys; "
-             "sys.exit(0 if importlib.util.find_spec('mineru') is not None else 1)"],
+            [
+                python,
+                "-c",
+                "import importlib.util, sys; "
+                "sys.exit(0 if importlib.util.find_spec('mineru') is not None else 1)",
+            ],
             capture_output=True,
             timeout=60,
         )
