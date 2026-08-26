@@ -5,14 +5,15 @@
 check-revoke = false
 
 # 需要代理时请用环境变量（cargo 原生支持，勿在本文件硬编码个人网络配置）：
-#   PowerShell:  $env:HTTPS_PROXY = "http://127.0.0.1:<port>"
+#   PowerShell:  $env:CARGO_HTTP_PROXY = "socks5h://127.0.0.1:<port>"
 #   bash:        export https_proxy=http://127.0.0.1:<port>
 #
-# 备用镜像（直连 crates.io 不稳定时可启用）：
-# [source.crates-io]
-# replace-with = 'rsproxy-sparse'
-# [source.rsproxy-sparse]
-# registry = "sparse+https://rsproxy.cn/index/"
+# 直连 crates.io 不稳定（schannel 握手被重置）时启用 rsproxy 镜像：
+[source.crates-io]
+replace-with = 'rsproxy-sparse'
+
+[source.rsproxy-sparse]
+registry = "sparse+https://rsproxy.cn/index/"
 
 [net]
 git-fetch-with-cli = true

@@ -4,8 +4,8 @@
 //! 职责（对应 frontend/README.md 的三处接缝）：
 //! 1. Sidecar：以子进程托管 REST/SSE 后端（onedir sidecar / 兼容旧单文件 /
 //!    开发态 PDF2ZH_PYTHON）；
-//! 2. 启动体验：先弹无装饰闪屏，API 就绪后切主窗口——冷启动（spawn +
-//!    Python 导入 ~3.6s）不再表现为"点了没反应"；
+//! 2. 启动体验：主窗口立即可见，sidecar 冷启动期由 SPA ReadyGate 呈现
+//!    「连接中」状态（冷启动 trace 结论：押后显示 = 4~5s 盲等）；
 //! 3. 注入：webview initialization_script 在页面脚本执行前写入
 //!    `window.__PDF2ZH_RUNTIME__.apiBase` —— 前端业务代码零改动。
 //!
@@ -16,8 +16,6 @@
 use std::process::{Child, Command};
 use std::sync::Mutex;
 use std::time::Duration;
-
-use tauri::Manager;
 
 fn api_port() -> u16 {
     std::env::var("PDF2ZH_API_PORT")
@@ -37,6 +35,23 @@ fn wait_for_api(port: u16, timeout_secs: u64) -> bool {
         std::thread::sleep(Duration::from_millis(300));
     }
     false
+}
+
+/// 把前端抓取的字节流写到用户经原生对话框选定的路径。
+///
+/// 只接受 dialog 插件返回的路径（前端保证来源），因此无需开放
+/// tauri-plugin-fs 的任意路径写权限；父目录不存在时自动创建。
+#[tauri::command]
+fn save_bytes(path: String, data: Vec<u8>) -> Result<(), String> {
+    if std::path::Path::new(&path).is_dir() {
+        return Err("target path is a directory".into());
+    }
+    if let Some(parent) = std::path::Path::new(&path).parent() {
+        if !parent.as_os_str().is_empty() {
+            std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+        }
+    }
+    std::fs::write(&path, data).map_err(|e| e.to_string())
 }
 
 fn spawn_api_server(port: u16) -> Child {
@@ -73,7 +88,6 @@ fn spawn_api_server(port: u16) -> Child {
 /// 托管 API 子进程句柄；RunEvent::Exit 时回收，避免孤儿 python 进程。
 struct ServerHandle(Mutex<Option<Child>>);
 
-const SPLASH_LABEL: &str = "splash";
 const MAIN_LABEL: &str = "main";
 
 fn kill_server(handle: &tauri::AppHandle) {
@@ -92,6 +106,8 @@ fn main() {
     let server = spawn_api_server(port);
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![save_bytes])
         .manage(ServerHandle(Mutex::new(Some(server))))
         .setup(move |app| {
             // 注入点：页面任何脚本执行之前生效（Phase A/B 约定的宿主接缝）。
@@ -99,23 +115,10 @@ fn main() {
                 "window.__PDF2ZH_RUNTIME__ = {{ apiBase: 'http://127.0.0.1:{port}' }};"
             );
 
-            // 闪屏：立即可见，把 3~4s 冷启动变成可感知的加载态。
-            tauri::WebviewWindowBuilder::new(
-                app,
-                SPLASH_LABEL,
-                tauri::WebviewUrl::App("splash.html".into()),
-            )
-            .title("PDFMathTranslate")
-            .decorations(false)
-            .resizable(false)
-            .maximizable(false)
-            .minimizable(false)
-            .inner_size(380.0, 170.0)
-            .center()
-            .build()?;
-
-            // 主窗口：先隐藏，API 就绪后再展示，避免前端空连报错；
-            // SPA 侧另有健康门闩双保险（AppShell ReadyGate）。
+            // 主窗口：立即可见。冷启动期（sidecar 导入+绑定端口 ~2-4s）由
+            // SPA 的 ReadyGate 呈现「连接中」状态——冷启动 trace（doc/perf/
+            // coldstart-trace/report.md）表明把显示押后到 API 就绪会让用户
+            // 对着小闪屏盲等 4~5s，感知远差于立即给出真实 UI 骨架。
             tauri::WebviewWindowBuilder::new(
                 app,
                 MAIN_LABEL,
@@ -123,24 +126,17 @@ fn main() {
             )
             .title("PDFMathTranslate")
             .inner_size(1200.0, 860.0)
-            .visible(false)
             .initialization_script(&init_script)
             .build()?;
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
+                // 看门狗：sidecar 超时未就绪视为启动失败（正常路径下
+                // ReadyGate 先于本线程完成切换，这里不再操作窗口）。
                 if !wait_for_api(port, 30) {
                     eprintln!("pdf2zh API server did not become ready on 127.0.0.1:{port}");
                     kill_server(&handle);
                     handle.exit(1);
-                    return;
-                }
-                if let Some(main_win) = handle.get_webview_window(MAIN_LABEL) {
-                    let _ = main_win.show();
-                    let _ = main_win.set_focus();
-                }
-                if let Some(splash) = handle.get_webview_window(SPLASH_LABEL) {
-                    let _ = splash.close();
                 }
             });
 

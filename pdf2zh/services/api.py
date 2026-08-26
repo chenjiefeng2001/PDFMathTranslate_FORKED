@@ -261,7 +261,27 @@ def create_api_app(
         except Exception as exc:  # noqa: BLE001 -- 预热失败不阻断服务
             logger.warning("parallel pool prewarm skipped: %s", str(exc)[:120])
 
-    threading.Thread(target=_prewarm_pool, name="pool-prewarm", daemon=True).start()
+    # 预热线程统一延迟点火：冷启动 trace（doc/perf/coldstart-trace/report.md）
+    # 表明 registry/layout/pool 三路预热在服务 bind 前后立刻开跑，其 SSL
+    # 上下文（~4s CPU）、ONNX 会话、字体下载会与主线程的模块导入/模型构建
+    # 抢核，拖慢端口就绪。这里统一推迟到服务可用之后再逐级错峰执行；
+    # PDF2ZH_PREWARM_DELAY 可调（秒，默认 2）。
+    try:
+        prewarm_delay = max(
+            0.0, float(os.environ.get("PDF2ZH_PREWARM_DELAY", "2") or "2")
+        )
+    except ValueError:
+        prewarm_delay = 2.0
+
+    def _spawn_prewarm(name: str, extra_delay: float, target) -> None:
+        def _runner() -> None:
+            if prewarm_delay + extra_delay > 0:
+                time.sleep(prewarm_delay + extra_delay)
+            target()
+
+        threading.Thread(target=_runner, name=name, daemon=True).start()
+
+    _spawn_prewarm("pool-prewarm", 4.0, _prewarm_pool)
 
     # 预热 translator 注册表：首次 GET /api/engines 实测 ~4.9s（懒导入全部
     # 引擎模块），SPA bootstrap 一启动就会调用它。后台提前建好注册表，
@@ -281,9 +301,7 @@ def create_api_app(
         except Exception as exc:  # noqa: BLE001 -- 预热失败不阻断服务
             logger.warning("translator registry prewarm skipped: %s", str(exc)[:120])
 
-    threading.Thread(
-        target=_prewarm_registry, name="registry-prewarm", daemon=True
-    ).start()
+    _spawn_prewarm("registry-prewarm", 0.0, _prewarm_registry)
 
     # P0（基准报告）：主进程 doclayout 模型 + 远程字体预热。legacy 首任务
     # 实测 ~15s 冷加载（L_block parsing=14.9s：OnnxModel.load_available +
@@ -312,9 +330,7 @@ def create_api_app(
         except Exception as exc:  # noqa: BLE001 -- 预热失败不阻断服务
             logger.warning("layout model prewarm skipped: %s", str(exc)[:120])
 
-    threading.Thread(
-        target=_prewarm_layout_model, name="layout-model-prewarm", daemon=True
-    ).start()
+    _spawn_prewarm("layout-model-prewarm", 2.0, _prewarm_layout_model)
 
     svc = service or get_runtime_service()
     app = FastAPI(title="pdf2zh API", version="1.0.0")

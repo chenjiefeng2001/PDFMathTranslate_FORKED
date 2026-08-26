@@ -12,6 +12,8 @@ from __future__ import annotations
 import io
 import json
 import os
+import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
 from unittest.mock import patch
@@ -25,6 +27,34 @@ from pdf2zh.babeldoc_next_adapter import (
     _BabeldocNextCancelledError,
     run_babeldoc_next_translation_subprocess,
 )
+
+# ── 冷启动：pymupdf 惰性消息路由（doc/perf/coldstart-trace）───────────────
+
+
+class TestLazyPymupdfRouting:
+    def test_import_pdf2zh_keeps_pymupdf_lazy(self):
+        """import pdf2zh 不再急切加载 pymupdf；首次真实 import 时路由生效。"""
+        code = (
+            "import sys, logging, pdf2zh\n"
+            "assert 'pymupdf' not in sys.modules, 'pymupdf loaded eagerly'\n"
+            "assert 'fitz' not in sys.modules, 'fitz loaded eagerly'\n"
+            "import pymupdf\n"  # 触发 meta_path 钩子 → 加载后接管消息路由
+            "msgs = logging.getLogger('pymupdf.message')\n"
+            "assert msgs.filters, 'deprecation filter missing after routing'\n"
+            "import fitz\n"  # 第二名字独立拦截路径也要能走通
+            "print('ok')\n"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+        assert (
+            proc.returncode == 0
+        ), f"stdout={proc.stdout}\nstderr={proc.stderr[-800:]}"
+        assert "ok" in proc.stdout
+
 
 # ── 共享夹具 ────────────────────────────────────────────────────────────────
 

@@ -51,12 +51,23 @@
     RMDir "$TEMP\pdf2zh_empty_mirror"
 !macroend
 
+!macro _PDF2ZH_DEFENDER_WARMUP
+  ; Best-effort cold-start warmup: fire a detached custom Defender scan over
+  ; $INSTDIR so the first app launch doesn't pay per-file scan latency
+  ; (measured +1.7s on first run after install; see doc/perf/coldstart-trace).
+  ; Detached via `cmd /c start` => install finishes immediately; any failure
+  ; (no Defender, policy-disabled) is silently ignored.
+  nsExec::ExecToLog "\"$SYSDIR\cmd.exe\" /c start \"pdf2zh-defender-warmup\" /min powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-MpScan -ScanType CustomScan -ScanPath '$INSTDIR'\""
+  Pop $0
+  DetailPrint "Defender warmup requested (rc=$0)"
+!macroend
+
 !macro NSIS_HOOK_PREINSTALL
   !insertmacro _PDF2ZH_CLOSE_APP_PROCESSES
 !macroend
 
 !macro NSIS_HOOK_POSTINSTALL
-  ; Nothing to do - Tauri handles shortcuts/registry itself.
+  !insertmacro _PDF2ZH_DEFENDER_WARMUP
 !macroend
 
 !macro NSIS_HOOK_PREUNINSTALL

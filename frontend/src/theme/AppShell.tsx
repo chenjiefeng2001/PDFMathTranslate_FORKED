@@ -1,6 +1,6 @@
 /** App 外观：antd 主题（亮/暗）+ Design Tokens 品牌色对齐 + 全局壳（头部/设置入口）。 */
 
-import { Button, ConfigProvider, Space, Spin, theme as antdTheme } from "antd";
+import { Button, ConfigProvider, Space, Spin, Typography, theme as antdTheme } from "antd";
 import { MoonOutlined, SettingOutlined, SunOutlined } from "@ant-design/icons";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
@@ -20,6 +20,7 @@ const BRAND = (tokens as { light: Record<string, string> }).light["color_accent"
  * 轮询 /api/health 通过后才挂载业务页面，避免 bootstrap 空连报错。
  */
 function ReadyGate({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -55,7 +56,9 @@ function ReadyGate({ children }: { children: ReactNode }) {
       }}
     >
       <Spin size="large" />
-      <span style={{ opacity: 0.6 }}>…</span>
+      <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+        {t("ui.connecting")}
+      </Typography.Text>
     </div>
   );
 }

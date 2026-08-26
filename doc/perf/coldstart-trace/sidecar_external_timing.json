@@ -1,0 +1,42 @@
+[
+  {
+    "Run": 1,
+    "Tag": "cold(first-after-idle)",
+    "TcpListenMs": 1880.0,
+    "Health200Ms": 3130.0,
+    "ExitedEarly": true,
+    "RssMb": 64.0
+  },
+  {
+    "Run": 2,
+    "Tag": "warm",
+    "TcpListenMs": 1777.0,
+    "Health200Ms": 1816.0,
+    "ExitedEarly": true,
+    "RssMb": 65.2
+  },
+  {
+    "Run": 3,
+    "Tag": "warm",
+    "TcpListenMs": 2160.0,
+    "Health200Ms": 2176.0,
+    "ExitedEarly": true,
+    "RssMb": 64.7
+  },
+  {
+    "Run": 4,
+    "Tag": "warm",
+    "TcpListenMs": 1740.0,
+    "Health200Ms": 1755.0,
+    "ExitedEarly": true,
+    "RssMb": 65.2
+  },
+  {
+    "Run": 5,
+    "Tag": "warm",
+    "TcpListenMs": 2575.0,
+    "Health200Ms": 2589.0,
+    "ExitedEarly": true,
+    "RssMb": 64.1
+  }
+]
