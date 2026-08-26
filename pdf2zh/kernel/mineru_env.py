@@ -47,6 +47,18 @@ def venv_python(venv_dir: Path | None = None) -> str:
     return str(base / "bin" / "python")
 
 
+def default_venv_python() -> str | None:
+    """自动探测 ``pdf2zh-setup-mineru`` 构建的隔离 venv 解释器（仅查文件存在）。
+
+    仅在 ``PDF2ZH_MINERU_PYTHON`` 未设置时作为兜底；真实可用性（mineru 是否
+    可导入）由 :func:`pdf2zh.engine_env.probe_mineru_override` 校验。返回
+    ``None`` 表示 ``vendor/MinerU/.venv`` 尚未构建（如未执行
+    ``git submodule update`` / ``pdf2zh-setup-mineru``）。
+    """
+    target = venv_python()
+    return target if os.path.exists(target) else None
+
+
 def submodule_available() -> bool:
     """源码锚点是否就位（已 clone 且包含包本体）。"""
     d = submodule_dir()
@@ -163,7 +175,10 @@ def setup_mineru_cli() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     interpreter = ensure_venv()
     print("\nMinerU isolated environment ready.")
-    print("To route parsing through it:\n")
+    print(
+        "pdf2zh will auto-detect this venv (vendor/MinerU/.venv) on every run,\n"
+        "so no environment variable is required. To route parsing through it:\n"
+    )
     if sys.platform == "win32":
         print(f'  set PDF2ZH_MINERU_PYTHON={interpreter}')
     else:

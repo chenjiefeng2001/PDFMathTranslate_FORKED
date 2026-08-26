@@ -404,7 +404,8 @@ pip install pdf2zh[magicpdf]
 # Alternative: build an isolated env from the pinned source anchor (vendor/MinerU submodule)
 git submodule update --init vendor/MinerU
 pdf2zh-setup-mineru
-set PDF2ZH_MINERU_PYTHON=%CD%\vendor\MinerU\.venv\Scripts\python.exe   # route parsing through it
+# No env var needed — pdf2zh auto-detects vendor/MinerU/.venv on every run.
+# Set PDF2ZH_MINERU_PYTHON only to point at a *different* MinerU interpreter.
 
 # Parse with MinerU/magic-pdf and render a translated mono PDF (default)
 pdf2zh --parse-engine magicpdf example.pdf

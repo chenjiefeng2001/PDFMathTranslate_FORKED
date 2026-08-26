@@ -1082,13 +1082,21 @@ class MagicPdfAdapter:
         self.models_dir = models_dir or os.environ.get("PDF2ZH_MODELS_DIR") or ""
 
     def backend(self) -> str | None:
-        """自动选择解析后端：``mineru`` 优先，``magicpdf`` 兜底。"""
+        """自动选择解析后端：``mineru`` 优先，``magicpdf`` 兜底。
+
+        除主进程 ``import mineru`` 外，还识别隔离 venv（``PDF2ZH_MINERU_PYTHON``
+        或 ``pdf2zh-setup-mineru`` 自动探测到的 ``vendor/MinerU/.venv``）——该路径
+        下 MinerU 装在隔离解释器里，主进程并不导入它，解析经子进程进行。
+        """
         from pdf2zh.engine_env import (
             mineru_supported,
             probe_magicpdf,
             probe_mineru,
+            probe_mineru_override,
         )
 
+        if probe_mineru_override() is not None:
+            return "mineru"
         if probe_mineru() is not None and mineru_supported():
             return "mineru"
         if probe_magicpdf() is not None:

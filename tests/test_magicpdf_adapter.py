@@ -427,6 +427,11 @@ class TestMagicPdfConfig(unittest.TestCase):
                         "_ensure_magicpdf_models",
                         return_value=["MFD/YOLO/yolo_v8_ft.pt"],
                     ),
+                    patch.object(
+                        mpa.MagicPdfAdapter,
+                        "backend",
+                        return_value="magicpdf",
+                    ),
                 ):
                     adapter = MagicPdfAdapter(device="cpu", models_dir="")
                     with self.assertRaises(MagicPdfParseError) as ctx:

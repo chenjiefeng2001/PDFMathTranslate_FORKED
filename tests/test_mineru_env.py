@@ -56,6 +56,10 @@ def test_submodule_available_true_when_pinned_source_present(tmp_path):
 
 def test_mineru_python_override(monkeypatch):
     monkeypatch.delenv("PDF2ZH_MINERU_PYTHON", raising=False)
+    # 抑制隔离 venv 自动探测，模拟「未配置任何 mineru 解释器」
+    import pdf2zh.kernel.mineru_env as _me
+
+    monkeypatch.setattr(_me, "default_venv_python", lambda: None)
     assert mineru_python_override_none()
 
     monkeypatch.setenv("PDF2ZH_MINERU_PYTHON", "  ")

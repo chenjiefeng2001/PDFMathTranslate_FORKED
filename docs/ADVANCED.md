@@ -393,11 +393,13 @@ The extra resolves to `mineru>=3.1,<4` (MinerU 3.x, Apache-based license, offici
 ```bash
 git submodule update --init vendor/MinerU
 pdf2zh-setup-mineru                                  # builds vendor/MinerU/.venv (torch stays out of your main env)
+# optional — pdf2zh auto-detects vendor/MinerU/.venv on every run; only set this
+# to point at a *different* interpreter (e.g. a uv-managed venv):
 set PDF2ZH_MINERU_PYTHON=%CD%\vendor\MinerU\.venv\Scripts\python.exe   # Windows
 export PDF2ZH_MINERU_PYTHON="$PWD/vendor/MinerU/.venv/bin/python"      # Linux/macOS
 ```
 
-When `PDF2ZH_MINERU_PYTHON` is set, parsing runs through a small subprocess worker (`pdf2zh/kernel/mineru_worker.py`) inside that interpreter — torch/onnxruntime DLL load-order issues and pymupdf version conflicts with the main process are structurally eliminated; results still flow through the same middle.json normalization pipeline. Upgrades = bump the submodule pin (`git -C vendor/MinerU fetch --depth 1 origin tag mineru-<ver>-released && git -C vendor/MinerU checkout <tag>`), re-run setup, and rerun the regression suite.
+pdf2zh auto-detects `vendor/MinerU/.venv` (and any interpreter named by `PDF2ZH_MINERU_PYTHON`) during engine probing, so `pdf2zh --parse-engine magicpdf` works immediately after `pdf2zh-setup-mineru` with **no environment variable required**. When a MinerU interpreter is available (via env var or auto-detected venv), parsing runs through a small subprocess worker (`pdf2zh/kernel/mineru_worker.py`) inside that interpreter — torch/onnxruntime DLL load-order issues and pymupdf version conflicts with the main process are structurally eliminated; results still flow through the same middle.json normalization pipeline. Upgrades = bump the submodule pin (`git -C vendor/MinerU fetch --depth 1 origin tag mineru-<ver>-released && git -C vendor/MinerU checkout <tag>`), re-run setup, and rerun the regression suite.
 
 > **Note.** MinerU 3.4.5's pipeline backend imports `six` at runtime without declaring it (upstream packaging gap); pdf2zh's `magicpdf` extra ships the shim. When building from the submodule manually, add `six` alongside (`pdf2zh-setup-mineru` does this for you).
 

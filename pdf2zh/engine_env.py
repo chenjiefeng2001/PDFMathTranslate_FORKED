@@ -18,7 +18,13 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import subprocess
 import sys
+
+
+#: ``probe_mineru_override`` 的探测结果缓存（按解释器路径），避免每次探测
+#: 都启动子进程（mineru 在 venv 内的可导入性只需校验一次）。
+_OVERRIDE_PROBE_CACHE: dict[str, bool] = {}
 
 MINERU_MIN_PY = (3, 10)
 MINERU_MAX_PY = (3, 13)  # MinerU >=3.1 官方支持范围（requires-python <3.14）
@@ -87,9 +93,11 @@ def available_backend() -> tuple[str, bool]:
     """探测已安装引擎，返回 ``(backend, is_available)``。
 
     与 :class:`MagicPdfAdapter.backend` 的实际解析选择保持一致：
-    优先 mineru（受支持且已安装），其次 magic-pdf；
-    均未安装时返回 ``(backend_hint(), False)``。
+    优先 mineru（受支持且已安装，或隔离 venv / ``PDF2ZH_MINERU_PYTHON``
+    已就绪），其次 magic-pdf；均未安装时返回 ``(backend_hint(), False)``。
     """
+    if probe_mineru_override() is not None:
+        return "mineru", True
     if probe_mineru() is not None and mineru_supported():
         return "mineru", True
     if probe_magicpdf() is not None:
@@ -104,13 +112,58 @@ def resolve_device(requested: str = "auto") -> str:
 
 
 def mineru_python_override() -> str | None:
-    """读取 ``PDF2ZH_MINERU_PYTHON``：指定隔离 venv 解释器时走子进程解析。
+    """读取隔离 venv 解释器：优先 ``PDF2ZH_MINERU_PYTHON``，否则自动探测。
 
-    与 ``pdf2zh-setup-mineru``（:mod:`pdf2zh.kernel.mineru_env`）配套：
-    torch 等重依赖与主进程完全隔离，DLL 加载顺序/依赖冲突面归零。
+    - ``PDF2ZH_MINERU_PYTHON`` 指向任意装有 ``mineru[pipeline]`` 的解释器
+      （如用户用 ``uv`` 自建的 venv）时，解析经子进程走该解释器；
+    - 未显式设置时，自动探测 ``pdf2zh-setup-mineru`` 构建的
+      ``vendor/MinerU/.venv``（torch 等重依赖与主进程完全隔离，DLL 加载
+      顺序/依赖冲突面归零），免去每次手动 ``set`` 环境变量。
+
+    与 :mod:`pdf2zh.kernel.mineru_env` 配套。
     """
     value = os.environ.get("PDF2ZH_MINERU_PYTHON", "").strip()
-    return value or None
+    if value:
+        return value
+    try:
+        from pdf2zh.kernel.mineru_env import default_venv_python
+
+        return default_venv_python()
+    except Exception:  # noqa: BLE001 -- 兜底：探测失败视为未配置
+        return None
+
+
+def probe_mineru_override() -> str | None:
+    """探测隔离 venv / ``PDF2ZH_MINERU_PYTHON`` 指定的 MinerU 解释器是否可用。
+
+    该路径下 MinerU 装在隔离解释器里，主进程并不 ``import mineru``，因此
+    常规 ``probe_mineru`` 会漏报。这里启动该解释器用 ``find_spec`` 轻量校验
+    （不触发 torch 等重导入），可用则返回解释器路径，否则返回 ``None``。
+
+    结果按解释器路径缓存，避免 ``available_backend`` / ``backend`` 频繁调用时
+    反复启动子进程。供 :func:`available_backend` 与
+    :meth:`pdf2zh.magicpdf_adapter.MagicPdfAdapter.backend` 用于「主进程未装
+    mineru 但隔离环境已就绪」时仍判定 MinerU 可用。
+    """
+    python = mineru_python_override()
+    if not python or not os.path.exists(python):
+        return None
+    if python in _OVERRIDE_PROBE_CACHE:
+        return python if _OVERRIDE_PROBE_CACHE[python] else None
+    ok = False
+    try:
+        result = subprocess.run(
+            [python, "-c",
+             "import importlib.util, sys; "
+             "sys.exit(0 if importlib.util.find_spec('mineru') is not None else 1)"],
+            capture_output=True,
+            timeout=60,
+        )
+        ok = result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        ok = False
+    _OVERRIDE_PROBE_CACHE[python] = ok
+    return python if ok else None
 
 
 def mineru_install_hint() -> str:

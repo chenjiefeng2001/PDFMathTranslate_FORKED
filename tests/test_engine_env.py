@@ -23,6 +23,7 @@ from pdf2zh.engine_env import (
     prefer_mineru,
     probe_magicpdf,
     probe_mineru,
+    probe_mineru_override,
     python_version,
     resolve_device,
 )
@@ -91,8 +92,9 @@ class TestProbe(unittest.TestCase):
         backend, ok = available_backend()
         self.assertIn(backend, ("mineru", "magicpdf"))
         self.assertIsInstance(ok, bool)
-        if ok:  # 引擎已安装时断言名称匹配探测结果
-            self.assertEqual(backend, "mineru" if probe_mineru() else "magicpdf")
+        if ok:  # 引擎已安装（主进程或隔离 venv）时断言名称匹配探测结果
+            detected = probe_mineru() is not None or probe_mineru_override() is not None
+            self.assertEqual(backend == "mineru", detected)
 
 
 class TestDevice(unittest.TestCase):
