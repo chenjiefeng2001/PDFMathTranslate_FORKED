@@ -34,6 +34,30 @@ _VENV_DIR = _SUBMODULE_DIR / ".venv"
 _INSTALL_TIMEOUT = 3600
 
 
+def _user_data_dir() -> Path:
+    """跨平台用户数据目录（桌面/冻结环境可写，与应用安装目录分离）。"""
+    if sys.platform == "win32":
+        base = os.environ.get("APPDATA") or os.path.expanduser("~\\AppData\\Roaming")
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    return Path(base) / "pdf2zh"
+
+
+def default_venv_dir() -> Path:
+    """隔离 venv 的优先构建位置（可写）。
+
+    - ``PDF2ZH_MINERU_VENV_DIR`` 显式指定时优先（便于便携/多用户定制）；
+    - 否则落在用户数据目录 ``<appdata>/pdf2zh/mineru-venv``，规避安装目录
+      （Program Files 等只读位置），使桌面/冻结分发也能就地构建。
+    """
+    env_dir = os.environ.get("PDF2ZH_MINERU_VENV_DIR", "").strip()
+    if env_dir:
+        return Path(env_dir)
+    return _user_data_dir() / "mineru-venv"
+
+
 def submodule_dir() -> Path:
     """子模块目录（可被测试替换）。"""
     return _SUBMODULE_DIR
@@ -48,15 +72,38 @@ def venv_python(venv_dir: Path | None = None) -> str:
 
 
 def default_venv_python() -> str | None:
-    """自动探测 ``pdf2zh-setup-mineru`` 构建的隔离 venv 解释器（仅查文件存在）。
+    """自动探测已构建的隔离 venv 解释器（仅查文件存在）。
 
-    仅在 ``PDF2ZH_MINERU_PYTHON`` 未设置时作为兜底；真实可用性（mineru 是否
-    可导入）由 :func:`pdf2zh.engine_env.probe_mineru_override` 校验。返回
-    ``None`` 表示 ``vendor/MinerU/.venv`` 尚未构建（如未执行
-    ``git submodule update`` / ``pdf2zh-setup-mineru``）。
+    搜索顺序（首个命中即返回）：
+
+    1. ``PDF2ZH_MINERU_VENV_DIR`` 指定的目录；
+    2. 用户数据目录 ``<appdata>/pdf2zh/mineru-venv``（桌面/冻结环境可写）；
+    3. 当前解释器所在目录（如 Tauri sidecar 的 onedir）；
+    4. 仓库内 submodule 锚点 ``vendor/MinerU/.venv``（开发态）。
+
+    ``PDF2ZH_MINERU_PYTHON`` 由 :func:`pdf2zh.engine_env.mineru_python_override`
+    优先处理，无需在此重复。
     """
-    target = venv_python()
-    return target if os.path.exists(target) else None
+    candidates: list[Path] = []
+    env_dir = os.environ.get("PDF2ZH_MINERU_VENV_DIR", "").strip()
+    if env_dir:
+        candidates.append(Path(env_dir))
+    candidates.append(_user_data_dir() / "mineru-venv")
+    candidates.append(Path(sys.executable).parent)
+    candidates.append(_VENV_DIR)
+    seen: set[Path] = set()
+    for c in candidates:
+        try:
+            c = c.resolve()
+        except OSError:
+            continue
+        if c in seen:
+            continue
+        seen.add(c)
+        p = venv_python(c)
+        if os.path.exists(p):
+            return p
+    return None
 
 
 def submodule_available() -> bool:
@@ -122,21 +169,42 @@ def _find_system_python() -> str:
 
 
 def ensure_venv() -> str:
-    """确保隔离 venv 存在且装有 pin 源码的 ``mineru[pipeline]``；返回解释器。"""
-    if not submodule_available():
-        raise RuntimeError(
-            f"MinerU source anchor not found at {submodule_dir()}. "
-            "Run: git submodule update --init vendor/MinerU"
-        )
+    """确保隔离 venv 存在且装有 mineru[pipeline]；返回解释器路径。
 
-    target = venv_python()
+    优先复用已构建且可用的 venv（任意候选位置，见
+    :func:`default_venv_python`）；否则新建。源码优先使用仓库内
+    ``vendor/MinerU`` submodule（pin 版本、可复现），但桌面/冻结分发未携带
+    submodule 时自动回退 PyPI 安装 ``mineru[pipeline]``，使无 submodule 的
+    环境也能一键构建。
+
+    构建位置：``PDF2ZH_MINERU_VENV_DIR`` > 仓库 submodule（可写时）>
+    用户数据目录（见 :func:`default_venv_dir`）。
+    """
+    existing = default_venv_python()
+    if existing and _package_importable(existing):
+        return existing
+
+    # submodule 源码可用且所在目录可写时，使用 pin 版本；否则 PyPI 回退。
+    use_submodule = submodule_available() and os.access(
+        str(_SUBMODULE_DIR.parent), os.W_OK
+    )
+    if use_submodule:
+        target_dir = _VENV_DIR
+        source_spec = f"{_SUBMODULE_DIR}[pipeline]"
+        install_cwd = str(_SUBMODULE_DIR)
+    else:
+        target_dir = default_venv_dir()
+        source_spec = "mineru[pipeline]"
+        install_cwd = None
+
+    target = venv_python(target_dir)
     if os.path.exists(target) and _package_importable(target):
         return target
 
     if not os.path.exists(target):
-        logger.info("Creating isolated MinerU venv at %s ...", _VENV_DIR)
+        logger.info("Creating isolated MinerU venv at %s ...", target_dir)
         subprocess.run(
-            [_find_system_python(), "-m", "venv", str(_VENV_DIR)],
+            [_find_system_python(), "-m", "venv", str(target_dir)],
             check=True, timeout=120,
         )
         subprocess.run(
@@ -145,13 +213,13 @@ def ensure_venv() -> str:
         )
 
     logger.info(
-        "Installing mineru[pipeline] from pinned source %s (large download: "
-        "torch etc.) ...", _SUBMODULE_DIR,
+        "Installing %s into %s (large download: torch etc.) ...",
+        source_spec, target_dir,
     )
     subprocess.run(
-        [target, "-m", "pip", "install",
-         f"{_SUBMODULE_DIR}[pipeline]", "six"],
-        check=True, timeout=_INSTALL_TIMEOUT, cwd=str(_SUBMODULE_DIR),
+        [target, "-m", "pip", "install", source_spec, "six"],
+        check=True, timeout=_INSTALL_TIMEOUT,
+        cwd=install_cwd,
     )
     logger.info("Isolated MinerU environment ready: %s", target)
     return target
@@ -159,11 +227,12 @@ def ensure_venv() -> str:
 
 def _package_importable(interpreter: str) -> bool:
     """隔离 venv 里 mineru.cli.common 是否可导入（残缺安装自愈）。"""
+    cwd = str(_SUBMODULE_DIR) if _SUBMODULE_DIR.is_dir() else None
     try:
         result = subprocess.run(
             [interpreter, "-c", "from mineru.cli.common import do_parse"],
             capture_output=True, timeout=60,
-            cwd=str(_SUBMODULE_DIR),
+            cwd=cwd,
         )
         return result.returncode == 0
     except Exception:  # noqa: BLE001 -- 探测失败按未安装处理
@@ -176,14 +245,15 @@ def setup_mineru_cli() -> None:
     interpreter = ensure_venv()
     print("\nMinerU isolated environment ready.")
     print(
-        "pdf2zh will auto-detect this venv (vendor/MinerU/.venv) on every run,\n"
-        "so no environment variable is required. To route parsing through it:\n"
+        "pdf2zh auto-detects this venv on every run (no environment variable "
+        "required). To force a specific interpreter, set:\n"
     )
     if sys.platform == "win32":
         print(f'  set PDF2ZH_MINERU_PYTHON={interpreter}')
     else:
         print(f'  export PDF2ZH_MINERU_PYTHON={interpreter}')
     print("  pdf2zh --parse-engine magicpdf your.pdf\n")
+    print("In the desktop app, MinerU is now selectable as the parse engine.")
 
 
 if __name__ == "__main__":

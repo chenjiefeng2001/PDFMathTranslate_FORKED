@@ -62,11 +62,37 @@
   DetailPrint "Defender warmup requested (rc=$0)"
 !macroend
 
+!macro _PDF2ZH_EXTRACT_SIDECAR
+  ; 安装策略优化：sidecar 以「单个 .zip」随 NSIS 安装（而非数万细小文件逐条
+  ; File/Delete），此处一次性解包还原为原 onedir 目录布局
+  ; ($INSTDIR\pdf2zh-api-sidecar\pdf2zh-api-sidecar.exe)，运行期路径不变。
+  ; 用系统自带的 tar.exe（Win10+ 内置 libarchive）解包，快且无需额外二进制；
+  ; 失败回退到 PowerShell Expand-Archive（慢，仅兜底）。解包成功后删除 .zip
+  ; 以节省磁盘，卸载时该路径已不存在，NSIS 对其的单一 Delete 为空操作。
+  IfFileExists "$INSTDIR\pdf2zh-api-sidecar.zip" 0 pdf2zh_extract_done
+    CreateDirectory "$INSTDIR\pdf2zh-api-sidecar"
+    ; 优先：系统 tar.exe（libarchive，原生快）
+    nsExec::ExecToLog '"$SYSDIR\tar.exe" -xf "$INSTDIR\pdf2zh-api-sidecar.zip" -C "$INSTDIR\pdf2zh-api-sidecar"'
+    Pop $0
+    IntCmp $0 0 pdf2zh_extract_ok pdf2zh_extract_fallback pdf2zh_extract_fallback
+  pdf2zh_extract_fallback:
+    ; 兜底：PowerShell 内置 Expand-Archive（覆盖写，已存在则覆盖）
+    DetailPrint "tar.exe 解包失败(rc=$0)，回退 Expand-Archive"
+    nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Force -Path ''$INSTDIR\pdf2zh-api-sidecar.zip'' -DestinationPath ''$INSTDIR\pdf2zh-api-sidecar''"'
+    Pop $0
+  pdf2zh_extract_ok:
+    DetailPrint "Sidecar 解包完成 (rc=$0)"
+    ; 解包成功则删除 .zip，避免与解包目录重复占用磁盘
+    Delete "$INSTDIR\pdf2zh-api-sidecar.zip"
+  pdf2zh_extract_done:
+!macroend
+
 !macro NSIS_HOOK_PREINSTALL
   !insertmacro _PDF2ZH_CLOSE_APP_PROCESSES
 !macroend
 
 !macro NSIS_HOOK_POSTINSTALL
+  !insertmacro _PDF2ZH_EXTRACT_SIDECAR
   !insertmacro _PDF2ZH_DEFENDER_WARMUP
 !macroend
 
@@ -76,5 +102,7 @@
 !macroend
 
 !macro NSIS_HOOK_POSTUNINSTALL
-  ; Nothing to do - Tauri handles cleanup itself.
+  ; 并行 purge 已删空目录内文件；此处移除残留的空目录（解包目录与临时镜像）。
+  RMDir "$INSTDIR\pdf2zh-api-sidecar"
+  RMDir "$TEMP\pdf2zh_empty_mirror"
 !macroend

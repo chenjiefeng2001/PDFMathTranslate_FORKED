@@ -272,6 +272,8 @@ def _parse_page_range_to_indices(page_range: Optional[str]) -> Optional[List[int
 
 class TaskStage(str, Enum):
     PENDING = "pending"
+    RUNNING = "running"
+    PAUSED = "paused"
     PARSING = "parsing"
     NORMALIZING = "normalizing"
     ANALYZING = "analyzing"
@@ -379,6 +381,10 @@ class TaskProgressEvent:
     current_node_count: int = 0
     diagnostics_count: int = 0
     message: str = ""
+    #: 当前任务状态（paused/running/...）。随事件搭车下发，使前端仅靠增量
+    #: progress 帧即可刷新 status（初始 state 快照之后不再重发），暂停/恢复
+    #: 必须靠此传播到 UI 的「继续」按钮逻辑。
+    status: str = ""
     #: V1.24：预计剩余秒数（ProgressAggregator 按已完工权重速率外推，0=未知）。
     eta: float = 0.0
     #: 细粒度进度细节（可选）：{"engine","raw_stage","unit","current","total",
@@ -395,6 +401,7 @@ class TaskProgressEvent:
             "current_node_count": self.current_node_count,
             "diagnostics_count": self.diagnostics_count,
             "message": self.message,
+            "status": self.status,
             "eta": self.eta,
             "detail": self.detail,
             "timestamp": self.timestamp,
@@ -586,6 +593,7 @@ class _TaskStore:
         self._tasks: Dict[str, TaskState] = {}
         self._events: Dict[str, List[TaskProgressEvent]] = {}
         self._cancel_events: Dict[str, threading.Event] = {}
+        self._pause_events: Dict[str, threading.Event] = {}
 
     def create_task(self, task_id: str) -> TaskState:
         state = TaskState(task_id=task_id)
@@ -593,6 +601,7 @@ class _TaskStore:
             self._tasks[task_id] = state
             self._events[task_id] = []
             self._cancel_events[task_id] = threading.Event()
+            self._pause_events[task_id] = threading.Event()
         return state
 
     def get_task(self, task_id: str) -> Optional[TaskState]:
@@ -648,6 +657,7 @@ class _TaskStore:
             self._tasks.pop(task_id, None)
             self._events.pop(task_id, None)
             self._cancel_events.pop(task_id, None)
+            self._pause_events.pop(task_id, None)
 
     def get_cancel_event(self, task_id: str) -> Optional[threading.Event]:
         """Return the per-task cancel Event (None when the task is unknown).
@@ -657,6 +667,15 @@ class _TaskStore:
         """
         with self._lock:
             return self._cancel_events.get(task_id)
+
+    def get_pause_event(self, task_id: str) -> Optional[threading.Event]:
+        """Return the per-task pause Event (None when the task is unknown).
+
+        Signalled by ``pause_task`` and cleared by ``resume_task``; the
+        translation worker blocks on it so a paused task truly halts progress.
+        """
+        with self._lock:
+            return self._pause_events.get(task_id)
 
     def prune_terminated(self, max_age: float, now: float) -> int:
         """Remove terminal-state tasks older than ``max_age`` seconds.
@@ -860,7 +879,12 @@ class RuntimeService:
         return True
 
     def pause_task(self, task_id: str) -> bool:
-        """Pause a running task."""
+        """Pause a running task and surface the paused status to clients.
+
+        Sets the task status to ``paused`` (so the SSE stream carries it and the
+        UI switches to a Resume button) and signals the per-task pause event so
+        the translation worker actually halts between progress reports.
+        """
         state = self._store.get_task(task_id)
         if state is None:
             return False
@@ -870,8 +894,22 @@ class RuntimeService:
             TaskStage.FAILED.value,
         ):
             return False
-        self._store.pause_task(task_id)
-        self._store.update_task(task_id, message="Paused by user")
+        pe = self._store.get_pause_event(task_id)
+        if pe is not None:
+            pe.set()
+        self._store.update_task(
+            task_id, status=TaskStage.PAUSED.value, message="Paused by user"
+        )
+        # Re-emit a progress frame carrying status=paused so the frontend (which
+        # only refreshes status from incremental SSE frames) learns to show the
+        # Resume button.
+        cur = self._store.get_task(task_id)
+        self._emit_event(
+            task_id,
+            cur.stage if cur else TaskStage.PAUSED.value,
+            cur.progress if cur else 0.0,
+            "Paused by user",
+        )
         return True
 
     def resume_task(self, task_id: str) -> bool:
@@ -879,9 +917,38 @@ class RuntimeService:
         state = self._store.get_task(task_id)
         if state is None:
             return False
-        self._store.resume_task(task_id)
-        self._store.update_task(task_id, message="Resumed")
+        if state.status != TaskStage.PAUSED.value:
+            return False
+        pe = self._store.get_pause_event(task_id)
+        if pe is not None:
+            pe.clear()
+        self._store.update_task(
+            task_id, status=TaskStage.RUNNING.value, message="Resumed"
+        )
+        cur = self._store.get_task(task_id)
+        self._emit_event(
+            task_id,
+            cur.stage if cur else TaskStage.RUNNING.value,
+            cur.progress if cur else 0.0,
+            "Resumed",
+        )
         return True
+
+    def _pause_guard(self, task_id: str) -> bool:
+        """Block while the task is paused; return True if cancelled meanwhile.
+
+        Called from progress callbacks so a paused translation genuinely halts
+        between progress reports instead of running to completion in the
+        background (which would make the Resume button a no-op).
+        """
+        pe = self._store.get_pause_event(task_id)
+        if pe is None:
+            return False
+        while pe.is_set():
+            if self._store.is_cancelled(task_id):
+                return True
+            time.sleep(0.25)
+        return False
 
     def skip_task(self, task_id: str) -> bool:
         """Skip the current file in a task."""
@@ -976,7 +1043,18 @@ class RuntimeService:
 
     def _execute_task(self, task_id: str, request: TranslationRequest) -> None:
         """Internal: run translation in background thread."""
+        # V3-6：每个新任务开始前清空中断旗标。GUI 的 on_translate 也会做，
+        # 但 API/sidecar 路径不经 GUI，必须在此兜底——否则上一次任务遗留的
+        # Ctrl+C 旗标会让 coordinator 在新任务一开始即抛出 KeyboardInterrupt，
+        # 表现为「某个文件出错/取消后，后续所有文件都不再翻译」。
         try:
+            from pdf2zh.parallel.interrupt import reset_interrupt_flag
+
+            reset_interrupt_flag()
+        except Exception:  # noqa: BLE001 -- 清理失败绝不阻断翻译
+            pass
+        try:
+            self._store.update_task(task_id, status=TaskStage.RUNNING.value)
             self._emit_event(task_id, TaskStage.PARSING.value, 5.0, "Starting...")
             if self._store.is_cancelled(task_id):
                 return
@@ -1054,6 +1132,25 @@ class RuntimeService:
                     mark_exit_pending()
                 except Exception:  # noqa: BLE001 -- 仅为标记，绝不干扰任务落终态
                     pass
+
+    @staticmethod
+    def _reset_shared_layout_model() -> None:
+        """回收进程级版面模型单例（失败路径专用）。
+
+        ``translate_stream`` 在串行模式 / 并行 worker 崩溃后的串行回填中会复用
+        进程级 ``ModelInstance.value``（一次加载、全程复用）。若某次执行因
+        native 崩溃 / 闭包仍持有 InferenceSession 引用等原因使该会话进入不可
+        用状态，且不主动回收，则同批次或后续任务会复用同一个损坏的会话，导致
+        **「某个文件出错后，后续所有文件都不再翻译」**。失败路径在此重置单例，
+        确保下一个文件（或下一次翻译任务）重新加载干净的模型。回收失败绝不
+        阻断批处理（best-effort）。
+        """
+        try:
+            from pdf2zh.doclayout import release_model_instance
+
+            release_model_instance()
+        except Exception:  # noqa: BLE001 -- 回收失败不阻断翻译
+            pass
 
     def _execute_batch(
         self,
@@ -1137,6 +1234,9 @@ class RuntimeService:
                     exc,
                     exc_info=True,
                 )
+                # 失败后回收进程级版面模型单例，避免损坏会话污染后续文件
+                # （表现为「某文件出错后后续文件都不再翻译」）。
+                self._reset_shared_layout_model()
                 self._fail_file(task_id, exc, total_files=total)
             # Defensive: if the per-file executor left the task in FAILED
             # (some legacy error paths update status directly), record it as a
@@ -1218,6 +1318,9 @@ class RuntimeService:
                     exc,
                     exc_info=True,
                 )
+                # 失败后回收进程级版面模型单例，避免损坏会话污染后续文件
+                # （表现为「某文件出错后后续文件都不再翻译」）。
+                self._reset_shared_layout_model()
                 self._fail_file(
                     task_id,
                     exc,
@@ -1834,6 +1937,8 @@ class RuntimeService:
         # 映射到翻译窗口 30→70（阶段权重 translating=[40,70]；经聚合器
         # 按权重折算 + 指数平滑后推给 UI），避免并行下进度条跳变。
         def _progress_cb(pct: float, msg: str) -> None:
+            if self._pause_guard(task_id):
+                return
             self._emit_smooth(
                 task_id,
                 TaskStage.TRANSLATING.value,
@@ -1886,6 +1991,10 @@ class RuntimeService:
             logger.error(
                 "[task=%s] translate_stream failed: %s", task_id, tx_exc, exc_info=True
             )
+            # 失败后回收进程级版面模型单例：串行/降级回填会复用该会话，若其
+            # 因本次失败进入不可用状态，不回收会让同批次或后续任务复用损坏
+            # 会话，表现为「某文件出错后后续文件都不再翻译」。
+            self._reset_shared_layout_model()
             self._fail_file(task_id, tx_exc, total_files=total_files)
             return
         if self._store.is_cancelled(task_id):
@@ -2123,6 +2232,8 @@ class RuntimeService:
         def _forward_magicpdf_progress(
             stage: str, pct: float, msg: str, detail: Optional[Dict[str, Any]] = None
         ) -> None:
+            if self._pause_guard(task_id):
+                return
             # magicpdf 引擎的细粒度进度（解析页计数/组件加载 + 翻译/渲染
             # 相位粗事件）与 BabelDOC 路径共用 _emit_smooth 通道：detail
             # 随事件搭车写入 store 快照并推送到前端。
@@ -2361,6 +2472,8 @@ class RuntimeService:
         def _forward_progress(
             stage: str, pct: float, msg: str, detail: Optional[Dict[str, Any]] = None
         ) -> None:
+            if self._pause_guard(task_id):
+                return
             # _emit_smooth throttles the 0.2s BabelDOC event cadence into
             # monotone progress steps while still forwarding stage msgs;
             # detail（页级/段落级计数）随事件搭车透传到前端。
@@ -2908,7 +3021,6 @@ class RuntimeService:
             eta=eta,
             detail=detail,
         )
-        self._store.add_event(task_id, event)
         if detail is not None:
             # 细粒度快照随事件持久化：轮询/重连恢复「第几页」级显示。
             self._store.update_task(task_id, stage_detail=detail)
@@ -2930,6 +3042,11 @@ class RuntimeService:
                 eta=eta,
                 message=message,
             )
+        # 状态随事件搭车下发：前端仅靠增量 progress 帧刷新 status（初始 state
+        # 快照之后不再重发），暂停/恢复必须靠此传播到 UI 的「继续」按钮。
+        _cur = self._store.get_task(task_id)
+        event.status = _cur.status if _cur is not None else ""
+        self._store.add_event(task_id, event)
         self._notify_event_listeners(event)
 
     def _notify_event_listeners(self, event: TaskProgressEvent) -> None:

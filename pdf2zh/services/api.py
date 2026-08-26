@@ -195,6 +195,14 @@ def _validate_source_path(resolved_path: str) -> None:
 #: doclayout 模型后台下载状态（create_api_app 内的端点共享）
 _model_download_state: Dict[str, Any] = {"running": False, "error": None}
 
+#: MinerU 隔离 venv 后台构建状态（桌面/冻结分发无 submodule，需就地安装）
+_mineru_setup_state: Dict[str, Any] = {
+    "running": False,
+    "done": False,
+    "error": None,
+    "interpreter": None,
+}
+
 
 def _sse_frame(event: str, data: Any) -> str:
     payload = json.dumps(data, ensure_ascii=False)
@@ -598,6 +606,42 @@ def create_api_app(
             # 用户缓存、与应用目录分离。
             "hint": mineru_install_hint() if not ok else "",
         }
+
+    @app.post("/api/setup/mineru")
+    def setup_mineru() -> Dict[str, Any]:
+        """后台构建 MinerU 隔离 venv（无 submodule 时回退 PyPI 安装）。
+
+        桌面/冻结分发不携带 ``vendor/MinerU`` 源码，常规
+        ``pdf2zh-setup-mineru`` 控制台入口也未进包，故提供 HTTP 触发；
+        torch 等重依赖下载量大，放到守护线程，前端轮询
+        :meth:`mineru_setup_status` 获取进度。
+        """
+        if _mineru_setup_state["running"]:
+            return {"started": False, "reason": "already running"}
+        _mineru_setup_state.update(
+            running=True, done=False, error=None, interpreter=None
+        )
+
+        def _run() -> None:
+            try:
+                from pdf2zh.kernel.mineru_env import ensure_venv
+
+                interpreter = ensure_venv()
+                _mineru_setup_state["interpreter"] = interpreter
+                _mineru_setup_state["done"] = True
+            except Exception as exc:  # noqa: BLE001 -- 状态回显给前端
+                logger.warning("mineru setup failed: %s", exc)
+                _mineru_setup_state["error"] = f"{type(exc).__name__}: {exc}"
+            finally:
+                _mineru_setup_state["running"] = False
+
+        threading.Thread(target=_run, name="mineru-setup", daemon=True).start()
+        return {"started": True}
+
+    @app.get("/api/setup/mineru")
+    def mineru_setup_status() -> Dict[str, Any]:
+        """MinerU 隔离 venv 后台构建状态（供前端轮询）。"""
+        return dict(_mineru_setup_state)
 
     # ── submit ────────────────────────────────────────────────────────────
     def _submit(request: TranslationRequest) -> Dict[str, str]:

@@ -141,6 +141,21 @@ export function selftestMagicpdf(): Promise<{ ok: boolean; backend: string; hint
   return api().get("/api/selftest/magicpdf");
 }
 
+export interface MineruSetupStatus {
+  running: boolean;
+  done: boolean;
+  error: string | null;
+  interpreter: string | null;
+}
+
+export function setupMineru(): Promise<{ started: boolean; reason?: string }> {
+  return api().request("POST", "/api/setup/mineru");
+}
+
+export function getMineruSetupStatus(): Promise<MineruSetupStatus> {
+  return api().get("/api/setup/mineru");
+}
+
 /** 结果文件下载地址（浏览器原生 GET，尊重 apiBase 解析链）。 */
 export function artifactUrl(taskId: string, index: number): string {
   const base = resolveApiBaseForHref();

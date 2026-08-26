@@ -96,7 +96,8 @@ if (-not $SkipSidecar) {
         Write-Host "ERROR: sidecar exe missing at $SidecarDist" -ForegroundColor Red
         exit 1
     }
-    # tauri.conf.json resources 以 binaries/pdf2zh-api-sidecar/ 为源，整体刷新
+    # tauri.conf.json resources 以 binaries/pdf2zh-api-sidecar.zip 为源（由下方
+    # [1.5/3] 打包），此处仅刷新 onedir 源目录
     if (Test-Path $SidecarTarget) {
         Remove-Item -LiteralPath $SidecarTarget -Recurse -Force
     }
@@ -110,6 +111,28 @@ if (-not $SkipSidecar) {
     }
     Write-Host "==== [1/3] Skipping sidecar build (reusing $SidecarTarget) ===="
 }
+
+# ── [1.5/3] 将 onedir sidecar 打包为单个 .zip ───────────────────────────────
+# 优化：NSIS 以「单个 .zip」安装/卸载，而非逐条 File/Delete 数万细小文件，
+# 彻底消除“大量细小文件导致安装卸载极慢”。tauri.conf.json resources 现以
+# binaries/pdf2zh-api-sidecar.zip 为源。运行期目录布局
+# (pdf2zh-api-sidecar\pdf2zh-api-sidecar.exe) 由 installer POSTINSTALL 用系统
+# tar.exe 解包还原，无需改动 Rust 侧路径解析。
+$SidecarZip = Join-Path (Split-Path -Parent $SidecarTarget) "pdf2zh-api-sidecar.zip"
+if (-not (Test-Path (Join-Path $SidecarTarget "pdf2zh-api-sidecar.exe"))) {
+    Write-Host "ERROR: sidecar missing at $SidecarTarget; cannot archive." -ForegroundColor Red
+    exit 1
+}
+if (Test-Path $SidecarZip) { Remove-Item -LiteralPath $SidecarZip -Force }
+# tar.exe 为 Windows 内置（libarchive）；-C 以 onedir 目录为根，归档其全部内容
+# （含隐藏文件），解包时还原为 $INSTDIR\pdf2zh-api-sidecar\... 布局。
+& tar.exe -a -cf $SidecarZip -C $SidecarTarget .
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: failed to archive sidecar into $SidecarZip (exit $LASTEXITCODE)." -ForegroundColor Red
+    exit 1
+}
+$SidecarZipSize = (Get-Item $SidecarZip).Length
+Write-Host ("  sidecar archived: {0} ({1:N0} bytes)" -f $SidecarZip, $SidecarZipSize)
 
 # ── [2/3] SPA（tsc + vite）─────────────────────────────────────────────────
 if (-not $SkipWeb) {

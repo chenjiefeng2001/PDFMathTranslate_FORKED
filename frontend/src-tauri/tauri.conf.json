@@ -30,7 +30,7 @@
       }
     },
     "resources": {
-      "binaries/pdf2zh-api-sidecar/": "pdf2zh-api-sidecar/"
+      "binaries/pdf2zh-api-sidecar.zip": "pdf2zh-api-sidecar.zip"
     }
   }
 }

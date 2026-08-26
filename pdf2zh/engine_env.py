@@ -169,7 +169,15 @@ def probe_mineru_override() -> str | None:
 
 
 def mineru_install_hint() -> str:
-    """按当前 Python 版本给出可执行的安装建议（含依赖冲突提示）。"""
+    """按当前 Python 版本/运行形态给出可执行的安装建议（含依赖冲突提示）。"""
+    if getattr(sys, "frozen", False):
+        # 桌面/冻结分发：venv 隔离、torch 不进安装包，提供一键构建入口。
+        return (
+            "桌面版不内置 MinerU/torch（体积上限）。在「设置 → MinerU」中点击"
+            "「一键安装 MinerU」即可在用户数据目录构建隔离环境（需本机存在"
+            " Python 3.10–3.13，且具备 venv 模块）；模型在首次解析时下载到"
+            "用户缓存，与应用目录分离。"
+        )
     if not prefer_mineru():
         return (
             'uv pip install -U "magic-pdf[full]<2"  # 手动兜底：magic-pdf 1.x'

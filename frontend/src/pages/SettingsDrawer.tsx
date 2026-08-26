@@ -30,6 +30,8 @@ import {
   importGlossary,
   listGlossaries,
   selftestMagicpdf,
+  setupMineru,
+  getMineruSetupStatus,
   updateEngineEnvs,
   type DoclayoutModelStatus,
   type EngineEnvStatus,
@@ -399,25 +401,45 @@ function ModelsSection({ active }: { active: boolean }) {
   );
 }
 
-/** MinerU / magic-pdf 高级解析：探测状态 + 安装指引（模型与应用分离）。 */
+/** MinerU / magic-pdf 高级解析：探测状态 + 一键构建隔离 venv（模型与应用分离）。 */
 function MineruSection() {
   const { t } = useTranslation();
   const [state, setState] = useState<{ ok: boolean; hint: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
+
+  async function refresh() {
+    try {
+      const r = await selftestMagicpdf();
+      setState({ ok: r.ok, hint: r.hint ?? "" });
+    } catch {
+      /* 服务未就绪时静默 */
+    }
+  }
 
   useEffect(() => {
-    let cancelled = false;
-    selftestMagicpdf()
-      .then((r) => {
-        if (!cancelled) setState({ ok: r.ok, hint: r.hint ?? "" });
-      })
-      .catch(() => {
-        /* 服务未就绪时静默 */
-      });
-    return () => {
-      cancelled = true;
-    };
+    void refresh();
   }, []);
+
+  useEffect(() => {
+    if (!installing) return;
+    const timer = window.setInterval(async () => {
+      try {
+        const s = await getMineruSetupStatus();
+        if (!s.running) {
+          setInstalling(false);
+          window.clearInterval(timer);
+          if (s.error) setInstallError(s.error);
+          else setInstallError(null);
+          void refresh();
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [installing]);
 
   async function copyCommand() {
     const cmd = state?.hint || 'pip install -U "magic-pdf[full]"';
@@ -430,6 +452,21 @@ function MineruSection() {
     }
   }
 
+  async function startInstall() {
+    setInstallError(null);
+    setInstalling(true);
+    try {
+      const res = await setupMineru();
+      if (!res.started) {
+        setInstalling(false);
+        if (res.reason) setInstallError(res.reason);
+      }
+    } catch (err) {
+      setInstalling(false);
+      setInstallError(String(err));
+    }
+  }
+
   return (
     <Space direction="vertical" size={8} style={{ width: "100%" }}>
       <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
@@ -439,6 +476,21 @@ function MineruSection() {
         <Tag color="green">{t("ui.settings_mineru_ready")}</Tag>
       ) : (
         <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Button
+            type="primary"
+            size="small"
+            loading={installing}
+            onClick={() => void startInstall()}
+          >
+            {installing
+              ? t("ui.settings_mineru_installing")
+              : t("ui.settings_mineru_install")}
+          </Button>
+          {installError && (
+            <Typography.Text type="danger" style={{ fontSize: 12 }}>
+              {installError}
+            </Typography.Text>
+          )}
           {state?.hint && (
             <Input.TextArea
               value={state.hint}

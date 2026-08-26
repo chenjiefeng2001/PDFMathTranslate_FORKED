@@ -93,6 +93,8 @@ export interface ProgressEventPayload {
   message: string;
   eta: number;
   detail?: ProgressDetail | null;
+  /** 当前任务状态（paused/running/...），随增量 progress 帧下发，用于刷新状态。 */
+  status?: string;
   timestamp: number;
 }
 

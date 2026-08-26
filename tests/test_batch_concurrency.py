@@ -121,6 +121,31 @@ class TestConcurrentBatchExecution:
         ctx = svc._batch_ctx["t_cc_fail"]
         assert set(ctx.progress_map.values()) == {100.0}
 
+    def test_failed_file_resets_shared_layout_model(self):
+        # 回归：单文件执行失败后必须回收进程级版面模型单例，否则损坏的
+        # InferenceSession 会被同批次后续文件复用，表现为「某文件出错后
+        # 后续文件都不再翻译」。
+        svc = _make_service("t_cc_reset")
+        released: list = []
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(
+                svc,
+                "_execute_legacy",
+                _fake_legacy_factory(svc, [], fail_names={os.path.basename(FILES[1])}),
+            )
+            import pdf2zh.doclayout as dl
+
+            mp.setattr(dl, "release_model_instance", lambda: released.append(True))
+            svc._execute_batch(
+                "t_cc_reset",
+                TranslationRequest(source_path=FILES[0], files=FILES),
+                FILES,
+                svc.config,
+            )
+        assert released, "shared layout model must be released after a file failure"
+        state = svc.get_task_state("t_cc_reset")
+        assert state.status == TaskStage.COMPLETED.value
+
     def test_slot_progress_routes_linear(self):
         # 槽位活跃时：原始百分比入 progress_map，总体 = Σ/total（线性），
         # 不经 stage 权重聚合器。

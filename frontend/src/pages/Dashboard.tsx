@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Collapse,
+  Divider,
   Form,
   Input,
   InputNumber,
@@ -17,7 +18,10 @@ import {
   Upload,
   Typography,
 } from "antd";
-import { DownloadOutlined, InboxOutlined } from "@ant-design/icons";
+import {
+  FolderOpenOutlined,
+  InboxOutlined,
+} from "@ant-design/icons";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -25,21 +29,15 @@ import {
   getTask,
   listGlossaries,
   listTasks,
-  resultZipUrl,
   selftestMagicpdf,
 } from "../api/endpoints";
 import type { ResultFile, TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
-import {
-  isTauri,
-  joinPath,
-  pickExistingDirectory,
-  pickSavePath,
-  writeBytesAt,
-} from "../api/nativeSave";
+import { isTauri, pickExistingDirectory } from "../api/nativeSave";
 import { useAppStore } from "../stores/taskStore";
 import DiagnosticsPanel from "./DiagnosticsPanel";
 import ProgressPanel, { statusLabelKey } from "./ProgressPanel";
+import { ArtifactRow, BatchSaveToFolder, ZipDownload } from "../components/ArtifactPanel";
 
 // pdfjs-dist（主库 ~1MB + worker 1.26MB）仅在预览渲染时才需要；
 // 惰性加载把它拆出首屏 bundle。
@@ -370,7 +368,25 @@ export default function Dashboard() {
                         tooltip={t("ui.config_output_dir_hint")}
                         style={{ minWidth: 320, flex: 1 }}
                       >
-                        <Input placeholder={t("ui.label_n_a")} allowClear />
+                        {/* 手输仍可用（高级场景），桌面壳内提供原生选夹一键填入。 */}
+                        <Input
+                          placeholder={t("ui.label_n_a")}
+                          allowClear
+                          addonAfter={
+                            isTauri() ? (
+                              <FolderOpenOutlined
+                                style={{ cursor: "pointer" }}
+                                onClick={() => {
+                                  void pickExistingDirectory(
+                                    t("ui.download_folder_pick_title"),
+                                  ).then((dir) => {
+                                    if (dir) form.setFieldValue("output_dir", dir);
+                                  });
+                                }}
+                              />
+                            ) : undefined
+                          }
+                        />
                       </Form.Item>
                     </Space>
                     {glossaryOptions.length > 0 && (
@@ -481,7 +497,8 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* 预览与下载 */}
+      {/* 预览与下载：顶部聚合动作（ZIP/批量入夹），产物为列表行——
+          点行即预览，行内图标负责单个另存；替代原先的按钮横向堆砌。 */}
       {activeId && (
         <Card title={t("ui.section_preview")}>
           {/* 批量失败明细 */}
@@ -511,53 +528,38 @@ export default function Dashboard() {
           )}
           {artifacts.length > 0 ? (
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
-              <div>
-                <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
-                  {t("ui.preview_output")}
-                </Typography.Text>
-                <Space wrap size={8}>
-                  {artifacts.map((f, i) => (
-                    <ArtifactDownload
-                      key={i}
-                      name={f.name || `artifact-${i}`}
-                      url={artifactUrl(activeId, i)}
-                    />
-                  ))}
-                  {artifacts.length > 1 && (
-                    <BatchSaveToFolder
-                      items={artifacts.map((f, i) => ({
-                        name: f.name || `artifact-${i}`,
-                        url: artifactUrl(activeId, i),
-                      }))}
-                    />
-                  )}
-                  {artifacts.length > 0 && (
-                    <ArtifactDownload
-                      name={t("ui.download_all_zip")}
-                      url={resultZipUrl(activeId)}
-                    />
-                  )}
-                </Space>
-              </div>
-              <div>
-              <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
-                {t("ui.preview_title")}
-              </Typography.Text>
-              <Space style={{ marginBottom: 8 }} wrap>
+              <Space wrap size={8}>
+                <ZipDownload taskId={activeId} />
+                {isTauri() && artifacts.length > 1 && (
+                  <BatchSaveToFolder
+                    items={artifacts.map((f, i) => ({
+                      name: f.name || `artifact-${i}`,
+                      url: artifactUrl(activeId, i),
+                    }))}
+                  />
+                )}
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {t("ui.preview_pick")}:
+                  {t("ui.preview_pick_hint")}
                 </Typography.Text>
-                <Select
-                  size="small"
-                  style={{ minWidth: 240 }}
-                  value={previewIndex}
-                  onChange={(v) => setPreviewIndex(v)}
-                  options={artifacts.map((f, i) => ({
-                    value: i,
-                    label: f.name || `artifact-${i}`,
-                  }))}
-                />
               </Space>
+              <List
+                size="small"
+                dataSource={artifacts.map((f, i) => ({
+                  key: i,
+                  name: f.name || `artifact-${i}`,
+                  url: artifactUrl(activeId, i),
+                }))}
+                renderItem={(item) => (
+                  <ArtifactRow
+                    name={item.name}
+                    url={item.url}
+                    selected={previewIndex === item.key}
+                    onSelect={() => setPreviewIndex(item.key)}
+                  />
+                )}
+              />
+              <Divider style={{ margin: "4px 0" }} />
+              <Typography.Text strong>{t("ui.preview_title")}</Typography.Text>
               <Suspense
                 fallback={
                   <div style={{ textAlign: "center", padding: 24, opacity: 0.6 }}>
@@ -565,9 +567,11 @@ export default function Dashboard() {
                   </div>
                 }
               >
-                <PdfPreview key={previewIndex} url={artifactUrl(activeId, previewIndex)} />
+                <PdfPreview
+                  key={previewIndex}
+                  url={artifactUrl(activeId, Math.min(previewIndex, artifacts.length - 1))}
+                />
               </Suspense>
-              </div>
             </Space>
           ) : null}
         </Card>
@@ -576,140 +580,5 @@ export default function Dashboard() {
   );
 }
 
-/** 抓取产物为 Blob（大小校验），供原生写盘与锚点两条路径共用。 */
-async function fetchArtifactBlob(url: string): Promise<Blob> {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const blob = await resp.blob();
-  if (blob.size === 0) throw new Error("empty file");
-  return blob;
-}
 
-/** 浏览器回退：objectURL + 锚点点击（落到 webview 默认下载目录）。 */
-function saveViaAnchor(blob: Blob, name: string): void {
-  const objectUrl = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = objectUrl;
-  anchor.download = name;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-}
-
-/** 单个产物下载：桌面壳走系统「另存为」对话框 + 写盘命令；纯浏览器回退锚点。 */
-function ArtifactDownload({ name, url }: { name: string; url: string }) {
-  const { t } = useTranslation();
-  const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
-  const [detail, setDetail] = useState("");
-
-  async function download() {
-    setState("busy");
-    setDetail("");
-    try {
-      const blob = await fetchArtifactBlob(url);
-      const sizeMb = `${(blob.size / 1048576).toFixed(2)} MB`;
-      if (isTauri()) {
-        const path = await pickSavePath(name);
-        if (!path) {
-          setState("idle"); // 用户取消，不视为失败
-          return;
-        }
-        await writeBytesAt(path, new Uint8Array(await blob.arrayBuffer()));
-        setDetail(`${sizeMb} · ${path}`);
-      } else {
-        saveViaAnchor(blob, name);
-        setDetail(sizeMb);
-      }
-      setState("done");
-    } catch (err) {
-      setDetail(String(err));
-      setState("error");
-    }
-  }
-
-  return (
-    <Space size={6}>
-      <Button
-        icon={<DownloadOutlined />}
-        loading={state === "busy"}
-        onClick={() => void download()}
-      >
-        {name}
-      </Button>
-      {state === "done" && (
-        <Tag color="green">
-          {t("ui.download_done")}
-          {detail ? ` · ${detail}` : ""}
-        </Tag>
-      )}
-      {state === "error" && (
-        <Tag color="red">
-          {t("ui.download_failed")}
-          {detail ? ` · ${detail}` : ""}
-        </Tag>
-      )}
-    </Space>
-  );
-}
-
-/**
- * 批量保存到指定文件夹（桌面壳专属）：一次系统「选择文件夹」对话框选定
- * 目标目录后，逐个抓取全部产物并按原名写入该目录。部分失败不中断其余
- * 文件，结束时以明细回显成功/失败清单；取消选夹静默复位。
- */
-function BatchSaveToFolder({ items }: { items: { name: string; url: string }[] }) {
-  const { t } = useTranslation();
-  const [state, setState] = useState<"idle" | "busy" | "done" | "error">("idle");
-  const [detail, setDetail] = useState("");
-
-  async function run() {
-    const dir = await pickExistingDirectory(t("ui.download_folder_pick_title"));
-    if (!dir) return; // 用户取消
-    setState("busy");
-    setDetail("");
-    const failed: string[] = [];
-    let savedPath = "";
-    for (const item of items) {
-      try {
-        const blob = await fetchArtifactBlob(item.url);
-        const target = joinPath(dir, item.name);
-        await writeBytesAt(target, new Uint8Array(await blob.arrayBuffer()));
-        savedPath = dir;
-      } catch (err) {
-        failed.push(`${item.name}: ${String(err)}`);
-      }
-    }
-    setDetail(
-      `${items.length - failed.length}/${items.length}${savedPath ? ` · ${savedPath}` : ""}` +
-        (failed.length > 0 ? ` · ${failed.join("; ")}` : ""),
-    );
-    setState(failed.length === 0 ? "done" : "error");
-  }
-
-  return (
-    <Space size={6}>
-      <Button
-        icon={<DownloadOutlined />}
-        loading={state === "busy"}
-        disabled={!isTauri()}
-        onClick={() => void run()}
-      >
-        {t("ui.download_folder_batch", { count: items.length })}
-      </Button>
-      {state === "done" && (
-        <Tag color="green">
-          {t("ui.download_done")}
-          {detail ? ` · ${detail}` : ""}
-        </Tag>
-      )}
-      {state === "error" && (
-        <Tag color="red">
-          {t("ui.download_failed")}
-          {detail ? ` · ${detail}` : ""}
-        </Tag>
-      )}
-    </Space>
-  );
-}
 
