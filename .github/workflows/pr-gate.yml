@@ -1,0 +1,211 @@
+name: pr-gate
+
+# PR 门禁 + 自动合并：
+# 1. single-topic —— PR 标题与全部提交必须遵循 Conventional Commits 且 type 一致（同一主题）；
+# 2. rust-compliance —— 涉及 frontend/src-tauri 时强制 cargo fmt/clippy/test
+#    （Python 由 black.format 管合规、python-test.yml 管测试，frontend 由 frontend-build.yml 管）；
+# 3. auto-merge —— 门禁自身通过后，按 head_sha 轮询本仓库全部工作流，
+#    预期检查全绿才执行 squash 合并；fork 来的 PR 不自动合并。
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      docs_only: ${{ steps.filter.outputs.docs_only }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      rust: ${{ steps.filter.outputs.rust }}
+      python: ${{ steps.filter.outputs.python }}
+    env:
+      TITLE: ${{ github.event.pull_request.title }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: filter
+        run: |
+          set -euo pipefail
+          # doc-only 判定沿用 black.format / python-test 的标题约定
+          if [[ "$TITLE" =~ ^doc(:|\() ]]; then docs_only=true; else docs_only=false; fi
+
+          BASE="origin/${{ github.base_ref }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          FILES="$(git diff --name-only "$BASE...$HEAD" || true)"
+          echo "changed files:"
+          echo "$FILES"
+
+          hit() { echo "$FILES" | grep -qE "$1"; }
+          if hit '^frontend/src-tauri/'; then rust=true; else rust=false; fi
+          if hit '^frontend/'; then frontend=true; else frontend=false; fi
+          if hit '\.py$|^pyproject\.toml$|^uv\.lock$'; then python=true; else python=false; fi
+
+          {
+            echo "docs_only=$docs_only"
+            echo "frontend=$frontend"
+            echo "rust=$rust"
+            echo "python=$python"
+          } >> "$GITHUB_OUTPUT"
+
+  single-topic:
+    name: Enforce same-topic (Conventional Commits)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BASE: origin/${{ github.base_ref }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          regex='^(feat|fix|perf|revert|docs|doc|style|refactor|test|build|ci|chore)(\([A-Za-z0-9._/-]+\))?!?: .+$'
+          ty() { local s="$1"; s="${s%%(*}"; s="${s%%:*}"; s="${s%%!*}"; echo "$s"; }
+
+          fail=0
+          if ! grep -qE "$regex" <<<"$TITLE"; then
+            echo "::error::PR 标题不符合 Conventional Commits：'$TITLE'"
+            echo "  期望形如 'fix(desktop): ...' / 'feat: ...'，type 取值：feat fix perf revert docs doc style refactor test build ci chore"
+            fail=1
+          fi
+
+          declare -a bad=()
+          declare -A types=()
+          while IFS= read -r subj; do
+            [[ -z "$subj" ]] && continue
+            if grep -qE "$regex" <<<"$subj"; then
+              types["$(ty "$subj")"]=1
+            else
+              bad+=("$subj")
+            fi
+          done < <(git log --no-merges --format=%s "$BASE..$HEAD")
+
+          if (( ${#bad[@]} > 0 )); then
+            echo "::error::以下提交不符合 Conventional Commits（type(scope): 描述）："
+            for b in "${bad[@]}"; do echo "  - $b"; done
+            fail=1
+          fi
+          if (( ${#types[@]} > 1 )); then
+            echo "::error::PR 内提交混杂多个主题类型：${!types[*]} —— 同一 PR 应只做同一主题的修改"
+            fail=1
+          elif (( ${#types[@]} == 1 )); then
+            only="${!types[@]}"
+            if [[ "$fail" == "0" && "$only" != "$(ty "$TITLE")" ]]; then
+              echo "::error::PR 标题类型 '$(ty "$TITLE")' 与提交类型 '$only' 不一致"
+              fail=1
+            fi
+          fi
+          exit $fail
+
+  rust-compliance:
+    name: Rust fmt + clippy + test
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: frontend/src-tauri
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain components
+        run: rustup component add rustfmt clippy
+      - name: Cache cargo registry & target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri
+      - name: cargo fmt --check
+        run: cargo fmt --check
+      - name: cargo clippy
+        run: cargo clippy -- -D warnings
+      - name: cargo test
+        run: cargo test
+
+  auto-merge:
+    name: Wait for checks & merge
+    needs: [changes, single-topic, rust-compliance]
+    if: >-
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.single-topic.result == 'success' &&
+      (needs.rust-compliance.result == 'success' || needs.rust-compliance.result == 'skipped')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      DOCS_ONLY: ${{ needs.changes.outputs.docs_only }}
+      FRONTEND_CHANGED: ${{ needs.changes.outputs.frontend }}
+    steps:
+      - name: Preflight guards
+        run: |
+          set -euo pipefail
+          view=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" \
+            --json state,isDraft,mergeable,headRepositoryOwner)
+          echo "$view"
+          [[ "$(jq -r .state <<<"$view")" == "OPEN" ]] || { echo "::notice::PR 已关闭，跳过合并"; exit 0; }
+          [[ "$(jq -r .isDraft <<<"$view")" == "false" ]] || { echo "::notice::草稿 PR，跳过合并"; exit 0; }
+          owner=$(jq -r .headRepositoryOwner.login <<<"$view")
+          if [[ "${owner,,}" != "${GITHUB_REPOSITORY_OWNER,,}" ]]; then
+            echo "::notice::来自 fork 的 PR 不自动合并（安全边界），请人工审核"
+            exit 0
+          fi
+          m=$(jq -r .mergeable <<<"$view")
+          [[ "$m" == "MERGEABLE" ]] || { echo "::error::PR 存在冲突或不可合并（mergeable=$m）"; exit 1; }
+
+      - name: Wait for required workflows to pass
+        run: |
+          set -euo pipefail
+          API="https://api.github.com/repos/$GITHUB_REPOSITORY"
+          AUTH="Authorization: Bearer $GH_TOKEN"
+          expected=("Format Code with Black" "Test and Build Python Package")
+          if [[ "$DOCS_ONLY" == "true" ]]; then expected=(); fi
+          if [[ "$FRONTEND_CHANGED" == "true" ]]; then expected+=("frontend-build"); fi
+
+          deadline=$((SECONDS + 5400))
+          while (( SECONDS < deadline )); do
+            json=$(curl -sf -H "$AUTH" "$API/actions/runs?head_sha=$HEAD_SHA&per_page=100")
+            rows=$(jq -r '.workflow_runs[] | [.name, .status, (.conclusion // ""), (.id | tostring)] | @tsv' <<<"$json")
+            declare -A seen=(); ok=true
+            while IFS=$'\t' read -r name status concl rid; do
+              [[ -z "$name" ]] && continue
+              [[ "$rid" == "$GITHUB_RUN_ID" ]] && continue   # 排除本 run 自身的 check
+              seen["$name"]=1
+              if [[ "$status" == "completed" && ! "$concl" =~ ^(success|skipped|neutral)$ ]]; then
+                echo "::error::required workflow failed: $name ($concl)"
+                ok=false
+              fi
+            done <<<"$rows"
+            missing=()
+            for w in "${expected[@]}"; do
+              [[ -n "${seen[$w]:-}" ]] || missing+=("$w")
+            done
+            if (( ${#missing[@]} == 0 )); then
+              if [[ "$ok" == "true" ]]; then echo "所有必需工作流已通过"; exit 0; fi
+              exit 1
+            fi
+            echo "waiting for: ${missing[*]}"
+            sleep 30
+          done
+          echo "::error::等待超时（90 分钟）"; exit 1
+
+      - name: Squash merge
+        run: gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash
