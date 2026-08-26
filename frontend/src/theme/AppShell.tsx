@@ -16,14 +16,18 @@ import SettingsDrawer from "../pages/SettingsDrawer";
 const BRAND = (tokens as { light: Record<string, string> }).light["color_accent"] || "#165dff";
 
 /**
- * 健康门闩：主窗口可能在 sidecar 就绪前显示（闪屏切换时序双保险），
- * 轮询 /api/health 通过后才挂载业务页面，避免 bootstrap 空连报错。
+ * 健康门闩：主窗口在 sidecar 就绪前显示，轮询 /api/health 通过后才挂载
+ * 业务页面。打开失败调查显示极端情况（后端异常退出、端口被外部程序占用
+ * 又不响应等）会无限转圈——连续失败约 40s 后切换为可重试的错误态兜底。
  */
 function ReadyGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
+    if (ready || failed) return undefined;
     let cancelled = false;
     let timer = 0;
     async function poll() {
@@ -34,16 +38,46 @@ function ReadyGate({ children }: { children: ReactNode }) {
       } catch {
         /* 服务未就绪，继续等 */
       }
-      if (!cancelled) timer = window.setTimeout(() => void poll(), 700);
+      if (cancelled) return;
+      setAttempts((n) => n + 1);
+      timer = window.setTimeout(() => void poll(), 700);
     }
     void poll();
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
     };
-  }, []);
+  }, [ready, failed]);
+
+  useEffect(() => {
+    if (attempts >= 60) setFailed(true);
+  }, [attempts]);
 
   if (ready) return <>{children}</>;
+  if (failed) {
+    return (
+      <div
+        style={{
+          height: "60vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        <Typography.Text type="danger">{t("ui.connect_failed")}</Typography.Text>
+        <Button
+          onClick={() => {
+            setAttempts(0);
+            setFailed(false);
+          }}
+        >
+          {t("ui.connect_retry")}
+        </Button>
+      </div>
+    );
+  }
   return (
     <div
       style={{

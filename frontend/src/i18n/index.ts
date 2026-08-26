@@ -82,6 +82,8 @@ const SPA_OVERLAY = {
       download_folder_batch: "批量保存到文件夹（{{count}} 个文件）…",
       download_folder_pick_title: "选择保存位置",
       connecting: "正在连接本地翻译服务…",
+      connect_failed: "连接本地翻译服务失败。请重启应用；若反复出现，请查看 %TEMP%\\pdf2zh-sidecar.log",
+      connect_retry: "重试",
       download_btn: "下载",
       preview_pick: "预览文件",
     },
@@ -156,6 +158,9 @@ const SPA_OVERLAY = {
       download_folder_batch: "Save {{count}} files to folder…",
       download_folder_pick_title: "Choose destination folder",
       connecting: "Connecting to the local translation service…",
+      connect_failed:
+        "Failed to reach the local translation service. Please restart the app; if it persists, check %TEMP%\\pdf2zh-sidecar.log",
+      connect_retry: "Retry",
       download_btn: "Download",
       preview_pick: "Preview file",
     },
