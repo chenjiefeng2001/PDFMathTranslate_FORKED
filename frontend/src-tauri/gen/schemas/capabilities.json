@@ -1,1 +1,1 @@
-{}
+{"default":{"identifier":"default","description":"主窗口能力：核心默认 + 原生保存/选夹对话框（下载到指定位置）。","local":true,"windows":["main"],"permissions":["core:default","dialog:default"]}}
