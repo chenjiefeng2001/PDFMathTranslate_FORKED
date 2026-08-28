@@ -83,15 +83,16 @@ def _apply_conservative_vram_budget() -> None:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) not in (4, 5):
+    if len(argv) not in (4, 5, 6):
         print(
             "usage: mineru_worker.py <pdf_path> <output_dir> "
-            "<parse_method> <lang> [device]",
+            "<parse_method> <lang> [device] [backend]",
             file=sys.stderr,
         )
         return 2
     pdf_path, output_dir, parse_method, lang = argv[:4]
     device = argv[4] if len(argv) >= 5 else "auto"
+    backend = argv[5] if len(argv) >= 6 else "pipeline"
     os.makedirs(output_dir, exist_ok=True)
 
     _apply_device_mode(device)
@@ -114,7 +115,7 @@ def main(argv: list[str]) -> int:
         "pdf_file_names": [stem],
         "pdf_bytes_list": [pdf_bytes],
         "p_lang_list": [lang],
-        "backend": "pipeline",
+        "backend": backend or "pipeline",
         "parse_method": parse_method,
         "f_dump_md": False,
         "f_dump_content_list": False,

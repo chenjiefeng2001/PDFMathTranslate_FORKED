@@ -301,7 +301,7 @@ def test_parse_subprocess_passes_device_and_cuda_fallback(
         python_exe=sys.executable,
         out_dir=str(tmp_path / "out2"),
     )
-    assert seen["cmd"][-1] == "cpu"  # cuda 请求 → venv 无 CUDA → 降级 cpu
+    assert seen["cmd"][-2] == "cpu"  # cuda 请求 → venv 无 CUDA → 降级 cpu
 
 
 def test_parse_subprocess_cuda_when_venv_has_cuda(
@@ -333,7 +333,7 @@ def test_parse_subprocess_cuda_when_venv_has_cuda(
         python_exe=sys.executable,
         out_dir=str(tmp_path / "out3"),
     )
-    assert seen["cmd"][-1] == "cuda"
+    assert seen["cmd"][-2] == "cuda"
 
 
 # ── ensure_venv(cuda=True)：对已存在 CPU venv 原位升级 CUDA torch ────────────
@@ -586,3 +586,36 @@ def test_parse_subprocess_no_env_when_config_empty(_fake_backend_mineru, monkeyp
         out_dir=str(tmp_path / "out"),
     )
     assert seen["env"] is None
+
+
+def test_parse_subprocess_explicit_mode_and_backend(_fake_backend_mineru, monkeypatch, tmp_path):
+    """mineru_parse_method=ocr + mineru_backend=hybrid 显式透传到 worker cmd。"""
+    seen = {}
+
+    def fake_run(cmd, timeout, **kw):
+        seen["cmd"] = cmd
+        out_dir = cmd[3]
+        nested = os.path.join(out_dir, "paper", "auto")
+        os.makedirs(nested, exist_ok=True)
+        import json as _json
+
+        with open(
+            os.path.join(nested, "paper_middle.json"), "w", encoding="utf-8"
+        ) as fh:
+            _json.dump(_MIDDLE, fh)
+        return _FakeCompleted()
+
+    monkeypatch.setattr("pdf2zh.magicpdf_adapter._run_mineru_process", fake_run)
+    monkeypatch.setenv("PDF2ZH_MINERU_PYTHON", sys.executable)
+    MagicPdfAdapter(
+        device="cuda",
+        mineru_parse_method="ocr",
+        mineru_backend="hybrid",
+    )._parse_mineru_subprocess(  # type: ignore[arg-type]
+        __file__,
+        python_exe=sys.executable,
+        out_dir=str(tmp_path / "out"),
+    )
+    # cmd: [py, worker, pdf, outdir, parse_method, lang, device, backend]
+    assert seen["cmd"][4] == "ocr"
+    assert seen["cmd"][-1] == "hybrid"

@@ -592,6 +592,40 @@ def _magicpdf_log_to_detail(
     }
 
 
+#: MinerU 3.x pipeline 批处理日志（pipeline_analyze.py:264）：
+#: ``Pipeline processing window batch 1/3: 200/800 pages, batch_pages=...``
+_MINERU_BATCH_RE = re.compile(
+    r"Pipeline processing window batch\s+(\d+)\s*/\s*(\d+)\s*:\s*"
+    r"(\d+)\s*/\s*(\d+)\s*pages"
+)
+
+
+def _mineru_log_to_detail(
+    text: str, engine: str = "mineru"
+) -> Optional[Dict[str, Any]]:
+    """把 MinerU 3.x 的批处理日志整理成结构化 detail（不匹配返回 None）。
+
+    与 :func:`_magicpdf_log_to_detail` 同 schema：``unit="page"``，
+    current=累计已处理页，batch_current/batch_total 一并透传。
+    """
+    m = _MINERU_BATCH_RE.search(text or "")
+    if m is None:
+        return None
+    try:
+        batch_i, batch_n, pages_done, pages_total = (int(g) for g in m.groups())
+    except ValueError:  # pragma: no cover - 正则保证均为数字
+        return None
+    return {
+        "engine": engine,
+        "raw_stage": "pipeline",
+        "unit": "page",
+        "current": pages_done,
+        "total": pages_total,
+        "batch_current": batch_i,
+        "batch_total": batch_n,
+    }
+
+
 def _magicpdf_log_component(text: str) -> Optional[str]:
     """识别组件加载类日志，返回组件描述（不匹配返回 None）。"""
     low = str(text or "")
@@ -713,23 +747,79 @@ def _read_pdf_bytes(pdf_path: str) -> bytes:
 
 
 def _run_mineru_process(
-    cmd: list[str], timeout: int, env: Optional[dict] = None
+    cmd: list[str],
+    timeout: int,
+    env: Optional[dict] = None,
+    progress_cb: Optional[MagicPdfProgressCB] = None,
+    total_pages: int = 0,
 ) -> "subprocess.CompletedProcess[str]":
-    """执行 mineru worker 子进程（独立函数便于测试打桩）。
+    """执行 mineru worker 子进程，实时读取 stdout 解析进度（独立函数便于测试打桩）。
 
     Windows 下子进程日志是 UTF-8，而管道默认按 locale（cp936 等）解码会
     炸 UnicodeDecodeError；这里显式固定 utf-8 并容忍坏字节。
     ``env``（可选）：worker 进程的额外环境变量（继承当前环境并覆盖），
     用于透传 MinerU 显存预算 / 处理窗口等 per-task 配置。
+    ``progress_cb``（可选）：每读到一行引擎日志，尝试解析为页级进度
+    （MinerU 3.x ``Pipeline processing window batch`` / magic-pdf 1.x
+    ``Batch i/n: x pages/y pages``）并通过 ``progress_cb(detail)`` 上报，
+    使大文档解析期间 UI 实时推进而不是停在 0/N。
+    ``total_pages``：已知总页数，用于解析失败时兜底上报。
     """
-    return subprocess.run(
+    import subprocess as _sp
+
+    proc = _sp.Popen(
         cmd,
-        capture_output=True,
+        stdout=_sp.PIPE,
+        stderr=_sp.STDOUT,
         text=True,
         encoding="utf-8",
         errors="replace",
-        timeout=timeout,
         env=env,
+    )
+    out_lines: list[str] = []
+    assert proc.stdout is not None
+    try:
+        for line in proc.stdout:
+            out_lines.append(line)
+            if progress_cb is None:
+                continue
+            text = line.strip()
+            if not text:
+                continue
+            try:
+                detail = _mineru_log_to_detail(text, engine="mineru")
+                if detail is None:
+                    detail = _magicpdf_log_to_detail(text, engine="mineru")
+                if detail is not None:
+                    progress_cb(detail)
+            except Exception:  # noqa: BLE001 -- 进度上报永不致命
+                pass
+        # 兜底：有总页数但未捕获任何 batch 行（如日志格式变化）时，结束时
+        # 补一次 total 事件，避免 UI 永远停在 0/N。
+        if progress_cb is not None and total_pages > 0:
+            try:
+                if not any(
+                    _mineru_log_to_detail(t) or _magicpdf_log_to_detail(t)
+                    for t in out_lines
+                ):
+                    progress_cb(
+                        {
+                            "engine": "mineru",
+                            "raw_stage": "pipeline",
+                            "unit": "page",
+                            "current": total_pages,
+                            "total": total_pages,
+                        }
+                    )
+            except Exception:  # noqa: BLE001 -- 兜底上报失败忽略
+                pass
+        rc = proc.wait(timeout=timeout)
+    except Exception:  # noqa: BLE001 -- 统一在调用方按 returncode 处理
+        proc.kill()
+        proc.wait()
+        raise
+    return _sp.CompletedProcess(
+        cmd, rc, "".join(out_lines), ""
     )
 
 
@@ -1176,6 +1266,8 @@ class MagicPdfAdapter:
         models_dir: str | None = None,
         mineru_vram_size: str = "",
         mineru_window_size: str = "",
+        mineru_parse_method: str = "",
+        mineru_backend: str = "",
     ) -> None:
         self.device = device
         self.models_dir = models_dir or os.environ.get("PDF2ZH_MODELS_DIR") or ""
@@ -1184,6 +1276,13 @@ class MagicPdfAdapter:
         # ``MINERU_PROCESSING_WINDOW_SIZE``，规避 8GB 卡激进 batch_ratio OOM。
         self.mineru_vram_size = str(mineru_vram_size or "").strip()
         self.mineru_window_size = str(mineru_window_size or "").strip()
+        # MinerU 显式解析模式（空 = 跟随 ocr 参数的历史行为）：
+        # - ``mineru_parse_method``：auto / ocr / txt（对应 do_parse 的
+        #   ``parse_method``；显式选择后不再受 ``ocr`` 开关影响）；
+        # - ``mineru_backend``：pipeline / hybrid / vlm（对应 do_parse 的
+        #   ``backend``；空保持 pipeline 本地后端）。
+        self.mineru_parse_method = str(mineru_parse_method or "").strip().lower()
+        self.mineru_backend = str(mineru_backend or "").strip().lower()
 
     def close(self) -> None:
         """释放底层 ONNX Runtime / magic-pdf 会话占用的 GPU 显存。
@@ -1492,8 +1591,8 @@ class MagicPdfAdapter:
                 pass
 
         wanted: Dict[str, Any] = {
-            "backend": "pipeline",  # 本地 OCR/版面模型；纯 CPU 可用、无幻觉
-            "parse_method": "ocr" if ocr else "auto",
+            "backend": self.mineru_backend or "pipeline",  # 本地模型后端
+            "parse_method": self.mineru_parse_method or ("ocr" if ocr else "auto"),
             "f_dump_md": False,
             "f_dump_content_list": False,
             "f_draw_layout_bbox": False,
@@ -1676,9 +1775,10 @@ class MagicPdfAdapter:
                 str(worker),
                 pdf_path,
                 work_dir,
-                "ocr" if ocr else "auto",
+                self.mineru_parse_method or ("ocr" if ocr else "auto"),
                 lang,
                 effective_device,
+                self.mineru_backend or "pipeline",
             ]
             env = None
             if self.mineru_vram_size or self.mineru_window_size:
@@ -1689,7 +1789,13 @@ class MagicPdfAdapter:
                     env["MINERU_VIRTUAL_VRAM_SIZE"] = self.mineru_vram_size
                 if self.mineru_window_size:
                     env["MINERU_PROCESSING_WINDOW_SIZE"] = self.mineru_window_size
-            completed = _run_mineru_process(cmd, timeout=timeout, env=env)
+            completed = _run_mineru_process(
+                cmd,
+                timeout=timeout,
+                env=env,
+                progress_cb=progress_cb,
+                total_pages=_pdf_page_count(pdf_path) or 0,
+            )
             if completed.returncode != 0:
                 stderr = (completed.stderr or "")[-2000:]
                 raise MagicPdfParseError(

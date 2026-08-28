@@ -535,6 +535,79 @@ batch 策略（8GB 卡 `batch_ratio=4`）而 OOM。
 - `frontend/src/api/endpoints.ts`、`frontend/src/pages/Dashboard.tsx`、`frontend/src/i18n/index.ts`
 - `tests/test_mineru_env.py`（+2 项）
 
+### 8.11 「182 页停在 0/182」：MinerU 3.x 子进程进度未上报
+
+**现象**：182 页文档解析进度一直停在 `0/182`，重试三次依旧；GPU 与环境均正常。
+
+**根因（进度上报缺失，非解析失败）**：`_parse_mineru_subprocess` 用
+`_run_mineru_process`（`subprocess.run(capture_output=True)`）**阻塞**运行 worker，
+期间 worker 的 MinerU 3.x 批处理日志（`Pipeline processing window batch X/Y:
+N/M pages`）被捕获但**从未解析成进度事件**——只有开始时上报一次 `0/182`，之后
+UI 一直显示 0/N（解析实际在跑，需数分钟），用户误判卡死并反复重试。
+
+> 注：既有 `_MagicPdfLogProbe` 只包裹**主进程 `_parse_mineru`** 的 do_parse 调用；
+> 子进程路径无探针，且 magic-pdf 1.x 的 `Batch i/n` 正则不匹配 MinerU 3.x 的
+> `Pipeline processing window batch` 格式。
+
+**修复**（`pdf2zh/magicpdf_adapter.py`）：
+1. 新增 `_mineru_log_to_detail()`：解析 MinerU 3.x 批处理日志 → 页级 detail
+   （与 magic-pdf 1.x 同 schema）；
+2. `_run_mineru_process()` 改为 **Popen 流式读取** stdout，逐行尝试
+   `_mineru_log_to_detail` / `_magicpdf_log_to_detail` 并通过新增的
+   `progress_cb` 上报；同时保留完整输出用于错误诊断；
+3. `_parse_mineru_subprocess` 把 `progress_cb` 与 `total_pages` 透传；解析结束时
+   若仍无任何 batch 行（日志格式变化兜底）补发 `current=total` 事件。
+
+**验证**：
+- 真实 venv 实测：解析期间进度 `0/2 → 2/2`（`batch_current:1, batch_total:1`）
+  实时上报，不再停 0/N；
+- 新增测试：`_mineru_log_to_detail` 解析（2 项）+ 非批处理行忽略；
+- 修复测试环境：`test_granular_progress_p1.py` 增加 autouse fixture 强制走主进程
+  `_parse_mineru`（本机有 venv 时避免误走子进程）；
+- 回归 **126 passed, 1 skipped**（+ 2 项进度解析测试）。
+
+**改动文件**：
+- `pdf2zh/magicpdf_adapter.py`（`_mineru_log_to_detail` + `_run_mineru_process` 流式 + 透传）
+- `tests/test_granular_progress_p1.py`（+2 项 + autouse fixture）
+
+### 8.12 minerU 显式切换模式（解析方法 / 后端）
+
+**诉求**：minerU 之前不支持显式切换模式——解析方法只能由 OCR 开关间接决定
+（`"ocr" if ocr else "auto"`），解析后端硬编码 `pipeline`，无法显式切换。
+
+**实现**：新增两个显式模式配置项，贯通到 worker 子进程：
+
+| 配置 | 含义 | 取值 |
+|---|---|---|
+| `mineru_parse_method` | 显式解析方法（对应 MinerU `do_parse.parse_method`） | `auto` / `ocr` / `txt`；空 = 跟随 OCR 开关（历史行为） |
+| `mineru_backend` | 显式解析后端（对应 `do_parse.backend`） | `pipeline` / `hybrid` / `vlm`；空 = pipeline 本地后端 |
+
+**贯通链**：`TranslationRequest` → `_execute_magicpdf` → CLI namespace →
+`MagicPdfAdapter.__init__` → 主进程 `_parse_mineru`（wanted 用配置）/
+子进程 `_parse_mineru_subprocess`（cmd 新增第 6 参数 backend）→
+`mineru_worker.py`（argv[5]=backend）→ `do_parse(backend, parse_method)`。
+
+**前端**：Dashboard 高级配置区新增「MinerU 解析方法」「MinerU 解析后端」下拉，
+留空 = 自动（跟随既有 OCR 开关 / pipeline 后端）；API `/api/tasks` 表单对应
+新增 `mineru_parse_method` / `mineru_backend`。
+
+**验证**：
+- adapter 显式模式透传（`parse_method=ocr` / `backend=hybrid`）断言通过；
+- 子进程 cmd 断言：`cmd[4]==parse_method`、`cmd[-1]==backend`；
+- 修复既有测试的 device 索引（cmd 多一位 backend 后 device 在 `[-2]`）；
+- 回归 **129 passed, 1 skipped**；前端 `tsc --noEmit` + `vite build` 通过。
+
+**改动文件**：
+- `pdf2zh/magicpdf_adapter.py`（`__init__` 参数 + 主/子进程模式透传）
+- `pdf2zh/kernel/mineru_worker.py`（argv[5]=backend）
+- `pdf2zh/magicpdf_cli.py`（adapter 构造传参）
+- `pdf2zh/services/runtime_service.py`（request 字段 + 透传）
+- `pdf2zh/services/api.py`（表单字段）
+- `frontend/src/api/endpoints.ts`、`frontend/src/pages/Dashboard.tsx`、`frontend/src/i18n/index.ts`
+- `tests/test_mineru_env.py`（+1 项，2 处断言修正）
+
+
+
 
 
 

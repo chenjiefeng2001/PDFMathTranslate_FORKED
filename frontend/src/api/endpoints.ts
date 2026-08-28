@@ -39,6 +39,10 @@ export interface SubmitParams {
   mineruVramSize?: string;
   /** MinerU 处理窗口页数（空=引擎默认），对应 MINERU_PROCESSING_WINDOW_SIZE。 */
   mineruWindowSize?: string;
+  /** MinerU 显式解析方法（auto/ocr/txt，空=跟随 OCR 开关）。 */
+  mineruParseMethod?: string;
+  /** MinerU 解析后端（pipeline/hybrid/vlm，空=pipeline 本地后端）。 */
+  mineruBackend?: string;
 }
 
 export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
@@ -62,6 +66,8 @@ export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
   form.append("ignore_cache", String(!!params.ignoreCache));
   if (params.mineruVramSize) form.append("mineru_vram_size", params.mineruVramSize);
   if (params.mineruWindowSize) form.append("mineru_window_size", params.mineruWindowSize);
+  if (params.mineruParseMethod) form.append("mineru_parse_method", params.mineruParseMethod);
+  if (params.mineruBackend) form.append("mineru_backend", params.mineruBackend);
   if (params.glossaryNames?.length) {
     form.append("glossary_files", params.glossaryNames.join(","));
   }

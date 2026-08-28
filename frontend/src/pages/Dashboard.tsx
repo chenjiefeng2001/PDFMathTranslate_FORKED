@@ -201,6 +201,8 @@ export default function Dashboard() {
       glossaryNames: (values.glossary_names as string[]) || [],
       mineruVramSize: ((values.mineru_vram_size as string) || "").trim(),
       mineruWindowSize: ((values.mineru_window_size as string) || "").trim(),
+      mineruParseMethod: ((values.mineru_parse_method as string) || "").trim(),
+      mineruBackend: ((values.mineru_backend as string) || "").trim(),
     });
     if (taskId) {
       // 任务已入列：清空待提交队列，避免同一文件被重复提交；
@@ -244,6 +246,8 @@ export default function Dashboard() {
           output_dir: initialOutputDir,
           mineru_vram_size: "",
           mineru_window_size: "",
+          mineru_parse_method: "",
+          mineru_backend: "",
         }}
       >
         {/* 文件上传（支持多选/拖入多个，批量翻译） */}
@@ -383,6 +387,38 @@ export default function Dashboard() {
                         tooltip={t("ui.config_mineru_window_info")}
                       >
                         <Input placeholder={t("ui.config_mineru_auto")} allowClear />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_mineru_parse_method")}
+                        name="mineru_parse_method"
+                        tooltip={t("ui.config_mineru_parse_method_info")}
+                      >
+                        <Select
+                          style={{ width: 200 }}
+                          allowClear
+                          placeholder={t("ui.config_mineru_auto")}
+                          options={[
+                            { value: "auto", label: t("ui.config_mineru_auto") },
+                            { value: "ocr", label: "OCR" },
+                            { value: "txt", label: "TXT" },
+                          ]}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_mineru_backend")}
+                        name="mineru_backend"
+                        tooltip={t("ui.config_mineru_backend_info")}
+                      >
+                        <Select
+                          style={{ width: 200 }}
+                          allowClear
+                          placeholder={t("ui.config_mineru_auto")}
+                          options={[
+                            { value: "pipeline", label: "Pipeline" },
+                            { value: "hybrid", label: "Hybrid" },
+                            { value: "vlm", label: "VLM" },
+                          ]}
+                        />
                       </Form.Item>
                       <Form.Item
                         label={t("ui.config_output_dir")}

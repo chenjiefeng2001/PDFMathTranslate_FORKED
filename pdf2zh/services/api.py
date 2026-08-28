@@ -762,6 +762,8 @@ def create_api_app(
         glossary_files: str = Form(default=""),
         mineru_vram_size: str = Form(default=""),
         mineru_window_size: str = Form(default=""),
+        mineru_parse_method: str = Form(default=""),
+        mineru_backend: str = Form(default=""),
     ) -> Dict[str, str]:
         # 批量上传：``files``（可重复的 multipart 部件）优先；兼容旧的单文件
         # ``file`` 字段与 ``source_path`` 本地路径。所有路径统一进入
@@ -855,6 +857,8 @@ def create_api_app(
             extra_config=extra,
             mineru_vram_size=(mineru_vram_size or "").strip(),
             mineru_window_size=(mineru_window_size or "").strip(),
+            mineru_parse_method=(mineru_parse_method or "").strip(),
+            mineru_backend=(mineru_backend or "").strip(),
         )
         return _submit(request)
 

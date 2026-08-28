@@ -360,6 +360,17 @@ class TranslationRequest:
     空 = 引擎默认（64）。显式设置（如 ``8``）控制每批页数，进一步降显存峰值。
     """
 
+    mineru_parse_method: str = ""
+    """MinerU 显式解析方法（auto / ocr / txt，空=跟随 OCR 开关）。
+
+    显式选择后不再受 ``magicpdf_ocr_mode`` 影响，直接传给 do_parse 的
+    ``parse_method``。"""
+
+    mineru_backend: str = ""
+    """MinerU 解析后端（pipeline / hybrid / vlm，空=pipeline 本地后端）。
+
+    与 do_parse 的 ``backend`` 对应；vlm/hybrid 需对应服务/模型就绪。"""
+
     extra_config: Dict[str, Any] = field(default_factory=dict)
 
     def resolved_files(self) -> List[str]:
@@ -2367,6 +2378,8 @@ class RuntimeService:
         ns.prompt = extra.get("prompt") or ""
         ns.mineru_vram_size = getattr(request, "mineru_vram_size", "") or ""
         ns.mineru_window_size = getattr(request, "mineru_window_size", "") or ""
+        ns.mineru_parse_method = getattr(request, "mineru_parse_method", "") or ""
+        ns.mineru_backend = getattr(request, "mineru_backend", "") or ""
         self._emit_event(
             task_id, TaskStage.PARSING.value, 10.0, "magic-pdf/MinerU parsing..."
         )

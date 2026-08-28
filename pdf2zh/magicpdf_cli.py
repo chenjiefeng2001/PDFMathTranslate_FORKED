@@ -189,6 +189,8 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
         device=parsed_args.backend,
         mineru_vram_size=getattr(parsed_args, "mineru_vram_size", "") or "",
         mineru_window_size=getattr(parsed_args, "mineru_window_size", "") or "",
+        mineru_parse_method=getattr(parsed_args, "mineru_parse_method", "") or "",
+        mineru_backend=getattr(parsed_args, "mineru_backend", "") or "",
     )
     # 解析前打印 magic-pdf 实际执行设备（torch CUDA 状态 + 配置 device-mode），
     # 避免"选 cuda 实际跑 cpu"的排障盲区；未走 GPU 时给出安装指引。

@@ -88,6 +88,12 @@ const SPA_OVERLAY = {
       config_mineru_window_info:
         "MinerU 处理窗口页数（对应 MINERU_PROCESSING_WINDOW_SIZE）：留空用引擎默认 64；小显存卡建议设 8–16 进一步降低显存峰值。",
       config_mineru_auto: "自动",
+      config_mineru_parse_method: "MinerU 解析方法",
+      config_mineru_parse_method_info:
+        "显式切换 MinerU 解析方法（对应 do_parse parse_method）：auto=常规文本解析，ocr=强制 OCR（扫描件），txt=纯文本。留空跟随「OCR 模式」开关。",
+      config_mineru_backend: "MinerU 解析后端",
+      config_mineru_backend_info:
+        "显式切换 MinerU 解析后端：pipeline=本地模型（默认），hybrid=混合，vlm=视觉语言模型（需对应服务/模型就绪）。留空用 pipeline。",
       settings_mineru: "MinerU / magic-pdf 高级解析",
       settings_mineru_hint:
         "桌面安装包因体积上限不内置 MinerU 与 torch。点击「一键安装 MinerU」即可在用户数据目录构建隔离环境（torch 等重依赖与应用目录分离，需本机有 Python 3.10–3.13）；也可在独立 Python 环境执行下方命令。模型在首次解析时自动下载到用户缓存。",
@@ -188,6 +194,12 @@ const SPA_OVERLAY = {
       config_mineru_window_info:
         "MinerU processing window size (MINERU_PROCESSING_WINDOW_SIZE): empty = engine default 64; small cards: 8–16 to lower VRAM peaks.",
       config_mineru_auto: "Auto",
+      config_mineru_parse_method: "MinerU parse method",
+      config_mineru_parse_method_info:
+        "Explicit MinerU parse method (do_parse parse_method): auto=normal text parse, ocr=force OCR (scanned), txt=plain text. Empty follows the OCR mode toggle.",
+      config_mineru_backend: "MinerU backend",
+      config_mineru_backend_info:
+        "Explicit MinerU backend: pipeline=local models (default), hybrid, vlm (needs a ready VLM service/models). Empty uses pipeline.",
       settings_mineru: "MinerU / magic-pdf advanced parsing",
       settings_mineru_hint:
         "The desktop installer cannot bundle MinerU and torch due to size limits. Click \"Install MinerU (one-click)\" to build an isolated env in the user data dir (heavy deps like torch stay separate from the app; a local Python 3.10–3.13 is required); or run the command below in a separate Python env. Models auto-download into the user cache on first parse.",

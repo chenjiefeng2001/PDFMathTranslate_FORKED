@@ -187,6 +187,20 @@ def _install_fake_mineru(monkeypatch, do_parse) -> list[dict]:
     return calls
 
 
+@pytest.fixture(autouse=True)
+def _no_mineru_override(monkeypatch):
+    """强制走主进程 ``_parse_mineru``：本机若探测到隔离 venv（PDF2ZH_MINERU_PYTHON
+    自动探测），默认改走子进程路径；这些用例注入的是假 ``mineru.cli.common``，
+    必须让 override 返回 None 才能命中主进程路径。"""
+    import pdf2zh.engine_env as _ee
+
+    # _parse_mineru 内 `from pdf2zh.engine_env import mineru_python_override`
+    # 读的是模块全局名，须 patch engine_env 模块属性。
+    monkeypatch.setattr(_ee, "mineru_python_override", lambda: None)
+    monkeypatch.delenv("PDF2ZH_MINERU_PYTHON", raising=False)
+    monkeypatch.delenv("PDF2ZH_MINERU_VENV_DIR", raising=False)
+
+
 @pytest.fixture()
 def fake_pdf(tmp_path):
     pdf = tmp_path / "paper.pdf"
@@ -391,3 +405,29 @@ def test_magicpdf_forwarder_writes_snapshot_and_event():
     events = svc._store.get_events("t_gp_p1")
     assert events[-1].detail == detail
     assert events[-1].stage == "analyzing"
+
+
+def test_mineru_batch_log_parsed_to_page_detail():
+    """MinerU 3.x `Pipeline processing window batch` 行 → 页级 detail。"""
+    from pdf2zh.magicpdf_adapter import _mineru_log_to_detail
+
+    d = _mineru_log_to_detail(
+        "Pipeline processing window batch 2/3: 400/800 pages, "
+        "batch_pages=200, doc_slices=doc0:201-400"
+    )
+    assert d is not None
+    assert d["engine"] == "mineru"
+    assert d["raw_stage"] == "pipeline"
+    assert d["unit"] == "page"
+    assert d["current"] == 400
+    assert d["total"] == 800
+    assert d["batch_current"] == 2
+    assert d["batch_total"] == 3
+
+
+def test_mineru_batch_log_other_lines_ignored():
+    from pdf2zh.magicpdf_adapter import _mineru_log_to_detail
+
+    assert _mineru_log_to_detail("DocAnalysis init done!") is None
+    assert _mineru_log_to_detail("") is None
+    assert _mineru_log_to_detail("Layout Predict: 100%|#| 2/2") is None
