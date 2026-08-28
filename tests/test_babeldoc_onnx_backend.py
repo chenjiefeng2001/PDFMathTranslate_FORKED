@@ -244,7 +244,10 @@ class _FakeSession:
         self.providers_arg = list(providers_arg)
 
     def get_providers(self):
-        return list(self.providers_arg)
+        # 兼容 tuple 格式 (name, opts) 和纯字符串格式
+        return [
+            p[0] if isinstance(p, tuple) else p for p in self.providers_arg
+        ]
 
 
 class _Dummy:
@@ -276,7 +279,7 @@ def test_patched_init_uses_gpu_providers(monkeypatch):
     obj = _Dummy()
     bobe._patched_init(obj, "fake.onnx")
     assert obj.model.providers_arg == [
-        "CUDAExecutionProvider",
+        ("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}),
         "CPUExecutionProvider",
     ]
     assert obj._stride == 32
@@ -331,7 +334,7 @@ def test_patched_init_auto_uses_gpu_when_available(monkeypatch):
     obj = _Dummy()
     bobe._patched_init(obj, "fake.onnx")
     assert obj.model.providers_arg == [
-        "CUDAExecutionProvider",
+        ("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}),
         "CPUExecutionProvider",
     ]
 

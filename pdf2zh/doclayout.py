@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import platform
+import threading
 import time
 
 import cv2
@@ -67,6 +68,34 @@ _BACKEND_PROVIDERS = {
     "cuda": ["CUDAExecutionProvider", "CPUExecutionProvider"],
     "dml": ["AzureExecutionProvider", "DmlExecutionProvider", "CPUExecutionProvider"],
 }
+
+#: CUDA provider 选项：HEURISTIC 模式约束 cuDNN 卷积算法选择，避免
+#: EXHAUSTIVE 默认模式下选中在多线程并发时不稳定（CUDNN_BACKEND_API_FAILED）
+#: 的算法。与 MinerU vendor onnxruntime_provider.py:15 保持一致。
+_CUDA_PROVIDER_OPTIONS: dict = {"cudnn_conv_algo_search": "HEURISTIC"}
+
+
+def _wrap_providers_with_options(providers: list[str]) -> list:
+    """给 CUDAExecutionProvider 附加 cuDNN 算法约束选项。
+
+    ``InferenceSession(providers=...)`` 接受 ``list[str]`` 或
+    ``list[tuple[str, dict]]``；CUDA 时注入 HEURISTIC 选项，其余 provider
+    保持原样（无选项字典）。
+    """
+    result = []
+    for p in providers:
+        if p == "CUDAExecutionProvider":
+            result.append((p, dict(_CUDA_PROVIDER_OPTIONS)))
+        else:
+            result.append(p)
+    return result
+
+
+#: 进程级 CUDA session.run 串行锁：实测（ORT 1.20.2 + cuDNN 9.x）多线程
+#: 并发 Execute 两个 CUDA 会话会触发 CUDNN_BACKEND_API_FAILED 崩溃
+#: （见 doclayout_pseudocode.py:249-250）。本锁覆盖 OnnxModel.predict / predict_batch
+#: 的 session.run 调用，确保同一进程内只有一个 CUDA session 执行卷积。
+_CUDA_RUN_LOCK = threading.Lock()
 
 _preferred_backend: str | None = None
 
@@ -1162,6 +1191,9 @@ class OnnxModel(DocLayoutModel):
         sess_options = _configure_session_options()
 
         providers = resolve_providers(_preferred_backend)
+        # 为 CUDAExecutionProvider 注入 cuDNN HEURISTIC 算法约束，避免
+        # EXHAUSTIVE 默认模式选中并发不稳定算法（CUDNN_BACKEND_API_FAILED）。
+        providers_with_opts = _wrap_providers_with_options(providers)
 
         # Providers like CoreML generate compiled nodes that cannot be
         # serialized, so only cache the optimized graph for CPU-only.
@@ -1184,7 +1216,7 @@ class OnnxModel(DocLayoutModel):
                 cache_holder = None  # 锁竞争超时：本次不写缓存（安全降级）
         try:
             self.model = onnxruntime.InferenceSession(
-                model_path, sess_options, providers=providers
+                model_path, sess_options, providers=providers_with_opts
             )
         except Exception:
             # 仅锁持有者（busy）回滚/释放；cached 复用者不得动他人锁
@@ -1282,7 +1314,8 @@ class OnnxModel(DocLayoutModel):
         new_h, new_w = pix.shape[2:]
 
         # Run inference
-        preds = self.model.run(None, {"images": pix})[0]
+        with _CUDA_RUN_LOCK:
+            preds = self.model.run(None, {"images": pix})[0]
 
         # Postprocess predictions
         preds = preds[preds[..., 4] > 0.25]
@@ -1366,7 +1399,8 @@ class OnnxModel(DocLayoutModel):
             h1, w1 = input_shapes[k]
             batch[k, :, :h1, :w1] = pix
 
-        preds = self.model.run(None, {"images": batch})[0]  # [N, 300, 6]
+        with _CUDA_RUN_LOCK:
+            preds = self.model.run(None, {"images": batch})[0]  # [N, 300, 6]
 
         results = []
         for k, (orig_h, orig_w) in enumerate(orig_shapes):

@@ -307,7 +307,7 @@ class TestMagicPdfPageSlice:
         slice_paths: list = []
 
         def fake_parse_by_backend(
-            self, backend, path, pages=None, ocr=False, progress_cb=None
+            self, backend, path, pages=None, ocr=False, lang="ch", progress_cb=None
         ):
             seen["backend"] = backend
             seen["path_pages"] = _page_count(open(path, "rb").read())
@@ -335,7 +335,7 @@ class TestMagicPdfPageSlice:
         seen: dict = {}
 
         def fake_parse_by_backend(
-            self, backend, path, pages=None, ocr=False, progress_cb=None
+            self, backend, path, pages=None, ocr=False, lang="ch", progress_cb=None
         ):
             seen["path"] = path
             seen["pages_arg"] = pages

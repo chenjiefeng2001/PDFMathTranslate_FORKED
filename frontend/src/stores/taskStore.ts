@@ -175,6 +175,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   async submit(params) {
+    // store 级同步防连点：不依赖 React 闭包/重渲染时序。快速连点或事件重放
+    // 时第二次调用直接短路，绝不重复 POST /api/tasks（后端另有指纹幂等兜底）。
+    if (get().submitting) return null;
     set({ submitting: true, error: null });
     try {
       const { task_id } = await submitTask(params);

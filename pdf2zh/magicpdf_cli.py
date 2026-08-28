@@ -142,12 +142,22 @@ def _write_dumps(
         logger.info("[magicpdf] render plan dump: %s", plan_dump)
 
 
-def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb):
-    """防御性调用 ``adapter.parse``：旧版签名（无 progress_cb 形参）兼容。
+def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb, lang=None):
+    """防御性调用 ``adapter.parse``：旧版签名（无 progress_cb/lang 形参）兼容。
 
     第三方/测试代码可能 monkey-patch 或子类覆盖 ``parse`` 且不带新形参；
-    按签名探测后再传 ``progress_cb``，避免 TypeError 破坏解析主流程。
+    按签名探测后再传 ``progress_cb``/``lang``，避免 TypeError 破坏解析主流程。
     """
+    kwargs: dict = {"pages": pages, "ocr": ocr}
+    if lang is not None:
+        try:
+            params = inspect.signature(adapter.parse).parameters
+            if "lang" in params or any(
+                p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
+            ):
+                kwargs["lang"] = lang
+        except (TypeError, ValueError):
+            pass
     if progress_cb is not None:
         try:
             params = inspect.signature(adapter.parse).parameters
@@ -157,8 +167,8 @@ def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb):
         except (TypeError, ValueError):  # pragma: no cover - 内置类兜底
             takes_cb = False
         if takes_cb:
-            return adapter.parse(path, pages=pages, ocr=ocr, progress_cb=progress_cb)
-    return adapter.parse(path, pages=pages, ocr=ocr)
+            kwargs["progress_cb"] = progress_cb
+    return adapter.parse(path, **kwargs)
 
 
 def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
@@ -175,7 +185,11 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
     from pdf2zh.v3.document_model import render_plan_from_model, translate_document
     from pdf2zh.v3.magicpdf_bridge import MagicPdfBridge
 
-    adapter = MagicPdfAdapter(device=parsed_args.backend)
+    adapter = MagicPdfAdapter(
+        device=parsed_args.backend,
+        mineru_vram_size=getattr(parsed_args, "mineru_vram_size", "") or "",
+        mineru_window_size=getattr(parsed_args, "mineru_window_size", "") or "",
+    )
     # 解析前打印 magic-pdf 实际执行设备（torch CUDA 状态 + 配置 device-mode），
     # 避免"选 cuda 实际跑 cpu"的排障盲区；未走 GPU 时给出安装指引。
     try:
@@ -184,18 +198,21 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
         status = get_magicpdf_device_status(requested=parsed_args.backend)
         logger.info(
             "[magicpdf] device status: requested=%s torch=%s torch_cuda=%s "
-            "device-mode=%s effective=%s",
+            "device-mode=%s effective=%s mineru_venv=%s mineru_cuda=%s",
             status["requested"],
             status["torch"] or "-",
             status["torch_cuda"],
             status["device_mode"],
             status["effective"],
+            status.get("mineru_venv") or "-",
+            status.get("mineru_venv_torch_cuda"),
         )
         if status.get("hint"):
             logger.warning("[magicpdf] %s", status["hint"])
     except Exception as exc:  # noqa: BLE001 -- 诊断失败不阻断解析
         logger.debug("[magicpdf] device status probe skipped: %s", exc)
     if not adapter.is_available():
+        adapter.close()
         return _fallback_legacy(parsed_args, "magic-pdf/MinerU 未安装")
 
     files = list(parsed_args.files or [])
@@ -244,9 +261,11 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
                 parsed_args.pages,
                 ocr,
                 _make_parse_progress(progress_cb, path),
+                lang=getattr(parsed_args, "lang_in", None),
             )
         except Exception as exc:  # noqa: BLE001 -- 熔断降级
             logger.warning("[magicpdf] %s 解析失败: %s", path, exc)
+            adapter.close()
             return _fallback_legacy(parsed_args, f"{path} 解析失败")
 
         doc = bridge.to_document_model(bridge.convert_all(results))
@@ -356,4 +375,5 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
             fixup_stats.get("shifted", 0),
             fixup_stats.get("overflowed", 0),
         )
+    adapter.close()
     return 0

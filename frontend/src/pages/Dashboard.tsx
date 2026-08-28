@@ -180,7 +180,11 @@ export default function Dashboard() {
     const blobs = picked
       .map((f: { originFileObj?: File | null }) => f?.originFileObj ?? null)
       .filter((b: File | null): b is File => !!b);
-    if (blobs.length === 0 || submitting) return;
+    if (
+      blobs.length === 0 ||
+      useAppStore.getState().submitting // 读 store 实时值，防闭包竞态重复提交
+    )
+      return;
     const taskId = await submit({
       files: blobs,
       targetLang: (values.target_lang as string) || "zh-CN",
@@ -195,6 +199,8 @@ export default function Dashboard() {
       outputDir: ((values.output_dir as string) || "").trim(),
       ignoreCache: !!values.ignore_cache,
       glossaryNames: (values.glossary_names as string[]) || [],
+      mineruVramSize: ((values.mineru_vram_size as string) || "").trim(),
+      mineruWindowSize: ((values.mineru_window_size as string) || "").trim(),
     });
     if (taskId) {
       // 任务已入列：清空待提交队列，避免同一文件被重复提交；
@@ -236,6 +242,8 @@ export default function Dashboard() {
           ocr_mode: "auto",
           backend: "auto",
           output_dir: initialOutputDir,
+          mineru_vram_size: "",
+          mineru_window_size: "",
         }}
       >
         {/* 文件上传（支持多选/拖入多个，批量翻译） */}
@@ -363,6 +371,20 @@ export default function Dashboard() {
                         />
                       </Form.Item>
                       <Form.Item
+                        label={t("ui.config_mineru_vram")}
+                        name="mineru_vram_size"
+                        tooltip={t("ui.config_mineru_vram_info")}
+                      >
+                        <Input placeholder={t("ui.config_mineru_auto")} allowClear />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_mineru_window")}
+                        name="mineru_window_size"
+                        tooltip={t("ui.config_mineru_window_info")}
+                      >
+                        <Input placeholder={t("ui.config_mineru_auto")} allowClear />
+                      </Form.Item>
+                      <Form.Item
                         label={t("ui.config_output_dir")}
                         name="output_dir"
                         tooltip={t("ui.config_output_dir_hint")}
@@ -414,7 +436,7 @@ export default function Dashboard() {
             type="primary"
             htmlType="submit"
             loading={submitting}
-            disabled={selectedCount === 0}
+            disabled={selectedCount === 0 || submitting}
             block
             size="large"
           >

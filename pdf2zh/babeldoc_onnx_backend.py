@@ -246,11 +246,60 @@ def resolve_babeldoc_providers(backend: Optional[str] = None) -> list[str]:
     return result or _cpu_only(available)
 
 
+class _LockingSessionProxy:
+    """InferenceSession 代理：以**有界并发**而不是全局互斥锁来控制 ``session.run``。
+
+    BabelDOC 内部 ``predict`` 直接调用 ``self.model.run(...)``，无法在外部
+    加锁，因此本代理替换原始 session，在 ``run`` 上挂载并发调控器：
+
+    - 并发度默认 1（与旧全局互斥锁语义一致、向后兼容）；
+    - 调高（``PDF2ZH_GPU_CONCURRENCY_BABELDOC``）则允许同一进程内 N 个
+      CUDA ``session.run`` 并发，而不是把所有推理钉死串行。
+
+    其余属性透传。
+    """
+
+    def __init__(
+        self,
+        session: "onnxruntime.InferenceSession",
+        lock: Optional[threading.Lock] = None,
+        governor: Optional["GPUConcurrencyGovernor"] = None,
+    ) -> None:
+        object.__setattr__(self, "_session", session)
+        object.__setattr__(self, "_lock", lock)
+        object.__setattr__(self, "_governor", governor)
+
+    def run(self, *args, **kwargs):
+        gov = object.__getattribute__(self, "_governor")
+        if gov is not None:
+            # 有界并发：最多 N 个 run 并发，其余排队（N 由 governor 决定）。
+            return gov.run(
+                object.__getattribute__(self, "_session").run, *args, **kwargs
+            )
+        lock = object.__getattribute__(self, "_lock")
+        if lock is not None:
+            with lock:
+                return object.__getattribute__(self, "_session").run(*args, **kwargs)
+        return object.__getattribute__(self, "_session").run(*args, **kwargs)
+
+    def __getattr__(self, name: str):
+        return getattr(object.__getattribute__(self, "_session"), name)
+
+    def __setattr__(self, name: str, value):
+        setattr(object.__getattribute__(self, "_session"), name, value)
+
+
+#: BabelDOC 内部 ONNX 的并发作用域名（进程内独立于 pdf2zh 主链路）。
+_BABELDOC_GPU_SCOPE = "babeldoc"
+
+
 def _init_with_providers(self, model_path: str, providers: list[str]) -> None:
     """复制 babeldoc 0.6.x ``OnnxModel.__init__`` 主体，仅替换 provider 选择。
 
     与原实现一致的属性集：``model_path``/``_stride``/``_names``/``model``/
     ``lock``；SessionOptions 复用 pdf2zh 的统一配置（图优化 + worker 线程门控）。
+    为 CUDAExecutionProvider 注入 cuDNN HEURISTIC 算法约束，防止并发 Execute
+    触发 CUDNN_BACKEND_API_FAILED。
     """
     import ast  # noqa: PLC0415
     import threading  # noqa: PLC0415
@@ -265,19 +314,47 @@ def _init_with_providers(self, model_path: str, providers: list[str]) -> None:
     self._names = ast.literal_eval(metadata["names"])
 
     try:
-        from pdf2zh.doclayout import _configure_session_options  # noqa: PLC0415
+        from pdf2zh.doclayout import (
+            _configure_session_options,
+            _wrap_providers_with_options,
+        )  # noqa: PLC0415
     except Exception:  # noqa: BLE001 -- 统一 SessionOptions 不可用时用默认
         _configure_session_options = None
+        _wrap_providers_with_options = None
     opts = (
         _configure_session_options()
         if _configure_session_options is not None
         else onnxruntime.SessionOptions()
     )
-    self.model = onnxruntime.InferenceSession(
+    providers_with_opts = (
+        _wrap_providers_with_options(providers)
+        if _wrap_providers_with_options is not None
+        else providers
+    )
+    raw_session = onnxruntime.InferenceSession(
         model.SerializeToString(),
         opts,
-        providers=providers,
+        providers=providers_with_opts,
     )
+    has_gpu = any(p != "CPUExecutionProvider" for p in providers)
+    # 用并发调控器代理包裹 InferenceSession：BabelDOC 内部 predict →
+    # session.run() 经此代理做**有界并发**（默认 1；可经环境变量调高），
+    # 而不是与 pdf2zh 主链路共享全局互斥锁 —— 两个框架各自独立的并发名额。
+    if has_gpu:
+        # 本进程已初始化 CUDA（绑定 PID；fork 子进程继承的标记会自动失效）。
+        try:
+            from pdf2zh.gpu_governor import (  # noqa: PLC0415
+                get_governor,
+                mark_cuda_initialized,
+            )
+
+            mark_cuda_initialized()
+            governor = get_governor(_BABELDOC_GPU_SCOPE)
+        except Exception:  # noqa: BLE001 -- 调控器不可用时退化为直接透传
+            governor = None
+        self.model = _LockingSessionProxy(raw_session, governor=governor)
+    else:
+        self.model = _LockingSessionProxy(raw_session)
     self.lock = threading.Lock()
 
 
@@ -307,6 +384,11 @@ def _patched_init(self, model_path: str) -> None:
             "BabelDOC backend patch not applied (call apply_babeldoc_backend)"
         )
     backend = get_babeldoc_backend()
+    # fork 子进程 + 严格守卫：不继承父进程的 CUDA 状态，必要时降级 CPU。
+    if backend is not None and backend != "auto":
+        from pdf2zh.gpu_governor import fork_cuda_degrade_backend  # noqa: PLC0415
+
+        backend = fork_cuda_degrade_backend(backend)
     if backend is None or backend == "auto":
         try:
             from pdf2zh.doclayout import (

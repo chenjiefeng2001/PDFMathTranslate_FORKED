@@ -14,6 +14,10 @@ TaskProgressEvent / RuntimeNoticeEvent（客户端无关，见 gui/events.py）�
     PUT  /api/engines/{name}/envs           写入/清除用户级凭据（空串=清除）
     GET  /api/models/doclayout              版面模型状态（存在/校验/下载中）
     POST /api/models/doclayout/download     后台下载版面模型
+    GET  /api/gpu/provider                  CUDA 执行器状态（本体不携带，按需下载）
+    POST /api/gpu/provider/download         后台下载并安装 CUDA 执行器
+    POST /api/gpu/provider/remove           移除已下载的 CUDA 执行器
+
     GET  /api/selftest/babeldoc             BabelDOC 导入链路自检
     GET  /api/selftest/magicpdf             magic-pdf/MinerU 可用性探测（含安装指引）
     POST /api/tasks                         提交任务（multipart 上传或 JSON source_path）
@@ -197,6 +201,14 @@ _model_download_state: Dict[str, Any] = {"running": False, "error": None}
 
 #: MinerU 隔离 venv 后台构建状态（桌面/冻结分发无 submodule，需就地安装）
 _mineru_setup_state: Dict[str, Any] = {
+    "running": False,
+    "done": False,
+    "error": None,
+    "interpreter": None,
+}
+
+#: MinerU 隔离 venv 的 CUDA torch 升级状态（启用 GPU 按钮触发）。
+_mineru_cuda_setup_state: Dict[str, Any] = {
     "running": False,
     "done": False,
     "error": None,
@@ -592,12 +604,50 @@ def create_api_app(
         threading.Thread(target=_run, name="model-download", daemon=True).start()
         return {"started": True}
 
+    # ── GPU provider（CUDA 执行器按需下载，本体不携带） ──────────────
+    @app.get("/api/gpu/provider")
+    def gpu_provider_status() -> Dict[str, Any]:
+        """CUDA provider 状态：内置 onnxruntime 版本 / DLL 存在性 / 可用 provider。"""
+        from pdf2zh.services.gpu_provider import get_provider_status
+
+        return get_provider_status()
+
+    @app.post("/api/gpu/provider/download")
+    def download_gpu_provider() -> Dict[str, Any]:
+        """后台下载并安装与内置 onnxruntime 同版本的 CUDA provider。"""
+        from pdf2zh.services.gpu_provider import start_download
+
+        started, reason = start_download()
+        return {"started": started, "reason": reason}
+
+    @app.post("/api/gpu/provider/remove")
+    def remove_gpu_provider() -> Dict[str, Any]:
+        """移除已下载的 CUDA provider DLL，还原 CPU-only。"""
+        from pdf2zh.services.gpu_provider import remove_cuda_provider
+
+        return {"removed": remove_cuda_provider()}
+
+
     @app.get("/api/selftest/magicpdf")
     def selftest_magicpdf() -> Dict[str, Any]:
         """magic-pdf/MinerU 解析链路可用性探测（frozen 包内默认不可用）。"""
         from pdf2zh.engine_env import available_backend, mineru_install_hint
 
         backend, ok = available_backend()
+        # MinerU 隔离 venv 的 torch 是否 CUDA（子进程解析实际用它，决定
+        # 「启用 GPU」按钮的显示状态）。
+        mineru_cuda = False
+        mineru_venv = ""
+        try:
+            from pdf2zh.engine_env import mineru_python_override
+
+            mineru_venv = mineru_python_override() or ""
+            if mineru_venv:
+                from pdf2zh.kernel.mineru_env import _venv_torch_cuda
+
+                mineru_cuda = bool(_venv_torch_cuda(mineru_venv))
+        except Exception:  # noqa: BLE001 -- 探测失败不影响主链路
+            mineru_cuda = False
         return {
             "ok": bool(ok),
             "backend": backend,
@@ -605,6 +655,9 @@ def create_api_app(
             # Python 版本匹配的可执行安装命令，模型在首次解析时下载到
             # 用户缓存、与应用目录分离。
             "hint": mineru_install_hint() if not ok else "",
+            # MinerU 隔离 venv 的 CUDA 可用性（启用 GPU 按钮据此显示）。
+            "mineru_cuda": mineru_cuda,
+            "mineru_venv": mineru_venv,
         }
 
     @app.post("/api/setup/mineru")
@@ -643,6 +696,46 @@ def create_api_app(
         """MinerU 隔离 venv 后台构建状态（供前端轮询）。"""
         return dict(_mineru_setup_state)
 
+    @app.post("/api/setup/mineru/cuda")
+    def setup_mineru_cuda() -> Dict[str, Any]:
+        """后台把 MinerU 隔离 venv 的 torch 升级为 CUDA 版（启用 MinerU GPU）。
+
+        桌面/冻结分发下 MinerU 装在与应用分离的隔离 venv 里，默认 torch 为
+        CPU 版（PyPI 解析），请求 ``--backend cuda`` 也会被
+        ``torch.cuda.is_available()=False`` 拒绝。本端点调用
+        ``mineru_env.ensure_venv(cuda=True)`` 原位升级 CUDA torch/torchvision
+        （不动 mineru 与模型缓存）；torch ~2GB，放守护线程，前端轮询
+        :meth:`mineru_cuda_setup_status` 获取进度。
+        """
+        if _mineru_cuda_setup_state["running"]:
+            return {"started": False, "reason": "already running"}
+        _mineru_cuda_setup_state.update(
+            running=True, done=False, error=None, interpreter=None
+        )
+
+        def _run() -> None:
+            try:
+                from pdf2zh.kernel.mineru_env import ensure_venv
+
+                interpreter = ensure_venv(cuda=True)
+                _mineru_cuda_setup_state["interpreter"] = interpreter
+                _mineru_cuda_setup_state["done"] = True
+            except Exception as exc:  # noqa: BLE001 -- 状态回显给前端
+                logger.warning("mineru cuda setup failed: %s", exc)
+                _mineru_cuda_setup_state["error"] = f"{type(exc).__name__}: {exc}"
+            finally:
+                _mineru_cuda_setup_state["running"] = False
+
+        threading.Thread(
+            target=_run, name="mineru-cuda-setup", daemon=True
+        ).start()
+        return {"started": True}
+
+    @app.get("/api/setup/mineru/cuda")
+    def mineru_cuda_setup_status() -> Dict[str, Any]:
+        """MinerU 隔离 venv 的 CUDA torch 升级状态（供前端轮询）。"""
+        return dict(_mineru_cuda_setup_state)
+
     # ── submit ────────────────────────────────────────────────────────────
     def _submit(request: TranslationRequest) -> Dict[str, str]:
         task_id = svc.submit_task(request)
@@ -667,6 +760,8 @@ def create_api_app(
         extra_config: str = Form(default=""),
         glossaries: Optional[List[UploadFile]] = File(default=None),
         glossary_files: str = Form(default=""),
+        mineru_vram_size: str = Form(default=""),
+        mineru_window_size: str = Form(default=""),
     ) -> Dict[str, str]:
         # 批量上传：``files``（可重复的 multipart 部件）优先；兼容旧的单文件
         # ``file`` 字段与 ``source_path`` 本地路径。所有路径统一进入
@@ -758,6 +853,8 @@ def create_api_app(
             ignore_cache=bool(ignore_cache),
             glossary_files=resolved_glossaries,
             extra_config=extra,
+            mineru_vram_size=(mineru_vram_size or "").strip(),
+            mineru_window_size=(mineru_window_size or "").strip(),
         )
         return _submit(request)
 

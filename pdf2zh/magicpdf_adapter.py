@@ -60,6 +60,44 @@ _MAGICPDF_REQUIRED_MODELS = (
     _MAGICPDF_MFR_MODEL,
 )
 
+#: PDF2ZH 内部语言代码 → MinerU ``p_lang_list`` 映射表。
+#: MinerU OCR 引擎需要文档原始语言以优化识别精度；键为小写 BCP-47
+#: 前缀 / ISO-639-1 代码（与 ``TranslationRequest.source_lang`` 一致），
+#: 值为 MinerU ``p_lang_list`` 接受的语言标识符。
+_LANG_TO_MINERU: Dict[str, str] = {
+    "zh": "ch",
+    "zh-cn": "ch",
+    "zh-tw": "ch",
+    "zh-hans": "ch",
+    "zh-hant": "ch",
+    "en": "en",
+    "ja": "ja",
+    "ko": "ko",
+    "ru": "ru",
+    "fr": "fr",
+    "de": "de",
+    "es": "es",
+    "pt": "pt",
+    "it": "it",
+    "ar": "ar",
+    "th": "th",
+    "vi": "vi",
+    "hi": "hi",
+}
+
+
+def _lang_to_mineru(lang_in: Optional[str]) -> str:
+    """将 PDF2ZH source_lang 映射为 MinerU p_lang_list 语言标识符。
+
+    ``auto`` / 空串 / 无法识别的语言代码回落到 ``ch``（中文为默认 OCR
+    目标语言，覆盖大多数中文 PDF 翻译场景）。映射为幂等、无副作用。
+    """
+    if not lang_in or lang_in.lower() == "auto":
+        return "ch"
+    key = lang_in.lower().split("-")[0]  # "zh-CN" → "zh", "en-US" → "en"
+    # 先查完整键（如 "zh-cn"），再查前缀（如 "zh"）
+    return _LANG_TO_MINERU.get(lang_in.lower()) or _LANG_TO_MINERU.get(key, "ch")
+
 
 def _ensure_magicpdf_models(models_dir: str) -> list[str]:
     """轻量预检：``models_dir`` 下缺失的模型相对路径列表。
@@ -372,6 +410,34 @@ def get_magicpdf_device_status(requested: str = "auto", models_dir: str = "") ->
                 "配置 device-mode=cuda 但 torch 无 CUDA（当前 torch=%s），"
                 "magic-pdf 将按 cpu 运行；%s"
             ) % (_torch_version() or "-", _cuda_torch_install_hint())
+    # MinerU 隔离 venv 分支：主进程 torch 与 magic-pdf 配置不适用于子进程解析。
+    # 当 PDF2ZH_MINERU_PYTHON / 自动探测的隔离 venv 存在时，设备实际由该
+    # venv 的 torch 决定（magic-pdf 1.x 的 device-mode 配置不参与）。
+    venv_python = ""
+    venv_torch_cuda = False
+    try:
+        from pdf2zh.engine_env import mineru_python_override
+
+        venv_python = mineru_python_override() or ""
+    except Exception:  # noqa: BLE001 -- 探测失败视为无隔离环境
+        venv_python = ""
+    if venv_python:
+        try:
+            venv_torch_cuda = MagicPdfAdapter._venv_torch_cuda(venv_python)
+        except Exception:  # noqa: BLE001
+            venv_torch_cuda = False
+        # 主进程 torch 与 magic-pdf 的 device-mode 对 MinerU 子进程无意义；
+        # `effective` 直接反映隔离 venv 的实际设备，GUI 面板/CLI 日志据此显示。
+        effective = "cuda" if venv_torch_cuda else "cpu"
+        venv_requested = str(requested or "auto").strip().lower()
+        if venv_requested in ("cuda", "gpu") and not venv_torch_cuda:
+            hint = (
+                "MinerU 隔离 venv 的 torch 无 CUDA；%s"
+            ) % MagicPdfAdapter._mineru_cuda_torch_hint(venv_python)
+        elif venv_requested in ("cuda", "gpu") and venv_torch_cuda:
+            hint = ""
+        else:
+            hint = ""
     return {
         "installed": installed,
         "torch": torch_ver,
@@ -381,6 +447,9 @@ def get_magicpdf_device_status(requested: str = "auto", models_dir: str = "") ->
         "device_mode": device_mode or "(未生成，解析时自动创建)",
         "effective": effective,
         "hint": hint,
+        # MinerU 隔离 venv 的 CUDA 状态（子进程解析实际使用它）
+        "mineru_venv": venv_python,
+        "mineru_venv_torch_cuda": venv_torch_cuda,
     }
 
 
@@ -644,12 +713,14 @@ def _read_pdf_bytes(pdf_path: str) -> bytes:
 
 
 def _run_mineru_process(
-    cmd: list[str], timeout: int
+    cmd: list[str], timeout: int, env: Optional[dict] = None
 ) -> "subprocess.CompletedProcess[str]":
     """执行 mineru worker 子进程（独立函数便于测试打桩）。
 
     Windows 下子进程日志是 UTF-8，而管道默认按 locale（cp936 等）解码会
     炸 UnicodeDecodeError；这里显式固定 utf-8 并容忍坏字节。
+    ``env``（可选）：worker 进程的额外环境变量（继承当前环境并覆盖），
+    用于透传 MinerU 显存预算 / 处理窗口等 per-task 配置。
     """
     return subprocess.run(
         cmd,
@@ -658,6 +729,7 @@ def _run_mineru_process(
         encoding="utf-8",
         errors="replace",
         timeout=timeout,
+        env=env,
     )
 
 
@@ -687,6 +759,31 @@ def _find_mineru_middle_json(root_dir: str) -> Optional[str]:
             candidates[0][1],
         )
     return candidates[0][1]
+
+
+def _mineru_device_mode(device: str) -> str | None:
+    """把上层后端名映射为 MinerU ``MINERU_DEVICE_MODE`` 的合法值。
+
+    MinerU 3.x 的设备决策（``mineru.utils.config_reader.get_device``）优先读
+    ``MINERU_DEVICE_MODE`` 环境变量，其次 ``torch.cuda.is_available()``；与
+    ``do_parse(backend="pipeline", ...)`` 的 ``backend``（解析后端类型）无关。
+    因此请求 GPU 必须显式设置该变量，否则即使 torch 是 CUDA 版也只会被动
+    走探测（多数情况仍是 cpu）。
+
+    - ``cuda``/``gpu`` → ``cuda``；
+    - ``cpu`` → ``cpu``；
+    - ``mps`` → ``mps``；
+    - ``dml``/``auto``/空 → ``None``（不设置：MinerU 的 torch 模型不认
+      DirectML；auto 交给 MinerU 按 torch 能力自行探测）。
+    """
+    key = str(device or "auto").strip().lower()
+    if key in ("cuda", "gpu"):
+        return "cuda"
+    if key == "cpu":
+        return "cpu"
+    if key == "mps":
+        return "mps"
+    return None
 
 
 def _build_do_parse_kwargs(
@@ -1077,9 +1174,36 @@ class MagicPdfAdapter:
         self,
         device: str = "auto",
         models_dir: str | None = None,
+        mineru_vram_size: str = "",
+        mineru_window_size: str = "",
     ) -> None:
         self.device = device
         self.models_dir = models_dir or os.environ.get("PDF2ZH_MODELS_DIR") or ""
+        # MinerU 显存预算 / 处理窗口（空 = auto：worker 按显存自动保守估算）。
+        # 经子进程 env 透传给 worker，覆盖 ``MINERU_VIRTUAL_VRAM_SIZE`` /
+        # ``MINERU_PROCESSING_WINDOW_SIZE``，规避 8GB 卡激进 batch_ratio OOM。
+        self.mineru_vram_size = str(mineru_vram_size or "").strip()
+        self.mineru_window_size = str(mineru_window_size or "").strip()
+
+    def close(self) -> None:
+        """释放底层 ONNX Runtime / magic-pdf 会话占用的 GPU 显存。
+
+        批量解析逐文件创建 ``MagicPdfAdapter`` 时，ORT ``InferenceSession``
+        的显存不会在对象离开作用域时立即归还（依赖 GC 时机）。显式置空
+        ``self.model`` 可断开对原生会话的引用，并尽力触发 GC +
+        ``torch.cuda.empty_cache()`` 即时回收，避免多文件累积 OOM。
+        """
+        self.model = None
+        import gc
+
+        gc.collect()
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:  # noqa: BLE001 -- best-effort reclaim
+            pass
 
     def backend(self) -> str | None:
         """自动选择解析后端：``mineru`` 优先，``magicpdf`` 兜底。
@@ -1112,9 +1236,14 @@ class MagicPdfAdapter:
         pdf_path: str,
         pages: list[int] | None = None,
         ocr: bool = False,
+        lang: Optional[str] = None,
         progress_cb: Optional[MagicPdfProgressCB] = None,
     ) -> list[MagicPdfParseResult]:
         """解析 PDF，返回逐页 :class:`MagicPdfParseResult`。
+
+        ``lang``：文档源语言（与 ``TranslationRequest.source_lang`` 一致），
+        传递给 MinerU/magic-pdf 的 OCR 引擎以优化识别精度。``auto`` 或空串
+        时使用引擎默认值（中文）。
 
         ``progress_cb(detail_dict)``（可选）接收解析期细粒度计数（页级/
         组件加载），结构与 BabelDOC 适配器的 detail 约定一致；任何引擎
@@ -1135,6 +1264,7 @@ class MagicPdfAdapter:
                 + mineru_install_hint()
             )
 
+        mineru_lang = _lang_to_mineru(lang)
         slice_path, page_map = _slice_pdf_for_pages(pdf_path, pages)
         try:
             if slice_path is not None:
@@ -1143,12 +1273,14 @@ class MagicPdfAdapter:
                     slice_path,
                     pages=None,
                     ocr=ocr,
+                    lang=mineru_lang,
                     progress_cb=progress_cb,
                 )
                 _remap_magicpdf_result_pages(results, page_map)
                 return results
             return self._parse_by_backend(
-                backend, pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
+                backend, pdf_path, pages=pages, ocr=ocr, lang=mineru_lang,
+                progress_cb=progress_cb,
             )
         finally:
             if slice_path is not None:
@@ -1163,11 +1295,13 @@ class MagicPdfAdapter:
         pdf_path: str,
         pages: list[int] | None = None,
         ocr: bool = False,
+        lang: str = "ch",
         progress_cb: Optional[MagicPdfProgressCB] = None,
     ) -> list[MagicPdfParseResult]:
         if backend == "mineru":
             return self._parse_mineru(
-                pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
+                pdf_path, pages=pages, ocr=ocr, lang=lang,
+                progress_cb=progress_cb,
             )
         return self._parse_magicpdf(
             pdf_path, pages=pages, ocr=ocr, progress_cb=progress_cb
@@ -1283,6 +1417,7 @@ class MagicPdfAdapter:
         pdf_path: str,
         pages: list[int] | None = None,
         ocr: bool = False,
+        lang: str = "ch",
         progress_cb: Optional[MagicPdfProgressCB] = None,
     ) -> list[MagicPdfParseResult]:
         """MinerU 3.x 解析（懒导入，官方编程入口 ``do_parse``）。
@@ -1291,6 +1426,9 @@ class MagicPdfAdapter:
         f_dump_middle_json=True)`` → 消费 ``{stem}_middle.json`` →
         :func:`_normalize_blocks` 归一化（与 magic-pdf 1.x 同构，
         bbox 为 PDF 点、左上角原点，下游 bridge 全链复用）。
+
+        ``lang``：文档源语言标识符（如 ``ch``、``en``），传递给 MinerU
+        OCR 引擎以优化识别精度。默认 ``ch``（中文）。
 
         防御策略：``do_parse`` 形参按签名过滤（小版本增删不致命）；调用
         抛 TypeError 时以最小参数集重试一次；任何进度上报失败均静默。
@@ -1312,6 +1450,7 @@ class MagicPdfAdapter:
                 pdf_path,
                 pages=pages,
                 ocr=ocr,
+                lang=lang,
                 progress_cb=progress_cb,
                 python_exe=override,
             )
@@ -1366,18 +1505,24 @@ class MagicPdfAdapter:
             wanted["end_page_id"] = int(end_id)
 
         with tempfile.TemporaryDirectory(prefix="pdf2zh_mineru_") as tmp_dir:
+            # 设备传递：MinerU 3.x 的设备由 MINERU_DEVICE_MODE 决定（get_device 优先
+            # 读该变量），必须在此显式设置，否则 cuda 请求不会被尊重。auto/cpu 置空。
+            mode = _mineru_device_mode(self.device)
+            if mode is not None:
+                os.environ["MINERU_DEVICE_MODE"] = mode
             call_kwargs = _build_do_parse_kwargs(
                 do_parse,
                 {
                     "output_dir": tmp_dir,
                     "pdf_file_names": [stem],
                     "pdf_bytes_list": [pdf_bytes],
-                    "p_lang_list": ["ch"],
+                    "p_lang_list": [lang],
                     **wanted,
                 },
             )
             # 细粒度进度：do_parse 窗口内挂 loguru 探针（mineru 同样用
             # loguru 输出日志；Batch 正则不匹配时静默保持粗粒度）。
+            saved_device_mode = os.environ.get("MINERU_DEVICE_MODE")
             with _MagicPdfLogProbe(
                 progress_cb, engine="mineru", name_prefixes=("mineru",)
             ):
@@ -1397,10 +1542,15 @@ class MagicPdfAdapter:
                             "output_dir": tmp_dir,
                             "pdf_file_names": [stem],
                             "pdf_bytes_list": [pdf_bytes],
-                            "p_lang_list": ["ch"],
+                            "p_lang_list": [lang],
                         },
                     )
                     do_parse(**minimal)
+                finally:
+                    if saved_device_mode is None:
+                        os.environ.pop("MINERU_DEVICE_MODE", None)
+                    else:
+                        os.environ["MINERU_DEVICE_MODE"] = saved_device_mode
 
             # 实测（3.4.5）：产物写入 {output_dir}/{stem}/{parse_method}/
             # 子目录，故递归搜索 *_middle.json。
@@ -1412,6 +1562,55 @@ class MagicPdfAdapter:
             with open(middle_path, encoding="utf-8") as fh:
                 middle = json.load(fh)
         return _normalize_blocks(middle, backend="mineru", pages=pages)
+
+    @staticmethod
+    def _venv_torch_cuda(python_exe: str) -> bool:
+        """轻量探测隔离 venv 的 torch 是否 CUDA 可用（不加载模型）。"""
+        import subprocess as _sp
+
+        try:
+            probe = _sp.run(
+                [
+                    python_exe,
+                    "-c",
+                    "import torch; print(int(torch.cuda.is_available()))",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except Exception:  # noqa: BLE001 -- 探测失败按不可用处理
+            return False
+        return probe.returncode == 0 and probe.stdout.strip().endswith("1")
+
+    @staticmethod
+    def _mineru_cuda_torch_hint(python_exe: str) -> str:
+        """按隔离 venv 的 torch 版本给出可执行的 CUDA torch 安装命令。"""
+        import subprocess as _sp
+
+        ver = ""
+        try:
+            probe = _sp.run(
+                [python_exe, "-c", "import torch; print(torch.__version__)"],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if probe.returncode == 0:
+                ver = probe.stdout.strip()
+        except Exception:  # noqa: BLE001 -- 版本探测失败不影响提示
+            pass
+        tag = "+cu126"
+        if ver:
+            for cuda_tag in ("+cu124", "+cu121", "+cu118", "+cpu"):
+                if cuda_tag in ver:
+                    tag = cuda_tag.replace("+cpu", "+cu126")
+                    break
+        return (
+            "隔离 venv 需安装 CUDA 版 torch（当前 %s）。执行："
+            "`%s -m pip install -U torch torchvision "
+            "--index-url https://download.pytorch.org/whl/%s`"
+        ) % (ver or "未知", python_exe, tag)
 
     @staticmethod
     def from_middle_json(
@@ -1427,6 +1626,7 @@ class MagicPdfAdapter:
         *,
         pages: list[int] | None = None,
         ocr: bool = False,
+        lang: str = "ch",
         progress_cb: Optional[MagicPdfProgressCB] = None,
         python_exe: str,
         out_dir: Optional[str] = None,
@@ -1458,15 +1658,38 @@ class MagicPdfAdapter:
             except Exception:  # noqa: BLE001 -- 进度上报永不致命
                 pass
         try:
+            # 设备预检：请求 cuda 但隔离 venv 的 torch 无 CUDA 时，MinerU 在模型
+            # 加载到 cuda 会直接崩溃。这里先用 venv 解释器轻量探测，不可用则
+            # 降级 cpu 并给出可执行修复命令，绝不带病跑崩。
+            device = str(self.device or "auto").strip().lower()
+            effective_device = device
+            if device in ("cuda", "gpu") and not MagicPdfAdapter._venv_torch_cuda(python_exe):
+                logger.warning(
+                    "[mineru] venv %s torch 无 CUDA，device=%s 回退 cpu；%s",
+                    python_exe,
+                    device,
+                    MagicPdfAdapter._mineru_cuda_torch_hint(python_exe),
+                )
+                effective_device = "cpu"
             cmd = [
                 python_exe,
                 str(worker),
                 pdf_path,
                 work_dir,
                 "ocr" if ocr else "auto",
-                "ch",
+                lang,
+                effective_device,
             ]
-            completed = _run_mineru_process(cmd, timeout=timeout)
+            env = None
+            if self.mineru_vram_size or self.mineru_window_size:
+                import copy as _copy
+
+                env = _copy.copy(os.environ)
+                if self.mineru_vram_size:
+                    env["MINERU_VIRTUAL_VRAM_SIZE"] = self.mineru_vram_size
+                if self.mineru_window_size:
+                    env["MINERU_PROCESSING_WINDOW_SIZE"] = self.mineru_window_size
+            completed = _run_mineru_process(cmd, timeout=timeout, env=env)
             if completed.returncode != 0:
                 stderr = (completed.stderr or "")[-2000:]
                 raise MagicPdfParseError(

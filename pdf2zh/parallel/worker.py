@@ -92,6 +92,18 @@ def init_worker_process(backend: Optional[str] = None) -> None:
     # 控制台 Ctrl+C 免疫（必须在任何模型加载之前，覆盖最危险的“加载中途被杀”窗口）。
     _ignore_ctrl_c_in_worker()
     _register_ort_dll_dir()
+    # 全新（spawn 语义）worker 进程：重置 CUDA 生命周期标记 + 设定进程本地
+    # 线程预算（有界并发）。worker 不继承宿主进程的 CUDA / 线程状态。
+    try:
+        from pdf2zh.gpu_governor import (  # noqa: PLC0415
+            apply_process_local_thread_budget,
+            reset_cuda_process_guard,
+        )
+
+        reset_cuda_process_guard()
+        apply_process_local_thread_budget("pdf2zh-worker")
+    except Exception:  # noqa: BLE001 -- 工具缺失不阻断 worker bootstrap
+        pass
 
     from pdf2zh.doclayout import (
         ModelInstance,

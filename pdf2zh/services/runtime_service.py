@@ -347,6 +347,19 @@ class TranslationRequest:
     当前忽略该字段（Phase 3 接入 legacy 后处理钉死）。
     """
 
+    mineru_vram_size: str = ""
+    """MinerU 显存预算（GB，对应 ``MINERU_VIRTUAL_VRAM_SIZE``）。
+
+    空 = auto：worker 按物理显存自动保守估算（8GB 卡 → 6GB，batch_ratio=2），
+    规避 8GB 小显存卡的激进 batch 策略 OOM。显式设置（如 ``4``/``8``）覆盖。
+    """
+
+    mineru_window_size: str = ""
+    """MinerU 处理窗口页数（对应 ``MINERU_PROCESSING_WINDOW_SIZE``）。
+
+    空 = 引擎默认（64）。显式设置（如 ``8``）控制每批页数，进一步降显存峰值。
+    """
+
     extra_config: Dict[str, Any] = field(default_factory=dict)
 
     def resolved_files(self) -> List[str]:
@@ -772,6 +785,13 @@ class RuntimeService:
         self._engine_cooldown_error_cache: Dict[Tuple[Any, ...], str] = {}
         self._engine_cooldown_lock = threading.Lock()
 
+        #: 提交层幂等去重（不改变多线程框架）：同一请求指纹（文件集 + 关键参数）
+        #: 在 ``_SUBMIT_DEDUP_WINDOW`` 秒窗口内的重复提交返回已有 task_id，而不是
+        #: 再建一个任务。前端快速连点/事件重放/网络重试只会触发一次真正执行。
+        #: 指纹 -> (首次提交时间戳, task_id)。窗口短，不会吞掉用户刻意的新任务。
+        self._submit_dedup: Dict[str, Tuple[float, str]] = {}
+        self._submit_dedup_lock = threading.Lock()
+
         #: S2: 后台清扫线程（终态任务内存清理；daemon 不阻塞退出）。
         self._sweeper = threading.Thread(
             target=self._sweeper_loop,
@@ -801,6 +821,38 @@ class RuntimeService:
         with self._listeners_lock:
             self._event_listeners.clear()
 
+    @staticmethod
+    def _submit_fingerprint(request: TranslationRequest) -> str:
+        """同一任务请求的稳定指纹（文件集排序 + 全部关键参数）。
+
+        ``extra_config``（mode_choice / ocr_mode / prompt 等）按键排序纳入，
+        保证「相同文件 + 相同配置」的重放请求命中同一指纹。
+        """
+        import json as _json
+
+        files = sorted(request.resolved_files())
+        extras = dict(request.extra_config or {})
+        payload = {
+            "files": files,
+            "target_lang": request.target_lang,
+            "source_lang": request.source_lang,
+            "engine": request.engine,
+            "threads": request.threads,
+            "page_range": request.page_range,
+            "vfont": request.vfont,
+            "vchar": request.vchar,
+            "skip_subset_fonts": request.skip_subset_fonts,
+            "ignore_cache": request.ignore_cache,
+            "backend": request.backend,
+            "parse_engine": request.parse_engine,
+            "magicpdf_ocr": request.magicpdf_ocr,
+            "magicpdf_ocr_mode": request.magicpdf_ocr_mode,
+            "output_dir": request.output_dir,
+            "glossary_files": sorted(request.glossary_files or []),
+            "extra_config": dict(sorted(extras.items())),
+        }
+        return _json.dumps(payload, sort_keys=True, ensure_ascii=False)
+
     def submit_task(self, request: TranslationRequest) -> str:
         """Submit a translation task; returns task_id.
 
@@ -808,7 +860,26 @@ class RuntimeService:
         multi-file batch requests (``files``). Batch tasks are executed
         sequentially with aggregate progress reporting.
         """
-        task_id = f"task_{uuid.uuid4().hex[:12]}"
+        dedup_key = self._submit_fingerprint(request)
+        with self._submit_dedup_lock:
+            hit = self._submit_dedup.get(dedup_key)
+            if hit is not None:
+                existing = self._store.get_task(hit[1])
+                if existing is not None and existing.status not in (
+                    TaskStage.COMPLETED.value,
+                    TaskStage.CANCELLED.value,
+                    TaskStage.FAILED.value,
+                ):
+                    logger.info(
+                        "submit dedup: request fingerprint %s already in flight "
+                        "as %s (status=%s); reusing instead of creating a duplicate",
+                        dedup_key[:16],
+                        hit[1],
+                        existing.status,
+                    )
+                    return hit[1]
+            task_id = f"task_{uuid.uuid4().hex[:12]}"
+            self._submit_dedup[dedup_key] = (time.time(), task_id)
         self._store.create_task(task_id)
         self._store.update_task(
             task_id,
@@ -1072,6 +1143,14 @@ class RuntimeService:
             # 解析引擎路由（--parse-engine 语义）：magicpdf 优先于 mode_choice；
             # babeldoc 显式值等价 mode_choice=babeldoc，保持历史行为不变。
             parse_engine = (getattr(request, "parse_engine", "auto") or "auto").lower()
+
+            # Auto-switch: 当 parse_engine=auto 且用户未显式关闭 OCR 时，
+            # 对 PDF 文件做扫描预检——命中扫描/损坏信号且 MinerU 可用则
+            # 自动切换 magicpdf+OCR（与 CLI _try_auto_switch_magicpdf 同构）。
+            if parse_engine == "auto":
+                parse_engine = self._try_auto_switch_magicpdf_for_api(
+                    request, files
+                )
             if parse_engine == "magicpdf":
                 # MinerU/magic-pdf 解析引擎独立执行路径（引擎缺失熔断降级 legacy）。
                 self._execute_magicpdf(task_id, request, task_config)
@@ -2179,6 +2258,57 @@ class RuntimeService:
         )
         logger.info("[task=%s] Output files written successfully", task_id)
 
+    @staticmethod
+    def _try_auto_switch_magicpdf_for_api(
+        request: TranslationRequest, files: list[str]
+    ) -> str:
+        """auto 模式扫描预检：扫描 PDF 时自动切换 magicpdf+OCR。
+
+        与 CLI ``_try_auto_switch_magicpdf`` 同构，适配 API 路径：
+        - 检查环境变量 ``PDF2ZH_AUTO_SWITCH_MAGICPDF=0`` 可关闭；
+        - 用户显式关闭 OCR（ocr_mode=off）时不切换；
+        - 对每个 PDF 跑 ``preflight_scan_check``，命中扫描/损坏信号且
+          MinerU 可用时返回 ``"magicpdf"``，否则保持 ``"auto"``。
+        """
+        if os.environ.get("PDF2ZH_AUTO_SWITCH_MAGICPDF", "1") == "0":
+            return "auto"
+        extra = request.extra_config or {}
+        ocr_mode_raw = (
+            extra.get("ocr_mode")
+            or getattr(request, "magicpdf_ocr_mode", "auto")
+            or "auto"
+        )
+        if ocr_mode_raw == "off":
+            return "auto"
+        from pdf2zh.engine_env import available_backend
+
+        try:
+            backend, ok = available_backend()
+        except Exception:  # noqa: BLE001
+            return "auto"
+        if not ok:
+            return "auto"
+        from pdf2zh.scanned_detection import preflight_scan_check
+
+        for f in files:
+            if not f.lower().endswith(".pdf"):
+                continue
+            try:
+                decision = preflight_scan_check(f)
+            except Exception as exc:  # noqa: BLE001 -- 预检失败不阻断
+                logger.debug("[auto-switch] preflight skipped %s: %s", f, exc)
+                continue
+            if decision.is_scanned:
+                reasons = "; ".join(decision.reasons) or "unknown"
+                logger.warning(
+                    "[task] %s scanned detected (%s); auto-switching to "
+                    "magicpdf with OCR",
+                    f,
+                    reasons,
+                )
+                return "magicpdf"
+        return "auto"
+
     def _execute_magicpdf(
         self,
         task_id: str,
@@ -2191,6 +2321,9 @@ class RuntimeService:
         补齐全部默认字段，保证引擎缺失时 run_magicpdf_main 的熔断降级
         ``_run_legacy_kernel`` 拿到完整字段）：解析→桥接→翻译→转储。
         进度经事件流上报；异常落 FAILED 终态。
+
+        多文件时逐文件调用 run_magicpdf_main，单文件失败不阻断其余文件
+        （与 _execute_batch 的逐文件隔离模式一致）。
         """
         from pdf2zh.magicpdf_cli import run_magicpdf_main
         from pdf2zh.pdf2zh import parse_args
@@ -2206,14 +2339,21 @@ class RuntimeService:
             logger.error("[task=%s] magicpdf args build failed: %s", task_id, exc)
             self._fail_file(task_id, f"magicpdf args error: {exc}", total_files=total)
             return
-        ns.files = files
         out_dir = self._resolve_out_dir(request, config) or os.path.dirname(
             os.path.abspath(files[0])
         )
         ns.output = out_dir
         ns.backend = request.backend or "auto"
-        ns.magicpdf_ocr = bool(request.magicpdf_ocr)
-        ns.magicpdf_ocr_mode = getattr(request, "magicpdf_ocr_mode", "auto") or "auto"
+        # OCR 模式：优先从 extra_config（API 表单 ocr_mode）提取，再回落到
+        # request 级字段（兼容旧调用方直接设置 magicpdf_ocr/magicpdf_ocr_mode）。
+        extra = request.extra_config or {}
+        ocr_mode_raw = (
+            extra.get("ocr_mode")
+            or getattr(request, "magicpdf_ocr_mode", "auto")
+            or "auto"
+        )
+        ns.magicpdf_ocr_mode = ocr_mode_raw
+        ns.magicpdf_ocr = ocr_mode_raw == "on" or bool(request.magicpdf_ocr)
         ns.service = request.engine or "google"
         ns.lang_in = request.source_lang or "auto"
         ns.lang_out = request.target_lang or "zh-CN"
@@ -2225,6 +2365,8 @@ class RuntimeService:
         ns.ignore_cache = request.ignore_cache
         extra = request.extra_config or {}
         ns.prompt = extra.get("prompt") or ""
+        ns.mineru_vram_size = getattr(request, "mineru_vram_size", "") or ""
+        ns.mineru_window_size = getattr(request, "mineru_window_size", "") or ""
         self._emit_event(
             task_id, TaskStage.PARSING.value, 10.0, "magic-pdf/MinerU parsing..."
         )
@@ -2234,11 +2376,18 @@ class RuntimeService:
         ) -> None:
             if self._pause_guard(task_id):
                 return
-            # magicpdf 引擎的细粒度进度（解析页计数/组件加载 + 翻译/渲染
-            # 相位粗事件）与 BabelDOC 路径共用 _emit_smooth 通道：detail
-            # 随事件搭车写入 store 快照并推送到前端。
             self._emit_smooth(task_id, stage, pct, msg, detail=detail)
 
+        # 多文件逐文件隔离：单文件失败不阻断其余文件（与 _execute_batch 一致）。
+        if total > 1:
+            self._execute_magicpdf_batch(
+                task_id, request, files, ns, config, total,
+                _forward_magicpdf_progress,
+            )
+            return
+
+        # 单文件直跑
+        ns.files = files
         try:
             rc = run_magicpdf_main(ns, progress_cb=_forward_magicpdf_progress)
         except Exception as exc:  # noqa: BLE001
@@ -2254,10 +2403,82 @@ class RuntimeService:
                 task_id, f"magicpdf engine returned {rc}", total_files=total
             )
             return
-        # magicpdf 产物为 {output}/magicpdf/ 下的 JSON 转储 + 译后 mono PDF
-        # （run_magicpdf_main 默认渲染 {stem}_mono.pdf）。二者都作为结果文件
-        # 收集供下载，且译后 PDF 优先作为选中/预览对象 —— 否则用户只能下载
-        # 到一堆 JSON，看不到翻译产物。
+        self._collect_magicpdf_results(task_id, out_dir, total)
+
+    def _execute_magicpdf_batch(
+        self,
+        task_id: str,
+        request: TranslationRequest,
+        files: list[str],
+        ns: Any,
+        config: Optional[ServiceConfig],
+        total: int,
+        progress_cb: Any,
+    ) -> None:
+        """magicpdf 引擎的多文件逐文件执行：单文件失败不阻断批量。
+
+        每个文件独立调用 run_magicpdf_main，失败时回收版面模型并记录
+        文件失败，继续处理下一个文件。全部文件处理完毕后汇总结果。
+        """
+        from pdf2zh.magicpdf_cli import run_magicpdf_main
+
+        ctx = self._batch_ctx.get(task_id)
+        if ctx is None:
+            ctx = _BatchContext(total_files=total)
+            with self._batch_ctx_lock:
+                self._batch_ctx[task_id] = ctx
+
+        failed_count = 0
+        for path in files:
+            if self._store.is_cancelled(task_id):
+                return
+            ctx.current_file = os.path.basename(path)
+            self._reset_aggregator(task_id)
+            self._store.update_task(
+                task_id,
+                status=TaskStage.PARSING.value,
+                current_file_name=ctx.current_file,
+                file_progress=0.0,
+                total_progress=self._agg(ctx, 0.0),
+                progress=self._agg(ctx, 0.0),
+                message=f"Processing {ctx.current_file}",
+            )
+            # 每个文件用独立 ns 副本（run_magicpdf_main 会修改 ns.files）
+            import copy
+            file_ns = copy.copy(ns)
+            file_ns.files = [path]
+            try:
+                rc = run_magicpdf_main(file_ns, progress_cb=progress_cb)
+                if rc != 0:
+                    logger.warning(
+                        "[task=%s] magicpdf returned %d for %s",
+                        task_id, rc, path,
+                    )
+                    self._reset_shared_layout_model()
+                    self._fail_file(task_id, f"magicpdf returned {rc}", total_files=total)
+                    failed_count += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.error(
+                    "[task=%s] file %s failed: %s",
+                    task_id, path, exc, exc_info=True,
+                )
+                self._reset_shared_layout_model()
+                self._fail_file(task_id, exc, total_files=total)
+                failed_count += 1
+            state = self._store.get_task(task_id)
+            if (
+                state is not None
+                and state.status == TaskStage.FAILED.value
+                and not self._file_failure_recorded(task_id, ctx)
+            ):
+                ctx.failed_files += 1
+
+        self._collect_magicpdf_results(task_id, ns.output, total)
+
+    def _collect_magicpdf_results(
+        self, task_id: str, out_dir: str, total: int
+    ) -> None:
+        """收集 magicpdf 产物（JSON 转储 + 译后 mono PDF）并落 COMPLETE 终态。"""
         result_files: List[Dict[str, str]] = []
         pdf_entry: Optional[Dict[str, str]] = None
         try:
@@ -2273,6 +2494,39 @@ class RuntimeService:
                         pdf_entry = entry
         except Exception:  # noqa: BLE001 -- 结果收集失败不影响落终态
             pass
+        if not result_files:
+            # magicpdf 子目录无产物：可能是 MinerU/magic-pdf 解析失败后熔断
+            # 降级 legacy 内核（_fallback_legacy），其 mono/dual PDF 写在
+            # out_dir 父目录（{stem}-mono.pdf / {stem}-dual.pdf），并非失败。
+            # 回退收集这些 legacy 产物，避免把已成功的降级翻译误报为失败。
+            try:
+                for name in sorted(os.listdir(out_dir)):
+                    low = name.lower()
+                    if not (
+                        name.endswith(".pdf")
+                        and ("-mono." in low or "-dual." in low)
+                    ):
+                        continue
+                    path = os.path.join(out_dir, name)
+                    if not os.path.isfile(path):
+                        continue
+                    entry = {"name": name, "path": path}
+                    result_files.append(entry)
+                    if pdf_entry is None:
+                        pdf_entry = entry
+            except OSError:  # noqa: BLE001 -- out_dir 不可读时保持空产物判失败
+                pass
+        if not result_files:
+            # 空产物绝不落 COMPLETED 终态：静默的"完成但没有任何输出"会掩盖
+            # 解析/回退链路的真实故障（用户不可见失败）。这里显式置 FAILED 并
+            # 给出排查指引。
+            self._fail_file(
+                task_id,
+                "magicpdf engine produced no output artifacts "
+                f"(expected under {out_dir}{os.sep}magicpdf); check server logs",
+                total_files=total,
+            )
+            return
         self._complete_file(
             task_id,
             result_files,
@@ -2280,7 +2534,7 @@ class RuntimeService:
             selected_file=(
                 pdf_entry["name"]
                 if pdf_entry is not None
-                else (result_files[0]["name"] if result_files else None)
+                else result_files[0]["name"]
             ),
             preview_path=(pdf_entry["path"] if pdf_entry is not None else None),
             message="Completed (MagicPDF)",
@@ -3097,10 +3351,41 @@ class RuntimeService:
         """Daemon background loop: bounded-memory cleanup of terminal tasks."""
         while True:
             time.sleep(self._sweep_interval)
+            # 提交层幂等去重表的收尾：任务已终态/已清理时移除指纹条目，防常驻服务
+            # 长期运行后内存无限累积（同指纹在途任务才需要去重）。
+            try:
+                with self._submit_dedup_lock:
+                    stale_keys = [
+                        key
+                        for key, (_, tid) in self._submit_dedup.items()
+                        if not self._is_dedup_alive(tid)
+                    ]
+                    for key in stale_keys:
+                        self._submit_dedup.pop(key, None)
+                if stale_keys:
+                    logger.debug(
+                        "submit dedup: pruned %d fingerprint(s) of terminal tasks",
+                        len(stale_keys),
+                    )
+            except Exception:  # noqa: BLE001 -- 清理失败不影响清扫主流程
+                logger.debug("submit dedup prune failed", exc_info=True)
+
             try:
                 self._sweep_stale(time.time())
             except Exception:  # noqa: BLE001 -- the sweeper must never die
                 logger.exception("task sweeper iteration failed")
+
+
+    def _is_dedup_alive(self, task_id: str) -> bool:
+        """指纹对应的任务是否仍在途（未终态且仍被 store 追踪）。"""
+        state = self._store.get_task(task_id)
+        if state is None:
+            return False
+        return state.status not in (
+            TaskStage.COMPLETED.value,
+            TaskStage.CANCELLED.value,
+            TaskStage.FAILED.value,
+        )
 
     def _emit_notice(
         self,

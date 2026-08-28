@@ -156,7 +156,12 @@ def probe_mineru_override() -> str | None:
                 python,
                 "-c",
                 "import importlib.util, sys; "
-                "sys.exit(0 if importlib.util.find_spec('mineru') is not None else 1)",
+                # 深度校验：与 probe_mineru 保持一致，不仅查顶层 mineru 包，
+                # 还需官方编程入口 mineru.cli.common（do_parse）存在——残缺安装
+                # （缺 cli 子模块）会在此漏报，避免运行时才炸。
+                "sys.exit(0 if (importlib.util.find_spec('mineru') is not None "
+                "and importlib.util.find_spec('mineru.cli.common') is not None) "
+                "else 1)",
             ],
             capture_output=True,
             timeout=60,

@@ -509,6 +509,15 @@ def run_babeldoc_next_translation(
 
     apply_babeldoc_backend()
 
+    # 进程本地线程预算（有界并发而非串行）：保留两边多线程/多任务能力，
+    # 同时把 CPU/GPU 并发乘积封顶，避免 oversubscription 表现为“卡死”。
+    # 仅设线程预算，不做进程级 CUDA 重置（进程内路径可能与 pdf2zh 共享进程）。
+    from pdf2zh.gpu_governor import (  # noqa: PLC0415
+        apply_process_local_thread_budget,
+    )
+
+    apply_process_local_thread_budget("babeldoc-adapter")
+
     # 数字编号列表项（1. XXX / 2. XXX）段落拆分（幂等）：避免整个列表被合并
     # 成单一段落整体翻译导致排版错乱。PDF2ZH_BABELDOC_SPLIT_LIST_ITEMS=0 关闭。
     from pdf2zh.babeldoc_list_split import apply_babeldoc_list_split

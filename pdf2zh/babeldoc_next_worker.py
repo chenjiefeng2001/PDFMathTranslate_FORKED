@@ -35,6 +35,18 @@ def _emit(obj: dict) -> None:
 
 
 def main() -> int:
+    # 全新（spawn 语义）子进程：重置 CUDA 生命周期标记 + 设定进程本地线程
+    # 预算（有界并发）。本进程不继承任何宿主进程的 CUDA 状态。
+    try:
+        from pdf2zh.gpu_governor import (  # noqa: PLC0415
+            apply_process_local_thread_budget,
+            reset_cuda_process_guard,
+        )
+
+        reset_cuda_process_guard()
+        apply_process_local_thread_budget("babeldoc-subprocess")
+    except Exception:  # noqa: BLE001 -- 工具缺失不阻断 worker 主流程
+        pass
     try:
         payload = json.load(sys.stdin)
     except Exception as exc:  # noqa: BLE001 -- 协议错误直接退出

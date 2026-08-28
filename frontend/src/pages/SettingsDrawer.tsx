@@ -25,6 +25,9 @@ import {
   glossaryDownloadUrl,
   getDoclayoutModelStatus,
   downloadDoclayoutModel,
+  getGpuProviderStatus,
+  downloadGpuProvider,
+  removeGpuProvider,
   getEngines,
   getEngineEnvs,
   importGlossary,
@@ -32,8 +35,11 @@ import {
   selftestMagicpdf,
   setupMineru,
   getMineruSetupStatus,
+  setupMineruCuda,
+  getMineruCudaSetupStatus,
   updateEngineEnvs,
   type DoclayoutModelStatus,
+  type GpuProviderStatus,
   type EngineEnvStatus,
 } from "../api/endpoints";
 import type { EngineInfo, GlossaryInfo } from "../api/types";
@@ -400,6 +406,107 @@ function ModelsSection({ active }: { active: boolean }) {
     </Space>
   );
 }
+/** CUDA execution provider：本体不携带（~746MB），按需下载安装后 GPU 版面加速。 */
+function GpuProviderSection({ active }: { active: boolean }) {
+  const { t } = useTranslation();
+  const [status, setStatus] = useState<GpuProviderStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function refresh() {
+    try {
+      setStatus(await getGpuProviderStatus());
+    } catch {
+      /* 服务未就绪时静默 */
+    }
+  }
+
+  useEffect(() => {
+    if (active) void refresh();
+  }, [active]);
+
+  useEffect(() => {
+    if (!status?.downloading) return;
+    const timer = window.setInterval(() => void refresh(), 2000);
+    return () => window.clearInterval(timer);
+  }, [status?.downloading]);
+
+  async function download() {
+    setBusy(true);
+    try {
+      await downloadGpuProvider();
+      await refresh();
+    } catch (err) {
+      message.error(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await removeGpuProvider();
+      await refresh();
+    } catch (err) {
+      message.error(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const pct =
+    status && status.total_bytes > 0
+      ? Math.min(100, Math.round((status.progress_bytes / status.total_bytes) * 100))
+      : 0;
+
+  let tag = <Tag>{t("ui.settings_gpu_provider_missing")}</Tag>;
+  if (status?.downloading)
+    tag = <Tag color="processing">{t("ui.settings_gpu_provider_downloading", { percent: pct })}</Tag>;
+  else if (status?.last_error) tag = <Tag color="red">{t("ui.settings_gpu_provider_failed")}</Tag>;
+  else if (status?.cuda_active) tag = <Tag color="green">{t("ui.settings_gpu_provider_active")}</Tag>;
+  else if (status?.cuda_dll_present)
+    tag = <Tag color="warning">{t("ui.settings_gpu_provider_installed")}</Tag>;
+
+  return (
+    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+        {t("ui.settings_gpu_provider_hint")}
+      </Typography.Paragraph>
+      <Space wrap size={8}>
+        {tag}
+        {status?.cuda_dll_present && (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {(status.cuda_dll_size_bytes / 1048576).toFixed(0)} MB
+          </Typography.Text>
+        )}
+        {status?.last_error && (
+          <Typography.Text type="danger" style={{ fontSize: 12 }}>
+            {status.last_error}
+          </Typography.Text>
+        )}
+      </Space>
+      <Space wrap size={8}>
+        <Button
+          icon={<DownloadOutlined />}
+          loading={busy}
+          disabled={!!status?.downloading || status?.cuda_active}
+          onClick={() => void download()}
+        >
+          {status?.downloading
+            ? t("ui.settings_gpu_provider_downloading", { percent: pct })
+            : t("ui.settings_gpu_provider_download")}
+        </Button>
+        {status?.cuda_dll_present && !status?.cuda_active && (
+          <Button size="small" disabled={!!status?.downloading} onClick={() => void remove()}>
+            {t("ui.settings_gpu_provider_remove")}
+          </Button>
+        )}
+      </Space>
+    </Space>
+  );
+}
+
+
 
 /** MinerU / magic-pdf 高级解析：探测状态 + 一键构建隔离 venv（模型与应用分离）。 */
 function MineruSection() {
@@ -408,11 +515,16 @@ function MineruSection() {
   const [copied, setCopied] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
+  // 启用 MinerU GPU（隔离 venv 的 torch → CUDA 版）的状态与轮询
+  const [cudaInstalling, setCudaInstalling] = useState(false);
+  const [cudaError, setCudaError] = useState<string | null>(null);
+  const [mineruCuda, setMineruCuda] = useState<boolean | null>(null);
 
   async function refresh() {
     try {
       const r = await selftestMagicpdf();
       setState({ ok: r.ok, hint: r.hint ?? "" });
+      setMineruCuda(r.mineru_cuda ?? false);
     } catch {
       /* 服务未就绪时静默 */
     }
@@ -441,6 +553,25 @@ function MineruSection() {
     return () => window.clearInterval(timer);
   }, [installing]);
 
+  useEffect(() => {
+    if (!cudaInstalling) return;
+    const timer = window.setInterval(async () => {
+      try {
+        const s = await getMineruCudaSetupStatus();
+        if (!s.running) {
+          setCudaInstalling(false);
+          window.clearInterval(timer);
+          if (s.error) setCudaError(s.error);
+          else setCudaError(null);
+          void refresh();
+        }
+      } catch {
+        /* ignore */
+      }
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [cudaInstalling]);
+
   async function copyCommand() {
     const cmd = state?.hint || 'pip install -U "magic-pdf[full]"';
     try {
@@ -464,6 +595,21 @@ function MineruSection() {
     } catch (err) {
       setInstalling(false);
       setInstallError(String(err));
+    }
+  }
+
+  async function startCuda() {
+    setCudaError(null);
+    setCudaInstalling(true);
+    try {
+      const res = await setupMineruCuda();
+      if (!res.started) {
+        setCudaInstalling(false);
+        if (res.reason) setCudaError(res.reason);
+      }
+    } catch (err) {
+      setCudaInstalling(false);
+      setCudaError(String(err));
     }
   }
 
@@ -503,6 +649,34 @@ function MineruSection() {
             {copied ? t("ui.settings_copied") : t("ui.settings_copy")}
           </Button>
         </Space>
+      )}
+      <Divider style={{ margin: "4px 0" }} />
+      {/* 启用 MinerU GPU：隔离 venv 的 torch 升级为 CUDA 版（torch ~2GB 下载，后台执行）。 */}
+      <Space wrap size={8}>
+        {cudaInstalling ? (
+          <Tag color="processing">{t("ui.settings_mineru_cuda_enabling")}</Tag>
+        ) : mineruCuda === true ? (
+          <Tag color="green">{t("ui.settings_mineru_cuda_ready")}</Tag>
+        ) : mineruCuda === false ? (
+          <Tag color="warning">{t("ui.settings_mineru_cuda_cpu")}</Tag>
+        ) : (
+          <Tag>{t("ui.label_n_a")}</Tag>
+        )}
+        <Button
+          size="small"
+          loading={cudaInstalling}
+          disabled={cudaInstalling || mineruCuda === true}
+          onClick={() => void startCuda()}
+        >
+          {cudaInstalling
+            ? t("ui.settings_mineru_cuda_enabling")
+            : t("ui.settings_mineru_cuda_enable")}
+        </Button>
+      </Space>
+      {cudaError && (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {cudaError}
+        </Typography.Text>
       )}
     </Space>
   );
@@ -582,6 +756,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
         t("ui.settings_models"),
         <ModelsSection active={open} />,
       )}
+      {section(t("ui.settings_gpu_provider"), <GpuProviderSection active={open} />)}
       {section(t("ui.settings_mineru"), <MineruSection />)}
       {section(
         t("ui.settings_glossaries"),

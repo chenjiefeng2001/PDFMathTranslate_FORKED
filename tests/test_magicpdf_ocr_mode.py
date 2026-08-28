@@ -127,9 +127,12 @@ def _patch_flow(tmp_path, **ns_kw):
         def is_available(cls):
             return True
 
-        def parse(self, path, pages=None, ocr=False):
+        def parse(self, path, pages=None, ocr=False, lang=None):
             captured["ocr"] = ocr
             return []
+
+        def close(self):
+            pass
 
     class _FakeDoc:
         pages = []

@@ -259,7 +259,10 @@ _LAYOUT_PREFETCH_ENV = "PDF2ZH_LAYOUT_PREFETCH"
 _LAYOUT_PREFETCH_DEFAULT = 1
 _LAYOUT_PREFETCH_MAX = 8
 
-_LAYOUT_ONNX_RUN_LOCK = threading.Lock()
+# 与 doclayout._CUDA_RUN_LOCK 共享同一把锁，确保所有 CUDA session.run
+# （YOLO 版面 + PP-DocLayoutV2 检测器）在同一进程内串行执行，防止
+# cuDNN 并发崩溃（CUDNN_BACKEND_API_FAILED）。
+from pdf2zh.doclayout import _CUDA_RUN_LOCK as _LAYOUT_ONNX_RUN_LOCK  # noqa: E402
 
 
 def _layout_pipeline_window() -> int:
@@ -441,10 +444,28 @@ class PseudoCodeProtectedLayoutModel:
         self._algo_cls_cache: dict[int, int] = {}
         self._algo_cls_lock = threading.Lock()
         # 检测器接口能力只探测一次：旧式纯图像签名逐页 try/except TypeError
-        # 既慢又掩盖真实错误。
+        # 既慢又掩盖真实错误。detector 可能被后台 MinerU 线程热注入
+        # （:meth:`attach_detector`），读写统一经 ``_detector_lock`` 保护。
+        self._detector_lock = threading.Lock()
         self._detector_accepts_page_index = (
             _detector_supports_page_index(detector) if detector is not None else False
         )
+
+    def attach_detector(self, detector) -> None:
+        """热注入算法框检测器（后台 MinerU 探测完成后调用，线程安全）。
+
+        仅在构造后把 detector 从 ``None`` 升级为可用实例：BabelDOC 主链路在
+        PP-DocLayoutV2 缺失时立即用无保护模型开工，MinerU VLM 解析在后台线程
+        完成后再把检测器挂上——任务运行中的后续页面自动获得伪代码保护，同时
+        绝不让 MinerU 拖住任务启动（不再卡在 starting / 长时间无进度）。
+        """
+        if detector is None:
+            return
+        with self._detector_lock:
+            if self.detector is detector:
+                return
+            self.detector = detector
+            self._detector_accepts_page_index = _detector_supports_page_index(detector)
 
     @property
     def stride(self) -> int:
@@ -543,16 +564,21 @@ class PseudoCodeProtectedLayoutModel:
         self, geometry, yolo_result, page_number: Optional[int] = None
     ) -> None:
         """把默认模型文本框中被 algorithm 框覆盖的部分提升为 algorithm。"""
-        if self.detector is None:
+        # detector 可能已被后台 MinerU 线程热注入（:meth:`attach_detector`）：
+        # 锁内取快照，锁外执行检测调用，既与热注入互斥，又不长占锁。
+        with self._detector_lock:
+            detector = self.detector
+            accepts_page_index = self._detector_accepts_page_index
+        if detector is None:
             return
-        # 接口能力在 __init__ 已探测一次（MinerU 分支按页提取 page_index，
-        # PP-DocLayoutV2 为纯图像签名），不再逐页 try/except TypeError。
-        if self._detector_accepts_page_index:
-            algo_boxes = self.detector.detect_algorithm_boxes(
+        # 接口能力在 __init__/attach_detector 各探测一次（MinerU 分支按页提取
+        # page_index，PP-DocLayoutV2 为纯图像签名），不再逐页 try/except TypeError。
+        if accepts_page_index:
+            algo_boxes = detector.detect_algorithm_boxes(
                 geometry.image, page_index=page_number
             )
         else:
-            algo_boxes = self.detector.detect_algorithm_boxes(geometry.image)
+            algo_boxes = detector.detect_algorithm_boxes(geometry.image)
         if not algo_boxes:
             return
         algo_pt = []
@@ -774,10 +800,11 @@ def build_pseudo_code_protected_layout_model(pdf_path: Optional[str] = None):
 
 
 def _build_with_mineru_or_paddle(pdf_path: str):
-    """per-document 构建：优先 MinerU VLM 分支，失败回退 PP-DocLayoutV2。
+    """per-document 构建：优先 PP-DocLayoutV2，缺失时后台 MinerU 热注入。
 
     MinerU detector 依赖具体 PDF，不能进全局缓存；任何一步失败都退化为
-    PP-DocLayoutV2（或纯 base 模型），绝不让保护功能阻断 BabelDOC 主链路。
+    无保护融合模型（任务照常跑，MinerU 完成后热注入保护），绝不让保护
+    功能阻断 BabelDOC 主链路。
     """
     try:
         base = _load_base_layout_model()
@@ -787,22 +814,79 @@ def _build_with_mineru_or_paddle(pdf_path: str):
             exc_info=True,
         )
         return None
-    detector = None
-    try:
-        detector = MinerUAlgorithmDetector(pdf_path)
+    # 优先本地 PP-DocLayoutV2（进程内 ONNX，秒级）；仅当其不可用才退到
+    # MinerU VLM 分支。MinerU 分支完全异步（见下）：冷启动/整本解析不再
+    # 阻塞 BabelDOC 主链路（曾因同步等待把任务长时间卡在 "starting"，见
+    # tests/test_pipeline_no_output_guards.py 用户报告）。
+    detector = _try_build_algorithm_detector()
+    if detector is not None:
         logger.info(
-            "BabelDOC pseudo-code protection enabled " "(MinerU VLM algorithm detector)"
+            "BabelDOC pseudo-code protection enabled "
+            "(PP-DocLayoutV2 algorithm detector)"
         )
-    except Exception as exc:  # noqa: BLE001 -- 回退 PP-DocLayoutV2
-        logger.debug(
-            "MinerU algorithm detector unavailable (%s); "
-            "falling back to PP-DocLayoutV2",
-            exc,
+        return PseudoCodeProtectedLayoutModel(base, detector)
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    # MinerU VLM 分支**完全异步化**：BabelDOC 主链路绝不等待 MinerU。
+    # 旧实现 ``future.result(timeout=budget)`` 让主线程在任务启动前同步等满预算
+    # （默认 240s，且每次 BabelDOC 任务/每个文件都触发），表现为任务长时间
+    # 卡在 starting、无任何进度事件、也不产 PDF（见
+    # tests/test_pipeline_no_output_guards.py 用户报告）。这里先返回一个
+    # detector=None 的融合模型让任务**立即**开始布局，MinerU 在后台线程解析
+    # 整本 PDF，完成后通过 ``attach_detector`` 热注入——任务运行中的后续页面
+    # 自动获得伪代码保护，前置页面无保护（尽力而为，绝不以阻塞换取保护）。
+    # 框架不变：仍是 ``ThreadPoolExecutor`` + ``shutdown(wait=False)``，不 join
+    # 后台线程（线程内 ``adapter.parse`` 不受取消影响）。
+    model = PseudoCodeProtectedLayoutModel(base, None)
+
+    def _run_mineru_detector() -> None:
+        try:
+            det = MinerUAlgorithmDetector(pdf_path)
+        except Exception as exc:  # noqa: BLE001 -- 检测器失败不阻断主链路
+            logger.debug(
+                "MinerU algorithm detector unavailable (%s); "
+                "pseudo-code protection stays disabled",
+                exc,
+            )
+            return
+        try:
+            model.attach_detector(det)
+        except Exception:  # noqa: BLE001 -- 模型实例已失效等极端情况
+            logger.debug(
+                "failed to hot-attach MinerU algorithm detector",
+                exc_info=True,
+            )
+            return
+        logger.info(
+            "BabelDOC pseudo-code protection enabled "
+            "(MinerU VLM algorithm detector, hot-attached after task start)"
         )
-        detector = _try_build_algorithm_detector()
-    if detector is None:
-        return base
-    return PseudoCodeProtectedLayoutModel(base, detector)
+
+    executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="pseudo-mineru")
+    try:
+        executor.submit(_run_mineru_detector)
+    finally:
+        executor.shutdown(wait=False)
+    return model
+
+
+def resolve_pseudo_mineru_budget(default_seconds: int = 240) -> int:
+    """MinerU VLM 伪代码检测分支的时间预算（秒，``PDF2ZH_PSEUDO_MINERU_BUDGET``）。
+
+    注意：自 MinerU 分支完全异步化后，该预算**不再**作为 BabelDOC 主链路
+    的同步等待上限（主链路绝不等待 MinerU，任务立即开始）；保留本函数仅为
+    兼容旧环境变量与既有测试，避免用户按旧文档配置后行为突变。
+    """
+    raw = os.environ.get("PDF2ZH_PSEUDO_MINERU_BUDGET", "").strip()
+    if not raw:
+        return default_seconds
+    try:
+        val = int(raw)
+    except ValueError:
+        logger.warning("Ignoring invalid PDF2ZH_PSEUDO_MINERU_BUDGET=%r", raw)
+        return default_seconds
+    return max(30, val)
 
 
 def _main(argv=None) -> int:

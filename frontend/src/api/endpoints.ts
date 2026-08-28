@@ -35,6 +35,10 @@ export interface SubmitParams {
   outputDir?: string;
   ignoreCache?: boolean;
   glossaryNames?: string[];
+  /** MinerU 显存预算（GB，空=auto 自动保守估算），对应 MINERU_VIRTUAL_VRAM_SIZE。 */
+  mineruVramSize?: string;
+  /** MinerU 处理窗口页数（空=引擎默认），对应 MINERU_PROCESSING_WINDOW_SIZE。 */
+  mineruWindowSize?: string;
 }
 
 export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
@@ -56,6 +60,8 @@ export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
   if (params.backend) form.append("backend", params.backend);
   if (params.outputDir) form.append("output_dir", params.outputDir);
   form.append("ignore_cache", String(!!params.ignoreCache));
+  if (params.mineruVramSize) form.append("mineru_vram_size", params.mineruVramSize);
+  if (params.mineruWindowSize) form.append("mineru_window_size", params.mineruWindowSize);
   if (params.glossaryNames?.length) {
     form.append("glossary_files", params.glossaryNames.join(","));
   }
@@ -137,7 +143,42 @@ export function downloadDoclayoutModel(): Promise<{ started: boolean; reason?: s
   return api().request("POST", "/api/models/doclayout/download");
 }
 
-export function selftestMagicpdf(): Promise<{ ok: boolean; backend: string; hint: string }> {
+export interface GpuProviderStatus {
+  onnxruntime_version: string;
+  target_path: string;
+  cuda_dll_present: boolean;
+  cuda_dll_size_bytes: number;
+  available_providers: string[];
+  cuda_active: boolean;
+  downloading: boolean;
+  progress_bytes: number;
+  total_bytes: number;
+  done: boolean;
+  last_error: string | null;
+}
+
+export function getGpuProviderStatus(): Promise<GpuProviderStatus> {
+  return api().get("/api/gpu/provider");
+}
+
+export function downloadGpuProvider(): Promise<{ started: boolean; reason?: string }> {
+  return api().request("POST", "/api/gpu/provider/download");
+}
+
+export function removeGpuProvider(): Promise<{ removed: boolean }> {
+  return api().request("POST", "/api/gpu/provider/remove");
+}
+
+export interface SelftestMagicpdfResult {
+  ok: boolean;
+  backend: string;
+  hint: string;
+  /** MinerU 隔离 venv 的 torch 是否 CUDA 可用（子进程解析实际使用）。 */
+  mineru_cuda: boolean;
+  mineru_venv: string;
+}
+
+export function selftestMagicpdf(): Promise<SelftestMagicpdfResult> {
   return api().get("/api/selftest/magicpdf");
 }
 
@@ -154,6 +195,15 @@ export function setupMineru(): Promise<{ started: boolean; reason?: string }> {
 
 export function getMineruSetupStatus(): Promise<MineruSetupStatus> {
   return api().get("/api/setup/mineru");
+}
+
+/** 启用 MinerU GPU：后台把隔离 venv 的 torch 升级为 CUDA 版。 */
+export function setupMineruCuda(): Promise<{ started: boolean; reason?: string }> {
+  return api().request("POST", "/api/setup/mineru/cuda");
+}
+
+export function getMineruCudaSetupStatus(): Promise<MineruSetupStatus> {
+  return api().get("/api/setup/mineru/cuda");
 }
 
 /** 结果文件下载地址（浏览器原生 GET，尊重 apiBase 解析链）。 */

@@ -81,6 +81,17 @@ a = Analysis(
         'gradio', 'gradio_pdf',           # GUI 栈不进 sidecar
         'magicpdf', 'magic_pdf',          # OCR 解析链路按需另行打包
         'torch',
+        # ── 传递依赖瘦身（逐项实测：sidecar 运行链路不触碰，排除安全）──
+        # polars：仅 sklearn 的可选 DataFrame 依赖（_polars_runtime_32
+        # 二进制 ~185MB）；babeldoc 的 DBSCAN 走 numpy/scipy，不 import polars。
+        'polars',
+        # transformers 生态：仅 pdf2zh/magicpdf_adapter.py 懒加载
+        # `import transformers` 触发收集（MinerU 链，~63MB），sidecar 无 OCR。
+        'transformers', 'tokenizers', 'hf_xet', 'huggingface_hub',
+        'huggingface_hub_inference', 'safetensors',
+        # S3/AWS 云存储支持：pandas/polars/pydantic_settings 的可选后端
+        # （botocore+boto3 ~19MB），桌面翻译链路不涉及（pandas 侧为懒加载）。
+        'boto3', 'botocore', 's3transfer', 'aiobotocore',
     ],
     noarchive=False,
 )
@@ -98,6 +109,21 @@ def _torch_blocked(dest_name: str) -> bool:
 
 a.binaries = [b for b in a.binaries if not _torch_blocked(b[0])]
 a.datas = [d for d in a.datas if not _torch_blocked(d[0])]
+
+# onnxruntime 的 CUDA/TensorRT provider（onnxruntime_providers_cuda.dll
+# 解压后 ~164MB）是 GPU 版面加速的可选组件：本体只内置 CPU provider
+# （CPUExecutionProvider 位于 onnxruntime.dll 核心，不受影响）。需要 GPU
+# 加速的用户在应用内「按需下载」同版本 provider DLL 到 _internal/onnxruntime/capi
+# （pdf2zh.services.gpu_provider + /api/gpu/provider/* 端点），不随安装包分发。
+def _onnx_gpu_provider_blocked(dest_name: str) -> bool:
+    name = dest_name.replace("\\", "/").lower()
+    return name.endswith((
+        "onnxruntime_providers_cuda.dll",
+        "onnxruntime_providers_tensorrt.dll",
+    ))
+
+
+a.binaries = [b for b in a.binaries if not _onnx_gpu_provider_blocked(b[0])]
 pyz = PYZ(a.pure)
 
 exe = EXE(

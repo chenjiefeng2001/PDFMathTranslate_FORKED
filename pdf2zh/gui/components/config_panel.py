@@ -141,13 +141,22 @@ def backend_status_markdown() -> str:
         mp_status = get_magicpdf_device_status()
     except Exception:  # noqa: BLE001 -- 诊断失败不影响状态面板
         mp_status = None
-    if mp_status and mp_status.get("installed"):
+    # 显示条件：magic-pdf 已安装，或存在 MinerU 隔离 venv（主进程可能未装
+    # magic_pdf，但 MinerU 子进程解析可用且其设备独立于主进程 torch）。
+    if mp_status and (mp_status.get("installed") or mp_status.get("mineru_venv")):
+        # 优先展示 MinerU 隔离 venv 的实际设备（effective 已按 venv 修正）；
+        # torch/cuda 字段跟随展示来源。
         lines.append(
             f"- {B('backend_status_magicpdf_device')}: "
             f"`{mp_status.get('effective')}` · torch "
             f"{mp_status.get('torch') or '-'} · "
             f"cuda={bool(mp_status.get('torch_cuda'))}"
         )
+        if mp_status.get("mineru_venv"):
+            lines.append(
+                f"  › MinerU venv cuda="
+                f"{bool(mp_status.get('mineru_venv_torch_cuda'))}"
+            )
         if mp_status.get("hint"):
             lines.append(f"  › {mp_status['hint']}")
 

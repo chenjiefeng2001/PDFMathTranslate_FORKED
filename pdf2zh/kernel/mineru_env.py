@@ -168,7 +168,7 @@ def _find_system_python() -> str:
     )
 
 
-def ensure_venv() -> str:
+def ensure_venv(cuda: bool = False) -> str:
     """确保隔离 venv 存在且装有 mineru[pipeline]；返回解释器路径。
 
     优先复用已构建且可用的 venv（任意候选位置，见
@@ -179,9 +179,48 @@ def ensure_venv() -> str:
 
     构建位置：``PDF2ZH_MINERU_VENV_DIR`` > 仓库 submodule（可写时）>
     用户数据目录（见 :func:`default_venv_dir`）。
+
+    Args:
+        cuda: True 时确保 venv 内 torch 为 CUDA 版——若已存在可用的 venv 但
+            torch 无 CUDA（``PDF2ZH_MINERU_CUDA=1`` 新建的 CPU 环境），会用
+            pytorch 官方 index 原位升级 CUDA torch/torchvision（不动 mineru
+            与模型缓存）。用于「启用 MinerU GPU」按钮（桌面端一键切换）。
     """
     existing = default_venv_python()
     if existing and _package_importable(existing):
+        if cuda and not _venv_torch_cuda(existing):
+            logger.info(
+                "Enabling CUDA torch in existing venv %s "
+                "(upgrading torch/torchvision from %s)...",
+                existing,
+                _mineru_torch_index_url(),
+            )
+            subprocess.run(
+                [
+                    existing, "-m", "pip", "install",
+                    "--upgrade",
+                    "torch", "torchvision",
+                    "--index-url", _mineru_torch_index_url(),
+                ],
+                check=True, timeout=_INSTALL_TIMEOUT,
+            )
+            # 校验并区分两种“仍无 CUDA”：
+            #  - torch.version.cuda 为空 → wheel 仍是 CPU 构建（index 未生效/
+            #    缺 --upgrade 导致未重装），需检查 index URL；
+            #  - torch.version.cuda 有值但 is_available()=False → 已装 CUDA 版
+            #    torch，但本机无可用 NVIDIA GPU / 驱动不匹配，需检查驱动。
+            torch_cuda_tag = _venv_torch_cuda_tag(existing)
+            if torch_cuda_tag is None:
+                raise RuntimeError(
+                    "MinerU venv 的 torch 仍为 CPU 构建（未装 CUDA wheel）。"
+                    "请检查 index URL：%s" % _mineru_torch_index_url()
+                )
+            if not _venv_torch_cuda(existing):
+                raise RuntimeError(
+                    "MinerU venv 已安装 CUDA 版 torch（%s）但本机无可用 "
+                    "NVIDIA GPU / 驱动不支持 CUDA。请检查 NVIDIA 驱动版本。"
+                    % torch_cuda_tag
+                )
         return existing
 
     # submodule 源码可用且所在目录可写时，使用 pin 版本；否则 PyPI 回退。
@@ -216,6 +255,19 @@ def ensure_venv() -> str:
         "Installing %s into %s (large download: torch etc.) ...",
         source_spec, target_dir,
     )
+    if _mineru_cuda_requested():
+        # CUDA 版 MinerU：先用 pytorch 官方 index 装 CUDA torch/torchvision，
+        # 再装 mineru（其 torch 依赖会复用已装版本）。若不先装，mineru 的
+        # torch 依赖会从 PyPI 默认源解析到 CPU 版，导致 `--backend cuda`
+        # 请求被 torch.cuda.is_available()=False 拒绝。
+        subprocess.run(
+            [
+                target, "-m", "pip", "install",
+                "torch", "torchvision",
+                "--index-url", _mineru_torch_index_url(),
+            ],
+            check=True, timeout=_INSTALL_TIMEOUT,
+        )
     subprocess.run(
         [target, "-m", "pip", "install", source_spec, "six"],
         check=True, timeout=_INSTALL_TIMEOUT,
@@ -223,6 +275,56 @@ def ensure_venv() -> str:
     )
     logger.info("Isolated MinerU environment ready: %s", target)
     return target
+
+
+#: CUDA torch 安装开关：``PDF2ZH_MINERU_CUDA=1`` 时在 venv 内装 CUDA 版 torch。
+_MINERU_CUDA_ENV = "PDF2ZH_MINERU_CUDA"
+
+
+def _mineru_cuda_requested() -> bool:
+    """是否请求 CUDA 版 MinerU（``PDF2ZH_MINERU_CUDA=1``）。"""
+    return os.environ.get(_MINERU_CUDA_ENV, "").strip().lower() in (
+        "1", "true", "yes", "on",
+    )
+
+
+def _mineru_torch_index_url() -> str:
+    """pytorch CUDA wheel 源（``PDF2ZH_MINERU_TORCH_INDEX`` 覆盖，默认 cu126）。"""
+    return (
+        os.environ.get("PDF2ZH_MINERU_TORCH_INDEX", "").strip()
+        or "https://download.pytorch.org/whl/cu126"
+    )
+
+
+def _venv_torch_cuda(interpreter: str) -> bool:
+    """轻量探测隔离 venv 内 torch 是否 CUDA 可用（不加载模型，秒级）。"""
+    try:
+        probe = subprocess.run(
+            [
+                interpreter, "-c",
+                "import torch; print(int(torch.cuda.is_available()))",
+            ],
+            capture_output=True, text=True, timeout=60,
+        )
+    except Exception:  # noqa: BLE001 -- 探测失败按不可用处理
+        return False
+    return probe.returncode == 0 and probe.stdout.strip().endswith("1")
+
+
+def _venv_torch_cuda_tag(interpreter: str) -> str | None:
+    """隔离 venv 内 torch 的 CUDA 构建标识（torch.version.cuda），None=CPU 版。"""
+    try:
+        probe = subprocess.run(
+            [
+                interpreter, "-c",
+                "import torch; print(torch.version.cuda or '')",
+            ],
+            capture_output=True, text=True, timeout=60,
+        )
+    except Exception:  # noqa: BLE001 -- 探测失败按 CPU 处理
+        return None
+    tag = probe.stdout.strip()
+    return tag or None
 
 
 def _package_importable(interpreter: str) -> bool:
