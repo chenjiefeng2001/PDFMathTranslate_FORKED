@@ -531,6 +531,13 @@ def run_babeldoc_next_translation(
 
     apply_babeldoc_toc_protect()
 
+    # 公式检测过度识别缓解（幂等）：BabelDOC 把色块/嵌入字体上的「含公式文本块」
+    # 整块判为公式而漏翻并污染后续段落；含普通文本信号的公式块转回翻译。
+    # PDF2ZH_BABELDOC_FORMULA_PROTECT=0 关闭。
+    from pdf2zh.babeldoc_formula_protect import apply_babeldoc_formula_protect
+
+    apply_babeldoc_formula_protect()
+
     cleanup_paths: List[str] = []
     result = None
     cancelled = False
