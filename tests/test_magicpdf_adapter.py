@@ -575,5 +575,35 @@ class TestMagicPdfDevice(unittest.TestCase):
         self.assertIsInstance(status["torch_cuda"], bool)
 
 
+    def test_normalize_block_strips_inline_formula_latex(self):
+        """行内公式 span（LaTeX）不得混入段落文本（否则整段被翻译成乱码）。
+
+        修复：公式 LaTeX 由公式侧信道 / 原 PDF 背景保留，段落译文不含 LaTeX。
+        """
+        from pdf2zh.magicpdf_adapter import _normalize_block
+
+        blk = _normalize_block(
+            {
+                "type": "text",
+                "bbox": [0, 0, 400, 50],
+                "lines": [
+                    {
+                        "bbox": [0, 0, 400, 25],
+                        "spans": [
+                            {"bbox": [0, 0, 100, 25], "content": "设 x 满足 ",
+                             "type": "text"},
+                            {"bbox": [100, 0, 150, 25], "content": "$x^{2}$",
+                             "type": "inline_equation"},
+                            {"bbox": [150, 0, 250, 25], "content": "。",
+                             "type": "text"},
+                        ],
+                    }
+                ],
+            }
+        )
+        self.assertEqual(blk["text"], "设 x 满足 。")
+        self.assertNotIn("$x^{2}$", blk["text"])
+
+
 if __name__ == "__main__":
     unittest.main()

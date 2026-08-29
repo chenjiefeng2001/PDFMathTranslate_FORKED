@@ -21,6 +21,7 @@ PageModel → BlockModel → LineModel → SpanModel → GlyphModel），使后�
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Sequence
 from typing import Any
 
@@ -104,6 +105,27 @@ MAGICPDF_CLS_TO_KIND: dict[str, str] = {
     "toc": "toc",
     "reference": "references",
     "references": "references",
+    # ── MinerU 3.x 补充类别（BlockType / pp_doclayout_v2）──
+    "doc_title": "heading",
+    "document_title": "heading",
+    "paragraph_title": "heading",
+    "vertical_text": "paragraph",
+    "formula_number": "formula",
+    "ref_text": "references",
+    "reference_content": "references",
+    "index": "references",
+    "aside_text": "paragraph",
+    "page_footnote": "footer",
+    "code_body": "code",
+    "code_caption": "caption",
+    "code_footnote": "caption",
+    "algorithm_caption": "caption",
+    "image_caption": "caption",
+    "chart_caption": "caption",
+    "figure": "figure",
+    "chart": "figure",
+    "table_body": "table",
+    "discarded": "footer",
 }
 DEFAULT_KIND = "paragraph"
 
@@ -112,6 +134,36 @@ def map_magicpdf_cls(cls: str) -> str:
     """magic-pdf 布局类别 → v3 kind（小写匹配，未知回退 paragraph）。"""
     key = (cls or "").strip().lower()
     return MAGICPDF_CLS_TO_KIND.get(key, DEFAULT_KIND)
+
+
+#: 伪代码/算法块文本启发式：PP-DocLayout 常把伪代码判成 plain text，
+#: 布局类别保护失效时用文本特征兜底（与 doclayout_pseudocode 的
+#: algorithm 保护目标一致，但不依赖额外布局模型）。
+_CODE_LINE_HINT = re.compile(
+    r"^\s*(?:if|else|elif|for|while|do|end|endfor|endwhile|repeat|until|"
+    r"switch|case|return|def|function|procedure|begin|class|import|from|"
+    r"include|print(?:ln)?|printf|int|float|bool|string|var|let)\b",
+    re.IGNORECASE,
+)
+_PSEUDOCODE_MIN_LINES = 3
+
+
+def _looks_like_pseudocode(text_or_lines: Any) -> bool:
+    """轻量伪代码启发：多行 + 过半行命中代码关键字/结构词才保护。
+
+    接受 str（按行拆分）或行序列（bridge.convert 中 normalize 后的块文本
+    是多行拼成的单行，必须按原始行判断）。阈值保守（≥3 行、≥2 行命中、
+    命中行占比 ≥50%），避免把带代码示例的正文段落误判为代码块而不翻译。
+    """
+    if isinstance(text_or_lines, str):
+        lines = text_or_lines.splitlines()
+    else:
+        lines = list(text_or_lines or [])
+    lines = [ln.strip() for ln in lines if ln.strip()]
+    if len(lines) < _PSEUDOCODE_MIN_LINES:
+        return False
+    hits = sum(1 for ln in lines if _CODE_LINE_HINT.search(ln))
+    return hits >= 2 and hits >= len(lines) / 2
 
 
 class MagicPdfBridge:
@@ -164,11 +216,6 @@ class MagicPdfBridge:
                 bm.metadata["latex"] = blk["latex"]
             if blk.get("img"):
                 bm.metadata["has_image"] = True
-            if bm.kind == "code":
-                # Step 1.1/1.2：algorithm/伪代码块不参与翻译（配合 BabelDOC
-                # 融合布局模型的 algorithm 保护 / document_model._KEEP_KINDS）。
-                bm.metadata["translate"] = False
-                bm.metadata["pseudocode_protected"] = True
             for line_raw in blk.get("lines", []) or []:
                 lbbox = flip_bbox(line_raw.get("bbox") or [0, 0, 0, 0], height)
                 lm = LineModel(
@@ -211,6 +258,18 @@ class MagicPdfBridge:
                     lm.spans.append(sm)
                     lm.text += text
                 bm.lines.append(lm)
+            # Step 1.1/1.2：algorithm/伪代码块不参与翻译（配合 BabelDOC
+            # 融合布局模型的 algorithm 保护 / document_model._KEEP_KINDS）。
+            # PP-DocLayout 常把伪代码判成 plain text → kind=paragraph，
+            # 文本启发式兜底把它提升为 code 一并保护（须在 lines 填充后判断）。
+            if bm.kind == "code" or (
+                bm.kind == "paragraph"
+                and _looks_like_pseudocode([lm.text for lm in bm.lines])
+            ):
+                if bm.kind == "paragraph":
+                    bm.kind = "code"
+                bm.metadata["translate"] = False
+                bm.metadata["pseudocode_protected"] = True
             page.blocks.append(bm)
         return page
 

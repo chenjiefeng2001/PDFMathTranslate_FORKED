@@ -174,6 +174,11 @@ export default function ProgressPanel({
                 </Tag>
               )}
               <Tag>{t("ui.stage_label")}: {t(`stage.${task.stage || task.status}`)}</Tag>
+              {task.parse_engine && (
+                <Tag color="geekblue">
+                  {t("ui.engine_label")}: {task.parse_engine}
+                </Tag>
+              )}
             </Space>
             <span style={{ opacity: 0.65 }}>
               {t("ui.progress_eta")}: {terminal && task.eta <= 0 ? "-" : formatEta(task.eta)}

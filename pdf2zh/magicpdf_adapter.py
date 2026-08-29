@@ -594,9 +594,11 @@ def _magicpdf_log_to_detail(
 
 #: MinerU 3.x pipeline 批处理日志（pipeline_analyze.py:264）：
 #: ``Pipeline processing window batch 1/3: 200/800 pages, batch_pages=...``
+#: 注意上游在 batch **推理之前**打印该行，x = 已完成页 + 本批排队页。
 _MINERU_BATCH_RE = re.compile(
     r"Pipeline processing window batch\s+(\d+)\s*/\s*(\d+)\s*:\s*"
     r"(\d+)\s*/\s*(\d+)\s*pages"
+    r"(?:,\s*batch_pages=(\d+))?"
 )
 
 
@@ -606,23 +608,45 @@ def _mineru_log_to_detail(
     """把 MinerU 3.x 的批处理日志整理成结构化 detail（不匹配返回 None）。
 
     与 :func:`_magicpdf_log_to_detail` 同 schema：``unit="page"``，
-    current=累计已处理页，batch_current/batch_total 一并透传。
+    batch_current/batch_total 一并透传。
+
+    **current 语义 = 已完成页**（不是排队页）：上游 ``pipeline_analyze.py``
+    在 batch 推理**之前**打印日志，x 为「已完成页 + 本批排队页」。旧版直接
+    把 x 当作 current，导致最后一行 "batch n/n: N/N pages" 打印时最后一个
+    窗口（默认 64 页）+ middle.json 后处理尚未执行就被 UI 当作全部完成——
+    「进度虚高 / 卡在假完成」链路的一环。匹配到 ``batch_pages=`` 时上报
+    ``current = x - batch_pages``，并透传 ``queued_pages``/``batch_pages``
+    原始值供诊断核查。
     """
     m = _MINERU_BATCH_RE.search(text or "")
     if m is None:
         return None
     try:
-        batch_i, batch_n, pages_done, pages_total = (int(g) for g in m.groups())
+        batch_i, batch_n, pages_queued, pages_total = (
+            int(g) for g in m.groups()[:4]
+        )
     except ValueError:  # pragma: no cover - 正则保证均为数字
         return None
+    batch_pages = 0
+    if m.group(5):
+        try:
+            batch_pages = int(m.group(5))
+        except ValueError:  # pragma: no cover - 正则保证为数字
+            batch_pages = 0
+    current = (
+        max(0, pages_queued - batch_pages) if batch_pages > 0 else pages_queued
+    )
     return {
         "engine": engine,
         "raw_stage": "pipeline",
         "unit": "page",
-        "current": pages_done,
+        "current": current,
         "total": pages_total,
         "batch_current": batch_i,
         "batch_total": batch_n,
+        #: 原始排队页 / 本批页数（诊断用；无 batch_pages 组时排队页=完成页）。
+        "queued_pages": pages_queued,
+        "batch_pages": batch_pages or None,
     }
 
 
@@ -794,30 +818,31 @@ def _run_mineru_process(
                     progress_cb(detail)
             except Exception:  # noqa: BLE001 -- 进度上报永不致命
                 pass
-        # 兜底：有总页数但未捕获任何 batch 行（如日志格式变化）时，结束时
-        # 补一次 total 事件，避免 UI 永远停在 0/N。
-        if progress_cb is not None and total_pages > 0:
-            try:
-                if not any(
-                    _mineru_log_to_detail(t) or _magicpdf_log_to_detail(t)
-                    for t in out_lines
-                ):
-                    progress_cb(
-                        {
-                            "engine": "mineru",
-                            "raw_stage": "pipeline",
-                            "unit": "page",
-                            "current": total_pages,
-                            "total": total_pages,
-                        }
-                    )
-            except Exception:  # noqa: BLE001 -- 兜底上报失败忽略
-                pass
         rc = proc.wait(timeout=timeout)
     except Exception:  # noqa: BLE001 -- 统一在调用方按 returncode 处理
         proc.kill()
         proc.wait()
         raise
+    # 诚实兜底（修复「假完成 → 卡 38%」假死链路）：只有进程成功退出
+    # （rc==0 = 全部页解析完成、middle.json 已产出）才补报完成值。
+    # batch 行的 current 语义是「已完成 = 排队 − 本批」，最后一行天然
+    # 到不了 total（最后一个窗口推理完不再打日志），成功路径补一次真实
+    # 完成；失败路径绝不伪装 100% —— 旧版在此无条件上报 current=total，
+    # 把「解析失败」画成 "analyzing page N/N 完成"，随后熔断降级 legacy
+    # 又没有进度事件，UI 便永久停在假完成百分比上（任务假死）。
+    if progress_cb is not None and total_pages > 0 and rc == 0:
+        try:
+            progress_cb(
+                {
+                    "engine": "mineru",
+                    "raw_stage": "pipeline",
+                    "unit": "page",
+                    "current": total_pages,
+                    "total": total_pages,
+                }
+            )
+        except Exception:  # noqa: BLE001 -- 兜底上报失败忽略
+            pass
     return _sp.CompletedProcess(
         cmd, rc, "".join(out_lines), ""
     )
@@ -959,6 +984,14 @@ def _as_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+#: 行内公式 span 类型（MinerU 3.x ``inline_equation``/``equation_inline``，
+#: magic-pdf 1.x ``inline_equation``）。其 content 是 LaTeX 源码——若混入
+#: 段落文本会被整段送翻译器（公式被「翻译」成乱码），归一化拼 text 时必须剔除。
+_INLINE_FORMULA_SPAN_TYPES = frozenset(
+    {"inline_equation", "equation_inline", "formula_inline", "inline_formula"}
+)
+
+
 def _normalize_span(raw: Any) -> dict[str, Any]:
     bbox = _as_bbox(raw.get("bbox") if isinstance(raw, dict) else None)
     content = ""
@@ -1015,7 +1048,14 @@ def _normalize_block(raw: Any) -> dict[str, Any]:
                 ],
             }
         ]
-    text = "".join(s["content"] for ln in lines for s in ln["spans"])
+    # 行内公式 span 的 LaTeX 不能混入段落文本（否则被整段翻译成乱码）。
+    # 公式内容由公式侧信道 / 原 PDF 背景保留，段落译文不再包含 LaTeX。
+    text = "".join(
+        s["content"]
+        for ln in lines
+        for s in ln["spans"]
+        if str(s.get("type", "text")).lower() not in _INLINE_FORMULA_SPAN_TYPES
+    )
     cls = (
         raw.get("cls")
         or raw.get("category")

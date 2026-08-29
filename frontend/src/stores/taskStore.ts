@@ -39,6 +39,25 @@ interface AppState {
 
 const LOG_CAP = 200;
 
+/**
+ * 每任务最近已消费的 SSE 序号（来自后端 ``id: <seq>`` 行的绝对位置）。
+ *
+ * 切换任务（setActive → subscribeActive）时旧 EventSource 被关闭、新流从
+ * seq 0 打开会触发后端全量重放——若不做游标续传，同一批事件/日志会被
+ * 重复追加。此表按任务记住断点，重开流时经 ``?since=<seq>`` 只让后端补发
+ * 之后的增量，从根本上避免「切换任务导致事实日志刷新重复」。
+ */
+const taskSeqs: Record<string, number> = {};
+
+/**
+ * 本会话内用户主动取消（点击「取消」）的任务集。
+ *
+ * 后端是协作式取消，标记 CANCELLED 后待排空的流水线仍可能再产出一两帧；
+ * 这些帧对用户是噪声。取消后直到收到确认（done）之前，抑制本任务的
+ * 增量进度/notice 日志，让面板在点击后立即呈现「已取消、不再刷新」。
+ */
+const userCancelled = new Set<string>();
+
 function appendLog(
   logs: Record<string, string[]>,
   taskId: string,
@@ -122,18 +141,39 @@ export const useAppStore = create<AppState>((set, get) => ({
     const log = (line: string) =>
       set({ logs: appendLog(get().logs, taskId, line) });
 
-    const unsub = api().openEvents(`/api/tasks/${taskId}/events`, {
-      onOpen: () => set({ connected: true }),
-      onError: () => set({ connected: false }),
-      onFrame: (frame) => {
-        switch (frame.event) {
-          case "state":
-            set({
-              connected: true,
-              tasks: { ...get().tasks, [taskId]: frame.data },
-            });
-            if (isTerminal(frame.data.status)) set({ _unsub: null });
-            break;
+    // 断点续传：从最后一次已消费的序号往后补发；首次观看该任务则为 0
+    // （后端全量重放一次，正好形成完整日志）。
+    const since = taskSeqs[taskId] ?? 0;
+    const unsub = api().openEvents(
+      `/api/tasks/${taskId}/events`,
+      {
+        onOpen: () => set({ connected: true }),
+        onError: () => set({ connected: false }),
+        onFrame: (frame, id) => {
+          // 去重：序号回退/复现的帧（断线重连窗口内补发的、已被处理过的）
+          // 直接丢弃，避免把同一事件/日志重复追加。state 快照帧无序号，始终透传。
+          if (id !== undefined) {
+            const last = taskSeqs[taskId];
+            if (last !== undefined && id <= last) return;
+            taskSeqs[taskId] = id;
+          }
+          // 用户主动取消后、确认（done）到达前的空滞期：抑制增量帧，
+          // 让面板点击后立即停刷，而不是继续展示排空流水线的残留日志。
+          if (
+            userCancelled.has(taskId) &&
+            frame.event !== "state" &&
+            frame.event !== "done"
+          ) {
+            return;
+          }
+          switch (frame.event) {
+            case "state":
+              set({
+                connected: true,
+                tasks: { ...get().tasks, [taskId]: frame.data },
+              });
+              if (isTerminal(frame.data.status)) set({ _unsub: null });
+              break;
           case "progress": {
             const current = get().tasks[taskId];
             if (frame.data.message) log(frame.data.message);
@@ -152,6 +192,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             break;
           }
           case "done": {
+            // 取消确认到达后解除抑制，后续恢复浏览该任务时日志回到正常行为。
+            userCancelled.delete(taskId);
             log(`[${frame.data.status}]`);
             // 终态后拉一次全量（获取 result_files 等）
             import("../api/endpoints")
@@ -170,7 +212,9 @@ export const useAppStore = create<AppState>((set, get) => ({
             break;
         }
       },
-    });
+      },
+      { since },
+    );
     set({ _unsub: unsub });
   },
 
@@ -208,15 +252,26 @@ export const useAppStore = create<AppState>((set, get) => ({
   async cancelActive() {
     const taskId = get().activeId;
     if (!taskId) return;
+    // 乐观取消：点击后立即把面板置为「已取消」，隐藏控制按钮并停止累积日志，
+    // 不必等后端待排空的流水线跑完才反映到 UI（后端是协作式取消）。
+    userCancelled.add(taskId);
+    set((state) => {
+      const cur = state.tasks[taskId];
+      if (!cur) return {};
+      return {
+        tasks: {
+          ...state.tasks,
+          [taskId]: { ...cur, status: "cancelled", message: "Cancelled by user" },
+        },
+      };
+    });
     try {
       await cancelTask(taskId);
     } catch (err) {
-      set({
-        error:
-          err instanceof ApiError && err.status === 404
-            ? `task ${taskId} not found (already removed?)`
-            : String(err),
-      });
+      // 取消已被后端确认（409 等表示已终态）时不视为错误；仅记录真正的异常。
+      if (!(err instanceof ApiError && err.status === 404)) {
+        set({ error: String(err) });
+      }
     }
   },
 }));

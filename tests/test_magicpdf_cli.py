@@ -145,6 +145,54 @@ class TestRunMagicPdfMain(unittest.TestCase):
         code = run_magicpdf_main(make_args())
         self.assertEqual(code, 7)
 
+    @patch(
+        "pdf2zh.pdf2zh._run_legacy_kernel",
+        return_value=7,
+    )
+    def test_fallback_raises_degrade_to_babeldoc(self, _mock_kernel):
+        """矛盾配置（magicpdf 引擎 + BabelDOC 模式）：MinerU 不可用时不静默
+        降级 legacy，而是抛 MagicPdfDegradeError 由服务层改走 BabelDOC。"""
+        import pytest as _pytest
+
+        from pdf2zh.magicpdf_cli import (
+            MagicPdfDegradeError,
+            run_magicpdf_main,
+        )
+
+        with _pytest.raises(MagicPdfDegradeError):
+            run_magicpdf_main(
+                make_args(),
+                progress_cb=lambda *a, **k: None,
+                degrade_to="babeldoc",
+            )
+        _mock_kernel.assert_not_called()  # 不得跑 legacy 内核
+
+    @patch(
+        "pdf2zh.pdf2zh._run_legacy_kernel",
+        return_value=7,
+    )
+    def test_fallback_emits_degrade_event(self, _mock_kernel):
+        """修复 #2：熔断降级必须经 progress_cb 显式上报降级事件。
+
+        旧版降级后 legacy 在服务进程内默默翻译，UI 永远停在解析期最后一个
+        百分比（任务「假死」在 ~38%）——降级事实必须作为进度事件透传。
+        """
+        from pdf2zh.magicpdf_cli import _fallback_legacy
+
+        events: list = []
+        ns = make_args()
+        code = _fallback_legacy(
+            ns, "paper.pdf 解析失败", progress_cb=lambda *a, **k: events.append(a)
+        )
+        self.assertEqual(code, 7)
+        self.assertTrue(getattr(ns, "_magicpdf_fallback", False))
+        self.assertEqual(len(events), 1)
+        stage, pct, msg = events[0][:3]
+        self.assertEqual(stage, "analyzing")
+        self.assertEqual(pct, 10.0)
+        self.assertIn("[降级]", msg)
+        self.assertIn("paper.pdf 解析失败", msg)
+
     def test_full_flow_with_dumps(self):
         from pdf2zh.magicpdf_cli import run_magicpdf_main
 

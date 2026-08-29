@@ -120,6 +120,11 @@ MODE_PIPELINES: Dict[str, str] = {
     "babeldoc": "babeldoc",
 }
 
+#: MinerU 超长文档提示阈值（页）：MinerU pipeline 本地解析约 0.5–2 秒/页且
+#: 默认 CPU，超过该页数时在解析启动前给用户「改用 BabelDOC / 页码范围分批」
+#: 的可操作提示（修复 #5：1262 页书被误判「假死」的预防性提示）。
+_MINERU_LONG_DOC_PAGES = 300
+
 # ── 引擎健康熔断 ─────────────────────────────────────────────────────────────
 #
 # BabelDOC 每次任务（或批量任务的每个文件）都会做一次 translator 健康检查
@@ -494,6 +499,10 @@ class TaskState:
     stage: str = ""
     mode_choice: str = ""
     """用户选择的引擎模式（auto/v0/v1/v2/v3/v4），用于可观测与模式解析。"""
+    parse_engine: str = ""
+    """最终生效的解析引擎（legacy/babeldoc/magicpdf；auto-switch 与模式预设
+    归一化后的实际值）。修复「选择 ≠ 实际」盲区：/api/tasks 与前端进度面板
+    直接显示任务实际使用的解析引擎。"""
     file_progress: float = 0.0
     total_progress: float = 0.0
     current_file_name: str = ""
@@ -544,6 +553,7 @@ class TaskState:
             "message": self.message,
             "stage": self.stage,
             "mode_choice": self.mode_choice,
+            "parse_engine": self.parse_engine,
             "file_progress": self.file_progress,
             "total_progress": self.total_progress,
             "current_file_name": self.current_file_name,
@@ -958,6 +968,15 @@ class RuntimeService:
             status=TaskStage.CANCELLED.value,
             message="Cancelled by user",
         )
+        # 立即下发一次终态事件：SSE 泵下一轮即退出并向客户端发 done 帧，
+        # 前端无需等协作式排空的流水线跑到检查点就能感知到「已取消」。
+        # 终态阶段绕过工作量聚合器，事件携带 status=cancelled 供前端停刷。
+        self._emit_event(
+            task_id,
+            TaskStage.CANCELLED.value,
+            100.0,
+            "Cancelled by user",
+        )
         return True
 
     def pause_task(self, task_id: str) -> bool:
@@ -1158,10 +1177,32 @@ class RuntimeService:
             # Auto-switch: 当 parse_engine=auto 且用户未显式关闭 OCR 时，
             # 对 PDF 文件做扫描预检——命中扫描/损坏信号且 MinerU 可用则
             # 自动切换 magicpdf+OCR（与 CLI _try_auto_switch_magicpdf 同构）。
+            # 修复「选了 BabelDOC 却走 MinerU」路由陷阱：mode_choice=babeldoc
+            # 是用户对引擎的显式选择，auto 预检不得覆盖——auto-switch 仅在
+            # 「parse_engine=auto 且模式未显式指向 BabelDOC」时生效。
+            explicit_babeldoc = resolve_pipeline(mode) == "babeldoc"
+            if parse_engine == "auto" and not explicit_babeldoc:
+                if (
+                    self._try_auto_switch_magicpdf_for_api(request, files)
+                    == "magicpdf"
+                ):
+                    parse_engine = "magicpdf"
+                    # 显著提示：auto-switch 历史上是无声的——用户只看到任务
+                    # 走了 MinerU 却不知为何。消息经事件流透传到 UI 日志面板。
+                    self._emit_event(
+                        task_id,
+                        TaskStage.PARSING.value,
+                        6.0,
+                        "[路由] 检测到扫描/损坏文本层，已自动切换 MinerU"
+                        "(magicpdf)+OCR 解析（解析引擎=auto；如需固定 BabelDOC"
+                        " 请在「解析引擎」中显式选择）",
+                    )
+            # 修复 #4（可观测）：把最终生效的解析引擎持久化到任务记录——
+            # auto（未切换）按路由结果落 legacy/babeldoc，前端 /api/tasks
+            # 可直接显示「实际引擎」，消除「选择 ≠ 实际」盲区。
             if parse_engine == "auto":
-                parse_engine = self._try_auto_switch_magicpdf_for_api(
-                    request, files
-                )
+                parse_engine = "babeldoc" if explicit_babeldoc else "legacy"
+            self._store.update_task(task_id, parse_engine=parse_engine)
             if parse_engine == "magicpdf":
                 # MinerU/magic-pdf 解析引擎独立执行路径（引擎缺失熔断降级 legacy）。
                 self._execute_magicpdf(task_id, request, task_config)
@@ -2336,7 +2377,7 @@ class RuntimeService:
         多文件时逐文件调用 run_magicpdf_main，单文件失败不阻断其余文件
         （与 _execute_batch 的逐文件隔离模式一致）。
         """
-        from pdf2zh.magicpdf_cli import run_magicpdf_main
+        from pdf2zh.magicpdf_cli import MagicPdfDegradeError, run_magicpdf_main
         from pdf2zh.pdf2zh import parse_args
 
         files = request.resolved_files()
@@ -2344,6 +2385,27 @@ class RuntimeService:
         if not files:
             self._fail_file(task_id, "No source file provided", total_files=0)
             return
+        # 矛盾配置可观测：parse_engine=magicpdf（显式选 MinerU）与
+        # mode_choice=babeldoc（显式选 BabelDOC 模式）同时生效时，magicpdf
+        # 路径优先（引擎选择层级高于模式预设）。若 MinerU 不可用/解析失败，
+        # 尊重模式降级到 BabelDOC 而非静默 legacy —— 否则用户「看着 BabelDOC
+        # 却跑 legacy 且无逐页进度 → 直接卡死」。
+        mode_babeldoc = (
+            (request.extra_config or {}).get("mode_choice") or ""
+        ).lower() == "babeldoc"
+        if mode_babeldoc:
+            logger.warning(
+                "[task=%s] 解析引擎=magicpdf 与模式=BabelDOC 组合：magicpdf "
+                "优先；MinerU 不可用/解析失败将按模式降级 BabelDOC",
+                task_id,
+            )
+            self._emit_event(
+                task_id,
+                TaskStage.PARSING.value,
+                7.0,
+                "[路由] 解析引擎=magicpdf 覆盖模式=BabelDOC（magicpdf 优先）；"
+                "MinerU 不可用/解析失败时将自动切换 BabelDOC 引擎",
+            )
         try:
             ns = parse_args([files[0]])
         except Exception as exc:  # noqa: BLE001 -- 参数构造失败直接落失败
@@ -2383,6 +2445,24 @@ class RuntimeService:
         self._emit_event(
             task_id, TaskStage.PARSING.value, 10.0, "magic-pdf/MinerU parsing..."
         )
+        # 修复 #5（超长文档提示）：MinerU pipeline 本地解析约 0.5–2 秒/页且
+        # 默认 CPU，数百页文档动辄十几分钟起步。解析启动前给出可操作的替代
+        # 路径，避免「看起来卡死」的误判。
+        long_doc_pages = 0
+        try:
+            import pymupdf as _fitz
+
+            with _fitz.open(files[0]) as _doc:
+                long_doc_pages = int(_doc.page_count)
+        except Exception:  # noqa: BLE001 -- 页数拿不到就不提示
+            long_doc_pages = 0
+        if long_doc_pages >= _MINERU_LONG_DOC_PAGES:
+            hint = (
+                f"超长文档（{long_doc_pages} 页）：MinerU 本地解析预计需要较长时间"
+                "（约 0.5–2 秒/页）；建议改用 BabelDOC 引擎，或用「页码范围」分批翻译"
+            )
+            logger.warning("[task=%s] %s", task_id, hint)
+            self._emit_event(task_id, TaskStage.PARSING.value, 8.0, hint)
 
         def _forward_magicpdf_progress(
             stage: str, pct: float, msg: str, detail: Optional[Dict[str, Any]] = None
@@ -2402,7 +2482,25 @@ class RuntimeService:
         # 单文件直跑
         ns.files = files
         try:
-            rc = run_magicpdf_main(ns, progress_cb=_forward_magicpdf_progress)
+            rc = run_magicpdf_main(
+                ns,
+                progress_cb=_forward_magicpdf_progress,
+                degrade_to="babeldoc" if mode_babeldoc else None,
+            )
+        except MagicPdfDegradeError as exc:
+            # 尊重模式降级：MinerU 不可用/失败 → 按 BabelDOC 模式重路由，
+            # 让用户选择的引擎真正兜底，而不是静默跑 legacy（无进度 → 假死）。
+            logger.warning(
+                "[task=%s] magicpdf degrade -> babeldoc: %s", task_id, exc
+            )
+            self._emit_smooth(
+                task_id,
+                TaskStage.PARSING.value,
+                8.0,
+                f"[降级] {exc} —— 按模式（BabelDOC）切换 BabelDOC 引擎重试",
+            )
+            self._execute_babeldoc(task_id, request, config)
+            return
         except Exception as exc:  # noqa: BLE001
             logger.error(
                 "[task=%s] magicpdf engine failed: %s", task_id, exc, exc_info=True
@@ -2433,7 +2531,11 @@ class RuntimeService:
         每个文件独立调用 run_magicpdf_main，失败时回收版面模型并记录
         文件失败，继续处理下一个文件。全部文件处理完毕后汇总结果。
         """
-        from pdf2zh.magicpdf_cli import run_magicpdf_main
+        from pdf2zh.magicpdf_cli import MagicPdfDegradeError, run_magicpdf_main
+
+        mode_babeldoc = (
+            (request.extra_config or {}).get("mode_choice") or ""
+        ).lower() == "babeldoc"
 
         ctx = self._batch_ctx.get(task_id)
         if ctx is None:
@@ -2461,7 +2563,11 @@ class RuntimeService:
             file_ns = copy.copy(ns)
             file_ns.files = [path]
             try:
-                rc = run_magicpdf_main(file_ns, progress_cb=progress_cb)
+                rc = run_magicpdf_main(
+                    file_ns,
+                    progress_cb=progress_cb,
+                    degrade_to="babeldoc" if mode_babeldoc else None,
+                )
                 if rc != 0:
                     logger.warning(
                         "[task=%s] magicpdf returned %d for %s",
@@ -2470,6 +2576,21 @@ class RuntimeService:
                     self._reset_shared_layout_model()
                     self._fail_file(task_id, f"magicpdf returned {rc}", total_files=total)
                     failed_count += 1
+            except MagicPdfDegradeError as exc:
+                # 尊重模式降级：该文件 MinerU 不可用/失败 → 按 BabelDOC 模式
+                # 重路由（BabelDOC 执行器自行完成/失败并落终态）。
+                logger.warning(
+                    "[task=%s] file %s degrade -> babeldoc: %s",
+                    task_id, path, exc,
+                )
+                self._emit_smooth(
+                    task_id,
+                    TaskStage.PARSING.value,
+                    8.0,
+                    f"[降级] {exc} —— 按模式（BabelDOC）切换 BabelDOC 引擎重试",
+                )
+                self._execute_babeldoc(task_id, request, config)
+                return
             except Exception as exc:  # noqa: BLE001
                 logger.error(
                     "[task=%s] file %s failed: %s",

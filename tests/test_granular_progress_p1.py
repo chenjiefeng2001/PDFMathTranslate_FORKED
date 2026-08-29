@@ -408,7 +408,12 @@ def test_magicpdf_forwarder_writes_snapshot_and_event():
 
 
 def test_mineru_batch_log_parsed_to_page_detail():
-    """MinerU 3.x `Pipeline processing window batch` 行 → 页级 detail。"""
+    """MinerU 3.x `Pipeline processing window batch` 行 → 页级 detail。
+
+    current 语义（修复后）= 已完成页 = 排队页 − 本批页数：上游在 batch
+    推理**之前**打印日志，"400/800 pages, batch_pages=200" 表示仅完成
+    200 页——旧版把 400 当已完成导致进度虚高（最后一行假 100%）。
+    """
     from pdf2zh.magicpdf_adapter import _mineru_log_to_detail
 
     d = _mineru_log_to_detail(
@@ -419,10 +424,88 @@ def test_mineru_batch_log_parsed_to_page_detail():
     assert d["engine"] == "mineru"
     assert d["raw_stage"] == "pipeline"
     assert d["unit"] == "page"
-    assert d["current"] == 400
+    assert d["current"] == 200  # 400 排队 − 本批 200 = 已完成 200
+    assert d["queued_pages"] == 400
+    assert d["batch_pages"] == 200
     assert d["total"] == 800
     assert d["batch_current"] == 2
     assert d["batch_total"] == 3
+
+
+def test_mineru_batch_log_without_batch_pages_reports_queued():
+    """日志无 batch_pages 组（旧格式兜底）时，排队页即上报页。"""
+    from pdf2zh.magicpdf_adapter import _mineru_log_to_detail
+
+    d = _mineru_log_to_detail("Pipeline processing window batch 1/3: 200/800 pages")
+    assert d is not None
+    assert d["current"] == 200
+    assert d["queued_pages"] == 200
+    assert d["batch_pages"] is None
+
+
+def test_run_mineru_process_failure_never_fakes_completion():
+    """worker 失败（rc!=0）时兜底绝不伪装 current=total（修复「卡 38%」链路）。
+
+    旧版在 stdout 无 batch 行时无条件上报 current=total——把「解析失败」
+    画成 "analyzing page 1262/1262 完成"，降级 legacy 后 UI 永久假死。
+    """
+    import sys
+
+    from pdf2zh.magicpdf_adapter import _run_mineru_process
+
+    seen: list = []
+    completed = _run_mineru_process(
+        [sys.executable, "-c", "print('boom'); raise SystemExit(3)"],
+        timeout=60,
+        progress_cb=seen.append,
+        total_pages=1262,
+    )
+    assert completed.returncode == 3
+    assert seen == []  # 失败路径零上报（绝不假装 1262/1262）
+
+
+def test_run_mineru_process_success_without_batches_reports_completion():
+    """worker 成功（rc==0）且无 batch 行（日志格式变化兜底）时补一次完成。"""
+    import sys
+
+    from pdf2zh.magicpdf_adapter import _run_mineru_process
+
+    seen: list = []
+    completed = _run_mineru_process(
+        [sys.executable, "-c", "print('quiet success')"],
+        timeout=60,
+        progress_cb=seen.append,
+        total_pages=1262,
+    )
+    assert completed.returncode == 0
+    assert len(seen) == 1
+    assert seen[0]["current"] == 1262
+    assert seen[0]["total"] == 1262
+
+
+def test_run_mineru_process_success_with_batches_reports_total():
+    """有 batch 行时成功退出同样补一次 total（batch 行到不了 total）。"""
+    import sys
+
+    from pdf2zh.magicpdf_adapter import _run_mineru_process
+
+    seen: list = []
+    completed = _run_mineru_process(
+        [
+            sys.executable,
+            "-c",
+            "print('Pipeline processing window batch 1/1: 2/2 pages, "
+            "batch_pages=2, doc_slices=d:0-1')",
+        ],
+        timeout=60,
+        progress_cb=seen.append,
+        total_pages=2,
+    )
+    assert completed.returncode == 0
+    # 第一条：batch 行（current = 排队 2 − 本批 2 = 0）；第二条：成功兜底 total
+    assert seen[0]["current"] == 0
+    assert seen[-1]["current"] == 2
+    assert seen[-1]["total"] == 2
 
 
 def test_mineru_batch_log_other_lines_ignored():

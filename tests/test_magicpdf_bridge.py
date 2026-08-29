@@ -170,6 +170,85 @@ class TestConvert(unittest.TestCase):
         self.assertEqual(round(block.y1, 1), 752.0)
 
 
+class TestMineruV3ClassMappingAndPseudocode(unittest.TestCase):
+    """MinerU 3.x 类别映射补齐 + 伪代码文本启发式保护。"""
+
+    def test_map_mineru_v3_classes(self):
+        self.assertEqual(map_magicpdf_cls("doc_title"), "heading")
+        self.assertEqual(map_magicpdf_cls("paragraph_title"), "heading")
+        self.assertEqual(map_magicpdf_cls("formula_number"), "formula")
+        self.assertEqual(map_magicpdf_cls("code_body"), "code")
+        self.assertEqual(map_magicpdf_cls("code_caption"), "caption")
+        self.assertEqual(map_magicpdf_cls("ref_text"), "references")
+        self.assertEqual(map_magicpdf_cls("table_body"), "table")
+
+    def test_looks_like_pseudocode(self):
+        from pdf2zh.v3.magicpdf_bridge import _looks_like_pseudocode
+
+        # 伪代码：多行 + 结构关键字命中过半 → 保护
+        code = (
+            "for i in range(n):\n"
+            "    result += a[i]\n"
+            "return result\n"
+        )
+        self.assertTrue(_looks_like_pseudocode(code))
+        # 普通正文：不触发
+        prose = (
+            "This paper studies a new algorithm.\n"
+            "It runs fast and is accurate.\n"
+            "We evaluate on many datasets.\n"
+        )
+        self.assertFalse(_looks_like_pseudocode(prose))
+
+    def test_pseudocode_paragraph_promoted_to_code(self):
+        """kind=paragraph 但文本形似伪代码 → 提升为 code 且不翻译。"""
+        bridge = MagicPdfBridge(default_font="Helvetica")
+        middle = {
+            "pdf_info": [
+                [
+                    {
+                        "type": "text",
+                        "bbox": [50, 300, 400, 380],
+                        "cls": "text",  # 布局模型误判为普通文本
+                        "lines": [
+                            {
+                                "bbox": [50, 300, 400, 320],
+                                "spans": [
+                                    {"bbox": [50, 300, 400, 320],
+                                     "content": "for i in range(n):",
+                                     "type": "text"}
+                                ],
+                            },
+                            {
+                                "bbox": [60, 320, 400, 340],
+                                "spans": [
+                                    {"bbox": [60, 320, 400, 340],
+                                     "content": "    result += a[i]",
+                                     "type": "text"}
+                                ],
+                            },
+                            {
+                                "bbox": [50, 340, 400, 360],
+                                "spans": [
+                                    {"bbox": [50, 340, 400, 360],
+                                     "content": "return result",
+                                     "type": "text"}
+                                ],
+                            },
+                        ],
+                    }
+                ]
+            ],
+            "page_info": [{"page_no": 0, "width": 612, "height": 792}],
+        }
+        results = MagicPdfAdapter.from_middle_json(middle)
+        page = bridge.convert(results[0])
+        block = page.blocks[0]
+        self.assertEqual(block.kind, "code")
+        self.assertIs(block.metadata.get("translate"), False)
+        self.assertTrue(block.metadata.get("pseudocode_protected", False))
+
+
 class TestDocumentModel(unittest.TestCase):
     def setUp(self):
         self.bridge = MagicPdfBridge(default_font="Helvetica")
@@ -200,3 +279,4 @@ class TestDocumentModel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

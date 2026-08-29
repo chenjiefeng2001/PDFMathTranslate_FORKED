@@ -36,6 +36,8 @@ export interface TaskState {
   message: string;
   stage: string;
   mode_choice: string;
+  /** 最终生效的解析引擎（legacy/babeldoc/magicpdf；auto 归一化后的实际值） */
+  parse_engine?: string;
   file_progress: number;
   total_progress: number;
   current_file_name: string;

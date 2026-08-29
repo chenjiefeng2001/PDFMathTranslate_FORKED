@@ -88,6 +88,181 @@ class TestExecuteTaskRouting:
         assert self._run("legacy") == ["legacy"]
 
 
+class TestAutoSwitchGate:
+    """修复 3/4：auto 扫描预检的门控与实际引擎落库。"""
+
+    def _run_with_switch(
+        self,
+        tid: str,
+        parse_engine: str = "auto",
+        mode_choice: str = "",
+        auto_switch: str = "magicpdf",
+    ) -> tuple[list, "RuntimeService"]:
+        """模拟 auto 预检（默认命中），返回路由结果与服务实例。"""
+        svc = RuntimeService()
+        svc._sweeper = None
+        svc._store.create_task(tid)
+        calls: list = []
+        extra = {"mode_choice": mode_choice} if mode_choice else None
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(svc, "_apply_request_backend", lambda *a, **k: None)
+            mp.setattr(
+                svc, "_execute_legacy", lambda *a, **k: calls.append("legacy")
+            )
+            mp.setattr(
+                svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc")
+            )
+            mp.setattr(
+                svc, "_execute_magicpdf", lambda *a, **k: calls.append("magicpdf")
+            )
+            mp.setattr(
+                svc,
+                "_try_auto_switch_magicpdf_for_api",
+                lambda request, files: auto_switch,
+            )
+            svc._execute_task(
+                tid,
+                TranslationRequest(
+                    source_path="/tmp/test.pdf",
+                    parse_engine=parse_engine,
+                    extra_config=extra,
+                ),
+            )
+        return calls, svc
+
+    def test_auto_switch_blocked_by_explicit_babeldoc_mode(self):
+        """mode_choice=babeldoc 是显式引擎选择，auto 预检不得覆盖。
+
+        历史 bug：18:31 提交的 1262 页书 mode_choice=babeldoc 却被
+        auto-switch 抢到 magicpdf，解析失败降级 legacy 后 UI 假死在 38%。
+        """
+        calls, svc = self._run_with_switch(
+            "t_route_gate", parse_engine="auto", mode_choice="babeldoc"
+        )
+        assert calls == ["babeldoc"]
+        state = svc.get_task_state("t_route_gate")
+        assert state is not None
+        assert state.parse_engine == "babeldoc"
+
+    def test_auto_switch_applies_and_records_engine(self):
+        """parse_engine=auto + 预检命中 → magicpdf，且显式提示 + 引擎落库。"""
+        calls, svc = self._run_with_switch("t_route_switch", parse_engine="auto")
+        assert calls == ["magicpdf"]
+        state = svc.get_task_state("t_route_switch")
+        assert state is not None
+        assert state.parse_engine == "magicpdf"
+        messages = [e.message for e in svc._store.get_events("t_route_switch")]
+        assert any("[路由]" in (m or "") for m in messages)
+
+    def test_magicpdf_plus_babeldoc_mode_passes_degrade_to(self, tmp_path):
+        """矛盾配置：magicpdf 解析引擎 + BabelDOC 模式 → run_magicpdf_main
+        收到 degrade_to="babeldoc"（MinerU 失败时按模式降级，而非静默 legacy）。"""
+        svc = RuntimeService()
+        svc._sweeper = None
+        tid = "t_combine_degrade"
+        svc._store.create_task(tid)
+        src = tmp_path / "in.pdf"
+        src.write_bytes(b"%PDF-1.4 test")
+        captured: dict = {}
+
+        def fake_run(ns, progress_cb=None, degrade_to=None):
+            captured["degrade_to"] = degrade_to
+            captured["progress_cb"] = progress_cb
+            return 0
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr("pdf2zh.magicpdf_cli.run_magicpdf_main", fake_run)
+            mp.setattr(
+                svc,
+                "_collect_magicpdf_results",
+                lambda *a, **k: None,
+            )
+            svc._execute_magicpdf(
+                tid,
+                TranslationRequest(
+                    source_path=str(src),
+                    parse_engine="magicpdf",
+                    extra_config={"mode_choice": "babeldoc"},
+                ),
+                svc.config,
+            )
+        assert captured["degrade_to"] == "babeldoc"
+        state = svc.get_task_state(tid)
+        assert state is not None
+        messages = [e.message for e in svc._store.get_events(tid)]
+        assert any("[路由]" in (m or "") for m in messages)
+
+    def test_magicpdf_degrade_error_routes_to_babeldoc(self, tmp_path):
+        """MinerU 失败抛 MagicPdfDegradeError → 服务层改走 _execute_babeldoc
+        （BabelDOC 模式真正兜底，而不是 legacy 假死）。"""
+        svc = RuntimeService()
+        svc._sweeper = None
+        tid = "t_combine_reroute"
+        svc._store.create_task(tid)
+        src = tmp_path / "in.pdf"
+        src.write_bytes(b"%PDF-1.4 test")
+
+        from pdf2zh.magicpdf_cli import MagicPdfDegradeError
+
+        calls: list = []
+
+        def boom(ns, progress_cb=None, degrade_to=None):
+            raise MagicPdfDegradeError("paper.pdf 解析失败")
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr("pdf2zh.magicpdf_cli.run_magicpdf_main", boom)
+            mp.setattr(
+                svc,
+                "_execute_babeldoc",
+                lambda *a, **k: calls.append("babeldoc"),
+            )
+            svc._execute_magicpdf(
+                tid,
+                TranslationRequest(
+                    source_path=str(src),
+                    parse_engine="magicpdf",
+                    extra_config={"mode_choice": "babeldoc"},
+                ),
+                svc.config,
+            )
+        assert calls == ["babeldoc"]
+        state = svc.get_task_state(tid)
+        assert state is not None
+        assert state.status not in ("failed",)  # 降级后不再落 FAILED
+        messages = [e.message for e in svc._store.get_events(tid)]
+        assert any("[降级]" in (m or "") for m in messages)
+
+    def test_parse_engine_persisted_for_explicit_legacy(self):
+        """显式 parse_engine 原样落库（修复 #4 可观测）。"""
+        calls, svc = self._run_with_switch(
+            "t_route_legacy_rec", parse_engine="legacy"
+        )
+        assert calls == ["legacy"]
+        state = svc.get_task_state("t_route_legacy_rec")
+        assert state is not None
+        assert state.parse_engine == "legacy"
+
+    def test_parse_engine_persisted_for_auto_default(self):
+        """auto 且未命中 → 按路由结果落 legacy（前端可见实际引擎）。"""
+        calls, svc = self._run_with_switch(
+            "t_route_auto_rec", parse_engine="auto", auto_switch="auto"
+        )
+        assert calls == ["legacy"]
+        state = svc.get_task_state("t_route_auto_rec")
+        assert state is not None
+        assert state.parse_engine == "legacy"
+
+    def test_auto_switch_applies_when_auto_engine(self):
+        """auto + 预检命中（且 mode 非 babeldoc）→ magicpdf，引擎落库。"""
+        calls, svc = self._run_with_switch(
+            "t_route_switch2", parse_engine="auto", auto_switch="magicpdf"
+        )
+        assert calls == ["magicpdf"]
+        state = svc.get_task_state("t_route_switch2")
+        assert state is not None
+        assert state.parse_engine == "magicpdf"
+
+
 class TestExecuteBatchRouting:
     """批量任务 per-file 路由必须与 ``_execute_task`` 完全一致（parse_engine 优先）。
 
@@ -160,9 +335,10 @@ class TestExecuteMagicpdf:
 
         captured = {}
 
-        def fake_main(ns, progress_cb=None):
+        def fake_main(ns, progress_cb=None, degrade_to=None):
             captured["ns"] = ns
             captured["progress_cb"] = progress_cb
+            captured["degrade_to"] = degrade_to
             return 0
 
         with pytest.MonkeyPatch.context() as mp:
@@ -207,7 +383,7 @@ class TestExecuteMagicpdf:
         src = tmp_path / "in.pdf"
         src.write_bytes(b"%PDF-1.4 test")
 
-        def boom(ns, progress_cb=None):
+        def boom(ns, progress_cb=None, degrade_to=None):
             raise RuntimeError("parse crashed")
 
         with pytest.MonkeyPatch.context() as mp:

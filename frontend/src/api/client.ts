@@ -23,14 +23,21 @@ export interface ApiTransport {
   postForm<T>(path: string, form: FormData): Promise<T>;
   /** 其余方法（PUT/DELETE 等），body 为可选 JSON 载荷 */
   request<T>(method: string, path: string, body?: unknown): Promise<T>;
-  /** 打开 SSE 流，返回取消订阅函数。onError 后由实现方自动重连。 */
+  /** 打开 SSE 流，返回取消订阅函数。onError 后由实现方自动重连。
+   *
+   * ``init.since``（可选，默认 0）为本次连接的起始事件序号：后端只从该
+   * 游标之后补发事件，前端靠它避免每次(如切换任务重新打开流)从 seq 0
+   * 全量重放造成日志重复。每帧的绝对序号（后端 SSE ``id`` 行）通过
+   * ``onFrame(frame, id)`` 第二参透出，调用方可持续滚动自己的游标。
+   */
   openEvents(
     path: string,
     handlers: {
-      onFrame: (frame: EventFrame) => void;
+      onFrame: (frame: EventFrame, id?: number) => void;
       onOpen?: () => void;
       onError?: () => void;
     },
+    init?: { since?: number },
   ): () => void;
 }
 
@@ -121,13 +128,20 @@ export class HttpTransport implements ApiTransport {
   openEvents(
     path: string,
     handlers: {
-      onFrame: (frame: EventFrame) => void;
+      onFrame: (frame: EventFrame, id?: number) => void;
       onOpen?: () => void;
       onError?: () => void;
     },
+    init?: { since?: number },
   ): () => void {
     // EventSource 仅支持同源或显式完整 URL —— base 为空时天然同源。
-    const source = new EventSource(this.url(path));
+    let url = this.url(path);
+    const since = init?.since ?? 0;
+    if (since > 0) {
+      // 断点续传：让后端只从 since 之后补发，避免切换任务全量重放。
+      url += (url.includes("?") ? "&" : "?") + `since=${since}`;
+    }
+    const source = new EventSource(url);
     const frameNames = [
       "state",
       "progress",
@@ -138,9 +152,17 @@ export class HttpTransport implements ApiTransport {
 
     for (const name of frameNames) {
       source.addEventListener(name, (evt) => {
+        const me = evt as MessageEvent;
+        // 后端每帧帧写入 SSE ``id: <seq>`` 行，浏览器把它暴露在 lastEventId；
+        // 解析成绝对序号透传给调用方（用于去重与滚动游标）。
+        let id: number | undefined;
+        if (me.lastEventId) {
+          const n = Number(me.lastEventId);
+          if (Number.isFinite(n) && n > 0) id = n;
+        }
         try {
-          const data = JSON.parse((evt as MessageEvent).data);
-          handlers.onFrame({ event: name, data } as EventFrame);
+          const data = JSON.parse(me.data);
+          handlers.onFrame({ event: name, data } as EventFrame, id);
         } catch {
           /* 忽略坏帧 */
         }

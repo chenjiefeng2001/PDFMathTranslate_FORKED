@@ -23,6 +23,18 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+class MagicPdfDegradeError(Exception):
+    """magicpdf 引擎需要按模式降级（BabelDOC）而非 legacy 的信号。
+
+    服务层在矛盾组合（``mode_choice=babeldoc`` + ``parse_engine=magicpdf``）
+    下传入 ``run_magicpdf_main(..., degrade_to="babeldoc")``：MinerU 不可用
+    或解析失败时不再静默降级 legacy —— 那会让用户「看着 BabelDOC 模式却跑
+    legacy 且无逐页进度 → 直接卡死」。改为抛本异常，由服务层改走
+    ``_execute_babeldoc`` 让用户选择的模式真正兜底。CLI 默认不传该参数，
+    保持原有 legacy 降级语义。
+    """
+
+
 def _output_dir(parsed_args) -> str:
     out = parsed_args.output or "."
     magic_dir = os.path.join(out, "magicpdf")
@@ -30,18 +42,56 @@ def _output_dir(parsed_args) -> str:
     return magic_dir
 
 
-def _fallback_legacy(parsed_args, reason: str) -> int:
+def _fallback_legacy(parsed_args, reason: str, progress_cb=None) -> int:
     """熔断降级：记录原因后按 legacy 内核重跑（Step 3.3）。
 
     打 ``_magicpdf_fallback`` 防重入标记：legacy 内核的文本层预检看到该
     标记后不再自动切回 magicpdf 引擎（本进程中 magic-pdf 已被证实不可用），
     避免 magicpdf → legacy → (auto-switch) → magicpdf 的乒乓循环。
+
+    ``progress_cb``（可选）：降级事件显式上报。旧版降级后 legacy 在服务
+    进程内默默翻译，UI 永远停在解析期最后一个百分比（任务「假死」在
+    ~38%）——这里把降级事实作为进度事件透传到前端日志面板：进度不回退
+    （服务层 ``_emit_smooth`` 钳制），但用户能看到引擎已切换、当前在做什么。
     """
     parsed_args._magicpdf_fallback = True
     logger.warning("[magicpdf] %s —— 自动降级回 legacy 内核重试。", reason)
+    if progress_cb is not None:
+        try:
+            progress_cb(
+                "analyzing",
+                _PCT_PARSE_START,
+                "[降级] {}：MinerU/magic-pdf 不可用，自动切换 legacy 内核重试"
+                "（legacy 翻译期间进度不再逐页刷新）".format(reason),
+            )
+        except Exception:  # noqa: BLE001 -- 进度上报永不致命
+            pass
     from pdf2zh.pdf2zh import _run_legacy_kernel
 
     return _run_legacy_kernel(parsed_args)
+
+
+def _degrade_engine(parsed_args, reason: str, progress_cb=None, degrade_to=None) -> int:
+    """按降级目标路由：``degrade_to="babeldoc"`` 抛 :class:`MagicPdfDegradeError`
+    由服务层改走 BabelDOC 执行器；否则（默认）走 :func:`_fallback_legacy`。
+
+    矛盾配置（magicpdf 解析引擎 + BabelDOC 模式）下，MinerU 不可用/解析失败
+    时若静默降级 legacy，用户会看到「选 BabelDOC 却毫无 BabelDOC 痕迹且进度
+    不再刷新」——即「直接卡死」的体感。降级目标显式化 + 事件上报可消除该盲区。
+    """
+    if degrade_to == "babeldoc":
+        if progress_cb is not None:
+            try:
+                progress_cb(
+                    "analyzing",
+                    _PCT_PARSE_START,
+                    "[降级] {}：MinerU/magic-pdf 不可用，按模式（BabelDOC）"
+                    "切换 BabelDOC 引擎重试".format(reason),
+                )
+            except Exception:  # noqa: BLE001 -- 进度上报永不致命
+                pass
+        raise MagicPdfDegradeError(reason)
+    return _fallback_legacy(parsed_args, reason, progress_cb=progress_cb)
 
 
 def _preload_torch() -> bool:
@@ -171,11 +221,16 @@ def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb, lang=None)
     return adapter.parse(path, **kwargs)
 
 
-def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
-    """magicpdf 解析引擎主流程（引擎不可用时自动降级 legacy）。
+def run_magicpdf_main(parsed_args, progress_cb=None, degrade_to: str | None = None) -> int:
+    """magicpdf 解析引擎主流程（引擎不可用时自动降级）。
 
     ``progress_cb(stage, pct, msg, detail=None)``（可选）：解析期页级/
     组件级细粒度计数与翻译/渲染相位粗事件都经它上报；不传保持原行为。
+
+    ``degrade_to``（可选）：降级目标。``"babeldoc"`` 时（服务层在
+    ``mode_choice=babeldoc`` + ``parse_engine=magicpdf`` 矛盾组合下传入），
+    MinerU 不可用/解析失败抛 :class:`MagicPdfDegradeError` 交由服务层改走
+    BabelDOC；``None``（CLI 默认）保持原有 legacy 内核降级语义。
     """
     # torch 必须先于任何 onnxruntime CUDA 会话导入（DLL 加载顺序，见
     # _preload_torch docstring）；CLI 全局入口已不再无条件加载 doclayout
@@ -215,7 +270,12 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
         logger.debug("[magicpdf] device status probe skipped: %s", exc)
     if not adapter.is_available():
         adapter.close()
-        return _fallback_legacy(parsed_args, "magic-pdf/MinerU 未安装")
+        return _degrade_engine(
+            parsed_args,
+            "magic-pdf/MinerU 未安装",
+            progress_cb=progress_cb,
+            degrade_to=degrade_to,
+        )
 
     files = list(parsed_args.files or [])
     if parsed_args.dir and files:
@@ -268,7 +328,12 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
         except Exception as exc:  # noqa: BLE001 -- 熔断降级
             logger.warning("[magicpdf] %s 解析失败: %s", path, exc)
             adapter.close()
-            return _fallback_legacy(parsed_args, f"{path} 解析失败")
+            return _degrade_engine(
+                parsed_args,
+                f"{path} 解析失败",
+                progress_cb=progress_cb,
+                degrade_to=degrade_to,
+            )
 
         doc = bridge.to_document_model(bridge.convert_all(results))
         stats = {"translated": 0, "preserved": 0}
@@ -338,6 +403,10 @@ def run_magicpdf_main(parsed_args, progress_cb=None) -> int:
                     fixed_plan,
                     page_sizes=page_sizes,
                     output_path=mono_pdf,
+                    # 保留原 PDF 为背景层：图形/颜色块/图片以及公式、代码等
+                    # 保留块的原文由背景显示，只重画真正翻译的块 —— 否则有色
+                    # 方块被整页白底吞噬、公式 LaTeX 原文叠影。
+                    source_pdf=path,
                 )
                 logger.info(
                     "[magicpdf] %s: mono PDF 已渲染（%d 页, %d 块, %d 字形）→ %s",
