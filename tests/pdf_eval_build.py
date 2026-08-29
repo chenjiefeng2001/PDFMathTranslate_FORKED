@@ -73,6 +73,19 @@ def build_list(path, width=612.0, height=792.0):
     return path
 
 
+def build_nested_list(path, width=612.0, height=792.0):
+    """A three-level nested list (1 → a → i) for wrap/nesting metrics."""
+    doc = new_doc()
+    add_page(doc, [
+        (40, 100, "1. Intro", "body", 12),
+        (52, 120, "a. Background", "body", 12),
+        (64, 140, "i. deep", "body", 12),
+        (40, 180, "2. Method", "body", 12),
+    ], width=width, height=height)
+    write(doc, path)
+    return path
+
+
 def build_toc(path, width=612.0, height=792.0):
     """A two-entry TOC page with a right-aligned page column."""
     doc = new_doc()

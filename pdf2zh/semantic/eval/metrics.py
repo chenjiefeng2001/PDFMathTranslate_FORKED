@@ -135,6 +135,7 @@ def _line_word_features(words, page_width: float):
             {
                 "is_item": is_item,
                 "marker_x": first_x if is_item else None,
+                "marker_text": first["text"] if is_item else None,
                 "content_x": content_x,
                 "is_cont": is_cont,
                 "cont_x": cont_x,
@@ -207,9 +208,47 @@ def _geometry_and_style(src_doc, out_doc):
     }
 
 
+def _list_wrap_integrity_page(sf, of):
+    """Per-page wrap integrity: markers preserved + item count fidelity.
+
+    Catches the classic wrap regressions the spec cares about — two items
+    merged into one line, a marker dropped, a continuation promoted to an
+    item, or the next item swallowed by the previous one.  ``1.0`` when
+    either side has no items.
+    """
+    s_markers = {f["marker_text"] for f in sf if f["is_item"] and f["marker_text"]}
+    o_markers = {f["marker_text"] for f in of if f["is_item"] and f["marker_text"]}
+    marker_hit = (len(s_markers & o_markers) / len(s_markers)) if s_markers else 1.0
+    n_src = sum(1 for f in sf if f["is_item"])
+    n_out = sum(1 for f in of if f["is_item"])
+    denom = max(n_src, n_out)
+    count_fidelity = (1.0 - abs(n_src - n_out) / denom) if denom else 1.0
+    return (marker_hit + count_fidelity) / 2.0
+
+
+def _list_nested_accuracy_page(sf, of):
+    """Per-page nested geometry: content_x level-rank preserved across levels.
+
+    Only pages with >= 2 distinct content_x levels contribute; the rank of
+    each item's content column (0, 1, 2, … by first-appearance order) must
+    match source vs output — a flattened or re-ordered nesting drops it.
+    """
+    s_cx = [f["content_x"] for f in sf if f["is_item"] and f["content_x"] is not None]
+    o_cx = [f["content_x"] for f in of if f["is_item"] and f["content_x"] is not None]
+    if len(set(s_cx)) < 2 or len(set(o_cx)) < 2:
+        return 1.0
+    s_ranks = _level_ranks(s_cx)
+    o_ranks = _level_ranks(o_cx)
+    n = min(len(s_ranks), len(o_ranks))
+    if not n:
+        return 1.0
+    return sum(1 for k in range(n) if s_ranks[k] == o_ranks[k]) / float(n)
+
+
 def _list_toc_metrics(src_doc, out_doc):
-    """List content/continuation indentation + TOC columns/levels/number."""
-    content_pairs, cont_pairs = [], []
+    """List marker/content/continuation + wrap integrity + TOC columns."""
+    content_pairs, cont_pairs, marker_pairs = [], [], []
+    wrap_ok, nested_ok = [], []
     toc_title_pairs, toc_page_pairs, toc_num_equal, toc_level_eq, toc_level_den = (
         [], [], 0, 0, 0
     )
@@ -217,7 +256,11 @@ def _list_toc_metrics(src_doc, out_doc):
         sf = _line_word_features(sp["words"], sp["width"])
         of = _line_word_features(op["words"], op["width"])
 
-        # list content_x: first item per line, matched by index among items
+        # list marker_x / content_x / continuation_x, matched by index
+        smarkers = [f["marker_x"] for f in sf if f["is_item"] and f["marker_x"] is not None]
+        omarkers = [f["marker_x"] for f in of if f["is_item"] and f["marker_x"] is not None]
+        marker_pairs.extend(zip(smarkers, omarkers))
+
         sitems = [f["content_x"] for f in sf if f["is_item"] and f["content_x"] is not None]
         oitems = [f["content_x"] for f in of if f["is_item"] and f["content_x"] is not None]
         content_pairs.extend(zip(sitems, oitems))
@@ -225,6 +268,9 @@ def _list_toc_metrics(src_doc, out_doc):
         sconts = [f["cont_x"] for f in sf if f["is_cont"] and f["cont_x"] is not None]
         oconts = [f["cont_x"] for f in of if f["is_cont"] and f["cont_x"] is not None]
         cont_pairs.extend(zip(sconts, oconts))
+
+        wrap_ok.append(_list_wrap_integrity_page(sf, of))
+        nested_ok.append(_list_nested_accuracy_page(sf, of))
 
         # TOC entries
         sentries = [f for f in sf if f["is_toc"]]
@@ -243,8 +289,11 @@ def _list_toc_metrics(src_doc, out_doc):
                     toc_level_den += 1
 
     return {
+        "list_marker_x_accuracy": round(_col_acc(marker_pairs), 4),
         "list_content_x_accuracy": round(_col_acc(content_pairs), 4),
         "list_continuation_x_accuracy": round(_col_acc(cont_pairs), 4),
+        "list_wrap_integrity": round(sum(wrap_ok) / len(wrap_ok) if wrap_ok else 1.0, 4),
+        "list_nested_geometry_accuracy": round(sum(nested_ok) / len(nested_ok) if nested_ok else 1.0, 4),
         "toc_title_x_accuracy": round(_col_acc(toc_title_pairs), 4),
         "toc_page_x_accuracy": round(_col_acc(toc_page_pairs), 4),
         "toc_page_number_accuracy": round((toc_num_equal / len(toc_title_pairs)) if toc_title_pairs else 1.0, 4),
@@ -335,8 +384,11 @@ def compute_report(source_doc: dict, output_doc: dict) -> dict:
         "font_match_rate": g["font_match_rate"],
         "bold_accuracy": g["bold_accuracy"],
         "italic_accuracy": g["italic_accuracy"],
+        "list_marker_x_accuracy": lst["list_marker_x_accuracy"],
         "list_content_x_accuracy": lst["list_content_x_accuracy"],
         "list_continuation_x_accuracy": lst["list_continuation_x_accuracy"],
+        "list_wrap_integrity": lst["list_wrap_integrity"],
+        "list_nested_geometry_accuracy": lst["list_nested_geometry_accuracy"],
         "toc_title_x_accuracy": lst["toc_title_x_accuracy"],
         "toc_page_x_accuracy": lst["toc_page_x_accuracy"],
         "toc_page_number_accuracy": lst["toc_page_number_accuracy"],

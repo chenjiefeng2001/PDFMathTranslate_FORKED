@@ -13,6 +13,7 @@ from tests.pdf_eval_build import (
     build_cjk,
     build_code,
     build_list,
+    build_nested_list,
     build_prose,
     build_toc,
     new_doc,
@@ -106,6 +107,75 @@ def test_code_preserved_bbox_regression(tmp_path):
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
     assert broke["code_preserved_bbox"] < 1.0
+
+
+def test_list_marker_x_regression(tmp_path):
+    """Marker column moved (+25pt) drops list_marker_x_accuracy."""
+    src = str(tmp_path / "mk_src.pdf")
+    ok = str(tmp_path / "mk_ok.pdf")
+    build_list(src)
+    build_list(ok)
+    good = evaluate(src, ok)["metrics"]
+    assert good["list_marker_x_accuracy"] == 1.0
+
+    bad = str(tmp_path / "mk_bad.pdf")
+    doc = new_doc()
+    add_page(doc, [
+        (85, 100, "1. Algorithm design", "body", 12),
+        (95, 115, "a wrapped continuation line", "body", 12),
+        (85, 150, "2. Evaluation on the test set", "body", 12),
+        (95, 165, "second continuation line", "body", 12),
+    ])
+    write(doc, bad)
+    broke = evaluate(src, bad)["metrics"]
+    assert broke["list_marker_x_accuracy"] < 0.5
+
+
+def test_list_wrap_integrity_marker_loss(tmp_path):
+    """Markers merged away (two items on one line) drops wrap integrity."""
+    src = str(tmp_path / "wi_src.pdf")
+    ok = str(tmp_path / "wi_ok.pdf")
+    build_list(src)
+    build_list(ok)
+    good = evaluate(src, ok)["metrics"]
+    assert good["list_wrap_integrity"] == 1.0
+
+    # broken output: the second item's marker is swallowed (item merged into
+    # a marker-less line) — marker 2. never reaches the output
+    bad = str(tmp_path / "wi_bad.pdf")
+    doc = new_doc()
+    add_page(doc, [
+        (60, 100, "1. Algorithm design", "body", 12),
+        (95, 115, "a wrapped continuation line", "body", 12),
+        (60, 150, "Evaluation on the test set", "body", 12),
+    ])
+    write(doc, bad)
+    broke = evaluate(src, bad)["metrics"]
+    assert broke["list_wrap_integrity"] < 1.0
+
+
+def test_list_nested_geometry_flattened(tmp_path):
+    """A nested list flattened to one level drops nested geometry accuracy."""
+    src = str(tmp_path / "nl_src.pdf")
+    ok = str(tmp_path / "nl_ok.pdf")
+    build_nested_list(src)
+    build_nested_list(ok)
+    good = evaluate(src, ok)["metrics"]
+    assert good["list_nested_geometry_accuracy"] == 1.0
+    assert good["list_wrap_integrity"] == 1.0
+
+    # broken output: all items at the same column (nesting flattened)
+    bad = str(tmp_path / "nl_bad.pdf")
+    doc = new_doc()
+    add_page(doc, [
+        (40, 100, "1. Intro", "body", 12),
+        (40, 120, "a. Background", "body", 12),
+        (40, 140, "i. deep", "body", 12),
+        (40, 180, "2. Method", "body", 12),
+    ])
+    write(doc, bad)
+    broke = evaluate(src, bad)["metrics"]
+    assert broke["list_nested_geometry_accuracy"] < 1.0
 
 
 def test_overflow_count(tmp_path):
