@@ -64,8 +64,8 @@ def test_continuation_renders_at_content_x():
     assert len(cont_cmds) == 2
     assert all(c.x == item.content_x for c in cont_cmds)
     assert all(c.x != item.marker_x for c in cont_cmds)
-    # 行距推进
-    assert cont_cmds[1].y > cont_cmds[0].y
+    # 行距推进（v3 y-up：换行向下 → 基线递减，PDF 翻转后落在下方）
+    assert cont_cmds[1].y < cont_cmds[0].y
 
 
 def test_nested_list_recurses_with_node_geometry():

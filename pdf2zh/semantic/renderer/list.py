@@ -1,38 +1,41 @@
-"""List geometry-preserving renderer — plan Commit 4.
+"""List geometry-preserving renderer — Commit 4, refactored for Commit 7E-2c.
 
-Minimally invasive first version. Three goals only:
+The renderer is now a **draw-only** consumer of the unified layout layer::
+
+    ListNode
+        ↓  layout_list_item (pdf2zh.semantic.layout.list_layout)
+    ListLayoutResult (marker/content/continuation LayoutResults)
+        ↓  ListRenderer (draw only)
+    PDF commands
+
+Three goals, unchanged since Commit 4:
 
 1. the list **marker never enters translation** (it is a layout object,
    not a translation object — the LLM must never see ``1.`` and be able to
    rewrite it into ``一、``);
 2. the list **content** is the only thing handed to the translator;
 3. the rendered output **copies the original geometry** — ``marker_x``,
-   ``content_x``, ``indent``, line spacing — and replaces only the text.
+   ``content_x``, ``continuation_x``, line spacing — and replaces only the
+   text.  All fit decisions (wrap / overflow) come from ``lay_out`` via the
+   layout adapter; this module never calls ``detect_list`` / ``parse_list`` /
+   ``calculate_level`` / ``calculate_indent`` / ``wrap_lines`` /
+   ``measure_text``.
 
-Renderer design rules:
-
-- **no translator inside**: the caller passes a ``translate`` callable (or a
-  pre-built ``translated`` map); the renderer itself never touches the
-  translator, keeping the plan's translator/renderer separation;
-- **no level recomputation**: indents come straight from the parsed nodes
-  (``node.indent`` / ``node.marker_x`` / ``node.content_x``), never from
-  ``level * 20``-style math;
-- **continuation lines render at ``content_x``**, not ``marker_x``;
-- text layout (wrapping / CJK / glyph placement) is delegated to an injected
-  :class:`TextRenderer` — this module only decides *where* each command goes.
-
-Output is a flat list of :class:`RenderCommand` positionable runs (marker /
-text), so the actual PDF emission can stay in the host pipeline.
+Coordinate convention: v3 lower-left origin (y up).  The first line of an
+item anchors at ``item.y``; wrapped content and continuation lines step
+**down** the page, so their v3 ``y`` decreases (``line_step`` is negative).
+The host renderer flips y when writing to the PDF.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Callable, Protocol
+from collections.abc import Callable
+from dataclasses import dataclass
 
+from pdf2zh.semantic.layout.list_layout import layout_list_item
 from pdf2zh.semantic.models import ListNode
 
-__all__ = ["RenderCommand", "TextRenderer", "ListRenderer", "build_page_list_plan"]
+__all__ = ["ListRenderer", "RenderCommand", "build_page_list_plan"]
 
 
 @dataclass
@@ -58,48 +61,44 @@ class RenderCommand:
         }
 
 
-class TextRenderer(Protocol):
-    """Host text layout hook: wrap + place translated text.
-
-    Implementations own word/CJK wrapping, font fallback and glyph
-    placement; the ListRenderer only supplies the anchor (``x``/``y``) and
-    the available width.
-    """
-
-    def render_text(
-        self,
-        text: str,
-        x: float,
-        y: float,
-        max_width: float,
-        **kwargs,
-    ) -> list[RenderCommand]:
-        ...
-
-
-class _PlainTextRenderer:
-    """Default single-line text renderer (no wrapping) for tests / CLI."""
-
-    def render_text(self, text, x, y, max_width, **kwargs):
-        if not text:
-            return []
-        return [RenderCommand(kind="text", text=text, x=x, y=y, width=max_width)]
+def _layout_lines(result, x: float, y: float, line_step: float, kind: str, level: int, bbox) -> list[RenderCommand]:
+    """One LayoutResult → positioned RenderCommands (no re-layout)."""
+    cmds: list[RenderCommand] = []
+    for i, (ln, w) in enumerate(zip(result.lines, result.line_widths)):
+        if not ln:
+            continue
+        cmds.append(
+            RenderCommand(
+                kind=kind,
+                text=ln,
+                x=x,
+                y=round(y + i * line_step, 2),
+                width=round(float(w), 1),
+                level=level,
+                bbox=bbox,
+            )
+        )
+    return cmds
 
 
 class ListRenderer:
-    """Renders a parsed :class:`ListNode` tree into positioned commands.
+    """Draw-only renderer: consumes :class:`ListLayoutResult` shapes.
 
-    The marker channel is ``PRESERVE`` (verbatim), the content channel is
-    ``TRANSLATE_KEEP_GEOMETRY`` — only ``translate(text)`` output is placed.
+    ``line_height`` is the vertical step between wrapped lines in points
+    (positive; applied downward via a negative ``line_step`` in v3 y-up).
+    ``font_size`` and ``measure`` are passed through to the layout adapter
+    for ``lay_out``; the renderer itself never measures or wraps.
     """
 
     def __init__(
         self,
-        text_renderer: TextRenderer | None = None,
         line_height: float = 12.0,
+        font_size: float = 11.0,
+        measure: Callable[[str, float], float] | None = None,
     ):
-        self.text_renderer = text_renderer or _PlainTextRenderer()
-        self.line_height = line_height
+        self.line_height = float(line_height or 12.0)
+        self.font_size = float(font_size or 11.0)
+        self.measure = measure
 
     def render(
         self,
@@ -124,13 +123,28 @@ class ListRenderer:
         translate: Callable[[str], str],
         cmds: list[RenderCommand],
     ) -> None:
-        """Layout one item: marker at marker_x, content at content_x."""
-        # ── 通道 1：marker —— PRESERVE，绝不进翻译器 ─────────────
-        if item.marker:
+        """Draw one item from its settled layout (marker → content → continuation)."""
+        # ── 布局：语义节点 → lay_out（marker 固定 / content 可 wrap）──
+        # content 与 continuation 是唯一进翻译器的文本；marker 从不翻译。
+        content_text = translate(item.content) if item.content else ""
+        continuation_texts = (
+            [translate(c) for c in item.continuation] if item.continuation else None
+        )
+        layout = layout_list_item(
+            item,
+            measure=self.measure,
+            font_size=self.font_size,
+            line_step=-self.line_height,
+            content_text=content_text or None,
+            continuation_texts=continuation_texts,
+        )
+
+        # ── 通道 1：marker —— FixedAnchor 单行原样绘制 ──────────────
+        if layout.marker.lines and layout.marker.lines[0]:
             cmds.append(
                 RenderCommand(
                     kind="marker",
-                    text=item.marker,
+                    text=layout.marker.lines[0],
                     x=item.marker_x,
                     y=item.y,
                     width=item.marker_width,
@@ -138,26 +152,18 @@ class ListRenderer:
                     bbox=item.bbox,
                 )
             )
-        # ── 通道 2：content —— TRANSLATE_KEEP_GEOMETRY ──────────
-        if item.content:
-            cmds.extend(
-                self.text_renderer.render_text(
-                    translate(item.content),
-                    x=item.content_x,
-                    y=item.y,
-                    max_width=item.content_width,
-                )
-            )
-        # ── 延续行：x 用 content_x（不是 marker_x）───────────────
-        for ln, cont in enumerate(item.continuation, start=1):
-            cmds.extend(
-                self.text_renderer.render_text(
-                    translate(cont),
-                    x=item.content_x,
-                    y=item.y + ln * self.line_height,
-                    max_width=item.content_width,
-                )
-            )
+
+        # ── 通道 2：content —— FlowText 已定版行（y 递减向下）──────
+        step = layout.line_step
+        y = item.y
+        cmds.extend(_layout_lines(layout.content, item.content_x, y, step, "text", item.level, item.bbox))
+        y += len(layout.content.lines) * step
+
+        # ── 通道 3：continuation —— 钉在 content_x，逐条换行后下移 ──
+        for cl in layout.continuation:
+            cmds.extend(_layout_lines(cl, item.content_x, y, step, "text", item.level, item.bbox))
+            y += len(cl.lines) * step
+
         # ── 嵌套列表：递归（层级/缩进来自节点，不重新计算）────────
         for child in item.children:
             self._render_list(child, translate, cmds)
@@ -181,11 +187,12 @@ class ListRenderer:
         return {"commands": [c.to_dict() for c in cmds]}
 
 
-# ── 页级编排：detect → parse → translate(content only) → render ──────────
+# ── 页级编排：detect → parse → translate(content only) → layout → draw ──
 #
 # Commit 4 的接线入口：把探测器 / 解析器 / 渲染器串成一条链，供上层 PDF
 # renderer（如 v3/magicpdf_renderer）与集成测试复用。marker 通道 PRESERVE
-# （从不进入 translate），content 通道 TRANSLATE_KEEP_GEOMETRY。
+# （从不进入 translate），content 通道 TRANSLATE_KEEP_GEOMETRY。检测与解析
+# 是编排职责（在页面级完成），ListRenderer 本身只负责“画”。
 
 
 def _walk_items(node: ListNode):
@@ -211,23 +218,26 @@ def build_page_list_plan(
     geom: list[dict] | None = None,
     translate: Callable[[str], str] | None = None,
     line_height: float = 12.0,
+    font_size: float = 11.0,
 ) -> dict:
-    """完整打通 ``detect → parse → translate → render``，产出 JSON 安全计划。
+    """完整打通 ``detect → parse → translate → layout → draw``，产出 JSON 安全计划。
 
     Args:
         paragraphs: 本页段落（阅读顺序，与 detector 输入一致）。
         geom: 每段 ``{x0, x1, y0, size}`` 几何（可选）。
         translate: **仅 content 的** 翻译回调；marker 从不会被调用。为空时恒等。
-        line_height: 延续行垂直步进。
+        line_height: 延续/换行行垂直步进（points）。
+        font_size: 布局测量/溢出用的字号（默认 11.0）。
 
     Returns:
         ``{"tree", "items", "commands", "translated_calls"}``：
 
         - ``items``: 每个列表项 ``{marker, marker_type, content, translated,
           marker_x, content_x, level, indent, continuation}``；
-        - ``commands``: 展开后的 :class:`RenderCommand` 快照（marker/text）；
-        - ``translated_calls``: 传给 ``translate`` 的**全部**文本 —— 只含 content，
-          marker 绝不在其中（验收：marker 不进入 translation）。
+        - ``commands``: 展开后的 :class:`RenderCommand` 快照（marker/text，
+          含 wrap 后的多行 content）；长内容 wrap 后产生多行 text 命令；
+        - ``translated_calls``: 传给 ``translate`` 的**全部**文本 —— 只含
+          content，marker 绝不在其中（验收：marker 不进入 translation）。
 
     纯数据，无 I/O，不修改 PDF。无列表时 ``tree``/``items``/``commands`` 为空。
     """
@@ -245,7 +255,7 @@ def build_page_list_plan(
         seen.setdefault(s, out)
         return out
 
-    renderer = ListRenderer(line_height=line_height)
+    renderer = ListRenderer(line_height=line_height, font_size=font_size)
     cmds = renderer.render(tree, translate=_translated)
 
     items: list[dict] = []
