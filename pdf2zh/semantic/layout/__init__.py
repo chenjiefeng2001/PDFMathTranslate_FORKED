@@ -42,6 +42,11 @@ from pdf2zh.semantic.layout.constraints import (
     PreserveBBox,
     resolve_geometry,
 )
+from pdf2zh.semantic.layout.list_layout import (
+    ListLayoutResult,
+    layout_list_item,
+    layout_list_node,
+)
 from pdf2zh.semantic.layout.mapping import (
     flow_text,
     list_anchor,
@@ -85,6 +90,10 @@ __all__ = [
     # measure
     "measure_text",
     "measure_text_estimate",
+    # list
+    "ListLayoutResult",
+    "layout_list_item",
+    "layout_list_node",
     # mapping
     "flow_text",
     "list_anchor",

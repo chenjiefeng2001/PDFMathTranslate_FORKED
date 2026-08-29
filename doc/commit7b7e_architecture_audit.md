@@ -90,5 +90,13 @@ magicpdf_renderer._render_flow_commands（只做 y 翻转 + 逐行写入，不�
 - [x] 全量回归：`tests/`（不含 v3）**1640 passed, 3 skipped**；
       `tests/v3` **1573 passed**
 - [x] converter.py 行数 1094 未增（7A 预算内，本 commit 未触碰）
-- [ ] 后续：list/toc 渲染载荷逐步迁移到 ``lay_out`` 定版（7E-2+），
-      不再由各自 renderer 内部判断 fit
+- [x] **7E-2（List Layout Integration）**：``semantic/layout/list_layout.py``
+      把 ``ListItemNode`` → ``FixedAnchor(marker) / FlowText(content) /
+      FlowText(continuation)`` → ``lay_out`` → ``ListLayoutResult``；
+      ``ListRenderer`` 改为 draw-only（不再调 wrap/measure/detect/parse），
+      magicpdf 继续用 ``render_payload.kind == "list"`` 消费已定版命令；
+      y-up 延续行方向修正（换行向下递减）；7D evaluator 新增
+      ``list_marker_x_accuracy`` / ``list_wrap_integrity`` /
+      ``list_nested_geometry_accuracy``。
+- [ ] 后续：7E-3 —— TOC（``FixedColumn``）纳入统一 Layout contract，
+      以现有 TOC 几何逻辑为 golden implementation 验证统一 API
