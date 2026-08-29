@@ -769,57 +769,108 @@ def _apply_bookmarks(
     envs: Dict,
     prompt: Template,
     ignore_cache: bool = False,
-) -> None:
-    """翻译并重建 PDF 书签（/Outlines）到译文文档。
+    semantic_toc_entries: List[dict] = None,
+) -> dict:
+    """翻译并重建 PDF 书签（/Outlines）到译文文档（Commit 6D）。
 
-    - 读取源 PDF 的 outline 树（fitz get_toc）
-    - 用与正文一致的翻译器翻译书签标题
-    - mono 文档（doc_zh，纯译文）：书签页码保持不变
-    - dual 文档（doc_en，双语交错 en0,zh0,en1,zh1,...）：
-      原页码 n 映射为 2n-1（指向英文页），保持原书签页码语义
-    - 任一步失败仅记 warning，不回退整个翻译任务
+    Outline 来源优先级（Source selection）：
+
+    A. 同时有 visual TOC + 结构化条目：优先用语义 TOC 生成翻译后的
+       Outline（标题已是译后），避免与 native outline 重复。
+    B. 只有 visual TOC（无结构化条目时的回退）：语义条目非空时从条目创建。
+    C. 只有 native Outline：读取源 PDF outline 树，翻译其标题并重建。
+    D. 两者皆无：不创建任何 Outline。
+
+    索引契约（单一边界）：语义条目的 ``destination_page`` 是 1-base 文档页
+    （与 PyMuPDF ``set_toc`` 同构）；printed ``page_number`` 永远不用于
+    书签目的地（``page_number != destination_page``）。mono（doc_zh）直接
+    使用目标页；dual（doc_en）映射为 2n-1（指向英文页）。
+
+    任一步失败仅记 warning，不回退整个翻译任务。返回
+    ``{"source": semantic|native|none, "count": n}``。
     """
-    try:
-        import pymupdf
+    import io
 
-        reader = pymupdf.open(stream=stream_bytes, filetype="pdf")
-        toc = reader.get_toc()
-        reader.close()
-    except Exception as e:
-        logger.warning("bookmarks: failed to read outline: %s", str(e)[:120])
-        return
-    if not toc:
-        return
-    translator = None
-    try:
-        translator = build_translator(
-            service, lang_in, lang_out, envs, prompt, ignore_cache
-        )
-    except Exception as e:
-        logger.warning("bookmarks: translator init failed: %s", str(e)[:120])
-        return
-    if translator is None:
-        return
-    new_toc = []
-    for item in toc:
-        lvl = item[0] if len(item) > 0 else 1
-        title = (item[1] if len(item) > 1 else "").strip()
-        page = item[2] if len(item) > 2 else 1
-        if not title:
-            continue
+    result = {"source": "none", "count": 0}
+
+    # ── 首选：语义 TOC 结构化条目（A/B）──
+    semantic_entries = [e for e in (semantic_toc_entries or []) if e and e.get("title")]
+    new_toc: List[list] = []
+    used_semantic = False
+    if semantic_entries:
         try:
-            translated = translator.translate(title)
+            from pdf2zh.v3.outline_renderer import build_outline_toc
+
+            new_toc = build_outline_toc(semantic_entries)
+            used_semantic = True
         except Exception as e:
-            logger.warning(
-                "bookmarks: title translate failed (%r): %s", title[:30], str(e)[:120]
-            )
-            translated = title
-        t = (translated or "").strip() or title
-        new_toc.append([lvl, t, page])
+            logger.warning("bookmarks: semantic outline build failed: %s", str(e)[:120])
+            new_toc = []
+    if not new_toc and semantic_entries:
+        # 兜底：build_outline_toc 保守失败时逐条退化（标题非空即建）
+        used_semantic = True
+        for e in semantic_entries:
+            title = (e.get("title") or "").strip()
+            if not title:
+                continue
+            dest = e.get("destination_page") or 1
+            try:
+                dest = int(dest) if int(dest) > 0 else 1
+            except (TypeError, ValueError):
+                dest = 1
+            new_toc.append([1, title, dest])
+
+    # ── 回退 C：native outline only（保留原 outline 并翻译标题）──
+    native_toc = []
+    translator = None
     if not new_toc:
-        return
+        try:
+            import pymupdf
+
+            reader = pymupdf.open(stream=stream_bytes, filetype="pdf")
+            native_toc = reader.get_toc()
+            reader.close()
+        except Exception as e:
+            logger.warning("bookmarks: failed to read outline: %s", str(e)[:120])
+            return result
+        if not native_toc:
+            # D：两者皆无 → 不创建
+            return result
+        try:
+            translator = build_translator(
+                service, lang_in, lang_out, envs, prompt, ignore_cache
+            )
+        except Exception as e:
+            logger.warning("bookmarks: translator init failed: %s", str(e)[:120])
+            return result
+        if translator is None:
+            return result
+        for item in native_toc:
+            lvl = item[0] if len(item) > 0 else 1
+            title = (item[1] if len(item) > 1 else "").strip()
+            page = item[2] if len(item) > 2 else 1
+            if not title:
+                continue
+            try:
+                translated = translator.translate(title)
+            except Exception as e:
+                logger.warning(
+                    "bookmarks: title translate failed (%r): %s", title[:30], str(e)[:120]
+                )
+                translated = title
+            t = (translated or "").strip() or title
+            new_toc.append([lvl, t, page])
+
+    if not new_toc:
+        return result
+    result["source"] = "semantic" if used_semantic else "native"
+    result["count"] = len(new_toc)
+
+    def _page_map(p: int) -> int:
+        return p
+
     try:
-        doc_zh.set_toc(new_toc)
+        doc_zh.set_toc([[lvl, t, _page_map(int(page))] for lvl, t, page in new_toc])
     except Exception as e:
         logger.warning("bookmarks: set_toc mono failed: %s", str(e)[:120])
     dual_toc = []
@@ -829,6 +880,7 @@ def _apply_bookmarks(
         doc_en.set_toc(dual_toc)
     except Exception as e:
         logger.warning("bookmarks: set_toc dual failed: %s", str(e)[:120])
+    return result
 
 
 def _resolve_parallel_settings(
@@ -1679,17 +1731,43 @@ def translate_stream(
                 )
         # === 书签（/Outlines）：翻译标题并重建到 mono/dual 文档（P0-3） ===
         # 在子集化之后、写出之前重建，避免子集化影响新写入的 outline 对象。
-        _apply_bookmarks(
-            doc_zh,
-            doc_en,
-            stream.getvalue(),
-            service=service,
-            lang_in=lang_in,
-            lang_out=lang_out,
-            envs=envs,
-            prompt=prompt,
-            ignore_cache=ignore_cache,
-        )
+        # Commit 6D：优先从语义 TOC（document_model 的结构化 toc_entries）
+        # 生成 Outline——标题已是译后，destination 用 destination_page
+        # （1-base，见 outline_renderer）。没有 document_model 时回退既有
+        # native outline 翻译路径。失败仅告警，绝不阻断写出。
+        _bm_source, _bm_count = "none", 0
+        _semantic_entries = []
+        try:
+            if v3_output.get("document_model"):
+                from pdf2zh.v3.outline_renderer import extract_outline_entries
+
+                _semantic_entries = extract_outline_entries(
+                    v3_output.get("document_model")
+                )
+        except Exception:  # noqa: BLE001 -- 语义 outline 缺失回退 native
+            _semantic_entries = []
+        try:
+            _bm = _apply_bookmarks(
+                doc_zh,
+                doc_en,
+                stream.getvalue(),
+                service=service,
+                lang_in=lang_in,
+                lang_out=lang_out,
+                envs=envs,
+                prompt=prompt,
+                ignore_cache=ignore_cache,
+                semantic_toc_entries=_semantic_entries,
+            )
+            _bm_source, _bm_count = _bm.get("source", "none"), _bm.get("count", 0)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("bookmarks: apply failed: %s", str(e)[:160])
+            _bm_source, _bm_count = "none", 0
+        if v3_output is not None:
+            v3_output["outline"] = {
+                "source": _bm_source,
+                "count": _bm_count,
+            }
         logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
         try:
             _write_start = _merge_time.time()

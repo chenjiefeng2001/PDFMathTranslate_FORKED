@@ -290,5 +290,189 @@ class TestMagicPdfCliRenderIntegration(unittest.TestCase):
         self.assertFalse(exists, "--no-magicpdf-render 不应产出 mono PDF")
 
 
+class TestFlowPayloadRendering(unittest.TestCase):
+    """Commit 7E-1：render_payload.kind == "flow" 的已定版行命令直接绘制。
+
+    - 带 commands 的 flow 块 → 逐行绘制，统计 flow_layout_used；
+    - 无 commands 的 flow 块（layout_ok=False）→ 可观测降级 legacy 换行路径。
+    """
+
+    FLOW_ENTRY = {
+        "block_id": "p0_flow",
+        "page": 0,
+        "kind": "paragraph",
+        "text": "Source paragraph text",
+        "translated": "译后段落文本内容",
+        "render_path": "translate_refit",
+        "src_box": [72.0, 700.0, 540.0, 722.0],
+        "dst_box": [72.0, 700.0, 540.0, 722.0],
+        "font_size": 12.0,
+        "render_payload": {
+            "kind": "flow",
+            "commands": [
+                {
+                    "kind": "flow-text",
+                    "text": "译后段落",
+                    "x": 72.0,
+                    "y": 722.0,
+                    "width": 48.0,
+                    "line": 0,
+                    "is_last": False,
+                    "overflow": False,
+                },
+                {
+                    "kind": "flow-text",
+                    "text": "文本内容",
+                    "x": 72.0,
+                    "y": 705.2,
+                    "width": 48.0,
+                    "line": 1,
+                    "is_last": True,
+                    "overflow": False,
+                },
+            ],
+            "entries": [],
+        },
+    }
+
+    def test_flow_commands_drawn_without_relayout(self):
+        pdf, stats = render_plan_to_pdf(
+            [self.FLOW_ENTRY], page_sizes=PAGE_SIZES, cjk_font=True
+        )
+        self.assertEqual(stats["flow_layout_used"], 1)
+        self.assertNotIn("flow_legacy_fallback", stats)
+        doc = pymupdf.open(stream=pdf, filetype="pdf")
+        text = doc[0].get_text()
+        self.assertIn("译后段落", text)
+        self.assertIn("文本内容", text)
+        # 已定版行命令不重新换行：两行都在输出里
+        self.assertIn("\n", text)
+        doc.close()
+
+    def test_flow_legacy_fallback_when_no_commands(self):
+        """layout_ok=False（无 commands）→ 降级 legacy 换行路径，且可观测。"""
+        entry = dict(self.FLOW_ENTRY)
+        entry["render_payload"] = {
+            "kind": "flow",
+            "commands": [],
+            "entries": [],
+        }
+        pdf, stats = render_plan_to_pdf([entry], page_sizes=PAGE_SIZES, cjk_font=True)
+        self.assertEqual(stats["flow_legacy_fallback"], 1)
+        self.assertNotIn("flow_layout_used", stats)
+        doc = pymupdf.open(stream=pdf, filetype="pdf")
+        self.assertIn("译后段落文本内容", doc[0].get_text())
+        doc.close()
+
+
+class TestSourcePdfNoFileLock(unittest.TestCase):
+    """回归：source_pdf 打不开时不得锁住源文件（Windows）。
+
+    pymupdf 打开失败抛出的 ``FileDataError`` 的 traceback 会持有 C 层文件
+    句柄 —— 若异常对象被日志记录（pytest 捕获 / 长驻 handler）保留，源 PDF
+    会一直被锁，导致临时目录无法清理。修复后异常只字符串化、立即丢弃。
+    """
+
+    def test_invalid_source_pdf_is_released_after_render(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "paper.pdf")
+            with open(src, "w", encoding="utf-8") as fh:
+                fh.write("%PDF-1.4 placeholder")  # 非法 PDF → open 失败
+
+            pdf, stats = render_plan_to_pdf(
+                PLAN[:1], page_sizes=PAGE_SIZES, source_pdf=src
+            )
+            self.assertTrue(pdf.startswith(b"%PDF"))
+            self.assertEqual(stats["blocks"], 1)
+
+            # 渲染完成后源文件必须可删除（Windows 下此前被异常句柄锁住）
+            os.unlink(src)
+
+    def test_valid_source_pdf_closed_after_render(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src = os.path.join(tmp, "src.pdf")
+            sdoc = pymupdf.Document()
+            sp = sdoc.new_page(width=612, height=792)
+            sp.insert_text((100, 100), "original")
+            sdoc.save(src)
+            sdoc.close()
+
+            pdf, stats = render_plan_to_pdf(
+                PLAN[:1], page_sizes=PAGE_SIZES, source_pdf=src
+            )
+            self.assertTrue(pdf.startswith(b"%PDF"))
+            # src_doc 已 close：文件不再被锁，可删除
+            os.unlink(src)
+
+
+class TestRenderWithBackground(unittest.TestCase):
+    """修复：``render_plan_to_pdf(source_pdf=...)`` 保留原 PDF 为背景层。
+
+    - 只对「真正翻译」的块（translated != text）覆盖原文 + 写译文；
+    - formula/code 保留块（translated == text）不重画（避免 LaTeX/原文叠影）；
+    - 背景图形（有色方块等）不再被整页白底吞噬。
+    """
+
+    def _make_plan(self):
+        return [
+            {
+                "block_id": "p0_t",
+                "page": 0,
+                "kind": "paragraph",
+                "text": "Original colored text",
+                "translated": "彩色原文的译文",
+                "render_path": "translate_refit",
+                "src_box": [200, 62, 400, 92],
+                "dst_box": [200, 62, 400, 92],
+                "font_size": 11.0,
+            },
+            {
+                "block_id": "p0_f",
+                "page": 0,
+                "kind": "formula",
+                "text": "x = a + b",
+                "translated": "x = a + b",  # 保留块：translated == text
+                "render_path": "preserve_float",
+                "src_box": [200, 100, 400, 120],
+                "dst_box": [200, 100, 400, 120],
+                "font_size": 12.0,
+            },
+        ]
+
+    def test_source_pdf_background_preserves_graphics_and_skips_kept_blocks(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            src = os.path.join(td, "src.pdf")
+            sdoc = pymupdf.Document()
+            sp = sdoc.new_page(width=612, height=792)
+            # 黄色背景块：PDF 左上原点 (200,700)-(400,730) ⇔ v3 y 向上 [200,62,400,92]。
+            sp.draw_rect(pymupdf.Rect(200, 700, 400, 730), color=None, fill=(1, 0.85, 0.2))
+            sp.insert_text((210, 712), "Original colored text")
+            sdoc.save(src)
+            sdoc.close()
+
+            pdf, stats = render_plan_to_pdf(
+                self._make_plan(), page_sizes={0: [612, 792]}, source_pdf=src
+            )
+            doc = pymupdf.open(stream=pdf, filetype="pdf")
+            page = doc[0]
+            text = page.get_text()
+            self.assertIn("彩色原文的译文", text)  # 翻译块写入
+            self.assertNotIn("x = a + b", text)  # 保留块不重画（背景原文 + 不叠影）
+            # 背景图形保留：黄色方块 + 翻译块覆盖白矩形都在 drawings 里。
+            self.assertTrue(page.get_drawings(), "原 PDF 背景图形应被保留")
+            doc.close()
+
+    def test_without_source_pdf_keeps_plain_text_layer(self):
+        """未传 source_pdf（测试/纯文本层）保持历史行为：所有块都写文本。"""
+        pdf, stats = render_plan_to_pdf(self._make_plan(), page_sizes={0: [612, 792]})
+        doc = pymupdf.open(stream=pdf, filetype="pdf")
+        text = doc[0].get_text()
+        self.assertIn("彩色原文的译文", text)
+        self.assertIn("x = a + b", text)  # 纯文本层：保留块原文也绘制
+        doc.close()
+
+
 if __name__ == "__main__":
     unittest.main()

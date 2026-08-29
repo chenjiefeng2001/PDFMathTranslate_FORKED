@@ -101,12 +101,116 @@ def _insert_text_wrapped(
         page.insert_text((x, y), cur, fontsize=font_size, fontname=effective_font)
 
 
+def _resolve_effect_font(text: str, fontname: Optional[str]) -> Optional[str]:
+    """单行有效字体：cjk 字体对纯拉丁行回退 helv（提取保真），含 CJK 用中文字体。"""
+    effective = fontname or "helv"
+    if effective == "china-ss" and all(ord(ch) < 0x2E80 for ch in text):
+        effective = "helv"
+    return effective
+
+
+def _render_list_commands(
+    page: Any,
+    commands: Sequence[dict],
+    page_height: float,
+    font_size: float,
+    fontname: Optional[str],
+    block_rect: Any,
+    stats: Dict[str, Any],
+    src_doc: Optional[Any],
+) -> None:
+    """把列表渲染计划中的 marker/text 命令逐条落到 PDF（几何来自节点，y 翻转）。"""
+    if src_doc is not None:
+        # 覆盖原文区域（白色矩形），保证译文不与原文混排。
+        page.draw_rect(block_rect, color=None, fill=(1, 1, 1))
+    for c in commands or []:
+        t = (c.get("text") or "")
+        if not t:
+            continue
+        x = float(c.get("x") or 0.0)
+        y = float(c.get("y") or 0.0)
+        eff = _resolve_effect_font(t, fontname)
+        page.insert_text((x, page_height - y), t, fontsize=font_size, fontname=eff)
+        stats["blocks"] += 1
+        stats["glyphs"] += len(t)
+
+
+def _render_flow_commands(
+    page: Any,
+    commands: Sequence[dict],
+    page_height: float,
+    font_size: float,
+    fontname: Optional[str],
+    block_rect: Any,
+    stats: Dict[str, Any],
+    src_doc: Optional[Any],
+    entry: Optional[dict] = None,
+) -> None:
+    """Draw settled FlowText LayoutResult lines (already wrapped/positioned).
+
+    Each command is a pre-laid-out line (x/y baseline in v3 y-up).  This
+    renderer applies no re-wrap / re-fit — it only flips y and inserts the
+    glyphs.  Overflow carried by a command is surfaced via a debug log +
+    ``stats["flow_overflow"]`` so it stays observable.
+    """
+    if src_doc is not None:
+        page.draw_rect(block_rect, color=None, fill=(1, 1, 1))
+    overflow_hit = False
+    for c in commands or []:
+        t = (c.get("text") or "")
+        if not t:
+            continue
+        x = float(c.get("x") or 0.0)
+        y = float(c.get("y") or 0.0)
+        eff = _resolve_effect_font(t, fontname)
+        page.insert_text((x, page_height - y), t, fontsize=font_size, fontname=eff)
+        stats["blocks"] += 1
+        stats["glyphs"] += len(t)
+        overflow_hit = overflow_hit or bool(c.get("overflow"))
+    if overflow_hit:
+        logger.debug(
+            "[magicpdf] flow block %r overflowed (%s lines)",
+            (entry or {}).get("block_id"),
+            len(commands or []),
+        )
+        stats["flow_overflow"] = stats.get("flow_overflow", 0) + 1
+
+
+def _render_toc_commands(
+    page: Any,
+    commands: Sequence[dict],
+    page_height: float,
+    font_size: float,
+    fontname: Optional[str],
+    block_rect: Any,
+    stats: Dict[str, Any],
+    src_doc: Optional[Any],
+) -> None:
+    """把 TOC 渲染计划中的 number/title/leader/page 命令逐条落到 PDF。
+
+    与列表渲染同构：水平几何（title_x / page_x）与 leader 已在命令里（来自
+    结构化条目的原几何），这里只做 y 翻转 + 逐条写入。numbering prefix /
+    leader / page number 在渲染期已经是译后-titled —— 它们从不经过 translator
+    （这一保证在 toc_sidechannel 完成）。
+    """
+    _render_list_commands(
+        page,
+        commands,
+        page_height,
+        font_size,
+        fontname,
+        block_rect,
+        stats,
+        src_doc,
+    )
+
 def render_plan_to_pdf(
     plan: Optional[Sequence[dict]],
     page_sizes: Optional[Dict[int, Sequence[float]]] = None,
     output_path: Optional[str] = None,
     font_size_fallback: float = _DEFAULT_FONT_SIZE,
     cjk_font: bool = True,
+    source_pdf: Optional[str] = None,
 ) -> Tuple[bytes, dict]:
     """把（fixup 后的）render_plan 渲染为 PDF。
 
@@ -118,6 +222,11 @@ def render_plan_to_pdf(
         font_size_fallback: 块未带 ``font_size`` 或非法时使用的字号。
         cjk_font: 为 True 时使用 pymupdf 内置简体中文字体（``china-ss``），
             避免中文译文无法显示；为 False 时用默认字体（纯文本层）。
+        source_pdf: 原 PDF 路径（可选）。提供时以原页作为背景层 —— 图形、
+            颜色块、图片与保留块（formula/code/table…）的原文由背景直接显示，
+            仅对**真正翻译**的块（``translated != text``）用白色矩形覆盖原文
+            区域后写入译文；不提供时保持纯文本层（所有块直接写文本，兼容测试
+            与无需背景的场景）。
 
     Returns:
         ``(pdf_bytes, stats)``，``stats`` 含 ``pages``/``blocks``/``glyphs``。
@@ -126,6 +235,32 @@ def render_plan_to_pdf(
 
     sizes = dict(page_sizes or {})
     default_page = tuple(_DEFAULT_PAGE)
+
+    src_doc: Any = None
+    if source_pdf:
+        try:
+            src_doc = pymupdf.open(source_pdf)
+        except Exception as exc:  # noqa: BLE001 -- 背景加载失败回退纯文本层
+            # 只记录错误文本，绝不把异常对象传入日志：pymupdf 打开失败的
+            # FileDataError 的 traceback 会持有 C 层文件句柄，若异常被日志
+            # 记录（pytest 捕获 / 长驻 handler）保留，Windows 上源 PDF 会
+            # 一直被锁住导致临时目录无法清理。字符串化后立即丢弃。
+            logger.warning(
+                "[magicpdf] 渲染背景加载失败，回退纯文本层: %s (%s)",
+                source_pdf,
+                str(exc),
+            )
+            src_doc = None
+            del exc
+
+    def _is_translated_block(entry: dict) -> bool:
+        """真翻译块：translated 非空且与原文不同。formula/code 等保留块的
+        translated 由 translate_document 回填为原文，不满足此条件。"""
+        text = entry.get("text") or ""
+        translated = entry.get("translated")
+        if not (isinstance(translated, str) and translated.strip()):
+            return False
+        return translated != text
 
     by_page: Dict[int, List[dict]] = {}
     for entry in list(plan or []):
@@ -147,9 +282,90 @@ def render_plan_to_pdf(
         w = float(w)
         h = float(h)
         page = doc.new_page(width=w, height=h)
+        if src_doc is not None and pno < src_doc.page_count:
+            # 原页作为背景层：保留图形/颜色块/图片，公式/代码等保留块的
+            # 原文也由背景直接显示（不再重复绘制 LaTeX/原文，避免叠影）。
+            page.show_pdf_page(page.rect, src_doc, pno)
         for entry in by_page[pno]:
             text = _entry_text(entry)
             if not text:
+                continue
+            # Commit 7A：统一 render_payload.kind 分派（list/toc/flow），
+            # 旧字段（list_items / toc_commands）作为兼容回退。
+            payload = entry.get("render_payload") or {}
+            payload_kind = payload.get("kind")
+            list_cmds = payload.get("commands") or []
+            if payload_kind == "list" or (
+                not list_cmds and (entry.get("list_items") or {}).get("commands")
+            ):
+                if not list_cmds:
+                    list_cmds = (entry.get("list_items") or {}).get("commands") or []
+                # List 块：marker + content 逐条落位（几何来自解析阶段）
+                box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
+                if len(box) != 4:
+                    box = [0, 0, 0, 0]
+                rect = pymupdf.Rect(_flip_v3_box(box, h))
+                font_size = entry.get("font_size")
+                try:
+                    font_size = float(font_size) if font_size else 0.0
+                except (TypeError, ValueError):
+                    font_size = 0.0
+                if font_size <= 0:
+                    font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
+                _render_list_commands(
+                    page, list_cmds, h, font_size, fontname, rect, stats, src_doc
+                )
+                continue
+            toc_cmds = payload.get("commands") or []
+            if payload_kind == "toc" or (
+                not list_cmds and (entry.get("toc_commands") or {}).get("commands")
+            ):
+                if not toc_cmds:
+                    toc_cmds = (entry.get("toc_commands") or {}).get("commands") or []
+                # TOC 块：逐条目落位（number/title/leader/page，几何来自节点）
+                box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
+                if len(box) != 4:
+                    box = [0, 0, 0, 0]
+                rect = pymupdf.Rect(_flip_v3_box(box, h))
+                font_size = entry.get("font_size")
+                try:
+                    font_size = float(font_size) if font_size else 0.0
+                except (TypeError, ValueError):
+                    font_size = 0.0
+                if font_size <= 0:
+                    font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
+                _render_toc_commands(
+                    page, toc_cmds, h, font_size, fontname, rect, stats, src_doc
+                )
+                continue
+            # Commit 7E-1: flow block with a settled FlowText LayoutResult draws
+            # its pre-laid-out lines directly (the renderer does NOT re-wrap).
+            flow_cmds = payload.get("commands") or []
+            if payload_kind == "flow" and flow_cmds:
+                box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
+                if len(box) != 4:
+                    box = [0, 0, 0, 0]
+                rect = pymupdf.Rect(_flip_v3_box(box, h))
+                font_size = entry.get("font_size")
+                try:
+                    font_size = float(font_size) if font_size else 0.0
+                except (TypeError, ValueError):
+                    font_size = 0.0
+                if font_size <= 0:
+                    font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
+                _render_flow_commands(
+                    page, flow_cmds, h, font_size, fontname, rect, stats, src_doc, entry
+                )
+                stats["flow_layout_used"] = stats.get("flow_layout_used", 0) + 1
+                continue
+            # Observable legacy fallback: a flow block whose LayoutResult could
+            # not be settled (layout_ok False / no commands) degrades to the
+            # classic `_insert_text_wrapped` path — never silently.
+            if payload_kind == "flow":
+                stats["flow_legacy_fallback"] = stats.get("flow_legacy_fallback", 0) + 1
+            if src_doc is not None and not _is_translated_block(entry):
+                # 保留背景模式：公式/代码/表格等保留块原文已在背景中，
+                # 跳过重画 —— 否则 LaTeX 源码/原文会叠在背景文字上。
                 continue
             box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
             if len(box) != 4:
@@ -162,6 +378,11 @@ def render_plan_to_pdf(
                 font_size = 0.0
             if font_size <= 0:
                 font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
+            if src_doc is not None:
+                # 覆盖原文区域（白色矩形），保证译文不与原文混排。仅覆盖本块
+                # dst_box，背景图形在未覆盖区域原样保留（修复有色方块被整页
+                # 白底吞噬 —— 旧版从零建白页丢弃全部背景）。
+                page.draw_rect(rect, color=None, fill=(1, 1, 1))
             _insert_text_wrapped(page, rect, text, font_size, fontname)
             stats["blocks"] += 1
             stats["glyphs"] += len(text)
@@ -169,6 +390,8 @@ def render_plan_to_pdf(
 
     result = doc.write(deflate=True, garbage=3)
     doc.close()
+    if src_doc is not None:
+        src_doc.close()
     if output_path:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         with open(output_path, "wb") as fh:

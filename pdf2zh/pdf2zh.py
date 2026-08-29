@@ -164,6 +164,20 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parse_params.add_argument(
+        "--debug-list",
+        action="store_true",
+        help="List-structure debug analysis: write debug/list.json with "
+        "detected lists (no PDF modification, no translation).",
+    )
+
+    parse_params.add_argument(
+        "--debug-toc",
+        action="store_true",
+        help="Visual-TOC debug analysis: write debug/toc.json with detected "
+        "table-of-contents pages (no PDF modification, no translation).",
+    )
+
+    parse_params.add_argument(
         "--backend",
         type=str,
         choices=["auto", "cpu", "cuda", "dml"],
@@ -510,6 +524,36 @@ def main(args: list[str] | None = None) -> int:
             raise FileNotFoundError(
                 "Input PDF not found or not a regular file: " + ", ".join(invalid)
             )
+
+    # --debug-list：纯列表结构分析（不修改 PDF、不翻译），独立于解析引擎。
+    if getattr(parsed_args, "debug_list", False):
+        from pdf2zh.semantic.list_debug import dump_list_debug
+
+        out_dir = parsed_args.output or "debug"
+        for f in (parsed_args.files or []):
+            payload = dump_list_debug(f, out_dir)
+            logger.info(
+                "--debug-list %s: %d page(s) with lists -> %s/list.json",
+                f,
+                len(payload["pages"]),
+                out_dir,
+            )
+        return 0
+
+    # --debug-toc：纯目录结构分析（不修改 PDF、不翻译），独立于解析引擎。
+    if getattr(parsed_args, "debug_toc", False):
+        from pdf2zh.semantic.toc_debug import dump_toc_debug
+
+        out_dir = parsed_args.output or "debug"
+        for f in (parsed_args.files or []):
+            payload = dump_toc_debug(f, out_dir)
+            logger.info(
+                "--debug-toc %s: %d page(s) with TOC -> %s/toc.json",
+                f,
+                len(payload["pages"]),
+                out_dir,
+            )
+        return 0
 
     # 解析引擎路由（Stage 2.3）：auto 时维持历史语义（--babeldoc → YADT，
     # 否则 legacy kernel）；显式 magicpdf 走 MinerU/magic-pdf 解析链路。

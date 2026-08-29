@@ -35,6 +35,8 @@ _TRANSLATE_RETRY_ATTEMPTS = _translate_retry_attempts()
 
 from pdf2zh.v3.paragraph_batch import batch_translate_paragraphs
 from pdf2zh.toc import TOC_LEADER_CHARS, char_adv, detect_toc_line, looks_like_toc_text
+from pdf2zh.v3.semantic_sidechannel import code_flags_for, gen_text_op
+
 from pdf2zh.translator import (
     AnythingLLMTranslator,
     ArgosTranslator,
@@ -587,9 +589,11 @@ class TranslateConverter(PDFConverterEx):
             ("|fonts:" + "|".join(sorted(f)[:8])) if len(f) > 1 else ""
             for f in pfkstk
         ]
-        # 8.3.1 段落级 Batch（实现外移 v3/paragraph_batch.py；开关在模块内部）
+        # 8.3.1 段落级 Batch（实现外移 v3/paragraph_batch.py；开关在模块内部）。
+        # === Semantic Phase 1: 代码保护（keep 掩码，逻辑外移 v3/semantic_sidechannel.py）===
         news = batch_translate_paragraphs(
             sstk, _font_sigs, toc_specs, _safe_worker,
+            keep=code_flags_for(sstk, pfkstk, ltpage.pageid),
         )
         news = [compose_toc_title(s.get("entry") if s else None, n, self.translator.lang_out) for s, n in zip(toc_specs, news)]
 
@@ -632,9 +636,6 @@ class TranslateConverter(PDFConverterEx):
                 return "0.0000"
             except (ValueError, TypeError, OverflowError, AttributeError):
                 return "0.0000"
-
-        def gen_op_txt(font, size, x, y, rtxt):
-            return f"/{font} {_safe_float(size)} Tf 1 0 0 1 {_safe_float(x)} {_safe_float(y)} Tm [<{rtxt}>] TJ "
 
         def gen_op_line(x, y, xlen, ylen, linewidth):
             return f"ET q 1 0 0 1 {_safe_float(x)} {_safe_float(y)} cm [] 0 d 0 J {_safe_float(linewidth)} w 0 0 m {_safe_float(xlen)} {_safe_float(ylen)} l S Q BT "
@@ -1052,7 +1053,7 @@ class TranslateConverter(PDFConverterEx):
                         f"re f Q ")
             for vals in ops_vals:
                 if vals["type"] == OpType.TEXT:
-                    ops_list.append(gen_op_txt(vals["font"], vals["size"], vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height - vflow_extra, vals["rtxt"]))
+                    ops_list.append(gen_text_op(_safe_float, vals["font"], vals["size"], vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height - vflow_extra, vals["rtxt"]))
                 elif vals["type"] == OpType.LINE:
                     ops_list.append(gen_op_line(vals["x"], vals["dy"] + y - vals["lidx"] * size * line_height - vflow_extra, vals["xlen"], vals["ylen"], vals["linewidth"]))
 

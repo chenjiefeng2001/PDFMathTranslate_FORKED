@@ -146,3 +146,55 @@ def test_single_packable_segment_no_batch(monkeypatch):
     out = batch_translate_paragraphs(texts, [""], [None], _recording_worker)
     assert out == [f"TR[{texts[0]}]"]
     assert len(calls) == 1
+
+
+# ── Phase 1：keep 掩码（代码保护）──────────────────────────────────
+def test_keep_mask_passthrough_when_batch_enabled(monkeypatch):
+    monkeypatch.setenv("PDF2ZH_PARAGRAPH_BATCH", "1")
+    calls = []
+
+    def _counting_worker(text, font_sig):
+        calls.append(text)
+        return _translate_worker(text, font_sig)
+
+    texts = ["def foo():\n    x = 1", "body paragraph", "more\n    code"]
+    keep = [True, False, True]
+    out = batch_translate_paragraphs(
+        texts, [""] * 3, [None, None, None], _counting_worker, keep=keep
+    )
+    # keep 段落原样保留（绝不进翻译器）；非 keep 正常翻译
+    assert out == [texts[0], f"TR[{texts[1]}]", texts[2]]
+    assert calls == ["body paragraph"]  # 仅非 keep 段落触达翻译器
+
+
+def test_keep_mask_passthrough_when_batch_disabled(monkeypatch):
+    monkeypatch.delenv("PDF2ZH_PARAGRAPH_BATCH", raising=False)
+    calls = []
+
+    def _counting_worker(text, font_sig):
+        calls.append(text)
+        return _translate_worker(text, font_sig)
+
+    texts = ["code line", "prose"]
+    out = batch_translate_paragraphs(
+        texts, ["", ""], [None, None], _counting_worker, keep=[True, False]
+    )
+    assert out == ["code line", f"TR[prose]"]
+    assert calls == ["prose"]
+
+
+def test_keep_mask_applies_when_few_packable(monkeypatch):
+    # 可打包段 < 2 走 short-circuit；keep 仍须生效（回归：防止 keep 段被翻译器翻译）
+    monkeypatch.setenv("PDF2ZH_PARAGRAPH_BATCH", "1")
+    calls = []
+
+    def _counting_worker(text, font_sig):
+        calls.append(text)
+        return _translate_worker(text, font_sig)
+
+    texts = ["only code block", "single prose"]
+    out = batch_translate_paragraphs(
+        texts, ["", ""], [None, None], _counting_worker, keep=[True, False]
+    )
+    assert out == ["only code block", f"TR[single prose]"]
+    assert calls == ["single prose"]

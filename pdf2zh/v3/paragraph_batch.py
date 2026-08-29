@@ -19,7 +19,7 @@ from __future__ import annotations
 import concurrent.futures
 import os
 import re
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Sequence
 
 __all__ = ["PARA_BATCH_SEP", "batch_translate_paragraphs"]
 
@@ -52,6 +52,7 @@ def batch_translate_paragraphs(
     toc_specs: Optional[List[Optional[dict]]],
     safe_worker: Callable[[str, str], str],
     thread: int = 0,
+    keep: Optional[Sequence[bool]] = None,
 ) -> List[str]:
     """同页多段合并翻译，返回与 ``texts`` 同序的译文列表。
 
@@ -64,15 +65,26 @@ def batch_translate_paragraphs(
         toc_specs: 每段的 TOC 元数据（None=非目录行；目录行不打包）。
         safe_worker: 逐段翻译回调 ``fn(text, font_sig) -> str``。
         thread: 并发线程数；0/负值回落默认 4。
+        keep: 逐段布尔掩码；True 的段落**原样保留、绝不进翻译器**
+            （Phase 1 代码保护）。默认全 False（正常翻译）。
 
     Returns:
         与 ``texts`` 同序的译文列表。
     """
     workers = max(1, thread or _translate_threads())
+    if keep is None:
+        keep = [False] * len(texts)
+
     if os.environ.get("PDF2ZH_PARAGRAPH_BATCH") != "1":
-        # 开关关闭 → 逐段并发翻译（与原 executor.map 路径一致）
+        # 开关关闭 → 逐段并发翻译（与原 executor.map 路径一致）；
+        # keep=True 的段落走 passthrough（返回原文，不触碰翻译器/缓存）。
+        def _fn(i: int) -> str:
+            if keep[i]:
+                return texts[i]
+            return safe_worker(texts[i], font_sigs[i])
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as _ex:
-            return list(_ex.map(safe_worker, texts, font_sigs))
+            return list(_ex.map(_fn, range(len(texts))))
 
     sep = PARA_BATCH_SEP
     n = len(texts)
@@ -80,6 +92,8 @@ def batch_translate_paragraphs(
 
     packable = []
     for i, t in enumerate(texts):
+        if keep[i]:
+            continue  # Phase 1 代码保护：绝不打包进批量翻译请求
         if not t.strip():
             continue
         if re.match(r"^\{\\?v\d+\}$", t.strip()):
@@ -89,8 +103,13 @@ def batch_translate_paragraphs(
         packable.append(i)
 
     if len(packable) < 2:
+        def _fn_short(i: int) -> str:
+            if keep[i]:
+                return texts[i]
+            return safe_worker(texts[i], font_sigs[i])
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as _ex:
-            return list(_ex.map(safe_worker, texts, font_sigs))
+            return list(_ex.map(_fn_short, range(n)))
 
     # 按字符预算聚合成批
     budget = _batch_chars_budget()
@@ -127,6 +146,8 @@ def batch_translate_paragraphs(
             news[i] = part
 
     for i in range(n):
-        if news[i] is None:
+        if keep[i]:
+            news[i] = texts[i]  # Phase 1 代码保护：原样保留（兼容非 Keep 集合外漏网）
+        elif news[i] is None:
             news[i] = safe_worker(texts[i], font_sigs[i])
     return news

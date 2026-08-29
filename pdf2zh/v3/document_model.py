@@ -217,6 +217,33 @@ def _node_font_size(block) -> float:
     return round(float(block.font_size or 0.0), 2) or 12.0
 
 
+def _build_flow_payload(block) -> dict:
+    """Commit 7E-1: plain paragraph block → FlowText LayoutResult payload.
+
+    Only ``paragraph`` blocks (mapped to ``flow`` kind) come through here; code /
+    List / TOC / preserve blocks keep their own render paths.  Geometry and font
+    size are copied verbatim from the block; layout fitting is done by
+    ``lay_out`` (never re-judged downstream).  Any failure returns a
+    ``layout_ok=False`` dict so the renderer falls back to a legacy path
+    observably.
+    """
+    try:
+        from pdf2zh.v3.flow_sidechannel import build_block_flow_payload
+
+        return build_block_flow_payload(block)
+    except Exception:  # noqa: BLE001 -- side-channel failure never blocks
+        return {
+            "kind": "flow",
+            "commands": [],
+            "lines": [],
+            "line_widths": [],
+            "overflow": False,
+            "policy": "wrap",
+            "font_size": _node_font_size(block),
+            "layout_ok": False,
+        }
+
+
 class _NodeProxy:
     """BlockModel → analyzer._RuleParagraphAdapter 所需的最小节点视图。"""
 
@@ -391,6 +418,24 @@ _KEEP_KINDS = frozenset(
 )
 
 
+def _heading_candidates(model) -> list[dict]:
+    """模型内所有 heading 块（kind=="heading" 或 role=="heading")作为关联池。"""
+    heads: list[dict] = []
+    for page in model.pages:
+        pno = page.page_num
+        for i, b in enumerate(page.blocks):
+            if b.kind == "heading" or b.metadata.get("role") == "heading":
+                heads.append(
+                    {
+                        "id": block_id(pno, i),
+                        "title": b.text,
+                        "page_num": pno,
+                        "level": int(b.metadata.get("level", 0) or 0),
+                    }
+                )
+    return heads
+
+
 def translate_document(
     model: DocumentModel, translate_fn, lang_out: str = "zh-CN"
 ) -> dict:
@@ -410,33 +455,37 @@ def translate_document(
             if not text:
                 stats["skipped"] += 1
                 continue
-            pol = block.metadata.get("translation_policy") or {}
-            if pol.get("translate") is False or block.kind in _KEEP_KINDS:
-                block.metadata["translated"] = text
-                block.metadata["translated_same"] = True
-                block.metadata["translate"] = False
-                stats["preserved"] += 1
+            # Commit 7A：统一 TranslationUnit 分派（preserve/list/toc/flow）。
+            # 所有结构化载荷（list_items / toc_entries / toc_commands）由
+            # block_translation_unit 编译并写回 metadata，行为与旧特判等价。
+            from pdf2zh.v3.render_payload import block_translation_unit
+
+            unit = block_translation_unit(block, translate_fn, model=model)
+            kind = unit["kind"]
+            if kind == "skip":
+                stats["skipped"] += 1
                 continue
-            src = pol.get("source_text") or text
-            if not src.strip():
-                src = text
-            translated = src
-            if translate_fn is not None:
-                try:
-                    translated = translate_fn(src) or src
-                except Exception as e:  # noqa: BLE001
-                    log.debug(
-                        "translate_document failed %s: %s",
-                        block_id(page.page_num, i),
-                        e,
-                    )
-                    translated = src
-            block.metadata["translated"] = translated
-            block.metadata["translated_same"] = translated == src
-            block.metadata["translate"] = True
-            stats["translated"] += 1
-            if block.kind == "toc":
+            block.metadata["translated"] = unit["translated"]
+            block.metadata["translated_same"] = unit["translated_same"]
+            block.metadata["translate"] = unit["translate"]
+            payload = unit.get("payload") or {}
+            if kind == "list":
+                block.metadata["list_items"] = payload
+                stats["translated"] += 1
+            elif kind == "toc":
+                block.metadata["toc_entries"] = payload.get("entries") or []
+                block.metadata["toc_commands"] = {
+                    "commands": payload.get("commands") or [],
+                    "translated_calls": [],
+                }
+                stats["translated"] += 1
                 stats["toc_translated"] += 1
+            elif kind == "preserve":
+                stats["preserved"] += 1
+            else:  # flow
+                stats["translated"] += 1
+                if block.kind == "toc":
+                    stats["toc_translated"] += 1
     model.metadata["translation_stats"] = dict(stats)
     return stats
 
@@ -452,6 +501,35 @@ def render_plan_from_model(model: DocumentModel) -> List[dict]:
     for page in model.pages:
         pno = page.page_num
         for i, block in enumerate(page.blocks):
+            # Commit 7A：统一 render_payload（显式 kind + commands + entries），
+            # 渲染端按 kind 分派；旧字段（list_items/toc_*）保留兼容。
+            from pdf2zh.v3.render_payload import build_render_payload
+
+            # 统一 payload kind：paragraph → flow（与 TranslationUnit 分派对齐）；
+            # 语义 kind（list/toc/preserve…）原样透传。
+            _kind = block.kind
+            if _kind == "paragraph":
+                _kind = "flow"
+            unit = {
+                "kind": (
+                    "preserve"
+                    if block.metadata.get("translate") is False
+                    else _kind
+                ),
+                "payload": (
+                    block.metadata.get("list_items")
+                    if block.kind == "list"
+                    else {
+                        "entries": block.metadata.get("toc_entries") or [],
+                        "commands": (block.metadata.get("toc_commands") or {}).get(
+                            "commands"
+                        )
+                        or [],
+                    }
+                    if block.kind == "toc"
+                    else (_build_flow_payload(block) if _kind == "flow" else None)
+                ),
+            }
             plan.append(
                 {
                     "block_id": block_id(pno, i),
@@ -463,6 +541,10 @@ def render_plan_from_model(model: DocumentModel) -> List[dict]:
                     "src_box": [round(v, 2) for v in block.bbox],
                     "dst_box": [round(v, 2) for v in block.bbox],
                     "font_size": _node_font_size(block),
+                    "render_payload": build_render_payload(unit),
+                    "list_items": block.metadata.get("list_items"),
+                    "toc_entries": block.metadata.get("toc_entries"),
+                    "toc_commands": block.metadata.get("toc_commands"),
                 }
             )
     return plan
@@ -480,7 +562,46 @@ def toc_records_from_model(model: DocumentModel) -> List[dict]:
         pno = page.page_num
         for i, block in enumerate(page.blocks):
             md = block.metadata
-            if md.get("kind") != "toc" or not md.get("toc_number"):
+            if md.get("kind") != "toc":
+                continue
+            nid = block_id(pno, i)
+            # Commit 6B：结构化 toc_entries（每 entry 一条记录，page_number 与
+            # destination_page 是两个独立字段）。
+            entries = md.get("toc_entries")
+            if entries:
+                for e in entries:
+                    num = str(e.get("number") or e.get("title") or "")
+                    title = e.get("title_only") or e.get("title") or ""
+                    page = e.get("page_number") or ""
+                    records.append(
+                        {
+                            "raw": e.get("title", ""),
+                            "kind": (
+                                "section"
+                                if "." in (e.get("number") or "")
+                                else ("chapter" if e.get("number") else "plain")
+                            ),
+                            "level": int(e.get("level") or 0),
+                            "number": e.get("number") or num,
+                            "title": title,
+                            "page": page,
+                            "leader": e.get("dot_leader") or "",
+                            "matched": True,
+                            "title_remainder": e.get("title_only") or "",
+                            "translated_title": e.get("translated_title") or "",
+                            "page_number": page,
+                            "destination_page": e.get("destination_page"),
+                            "indent": e.get("indent"),
+                            "title_x": e.get("title_x"),
+                            "page_x": e.get("page_x"),
+                            "heading_ref": e.get("heading_ref"),
+                            "page_num": pno,
+                            "block_id": nid,
+                        }
+                    )
+                continue
+            # legacy：无结构化条目时按 toc_number 单条记录。
+            if not md.get("toc_number"):
                 continue
             records.append(
                 {
@@ -495,7 +616,7 @@ def toc_records_from_model(model: DocumentModel) -> List[dict]:
                     "title_remainder": md.get("toc_title", ""),
                     "translated_title": md.get("translated", ""),
                     "page_num": pno,
-                    "block_id": block_id(pno, i),
+                    "block_id": nid,
                 }
             )
     return records
