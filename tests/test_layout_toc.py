@@ -153,14 +153,28 @@ def test_no_leader_never_forces_dots():
 
 
 def test_overlong_title_flags_overflow_no_leader():
+    # 7F-5b：长标题先 WRAP（≤ 1+max_extra_lines 行不算溢出）；只有真正
+    # 无法容纳的标题（SHRINK 到底仍超出行预算）才显式 overflow。
     r = _layout(
         _entry(title_x=72.0, page_x=200.0, page_number="5"),
-        translated="This translated title is far too long for the available gap",
+        translated=("This translated title is far too long for the available gap " * 4).strip(),
     )
     assert r.overflow is True
     assert r.leader is None
     # page number 仍留在 page_x（overflow 显式、不静默、不移动页码）
     assert r.page.bbox[0] == 200.0
+
+
+def test_long_title_wraps_within_extra_line_budget():
+    # 7F-5b：长标题在 extra-line 预算内 → WRAP 成多行，不是 overflow。
+    r = _layout(
+        _entry(title_x=72.0, page_x=500.0, page_number="5"),
+        translated=("This translated title wraps into several lines but stays inside the budget " * 2).strip(),
+    )
+    assert r.overflow is False
+    assert r.line_count >= 2
+    assert r.recovery is not None
+    assert "WRAP" in r.recovery["steps"]
 
 
 # ── 5. CJK ───────────────────────────────────────────────────────────────

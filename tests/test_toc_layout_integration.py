@@ -123,9 +123,12 @@ class TestLayoutTocEntry(unittest.TestCase):
         self.assertFalse([c for c in cmds if c["kind"] == "leader"])
 
     def test_title_past_page_x_flags_overflow(self):
+        # 7F-5b：可 WRAP 的标题先换行；只有 SHRINK 到底仍超出行预算的
+        # 极端标题才显式 overflow（page_x 仍不移动）。
         r = layout_toc_entry(
             _entry(title_x=72.0, page_x=100.0, leader_present=False),
-            measure=_measure, size=_SIZE, translated_title="This title is far too long",
+            measure=_measure, size=_SIZE,
+            translated_title=("This title is far too long for the narrow column " * 3).strip(),
         )
         self.assertTrue(r.overflow)
         # leader 不再发射，page 仍钉在 page_x —— 明确 overflow 而非静默
@@ -133,6 +136,17 @@ class TestLayoutTocEntry(unittest.TestCase):
         page_cmds = [c for c in toc_layout_commands(r) if c["kind"] == "page"]
         if page_cmds:
             self.assertEqual(page_cmds[0]["x"], 100.0)
+
+    def test_long_title_wraps_multiple_lines_not_overflow(self):
+        """7F-5b：长标题在 extra-line 预算内 → 多行 WRAP，overflow=False。"""
+        r = layout_toc_entry(
+            _entry(title_x=72.0, page_x=500.0),
+            measure=_measure, size=_SIZE,
+            translated_title=("A much longer translated title that now wraps into several lines " * 2).strip(),
+        )
+        self.assertGreaterEqual(r.line_count, 2)
+        self.assertFalse(r.overflow)
+        self.assertEqual(r.recovery["decision"], "wrap")
 
     def test_page_number_preserved_never_translated_here(self):
         r = layout_toc_entry(
