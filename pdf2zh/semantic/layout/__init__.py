@@ -124,6 +124,16 @@ from pdf2zh.semantic.layout.page_shift import (
     resolve_page_shifts,
     shift_box_down,
 )
+from pdf2zh.semantic.layout.packing import (
+    CollectColumns,
+    ColumnMetrics,
+    PagePackingMetrics,
+    column_from_placements,
+    column_packing_metrics,
+    document_packing_report,
+    page_columns,
+    page_packing_metrics_for_placements,
+)
 from pdf2zh.semantic.layout.placement import (
     PlacementDecision,
     PlacementPolicy,
@@ -200,6 +210,8 @@ __all__ = [
     "assert_break_invariants",
     "block_deltas",
     "break_invariants",
+    "column_from_placements",
+    "column_packing_metrics",
     "break_placement_to_page",
     "build_page_flow_report",
     "decide_block_shift",
@@ -221,6 +233,8 @@ __all__ = [
     "next_page_start_y",
     "page_break_execution",
     "page_break_from_shift",
+    "page_columns",
+    "page_packing_metrics_for_placements",
     "placements_from_plan",
     "resolve_page_shifts",
     "shift_box_down",
@@ -255,6 +269,10 @@ __all__ = [
     "layout_toc_entry",
     "list_anchor",
     "list_continuation",
+    "CollectColumns",
+    "ColumnMetrics",
+    "PagePackingMetrics",
+    "document_packing_report",
     # measure
     "measure_text",
     "measure_text_estimate",

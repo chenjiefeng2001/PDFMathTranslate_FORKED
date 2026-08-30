@@ -182,3 +182,46 @@ pseudo-collisions are gone).  Recovery then only handles the honest remainder:
 immovable preserved / multi-line-title splits); 1905 unresolved 27 → 5.  This
 is the input cleanup that makes 7G-2 whitespace / page-packing metrics
 meaningful — it is NOT yet 7G-2.
+
+## 8. 7G-2 landed — V2 packing baseline (2026-08-30)
+
+The measurement half of 7G-2 is now in-tree: `pdf2zh/semantic/layout/packing.py`
+(pure read of settled `BlockPlacement` geometry — x-overlap column clustering,
+vertical-band fill / internal-gap / trailing-gap metrics) with the guard
+discipline locked by `tests/test_layout_packing_7g2.py` (18 tests: pure read,
+no re-layout, no detector/renderer imports, no geometry writes).
+
+The corpus baseline was produced by `build/corpus_packing_scan.py` (gitignored
+scratch) over `tests/file/` (identity translation, settled plans only, docs
+≤ 10 MB), persisted to `build/corpus_packing_7g2.json`:
+
+- 41 PDFs scanned, 0 errors (1 empty doc excluded below → 40 content docs);
+- 3,706 pages, 131,211 blocks, 15,537 columns, 0 empty columns;
+- recovery-termination contract unchanged: all 40 stop via `no_progress`,
+  2,990 unresolved total (the honest 7F-9.3 remainder), 1 converged.
+
+V2 page-packing baseline — the numbers Adaptive v2 packing must beat:
+
+| metric (per-doc mean) | value |
+|-----------------------|------:|
+| `avg_fill_ratio`      | 0.557 (median 0.586, min 0.246, max 0.826) |
+| `avg_whitespace_ratio`| 0.443 |
+| `avg_trailing_gap_pt` | 185.8 (median 167.6) |
+| `total_internal_gap_pt` (mean per doc) | 68,816 (median 6,257) |
+
+Readings:
+
+1. **The P1 lesson holds** — mean fill is 0.557, not ~0.9: nearly half of every
+   column's vertical band is frozen whitespace under V1, so V2 packing has real
+   room to reclaim (≈44 % whitespace, ≈186 pt trailing gap per column).
+2. **Internal gaps dominate on long docs** — the mean `total_internal_gap_pt`
+   (68.8 k) is inflated by book-length docs; the median (6.3 k) is the honest
+   per-paper scale.  Both confirm gap reclaim is the bigger lever than
+   trailing-gap-only compaction.
+3. **Emptiest docs** — 2603.06957v2 (0.246), 2506.17366v2 (0.264),
+   2608.19584v1 (0.270), 2506.06584v2 (0.272): these are the first targets for
+   a V2 packing pass, and the same docs to re-measure after it lands.
+
+Next (7G-2 optimisation half): turn the measured reclaimable space
+(`internal_gap` + `trailing_gap`) into an actual packing pass, gated by these
+baseline numbers.
