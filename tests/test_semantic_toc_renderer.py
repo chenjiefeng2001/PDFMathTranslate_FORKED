@@ -195,7 +195,8 @@ def test_continuation_vertical_progression():
     cmds = renderer.render(entries, ys=[0.0], size=10.0)
     conts = [c for c in cmds if c.kind == "title" and c.text == "on another line"]
     assert len(conts) == 1
-    assert conts[0].y > 0.0
+    # y-up: continuation lines sit below the first line (smaller y)
+    assert conts[0].y < 0.0
     assert conts[0].x >= 72.0
 
 

@@ -1,50 +1,48 @@
-"""TOC geometry-preserving renderer — plan Commit 6C.
+"""TOC geometry-preserving renderer — plan Commit 6C, refactored for 7E-3.
 
-Renders structured TOC entries back into the PDF while preserving the
-original visual geometry. Mirrors :mod:`pdf2zh.semantic.renderer.list` in
-spirit: the renderer never touches a translator (a ``translate`` callable is
-injected by the caller), and every command's *horizontal* geometry is copied
-straight from the parsed entry node — ``title_x`` / ``page_x`` / ``indent`` /
-``level`` / ``bbox`` — never recomputed from ``level``, entry index, page
-width, or fixed constants.
+The renderer is now a **draw-only** consumer of the unified layout layer::
 
-Per-entry rendering model (Commit 6C spec):
-::
+    TOCEntryNode / entry dict
+        ↓  layout_toc_entry (pdf2zh.semantic.layout.toc_layout)
+    TocEntryLayoutResult (number/title/leader/page LayoutResults)
+        ↓  toc_layout_commands → TocRenderer (draw only)
+    PDF commands
 
-    number      -> PRESERVE        (verbatim, never translated/renumbered)
-    title       -> translated      (title-only; numbering prefix excluded)
-    leader      -> regenerate      (fill to original page_x, by actual width)
-    page_number -> PRESERVE        (verbatim at original page_x, never moved)
+The existing renderer stays the **golden implementation**: the layout adapter
+reproduces its per-entry geometry exactly (title_x / page_x / indent / bbox
+verbatim; leader regenerated to the original page_x from the translated
+title's actual width; page number PRESERVE; no forced dots for no-leader
+entries), so all pre-7E-3 behavior is unchanged.
 
-Decisions that matter:
+Renderer rules (unchanged since 6C):
 
-- ``title_x`` (left edge of the title column) is copied verbatim; the
-  translated title starts there and the leader is measured from its **actual**
-  rendered width (never an English-character count heuristic).
-- ``page_x`` (right-aligned page-number column) is copied verbatim; a
-  longer-than-original translated title shrinks the leader instead of moving
-  the page number.
-- ``leader_present`` decides whether to emit a dot leader; a no-leader TOC
-  is **never** forced to add dots.
-- nested levels keep the original ``indent`` / ``title_x`` (no
-  ``x = level * constant``).
-- multi-line entries: continuation lines keep vertical progression under the
-  title column and the page number stays in the first line's page_x column.
+- **no translator inside**: a ``translate`` callable is injected by the
+  caller; only the title (and continuation lines) may be translated —
+  numbering prefix, leader and page number never enter it;
+- **no geometry recomputation**: every command's horizontal geometry comes
+  from the entry node; never from ``level``, entry index or page width;
+- **no fit decisions here**: wrapping / overflow are decided by ``lay_out``
+  via the layout adapter; the renderer only draws the settled result.
 
-Output is a flat list of :class:`RenderCommand` positionable runs. Vertical
-(y) comes from the hosted page pipeline (a per-entry ``y`` map); horizontal
-is decided here. Pure logic — no I/O, no PyMuPDF, no converter.
+Measurement: the unified ``measure_text`` is the default; the
+``measure_width`` injection seam is retained (tests / host measurers keep
+working) — it is passed through to the layout adapter.
+
+Coordinate convention: v3 lower-left origin (y up).  Continuation lines step
+**down** the page (negative offset), so the host renderer's y-flip places
+them under the entry's first line.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 
 from pdf2zh.semantic.layout.measure import measure_text
+from pdf2zh.semantic.layout.toc_layout import layout_toc_entry, toc_layout_commands
 from pdf2zh.semantic.renderer.list import RenderCommand
 
-__all__ = ["TocRenderer", "build_page_toc_plan", "RenderCommand"]
+__all__ = ["RenderCommand", "TocRenderer", "build_page_toc_plan"]
 
 
 @dataclass
@@ -80,30 +78,6 @@ class TocRenderer:
                 return measure_text(text, self.font, size)
         return measure_text(text, self.font, size)
 
-    def _emit_title_cmd(
-        self,
-        cmds: list[RenderCommand],
-        text: str,
-        x: float,
-        y: float,
-        size: float,
-        entry,
-        kind: str,
-    ) -> float:
-        """Place one title-ish run; returns the run's right edge."""
-        cmds.append(
-            RenderCommand(
-                kind=kind,
-                text=text,
-                x=x,
-                y=y,
-                width=self._measure(text, size),
-                level=int(entry.get("level", 0) or 0),
-                bbox=tuple(entry.get("bbox") or (0.0, 0.0, 0.0, 0.0)),
-            )
-        )
-        return x + self._measure(text, size)
-
     def render(
         self,
         entries: Sequence[Mapping],
@@ -133,58 +107,31 @@ class TocRenderer:
                 y = float(ys[i] or 0.0)
             else:
                 y = float(i * self.line_height)
-            title_x = float(e.get("title_x") or 0.0)
-            page_x = float(e.get("page_x") or 0.0)
-            number = (e.get("number") or "").strip()
+
+            # ── 翻译只覆盖 title_only 与延续行（number/leader/page 绝不）──
             title_only = (e.get("title_only") or e.get("title") or "").strip()
-
-            # ── Channel 1: numbering prefix —— PRESERVE ────────────────
-            cursor = title_x
-            if number:
-                cursor = self._emit_title_cmd(cmds, number, cursor, y, size, e, "number")
-                cursor += self.leader_gap
-
-            # ── Channel 2: title —— TRANSLATE (only translatable part) ─
-            # Prefer the already-translated title (set by the caller, e.g.
-            # ``toc_sidechannel.translate_toc_entries`` writes
-            # ``translated_title``); fall back to translating ``title_only``
-            # only when no translation was pre-computed.
+            translated_title: str | None = None
             if title_only:
                 pre = (e.get("translated_title") or "").strip()
-                translated = pre if pre else tr(title_only)
-                title_end = self._emit_title_cmd(
-                    cmds, translated, cursor, y, size, e, "title"
-                )
-            else:
-                title_end = cursor
+                translated_title = pre if pre else tr(title_only)
+            conts: list[str] = []
+            for c in (e.get("continuation") or []):
+                if (c or "").strip():
+                    conts.append(tr(c.strip()))
 
-            # ── Channel 3: dot leader —— regenerate to original page_x ─
-            if e.get("leader_present") and page_x > title_end + self.leader_gap:
-                available = page_x - title_end
-                unit = self._measure(".", size)
-                n = max(1, int((available - self.leader_gap) // unit))
-                leader = "." * n
-                _ = self._emit_title_cmd(cmds, leader, title_end, y, size, e, "leader")
-
-            # ── Channel 4: page number —— PRESERVE at original page_x ──
-            page_text = str(e.get("page_number") or "").strip()
-            if page_text:
-                _ = self._emit_title_cmd(cmds, page_text, page_x, y, size, e, "page")
-
-            # ── Continuation lines: keep vertical progression under title_x ──
-            for k, cont in enumerate((e.get("continuation") or []), start=1):
-                if not (cont or "").strip():
-                    continue
-                cc = tr(cont.strip())
-                self._emit_title_cmd(
-                    cmds,
-                    cc,
-                    title_x + size * 1.0,
-                    y + k * self.line_height,
-                    size,
-                    e,
-                    "title",
-                )
+            # ── 布局：语义节点 → lay_out（几何全来自节点）──────────────
+            result = layout_toc_entry(
+                e,
+                measure=self._measure,
+                size=size,
+                leader_gap=self.leader_gap,
+                line_height=self.line_height,
+                y=y,
+                translated_title=translated_title,
+                translated_continuation=conts,
+            )
+            for d in toc_layout_commands(result):
+                cmds.append(RenderCommand(**d))
 
         return cmds
 
