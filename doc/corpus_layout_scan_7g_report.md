@@ -225,3 +225,70 @@ Readings:
 Next (7G-2 optimisation half): turn the measured reclaimable space
 (`internal_gap` + `trailing_gap`) into an actual packing pass, gated by these
 baseline numbers.
+
+## 9. 7G-2 optimisation half landed — V2 packing executor (2026-08-30)
+
+The second half of 7G-2 is now in-tree: `pdf2zh/semantic/layout/packer.py`
+turns the measured reclaimable space into an actual pass on a settled plan.
+Where the measurement half only *reported* `internal_gap` + `trailing_gap`,
+this module *moves blocks* to reclaim them:
+
+- **compaction** (`compact_column`) — within each x-overlap column, reading
+  order topmost-first, pull every movable block UP so the vertical gap to the
+  block above collapses to a target `gutter` (topmost block is the anchor;
+  preserved blocks are immovable barriers that content packs *against*, never
+  across).  The dominant lever — shrinks `internal_gap`;
+- **re-anchor** (`column_reanchor`) — push the whole compacted column DOWN
+  (v3 y-up: decreasing y) into the trailing gap, bounded by `bottom_margin`
+  (keeps off the footer) and preserved blocks below.  Shrinks `trailing_gap`.
+
+Discipline mirrors the 7F-8 shift/recovery executor (`page_shift.py`): the
+geometry resolve is pure (`resolve_packing`), the plan wiring (`apply_packing`)
+is the only place a move lands and changes **only Y** — `dst_box` + payload
+command `y`; `src_box` and all X / width / font / text are byte-identical.
+Locked by `tests/test_layout_packer_7g2.py` (17 tests): pure-read input, only-Y
+mutation, `src_box` verbatim, preserved blocks immovable, reading order never
+inverted, and no detector / parser / renderer / translator / `level`/`index`
+imports or geometry math.
+
+The corpus gate was re-run (`build/corpus_packing_pass_scan.py`, gitignored
+scratch; identity translation, same `tests/file/` corpus and metrics as §8) with
+a compact+re-anchor `PackConfig` (`gutter=2`, `preserved_gutter=6`,
+`bottom_margin=36`).  Per-doc means, 41 PDFs, 0 errors:
+
+| metric (per-doc mean) | BEFORE | AFTER | Δ |
+|-----------------------|-------:|------:|----:|
+| `avg_fill_ratio`      | 0.543 | 0.480 | −0.063 |
+| `avg_whitespace_ratio`| 0.433 | 0.496 | +0.063 |
+| `avg_trailing_gap_pt` | 181.3 | 90.0 | −90.3 (−50%) |
+| `total_internal_gap_pt` | 67,138 | 11,164 | −55,974 (−83%) |
+| resolved collisions   | 4,459 | 3,943 | −516 (never up) |
+
+34,149 blocks moved; packing report claims ~2.31M pt internal + ~3.07M pt
+trailing white space reclaimed across the corpus.
+
+Readings (honest):
+
+1. **The two levers the report named both drop — and sharply.**
+   `total_internal_gap_pt` falls 83% (the P1 "bigger lever" — gap reclaim, not
+   just trailing compaction) and `avg_trailing_gap_pt` halves.  §8's emptiest
+   docs (2603.06957v2 / 2506.17366v2 / 2608.19584v1) now end with ~88–106 pt
+   trailing instead of 288–363.
+2. **Packing never creates collisions** — resolved collisions fall 4,459 →
+   3,943, because compaction reduces gaps and re-anchor stays inside the
+   `bottom_margin` / preserved-block floor.  The pass is safe on real plans.
+3. **`avg_fill_ratio` edges down, and that is expected, not a regression.**
+   Measurement's `fill_ratio` is `column_band_height / page_height`
+   (`topmost.top − bottommost.bottom`); for fixed content you cannot raise it by
+   *moving* blocks — you can only close gaps, which *concentrates* content into
+   a tighter band (the goal) and thereby narrows the band the metric measures.
+   The value of reclaimed whitespace is exactly that it lets the *same* content
+   live in less vertical space per page, which is the claim that matters for
+   page-count / fill downstream (7G-3+ placement reflow).  Judge packing by the
+   two gap levers + the collision gate, not by `fill_ratio` alone.
+
+Design note for 7G-3+: re-anchor currently never *merges* trailing space across
+logic blocks/pages — it only redistributes within a column's own band.  Turning
+reclaimed x pts into "pull the next logical block up onto the freed space" is
+cross-block / cross-page packing, the natural follow-on executor (mirrors the
+7F-8c STATEMENT_DOWN → 7F-8e NEXT_PAGE split).

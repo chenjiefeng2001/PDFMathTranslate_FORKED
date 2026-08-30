@@ -134,6 +134,14 @@ from pdf2zh.semantic.layout.packing import (
     page_columns,
     page_packing_metrics_for_placements,
 )
+from pdf2zh.semantic.layout.packer import (
+    PackConfig,
+    PackingReport,
+    apply_packing,
+    compact_column,
+    resolve_packing,
+    shift_box_v,
+)
 from pdf2zh.semantic.layout.placement import (
     PlacementDecision,
     PlacementPolicy,
@@ -271,8 +279,14 @@ __all__ = [
     "list_continuation",
     "CollectColumns",
     "ColumnMetrics",
+    "PackConfig",
+    "PackingReport",
     "PagePackingMetrics",
+    "apply_packing",
+    "compact_column",
     "document_packing_report",
+    "resolve_packing",
+    "shift_box_v",
     # measure
     "measure_text",
     "measure_text_estimate",
