@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Commit 7D — eval.metrics tests (through ``evaluate``).
 
 Verifies the structural-fidelity report on small real PDFs, the sensitivity of
@@ -7,7 +6,6 @@ and end-to-end integration over five PDF categories.
 """
 
 from pdf2zh.semantic.eval import evaluate
-
 from tests.pdf_eval_build import (
     add_page,
     build_cjk,
@@ -16,6 +14,8 @@ from tests.pdf_eval_build import (
     build_nested_list,
     build_prose,
     build_toc,
+    build_toc_multiline,
+    build_toc_no_leader,
     new_doc,
     write,
 )
@@ -86,6 +86,78 @@ def test_toc_column_regression(tmp_path):
     assert broke["toc_page_x_accuracy"] < 0.5
     # page numbers themselves still match
     assert broke["toc_page_number_accuracy"] == 1.0
+
+
+def test_toc_leader_integrity(tmp_path):
+    """Leader dots must sit between title end and page_x; never invented."""
+    src = str(tmp_path / "tl_src.pdf")
+    ok = str(tmp_path / "tl_ok.pdf")
+    build_toc(src)
+    build_toc(ok)
+    good = evaluate(src, ok)["metrics"]
+    assert good["toc_leader_integrity"] == 1.0
+
+    # broken output: the second entry loses its leader dots entirely
+    bad = str(tmp_path / "tl_bad.pdf")
+    doc = new_doc()
+    add_page(doc, [
+        (72, 80, "Contents", "bold", 14),
+        (72, 110, "Introduction ......... 1", "body", 12),
+        (96, 135, "Background 3", "body", 12),
+    ])
+    doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
+    write(doc, bad)
+    broke = evaluate(src, bad)["metrics"]
+    assert broke["toc_leader_integrity"] < 1.0
+
+
+def test_toc_leader_not_invented(tmp_path):
+    """A no-leader source TOC must not gain dots in the output."""
+    src = str(tmp_path / "nl_src.pdf")
+    ok = str(tmp_path / "nl_ok.pdf")
+    build_toc_no_leader(src)
+    build_toc_no_leader(ok)
+    good = evaluate(src, ok)["metrics"]
+    assert good["toc_leader_integrity"] == 1.0
+
+    # broken output: dots invented on the second no-leader entry
+    bad = str(tmp_path / "nl_bad.pdf")
+    doc = new_doc()
+    add_page(doc, [
+        (72, 80, "Contents", "bold", 14),
+        (72, 110, "Introduction", "body", 12),
+        (500, 110, "1", "body", 12),
+        (96, 135, "Background ..........", "body", 12),
+        (500, 135, "3", "body", 12),
+    ])
+    doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
+    write(doc, bad)
+    broke = evaluate(src, bad)["metrics"]
+    assert broke["toc_leader_integrity"] < 1.0
+
+
+def test_toc_continuation_x_accuracy(tmp_path):
+    """Multi-line TOC continuation column must be preserved."""
+    src = str(tmp_path / "tc_src.pdf")
+    ok = str(tmp_path / "tc_ok.pdf")
+    build_toc_multiline(src)
+    build_toc_multiline(ok)
+    good = evaluate(src, ok)["metrics"]
+    assert good["toc_continuation_x_accuracy"] == 1.0
+
+    # broken output: the continuation line dragged to a new column (and lost)
+    bad = str(tmp_path / "tc_bad.pdf")
+    doc = new_doc()
+    add_page(doc, [
+        (72, 80, "Contents", "bold", 14),
+        (72, 110, "A very long title that ......... 1", "body", 12),
+        (180, 130, "continues here", "body", 12),
+        (96, 155, "Background .......... 3", "body", 12),
+    ])
+    doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
+    write(doc, bad)
+    broke = evaluate(src, bad)["metrics"]
+    assert broke["toc_continuation_x_accuracy"] < 1.0
 
 
 def test_code_preserved_bbox_regression(tmp_path):

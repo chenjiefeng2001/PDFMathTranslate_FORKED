@@ -21,6 +21,7 @@ import re
 _X_TOL = 10.0          # horizontal column tolerance
 _OVERFLOW_TOL = 1.0    # a line may sit off-page by at most this before it counts
 _MATCH_TOL2 = 250.0 ** 2  # squared Euclidean centre distance for line matching
+_TOC_CONT_TOL = 30.0   # continuation line may drift from title_x by this (title_x+size anchor)
 
 _MARKER_RE = re.compile(r"^(?:[•·▪‣●○◦‣]|(?:[0-9]+|[a-z]|[ivxlcdmIVXLCDM]{1,4})[.)])$")
 _DOT_LEADER_RE = re.compile(r"\.{2,}")
@@ -95,6 +96,7 @@ def _line_word_features(words, page_width: float):
       ``page_number``                            — TOC entries
     """
     feats = []
+    last_toc_x = None
     groups = _group_words(words)
     for i, g in enumerate(groups):
         ws = g["words"]
@@ -118,18 +120,43 @@ def _line_word_features(words, page_width: float):
         is_toc = False
         title_x = page_x = page_number = None
         has_leader = bool(_DOT_LEADER_RE.search(line_text))
+        dot_words = [w for w in ws if re.fullmatch(r"\.+", w["text"])]
+        has_leader = has_leader or bool(dot_words)
+        leader_start = leader_end = title_end = None
         last_numeric = bool(last and _NUM_RE.fullmatch(last["text"]))
         if has_leader and last_numeric:
             is_toc = True
             title_x = first_x
             page_x = last_x
             page_number = last["text"]
+            if dot_words:
+                first_dot = ws.index(dot_words[0])
+                title_end = max((w["bbox"][2] for w in ws[:first_dot]), default=first_x)
+                leader_start = min(w["bbox"][0] for w in dot_words)
+                leader_end = max(w["bbox"][2] for w in dot_words)
         elif last_numeric and first_x < 0.3 * page_width and last_x > 0.6 * page_width:
             # right-aligned empty-column page number, no leader
             is_toc = True
             title_x = first_x
             page_x = last_x
             page_number = last["text"]
+
+        # TOC continuation: a line right after a TOC entry (or another TOC
+        # continuation) anchored near the entry's title_x — the wrapped
+        # follow-on lines of a multi-line entry, never a new entry itself.
+        is_toc_cont = False
+        toc_cont_x = None
+        if (
+            not is_item
+            and not is_toc
+            and last_toc_x is not None
+            and abs(first_x - last_toc_x) <= _TOC_CONT_TOL
+        ):
+            is_toc_cont = True
+            toc_cont_x = first_x
+        if is_toc:
+            last_toc_x = title_x
+        # (continuations keep anchoring to the entry's title_x automatically)
 
         feats.append(
             {
@@ -144,6 +171,12 @@ def _line_word_features(words, page_width: float):
                 "page_x": page_x,
                 "page_number": page_number,
                 "title": line_text if is_toc else None,
+                "has_leader": has_leader,
+                "title_end": title_end,
+                "leader_start": leader_start,
+                "leader_end": leader_end,
+                "is_toc_cont": is_toc_cont,
+                "toc_cont_x": toc_cont_x,
             }
         )
     return feats
@@ -245,10 +278,69 @@ def _list_nested_accuracy_page(sf, of):
     return sum(1 for k in range(n) if s_ranks[k] == o_ranks[k]) / float(n)
 
 
+def _toc_leader_integrity_page(sf, of):
+    """Per-page TOC leader integrity (index-aligned entries).
+
+    For source entries that carried a dot leader, the aligned output entry
+    must keep its dots strictly between the translated title end and page_x
+    (no overlap with the title, no dots past the page column).  For entries
+    without a leader the output must **not** invent dots.  ``1.0`` when the
+    source page has no TOC entries; ``0.0`` when entries were lost.
+    """
+    s_toc = [f for f in sf if f["is_toc"]]
+    o_toc = [f for f in of if f["is_toc"]]
+    if not s_toc:
+        return 1.0
+    if len(o_toc) < len(s_toc):
+        return 0.0  # entries lost — nothing left to verify
+    scores = []
+    for k, s in enumerate(s_toc):
+        o = o_toc[k]
+        if not s["has_leader"]:
+            scores.append(1.0 if not o["has_leader"] else 0.0)
+            continue
+        if not o["has_leader"]:
+            scores.append(0.0)
+            continue
+        ok = True
+        if (
+            o["title_end"] is not None
+            and o["leader_start"] is not None
+            and o["title_end"] > o["leader_start"] + _X_TOL
+        ):
+            ok = False  # dots overlap the title
+        if (
+            o["leader_end"] is not None
+            and o["page_x"] is not None
+            and o["leader_end"] > o["page_x"] + _X_TOL
+        ):
+            ok = False  # dots run past the page column
+        scores.append(1.0 if ok else 0.0)
+    return sum(scores) / float(len(scores))
+
+
+def _toc_continuation_page(sf, of):
+    """Per-page TOC continuation x-fidelity (index-aligned wrapped lines).
+
+    The follow-on lines of a multi-line entry must keep their anchor column
+    (``toc_cont_x``) — a continuation dragged to a new column, or lost
+    entirely, drops it.  ``1.0`` when neither side has continuations.
+    """
+    s_cont = [f["toc_cont_x"] for f in sf if f["is_toc_cont"] and f["toc_cont_x"] is not None]
+    o_cont = [f["toc_cont_x"] for f in of if f["is_toc_cont"] and f["toc_cont_x"] is not None]
+    if not s_cont and not o_cont:
+        return 1.0
+    n = min(len(s_cont), len(o_cont))
+    if not n:
+        return 0.0
+    return _col_acc(list(zip(s_cont[:n], o_cont[:n])))
+
+
 def _list_toc_metrics(src_doc, out_doc):
     """List marker/content/continuation + wrap integrity + TOC columns."""
     content_pairs, cont_pairs, marker_pairs = [], [], []
     wrap_ok, nested_ok = [], []
+    toc_leader_ok, toc_cont_acc = [], []
     toc_title_pairs, toc_page_pairs, toc_num_equal, toc_level_eq, toc_level_den = (
         [], [], 0, 0, 0
     )
@@ -271,6 +363,8 @@ def _list_toc_metrics(src_doc, out_doc):
 
         wrap_ok.append(_list_wrap_integrity_page(sf, of))
         nested_ok.append(_list_nested_accuracy_page(sf, of))
+        toc_leader_ok.append(_toc_leader_integrity_page(sf, of))
+        toc_cont_acc.append(_toc_continuation_page(sf, of))
 
         # TOC entries
         sentries = [f for f in sf if f["is_toc"]]
@@ -298,6 +392,8 @@ def _list_toc_metrics(src_doc, out_doc):
         "toc_page_x_accuracy": round(_col_acc(toc_page_pairs), 4),
         "toc_page_number_accuracy": round((toc_num_equal / len(toc_title_pairs)) if toc_title_pairs else 1.0, 4),
         "toc_level_accuracy": round((toc_level_eq / toc_level_den) if toc_level_den else 1.0, 4),
+        "toc_leader_integrity": round(sum(toc_leader_ok) / len(toc_leader_ok) if toc_leader_ok else 1.0, 4),
+        "toc_continuation_x_accuracy": round(sum(toc_cont_acc) / len(toc_cont_acc) if toc_cont_acc else 1.0, 4),
     }
 
 
@@ -393,6 +489,8 @@ def compute_report(source_doc: dict, output_doc: dict) -> dict:
         "toc_page_x_accuracy": lst["toc_page_x_accuracy"],
         "toc_page_number_accuracy": lst["toc_page_number_accuracy"],
         "toc_level_accuracy": lst["toc_level_accuracy"],
+        "toc_leader_integrity": lst["toc_leader_integrity"],
+        "toc_continuation_x_accuracy": lst["toc_continuation_x_accuracy"],
         "outline_destination_accuracy": _outline_metrics(source_doc, output_doc),
         "overflow_count": _overflow_count(output_doc),
         "code_preserved_bbox": _code_preserved_bbox(source_doc, output_doc),

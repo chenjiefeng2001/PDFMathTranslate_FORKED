@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Fixture builder for the 7D PDF-eval tests.
 
 Creates tiny *real* PDFs with PyMuPDF so the evaluator runs on actual
@@ -93,6 +92,35 @@ def build_toc(path, width=612.0, height=792.0):
         (72, 80, "Contents", "bold", 14),
         (72, 110, "Introduction ......... 1", "body", 12),
         (96, 135, "Background .......... 3", "body", 12),
+    ], width=width, height=height)
+    doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
+    write(doc, path)
+    return path
+
+
+def build_toc_no_leader(path, width=612.0, height=792.0):
+    """A TOC whose entries have a right-aligned page column but no dots."""
+    doc = new_doc()
+    add_page(doc, [
+        (72, 80, "Contents", "bold", 14),
+        (72, 110, "Introduction", "body", 12),
+        (500, 110, "1", "body", 12),
+        (96, 135, "Background", "body", 12),
+        (500, 135, "3", "body", 12),
+    ], width=width, height=height)
+    doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
+    write(doc, path)
+    return path
+
+
+def build_toc_multiline(path, width=612.0, height=792.0):
+    """A multi-line TOC entry: title + wrapped continuation at title_x."""
+    doc = new_doc()
+    add_page(doc, [
+        (72, 80, "Contents", "bold", 14),
+        (72, 110, "A very long title that ......... 1", "body", 12),
+        (82, 130, "continues here", "body", 12),
+        (96, 155, "Background .......... 3", "body", 12),
     ], width=width, height=height)
     doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
     write(doc, path)
