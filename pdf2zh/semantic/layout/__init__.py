@@ -69,6 +69,11 @@ from pdf2zh.semantic.layout.primitives import (
     FlowText,
     PreservedRegion,
 )
+from pdf2zh.semantic.layout.toc_layout import (
+    TocEntryLayoutResult,
+    layout_toc_entry,
+    toc_layout_commands,
+)
 from pdf2zh.semantic.layout.wrap import clip_text, shrink_to_fit, wrap_lines, tokenize
 
 __all__ = [
@@ -94,6 +99,10 @@ __all__ = [
     "ListLayoutResult",
     "layout_list_item",
     "layout_list_node",
+    # toc
+    "TocEntryLayoutResult",
+    "layout_toc_entry",
+    "toc_layout_commands",
     # mapping
     "flow_text",
     "list_anchor",
