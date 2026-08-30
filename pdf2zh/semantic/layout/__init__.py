@@ -28,6 +28,8 @@ Modules:
 - :mod:`~pdf2zh.semantic.layout.wrap` — wrapping / shrink / clip mechanics.
 - :mod:`~pdf2zh.semantic.layout.overflow` — OverflowPolicy + LayoutResult +
   the ``lay_out`` engine.
+- :mod:`~pdf2zh.semantic.layout.recovery` — OverflowReason + RecoveryDecision +
+  LayoutBudget + diagnose/decide policy layer (7F).
 """
 
 from __future__ import annotations
@@ -69,54 +71,75 @@ from pdf2zh.semantic.layout.primitives import (
     FlowText,
     PreservedRegion,
 )
+from pdf2zh.semantic.layout.recovery import (
+    LayoutBudget,
+    OverflowDiagnosis,
+    OverflowReason,
+    RecoveryDecision,
+    budget_for_kind,
+    classify_reason,
+    decide_recovery,
+    default_budget,
+    diagnose_overflow,
+)
 from pdf2zh.semantic.layout.toc_layout import (
     TocEntryLayoutResult,
     layout_toc_entry,
     toc_layout_commands,
 )
-from pdf2zh.semantic.layout.wrap import clip_text, shrink_to_fit, wrap_lines, tokenize
+from pdf2zh.semantic.layout.wrap import clip_text, shrink_to_fit, tokenize, wrap_lines
 
 __all__ = [
-    # primitives
-    "FlowText",
+    "Continuation",
     "FixedAnchor",
     "FixedColumn",
-    "PreservedRegion",
-    "Continuation",
-    # constraints
-    "LayoutGeometry",
+    "FixedWidth",
     "FixedX",
     "FixedY",
-    "FixedWidth",
-    "MaxWidth",
+    # primitives
+    "FlowText",
+    "LayoutBudget",
+    # constraints
+    "LayoutGeometry",
+    "LayoutResult",
+    # list
+    "ListLayoutResult",
     "MaxHeight",
+    "MaxWidth",
+    "OverflowDiagnosis",
+    "OverflowPolicy",
+    # recovery (7F)
+    "OverflowReason",
     "PreserveBBox",
-    "resolve_geometry",
+    "PreservedRegion",
+    "RecoveryDecision",
+    # toc
+    "TocEntryLayoutResult",
+    "budget_for_kind",
+    "classify_reason",
+    "clip_text",
+    "decide_recovery",
+    "default_budget",
+    "diagnose_overflow",
+    # mapping
+    "flow_text",
+    "lay_out",
+    "layout_list_item",
+    "layout_list_node",
+    "layout_toc_entry",
+    "list_anchor",
+    "list_continuation",
     # measure
     "measure_text",
     "measure_text_estimate",
-    # list
-    "ListLayoutResult",
-    "layout_list_item",
-    "layout_list_node",
-    # toc
-    "TocEntryLayoutResult",
-    "layout_toc_entry",
-    "toc_layout_commands",
-    # mapping
-    "flow_text",
-    "list_anchor",
-    "list_continuation",
-    "toc_title_anchor",
-    "toc_page_column",
+    "policy_for",
     "preserved_region",
+    "resolve_geometry",
+    "shrink_to_fit",
+    "toc_layout_commands",
+    "toc_page_column",
+    "toc_title_anchor",
+    "tokenize",
     # wrap / overflow
     "wrap_lines",
-    "tokenize",
-    "shrink_to_fit",
-    "clip_text",
-    "OverflowPolicy",
-    "LayoutResult",
-    "policy_for",
-    "lay_out",
 ]

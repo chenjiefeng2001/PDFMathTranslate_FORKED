@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable
+from typing import Callable, Optional
 
 from pdf2zh.semantic.layout.constraints import FixedWidth, MaxHeight, MaxWidth
 from pdf2zh.semantic.layout.measure import measure_text
@@ -84,9 +84,14 @@ class LayoutResult:
     policy: OverflowPolicy = OverflowPolicy.WRAP
     font_size: float = 11.0
     primitive_kind: str = "flow"
+    # 7F recovery diagnostics (written by adaptive_layout; JSON-safe).
+    recovery_reason: Optional[str] = None
+    recovery_decision: Optional[str] = None
+    recovery_steps: list[str] = field(default_factory=list)
+    original_font_size: Optional[float] = None
 
     def to_dict(self) -> dict:
-        return {
+        out = {
             "text": self.text,
             "lines": list(self.lines),
             "line_widths": [round(w, 1) for w in self.line_widths],
@@ -96,6 +101,16 @@ class LayoutResult:
             "font_size": round(self.font_size, 1),
             "primitive_kind": self.primitive_kind,
         }
+        if self.recovery_steps or self.recovery_decision:
+            out["recovery"] = {
+                "reason": self.recovery_reason,
+                "decision": self.recovery_decision,
+                "steps": list(self.recovery_steps),
+                "original_font_size": round(self.original_font_size, 2)
+                if self.original_font_size is not None else None,
+                "final_font_size": round(self.font_size, 2),
+            }
+        return out
 
 
 def _primitive_geometry(prim) -> tuple[float, float, float, float]:

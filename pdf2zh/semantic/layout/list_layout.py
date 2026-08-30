@@ -39,13 +39,24 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 
+from pdf2zh.semantic.layout.adaptive import adaptive_layout
 from pdf2zh.semantic.layout.overflow import LayoutResult, lay_out
 from pdf2zh.semantic.layout.primitives import FixedAnchor, FlowText
+from pdf2zh.semantic.layout.recovery import LayoutBudget
 
 __all__ = ["ListLayoutResult", "layout_list_item", "layout_list_node"]
 
 _DEFAULT_FONT_SIZE = 11.0
 _DEFAULT_LINE_HEIGHT = 1.4
+
+# List content / continuation recovery budget (7F-4): WRAP is enabled, but
+# SHRINK / CLIP stay OFF this commit (list text must never be auto-shrunk or
+# truncated).  Only the marker is PRESERVE (never wrap/shrink/clip).  This keeps
+# the existing "overlong unbreakable token → whole line + explicit overflow"
+# contract intact while routing content through the unified adaptive executor.
+_LIST_ADAPTIVE_BUDGET = LayoutBudget(
+    allow_wrap=True, allow_shrink=False, allow_clip=False
+)
 
 
 @dataclass
@@ -161,8 +172,8 @@ def layout_list_item(
         font_size=fs,
     )
 
-    # ── content：FlowText —— 译文 wrap 在 content_width 内 ──
-    content = lay_out(
+    # ── content：FlowText —— 译文 wrap 在 content_width 内（7F-4 adaptive）──
+    content = adaptive_layout(
         FlowText(
             text=_node_text(item, content_text, getattr(item, "content", "")),
             origin=(content_x, y),
@@ -171,10 +182,13 @@ def layout_list_item(
             line_height=fs * (line_height or _DEFAULT_LINE_HEIGHT),
         ),
         measure=measure,
+        avail_width=avail_w,
+        avail_height=avail_h,
         font_size=fs,
+        budget=_LIST_ADAPTIVE_BUDGET,
     )
 
-    # ── continuation：FlowText 钉在 content_x（x 固定，可 wrap）──
+    # ── continuation：FlowText 钉在 content_x（x 固定，可 wrap；7F-4 adaptive）
     continuations = list(
         continuation_texts
         if continuation_texts is not None
@@ -183,7 +197,7 @@ def layout_list_item(
     cont_results: list[LayoutResult] = []
     for ct in continuations:
         cont_results.append(
-            lay_out(
+            adaptive_layout(
                 FlowText(
                     text=ct or "",
                     origin=(content_x, y),
@@ -192,7 +206,10 @@ def layout_list_item(
                     line_height=fs * (line_height or _DEFAULT_LINE_HEIGHT),
                 ),
                 measure=measure,
+                avail_width=avail_w,
+                avail_height=avail_h,
                 font_size=fs,
+                budget=_LIST_ADAPTIVE_BUDGET,
             )
         )
 
