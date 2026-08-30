@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "created": "2026-08-30T01:47:09+00:00",
+    "pdf2zh_version": "0.0.0",
+    "model": "corpus-mock",
+    "commit": "7F-5d",
+    "corpus": [
+      "toc_short",
+      "toc_long_wrap",
+      "toc_long_shrink",
+      "toc_extreme_overflow",
+      "toc_cjk",
+      "toc_multiline_continuation"
+    ]
+  },
+  "metrics": {
+    "text_exactness": 0.5,
+    "bbox_mean_delta": 0.0,
+    "bbox_max_delta": 0.0,
+    "font_match_rate": 1.0,
+    "bold_accuracy": 1.0,
+    "italic_accuracy": 1.0,
+    "list_marker_x_accuracy": 1.0,
+    "list_content_x_accuracy": 1.0,
+    "list_continuation_x_accuracy": 1.0,
+    "list_wrap_integrity": 1.0,
+    "list_nested_geometry_accuracy": 1.0,
+    "toc_title_x_accuracy": 1.0,
+    "toc_page_x_accuracy": 1.0,
+    "toc_page_number_accuracy": 1.0,
+    "toc_level_accuracy": 1.0,
+    "toc_leader_integrity": 0.0,
+    "toc_continuation_x_accuracy": 1.0,
+    "toc_page_column_stability": 1.0,
+    "toc_adaptive_wrap_integrity": 1.0,
+    "toc_adaptive_font_size": 1.0,
+    "toc_adaptive_overflow": 1.0,
+    "outline_destination_accuracy": 1.0,
+    "overflow_count": 0,
+    "code_preserved_bbox": 1.0
+  }
+}
