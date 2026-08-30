@@ -146,7 +146,10 @@ def budget_for_kind(kind: str) -> LayoutBudget:
     """Default :class:`LayoutBudget` for a primitive ``kind``.
 
     - ``flow`` / ``continuation`` — aggressive: wrap, then shrink, then clip.
-    - ``anchor`` (list content) — wrap then shrink (list marker is handled by
+    - ``list_content`` (7F-6c) — list content / continuation run the full
+      aggressive ladder; the marker is handled by ``decide_recovery``'s target
+      rule, NOT by budget.
+    - ``anchor`` — generic anchor (wrap then shrink; list marker handled by
       ``decide_recovery``'s target rule, NOT by budget).
     - ``toc_title`` — TOC title ladder (7F-5a): WRAP → SHRINK →
       PRESERVE_OVERFLOW, **never CLIP** — the page column (``page_x``) is
@@ -156,6 +159,13 @@ def budget_for_kind(kind: str) -> LayoutBudget:
     """
     if kind in ("flow", "continuation"):
         return LayoutBudget(allow_wrap=True, allow_shrink=True, allow_clip=True)
+    if kind == "list_content":
+        # 7F-6c-1: list content / continuation run the full aggressive ladder
+        # (WRAP → SHRINK → CLIP).  The marker is handled by ``decide_recovery``'s
+        # target rule, NOT by this budget.
+        return LayoutBudget(
+            allow_wrap=True, allow_shrink=True, allow_clip=True, max_extra_lines=2
+        )
     if kind == "anchor":
         return LayoutBudget(
             allow_wrap=True, allow_shrink=True, allow_clip=True, max_extra_lines=2

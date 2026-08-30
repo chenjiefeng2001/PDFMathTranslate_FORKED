@@ -1,4 +1,4 @@
-"""TOC layout contract — Commit 7E-3a, extended by 7F-5b.
+"""TOC layout contract — Commit 7E-3a, extended by 7F-5b / 7F-6c-2.
 
 Bridges a structured TOC entry (``toc_sidechannel`` schema dict — the same
 shape produced by ``TOCEntryNode.to_dict``) onto the unified layout pipeline
@@ -10,7 +10,8 @@ per-run geometry itself::
     FixedAnchor (title, number)
     FixedColumn (page)
     + flexible leader region
-        ↓  lay_out()   (the single fit/overflow decision engine)
+        ↓  adaptive_layout(title)   (7F-6c: THE single bounded executor)
+        ↓  lay_out(number/leader/page/continuation)
     TocEntryLayoutResult
         ↓  toc_layout_commands  →  existing TocRenderer (draw only)
     PDF commands
@@ -25,7 +26,10 @@ Channel semantics:
   when the translation grows.  The extra-line budget
   (``original_lines + max_extra_lines``) bounds the growth: WRAP first, then
   SHRINK if the budget is exceeded, then explicit PRESERVE_OVERFLOW — never
-  CLIP, never infinite height growth (7F-5a contract).
+  CLIP, never infinite height growth (7F-5a contract).  Since 7F-6c-2 the
+  title runs through :func:`pdf2zh.semantic.layout.adaptive.adaptive_layout`
+  with ``target="title"`` — the same executor Flow / List use (the 7F-5a
+  ladder lives in the executor, not in a second hand-rolled loop).
 - **leader** → flexible dot region filling from the translated title's
   right edge to the original ``page_x``; when the title grows, the leader
   shrinks and ``page_x`` never moves; when ``leader_present`` is False no
@@ -42,8 +46,8 @@ Geometry invariant (architecture): ``title_x`` / ``page_x`` / ``indent`` /
 derives them from ``level``, entry ``index`` or ``level * constant``.  The
 only synthesized values are the vertical step between continuation lines and
 the multi-line title's y offsets (placement constants).  All fit / wrap /
-overflow decisions go through :func:`~pdf2zh.semantic.layout.overflow.lay_out`
-— this module never calls ``wrap_lines`` / ``shrink_to_fit`` / ``clip_text``
+overflow decisions go through the unified executor / ``lay_out`` — this
+module never calls ``wrap_lines`` / ``shrink_to_fit`` / ``clip_text``
 directly.
 
 Overflow (translated title that cannot fit even after WRAP→SHRINK): the
@@ -57,9 +61,9 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Optional
 
+from pdf2zh.semantic.layout.adaptive import adaptive_layout
 from pdf2zh.semantic.layout.overflow import (
     LayoutResult,
-    OverflowPolicy,
     lay_out,
 )
 from pdf2zh.semantic.layout.primitives import FixedAnchor, FixedColumn
@@ -74,9 +78,6 @@ __all__ = [
 _DEFAULT_SIZE = 10.0
 _DEFAULT_LEADER_GAP = 4.0
 _DEFAULT_LINE_HEIGHT = 14.0
-_MIN_FONT_FLOOR = 5.0
-_SHRINK_STEP = 0.85          # geometric font descent per SHRINK iteration
-_MAX_SHRINK_STEPS = 8        # bounded: never a while-loop
 
 
 @dataclass
@@ -150,74 +151,6 @@ def _entry_value(entry, key: str, default):
     return getattr(entry, key, default)
 
 
-def _title_shrink_floor(budget: LayoutBudget, font_size: float) -> float:
-    """Hard floor for the TOC-title SHRINK stage (mirrors adaptive._shrink_floor)."""
-    floor = float(budget.min_font_size) if budget.min_font_size is not None else _MIN_FONT_FLOOR
-    if budget.max_font_reduction is not None and font_size > 0.0:
-        floor = max(floor, float(font_size) * (1.0 - float(budget.max_font_reduction)))
-    return float(floor)
-
-
-def _fit_toc_title(
-    anchor,
-    *,
-    measure: Callable[[str, float], float] | None,
-    avail_width: float,
-    allowed_lines: int,
-    font_size: float,
-    budget: LayoutBudget,
-) -> tuple[LayoutResult, list[str], Optional[str]]:
-    """Fit a TOC title with a **line budget**: WRAP → SHRINK → PRESERVE.
-
-    Returns ``(result, steps, decision)``:
-
-    - single line that fits → ``(result, [], None)`` — NO_ACTION, no recovery;
-    - wraps within ``allowed_lines`` → ``(result, [\"WRAP\"], \"wrap\")``;
-    - over budget → SHRINK (bounded geometric font descent, at most
-      ``_MAX_SHRINK_STEPS``) until ``len(lines) <= allowed_lines``;
-    - still over budget (or an unbreakable token wider than the box) →
-      ``(last, [\"WRAP\", \"SHRINK\"...], \"preserve_overflow\")`` — overflow
-      stays explicit, never silently clipped.
-
-    Only ``lay_out`` is used (WRAP policy); the 7C mechanics are never called
-    directly.  ``allowed_lines = 1 + max_extra_lines`` (the title's own
-    original is 1 line; continuation lines are separate channels, so the
-    entry-level budget ``original_lines + max_extra_lines`` reduces to this).
-    """
-    r = lay_out(
-        anchor, measure=measure, avail_width=avail_width,
-        font_size=font_size, policy=OverflowPolicy.WRAP,
-    )
-    n = len(r.lines)
-
-    # fits the budget already (single line, or wrapped within extra lines)
-    if n <= allowed_lines and not r.overflow:
-        return r, (["WRAP"] if n > 1 else []), ("wrap" if n > 1 else None)
-
-    steps: list[str] = ["WRAP"] if n > 1 else []
-    if not budget.allow_shrink:
-        # no shrink allowed and still doesn't fit → PRESERVE_OVERFLOW
-        return r, steps, "preserve_overflow"
-
-    # SHRINK: bounded geometric descent, re-WRAP at each step.
-    floor = _title_shrink_floor(budget, font_size)
-    size = float(font_size)
-    best = r
-    for _ in range(_MAX_SHRINK_STEPS):
-        size = max(floor, size * _SHRINK_STEP)
-        r2 = lay_out(
-            anchor, measure=measure, avail_width=avail_width,
-            font_size=size, policy=OverflowPolicy.WRAP,
-        )
-        best = r2
-        steps.append("SHRINK")
-        if len(r2.lines) <= allowed_lines and not r2.overflow:
-            return r2, steps, "shrink"
-        if size <= floor + 1e-6:
-            break
-    return best, steps, "preserve_overflow"
-
-
 def layout_toc_entry(
     entry,
     *,
@@ -288,7 +221,8 @@ def layout_toc_entry(
         num_result = _lay(FixedAnchor(text=number, x=title_x, y=y, max_width=0.0, role="title_x"))
         cursor = title_x + num_result.line_widths[0] + gap
 
-    # ── Channel 2: title —— WRAP→SHRINK→PRESERVE with a line budget ─────
+    # ── Channel 2: title —— adaptive_layout(target="title")：WRAP→SHRINK→
+    #    PRESERVE_OVERFLOW（7F-5a），同一个 executor，绝不 CLIP ────────────
     title_result: LayoutResult | None = None
     title_recovery: dict | None = None
     title_lines = 0
@@ -300,28 +234,19 @@ def layout_toc_entry(
         max_extra = int(b.max_extra_lines or 0)
         allowed_lines = 1 + max_extra  # title's own original is 1 line
         anchor = FixedAnchor(text=translated_title, x=cursor, y=y, max_width=avail, role="title_x")
-        title_result, steps, decision = _fit_toc_title(
-            anchor, measure=measure, avail_width=avail,
-            allowed_lines=allowed_lines, font_size=sz, budget=b,
+        title_result = adaptive_layout(
+            anchor,
+            measure=measure,
+            avail_width=avail,
+            avail_height=0.0,
+            font_size=sz,
+            budget=b,
+            target="title",
         )
         title_lines = len(title_result.lines)
         title_end = cursor + (title_result.line_widths[0] if title_result.line_widths else 0.0)
         overflow = bool(title_result.overflow) or title_lines > allowed_lines
-        if steps or decision:
-            reason = "height" if title_lines > allowed_lines else "width"
-            dec = decision or "preserve_overflow"
-            title_result.recovery_reason = reason
-            title_result.recovery_decision = dec
-            title_result.recovery_steps = list(steps)
-            title_result.original_font_size = round(float(sz), 2)
-            title_result.font_size = round(float(title_result.font_size), 2)
-            title_recovery = {
-                "reason": reason,
-                "decision": dec,
-                "steps": list(steps),
-                "original_font_size": round(float(sz), 2),
-                "final_font_size": round(float(title_result.font_size), 2),
-            }
+        title_recovery = title_result.recovery
 
     # ── Channel 3: leader —— flexible dots to original page_x ──────────
     leader_result: LayoutResult | None = None

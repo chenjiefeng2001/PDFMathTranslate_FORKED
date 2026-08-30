@@ -89,6 +89,32 @@ class LayoutResult:
     recovery_decision: Optional[str] = None
     recovery_steps: list[str] = field(default_factory=list)
     original_font_size: Optional[float] = None
+    # 7F-7d: per-stage recovery trace (optional).  Each entry is a JSON-safe
+    # dict like ``{"decision": "WRAP", "overflow": true, "line_count": 2}``
+    # recorded *after* every budgeted stage attempt.  It is intentionally kept
+    # OUT of ``recovery`` / ``to_dict()`` so the 7F-6a contract (uniform
+    # ``recovery`` dict shape) stays byte-identical — the trace is surfaced
+    # only through the diagnostics layer (7F-7).
+    recovery_trace: list[dict] = field(default_factory=list)
+
+    @property
+    def recovery(self) -> Optional[dict]:
+        """JSON-safe recovery metadata, or ``None`` when no recovery ran.
+
+        7F-6a: a uniform ``recovery`` member on every ``LayoutResult`` so a
+        consumer can inspect ``recovery`` / ``recovery``-shape uniformly across
+        Flow / List / TOC / Code results (``None`` == NO_ACTION).
+        """
+        if not (self.recovery_steps or self.recovery_decision):
+            return None
+        return {
+            "reason": self.recovery_reason,
+            "decision": self.recovery_decision,
+            "steps": list(self.recovery_steps),
+            "original_font_size": round(self.original_font_size, 2)
+            if self.original_font_size is not None else None,
+            "final_font_size": round(self.font_size, 2),
+        }
 
     def to_dict(self) -> dict:
         out = {
@@ -101,15 +127,8 @@ class LayoutResult:
             "font_size": round(self.font_size, 1),
             "primitive_kind": self.primitive_kind,
         }
-        if self.recovery_steps or self.recovery_decision:
-            out["recovery"] = {
-                "reason": self.recovery_reason,
-                "decision": self.recovery_decision,
-                "steps": list(self.recovery_steps),
-                "original_font_size": round(self.original_font_size, 2)
-                if self.original_font_size is not None else None,
-                "final_font_size": round(self.font_size, 2),
-            }
+        if self.recovery is not None:
+            out["recovery"] = self.recovery
         return out
 
 

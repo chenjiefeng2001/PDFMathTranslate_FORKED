@@ -209,14 +209,27 @@ def build_render_payload(unit: Mapping, block=None) -> dict:
 
     Returns ``{"kind", "commands", "entries"}``；block 提供几何/字号透传
     （仅透传，不重算）。flow/preserve/skip → commands 为空。
+
+    7F-7: flow 的已定版布局诊断（``overflow`` / ``policy`` / ``font_size`` /
+    ``recovery`` / ``trace`` / ``lines`` / ``primitive_kind``）原样透传
+    （仅透传，不重算），使 render plan 成为诊断链的“已定版结果”载体 ——
+    诊断层从 plan 读取，绝不重新 layout。
     """
     kind = unit.get("kind", "flow")
     payload = unit.get("payload") or {}
-    return {
+    out = {
         "kind": kind,
         "commands": payload_commands(payload),
         "entries": list(payload.get("entries") or []),
     }
+    if kind == "flow" and isinstance(payload, dict):
+        for k in (
+            "overflow", "policy", "font_size", "recovery", "trace",
+            "lines", "line_widths", "primitive_kind", "layout_ok", "bbox",
+        ):
+            if k in payload:
+                out[k] = payload[k]
+    return out
 
 
 __all__ = [

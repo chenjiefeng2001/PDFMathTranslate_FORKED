@@ -64,6 +64,66 @@ from pdf2zh.semantic.layout.overflow import (
     lay_out,
     policy_for,
 )
+from pdf2zh.semantic.layout.page_break import (
+    PageBreakDecision,
+    PageBreakExecution,
+    PageBreakReport,
+    assert_break_invariants,
+    break_invariants,
+    break_placement_to_page,
+    decide_page_break,
+    decide_page_breaks,
+    next_free_page,
+    next_page_start_y,
+    page_break_execution,
+    page_break_from_shift,
+)
+from pdf2zh.semantic.layout.page_break_continuation import (
+    ContinuationBreakRecord,
+    ContinuationBreakReport,
+    execute_continuation_breaks,
+    split_continuation_break,
+)
+from pdf2zh.semantic.layout.global_recovery import (
+    GlobalRecoveryEvent,
+    GlobalRecoveryReport,
+    global_recovery,
+    source_geometry_snapshot,
+)
+from pdf2zh.semantic.layout.page_break_executor import (
+    PageBreakExecutionReport,
+    execute_page_breaks,
+    move_entry_to_page,
+    shift_command_fields,
+)
+from pdf2zh.semantic.layout.page_flow import (
+    BlockPlacement,
+    PageCollision,
+    PageFlowReport,
+    PageOverflow,
+    PRESERVE_KINDS,
+    build_page_flow_report,
+    detect_collisions_from_placements,
+    detect_page_collisions,
+    detect_page_overflows,
+    placements_from_plan,
+)
+from pdf2zh.semantic.layout.page_recovery import (
+    BlockShiftDecision,
+    PageRecoveryDecision,
+    decide_block_shift,
+    decide_page_recovery,
+    decision_summary,
+    keep_decision,
+)
+from pdf2zh.semantic.layout.page_shift import (
+    ShiftExecutionReport,
+    apply_block_shift,
+    apply_page_shifts,
+    block_deltas,
+    resolve_page_shifts,
+    shift_box_down,
+)
 from pdf2zh.semantic.layout.primitives import (
     Continuation,
     FixedAnchor,
@@ -90,6 +150,9 @@ from pdf2zh.semantic.layout.toc_layout import (
 from pdf2zh.semantic.layout.wrap import clip_text, shrink_to_fit, tokenize, wrap_lines
 
 __all__ = [
+    # page-flow (7F-8a)
+    "BlockPlacement",
+    "BlockShiftDecision",
     "Continuation",
     "FixedAnchor",
     "FixedColumn",
@@ -99,9 +162,53 @@ __all__ = [
     # primitives
     "FlowText",
     "LayoutBudget",
+    "PageBreakDecision",
+    "PageBreakExecution",
+    "PageBreakExecutionReport",
+    "PageBreakReport",
+    "PageRecoveryDecision",
+    "ContinuationBreakRecord",
+    "ContinuationBreakReport",
+    "GlobalRecoveryEvent",
+    "GlobalRecoveryReport",
+    "ShiftExecutionReport",
+    "PRESERVE_KINDS",
     # constraints
     "LayoutGeometry",
     "LayoutResult",
+    "PageCollision",
+    "PageFlowReport",
+    "PageOverflow",
+    "apply_block_shift",
+    "apply_page_shifts",
+    "assert_break_invariants",
+    "block_deltas",
+    "break_invariants",
+    "break_placement_to_page",
+    "build_page_flow_report",
+    "decide_block_shift",
+    "decide_page_break",
+    "decide_page_breaks",
+    "decide_page_recovery",
+    "decision_summary",
+    "detect_collisions_from_placements",
+    "detect_page_collisions",
+    "detect_page_overflows",
+    "execute_continuation_breaks",
+    "execute_page_breaks",
+    "global_recovery",
+    "source_geometry_snapshot",
+    "split_continuation_break",
+    "keep_decision",
+    "move_entry_to_page",
+    "next_free_page",
+    "next_page_start_y",
+    "page_break_execution",
+    "page_break_from_shift",
+    "placements_from_plan",
+    "resolve_page_shifts",
+    "shift_box_down",
+    "shift_command_fields",
     # list
     "ListLayoutResult",
     "MaxHeight",

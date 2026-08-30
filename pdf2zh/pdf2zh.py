@@ -178,6 +178,14 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parse_params.add_argument(
+        "--debug-layout",
+        action="store_true",
+        help="Layout diagnostics: write debug/layout.json with the settled "
+        "layout + recovery chain per block (identity translation; no PDF "
+        "modification, no renderer).",
+    )
+
+    parse_params.add_argument(
         "--backend",
         type=str,
         choices=["auto", "cpu", "cuda", "dml"],
@@ -551,6 +559,38 @@ def main(args: list[str] | None = None) -> int:
                 "--debug-toc %s: %d page(s) with TOC -> %s/toc.json",
                 f,
                 len(payload["pages"]),
+                out_dir,
+            )
+        return 0
+
+    # --debug-layout：纯布局诊断（恒等翻译，不修改 PDF、不渲染），独立于
+    # 解析引擎/翻译服务，输出 debug/layout.json（7F-7c）。
+    if getattr(parsed_args, "debug_layout", False):
+        from pdf2zh.semantic.layout_debug import dump_layout_debug
+
+        out_dir = parsed_args.output or "debug"
+        for f in (parsed_args.files or []):
+            payload = dump_layout_debug(f, out_dir)
+            # 7F-8a: page_flow section carries cross-block collision detection;
+            # 7F-8c: page_recovery carries the decision contract.
+            collisions = (
+                payload.get("page_flow", {})
+                .get("summary", {})
+                .get("collision_count", 0)
+            )
+            decisions = (
+                payload.get("page_recovery", {})
+                .get("summary", {})
+                .get("total", 0)
+            )
+            logger.info(
+                "--debug-layout %s: %d block(s), %d overflow, %d collision(s), "
+                "%d decision(s) -> %s/layout.json",
+                f,
+                payload["summary"]["blocks"],
+                payload["summary"]["overflow"],
+                collisions,
+                decisions,
                 out_dir,
             )
         return 0

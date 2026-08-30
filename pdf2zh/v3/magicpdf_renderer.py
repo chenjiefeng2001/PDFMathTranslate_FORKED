@@ -79,8 +79,9 @@ def _insert_text_wrapped(
         effective_font = "helv"
 
     def _width(s: str) -> float:
-        if effective_font == "helv":
-            return pymupdf.get_text_length(s, fontsize=font_size)
+        if effective_font in ("helv", "cour"):
+            return pymupdf.get_text_length(s, fontsize=font_size,
+                                           fontname=effective_font)
         # CJK 内置字体（china-ss）对全角/拉丁均近似 1em 等宽，逐字符估算。
         return len(s) * font_size
 
@@ -150,7 +151,9 @@ def _render_flow_commands(
 
     Each command is a pre-laid-out line (x/y baseline in v3 y-up).  This
     renderer applies no re-wrap / re-fit — it only flips y and inserts the
-    glyphs.  Overflow carried by a command is surfaced via a debug log +
+    glyphs at the **settled** font size carried by the command (7F-6b: a
+    SHRINK recovery reduces it; falling back to the block font when absent).
+    Overflow carried by a command is surfaced via a debug log +
     ``stats["flow_overflow"]`` so it stays observable.
     """
     if src_doc is not None:
@@ -162,8 +165,15 @@ def _render_flow_commands(
             continue
         x = float(c.get("x") or 0.0)
         y = float(c.get("y") or 0.0)
+        draw_fs = c.get("font_size")
+        try:
+            draw_fs = float(draw_fs) if draw_fs else 0.0
+        except (TypeError, ValueError):
+            draw_fs = 0.0
+        if draw_fs <= 0:
+            draw_fs = float(font_size)
         eff = _resolve_effect_font(t, fontname)
-        page.insert_text((x, page_height - y), t, fontsize=font_size, fontname=eff)
+        page.insert_text((x, page_height - y), t, fontsize=draw_fs, fontname=eff)
         stats["blocks"] += 1
         stats["glyphs"] += len(t)
         overflow_hit = overflow_hit or bool(c.get("overflow"))
@@ -383,7 +393,17 @@ def render_plan_to_pdf(
                 # dst_box，背景图形在未覆盖区域原样保留（修复有色方块被整页
                 # 白底吞噬 —— 旧版从零建白页丢弃全部背景）。
                 page.draw_rect(rect, color=None, fill=(1, 1, 1))
-            _insert_text_wrapped(page, rect, text, font_size, fontname)
+            if src_doc is None and not _is_translated_block(entry):
+                # 纯文本层：保留块（formula/code/table，translated == text）
+                # 用等宽字体绘制，保持与源等宽文本一致的几何（否则 bbox 中心
+                # 漂移，evaluator 的 code_preserved_bbox 会误报）。真实链路
+                # 由背景直接显示保留块，不经过此路径。
+                # 注意：局部变量，绝不覆盖外层 fontname —— 否则会污染后续
+                # 翻译块（CJK 译文被 cour 渲染成乱码）。
+                block_font = "cour"
+            else:
+                block_font = fontname
+            _insert_text_wrapped(page, rect, text, font_size, block_font)
             stats["blocks"] += 1
             stats["glyphs"] += len(text)
         stats["pages"] += 1

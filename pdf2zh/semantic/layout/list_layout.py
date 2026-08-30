@@ -1,4 +1,4 @@
-"""List layout contract — Commit 7E-2a.
+"""List layout contract — Commit 7E-2a, extended by 7F-6c-1.
 
 Bridges a semantic :class:`~pdf2zh.semantic.models.ListItemNode` onto the
 unified layout pipeline so the renderer consumes settled ``LayoutResult``
@@ -7,7 +7,7 @@ shapes instead of re-wrapping at draw time::
     ListItemNode
         ↓  layout_list_item
     FixedAnchor (marker)  +  FlowText (content)  +  FlowText (continuation)
-        ↓  lay_out()   (the single fit/overflow decision engine)
+        ↓  adaptive_layout(content/continuation) + lay_out(marker)
     ListLayoutResult
         ↓  ListRenderer (draw only)
     PDF commands
@@ -15,12 +15,13 @@ shapes instead of re-wrapping at draw time::
 Channel semantics (marker is FIXED, content is FLOW, continuation keeps x):
 
 - **marker** → :class:`FixedAnchor` — ``1.`` / ``(a)`` / ``•`` never wrap,
-  never shrink by default, never enter the translator; verbatim single line.
-- **content** → :class:`FlowText` — the translated text wraps inside
-  ``content_width``; overflow is reported, never silent.
-- **continuation** → :class:`FlowText` pinned to ``content_x`` — follow-on
-  lines keep the item's content column exactly (``continuation_x ==
-  content_x``), each may itself wrap.
+  never shrink, never clip, never enter the translator; verbatim single
+  line (a raw ``lay_out`` call — adaptive recovery never touches it).
+- **content** → :class:`FlowText` — runs the shared adaptive executor with
+  the ``list_content`` budget (7F-6c-1: WRAP → SHRINK → CLIP, clamped by
+  ``LayoutBudget``); ``content_x`` never moves.
+- **continuation** → :class:`FlowText` pinned to ``content_x`` — same
+  ``list_content`` budget; ``continuation_x == content_x`` always.
 
 Geometry invariant (architecture): ``marker_x`` / ``content_x`` /
 ``continuation_x`` and the first-line baseline ``y`` are **copied verbatim**
@@ -29,7 +30,8 @@ from the semantic node.  Nothing here derives them from ``level``, item
 step between wrapped lines (``line_step``), which is a placement constant,
 not a fit decision.
 
-Fit decisions (wrap / shrink / clip / overflow) are delegated to
+Fit decisions (wrap / shrink / clip / overflow) are delegated to the unified
+executor (:func:`pdf2zh.semantic.layout.adaptive.adaptive_layout`) and
 :func:`~pdf2zh.semantic.layout.overflow.lay_out` — this module never calls
 ``wrap_lines`` / ``shrink_to_fit`` / ``clip_text`` directly.
 """
@@ -42,21 +44,12 @@ from dataclasses import dataclass, field
 from pdf2zh.semantic.layout.adaptive import adaptive_layout
 from pdf2zh.semantic.layout.overflow import LayoutResult, lay_out
 from pdf2zh.semantic.layout.primitives import FixedAnchor, FlowText
-from pdf2zh.semantic.layout.recovery import LayoutBudget
+from pdf2zh.semantic.layout.recovery import budget_for_kind
 
 __all__ = ["ListLayoutResult", "layout_list_item", "layout_list_node"]
 
 _DEFAULT_FONT_SIZE = 11.0
 _DEFAULT_LINE_HEIGHT = 1.4
-
-# List content / continuation recovery budget (7F-4): WRAP is enabled, but
-# SHRINK / CLIP stay OFF this commit (list text must never be auto-shrunk or
-# truncated).  Only the marker is PRESERVE (never wrap/shrink/clip).  This keeps
-# the existing "overlong unbreakable token → whole line + explicit overflow"
-# contract intact while routing content through the unified adaptive executor.
-_LIST_ADAPTIVE_BUDGET = LayoutBudget(
-    allow_wrap=True, allow_shrink=False, allow_clip=False
-)
 
 
 @dataclass
@@ -172,7 +165,8 @@ def layout_list_item(
         font_size=fs,
     )
 
-    # ── content：FlowText —— 译文 wrap 在 content_width 内（7F-4 adaptive）──
+    # ── content：FlowText —— 7F-6c-1：统一 executor + list_content budget
+    #    （WRAP → SHRINK → CLIP）；content_x 永不动 ────────────────────────
     content = adaptive_layout(
         FlowText(
             text=_node_text(item, content_text, getattr(item, "content", "")),
@@ -185,10 +179,11 @@ def layout_list_item(
         avail_width=avail_w,
         avail_height=avail_h,
         font_size=fs,
-        budget=_LIST_ADAPTIVE_BUDGET,
+        budget=budget_for_kind("list_content"),
     )
 
-    # ── continuation：FlowText 钉在 content_x（x 固定，可 wrap；7F-4 adaptive）
+    # ── continuation：FlowText 钉在 content_x（x 固定；同一 list_content
+    #    budget，7F-6c-1）──────────────────────────────────────────────────
     continuations = list(
         continuation_texts
         if continuation_texts is not None
@@ -209,7 +204,7 @@ def layout_list_item(
                 avail_width=avail_w,
                 avail_height=avail_h,
                 font_size=fs,
-                budget=_LIST_ADAPTIVE_BUDGET,
+                budget=budget_for_kind("list_content"),
             )
         )
 

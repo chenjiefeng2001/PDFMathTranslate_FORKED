@@ -1,38 +1,54 @@
-"""FlowText render/settle layer — Commit 7E-1.
+"""FlowText render/settle layer — Commit 7E-1, extended by 7F-6b.
 
 Turns a :class:`~pdf2zh.semantic.layout.primitives.FlowText` primitive into a
-:class:`~pdf2zh.semantic.layout.overflow.LayoutResult` (via the unified
-``lay_out`` engine) and then into positioned, drawable line commands.  The PDF
-renderer consumes only the resulting commands — it never re-applies the
-fit / wrap / clip decision itself::
+:class:`~pdf2zh.semantic.layout.overflow.LayoutResult` and then into
+positioned, drawable line commands.  The PDF renderer consumes only the
+resulting commands — it never re-applies the fit / wrap / clip decision
+itself::
 
     FlowText
         ↓
-    lay_out()         → LayoutResult      (this module calls ONLY lay_out)
+    adaptive_layout()   (7F-6b: bounded WRAP → SHRINK → CLIP executor)
+        ↓ lay_out()
+    LayoutResult (with recovery record)
         ↓
-    commands[]        → host renderer draws (no re-layout)
+    commands[]          → host renderer draws (no re-layout)
+
+7F-6b: Flow officially consumes **recovery**.  ``render_flow_text`` routes
+through :func:`pdf2zh.semantic.layout.adaptive.adaptive_layout` — the finite
+non-looping executor over ``recovery.py`` decisions — with the ``flow`` budget
+(``WRAP → SHRINK → CLIP``, clamped by ``LayoutBudget.min_font_size`` /
+``max_font_reduction``).  The resulting ``LayoutResult`` carries the
+``recovery`` record (``reason`` / ``decision`` / ``steps`` / original vs final
+font size), which is surfaced in the returned payload so evaluators can see
+what happened (7F-6a unified ``recovery`` member).
 
 Layer rules (enforced by architecture assertions in ``test_flowtext_renderer``):
 
 - This module never calls ``wrap_lines`` / ``shrink_to_fit`` / ``clip_text``
   directly, and never re-judges ``text_width > bbox.width``.  Every fit
-  decision is delegated to ``lay_out`` → ``LayoutResult``; the renderer is a
-  pure consumer of that result.
+  decision is delegated to ``lay_out`` inside ``adaptive_layout`` →
+  ``LayoutResult``; the renderer is a pure consumer of that result.
+- Recovery is bounded: at most WRAP (1) → SHRINK (1) → CLIP (1); never a
+  ``while overflow`` loop (the executor is a finite state machine).
 - Geometry flows through verbatim: the first command line inherits the
-  primitive's ``x`` / baseline ``y``.  Nothing here re-derives position from
-  level / index / page width.
+  primitive's ``x`` / baseline ``y`` and the **settled** font size (a SHRINK
+  recovery carries its reduced font to the draw call).  Nothing here re-derives
+  position from level / index / page width.
 """
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Callable, Optional
 
+from pdf2zh.semantic.layout.adaptive import adaptive_layout
 from pdf2zh.semantic.layout.overflow import (
     LayoutResult,
     OverflowPolicy,
-    lay_out,
 )
 from pdf2zh.semantic.layout.primitives import FlowText
+from pdf2zh.semantic.layout.recovery import budget_for_kind
 
 __all__ = [
     "FlowTextRenderer",
@@ -44,8 +60,9 @@ __all__ = [
 #: Kind tag on every command produced by this layer.
 FLOW_COMMAND_KIND = "flow-text"
 
-#: Policies that mean "the FlowText layout path succeeded" (as opposed to
-#: a fallback sentinel below).
+#: Policies that mean "the FlowText layout path succeeded cleanly".  CLIP is
+#: the explicit last-resort recovery: it still emits commands, but is never
+#: reported as ``layout_ok`` (overflow stays observable downstream).
 LAYOUT_OK_POLICIES = (OverflowPolicy.WRAP, OverflowPolicy.SHRINK)
 
 
@@ -104,6 +121,10 @@ class FlowTextRenderer:
                     "line": i,
                     "is_last": i == n - 1,
                     "overflow": bool(result.overflow) and i == n - 1,
+                    # 7F-6b: settled font size (SHRINK recovery reduces it) —
+                    # the draw layer must render at the settled size, not the
+                    # block's nominal font.
+                    "font_size": round(fs, 2),
                 }
             )
         return cmds
@@ -118,11 +139,12 @@ def render_flow_text(
     line_height: float = 1.4,
     font_size: float = 11.0,
     measure: Optional[Callable[[str, float], float]] = None,
-    allow_shrink: bool = False,
+    allow_shrink: bool = True,
     line_step: Optional[float] = None,
     renderer: Optional[FlowTextRenderer] = None,
 ) -> dict:
-    """Run the full ``FlowText → lay_out() → LayoutResult → commands`` pipeline.
+    """Run the full ``FlowText → adaptive_layout() → LayoutResult → commands``
+    pipeline (7F-6b: Flow consumes recovery).
 
     Args:
         text: the (translated) paragraph text.
@@ -133,16 +155,22 @@ def render_flow_text(
         font_size: nominal font size in points.
         measure: ``(text, font_size) -> width`` measurer; defaults to the
             layout layer's CJK-aware estimate.
-        allow_shrink: opt-in font shrink for the WRAP policy (default off).
+        allow_shrink: whether Flow may use the SHRINK (and last-resort CLIP)
+            recovery stages.  Default **True** since 7F-6b (Flow officially
+            runs the ``WRAP → SHRINK → CLIP`` ladder); ``False`` restricts the
+            run to WRAP then honest PRESERVE_OVERFLOW (never silent shrink /
+            clip).
         line_step: explicit signed vertical step for the commands (overrides
             ``font_size * line_height``); used to adapt to y-up spaces.
         renderer: command-builder override (defaults to :class:`FlowTextRenderer`).
 
     Returns:
         JSON-safe dict ``{kind, text, lines, line_widths, commands, overflow,
-        policy, font_size, primitive_kind, layout_ok, bbox}``.  Never raises:
-        on a layout failure it emits a singled-line overflow-flagged result so
-        callers can observe and cascade to a legacy path deterministically.
+        policy, font_size, primitive_kind, layout_ok, bbox, recovery}`` where
+        ``recovery`` is the 7F-6a unified record (``None`` when nothing ran).
+        Never raises: on a layout failure it emits a singled-line
+        overflow-flagged result so callers can observe and cascade to a legacy
+        path deterministically.
     """
     fs = float(font_size or 11.0)
     lh = float(line_height or 1.4)
@@ -154,13 +182,18 @@ def render_flow_text(
         max_height=float(max_height),
         line_height=fs * lh,
     )
+    budget = budget_for_kind("flow")
+    if not allow_shrink:
+        budget = replace(budget, allow_shrink=False, allow_clip=False)
     _failed = False
     try:
-        result = lay_out(
+        result = adaptive_layout(
             flow,
             measure=measure,
+            avail_width=float(max_width),
+            avail_height=float(max_height),
             font_size=fs,
-            allow_shrink=bool(allow_shrink),
+            budget=budget,
         )
     except Exception:  # noqa: BLE001 -- layout is never allowed to be fatal
         _failed = True
@@ -188,4 +221,7 @@ def render_flow_text(
         "primitive_kind": result.primitive_kind,
         "layout_ok": (not _failed) and result.policy in LAYOUT_OK_POLICIES,
         "bbox": [round(v, 1) for v in result.bbox],
+        "recovery": result.recovery,
+        # 7F-7d: optional per-stage recovery trace ([] when none ran).
+        "trace": [dict(t) for t in result.recovery_trace],
     }

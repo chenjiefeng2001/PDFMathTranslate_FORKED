@@ -160,11 +160,15 @@ class TestBuildBlockFlowPayload(unittest.TestCase):
         self.assertEqual(payload2["commands"][0]["y"], 740.0)
 
     def test_failure_returns_layout_ok_false_never_raises(self):
-        """布局层异常 → layout_ok=False 载荷（renderer 可观测降级），绝不抛。"""
+        """布局层异常 → layout_ok=False 载荷（renderer 可观测降级），绝不抛。
+
+        7F-6b：Flow 已接 bounded executor（adaptive_layout），失败注入点
+        随之迁移 —— 布局层异常仍绝不向上抛。
+        """
         from unittest.mock import patch
 
         with patch(
-            "pdf2zh.semantic.renderer.flow.lay_out",
+            "pdf2zh.semantic.renderer.flow.adaptive_layout",
             side_effect=RuntimeError("boom"),
         ):
             payload = build_block_flow_payload(_block(text="x", translated="y"))
@@ -217,7 +221,7 @@ class TestRenderFlowText(unittest.TestCase):
         from unittest.mock import patch
 
         with patch(
-            "pdf2zh.semantic.renderer.flow.lay_out",
+            "pdf2zh.semantic.renderer.flow.adaptive_layout",
             side_effect=RuntimeError("layout broke"),
         ):
             out = render_flow_text(
@@ -271,12 +275,14 @@ class TestFlowArchitecture(unittest.TestCase):
         self.assertIn("render_flow_text(", src)  # 统一走 lay_out 管线
 
     def test_renderer_flow_never_calls_wrap_shrink_clip_directly(self):
+        """7F-6b：Flow 通过 bounded executor（adaptive_layout）消费 recovery；
+        renderer 本身仍不直接执行 wrap/shrink/clip。"""
         import pdf2zh.semantic.renderer.flow as mod
 
         src = inspect.getsource(mod)
         for banned in ("wrap_lines(", "shrink_to_fit(", "clip_text("):
             self.assertNotIn(banned, src)
-        self.assertIn("lay_out(", src)
+        self.assertIn("adaptive_layout(", src)
 
     def test_payload_geometry_passthrough_no_reinference(self):
         """flow 载荷不得含 level/index/页宽 推导痕迹。"""

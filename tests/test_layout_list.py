@@ -7,8 +7,9 @@ Covers ``pdf2zh.semantic.layout.list_layout``:
 - marker is a FixedAnchor: single verbatim line, never wrapped, never
   translated (the adapter takes pre-translated text, never a translator);
 - content wraps inside ``content_width``: short → 1 line, long English,
-  CJK, mixed CJK/English, embedded newlines, overlong single token
-  (kept whole + overflow, never split);
+  CJK, mixed CJK/English, embedded newlines; an overlong unbreakable token
+  runs the bounded 7F-6c ladder (SHRINK → CLIP, overflow explicit, never
+  silent);
 - continuation stays pinned to ``content_x`` (``continuation_x ==
   content_x``) and each line may wrap;
 - failure degrades to an overflow-flagged single line, never raises;
@@ -141,14 +142,18 @@ def test_newline_in_translated_content_is_hard_break():
     assert layout.content.lines == ["first translated line", "second translated line"]
 
 
-def test_overlong_token_kept_whole_and_flagged():
+def test_overlong_token_bounded_recovery_not_silent():
+    """7F-6c-1: an overlong unbreakable token runs the bounded ladder and
+    clips with explicit overflow — never silent, never an infinite loop."""
     token = "Supercalifragilisticexpialidocious"
     layout = layout_list_item(
         _item(content_width=40.0), measure=_measure, font_size=10.0,
         content_text=token,
     )
-    assert layout.content.lines == [token]  # 永不拆词
-    assert layout.content.overflow is True   # 溢出显式上报
+    assert layout.content.overflow is True     # 溢出显式上报
+    assert len(layout.content.recovery_steps) <= 3
+    assert layout.content.recovery_decision in ("clip", "preserve_overflow")
+    assert len("".join(layout.content.lines)) < len(token)  # truncated, not silent
 
 
 def test_no_width_means_no_wrap():

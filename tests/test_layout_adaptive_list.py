@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Commit 7F-4 — adaptive list layout tests.
+"""Commit 7F-4, extended by 7F-6c-1 — adaptive list layout tests.
 
 List adaptive recovery only affects **content / continuation**; the **marker is
-PRESERVE** (never wrap / shrink / clip).  Even with a pathological
+PRESERVE** (never wrap / shrink / clip — it is a raw ``lay_out`` call, never
+fed to the adaptive executor).  Even with a pathological
 ``translation == "A" * 1000`` the geometry anchors are locked:
 
     marker_x unchanged
     content_x unchanged
     continuation_x == content_x
 
-Multi-line wrap is a *normal* result, not an overflow — overflow is only when
-the content still exceeds an *available height*.  SHRINK / CLIP stay off for
-list text this commit, so an unbreakable overlong token keeps whole-line +
-explicit overflow (unchanged contract).
+Multi-line wrap is a *normal* result, not an overflow.  Since 7F-6c-1 the
+content / continuation run the **list_content** budget (WRAP → SHRINK → CLIP),
+so an overlong unbreakable token now shrinks then clips with explicit overflow
+(never silent) — the recovery ladder is bounded (at most WRAP + SHRINK + CLIP).
 """
 
 from pdf2zh.semantic.layout.list_layout import (
@@ -175,14 +176,22 @@ def test_nested_geometry_unchanged():
 
 
 def test_overlong_unbreakable_token_no_loop():
+    """7F-6c-1: an overlong unbreakable token runs the bounded ladder
+    (SHRINK → CLIP) — never a while-loop, overflow stays explicit, and the
+    geometry anchors are untouched."""
     token = "Supercalifragilisticexpialidocious"
     layout = layout_list_item(
         _item(content_width=40.0), measure=_measure, font_size=10.0,
         content_text=token,
     )
-    assert layout.content.lines == [token]
     assert layout.content.overflow is True
     assert len(layout.content.recovery_steps) <= 3
+    assert layout.content.recovery_decision in ("clip", "preserve_overflow")
+    assert len("".join(layout.content.lines)) < len(token)  # never silent
+    # recovery must never touch the anchors
+    assert layout.marker_x == 40.0
+    assert layout.content_x == 52.0
+    assert layout.continuation_x == 52.0
 
 
 def test_list_layout_recovery_json_safe():

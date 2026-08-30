@@ -1,0 +1,43 @@
+{
+  "meta": {
+    "created": "2026-08-30T00:00:00+00:00",
+    "pdf2zh_version": "0.0.0",
+    "model": "corpus-mock",
+    "commit": "7F-9",
+    "corpus": [
+      "cascade_round",
+      "converged",
+      "code_preserved",
+      "golden_pdf"
+    ]
+  },
+  "convergence": {
+    "converged": true,
+    "applied": 4,
+    "deferred": 1,
+    "unresolved": 0,
+    "final_collision_count": 0
+  },
+  "events_actions": [
+    "SHIFT_DOWN",
+    "CONTINUATION",
+    "BREAK_TO_NEXT_PAGE",
+    "PRESERVE_OVERFLOW"
+  ],
+  "pdf_layer": {
+    "marker_count": 1,
+    "toc_page_number_count": 1,
+    "toc_page_x": 500.0,
+    "list_content_x": 76.0,
+    "code_page": 0,
+    "flow_words_present": true
+  },
+  "metrics": {
+    "source_bbox_preserved": 1.0,
+    "x_geometry_preserved": 1.0,
+    "marker_integrity": 1.0,
+    "toc_page_number_integrity": 1.0,
+    "code_preserved_bbox": 1.0,
+    "page_overflow_count": 0
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "created": "2026-08-30T00:00:00+00:00",
+    "pdf2zh_version": "0.0.0",
+    "model": "corpus-mock",
+    "commit": "7F-8e-4",
+    "corpus": [
+      "list_continuation",
+      "toc_continuation",
+      "mixed_document",
+      "code_preserved"
+    ]
+  },
+  "continuation_split": {
+    "list": {
+      "fitted_lines": 4,
+      "moved_lines": 3,
+      "target_page": 1,
+      "marker_x": 60.0,
+      "content_x": 76.0,
+      "continuation_x": 76.0,
+      "marker_count": 1,
+      "page0_words": ["1.", "A", "B", "C"],
+      "page1_words": ["D", "E", "F"]
+    },
+    "toc": {
+      "fitted_lines": 6,
+      "moved_lines": 3,
+      "target_page": 1,
+      "page_x": 500.0,
+      "title_x": 82.0,
+      "page_number_count": 1,
+      "page0_words": ["1", "Intro", "wrap1", "wrap2", "...", "42"],
+      "page1_words": ["cont1", "cont2", "cont3"]
+    },
+    "mixed": {
+      "page_number_count": 1,
+      "marker_count": 1,
+      "toc_title_words": ["Intro", "wrap1", "wrap2", "cont1", "cont2", "cont3"]
+    }
+  },
+  "overflow_gate": {
+    "list_before": 1,
+    "list_after": 0,
+    "toc_before": 1,
+    "toc_after": 0
+  },
+  "metrics": {
+    "list_marker_x_accuracy": 1.0,
+    "list_content_x_accuracy": 1.0,
+    "list_continuation_x_accuracy": 1.0,
+    "toc_title_x_accuracy": 1.0,
+    "toc_page_x_accuracy": 1.0,
+    "toc_page_number_accuracy": 1.0,
+    "toc_continuation_x_accuracy": 1.0,
+    "toc_page_column_stability": 1.0,
+    "overflow_count": 0,
+    "code_preserved_bbox": 1.0
+  }
+}
