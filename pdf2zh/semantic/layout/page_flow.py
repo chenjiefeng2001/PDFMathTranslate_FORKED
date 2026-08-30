@@ -351,6 +351,36 @@ def _collision_reason(upper: BlockPlacement, lower: BlockPlacement) -> str:
     return "overlap"
 
 
+def _inline_membership(
+    upper: BlockPlacement,
+    lower: BlockPlacement,
+    ub: tuple,
+    lb: tuple,
+    tolerance: float,
+) -> bool:
+    """True when an adjacent pair is in-line containment, not a real stacked
+    collision — P0-2 containment-aware adjacency.
+
+    Two noisy signatures from real-PDF segmentation are excluded:
+
+    - **horizontal containment** — one block's x-extent is a *strict* subset of
+      the other's (``x0``/``x1``), i.e. the inline-membership pattern of a
+      small formula / inline block sitting inside its paragraph.  A same-column
+      stacked paragraph (identical x-range) is NOT contained and is still a
+      collision; only proper-nesting is in-line.
+    - **``formula_inline`` kind** — an inline-formula block is by construction
+      inside its container, so stacking adjacency against it is never a real
+      vertical collision recovery could fix with SHIFT_DOWN.
+
+    Pure read; never mutates anything.
+    """
+    if upper.kind == "formula_inline" or lower.kind == "formula_inline":
+        return True
+    u_in_l = ub[0] > lb[0] + tolerance and ub[2] < lb[2] - tolerance
+    l_in_u = lb[0] > ub[0] + tolerance and lb[2] < ub[2] - tolerance
+    return u_in_l or l_in_u
+
+
 def detect_collisions_from_placements(
     placements,
     *,
@@ -402,6 +432,11 @@ def detect_collisions_from_placements(
             h_overlap = min(ub[2], lb[2]) - max(ub[0], lb[0])
             if v_overlap <= tolerance or h_overlap <= tolerance:
                 continue  # normal adjacency (gap / touching) or separate columns
+            # P0-2 containment-aware adjacency: an in-line contained box
+            # (inline formula / embedded block) is not a stacked sibling — a
+            # real vertical overlap recovery could clear with SHIFT_DOWN.
+            if _inline_membership(upper, lower, ub, lb, tolerance):
+                continue
             required_shift = max(0.0, l_top - u_bottom)
             out.append(
                 PageCollision(

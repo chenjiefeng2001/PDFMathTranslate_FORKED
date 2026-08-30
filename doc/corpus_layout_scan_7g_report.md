@@ -107,9 +107,10 @@ but the content is preserved (formula blocks with newlines).
 
 1. **P0-1 fix** — **DONE (7F-9.2)** — zero-progress guard in
    `resolve_page_shifts` + `global_recovery` (see §6).
-2. **P0-2 fix**: containment-aware adjacency in `detect_collisions_from_placements`
-   — skip pairs where one bbox is horizontally contained inside the other
-   (inline membership), and exclude formula-inline from stacking adjacency.
+2. **P0-2 fix** — **DONE (7F-9.3)** — containment-aware adjacency in
+   `detect_collisions_from_placements` — skip pairs where one bbox is
+   horizontally contained inside the other (inline membership), and exclude
+   `formula_inline` from stacking adjacency (see §7).
 3. Re-run the corpus scan; then whitespace metrics (per-column) become
    trustworthy enough to drive 7G-2 page packing.
 
@@ -154,3 +155,30 @@ unresolved = N                  (the stuck collisions are surfaced, never hidden
 A mixed plan (some blocks overflowing the page → real 8e whole-block moves
 plus stuck zero-shift collisions) also terminates early (passes = 2,
 `no_progress`) instead of exhausting the cap.
+
+## 7. P0-2 fix — 7F-9.3 status (2026-08-29)
+
+Detection-only change to the 8b authority `detect_collisions_from_placements`: a
+pair where one box is **horizontally contained inside** the other (strict
+x-extent subset = inline membership) — or where either side is
+`formula_inline` — is excluded from stacking adjacency, so recovery solves real
+vertical collisions instead of parser noise.  Same-column stacked paragraphs
+(identical x-range) are unchanged and still collide.
+
+Real-PDF checkpoint (detection, same plans before/after the change; subset of
+the corpus):
+
+| doc     | collisions pre | post | Δ |
+|---------|---------------|------|---|
+| 1808    | 148 | 21  | −127 |
+| 2111 (528p) | 5269 | 683 | −4586 |
+| 2603    | 224 | 17  | −207 |
+| 2507    | 268 | 183 | −85  |
+| **Σ (10)** | **6326** | **996** | **−84%** |
+
+`preserved_region` counts collapse accordingly (the inline-formula
+pseudo-collisions are gone).  Recovery then only handles the honest remainder:
+1808 unresolved 89 → 13 (still `no_progress`, the survivors being genuinely
+immovable preserved / multi-line-title splits); 1905 unresolved 27 → 5.  This
+is the input cleanup that makes 7G-2 whitespace / page-packing metrics
+meaningful — it is NOT yet 7G-2.
