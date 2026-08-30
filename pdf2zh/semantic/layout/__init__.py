@@ -124,6 +124,17 @@ from pdf2zh.semantic.layout.page_shift import (
     resolve_page_shifts,
     shift_box_down,
 )
+from pdf2zh.semantic.layout.placement import (
+    PlacementDecision,
+    PlacementPolicy,
+    PlacementScore,
+    PlacementTarget,
+    decide_from_settled,
+    decide_placement,
+    estimate_block_height,
+    remaining_space_for_page,
+    score_fit,
+)
 from pdf2zh.semantic.layout.primitives import (
     Continuation,
     FixedAnchor,
@@ -153,6 +164,11 @@ __all__ = [
     # page-flow (7F-8a)
     "BlockPlacement",
     "BlockShiftDecision",
+    # placement (7G-1)
+    "PlacementDecision",
+    "PlacementPolicy",
+    "PlacementScore",
+    "PlacementTarget",
     "Continuation",
     "FixedAnchor",
     "FixedColumn",
@@ -225,9 +241,12 @@ __all__ = [
     "budget_for_kind",
     "classify_reason",
     "clip_text",
+    "decide_from_settled",
+    "decide_placement",
     "decide_recovery",
     "default_budget",
     "diagnose_overflow",
+    "estimate_block_height",
     # mapping
     "flow_text",
     "lay_out",
@@ -241,7 +260,9 @@ __all__ = [
     "measure_text_estimate",
     "policy_for",
     "preserved_region",
+    "remaining_space_for_page",
     "resolve_geometry",
+    "score_fit",
     "shrink_to_fit",
     "toc_layout_commands",
     "toc_page_column",
