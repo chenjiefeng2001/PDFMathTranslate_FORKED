@@ -1,0 +1,156 @@
+# Real-PDF Corpus Scan — 7F→7G Milestone Findings (v1)
+
+Date: 2026-08-29 · Tool: `build/corpus_layout_scan.py` (gitignored scratch) ·
+Analysis path: `dump_layout_debug` (identity translation, no translator /
+ONNX / renderer) over `tests/file/` arxiv papers + one CJK dual-layer doc.
+
+## 1. What was run
+
+13 PDFs scanned (12 two-column arxiv papers 6–45 pages, 1 CJK dual-layer
+40-page doc). Per PDF we collected: block counts, PageFlow collisions
+(reason-split), page overflows, diagnostics overflow/recovery, a text-drop
+proxy, and 7G-1 trailing-whitespace pages. Two PDFs (1808, 2608a) additionally
+ran the full `global_recovery` pass.
+
+## 2. P0 findings (correctness)
+
+### P0-1 — Global Recovery does NOT converge on real PDFs (systemic)
+
+`global_recovery` on real plans burns its entire `max_passes` budget in a
+**zero-progress loop** and never converges:
+
+| doc   | pages | collisions | converged | passes | applied | deferred | unresolved | zero-delta events | identical consecutive passes |
+|-------|-------|-----------|-----------|--------|---------|----------|-----------|-------------------|------------------------------|
+| 1808  | 15    | 148       | **False** | 572/572 | 2,615,883 | 105,248 | 89 | 2,615,751 (99.99%) | 570 |
+| 2608a | 6     | 28        | **False** | 109/109 | 23,769 | 4,360 | 24 | 23,761 (99.97%) | 107 |
+
+Cost: 445 s for a 15-page paper; 2.6M no-op "applied" events.
+
+**Root cause chain:**
+
+1. `PageCollision.required_shift` is `round(..., 2)` — a sub-centipoint overlap
+   (e.g. 0.004 pt from line-spacing padding / bbox inflation) becomes
+   `shift_y = 0.0`.
+2. `decide_block_shift` returns `SHIFT_DOWN(0.0)`; `resolve_page_shifts`
+   counts it as **applicable** and "applies" it (a no-op — geometry unchanged).
+3. `global_recovery`'s no-progress guard is `pass_made_progress = applied
+   non-empty` — zero-delta decisions keep it True every round, so the loop
+   re-detects the same stuck collisions and re-applies the same zero shifts
+   until `max_passes` runs out.
+
+The module docstring claims "3 → 3 → 3 … cannot happen", but it does: the
+guard tests "applied empty" instead of "geometry changed / collision set
+shrank".
+
+**Fix (scoped, no policy change):**
+
+- **Progress = collision multiset shrank or geometry actually moved.** Compare
+  consecutive passes' collision signature (sorted `(page, upper, lower)` keys);
+  unchanged → `stopped_early`, record leftovers as unresolved.
+- **Zero-delta applicable guard** in `resolve_page_shifts`: a decision with
+  `shift_y < epsilon` is not progress; skip it (or classify its collision
+  unresolved immediately).
+- The same guard fixes 8d's latent behavior (synthetic tests never hit it
+  because crafted plans have clean geometry).
+
+### P0-2 — Collision input is dominated by block-segmentation artifacts
+
+Collision counts on real papers are 6–731 per doc; the *before* counts do not
+reflect real layout quality:
+
+- **~88% of `preserved_region` collisions are inline math**: the formula
+  block's bbox is horizontally contained inside its paragraph (adjacency
+  treated as stacked collision). 1808: 80 preserved collisions, 70 with the
+  contained-bbox signature; kinds: 99× formula, 59× paragraph.
+- **Multi-line titles split into separate blocks** overlapping by ~1 pt
+  (leading padding) — e.g. 1808 p1: two title lines as `paragraph[0]` vs
+  `paragraph[1]`, ov=1.0.
+- **Headings merged with the following paragraph** into one block with a huge
+  bbox (1808 p1 heading spans 102 pt) that overlaps everything around it.
+
+These are base-chain (document model / segmentation) issues; PageFlow faithfully
+reports what the settled blocks contain. Per the 7G decision table this maps
+to "collision 判断错误 → 修 PageFlow" (containment-aware adjacency /
+inline-formula exclusion) plus segmentation fixes upstream.
+
+### P0-3 — Text preservation is clean on single-layer PDFs
+
+LTChar-level comparison (per-page source glyph count vs plan text chars) on
+single-layer 1808: **no page below 60%** — no text drops. The CJK dual-layer
+doc's "drop" flags were a proxy artifact (EN+ZH layers double-counted by
+text-object enumeration); a proper proxy must count LTChars and understand
+dual layers. R-code/formula-heavy pages (p18/28/29/30) showed 40–49% ratios
+but the content is preserved (formula blocks with newlines).
+
+## 3. P1 findings (visual quality)
+
+- Trailing-whitespace detection via "last reading-order block bottom" barely
+  fires on papers (footers/page numbers sit at the page bottom). Needs a
+  per-column gap metric — that is exactly the analysis 7G-2 page packing
+  should build on, and it cannot be trusted until P0-2's collision noise is
+  reduced (whitespace computed over fragmented/overlapping blocks is
+  meaningless).
+- `page_overflow_count` is 0 on all 13 docs under identity translation —
+  overflow recovery (8e) had nothing to do; real translation-inflated
+  overflow requires a real translation run to evaluate.
+
+## 4. Classification (per the 7F→7G decision table)
+
+| 现象 | 位置 | 状态 |
+|------|------|------|
+| Recovery 不收敛（零进度循环烧光预算） | Global Recovery (7F-9) + 8d | **P0, 先修** — 小而自包含 |
+| collision 输入被分割伪影主导（inline 公式 / 标题拆行 / heading 巨框） | PageFlow 邻接判定 + document model | P0-2, 需 PageFlow 含容感知 |
+| 文本丢失（单层 PDF） | — | 干净（代理指标需修） |
+| 页面太空 / 提前换页 | 7G-1/7G-2 | P1 — 在 P0-2 噪声降低前无法可靠度量 |
+
+## 5. Recommended order
+
+1. **P0-1 fix** — **DONE (7F-9.2)** — zero-progress guard in
+   `resolve_page_shifts` + `global_recovery` (see §6).
+2. **P0-2 fix**: containment-aware adjacency in `detect_collisions_from_placements`
+   — skip pairs where one bbox is horizontally contained inside the other
+   (inline membership), and exclude formula-inline from stacking adjacency.
+3. Re-run the corpus scan; then whitespace metrics (per-column) become
+   trustworthy enough to drive 7G-2 page packing.
+
+## 6. P0-1 fix — 7F-9.2 status (2026-08-29)
+
+Executor/orchestrator **correctness hardening**, no policy change (8c matrix,
+8d SHIFT_DOWN, 8e NEXT_PAGE, List/TOC/Code invariants and the recovery budget
+are all untouched):
+
+- **`resolve_page_shifts` (8d)** — a `SHIFT_DOWN` with `shift_y <= epsilon` is
+  no longer an *applicable* action: it does not get applied, does not count in
+  `applied`, and does not consume the pass budget.  Its collision is recorded
+  unresolved.  Leftover stops are attributed via a new `stopped_reason`
+  (`"no_progress"` / `"budget_expired"`) on both `ShiftExecutionReport` and
+  `GlobalRecoveryReport`.
+- **`global_recovery` (orchestrator)** — the progress guard is now a **state
+  signature** (per-placement `(page, block_index, resolved_bbox)`): a round
+  whose resolved geometry is byte-identical to the previous round executed no
+  real action → `stopped_early = True`, `stopped_reason = "no_progress"`, and
+  the remaining collisions + overflows are surfaced as `unresolved`.  Progress
+  is defined exactly as: *collision multiset shrank OR resolved geometry
+  moved*.
+
+Regression corpus added: `tests/test_global_recovery_7f9_hardening.py`
+
+- case A: overlap 0.004 pt, `required_shift = 0` → stuck on pass 1, `no_progress`;
+- case B: `SHIFT_DOWN = 0` → `applied = 0`, `unresolved > 0`;
+- case C: identical collision set across passes → `no_progress`, never burns
+  a large `max_passes`;
+- case D: normal SHIFT 20 pt → collision cleared, `applied = 1`, `converged`.
+
+Reproduction on the P0-1 signature (120-block dense column of sub-pixel,
+`required_shift → 0` overlaps, `max_passes = 1000`): old behaviour would burn
+the budget (the reported `572/572 passes`, `2,615,883 applied`); new behaviour:
+
+```text
+passes = 1      (vs. 572)      applied = 0   (vs. 2,615,883)
+converged = False               stopped_reason = "no_progress"
+unresolved = N                  (the stuck collisions are surfaced, never hidden)
+```
+
+A mixed plan (some blocks overflowing the page → real 8e whole-block moves
+plus stuck zero-shift collisions) also terminates early (passes = 2,
+`no_progress`) instead of exhausting the cap.

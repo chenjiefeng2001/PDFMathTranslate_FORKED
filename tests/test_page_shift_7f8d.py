@@ -360,7 +360,7 @@ class TestApplyPageShifts(unittest.TestCase):
         d = report.to_dict()
         self.assertEqual(set(d),
                          {"passes", "max_passes", "stopped_early",
-                          "applied_count", "deferred_count",
+                          "stopped_reason", "applied_count", "deferred_count",
                           "unresolved_count", "applied", "deferred",
                           "unresolved"})
         json.dumps(d)

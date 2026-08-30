@@ -64,6 +64,26 @@ __all__ = [
 _TOL = 1e-6
 
 
+def _state_signature(plan) -> tuple:
+    """Stable per-placement resolved-geometry signature for progress detection.
+
+    Two consecutive passes with the same signature executed NO real action:
+    no placement moved, no split / whole-block break happened, so the
+    collision set is identical.  ``(page, block_index)`` is the structured
+    placement identity (7F-9.1); ``resolved_bbox`` is rounded so float noise
+    never looks like progress.  This is the orchestrator's real-progress
+    contract: progress == collision multiset shrank OR resolved geometry moved.
+    """
+    keys: list = []
+    for p in placements_from_plan(plan):
+        r = p.resolved_bbox
+        keys.append((
+            p.page, p.block_index,
+            round(r[0], 6), round(r[1], 6), round(r[2], 6), round(r[3], 6),
+        ))
+    return tuple(sorted(keys))
+
+
 def source_geometry_snapshot(plan) -> list:
     """JSON-safe per-entry source-anchor copy for immutability assertions.
 
@@ -137,6 +157,7 @@ class GlobalRecoveryReport:
     deferred: int = 0
     unresolved: int = 0
     stopped_early: bool = False
+    stopped_reason: str = ""         # "" | "no_progress" | "budget_expired"
     events: list = field(default_factory=list)               # GlobalRecoveryEvent
     pass_summaries: list = field(default_factory=list)       # per-round counts
 
@@ -149,6 +170,7 @@ class GlobalRecoveryReport:
             "deferred": self.deferred,
             "unresolved": self.unresolved,
             "stopped_early": self.stopped_early,
+            "stopped_reason": self.stopped_reason,
             "events": [e.to_dict() for e in self.events],
             "pass_summaries": [dict(s) for s in self.pass_summaries],
         }
@@ -191,7 +213,9 @@ def global_recovery(
     report = GlobalRecoveryReport(max_passes=bound)
 
     for pass_no in range(1, bound + 1):
-        pass_made_progress = False
+        # capture the state BEFORE the round — *against* this we measure real
+        # progress (geometry actually moved / collision set shrank).
+        before_sig = _state_signature(new_plan)
 
         # ── 8d: same-page SHIFT_DOWN ─────────────────────────────────────
         shifted, shift_rep = apply_page_shifts(new_plan, page_sizes=sizes)
@@ -201,7 +225,6 @@ def global_recovery(
                 action="SHIFT_DOWN", kind="",
                 detail=f"down {float(d.shift_y):.2f}pt"))
             report.applied += 1
-            pass_made_progress = True
 
         # ── 8e: cross-page BREAK / continuation / preserve ───────────────
         broken, cont_rep = execute_continuation_breaks(
@@ -219,7 +242,6 @@ def global_recovery(
                 action=action, kind=r.kind,
                 detail=f"{r.kind} -> page {r.target_page} (lines moved {r.moved_lines})"))
             report.applied += 1
-            pass_made_progress = True
         for r in cont_rep.deferred:
             if r.mode != "preserve":
                 continue
@@ -248,12 +270,19 @@ def global_recovery(
             report.converged = True
             break
 
-        if not pass_made_progress:
+        # Real progress = the round changed resolved geometry.  If a round
+        # executes only no-ops (zero-shift SHIFT_DOWN, deferred PRESERVE),
+        # the signature — and therefore the collision set — is byte-identical
+        # to the previous round: "3 → 3 → 3 …" cannot burn the budget.
+        if _state_signature(new_plan) == before_sig:
             report.stopped_early = True
+            report.stopped_reason = "no_progress"
             break
 
     # budget / no-progress exit with leftovers → unresolved
     if not report.converged:
+        if not report.stopped_reason:
+            report.stopped_reason = "budget_expired"
         report.unresolved = len(detect_page_collisions(new_plan)) + len(
             detect_page_overflows(new_plan, page_sizes=sizes))
 

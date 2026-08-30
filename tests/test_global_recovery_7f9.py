@@ -190,7 +190,7 @@ class TestOrchestratorConvergence(unittest.TestCase):
         d = report.to_dict()
         self.assertEqual(set(d), {"passes", "max_passes", "converged", "applied",
                                   "deferred", "unresolved", "stopped_early",
-                                  "events", "pass_summaries"})
+                                  "stopped_reason", "events", "pass_summaries"})
         self.assertIsInstance(d["events"], list)
         json.dumps(d)
 

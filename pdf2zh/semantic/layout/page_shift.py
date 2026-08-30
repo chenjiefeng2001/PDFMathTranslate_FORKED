@@ -145,7 +145,8 @@ class ShiftExecutionReport:
     passes: int = 0
     max_passes: int = 0
     stopped_early: bool = False
-    applied: list = field(default_factory=list)       # executed SHIFT_DOWN decisions
+    stopped_reason: str = ""         # "" | "no_progress" | "budget_expired"
+    applied: list = field(default_factory=list)       # executed nonzero SHIFT_DOWN decisions
     deferred: list = field(default_factory=list)      # final decisions NOT executed
     unresolved: list = field(default_factory=list)    # final PageCollision records
 
@@ -154,6 +155,7 @@ class ShiftExecutionReport:
             "passes": self.passes,
             "max_passes": self.max_passes,
             "stopped_early": self.stopped_early,
+            "stopped_reason": self.stopped_reason,
             "applied_count": len(self.applied),
             "deferred_count": len(self.deferred),
             "unresolved_count": len(self.unresolved),
@@ -217,12 +219,18 @@ def resolve_page_shifts(
             decide_block_shift(c, page_height=sizes.get(c.page))
             for c in collisions
         ]
+        # A SHIFT_DOWN that moves nothing is NOT progress: 8b's required_shift
+        # is rounded to 2dp, so a sub-centipoint overlap (e.g. 0.004 pt from
+        # line-spacing padding / bbox inflation) becomes a zero-delta no-op.
+        # Applying it would re-surface the SAME collision every pass until the
+        # budget is burnt.  Skip it — its collision is recorded unresolved.
         applicable = [
             d for d in decisions
-            if d.decision is PageRecoveryDecision.SHIFT_DOWN
+            if d.decision is PageRecoveryDecision.SHIFT_DOWN and d.shift_y > _TOL
         ]
         if not applicable:
             report.stopped_early = True
+            report.stopped_reason = "no_progress"
             break
         for d in applicable:
             key = (d.page, d.block_index)
@@ -230,7 +238,7 @@ def resolve_page_shifts(
         report.applied.extend(applicable)
         report.passes = i + 1
     else:  # budget exhausted with collisions still present
-        pass
+        report.stopped_reason = "budget_expired"
 
     final = [current[k] for k in order]
     report.unresolved.extend(
