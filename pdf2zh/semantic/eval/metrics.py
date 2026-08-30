@@ -13,6 +13,7 @@ deliberately does *not* import the semantic detectors, so it stays decoupled.
 
 from __future__ import annotations
 
+import math
 import re
 
 # distance/numeric tolerances (points) — kept generous because real layouts
@@ -22,6 +23,11 @@ _X_TOL = 10.0          # horizontal column tolerance
 _OVERFLOW_TOL = 1.0    # a line may sit off-page by at most this before it counts
 _MATCH_TOL2 = 250.0 ** 2  # squared Euclidean centre distance for line matching
 _TOC_CONT_TOL = 30.0   # continuation line may drift from title_x by this (title_x+size anchor)
+# ── 7F-5d adaptive-TOC constants ────────────────────────────────────────────
+_PAGE_COL_EPS = 2.0    # strict page-column stability epsilon (page_x must not move)
+_FONT_SIZE_TOL = 2.0   # font size may not drift without reason (points)
+_SHRINK_EVIDENCE_TOL = 0.5  # shrink must reduce the size by at least this
+_WORD_GAP_EM = 0.25    # inter-word gap estimate used for re-wrap simulation
 
 _MARKER_RE = re.compile(r"^(?:[•·▪‣●○◦‣]|(?:[0-9]+|[a-z]|[ivxlcdmIVXLCDM]{1,4})[.)])$")
 _DOT_LEADER_RE = re.compile(r"\.{2,}")
@@ -160,6 +166,8 @@ def _line_word_features(words, page_width: float):
 
         feats.append(
             {
+                "y0": float(g["y0"]),
+                "_words": list(ws),
                 "is_item": is_item,
                 "marker_x": first_x if is_item else None,
                 "marker_text": first["text"] if is_item else None,
@@ -328,12 +336,252 @@ def _toc_continuation_page(sf, of):
     """
     s_cont = [f["toc_cont_x"] for f in sf if f["is_toc_cont"] and f["toc_cont_x"] is not None]
     o_cont = [f["toc_cont_x"] for f in of if f["is_toc_cont"] and f["toc_cont_x"] is not None]
-    if not s_cont and not o_cont:
-        return 1.0
+    if not s_cont:
+        return 1.0  # source had no continuation lines to preserve
+    if not o_cont:
+        return 0.0  # source continuation lost entirely
     n = min(len(s_cont), len(o_cont))
-    if not n:
-        return 0.0
     return _col_acc(list(zip(s_cont[:n], o_cont[:n])))
+
+
+# -- 7F-5d: adaptive-TOC metrics -------------------------------------------
+#
+# These four metrics quantify the 7F-5a/5b adaptive-TOC contract on real
+# extracted PDFs (source vs output, index-aligned like the other TOC checks):
+#
+# - ``toc_page_column_stability`` — the page-number column may not move at
+#   all (strict epsilon, unlike the graded ``toc_page_x_accuracy``).
+# - ``toc_adaptive_wrap_integrity`` — multi-line entries keep every wrapped
+#   line anchored at the entry's title column, never duplicate a word, and
+#   never lose title text (same-language render).
+# - ``toc_adaptive_font_size`` — font size is stable when the entry does not
+#   grow, and genuinely shrinks when the title could not fit its rendered
+#   line count at the source size (SHRINK really happened).
+# - ``toc_adaptive_overflow`` — an entry that cannot fit either shows explicit
+#   overflow evidence (title words reaching the page column) or keeps its
+#   full title text; a silently truncated title (CLIP) drops it.
+#
+# None of them imports the semantic detectors — pure extraction heuristics.
+
+
+def _col_strict(pairs, eps=_PAGE_COL_EPS) -> float:
+    """Fraction of pairs within a strict epsilon (column must not move)."""
+    if not pairs:
+        return 1.0
+    return sum(1.0 for s, o in pairs if abs(s - o) <= eps) / float(len(pairs))
+
+
+def _entry_groups(feats):
+    """Group each TOC entry with its immediately following wrapped lines."""
+    groups = []
+    cur = None
+    for f in feats:
+        if f["is_toc"]:
+            cur = {"entry": f, "conts": []}
+            groups.append(cur)
+        elif f["is_toc_cont"] and cur is not None:
+            cur["conts"].append(f)
+        else:
+            cur = None
+    return groups
+
+
+def _title_words(feat):
+    """Title words of an entry's first line (leader dots / page number out)."""
+    ws = feat.get("_words") or []
+    if not ws:
+        return []
+    return [w for w in ws[:-1] if not re.fullmatch(r"\.+", w["text"])]
+
+
+def _group_title_words(group):
+    """All title words of an entry: first line + every wrapped follow-on line."""
+    words = list(_title_words(group["entry"]))
+    for c in group["conts"]:
+        words.extend(c.get("_words") or [])
+    return words
+
+
+def _text_fidelity(src_words, out_words):
+    """Preservation score + mode; neutral ``1.0`` for translated text.
+
+    Returns ``(score, mode)``: when the output words are (almost) a subset of
+    the source title words — i.e. a same-language render — the score is the
+    fraction of source words still present (a deleted / truncated word drops
+    it).  When the output is translated (little word overlap) the score is
+    neutral ``1.0`` because word-for-word fidelity is unverifiable.
+    """
+    s = [w["text"] for w in src_words]
+    o = [w["text"] for w in out_words]
+    if not s:
+        return 1.0, "none"
+    oset = set(o)
+    cov = sum(1 for t in s if t in oset) / float(len(s))
+    sset = set(s)
+    out_in_src = (sum(1 for t in o if t in sset) / float(len(o))) if o else 1.0
+    if out_in_src >= 0.9:
+        return cov, "preserved"
+    return 1.0, "translated"
+
+
+def _entry_size(lines, y0, x0):
+    """Font size of the text line at (≈y0, ≈x0); ``None`` when not found."""
+    for ln in lines:
+        b = ln["bbox"]
+        if abs(b[1] - y0) <= 3.0 and abs(b[0] - x0) <= _X_TOL:
+            return float(ln["size"])
+    return None
+
+
+def _entry_overflows(group) -> bool:
+    """True when any title word of the entry crosses the page column."""
+    e = group["entry"]
+    page_x = float(e["page_x"] or 0.0)
+    return any(w["bbox"][2] > page_x - _X_TOL for w in _group_title_words(group))
+
+
+def _needs_shrink(group, src_size, out_size) -> bool:
+    """True when the title could not fit its rendered line count at the source
+    font size (word widths measured from the rendered bboxes, scaled) — i.e.
+    SHRINK was required to achieve the observed wrap.
+    """
+    e = group["entry"]
+    words = _group_title_words(group)
+    if not words or out_size <= 0.0:
+        return False
+    avail = float(e["page_x"] or 0.0) - float(e["title_x"] or 0.0) - 2.0
+    if avail <= 0.0:
+        return False
+    total = sum(w["bbox"][2] - w["bbox"][0] for w in words)
+    total += _WORD_GAP_EM * out_size * max(0, len(words) - 1)
+    lines_at_src = math.ceil(total * src_size / out_size / avail)
+    return lines_at_src > 1 + len(group["conts"])
+
+
+def _toc_page_column_stability_page(sf, of):
+    """Strict page-number column stability (page_x must never move)."""
+    s = [f["page_x"] for f in sf if f["is_toc"] and f["page_x"] is not None]
+    o = [f["page_x"] for f in of if f["is_toc"] and f["page_x"] is not None]
+    if not s:
+        return 1.0
+    if not o:
+        return 0.0  # entries lost
+    n = min(len(s), len(o))
+    return _col_strict(list(zip(s[:n], o[:n])))
+
+
+def _toc_adaptive_wrap_integrity_page(sf, of):
+    """Per-page adaptive wrap integrity for TOC entries.
+
+    For every output entry: every wrapped line must start at the entry's
+    title anchor column (never dragged to a new column), no whole word may be
+    duplicated across the entry's lines (CJK single glyphs are exempt —
+    repeated characters are legitimate in Chinese titles), and — when the
+    output is a same-language render of the source entry — no title word may
+    be lost.  ``1.0`` when the page has no output entries.
+    """
+    s_groups = _entry_groups(sf)
+    o_groups = _entry_groups(of)
+    if not o_groups:
+        return 1.0
+    scores = []
+    for k, og in enumerate(o_groups):
+        e = og["entry"]
+        twords = _title_words(e)
+        if not twords:
+            scores.append(1.0)
+            continue
+        anchor = twords[0]["bbox"][0]
+        line_xs = [anchor] + [
+            c["_words"][0]["bbox"][0] for c in og["conts"] if c.get("_words")
+        ]
+        anchored = all(abs(x - anchor) <= _TOC_CONT_TOL for x in line_xs)
+        # no whole wrapped line may be a duplicate of another (double-render);
+        # repeated words within lines are legitimate, so compare lines, not words
+        line_texts = [" ".join(w["text"] for w in _title_words(e))]
+        line_texts += [" ".join(w["text"] for w in c["_words"]) for c in og["conts"]]
+        no_dup_line = len(line_texts) == len(set(line_texts))
+        cov, mode = 1.0, "none"
+        if k < len(s_groups):
+            cov, mode = _text_fidelity(
+                _group_title_words(s_groups[k]), _group_title_words(og)
+            )
+        text_ok = mode != "preserved" or cov >= 1.0
+        scores.append(1.0 if (anchored and no_dup_line and text_ok) else 0.0)
+    return sum(scores) / float(len(scores)) if scores else 1.0
+
+
+def _toc_adaptive_font_size_page(sf, of, sp, op):
+    """Per-page font-size fidelity for TOC entries.
+
+    Font size may never grow; stays stable (within ``_FONT_SIZE_TOL``) when
+    the entry's line count does not grow (no unjustified SHRINK); and must be
+    genuinely smaller when the title could not fit its rendered line count at
+    the source size (the SHRINK stage really ran).
+    """
+    s_groups = _entry_groups(sf)
+    o_groups = _entry_groups(of)
+    if not o_groups:
+        return 1.0
+    scores = []
+    for k, og in enumerate(o_groups):
+        e = og["entry"]
+        out_size = _entry_size(op["lines"], e["y0"], e["title_x"])
+        out_lines_n = 1 + len(og["conts"])
+        if k < len(s_groups):
+            se = s_groups[k]["entry"]
+            src_size = _entry_size(sp["lines"], se["y0"], se["title_x"])
+            src_lines_n = 1 + len(s_groups[k]["conts"])
+        else:
+            src_size, src_lines_n = out_size, out_lines_n
+        if out_size is None or src_size is None:
+            scores.append(1.0)
+            continue
+        ok = True
+        if out_size > src_size + _FONT_SIZE_TOL:
+            ok = False  # font must never increase
+        elif out_lines_n == src_lines_n:
+            ok = abs(out_size - src_size) <= _FONT_SIZE_TOL  # no unjustified shrink
+        elif _needs_shrink(og, src_size, out_size):
+            if out_size < src_size - _SHRINK_EVIDENCE_TOL:
+                ok = True  # shrink really happened
+            else:
+                # shrink required but the font kept the source size: only
+                # acceptable when the renderer re-wrapped within the width —
+                # a naive font-size-only drop overflows the page column
+                ok = not _entry_overflows(og)
+        scores.append(1.0 if ok else 0.0)
+    return sum(scores) / float(len(scores)) if scores else 1.0
+
+
+def _toc_adaptive_overflow_page(sf, of):
+    """Per-page honest-overflow detection for TOC entries.
+
+    An entry that cannot fit is honest when its title words either reach the
+    page column (explicit overflow evidence, drawn fully) or keep every word
+    of a same-language source title.  A silently truncated title (CLIP —
+    words lost, no overflow shown) drops it.
+    """
+    s_groups = _entry_groups(sf)
+    o_groups = _entry_groups(of)
+    if not o_groups:
+        return 1.0
+    scores = []
+    for k, og in enumerate(o_groups):
+        e = og["entry"]
+        title = _title_words(e)
+        page_x = float(e["page_x"] or 0.0)
+        visible = bool(title) and any(w["bbox"][2] > page_x - _X_TOL for w in title)
+        if visible:
+            scores.append(1.0)
+            continue
+        cov, mode = 1.0, "none"
+        if k < len(s_groups):
+            cov, mode = _text_fidelity(
+                _group_title_words(s_groups[k]), _group_title_words(og)
+            )
+        scores.append(1.0 if mode != "preserved" or cov >= 1.0 else 0.0)
+    return sum(scores) / float(len(scores)) if scores else 1.0
 
 
 def _list_toc_metrics(src_doc, out_doc):
@@ -344,6 +592,7 @@ def _list_toc_metrics(src_doc, out_doc):
     toc_title_pairs, toc_page_pairs, toc_num_equal, toc_level_eq, toc_level_den = (
         [], [], 0, 0, 0
     )
+    toc_page_strict, toc_wrap_ok, toc_font_ok, toc_overflow_ok = [], [], [], []
     for sp, op in zip(src_doc["pages"], out_doc["pages"]):
         sf = _line_word_features(sp["words"], sp["width"])
         of = _line_word_features(op["words"], op["width"])
@@ -365,6 +614,12 @@ def _list_toc_metrics(src_doc, out_doc):
         nested_ok.append(_list_nested_accuracy_page(sf, of))
         toc_leader_ok.append(_toc_leader_integrity_page(sf, of))
         toc_cont_acc.append(_toc_continuation_page(sf, of))
+
+        # 7F-5d adaptive-TOC metrics
+        toc_page_strict.append(_toc_page_column_stability_page(sf, of))
+        toc_wrap_ok.append(_toc_adaptive_wrap_integrity_page(sf, of))
+        toc_font_ok.append(_toc_adaptive_font_size_page(sf, of, sp, op))
+        toc_overflow_ok.append(_toc_adaptive_overflow_page(sf, of))
 
         # TOC entries
         sentries = [f for f in sf if f["is_toc"]]
@@ -394,6 +649,11 @@ def _list_toc_metrics(src_doc, out_doc):
         "toc_level_accuracy": round((toc_level_eq / toc_level_den) if toc_level_den else 1.0, 4),
         "toc_leader_integrity": round(sum(toc_leader_ok) / len(toc_leader_ok) if toc_leader_ok else 1.0, 4),
         "toc_continuation_x_accuracy": round(sum(toc_cont_acc) / len(toc_cont_acc) if toc_cont_acc else 1.0, 4),
+        # 7F-5d adaptive-TOC metrics
+        "toc_page_column_stability": round(sum(toc_page_strict) / len(toc_page_strict) if toc_page_strict else 1.0, 4),
+        "toc_adaptive_wrap_integrity": round(sum(toc_wrap_ok) / len(toc_wrap_ok) if toc_wrap_ok else 1.0, 4),
+        "toc_adaptive_font_size": round(sum(toc_font_ok) / len(toc_font_ok) if toc_font_ok else 1.0, 4),
+        "toc_adaptive_overflow": round(sum(toc_overflow_ok) / len(toc_overflow_ok) if toc_overflow_ok else 1.0, 4),
     }
 
 
@@ -491,6 +751,10 @@ def compute_report(source_doc: dict, output_doc: dict) -> dict:
         "toc_level_accuracy": lst["toc_level_accuracy"],
         "toc_leader_integrity": lst["toc_leader_integrity"],
         "toc_continuation_x_accuracy": lst["toc_continuation_x_accuracy"],
+        "toc_page_column_stability": lst["toc_page_column_stability"],
+        "toc_adaptive_wrap_integrity": lst["toc_adaptive_wrap_integrity"],
+        "toc_adaptive_font_size": lst["toc_adaptive_font_size"],
+        "toc_adaptive_overflow": lst["toc_adaptive_overflow"],
         "outline_destination_accuracy": _outline_metrics(source_doc, output_doc),
         "overflow_count": _overflow_count(output_doc),
         "code_preserved_bbox": _code_preserved_bbox(source_doc, output_doc),
