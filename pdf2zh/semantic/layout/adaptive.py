@@ -189,7 +189,16 @@ def adaptive_layout(
     # Stage 3: CLIP (last resort; always keeps overflow=True).  It clips at the
     # font currently in effect (shrunk size if SHRINK ran) so the diagnostics
     # ``final_font_size`` honestly reflects the whole pipeline.
-    if b.allow_clip and result.overflow and reason is not OverflowReason.PRESERVED_REGION:
+    #
+    # 7F-5a: a TOC title (target="title") is NEVER clipped — page_x / page
+    # number / title_x are immovable and the leader only shrinks; an overlong
+    # title must degrade to explicit PRESERVE_OVERFLOW, never truncation.
+    if (
+        target != "title"
+        and b.allow_clip
+        and result.overflow
+        and reason is not OverflowReason.PRESERVED_REGION
+    ):
         result = lay_out(
             primitive,
             measure=measure,
@@ -204,8 +213,13 @@ def adaptive_layout(
         return _finalize(result, reason, decision, steps, original)
 
     # Budget exhausted: PRESERVE_OVERFLOW — keep geometry, report overflow.
+    # When the result is STILL overflowing after every budgeted stage, the
+    # honest decision is PRESERVE_OVERFLOW — never a stale WRAP/SHRINK that
+    # implies the budget satisfied it (7F-5a: TOC title reaches here instead
+    # of CLIP; diagnostics must say preserve_overflow, not wrap).
     decision = decide_recovery(kind, reason, budget=b, target=target)
-    if decision in (RecoveryDecision.NO_ACTION, RecoveryDecision.WRAP,
-                    RecoveryDecision.SHRINK) and not steps:
+    if result.overflow and decision in (
+        RecoveryDecision.NO_ACTION, RecoveryDecision.WRAP, RecoveryDecision.SHRINK
+    ):
         decision = RecoveryDecision.PRESERVE_OVERFLOW
     return _finalize(result, reason, decision, steps, original)

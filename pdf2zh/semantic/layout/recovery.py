@@ -42,7 +42,8 @@ Decision ladder per primitive kind (7F-3 policy, enforced by
     FlowText   : WRAP → SHRINK → CLIP          (aggressive)
     List content : WRAP → SHRINK → CLIP         (marker NEVER touched)
     List marker  : PRESERVE_OVERFLOW            (marker never wrap/shrink)
-    TOC title    : WRAP → SHRINK → PRESERVE_OVERFLOW   (page_x NEVER moves)
+    TOC title    : WRAP → SHRINK → PRESERVE_OVERFLOW   (7F-5a; page_x NEVER
+                   moves, leader only shrinks, **never CLIP**)
     TOC page column : PRESERVE_OVERFLOW         (FixedColumn never moves)
     Code         : PRESERVE                     (never WRAP/SHRINK/CLIP)
 
@@ -145,8 +146,11 @@ def budget_for_kind(kind: str) -> LayoutBudget:
     """Default :class:`LayoutBudget` for a primitive ``kind``.
 
     - ``flow`` / ``continuation`` — aggressive: wrap, then shrink, then clip.
-    - ``anchor`` (list content / toc title) — wrap then shrink (marker is
-      handled by ``decide_recovery``'s target rule, NOT by budget).
+    - ``anchor`` (list content) — wrap then shrink (list marker is handled by
+      ``decide_recovery``'s target rule, NOT by budget).
+    - ``toc_title`` — TOC title ladder (7F-5a): WRAP → SHRINK →
+      PRESERVE_OVERFLOW, **never CLIP** — the page column (``page_x``) is
+      immovable and a title must never be truncated into it.
     - ``column`` (toc page_x) — nothing may move or shrink.
     - ``preserved`` (code) — never wrap / shrink / clip.
     """
@@ -155,6 +159,12 @@ def budget_for_kind(kind: str) -> LayoutBudget:
     if kind == "anchor":
         return LayoutBudget(
             allow_wrap=True, allow_shrink=True, allow_clip=True, max_extra_lines=2
+        )
+    if kind in ("toc_title", "toc"):
+        # 7F-5a: page_x never moves; a too-long title degrades to explicit
+        # overflow (PRESERVE_OVERFLOW), never CLIP, never font-truncation.
+        return LayoutBudget(
+            allow_wrap=True, allow_shrink=True, allow_clip=False, max_extra_lines=2
         )
     if kind == "column":
         return LayoutBudget(
@@ -282,6 +292,17 @@ def decide_recovery(
 
     # marker/toc-title anchor is never truncated either (page_x preservation)
     if kind == "anchor":
+        if b.allow_wrap and reason in (OverflowReason.WIDTH, OverflowReason.HEIGHT):
+            return RecoveryDecision.WRAP
+        if b.allow_shrink:
+            return RecoveryDecision.SHRINK
+        return RecoveryDecision.PRESERVE_OVERFLOW
+
+    # 7F-5a: TOC title — WRAP → SHRINK → PRESERVE_OVERFLOW, never CLIP
+    # (page_x / page_number / title_x are immovable; the leader only shrinks).
+    if kind in ("toc_title", "toc"):
+        if reason == OverflowReason.UNBREAKABLE_TOKEN:
+            return RecoveryDecision.SHRINK if b.allow_shrink else RecoveryDecision.PRESERVE_OVERFLOW
         if b.allow_wrap and reason in (OverflowReason.WIDTH, OverflowReason.HEIGHT):
             return RecoveryDecision.WRAP
         if b.allow_shrink:
