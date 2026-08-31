@@ -1,0 +1,233 @@
+[
+ {
+  "node_id": "p186_0",
+  "source_text": "156",
+  "translated_text": "156",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_1",
+  "source_text": "// xyza_foo.h",
+  "translated_text": "// xyza_foo.h",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_2",
+  "source_text": "namespace xyza {",
+  "translated_text": "namespace xyza {",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_3",
+  "source_text": "}",
+  "translated_text": "}",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_4",
+  "source_text": "const Foo& rhs);",
+  "translated_text": "const Foo& rhs);",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_5",
+  "source_text": "static int s_count; // declaration only",
+  "translated_text": "static int s_count; // declaration only",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_6",
+  "source_text": "Chapter 1 Compilers, Linkers, and Components",
+  "translated_text": "Chapter 1 Compilers, Linkers, and Components",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_7",
+  "source_text": "// xyza_foo.cpp",
+  "translated_text": "// xyza_foo.cpp",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_8",
+  "source_text": "#include <xyza_foo.h>",
+  "translated_text": "#include <xyza_foo.h>",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_9",
+  "source_text": "GOOD IDEA",
+  "translated_text": "GOOD IDEA",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_10",
+  "source_text": "class Foo { /*...*/ };",
+  "translated_text": "class Foo { /*...*/ };",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_11",
+  "source_text": "const Foo& rhs)",
+  "translated_text": "const Foo& rhs)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_12",
+  "source_text": "// ...",
+  "translated_text": "// ...",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_13",
+  "source_text": "// ...",
+  "translated_text": "// ...",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_14",
+  "source_text": "Figure 1-17: Defining free functions outside their declared scope (GOOD IDEA)",
+  "translated_text": "Figure 1-17: Defining free functions outside their declared scope (GOOD IDEA)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_15",
+  "source_text": "Such non-self-declaring definitions require that the name used in the definition be qualified\nwith the name of the scope containing the corresponding declaration — irrespective of whether\nthat scope is a namespace, struct, or class:",
+  "translated_text": "Such non-self-declaring definitions require that the name used in the definition be qualified\nwith the name of the scope containing the corresponding declaration — irrespective of whether\nthat scope is a namespace, struct, or class:",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_16",
+  "source_text": "ptg31790760",
+  "translated_text": "ptg31790760",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_17",
+  "source_text": "};\nint Bar::s_count; // This definition will fail to compile if 's_count'",
+  "translated_text": "};\nint Bar::s_count; // This definition will fail to compile if 's_count'",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_18",
+  "source_text": "Most declarations that are not also definitions can be repeated any number of times within a\ngiven scope:",
+  "translated_text": "Most declarations that are not also definitions can be repeated any number of times within a\ngiven scope:",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_19",
+  "source_text": "// Class declarations may be repeated within a\n// scope without causing an error.",
+  "translated_text": "// Class declarations may be repeated within a\n// scope without causing an error.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_20",
+  "source_text": "typedef int Int; // Remember that a 'typedef' is considered a\ntypedef int Int; // declaration, and not a definition.",
+  "translated_text": "typedef int Int; // Remember that a 'typedef' is considered a\ntypedef int Int; // declaration, and not a definition.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ }
+]

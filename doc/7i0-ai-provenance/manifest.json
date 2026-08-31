@@ -1,0 +1,23 @@
+{
+ "schema_version": 1,
+ "meta": {
+  "source": "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5.pdf",
+  "dual": "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-dual.pdf",
+  "version": "0.1.0",
+  "pages": [
+   0,
+   10,
+   20,
+   30,
+   40
+  ]
+ },
+ "pages": {
+  "0": null,
+  "10": null,
+  "20": null,
+  "30": null,
+  "40": null
+ },
+ "summary": "summary.json"
+}

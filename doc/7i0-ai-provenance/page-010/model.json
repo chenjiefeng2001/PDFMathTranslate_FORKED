@@ -1,0 +1,50 @@
+[
+ {
+  "node_id": "p10_0",
+  "kind": "heading",
+  "role": "heading",
+  "role_confidence": 0.7452,
+  "bbox": [
+   108.1204,
+   320.9203,
+   322.41457590000005,
+   355.0203
+  ],
+  "font_size": 22.0,
+  "font_major": "Helvetica-Bold",
+  "multifont": true,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p10_1",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   167.6895,
+   308.2416,
+   282.0088,
+   319.4416
+  ],
+  "font_size": 11.2,
+  "font_major": "Helvetica-Bold",
+  "multifont": true,
+  "reading_order": 1
+ },
+ {
+  "node_id": "p10_2",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   108.48,
+   296.2668,
+   263.68586,
+   327.12
+  ],
+  "font_size": 7.6,
+  "font_major": "Helvetica",
+  "multifont": true,
+  "reading_order": 2
+ }
+]

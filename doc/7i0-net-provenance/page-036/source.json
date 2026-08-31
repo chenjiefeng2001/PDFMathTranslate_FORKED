@@ -1,0 +1,407 @@
+[
+ {
+  "node_id": "p36_0",
+  "index": 0,
+  "text": "28 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "bbox": [
+   46.08,
+   645.1302365,
+   416.53296294999984,
+   654.4563224999999
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 9.22,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_1",
+  "index": 1,
+  "text": "FPS",
+  "bbox": [
+   179.7985879,
+   596.688173,
+   195.9255554,
+   604.979673
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_2",
+  "index": 2,
+  "text": "MMORPG",
+  "bbox": [
+   157.6917,
+   588.3966595,
+   195.92380649999998,
+   596.6881595000001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_3",
+  "index": 3,
+  "text": "RTS\nRacing",
+  "bbox": [
+   170.1219,
+   571.8136595,
+   195.925048,
+   588.3966595
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_4",
+  "index": 4,
+  "text": "a 8000",
+  "bbox": [
+   104.9764405,
+   555.761852,
+   141.081496,
+   566.1977595000001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_5",
+  "index": 5,
+  "text": "p 6000",
+  "bbox": [
+   104.9764405,
+   532.0520595,
+   141.081496,
+   540.3435595000001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_6",
+  "index": 6,
+  "text": "4000",
+  "bbox": [
+   122.6412,
+   506.1978595,
+   141.081496,
+   514.4893595
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_7",
+  "index": 7,
+  "text": "2000",
+  "bbox": [
+   122.6412,
+   480.3435595,
+   141.081496,
+   488.6350595
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_8",
+  "index": 8,
+  "text": "0",
+  "bbox": [
+   136.4714,
+   454.4893595,
+   141.081474,
+   462.78085949999996
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_9",
+  "index": 9,
+  "text": "400",
+  "bbox": [
+   116.179,
+   372.67236410000004,
+   130.0462516,
+   380.9860641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_10",
+  "index": 10,
+  "text": "o 350",
+  "bbox": [
+   100.18483590000001,
+   351.40582660000007,
+   130.0462516,
+   361.52406410000003
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_11",
+  "index": 11,
+  "text": "300",
+  "bbox": [
+   116.179,
+   333.78696410000003,
+   130.0462516,
+   342.1006641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_12",
+  "index": 12,
+  "text": "s 250",
+  "bbox": [
+   100.18483590000001,
+   312.6141024000001,
+   130.0462516,
+   322.6386641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_13",
+  "index": 13,
+  "text": "e 200",
+  "bbox": [
+   100.18483590000001,
+   294.12443360000003,
+   130.0462516,
+   303.2147641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_14",
+  "index": 14,
+  "text": "I 150",
+  "bbox": [
+   100.18483590000001,
+   272.65846020000004,
+   130.0462516,
+   283.7538641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_15",
+  "index": 15,
+  "text": "e 100",
+  "bbox": [
+   100.18483590000001,
+   253.71153790000002,
+   130.0462516,
+   264.3284641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_16",
+  "index": 16,
+  "text": "u 50",
+  "bbox": [
+   100.18483590000001,
+   236.5527641,
+   130.0463344,
+   244.8664641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_17",
+  "index": 17,
+  "text": "3\nDataobtainedfromNetworkWizards,http://www.nw.com/",
+  "bbox": [
+   54.3,
+   67.8465336,
+   258.39340832000016,
+   77.0744641
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 8.22,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p36_18",
+  "index": 18,
+  "text": "1994 1996 1998 2000 2002 2004",
+  "bbox": [
+   153.4483,
+   446.1978595,
+   359.217596,
+   454.4893595
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p36_19",
+  "index": 19,
+  "text": "Year",
+  "bbox": [
+   239.31,
+   433.6026595,
+   255.66083799999998,
+   441.8941595
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.29,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_20",
+  "index": 20,
+  "text": "Figure3.16 ThegrowthinInternetgames,depictedbythefrequencyofoccurrenceinUsenet\nnewsgrouppostings",
+  "bbox": [
+   46.07999999999999,
+   401.34996825,
+   416.66013684999996,
+   421.6563225
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 9.22,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_21",
+  "index": 21,
+  "text": "1993 1995 1997 1999 2001 2003 2005",
+  "bbox": [
+   123.8719,
+   211.0107641,
+   362.9021688,
+   219.3244641
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p36_22",
+  "index": 22,
+  "text": "Year",
+  "bbox": [
+   235.1896,
+   198.5625641,
+   251.5842164,
+   206.87626410000001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 8.31,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_23",
+  "index": 23,
+  "text": "Figure3.17 ThegrowthoftheInternet,depictedbythenumberofInternetaddressesthathave\nbeenassignedaname",
+  "bbox": [
+   46.07999999999999,
+   167.04996825,
+   416.74491944999966,
+   187.3563225
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 9.22,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_24",
+  "index": 24,
+  "text": "Whilethegrowthintheonlinegamegenreshavebeensubstantialandperhapseven\nimpressive, it is interesting to put the online game growth in the context of Internet",
+  "bbox": [
+   46.079507819999996,
+   126.81429243,
+   416.76217548000017,
+   149.0257611
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 10.21,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_25",
+  "index": 25,
+  "text": "3",
+  "bbox": [
+   412.62,
+   119.1990491,
+   416.19385,
+   126.34674910000001
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 10.21,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_26",
+  "index": 26,
+  "text": "growth.Figure3.17depictsthegrowthoftheInternetintermsofthenumberofhosts.\nTheInternethasshownexponentialincreaseinthenumberofhostsduringthesametime\nperiod,althoughtherearesignsthatthisexponentialgrowthmaybeslowing.",
+  "bbox": [
+   46.079507819999996,
+   90.93464146000001,
+   416.57783589,
+   125.08647278999999
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 10.21,
+  "line_count": 3,
+  "translation_status": "translated"
+ }
+]

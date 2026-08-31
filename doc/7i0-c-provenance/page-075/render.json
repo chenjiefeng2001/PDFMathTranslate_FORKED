@@ -1,0 +1,2934 @@
+{
+ "page": 151,
+ "page_height": 656.9279174804688,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "Section 0.6 The Key Role of Physical Design ",
+   "bbox": [
+    57.96,
+    40.29,
+    255.97,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 1,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    57.96,
+    606.64,
+    255.97,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "45",
+   "bbox": [
+    462.96,
+    40.29,
+    472.96,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 2,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    462.96,
+    606.64,
+    472.96,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "物理设计决定了",
+   "bbox": [
+    93.96,
+    75.79,
+    163.96,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    566.78,
+    163.96,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    163.96,
+    76.76,
+    166.46,
+    90.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    163.96,
+    566.83,
+    166.46,
+    580.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "where",
+   "bbox": [
+    166.46,
+    79.63,
+    190.52,
+    89.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    166.46,
+    567.3,
+    190.52,
+    577.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "（物理上）——例如，在哪个库中——编码的功能属于相对于整个",
+   "bbox": [
+    190.52,
+    75.79,
+    476.12,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    190.52,
+    566.78,
+    476.12,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "企业的其他功能。",
+   "bbox": [
+    93.96,
+    89.79,
+    173.96,
+    104.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 4,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    552.78,
+    173.96,
+    567.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    173.96,
+    90.76,
+    178.96,
+    104.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 4,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    173.96,
+    552.83,
+    178.96,
+    566.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "识别跨物理边界的编译时和链接时依赖性将有助于塑造我们软件的",
+   "bbox": [
+    178.96,
+    89.79,
+    468.96,
+    104.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 4,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    178.96,
+    552.78,
+    468.96,
+    567.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "逻辑和物理设计方面。例如，用于公司范围重用的通用功能（物理上）属于我们软件存",
+   "bbox": [
+    93.96,
+    103.79,
+    473.96,
+    118.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    538.78,
+    473.96,
+    553.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "储库中的",
+   "bbox": [
+    93.96,
+    117.79,
+    133.96,
+    132.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    524.78,
+    133.96,
+    539.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    133.96,
+    118.76,
+    136.46,
+    132.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    133.96,
+    524.83,
+    136.46,
+    538.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": "low",
+   "bbox": [
+    136.46,
+    121.63,
+    150.91,
+    131.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    136.46,
+    525.3,
+    150.91,
+    535.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    150.91,
+    118.76,
+    153.41,
+    132.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    150.91,
+    524.83,
+    153.41,
+    538.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "level",
+   "bbox": [
+    153.41,
+    121.63,
+    172.12,
+    131.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    153.41,
+    525.3,
+    172.12,
+    535.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "，在",
+   "bbox": [
+    172.12,
+    117.79,
+    192.12,
+    132.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    172.12,
+    524.78,
+    192.12,
+    539.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    192.12,
+    118.76,
+    194.62,
+    132.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    192.12,
+    524.83,
+    194.62,
+    538.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "higher",
+   "bbox": [
+    194.62,
+    121.63,
+    220.73,
+    131.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    194.62,
+    525.3,
+    220.73,
+    535.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    220.73,
+    118.76,
+    223.23,
+    132.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    220.73,
+    524.83,
+    223.23,
+    538.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "levels",
+   "bbox": [
+    223.23,
+    121.63,
+    245.83,
+    131.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    223.23,
+    525.3,
+    245.83,
+    535.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    245.83,
+    118.76,
+    248.33,
+    132.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    245.83,
+    524.83,
+    248.33,
+    538.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "工作的应用程序软件开发人员可以独立于其他应用",
+   "bbox": [
+    248.33,
+    117.79,
+    468.33,
+    132.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    248.33,
+    524.78,
+    468.33,
+    539.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "程序找到并使用它（例如，参见图",
+   "bbox": [
+    93.96,
+    131.79,
+    243.96,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    510.78,
+    243.96,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": " 0-7b",
+   "bbox": [
+    243.96,
+    132.76,
+    264.79,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    243.96,
+    510.83,
+    264.79,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "，第",
+   "bbox": [
+    264.79,
+    131.79,
+    284.79,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    264.79,
+    510.78,
+    284.79,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": " 0.2 ",
+   "bbox": [
+    284.79,
+    132.76,
+    302.29,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    284.79,
+    510.83,
+    302.29,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "节）。",
+   "bbox": [
+    302.29,
+    131.79,
+    332.29,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    302.29,
+    510.78,
+    332.29,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "众所周知，",
+   "bbox": [
+    93.96,
+    185.79,
+    143.96,
+    200.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    456.78,
+    143.96,
+    471.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "37,38,39",
+   "bbox": [
+    143.96,
+    188.93,
+    168.46,
+    195.93
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    143.96,
+    461.0,
+    168.46,
+    468.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    168.46,
+    186.76,
+    170.96,
+    200.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    168.46,
+    456.83,
+    170.96,
+    470.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "应该避免（物理）模块之间的",
+   "bbox": [
+    170.96,
+    185.79,
+    300.96,
+    200.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    170.96,
+    456.78,
+    300.96,
+    471.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    300.96,
+    186.76,
+    303.46,
+    200.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    300.96,
+    456.83,
+    303.46,
+    470.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "cyclic",
+   "bbox": [
+    303.46,
+    189.63,
+    326.6,
+    199.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    303.46,
+    457.3,
+    326.6,
+    467.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    326.6,
+    186.76,
+    329.1,
+    200.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    326.6,
+    456.83,
+    329.1,
+    470.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "依赖关系（参见第",
+   "bbox": [
+    329.1,
+    185.79,
+    409.1,
+    200.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    329.1,
+    456.78,
+    409.1,
+    471.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": " 2.2",
+   "bbox": [
+    409.1,
+    186.76,
+    424.1,
+    200.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    409.1,
+    456.83,
+    424.1,
+    470.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "–",
+   "bbox": [
+    424.1,
+    185.79,
+    429.72,
+    200.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    424.1,
+    456.78,
+    429.72,
+    471.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "2.4",
+   "bbox": [
+    429.73,
+    186.76,
+    442.23,
+    200.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    429.73,
+    456.83,
+    442.23,
+    470.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    442.23,
+    185.79,
+    452.23,
+    200.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    442.23,
+    456.78,
+    452.23,
+    471.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "2.6",
+   "bbox": [
+    452.23,
+    186.76,
+    464.73,
+    200.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    452.23,
+    456.83,
+    464.73,
+    470.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    464.73,
+    185.79,
+    474.73,
+    200.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    464.73,
+    456.78,
+    474.73,
+    471.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "2.8",
+   "bbox": [
+    93.96,
+    200.76,
+    106.46,
+    214.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    442.83,
+    106.46,
+    456.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "–",
+   "bbox": [
+    106.46,
+    199.79,
+    112.08,
+    214.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    106.46,
+    442.78,
+    112.08,
+    457.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "2.9",
+   "bbox": [
+    112.09,
+    200.76,
+    124.59,
+    214.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    112.09,
+    442.83,
+    124.59,
+    456.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    124.59,
+    199.79,
+    134.59,
+    214.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    124.59,
+    442.78,
+    134.59,
+    457.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": "2.14 ",
+   "bbox": [
+    134.59,
+    200.76,
+    154.59,
+    214.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    134.59,
+    442.83,
+    154.59,
+    456.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    154.59,
+    199.79,
+    164.59,
+    214.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    154.59,
+    442.78,
+    164.59,
+    457.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": " 3.4 ",
+   "bbox": [
+    164.59,
+    200.76,
+    182.09,
+    214.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    164.59,
+    442.83,
+    182.09,
+    456.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "节）。通过采用已建立的物理设计技术（参见第",
+   "bbox": [
+    182.09,
+    199.79,
+    392.09,
+    214.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    182.09,
+    442.78,
+    392.09,
+    457.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": " 3.5 ",
+   "bbox": [
+    392.09,
+    200.76,
+    409.59,
+    214.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    392.09,
+    442.83,
+    409.59,
+    456.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "节），我们确",
+   "bbox": [
+    409.59,
+    199.79,
+    469.59,
+    214.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    409.59,
+    442.78,
+    469.59,
+    457.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "保只为我们需要的内容付费（在链接时间和可执行文件大小方面）（参见第",
+   "bbox": [
+    93.96,
+    213.79,
+    423.96,
+    228.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 10,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    428.78,
+    423.96,
+    443.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": " 3.6 ",
+   "bbox": [
+    423.96,
+    214.76,
+    441.46,
+    228.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 10,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    423.96,
+    428.83,
+    441.46,
+    442.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "节）。",
+   "bbox": [
+    441.46,
+    213.79,
+    471.46,
+    228.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 10,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    441.46,
+    428.78,
+    471.46,
+    443.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    471.46,
+    214.76,
+    476.46,
+    228.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 10,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    471.46,
+    428.83,
+    476.46,
+    442.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": "此外，我们希望开发可重用的解决方案，这些解决方案是对等解决方案的",
+   "bbox": [
+    93.96,
+    227.79,
+    413.96,
+    242.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 11,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    414.78,
+    413.96,
+    429.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    413.96,
+    228.76,
+    416.46,
+    242.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 11,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    413.96,
+    414.83,
+    416.46,
+    428.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": "independent",
+   "bbox": [
+    416.46,
+    231.63,
+    465.34,
+    241.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 11,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    416.46,
+    415.3,
+    465.34,
+    425.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "（",
+   "bbox": [
+    465.34,
+    227.79,
+    475.34,
+    242.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 11,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    465.34,
+    414.78,
+    475.34,
+    429.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": "请参阅第",
+   "bbox": [
+    93.96,
+    241.79,
+    133.96,
+    256.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 12,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    400.78,
+    133.96,
+    415.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": " 3.7 ",
+   "bbox": [
+    133.96,
+    242.76,
+    151.46,
+    256.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 12,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    133.96,
+    400.83,
+    151.46,
+    414.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "节），并且可以与它们在同一进程中共存（请参阅第",
+   "bbox": [
+    151.46,
+    241.79,
+    381.46,
+    256.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 12,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    151.46,
+    400.78,
+    381.46,
+    415.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": " 3.9 ",
+   "bbox": [
+    381.46,
+    242.76,
+    398.96,
+    256.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 12,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    381.46,
+    400.83,
+    398.96,
+    414.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": "节）。详细的物",
+   "bbox": [
+    398.96,
+    241.79,
+    468.96,
+    256.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 12,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    398.96,
+    400.78,
+    468.96,
+    415.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": "理设计将要求我们正确回答逻辑设计无法解决的许多重要问题。例如，",
+   "bbox": [
+    93.96,
+    255.79,
+    403.96,
+    270.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 13,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    386.78,
+    403.96,
+    401.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": "•",
+   "bbox": [
+    111.97,
+    299.63,
+    115.47,
+    309.63
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 14,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    111.97,
+    347.3,
+    115.47,
+    357.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": "两个给定的类应该定义在同一个头文件中还是两个单独的头文件中？",
+   "bbox": [
+    115.47,
+    295.79,
+    415.47,
+    310.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 14,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    115.47,
+    346.78,
+    415.47,
+    361.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": "（参见第",
+   "bbox": [
+    120.97,
+    309.79,
+    160.97,
+    324.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 15,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    120.97,
+    332.78,
+    160.97,
+    347.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": " 3.3 ",
+   "bbox": [
+    160.97,
+    310.76,
+    178.47,
+    324.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 15,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    160.97,
+    332.83,
+    178.47,
+    346.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": "节。）",
+   "bbox": [
+    178.47,
+    309.79,
+    208.47,
+    324.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 15,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    178.47,
+    332.78,
+    208.47,
+    347.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "•",
+   "bbox": [
+    111.97,
+    327.63,
+    115.47,
+    337.63
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    111.97,
+    319.3,
+    115.47,
+    329.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": "给定的翻译单元是否应该依赖于其他翻译单元？",
+   "bbox": [
+    115.47,
+    323.79,
+    325.47,
+    338.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    115.47,
+    318.78,
+    325.47,
+    333.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    325.47,
+    324.76,
+    330.47,
+    338.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    325.47,
+    318.83,
+    330.47,
+    332.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": "（参见第",
+   "bbox": [
+    330.47,
+    323.79,
+    370.47,
+    338.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    330.47,
+    318.78,
+    370.47,
+    333.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": " 3.8 ",
+   "bbox": [
+    370.47,
+    324.76,
+    387.97,
+    338.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    370.47,
+    318.83,
+    387.97,
+    332.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": "节。）",
+   "bbox": [
+    387.97,
+    323.79,
+    417.97,
+    338.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    387.97,
+    318.78,
+    417.97,
+    333.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": "•",
+   "bbox": [
+    111.97,
+    355.63,
+    115.47,
+    365.63
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    111.97,
+    291.3,
+    115.47,
+    301.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": "我们应该",
+   "bbox": [
+    115.47,
+    351.79,
+    155.47,
+    366.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    115.47,
+    290.78,
+    155.47,
+    305.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": " #include ",
+   "bbox": [
+    155.47,
+    352.76,
+    194.91,
+    366.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    155.47,
+    290.83,
+    194.91,
+    304.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:80",
+   "operator": "TJ",
+   "text": "包含给定逻辑实体声明的头文件还是简单地",
+   "bbox": [
+    194.91,
+    351.79,
+    384.91,
+    366.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    194.91,
+    290.78,
+    384.91,
+    305.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:81",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    384.91,
+    352.76,
+    387.41,
+    366.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    384.91,
+    290.83,
+    387.41,
+    304.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:82",
+   "operator": "TJ",
+   "text": "forward",
+   "bbox": [
+    387.41,
+    355.63,
+    419.27,
+    365.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    387.41,
+    291.3,
+    419.27,
+    301.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:83",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    419.27,
+    352.76,
+    421.77,
+    366.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    419.27,
+    290.83,
+    421.77,
+    304.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:84",
+   "operator": "TJ",
+   "text": "declare",
+   "bbox": [
+    421.77,
+    355.63,
+    451.38,
+    365.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    421.77,
+    291.3,
+    451.38,
+    301.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:85",
+   "operator": "TJ",
+   "text": "它？",
+   "bbox": [
+    115.47,
+    363.79,
+    135.47,
+    378.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 18,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    115.47,
+    278.78,
+    135.47,
+    293.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:86",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    135.47,
+    364.76,
+    137.97,
+    378.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 18,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    135.47,
+    278.83,
+    137.97,
+    292.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:87",
+   "operator": "TJ",
+   "text": "（参见第二卷，第",
+   "bbox": [
+    137.97,
+    363.79,
+    217.97,
+    378.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 18,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    137.97,
+    278.78,
+    217.97,
+    293.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:88",
+   "operator": "TJ",
+   "text": " 6.6 ",
+   "bbox": [
+    217.97,
+    364.76,
+    235.47,
+    378.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 18,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    217.97,
+    278.83,
+    235.47,
+    292.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:89",
+   "operator": "TJ",
+   "text": "节。）",
+   "bbox": [
+    235.47,
+    363.79,
+    265.47,
+    378.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 18,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    235.47,
+    278.78,
+    265.47,
+    293.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:90",
+   "operator": "TJ",
+   "text": "•",
+   "bbox": [
+    111.96,
+    383.63,
+    115.46,
+    393.63
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 19,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    111.96,
+    263.3,
+    115.46,
+    273.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:91",
+   "operator": "TJ",
+   "text": "是否应该将给定函数声明为内联？",
+   "bbox": [
+    115.46,
+    379.79,
+    265.46,
+    394.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 19,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    115.46,
+    262.78,
+    265.46,
+    277.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:92",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    265.46,
+    380.76,
+    267.96,
+    394.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 19,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    265.46,
+    262.83,
+    267.96,
+    276.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:93",
+   "operator": "TJ",
+   "text": "（参见第二卷，第",
+   "bbox": [
+    267.96,
+    379.79,
+    347.96,
+    394.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 19,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    267.96,
+    262.78,
+    347.96,
+    277.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:94",
+   "operator": "TJ",
+   "text": " 6.7 ",
+   "bbox": [
+    347.96,
+    380.76,
+    365.46,
+    394.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 19,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    347.96,
+    262.83,
+    365.46,
+    276.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:95",
+   "operator": "TJ",
+   "text": "节。）",
+   "bbox": [
+    365.46,
+    379.79,
+    395.46,
+    394.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 19,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    365.46,
+    262.78,
+    395.46,
+    277.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:96",
+   "operator": "TJ",
+   "text": "这些类型的物理设计问题虽然与开发的技术方面密切相关，但也带来了设计的维度，即",
+   "bbox": [
+    94.02,
+    405.79,
+    474.02,
+    420.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 20,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    94.02,
+    236.78,
+    474.02,
+    251.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:97",
+   "operator": "TJ",
+   "text": "使是“专家”软件开发人员也可能很少或根本没有经验。",
+   "bbox": [
+    94.02,
+    419.79,
+    344.02,
+    434.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    94.02,
+    222.78,
+    344.02,
+    237.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:98",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    344.02,
+    420.76,
+    346.52,
+    434.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    344.02,
+    222.83,
+    346.52,
+    236.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:99",
+   "operator": "TJ",
+   "text": "Physical",
+   "bbox": [
+    346.52,
+    423.63,
+    380.96,
+    433.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    346.52,
+    223.3,
+    380.96,
+    233.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:100",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    380.96,
+    420.76,
+    383.46,
+    434.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    380.96,
+    222.83,
+    383.46,
+    236.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:101",
+   "operator": "TJ",
+   "text": "design",
+   "bbox": [
+    383.46,
+    423.63,
+    409.57,
+    433.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    383.46,
+    223.3,
+    409.57,
+    233.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:102",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    409.57,
+    420.76,
+    412.07,
+    434.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    409.57,
+    222.83,
+    412.07,
+    236.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:103",
+   "operator": "TJ",
+   "text": "虽然不像",
+   "bbox": [
+    412.07,
+    419.79,
+    452.07,
+    434.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    412.07,
+    222.78,
+    452.07,
+    237.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:104",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    452.07,
+    420.76,
+    454.57,
+    434.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    452.07,
+    222.83,
+    454.57,
+    236.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:105",
+   "operator": "TJ",
+   "text": "logical",
+   "bbox": [
+    94.02,
+    437.63,
+    121.7,
+    447.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 22,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    94.02,
+    209.3,
+    121.7,
+    219.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:106",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    121.7,
+    434.76,
+    124.2,
+    448.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 22,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    121.7,
+    208.83,
+    124.2,
+    222.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:107",
+   "operator": "TJ",
+   "text": "design",
+   "bbox": [
+    124.2,
+    437.63,
+    150.31,
+    447.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 22,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    124.2,
+    209.3,
+    150.31,
+    219.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:108",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    150.31,
+    434.76,
+    152.81,
+    448.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 22,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    150.31,
+    208.83,
+    152.81,
+    222.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:109",
+   "operator": "TJ",
+   "text": "那样被广泛理解，但随着团体、部门或公司内开发的应用程序和库的数量",
+   "bbox": [
+    152.81,
+    433.79,
+    472.81,
+    448.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 22,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    152.81,
+    208.78,
+    472.81,
+    223.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:110",
+   "operator": "TJ",
+   "text": "和规模的增长，它发挥着越来越重要的作用。",
+   "bbox": [
+    94.02,
+    447.79,
+    294.02,
+    462.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 23,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    94.02,
+    194.78,
+    294.02,
+    209.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:111",
+   "operator": "TJ",
+   "text": "将深思熟虑的逻辑设计与仔细的物理封装相结合将使软件开发人员能够在精细的集成级",
+   "bbox": [
+    94.02,
+    487.79,
+    474.02,
+    502.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 24,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    94.02,
+    154.78,
+    474.02,
+    169.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:112",
+   "operator": "TJ",
+   "text": "别上“混合和匹配”现有的解决方案、子解决方案等（第",
+   "bbox": [
+    94.02,
+    500.29,
+    344.02,
+    514.65
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 25,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    94.02,
+    142.28,
+    344.02,
+    156.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:113",
+   "operator": "TJ",
+   "text": " 0.3 ",
+   "bbox": [
+    344.02,
+    501.26,
+    361.52,
+    514.6
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 25,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    344.02,
+    142.33,
+    361.52,
+    155.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:114",
+   "operator": "TJ",
+   "text": "节）。这种组合灵活性以",
+   "bbox": [
+    361.52,
+    500.29,
+    471.52,
+    514.65
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 25,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    361.52,
+    142.28,
+    471.52,
+    156.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:115",
+   "operator": "TJ",
+   "text": "及逻辑和物理",
+   "bbox": [
+    94.02,
+    512.79,
+    154.02,
+    527.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 26,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    94.02,
+    129.78,
+    154.02,
+    144.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:116",
+   "operator": "TJ",
+   "text": "37 ",
+   "bbox": [
+    93.96,
+    553.77,
+    100.96,
+    559.37
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 5.6,
+   "color": 0,
+   "line": 27,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    97.56,
+    100.96,
+    103.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:117",
+   "operator": "TJ",
+   "text": "lakos96",
+   "bbox": [
+    101.1,
+    554.33,
+    126.78,
+    562.33
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 27,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    101.1,
+    94.6,
+    126.78,
+    102.6
+   ]
+  },
+  {
+   "pdf_object_id": "text:118",
+   "operator": "TJ",
+   "text": ", section 4.11, pp. 184–187, and section 7.3, pp. 493–503",
+   "bbox": [
+    126.78,
+    554.33,
+    311.46,
+    562.33
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 27,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    126.78,
+    94.6,
+    311.46,
+    102.6
+   ]
+  },
+  {
+   "pdf_object_id": "text:119",
+   "operator": "TJ",
+   "text": "38 ",
+   "bbox": [
+    93.96,
+    565.77,
+    100.96,
+    571.37
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 5.6,
+   "color": 0,
+   "line": 28,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    85.56,
+    100.96,
+    91.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:120",
+   "operator": "TJ",
+   "text": "sutter05",
+   "bbox": [
+    101.1,
+    566.33,
+    129.1,
+    574.33
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    101.1,
+    82.6,
+    129.1,
+    90.6
+   ]
+  },
+  {
+   "pdf_object_id": "text:121",
+   "operator": "TJ",
+   "text": ", item 22, pp. 40–41",
+   "bbox": [
+    129.1,
+    566.33,
+    194.12,
+    574.33
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    129.1,
+    82.6,
+    194.12,
+    90.6
+   ]
+  },
+  {
+   "pdf_object_id": "text:122",
+   "operator": "TJ",
+   "text": "39 ",
+   "bbox": [
+    93.96,
+    577.77,
+    100.96,
+    583.37
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 5.6,
+   "color": 0,
+   "line": 29,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    73.56,
+    100.96,
+    79.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:123",
+   "operator": "TJ",
+   "text": "With respect to compile-time dependency (only), see also ",
+   "bbox": [
+    101.1,
+    578.33,
+    288.48,
+    586.33
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 29,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    101.1,
+    70.6,
+    288.48,
+    78.6
+   ]
+  },
+  {
+   "pdf_object_id": "text:124",
+   "operator": "TJ",
+   "text": "meyers05",
+   "bbox": [
+    288.69,
+    578.33,
+    321.02,
+    586.33
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 29,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    288.69,
+    70.6,
+    321.02,
+    78.6
+   ]
+  },
+  {
+   "pdf_object_id": "text:125",
+   "operator": "TJ",
+   "text": ", item 31, pp. 140–148.",
+   "bbox": [
+    321.02,
+    578.33,
+    396.04,
+    586.33
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 29,
+   "page": 151,
+   "block_type": 0,
+   "v3_bbox": [
+    321.02,
+    70.6,
+    396.04,
+    78.6
+   ]
+  }
+ ],
+ "drawings": [
+  {
+   "pdf_object_id": 0,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 1,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 2,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "has_text": false
+  }
+ ],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 3,
+  "sample": [
+   "syntax error: unknown keyword: '-9.000000001435637e'",
+   "syntax error: unknown keyword: '-1.1999999998124622e'",
+   "encountered syntax errors; page may not be correct"
+  ],
+  "anomaly": true,
+  "source": "mupdf"
+ },
+ "id_direct": true
+}

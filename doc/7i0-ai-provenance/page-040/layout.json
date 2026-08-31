@@ -1,0 +1,26 @@
+[
+ {
+  "node_id": "p40_0",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p40_1",
+  "kind": "heading",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p40_2",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p40_3",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ }
+]

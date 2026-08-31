@@ -1,0 +1,14 @@
+{
+ "page": 1,
+ "page_height": 693.0,
+ "text_runs": [],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

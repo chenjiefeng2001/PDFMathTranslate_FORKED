@@ -1,0 +1,27 @@
+{
+ "schema_version": 1,
+ "meta": {
+  "source": "pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4.pdf",
+  "dual": "pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4-dual.pdf",
+  "version": "0.1.0",
+  "pages": [
+   62,
+   65,
+   69,
+   75,
+   185,
+   186,
+   187
+  ]
+ },
+ "pages": {
+  "62": null,
+  "65": null,
+  "69": null,
+  "75": null,
+  "185": null,
+  "186": null,
+  "187": null
+ },
+ "summary": "summary.json"
+}

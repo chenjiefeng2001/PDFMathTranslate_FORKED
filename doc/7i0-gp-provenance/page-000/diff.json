@@ -1,0 +1,10 @@
+{
+ "page": 0,
+ "total_blocks": 0,
+ "total_render_runs": 0,
+ "matched_runs": 0,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "traces": [],
+ "defects": []
+}

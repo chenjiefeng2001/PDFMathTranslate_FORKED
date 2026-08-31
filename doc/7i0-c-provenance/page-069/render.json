@@ -1,0 +1,2716 @@
+{
+ "page": 139,
+ "page_height": 656.9279174804688,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "Section 0.5 Malleable vs. Stable Software ",
+   "bbox": [
+    57.96,
+    40.29,
+    243.49,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 1,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    57.96,
+    606.64,
+    243.49,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "39",
+   "bbox": [
+    462.96,
+    40.29,
+    472.96,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 2,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    462.96,
+    606.64,
+    472.96,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "假设我们决定将所有设备接口合并为一个接口，然后可以使用该接口来驱动所有适当的",
+   "bbox": [
+    93.96,
+    75.79,
+    473.96,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    566.78,
+    473.96,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "设备。给定现有接口的集合，我们可能会考虑使该组件成为逻辑上封装特定设备的包装",
+   "bbox": [
+    93.96,
+    89.79,
+    473.96,
+    104.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 4,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    552.78,
+    473.96,
+    567.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "器，如图",
+   "bbox": [
+    93.96,
+    103.79,
+    133.96,
+    118.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    538.78,
+    133.96,
+    553.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "0-28",
+   "bbox": [
+    133.96,
+    104.76,
+    152.29,
+    118.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    133.96,
+    538.83,
+    152.29,
+    552.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "所示。该解决方案虽然在实践中经常采用，但也因多种原因而失败。除了",
+   "bbox": [
+    152.29,
+    103.79,
+    472.29,
+    118.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    152.29,
+    538.78,
+    472.29,
+    553.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "每次新设备上线时都必须修改输出管理器的源之外，我们还强加了一种令人震惊的物理",
+   "bbox": [
+    93.96,
+    117.79,
+    473.96,
+    132.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    524.78,
+    473.96,
+    539.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "依赖性：要使用（甚至测试）的",
+   "bbox": [
+    93.96,
+    131.79,
+    233.96,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    510.78,
+    233.96,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    233.96,
+    132.76,
+    236.46,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    233.96,
+    510.83,
+    236.46,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "Every",
+   "bbox": [
+    236.46,
+    135.63,
+    259.19,
+    145.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    236.46,
+    511.3,
+    259.19,
+    521.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    259.19,
+    132.76,
+    261.69,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    259.19,
+    510.83,
+    261.69,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": "报告编写器必须与",
+   "bbox": [
+    261.69,
+    131.79,
+    341.69,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    261.69,
+    510.78,
+    341.69,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    341.69,
+    132.76,
+    344.19,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    341.69,
+    510.83,
+    344.19,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "every",
+   "bbox": [
+    344.19,
+    135.63,
+    365.07,
+    145.63
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    344.19,
+    511.3,
+    365.07,
+    521.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    365.07,
+    132.76,
+    367.57,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    365.07,
+    510.83,
+    367.57,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "已知输出设备链接。好",
+   "bbox": [
+    367.57,
+    131.79,
+    467.57,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    367.57,
+    510.78,
+    467.57,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "像这还不够糟糕，某些设备（例如",
+   "bbox": [
+    93.96,
+    145.79,
+    243.96,
+    160.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    496.78,
+    243.96,
+    511.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": " Windows ",
+   "bbox": [
+    243.96,
+    146.76,
+    287.29,
+    160.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    243.96,
+    496.83,
+    287.29,
+    510.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "输出设备）可能并不存在于每个受支持的",
+   "bbox": [
+    287.29,
+    145.79,
+    467.29,
+    160.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    287.29,
+    496.78,
+    467.29,
+    511.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "平台上！说够了。",
+   "bbox": [
+    93.96,
+    159.79,
+    173.96,
+    174.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 9,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    482.78,
+    173.96,
+    497.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "We can easily",
+   "bbox": [
+    409.23,
+    276.42,
+    454.06,
+    284.42
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 10,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    409.23,
+    372.51,
+    454.06,
+    380.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "foresee additional",
+   "bbox": [
+    402.28,
+    286.02,
+    461.02,
+    294.02
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 11,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    402.28,
+    362.91,
+    461.02,
+    370.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "output devices.",
+   "bbox": [
+    406.78,
+    295.62,
+    456.52,
+    303.62
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 12,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    406.78,
+    353.31,
+    456.52,
+    361.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "The device manager",
+   "bbox": [
+    107.54,
+    249.93,
+    173.7,
+    257.93
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 13,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    107.54,
+    399.0,
+    173.7,
+    407.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "must be modified in",
+   "bbox": [
+    107.83,
+    259.53,
+    173.41,
+    267.53
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 14,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    107.83,
+    389.4,
+    173.41,
+    397.4
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "order to support",
+   "bbox": [
+    113.54,
+    269.13,
+    167.7,
+    277.13
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 15,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    113.54,
+    379.8,
+    167.7,
+    387.8
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "each new device.",
+   "bbox": [
+    113.08,
+    278.73,
+    168.16,
+    286.73
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 16,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    113.08,
+    370.2,
+    168.16,
+    378.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "Payroll Report Writer",
+   "bbox": [
+    131.01,
+    210.37,
+    203.26,
+    218.37
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 17,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    131.01,
+    438.56,
+    203.26,
+    446.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "Account Report Writer",
+   "bbox": [
+    236.32,
+    210.37,
+    312.82,
+    218.37
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 18,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    236.32,
+    438.56,
+    312.82,
+    446.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "Security Report Writer",
+   "bbox": [
+    344.38,
+    210.37,
+    419.63,
+    218.37
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 19,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    344.38,
+    438.56,
+    419.63,
+    446.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "ASCII Output Device",
+   "bbox": [
+    239.27,
+    350.29,
+    309.85,
+    358.29
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 20,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    239.27,
+    298.64,
+    309.85,
+    306.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "PostScript Output Device",
+   "bbox": [
+    124.69,
+    350.29,
+    208.43,
+    358.29
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 21,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    124.69,
+    298.64,
+    208.43,
+    306.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "Windows Output Device",
+   "bbox": [
+    335.13,
+    350.29,
+    417.12,
+    358.29
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 22,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    335.13,
+    298.64,
+    417.12,
+    306.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "Output Device Manager",
+   "bbox": [
+    234.45,
+    277.88,
+    314.69,
+    285.88
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 23,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    234.45,
+    371.05,
+    314.69,
+    379.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": "PostScript",
+   "bbox": [
+    138.31,
+    412.29,
+    171.45,
+    420.29
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 24,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    138.31,
+    236.64,
+    171.45,
+    244.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "Printer",
+   "bbox": [
+    143.6,
+    421.89,
+    166.15,
+    429.89
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    143.6,
+    227.04,
+    166.15,
+    235.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "ASCII",
+   "bbox": [
+    258.03,
+    412.29,
+    277.21,
+    420.29
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    258.03,
+    236.64,
+    277.21,
+    244.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "Printer",
+   "bbox": [
+    256.34,
+    421.89,
+    278.9,
+    429.89
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 27,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    256.34,
+    227.04,
+    278.9,
+    235.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "Windows",
+   "bbox": [
+    365.32,
+    412.29,
+    395.4,
+    420.29
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    365.32,
+    236.64,
+    395.4,
+    244.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "Printer",
+   "bbox": [
+    369.08,
+    421.89,
+    391.64,
+    429.89
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 29,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    369.08,
+    227.04,
+    391.64,
+    235.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "图",
+   "bbox": [
+    147.11,
+    450.57,
+    156.11,
+    463.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 30,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    147.11,
+    193.44,
+    156.11,
+    206.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": " 0-28",
+   "bbox": [
+    156.11,
+    451.44,
+    174.85,
+    463.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 30,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    156.11,
+    193.48,
+    174.85,
+    205.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "：封装一个易于扩展的集合（",
+   "bbox": [
+    174.85,
+    450.57,
+    291.85,
+    463.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 30,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    174.85,
+    193.44,
+    291.85,
+    206.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "BAD",
+   "bbox": [
+    291.85,
+    451.44,
+    310.85,
+    463.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 30,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    291.85,
+    193.48,
+    310.85,
+    205.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": "主意）",
+   "bbox": [
+    394.32,
+    450.57,
+    421.32,
+    463.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 31,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    394.32,
+    193.44,
+    421.32,
+    206.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "正如本书中反复出现的主题一样，我们将选择避免封装本质上可扩展的、不可移植的、",
+   "bbox": [
+    93.96,
+    475.42,
+    473.96,
+    489.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 32,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    167.15,
+    473.96,
+    181.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": "第三方的或其他不可控或有风险的软件，这些软件可能会对我们的核心库产生不稳定的",
+   "bbox": [
+    93.96,
+    489.42,
+    473.96,
+    503.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 33,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    153.15,
+    473.96,
+    167.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "影响。",
+   "bbox": [
+    93.96,
+    503.42,
+    123.96,
+    517.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    139.15,
+    123.96,
+    153.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    123.96,
+    504.39,
+    128.96,
+    517.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    123.96,
+    139.2,
+    128.96,
+    152.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "相反，我们将捕获此类行为的定义",
+   "bbox": [
+    128.96,
+    503.42,
+    278.96,
+    517.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    128.96,
+    139.15,
+    278.96,
+    153.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": " - ",
+   "bbox": [
+    278.96,
+    504.39,
+    287.29,
+    517.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    278.96,
+    139.2,
+    287.29,
+    152.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "通常将",
+   "bbox": [
+    287.29,
+    503.42,
+    317.29,
+    517.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    287.29,
+    139.15,
+    317.29,
+    153.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    317.29,
+    504.39,
+    319.79,
+    517.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    317.29,
+    139.2,
+    319.79,
+    152.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "35",
+   "bbox": [
+    319.79,
+    506.56,
+    326.79,
+    513.56
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    319.79,
+    143.37,
+    326.79,
+    150.37
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    326.79,
+    504.39,
+    329.29,
+    517.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    326.79,
+    139.2,
+    329.29,
+    152.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "作为",
+   "bbox": [
+    329.29,
+    503.42,
+    349.29,
+    517.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    329.29,
+    139.15,
+    349.29,
+    153.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    349.29,
+    504.39,
+    351.79,
+    517.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    349.29,
+    139.2,
+    351.79,
+    152.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "protocol",
+   "bbox": [
+    351.79,
+    507.26,
+    385.21,
+    517.26
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    351.79,
+    139.67,
+    385.21,
+    149.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    385.21,
+    504.39,
+    387.71,
+    517.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    385.21,
+    139.2,
+    387.71,
+    152.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": "（纯抽象接口）类",
+   "bbox": [
+    387.71,
+    503.42,
+    467.71,
+    517.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 34,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    387.71,
+    139.15,
+    467.71,
+    153.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "（请参阅第",
+   "bbox": [
+    93.96,
+    517.42,
+    143.96,
+    531.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 35,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    125.15,
+    143.96,
+    139.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": " 1.7.5 ",
+   "bbox": [
+    143.96,
+    518.39,
+    168.96,
+    531.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 35,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    143.96,
+    125.2,
+    168.96,
+    138.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": "节）",
+   "bbox": [
+    168.96,
+    517.42,
+    188.96,
+    531.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 35,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    168.96,
+    125.15,
+    188.96,
+    139.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": " - ",
+   "bbox": [
+    188.96,
+    518.39,
+    197.29,
+    531.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 35,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    188.96,
+    125.2,
+    197.29,
+    138.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": "以及精确描述预期行为的详细注释。",
+   "bbox": [
+    197.29,
+    517.42,
+    357.29,
+    531.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 35,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    197.29,
+    125.15,
+    357.29,
+    139.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    357.29,
+    518.39,
+    362.29,
+    531.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 35,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    357.29,
+    125.2,
+    362.29,
+    138.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": "这样，应用程序就可以随",
+   "bbox": [
+    362.29,
+    517.42,
+    472.29,
+    531.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 35,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    362.29,
+    125.15,
+    472.29,
+    139.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": "意引入新的输出设备；",
+   "bbox": [
+    93.96,
+    531.42,
+    193.96,
+    545.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    111.15,
+    193.96,
+    125.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    193.96,
+    532.39,
+    198.96,
+    545.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    193.96,
+    111.2,
+    198.96,
+    124.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "唯一需要注意的是这些新的具体实现满足",
+   "bbox": [
+    198.96,
+    531.42,
+    378.96,
+    545.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    198.96,
+    111.15,
+    378.96,
+    125.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    378.96,
+    532.39,
+    381.46,
+    545.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    378.96,
+    111.2,
+    381.46,
+    124.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": "contract",
+   "bbox": [
+    381.46,
+    535.26,
+    414.65,
+    545.26
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    381.46,
+    111.67,
+    414.65,
+    121.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": "（参见卷",
+   "bbox": [
+    414.65,
+    531.42,
+    454.65,
+    545.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    414.65,
+    111.15,
+    454.65,
+    125.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": " II",
+   "bbox": [
+    454.65,
+    532.39,
+    463.81,
+    545.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    454.65,
+    111.2,
+    463.81,
+    124.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": "，",
+   "bbox": [
+    463.81,
+    531.42,
+    473.81,
+    545.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 36,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    463.81,
+    111.15,
+    473.81,
+    125.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": "35 ",
+   "bbox": [
+    93.96,
+    604.27,
+    100.96,
+    609.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 5.6,
+   "color": 0,
+   "line": 37,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    47.06,
+    100.96,
+    52.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": "Section 3.5.7 explores protocols (see section 3.5.7.4) along with several other alternatives including concepts ",
+   "bbox": [
+    101.1,
+    604.83,
+    454.22,
+    612.83
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 37,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    101.1,
+    44.1,
+    454.22,
+    52.1
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": "(see section 3.5.7.5).",
+   "bbox": [
+    93.97,
+    614.83,
+    160.57,
+    622.83
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 38,
+   "page": 139,
+   "block_type": 0,
+   "v3_bbox": [
+    93.97,
+    34.1,
+    160.57,
+    42.1
+   ]
+  }
+ ],
+ "drawings": [
+  {
+   "pdf_object_id": 0,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.5324482917785645,
+    0.5401846170425415,
+    0.5504234433174133
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 1,
+   "operator": "path",
+   "kind": "fs",
+   "bbox": null,
+   "fill": [
+    0.9583733677864075,
+    0.9598840475082397,
+    0.9613794088363647
+   ],
+   "color": [
+    0.5324482917785645,
+    0.5401846170425415,
+    0.5504234433174133
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 2,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.5324482917785645,
+    0.5401846170425415,
+    0.5504234433174133
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 3,
+   "operator": "path",
+   "kind": "fs",
+   "bbox": null,
+   "fill": [
+    0.9583733677864075,
+    0.9598840475082397,
+    0.9613794088363647
+   ],
+   "color": [
+    0.5324482917785645,
+    0.5401846170425415,
+    0.5504234433174133
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 4,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 5,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 6,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 7,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 8,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 9,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 10,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 11,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 12,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 13,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 14,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 15,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 16,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 17,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 18,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 19,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 20,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 21,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 22,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 23,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 24,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 25,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 26,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 27,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 28,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 29,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 30,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 31,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 32,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 33,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 34,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 35,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 36,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 37,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 38,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 39,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 40,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 41,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 42,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 43,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 44,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 45,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.7827572822570801,
+    0.7895933389663696,
+    0.7970550060272217
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 46,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 47,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 48,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 49,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 50,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.7827572822570801,
+    0.7895933389663696,
+    0.7970550060272217
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 51,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 52,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 53,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 54,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 55,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.7827572822570801,
+    0.7895933389663696,
+    0.7970550060272217
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 56,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 57,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 58,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 59,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 60,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 61,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 62,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 63,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 64,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 65,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 66,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "has_text": false
+  }
+ ],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 3,
+  "sample": [
+   "syntax error: unknown keyword: '-9.000000001435637e'",
+   "syntax error: unknown keyword: '-1.1999999998124622e'",
+   "encountered syntax errors; page may not be correct"
+  ],
+  "anomaly": true,
+  "source": "mupdf"
+ },
+ "id_direct": true
+}

@@ -1,0 +1,46 @@
+[
+ {
+  "node_id": "p12_0",
+  "source_text": "3",
+  "translated_text": "3",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p12_1",
+  "source_text": "Introduction",
+  "translated_text": "Introduction",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p12_2",
+  "source_text": "freelyavailableopen-sourceoperatingsystemsandpacketsnifﬁngtools.Thenwelook\natexistingresearchondailyandweeklyplayerusagetrends,trendsinserver-discovery\nprobetrafﬁcthathityourserverwhetherpeopleplayornot,andnotesometechniques\nformappingfromIPaddressestogeographicallocation.\nAttheotherendofthespectrumisthepacket-by-packetpatternshiddeninpacketsize\ndistributionsandinter-packetarrivaltimes.In‘OnlineGameTrafﬁcPatterns’,welookat\nhowtomeasuretrafﬁcpatternsatmillisecondtimescales,andshowhowthesepatterns\ncomeaboutinFirst-PersonShooter(FPS)games–themostdemandinginteractivegames\navailable.Itisatthislevelthatnetworkoperatorsneedtocarefullyunderstandtheload\nbeingputontheirnetworkinordertoproperlyconﬁgureroutersandlinksforminimal\npacket loss and jitter. We review how typical FPS packet size distributions are quite\ndifferentintheclient-to-serverandserver-to-clientdirections,andhowserver-to-client\npackettransmissionsarestructuredasafunctionofthenumberofclients.Overallthis\nchapterprovidesgreatinsightintotheburstinessthatyournetworkmustsupportifyou\nwishtoavoidskewingthelatencyandjitterexperiencedbyeveryplayer.\nThenin‘FutureDirections’,MarkClaypoolprovidesgeneralthoughtsonsometopics\nrelating to the future of online multi-player games. We particularly focus on the use\nofwirelesstechnologies,automaticconﬁgurationofQualityofServicewithoutplayer\nintervention, hybrid client–server architectures,cheaters,augmented reality,massively\nmulti-playergames,time-shiftinggames(whereyoucanstartandstopatanytime)and\nnewapproachestoserverdiscovery.\nFinally,in‘SettinguponlineFPSgameservers’,wewrapupthisbookwithapractical\nintroductiontoinstallingandstartingyourownFPSgameserversonfree,open-source\nplatforms.Inparticular,welookatthebasicsofdownloading,installingandstartingboth\nWolfensteinEnemyTerritory(acompletelyfreeteam-playFPSgame)andValve’sHalf-\nLife2(acommercialFPS).Inbothcases,wediscusstheuseofLinux-baseddedicated\ngameservers,andprovidesomethoughtsonrunningthemunderFreeBSD(bothLinux\nandFreeBSDarefree,open-sourceUNIX-likeoperatingsystemsavailableforstandard\nPChardware).\nWehopeyouwillﬁndthisbookasourceofinterestinginformationandnewideas,\nwhetheryouareanetworkingengineerinterestedingamesoragamedeveloperinterested\ningainingabetterunderstandingofyourgame’sinteractionswiththeInternet.",
+  "translated_text": "freelyavailableopen-sourceoperatingsystemsandpacketsnifﬁngtools.Thenwelook\natexistingresearchondailyandweeklyplayerusagetrends,trendsinserver-discovery\nprobetrafﬁcthathityourserverwhetherpeopleplayornot,andnotesometechniques\nformappingfromIPaddressestogeographicallocation.\nAttheotherendofthespectrumisthepacket-by-packetpatternshiddeninpacketsize\ndistributionsandinter-packetarrivaltimes.In‘OnlineGameTrafﬁcPatterns’,welookat\nhowtomeasuretrafﬁcpatternsatmillisecondtimescales,andshowhowthesepatterns\ncomeaboutinFirst-PersonShooter(FPS)games–themostdemandinginteractivegames\navailable.Itisatthislevelthatnetworkoperatorsneedtocarefullyunderstandtheload\nbeingputontheirnetworkinordertoproperlyconﬁgureroutersandlinksforminimal\npacket loss and jitter. We review how typical FPS packet size distributions are quite\ndifferentintheclient-to-serverandserver-to-clientdirections,andhowserver-to-client\npackettransmissionsarestructuredasafunctionofthenumberofclients.Overallthis\nchapterprovidesgreatinsightintotheburstinessthatyournetworkmustsupportifyou\nwishtoavoidskewingthelatencyandjitterexperiencedbyeveryplayer.\nThenin‘FutureDirections’,MarkClaypoolprovidesgeneralthoughtsonsometopics\nrelating to the future of online multi-player games. We particularly focus on the use\nofwirelesstechnologies,automaticconﬁgurationofQualityofServicewithoutplayer\nintervention, hybrid client–server architectures,cheaters,augmented reality,massively\nmulti-playergames,time-shiftinggames(whereyoucanstartandstopatanytime)and\nnewapproachestoserverdiscovery.\nFinally,in‘SettinguponlineFPSgameservers’,wewrapupthisbookwithapractical\nintroductiontoinstallingandstartingyourownFPSgameserversonfree,open-source\nplatforms.Inparticular,welookatthebasicsofdownloading,installingandstartingboth\nWolfensteinEnemyTerritory(acompletelyfreeteam-playFPSgame)andValve’sHalf-\nLife2(acommercialFPS).Inbothcases,wediscusstheuseofLinux-baseddedicated\ngameservers,andprovidesomethoughtsonrunningthemunderFreeBSD(bothLinux\nandFreeBSDarefree,open-sourceUNIX-likeoperatingsystemsavailableforstandard\nPChardware).\nWehopeyouwillﬁndthisbookasourceofinterestinginformationandnewideas,\nwhetheryouareanetworkingengineerinterestedingamesoragamedeveloperinterested\ningainingabetterunderstandingofyourgame’sinteractionswiththeInternet.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 32
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p12_3",
+  "source_text": "GrenvilleArmitage(authorandeditor)",
+  "translated_text": "GrenvilleArmitage(authorandeditor)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ }
+]

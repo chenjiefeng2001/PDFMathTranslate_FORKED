@@ -1,0 +1,230 @@
+{
+ "page": 20,
+ "total_blocks": 6,
+ "total_render_runs": 6,
+ "matched_runs": 6,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 6,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p20_0",
+   "page": 20,
+   "kind": "heading",
+   "source_text": "1. Introduction",
+   "translated_text": "1. Introduction",
+   "translation_status": "translated",
+   "src_box": [
+    323.973,
+    590.3349999999999,
+    380.42100000000005,
+    599.335
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p20_0",
+     "render_object_ref": "R3",
+     "page": 20,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      323.97,
+      590.33,
+      380.42,
+      599.34
+     ],
+     "font_size": 9.0,
+     "text": "1. Introduction"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "1. Introduction"
+  },
+  {
+   "node_id": "p20_1",
+   "page": 20,
+   "kind": "paragraph",
+   "source_text": "4",
+   "translated_text": "4",
+   "translation_status": "translated",
+   "src_box": [
+    50.873,
+    590.135,
+    54.977,
+    599.135
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p20_1",
+     "render_object_ref": "R4",
+     "page": 20,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      50.87,
+      590.13,
+      54.98,
+      599.13
+     ],
+     "font_size": 12.0,
+     "text": "4"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "4"
+  },
+  {
+   "node_id": "p20_2",
+   "page": 20,
+   "kind": "caption",
+   "source_text": "Figure 1.2. Relative trade-offs of various behaviors.",
+   "translated_text": "Figure 1.2. Relative trade-offs of various behaviors.",
+   "translation_status": "translated",
+   "src_box": [
+    119.28300000000002,
+    482.7349999999999,
+    311.1000000000001,
+    491.7349999999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p20_2",
+     "render_object_ref": "R5",
+     "page": 20,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      119.28,
+      482.73,
+      311.1,
+      491.73
+     ],
+     "font_size": 9.0,
+     "text": "Figure 1.2. Relative trade-offs of various behaviors."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Figure 1.2. Relative trade-offs of various behaviors."
+  },
+  {
+   "node_id": "p20_3",
+   "page": 20,
+   "kind": "formula",
+   "source_text": "undesirable effects. We can tell the character which effects are desirable by\ngiving it goals. The character can then search for action sequences that it\nbelieves will result in it attaining its goals. When a character nondetermin-\nistically selects actions based on a goal it is trying to achieve, we refer to its\nsubsequent behavior as goal-directed.\nDeterministic behavior and nondeterministic behavior have different ad­\nvantages and disadvantages. Figure 1.2 contains three illustrations that de­\npict the relative trade-offs of using nondeterministic goal-directed behavior\nversus deterministic predefined behavior. In particular, predefined behavior\nis fast to execute because the programmer has done all the work in advance.\nGoal-directed behavior can be a lot easier to specify, but can take longer to\nexecute as the character has to do a lot of the work itself at run-time. The\nrelative value of the programmer’s extra time spent developing efficient pre­\ndefined behavior, versus the user’s extra time spent waiting for a character\nusing goal-directed behavior, will depend on the application. For a one-off\nanimation, and for rapid prototyping, the trade-off may well be weighted in\nfavor of reducing the programmer’s effort.\nIt turns out, however, that there is an important middle ground between\nthe two extremes of predefined and pure goal-directed behavior. The idea is\nto give characters domain knowledge and instructions.",
+   "translated_text": "undesirable effects. We can tell the character which effects are desirable by\ngiving it goals. The character can then search for action sequences that it\nbelieves will result in it attaining its goals. When a character nondetermin-\nistically selects actions based on a goal it is trying to achieve, we refer to its\nsubsequent behavior as goal-directed.\nDeterministic behavior and nondeterministic behavior have different ad­\nvantages and disadvantages. Figure 1.2 contains three illustrations that de­\npict the relative trade-offs of using nondeterministic goal-directed behavior\nversus deterministic predefined behavior. In particular, predefined behavior\nis fast to execute because the programmer has done all the work in advance.\nGoal-directed behavior can be a lot easier to specify, but can take longer to\nexecute as the character has to do a lot of the work itself at run-time. The\nrelative value of the programmer’s extra time spent developing efficient pre­\ndefined behavior, versus the user’s extra time spent waiting for a character\nusing goal-directed behavior, will depend on the application. For a one-off\nanimation, and for rapid prototyping, the trade-off may well be weighted in\nfavor of reducing the programmer’s effort.\nIt turns out, however, that there is an important middle ground between\nthe two extremes of predefined and pure goal-directed behavior. The idea is\nto give characters domain knowledge and instructions.",
+   "translation_status": "preserved",
+   "src_box": [
+    50.734,
+    221.87399999999982,
+    381.0400000000001,
+    458.4709999999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p20_3",
+     "render_object_ref": "R6",
+     "page": 20,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      50.73,
+      221.87,
+      381.04,
+      458.47
+     ],
+     "font_size": 9.0,
+     "text": "undesirable effects. We can tell the character which effects are desirable by\ngiving it goals. The character can then search for action sequences that it\nbelieves will result in it attaining its goals. When a character nondetermin-\nistically selects actions based on a goal it is trying to achieve, we refer to its\nsubsequent behavior as goal-directed.\nDeterministic behavior and nondeterministic behavior have different ad­\nvantages and disadvantages. Figure 1.2 contains three illustrations that de­\npict the relative trade-offs of using nondeterministic goal-directed behavior\nversus deterministic predefined behavior. In particular, predefined behavior\nis fast to execute because the programmer has done all the work in advance.\nGoal-directed behavior can be a lot easier to specify, but can take longer to\nexecute as the character has to do a lot of the work itself at run-time. The\nrelative value of the programmer’s extra time spent developing efficient pre­\ndefined behavior, versus the user’s extra time spent waiting for a character\nusing goal-directed behavior, will depend on the application. For a one-off\nanimation, and for rapid prototyping, the trade-off may well be weighted in\nfavor of reducing the programmer’s effort.\nIt turns out, however, that there is an important middle ground between\nthe two extremes of predefined and pure goal-directed behavior. The idea is\nto give characters domain knowledge and instructions."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "undesirable effects. We can tell the character which effects are desirable by\ngiving it goals. The character can then search for action sequences that it\nbelieves will result in it attaining its goals. When a character nondetermin-\nistically selects actions based on a goal it is trying to achieve, we refer to its\nsubsequent behavior as goal-directed.\nDeterministic behavior and nondeterministic behavior have different ad­\nvantages and disadvantages. Figure 1.2 contains three illustrations that de­\npict the relative trade-offs of using nondeterministic goal-directed behavior\nversus deterministic predefined behavior. In particular, predefined behavior\nis fast to execute because the programmer has done all the work in advance.\nGoal-directed behavior can be a lot easier to specify, but can take longer to\nexecute as the character has to do a lot of the work itself at run-time. The\nrelative value of the programmer’s extra time spent developing efficient pre­\ndefined behavior, versus the user’s extra time spent waiting for a character\nusing goal-directed behavior, will depend on the application. For a one-off\nanimation, and for rapid prototyping, the trade-off may well be weighted in\nfavor of reducing the programmer’s effort.\nIt turns out, however, that there is an important middle ground between\nthe two extremes of predefined and pure goal-directed behavior. The idea is\nto give characters domain knowledge and instructions."
+  },
+  {
+   "node_id": "p20_4",
+   "page": 20,
+   "kind": "formula",
+   "source_text": "knowledge + instruction = behavior",
+   "translated_text": "knowledge + instruction = behavior",
+   "translation_status": "preserved",
+   "src_box": [
+    139.18400000000003,
+    204.2049999999998,
+    289.27450000000005,
+    213.7049999999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.5,
+   "render_rows": [
+    {
+     "source_node_id": "p20_4",
+     "render_object_ref": "R7",
+     "page": 20,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      139.18,
+      204.2,
+      289.27,
+      213.7
+     ],
+     "font_size": 9.5,
+     "text": "knowledge + instruction = behavior"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "knowledge + instruction = behavior"
+  },
+  {
+   "node_id": "p20_5",
+   "page": 20,
+   "kind": "formula",
+   "source_text": "The domain knowledge can be used to plan goals and the instructions pro­\nvide a “sketch plan” of how to achieve those goals. Technically this is still\ngoal-directed behavior, and thus it is still easy to specify, but the added pre­\ndefined heuristic control information has the potential to significantly speed\nup execution times. The approach even lends itself to an incremental style of\ndevelopment in which a prototype, which mainly uses goal-directed behav­\nior, can be gradually refined (by reducing the nondeterminism) to production\ncode, which mainly uses predefined behavior.\nIn most cases, a single application will employ more than one approach\nto generating a character’s behavior. This is because different approaches",
+   "translated_text": "The domain knowledge can be used to plan goals and the instructions pro­\nvide a “sketch plan” of how to achieve those goals. Technically this is still\ngoal-directed behavior, and thus it is still easy to specify, but the added pre­\ndefined heuristic control information has the potential to significantly speed\nup execution times. The approach even lends itself to an incremental style of\ndevelopment in which a prototype, which mainly uses goal-directed behav­\nior, can be gradually refined (by reducing the nondeterminism) to production\ncode, which mainly uses predefined behavior.\nIn most cases, a single application will employ more than one approach\nto generating a character’s behavior. This is because different approaches",
+   "translation_status": "preserved",
+   "src_box": [
+    50.73500000000003,
+    79.67799999999981,
+    381.07800000000003,
+    197.2749999999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p20_5",
+     "render_object_ref": "R8",
+     "page": 20,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      50.74,
+      79.68,
+      381.08,
+      197.27
+     ],
+     "font_size": 9.0,
+     "text": "The domain knowledge can be used to plan goals and the instructions pro­\nvide a “sketch plan” of how to achieve those goals. Technically this is still\ngoal-directed behavior, and thus it is still easy to specify, but the added pre­\ndefined heuristic control information has the potential to significantly speed\nup execution times. The approach even lends itself to an incremental style of\ndevelopment in which a prototype, which mainly uses goal-directed behav­\nior, can be gradually refined (by reducing the nondeterminism) to production\ncode, which mainly uses predefined behavior.\nIn most cases, a single application will employ more than one approach\nto generating a character’s behavior. This is because different approaches"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "The domain knowledge can be used to plan goals and the instructions pro­\nvide a “sketch plan” of how to achieve those goals. Technically this is still\ngoal-directed behavior, and thus it is still easy to specify, but the added pre­\ndefined heuristic control information has the potential to significantly speed\nup execution times. The approach even lends itself to an incremental style of\ndevelopment in which a prototype, which mainly uses goal-directed behav­\nior, can be gradually refined (by reducing the nondeterminism) to production\ncode, which mainly uses predefined behavior.\nIn most cases, a single application will employ more than one approach\nto generating a character’s behavior. This is because different approaches"
+  }
+ ],
+ "defects": []
+}

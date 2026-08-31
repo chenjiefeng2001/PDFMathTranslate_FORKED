@@ -1,0 +1,24 @@
+[
+ {
+  "node_id": "p0_0",
+  "source_text": "NETWORKING\nANDONLINEGAMES",
+  "translated_text": "NETWORKING\nANDONLINEGAMES",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p0_1",
+  "source_text": "NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames\nGrenville Armitage, Mark Claypool, Philip Branch  2006 John Wiley & Sons, Ltd ISBN: 0-470-01857-7",
+  "translated_text": "NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames\nGrenville Armitage, Mark Claypool, Philip Branch  2006 John Wiley & Sons, Ltd ISBN: 0-470-01857-7",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ }
+]

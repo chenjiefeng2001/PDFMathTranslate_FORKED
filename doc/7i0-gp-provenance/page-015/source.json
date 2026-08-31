@@ -1,0 +1,122 @@
+[
+ {
+  "node_id": "p15_0",
+  "index": 0,
+  "text": "Contents xv",
+  "bbox": [
+   429.36,
+   616.1312971,
+   488.05706606,
+   628.0923971
+  ],
+  "font": "OKMGEC+Minion-Italic",
+  "font_size": 9.97,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_1",
+  "index": 1,
+  "text": "14.3 MathematicalProgramming",
+  "bbox": [
+   153.12,
+   576.7695084,
+   348.6374583499999,
+   591.3152167
+  ],
+  "font": "OKMGPA+CopperplateGothicBT-Roman",
+  "font_size": 11.96,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_2",
+  "index": 2,
+  "text": "14.3.1 Karush–Kuhn–TuckerConditions",
+  "bbox": [
+   181.20098212,
+   563.0879902,
+   346.0102643199999,
+   573.0555902
+  ],
+  "font": "OKMFAH+Minion-Regular",
+  "font_size": 9.97,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_3",
+  "index": 3,
+  "text": "14.3.2 ConvexQuadraticProgramming",
+  "bbox": [
+   181.20098212,
+   551.0879965600001,
+   341.27067051999995,
+   561.05559656
+  ],
+  "font": null,
+  "font_size": null,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_4",
+  "index": 4,
+  "text": "14.3.3 GeneralDualityTheory",
+  "bbox": [
+   181.20098212,
+   539.0880029200001,
+   305.42718091999996,
+   549.0556029200001
+  ],
+  "font": null,
+  "font_size": null,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_5",
+  "index": 5,
+  "text": "14.4 Applications",
+  "bbox": [
+   153.12,
+   522.7695084,
+   259.03207381,
+   537.3152167
+  ],
+  "font": null,
+  "font_size": null,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_6",
+  "index": 6,
+  "text": "14.4.1 DistanceCalculations",
+  "bbox": [
+   181.20097564000008,
+   509.0879902,
+   297.03844228000014,
+   519.0555902
+  ],
+  "font": null,
+  "font_size": null,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_7",
+  "index": 7,
+  "text": "14.4.2 ContactForces",
+  "bbox": [
+   181.20097564000008,
+   497.08799655999997,
+   270.1847311200001,
+   507.05559655999997
+  ],
+  "font": null,
+  "font_size": null,
+  "line_count": 1,
+  "translation_status": "translated"
+ }
+]

@@ -1,0 +1,50 @@
+[
+ {
+  "node_id": "p15_0",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p15_1",
+  "kind": "heading",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p15_2",
+  "kind": "footnote",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p15_3",
+  "kind": "toc",
+  "target_bbox": null,
+  "render_path": "overlay"
+ },
+ {
+  "node_id": "p15_4",
+  "kind": "toc",
+  "target_bbox": null,
+  "render_path": "overlay"
+ },
+ {
+  "node_id": "p15_5",
+  "kind": "toc",
+  "target_bbox": null,
+  "render_path": "overlay"
+ },
+ {
+  "node_id": "p15_6",
+  "kind": "toc",
+  "target_bbox": null,
+  "render_path": "overlay"
+ },
+ {
+  "node_id": "p15_7",
+  "kind": "toc",
+  "target_bbox": null,
+  "render_path": "overlay"
+ }
+]

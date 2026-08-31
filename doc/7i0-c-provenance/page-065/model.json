@@ -1,0 +1,354 @@
+[
+ {
+  "node_id": "p65_0",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   126.0026,
+   499.36021,
+   130.8026,
+   507.36021
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p65_1",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   126.0026,
+   374.56020999999976,
+   136.55039,
+   383.66990999999996
+  ],
+  "font_size": 6.0,
+  "font_major": "HALIIO+SabonMTPro-Regular",
+  "multifont": true,
+  "reading_order": 1
+ },
+ {
+  "node_id": "p65_2",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   142.5,
+   235.79419,
+   146.7,
+   242.79419
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 2
+ },
+ {
+  "node_id": "p65_3",
+  "kind": "heading",
+  "role": "heading",
+  "role_confidence": 0.7,
+  "bbox": [
+   98.5,
+   674.41,
+   281.52500000000003,
+   684.41
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKKMC+TimesLTPro-Bold",
+  "multifont": false,
+  "reading_order": 3
+ },
+ {
+  "node_id": "p65_4",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.92,
+  "bbox": [
+   145.2026,
+   422.56020999999987,
+   351.6026000000002,
+   449.7602099999999
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 4
+ },
+ {
+  "node_id": "p65_5",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   164.4026,
+   403.3602099999998,
+   226.80259999999998,
+   411.3602099999998
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 5
+ },
+ {
+  "node_id": "p65_6",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   134.4963,
+   551.06998,
+   513.4969999999997,
+   645.0699999999999
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": true,
+  "reading_order": 6
+ },
+ {
+  "node_id": "p65_7",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   480.02621,
+   540.69998,
+   508.37480999999997,
+   547.69998
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": true,
+  "reading_order": 7
+ },
+ {
+  "node_id": "p65_8",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   134.4963,
+   537.06998,
+   480.0152999999998,
+   547.06998
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": true,
+  "reading_order": 8
+ },
+ {
+  "node_id": "p65_9",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   202.13439,
+   359.6429,
+   423.14398999999986,
+   367.6429
+  ],
+  "font_size": 8.0,
+  "font_major": "HALIIO+SabonMTPro-Regular",
+  "multifont": false,
+  "reading_order": 9
+ },
+ {
+  "node_id": "p65_10",
+  "kind": "paragraph",
+  "role": "page_number",
+  "role_confidence": 0.7,
+  "bbox": [
+   134.5,
+   322.72428873999996,
+   140.100006,
+   328.32429473999997
+  ],
+  "font_size": 8.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": true,
+  "reading_order": 10
+ },
+ {
+  "node_id": "p65_11",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   141.63999,
+   319.8203,
+   472.26878999999997,
+   327.8203
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": true,
+  "reading_order": 11
+ },
+ {
+  "node_id": "p65_12",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   134.49889,
+   257.81221,
+   512.7556899999998,
+   317.8203
+  ],
+  "font_size": 8.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": true,
+  "reading_order": 12
+ },
+ {
+  "node_id": "p65_13",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   451.55280000000005,
+   163.78518999999994,
+   489.7721000000001,
+   170.78518999999994
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 13
+ },
+ {
+  "node_id": "p65_14",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.92,
+  "bbox": [
+   160.94920000000002,
+   136.77918999999991,
+   234.4457,
+   161.78318999999993
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 14
+ },
+ {
+  "node_id": "p65_15",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.9,
+  "bbox": [
+   160.94920000000002,
+   127.50419000000002,
+   474.9734,
+   134.7771899999999
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 15
+ },
+ {
+  "node_id": "p65_16",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   142.5,
+   118.79619000000001,
+   146.7,
+   125.79619
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 16
+ },
+ {
+  "node_id": "p65_17",
+  "kind": "paragraph",
+  "role": "page_number",
+  "role_confidence": 0.7,
+  "bbox": [
+   503.5,
+   674.41,
+   513.5,
+   684.41
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 17
+ },
+ {
+  "node_id": "p65_18",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   462.0026000000005,
+   422.56020999999987,
+   505.2026000000006,
+   430.56020999999987
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 18
+ },
+ {
+  "node_id": "p65_19",
+  "kind": "identifier",
+  "role": "identifier",
+  "role_confidence": 0.7,
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 19
+ },
+ {
+  "node_id": "p65_20",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   145.2026,
+   393.7602099999998,
+   150.0026,
+   401.7602099999998
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 20
+ },
+ {
+  "node_id": "p65_21",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   315.351,
+   118.52319,
+   441.022,
+   125.79619
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 21
+ }
+]

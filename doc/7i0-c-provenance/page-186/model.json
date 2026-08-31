@@ -1,0 +1,338 @@
+[
+ {
+  "node_id": "p186_0",
+  "kind": "paragraph",
+  "role": "page_number",
+  "role_confidence": 0.7,
+  "bbox": [
+   98.5,
+   674.41,
+   113.5,
+   684.41
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKKMC+TimesLTPro-Bold",
+  "multifont": false,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p186_1",
+  "kind": "filename",
+  "role": "filename",
+  "role_confidence": 0.72,
+  "bbox": [
+   151.66389,
+   633.86539,
+   214.06389000000001,
+   641.86539
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 1
+ },
+ {
+  "node_id": "p186_2",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.85,
+  "bbox": [
+   151.66389,
+   614.66539,
+   228.46389,
+   622.66539
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 2
+ },
+ {
+  "node_id": "p186_3",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   151.66389,
+   528.2653899999998,
+   156.46389000000002,
+   536.2653899999998
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 3
+ },
+ {
+  "node_id": "p186_4",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.85,
+  "bbox": [
+   228.46389,
+   566.6653899999999,
+   305.26389,
+   574.6653899999999
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 4
+ },
+ {
+  "node_id": "p186_5",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   166.1,
+   408.31421,
+   382.10000000000014,
+   417.31421
+  ],
+  "font_size": 9.0,
+  "font_major": "HAKKPI+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 5
+ },
+ {
+  "node_id": "p186_6",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   300.24,
+   674.41,
+   513.5000000000001,
+   684.41
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 6
+ },
+ {
+  "node_id": "p186_7",
+  "kind": "filename",
+  "role": "filename",
+  "role_confidence": 0.72,
+  "bbox": [
+   319.13589,
+   633.8653899999998,
+   391.13589,
+   641.8653899999998
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 7
+ },
+ {
+  "node_id": "p186_8",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   319.13589,
+   614.6653899999998,
+   419.93589000000003,
+   622.6653899999998
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 8
+ },
+ {
+  "node_id": "p186_9",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   432.62838,
+   599.83909,
+   478.21238,
+   607.83909
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": true,
+  "reading_order": 9
+ },
+ {
+  "node_id": "p186_10",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.85,
+  "bbox": [
+   151.66389,
+   595.46539,
+   257.26389,
+   603.46539
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": true,
+  "reading_order": 10
+ },
+ {
+  "node_id": "p186_11",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   424.73589,
+   566.6653899999998,
+   496.7358900000001,
+   574.6653899999998
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 11
+ },
+ {
+  "node_id": "p186_12",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   338.33589,
+   547.4653899999997,
+   367.13589,
+   555.4653899999997
+  ],
+  "font_size": 8.0,
+  "font_major": "HAMGAN+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 12
+ },
+ {
+  "node_id": "p186_13",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   319.13589,
+   528.2653899999997,
+   347.93589000000003,
+   536.2653899999997
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 13
+ },
+ {
+  "node_id": "p186_14",
+  "kind": "caption",
+  "role": "caption",
+  "role_confidence": 0.92,
+  "bbox": [
+   169.7462,
+   498.98521000000005,
+   478.2481999999998,
+   507.98521000000005
+  ],
+  "font_size": 9.0,
+  "font_major": "HAKKMC+TimesLTPro-Bold",
+  "multifont": false,
+  "reading_order": 14
+ },
+ {
+  "node_id": "p186_15",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   134.5,
+   444.76621,
+   513.5089999999999,
+   482.76621
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": true,
+  "reading_order": 15
+ },
+ {
+  "node_id": "p186_16",
+  "kind": "identifier",
+  "role": "identifier",
+  "role_confidence": 0.7,
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font_size": 9.0,
+  "font_major": "Helvetica",
+  "multifont": true,
+  "reading_order": 16
+ },
+ {
+  "node_id": "p186_17",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.92,
+  "bbox": [
+   144.5,
+   380.30620999999996,
+   508.838000000001,
+   403.31021
+  ],
+  "font_size": 9.0,
+  "font_major": "HAKKPI+CourierPSPro-Regular",
+  "multifont": true,
+  "reading_order": 17
+ },
+ {
+  "node_id": "p186_18",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   134.5,
+   328.51621,
+   513.4899999999998,
+   352.51621
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": false,
+  "reading_order": 18
+ },
+ {
+  "node_id": "p186_19",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   238.92529999999994,
+   292.06421,
+   487.7006000000003,
+   315.06821
+  ],
+  "font_size": 9.0,
+  "font_major": "HAKKPI+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 19
+ },
+ {
+  "node_id": "p186_20",
+  "kind": "code",
+  "role": "code",
+  "role_confidence": 0.92,
+  "bbox": [
+   144.5,
+   250.05220999999997,
+   476.52980000000014,
+   273.05620999999996
+  ],
+  "font_size": 9.0,
+  "font_major": "HAKKPI+CourierPSPro-Regular",
+  "multifont": false,
+  "reading_order": 20
+ }
+]

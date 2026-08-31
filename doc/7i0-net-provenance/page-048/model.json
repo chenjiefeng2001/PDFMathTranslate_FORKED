@@ -1,0 +1,66 @@
+[
+ {
+  "node_id": "p48_0",
+  "kind": "heading",
+  "role": "heading",
+  "role_confidence": 0.72,
+  "bbox": [
+   46.08,
+   645.1302365,
+   416.53296294999984,
+   654.4563224999999
+  ],
+  "font_size": 9.22,
+  "font_major": "GFOBMP+Times-Roman",
+  "multifont": true,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p48_1",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   46.08,
+   552.4063742400002,
+   416.7248240000001,
+   620.3857336
+  ],
+  "font_size": 8.22,
+  "font_major": "GFOBMP+Times-Roman",
+  "multifont": true,
+  "reading_order": 1
+ },
+ {
+  "node_id": "p48_2",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   54.30002192000006,
+   542.4463476800003,
+   399.0428590400001,
+   550.7641780800003
+  ],
+  "font_size": 8.22,
+  "font_major": "GFOBMP+Times-Roman",
+  "multifont": true,
+  "reading_order": 2
+ },
+ {
+  "node_id": "p48_3",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   46.079127839999984,
+   163.84573663999973,
+   416.7355089600002,
+   540.7055211200003
+  ],
+  "font_size": 8.22,
+  "font_major": "GFOBMP+Times-Roman",
+  "multifont": true,
+  "reading_order": 3
+ }
+]

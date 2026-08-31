@@ -1,0 +1,189 @@
+[
+ {
+  "node_id": "p30_0",
+  "source_text": "xxx Figures",
+  "translated_text": "xxx Figures",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_1",
+  "source_text": "⊥",
+  "translated_text": "⊥",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_2",
+  "source_text": "7.20 AsubspaceUofIR anditsorthogonalcomplementU .",
+  "translated_text": "7.20 AsubspaceUofIR anditsorthogonalcomplementU .",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_3",
+  "source_text": "7.21 Thefourfundamentalsubspaces.",
+  "translated_text": "7.21 Thefourfundamentalsubspaces.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_4",
+  "source_text": "3",
+  "translated_text": "3",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_5",
+  "source_text": "7.22 Theprojectionp∈Sofb∈IR,whereSisatwo-dimensional\n3\nsubspaceofIR (aplanethroughtheorigin).\n7.23 AlineartransformationfromVtoVwithrespecttotwodifferent\nbases(horizontalarrows).ThechangeofbasisforV(verticalarrows). 624",
+  "translated_text": "7.22 Theprojectionp∈Sofb∈IR,whereSisatwo-dimensional\n3\nsubspaceofIR (aplanethroughtheorigin).\n7.23 AlineartransformationfromVtoVwithrespecttotwodifferent\nbases(horizontalarrows).ThechangeofbasisforV(verticalarrows). 624",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 5
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_6",
+  "source_text": "7.24 (a)Aunit-areasquare.(b)Theparallelogramobtainedby",
+  "translated_text": "7.24 (a)Aunit-areasquare.(b)Theparallelogramobtainedby",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_7",
+  "source_text": "transformingthesquarewhenthetransformedbasisvectorshavethe\nsameorderasthebasisvectors.(c)Theparallelogramobtainedby\ntransformingthesquarewhenthetransformedbasisvectorshavethe\noppositeorderasthebasisvectors.(d)Thebasisvectorsmappedto",
+  "translated_text": "transformingthesquarewhenthetransformedbasisvectorshavethe\nsameorderasthebasisvectors.(c)Theparallelogramobtainedby\ntransformingthesquarewhenthetransformedbasisvectorshavethe\noppositeorderasthebasisvectors.(d)Thebasisvectorsmappedto",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 4
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_8",
+  "source_text": "parallelvectors,inwhichcaseAisnotinvertible.\n7.25 Anillustrationofthebutterﬂyruleforthedeterminantofa3×3\nmatrix.\n7.26 (a)Aunit-volumecube.(b)Theparallelepipedobtainedby",
+  "translated_text": "parallelvectors,inwhichcaseAisnotinvertible.\n7.25 Anillustrationofthebutterﬂyruleforthedeterminantofa3×3\nmatrix.\n7.26 (a)Aunit-volumecube.(b)Theparallelepipedobtainedby",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 4
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_9",
+  "source_text": "transformingthecubewhenthetransformedbasisvectorshavethe",
+  "translated_text": "transformingthecubewhenthetransformedbasisvectorshavethe",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_10",
+  "source_text": "sameorderasthebasisvectors.\n7.27 Threegraphsshowingcriticalpoints.(a)f(x0)isalocalminimum.\n(b)f(x0)isalocalminimum.(c)(x0,f(x0))isapointofinﬂectionfor\nthegraphoff.\n7.28 Threegraphsshowingcriticalpoints.(a)f(x0)isalocalminimum.",
+  "translated_text": "sameorderasthebasisvectors.\n7.27 Threegraphsshowingcriticalpoints.(a)f(x0)isalocalminimum.\n(b)f(x0)isalocalminimum.(c)(x0,f(x0))isapointofinﬂectionfor\nthegraphoff.\n7.28 Threegraphsshowingcriticalpoints.(a)f(x0)isalocalminimum.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 5
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p30_11",
+  "source_text": "(b)f(x0)isalocalminimum.(c)(x0,f(x0))isasaddlepointonthe\ngraphoff.Thetangentplanesatthegraphpointsareshowninall",
+  "translated_text": "(b)f(x0)isalocalminimum.(c)(x0,f(x0))isasaddlepointonthe\ngraphoff.Thetangentplanesatthegraphpointsareshowninall",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_12",
+  "source_text": "threeﬁgures.",
+  "translated_text": "threeﬁgures.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_13",
+  "source_text": "8.1 (a)AvectorvconnectingtwopointsPandQ.(b)Thesumofvectors,\neachvectordeterminedbytwopoints.\n8.2 Theparallelogramlawforafﬁnealgebra.\n8.3 Threecoordinatesystemsintheplane.Observethatthevectorsinthe",
+  "translated_text": "8.1 (a)AvectorvconnectingtwopointsPandQ.(b)Thesumofvectors,\neachvectordeterminedbytwopoints.\n8.2 Theparallelogramlawforafﬁnealgebra.\n8.3 Threecoordinatesystemsintheplane.Observethatthevectorsinthe",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 4
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_14",
+  "source_text": "coordinatesystemarenotrequiredtobeunitlengthorperpendicular",
+  "translated_text": "coordinatesystemarenotrequiredtobeunitlengthorperpendicular",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_15",
+  "source_text": "inpairs.\n8.4 Anillustrationofcondition1ofthedeﬁnitionforafﬁne\ntransformation.\n8.5 VariousbarycentriccombinationsoftwopointsPandQ.\n8.6 Thetrianglepartitionstheplaneintosevenregions.Thesignsof\nc1,c2,andc3arelistedasorderedtriples.\n8.7 (a)Atrianglewithbaselengthbandheighthmarked.Theareaofthe\ntriangleisbh/2.(b)Atriangleviewedasaunionofaninﬁnitenumber\noflinesegmentsofvaryinglengths(onlyafewareshown).Theareaof",
+  "translated_text": "inpairs.\n8.4 Anillustrationofcondition1ofthedeﬁnitionforafﬁne\ntransformation.\n8.5 VariousbarycentriccombinationsoftwopointsPandQ.\n8.6 Thetrianglepartitionstheplaneintosevenregions.Thesignsof\nc1,c2,andc3arelistedasorderedtriples.\n8.7 (a)Atrianglewithbaselengthbandheighthmarked.Theareaofthe\ntriangleisbh/2.(b)Atriangleviewedasaunionofaninﬁnitenumber\noflinesegmentsofvaryinglengths(onlyafewareshown).Theareaof",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 9
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_16",
+  "source_text": "thetriangleisthesumofthelengthsofthoselinesegments.",
+  "translated_text": "thetriangleisthesumofthelengthsofthoselinesegments.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ }
+]

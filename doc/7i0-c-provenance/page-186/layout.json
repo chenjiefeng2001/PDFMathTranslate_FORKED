@@ -1,0 +1,128 @@
+[
+ {
+  "node_id": "p186_0",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p186_1",
+  "kind": "filename",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_2",
+  "kind": "code",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_3",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_4",
+  "kind": "code",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_5",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_6",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p186_7",
+  "kind": "filename",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_8",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_9",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p186_10",
+  "kind": "code",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_11",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p186_12",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_13",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_14",
+  "kind": "caption",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p186_15",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_16",
+  "kind": "identifier",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_17",
+  "kind": "code",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_18",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p186_19",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p186_20",
+  "kind": "code",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ }
+]

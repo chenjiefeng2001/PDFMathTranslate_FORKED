@@ -1,0 +1,2039 @@
+{
+ "page": 61,
+ "page_height": 649.14501953125,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "14",
+   "bbox": [
+    50.97,
+    50.13,
+    59.18,
+    59.13
+   ],
+   "font": "ArialNarrow-Bold",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 1,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    590.02,
+    59.18,
+    599.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "2. Background",
+   "bbox": [
+    322.27,
+    50.13,
+    380.18,
+    59.13
+   ],
+   "font": "ArialNarrow-Bold",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 2,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    322.27,
+    590.02,
+    380.18,
+    599.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "阳离子编程接口。",
+   "bbox": [
+    50.87,
+    77.77,
+    122.87,
+    90.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    558.46,
+    122.87,
+    571.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    122.87,
+    78.64,
+    127.37,
+    90.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    122.87,
+    558.5,
+    127.37,
+    570.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "一种合理的方法是建立一个明确表示直观物理概念的计算机模型",
+   "bbox": [
+    127.37,
+    77.77,
+    379.37,
+    90.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    127.37,
+    558.46,
+    379.37,
+    571.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "，例如质量、重力、惯性矩等。",
+   "bbox": [
+    50.87,
+    90.37,
+    176.87,
+    103.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    545.86,
+    176.87,
+    558.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "物理模型允许自动化被动对象的动画，例如下落的链条和碰撞的对象。",
+   "bbox": [
+    65.87,
+    113.52,
+    344.87,
+    126.44
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    65.87,
+    522.71,
+    344.87,
+    535.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    344.87,
+    114.39,
+    349.37,
+    126.4
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    344.87,
+    522.75,
+    349.37,
+    534.76
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "对于有",
+   "bbox": [
+    349.37,
+    113.52,
+    376.37,
+    126.44
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    349.37,
+    522.71,
+    376.37,
+    535.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "生命的物体，一个活跃的研究领域是如何构建",
+   "bbox": [
+    50.12,
+    126.12,
+    230.12,
+    139.04
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.12,
+    510.11,
+    230.12,
+    523.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    230.12,
+    126.99,
+    232.37,
+    139.0
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    230.12,
+    510.15,
+    232.37,
+    522.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "biomechanical models.",
+   "bbox": [
+    232.37,
+    129.33,
+    326.65,
+    138.33
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    232.37,
+    510.82,
+    326.65,
+    519.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    326.65,
+    126.99,
+    328.9,
+    139.0
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    326.65,
+    510.15,
+    328.9,
+    522.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "到目前为止，",
+   "bbox": [
+    328.9,
+    126.12,
+    382.9,
+    139.04
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    328.9,
+    510.11,
+    382.9,
+    523.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "已经可以使用简化的生物力学模型来自动化各种虚拟生物（例如鱼、蛇和一些铰接人",
+   "bbox": [
+    50.12,
+    138.72,
+    383.12,
+    151.64
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.12,
+    497.51,
+    383.12,
+    510.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "物）的运动学习过程。",
+   "bbox": [
+    50.12,
+    151.32,
+    140.12,
+    164.24
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.12,
+    484.91,
+    140.12,
+    497.83
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "认知建模源于通过构建",
+   "bbox": [
+    65.97,
+    185.02,
+    155.97,
+    197.94
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    65.97,
+    451.21,
+    155.97,
+    464.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    155.97,
+    185.89,
+    158.22,
+    197.9
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    155.97,
+    451.25,
+    158.22,
+    463.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "behavior models.",
+   "bbox": [
+    158.22,
+    188.22,
+    227.72,
+    197.22
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    158.22,
+    451.93,
+    227.72,
+    460.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    227.72,
+    185.89,
+    229.97,
+    197.9
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    227.72,
+    451.25,
+    229.97,
+    463.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "进一步自动化生成行为的过程的尝试。",
+   "bbox": [
+    229.97,
+    185.02,
+    382.97,
+    197.94
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    229.97,
+    451.21,
+    382.97,
+    464.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "因此，认知模型是已用于计算机游戏和动画的模型层次结构中的下一个逻辑步骤。",
+   "bbox": [
+    50.72,
+    197.62,
+    374.71,
+    210.54
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.72,
+    438.61,
+    374.71,
+    451.53
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    374.71,
+    198.49,
+    379.21,
+    210.5
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    374.71,
+    438.65,
+    379.21,
+    450.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "通过引入此类模型，我们提高了用户可以指挥动画角色的抽象级别，从而更容易产生",
+   "bbox": [
+    50.72,
+    210.22,
+    383.71,
+    223.14
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 11,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.72,
+    426.01,
+    383.71,
+    438.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "行为。",
+   "bbox": [
+    50.72,
+    222.82,
+    77.71,
+    235.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.72,
+    413.41,
+    77.71,
+    426.33
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    77.71,
+    223.69,
+    82.21,
+    235.7
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    77.71,
+    413.45,
+    82.21,
+    425.46
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "这种级别的功能是通过从角色的角度创建虚拟世界的明确表示来获得的，这",
+   "bbox": [
+    82.21,
+    222.82,
+    379.21,
+    235.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    82.21,
+    413.41,
+    379.21,
+    426.33
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "使得角色自己能够完成更多的工作。",
+   "bbox": [
+    50.72,
+    235.42,
+    194.71,
+    248.34
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.72,
+    400.81,
+    194.71,
+    413.73
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "2.1 ",
+   "bbox": [
+    50.97,
+    313.83,
+    71.96,
+    332.5
+   ],
+   "font": "Times-Roman",
+   "font_size": 14.0,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    316.65,
+    71.96,
+    335.32
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "几何模型",
+   "bbox": [
+    71.96,
+    312.47,
+    127.96,
+    332.57
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 14.0,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    71.96,
+    316.58,
+    127.96,
+    336.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "几何模型捕捉计算机角色的形式和外观。",
+   "bbox": [
+    51.22,
+    342.82,
+    213.21,
+    355.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    51.22,
+    293.41,
+    213.21,
+    306.33
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    213.21,
+    343.69,
+    217.71,
+    355.7
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    213.21,
+    293.45,
+    217.71,
+    305.46
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "即使使用这种低水平且熟悉的运动生成工",
+   "bbox": [
+    217.71,
+    342.82,
+    379.71,
+    355.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    217.71,
+    293.41,
+    379.71,
+    306.33
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "具（包括关键帧和运动捕捉），动画和游戏中的许多角色也可以得到相当有效的控制",
+   "bbox": [
+    50.97,
+    355.42,
+    383.96,
+    368.34
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    280.81,
+    383.96,
+    293.73
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    50.97,
+    368.02,
+    59.97,
+    380.94
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 17,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    268.21,
+    59.97,
+    281.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    59.97,
+    368.89,
+    64.46,
+    380.9
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 17,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    59.97,
+    268.25,
+    64.46,
+    280.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "由于运动的可预测性，为在几何级别控制的角色构建认知模型通常要简单得多。",
+   "bbox": [
+    64.46,
+    368.02,
+    379.46,
+    380.94
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 17,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    64.46,
+    268.21,
+    379.46,
+    281.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "2.1.1 ",
+   "bbox": [
+    51.06,
+    435.58,
+    78.07,
+    451.59
+   ],
+   "font": "Times-Roman",
+   "font_size": 12.0,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    51.06,
+    197.56,
+    78.07,
+    213.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "基础知识",
+   "bbox": [
+    78.07,
+    434.42,
+    126.07,
+    451.65
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 12.0,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    78.07,
+    197.5,
+    126.07,
+    214.73
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "在最一般的情况下，物体的位置和形状会随着时间而改变。",
+   "bbox": [
+    51.06,
+    460.67,
+    285.07,
+    473.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    51.06,
+    175.56,
+    285.07,
+    188.48
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "  [134]",
+   "bbox": [
+    285.07,
+    461.54,
+    309.06,
+    473.54
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    285.07,
+    175.61,
+    309.06,
+    187.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "给出了描述物体形",
+   "bbox": [
+    309.06,
+    460.67,
+    381.06,
+    473.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    309.06,
+    175.56,
+    381.06,
+    188.48
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "状和位置的一般方案。",
+   "bbox": [
+    50.97,
+    473.27,
+    140.96,
+    486.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    162.96,
+    140.96,
+    175.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    140.96,
+    474.14,
+    145.46,
+    486.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    140.96,
+    163.01,
+    145.46,
+    175.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "特别地，让某个对象",
+   "bbox": [
+    145.46,
+    473.27,
+    226.46,
+    486.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    145.46,
+    162.96,
+    226.46,
+    175.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    226.46,
+    474.14,
+    228.71,
+    486.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    226.46,
+    163.01,
+    228.71,
+    175.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "Ω",
+   "bbox": [
+    228.71,
+    476.49,
+    235.72,
+    485.49
+   ],
+   "font": "CenturySchoolbook",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    228.71,
+    163.66,
+    235.72,
+    172.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    235.72,
+    474.14,
+    237.97,
+    486.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    235.72,
+    163.01,
+    237.97,
+    175.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "中的每个点（不失一般性",
+   "bbox": [
+    237.97,
+    473.27,
+    336.97,
+    486.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    237.97,
+    162.96,
+    336.97,
+    175.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    336.97,
+    474.14,
+    339.22,
+    486.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    336.97,
+    163.01,
+    339.22,
+    175.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "Ω",
+   "bbox": [
+    339.22,
+    476.49,
+    346.22,
+    485.49
+   ],
+   "font": "CenturySchoolbook",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    339.22,
+    163.66,
+    346.22,
+    172.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    346.22,
+    474.14,
+    348.47,
+    486.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    346.22,
+    163.01,
+    348.47,
+    175.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    348.47,
+    476.49,
+    353.92,
+    485.49
+   ],
+   "font": "CenturySchoolbook",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    348.47,
+    163.66,
+    353.92,
+    172.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": " [0, l]n",
+   "bbox": [
+    353.92,
+    474.14,
+    378.17,
+    486.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    353.92,
+    163.01,
+    378.17,
+    175.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "）由其",
+   "bbox": [
+    50.97,
+    485.87,
+    77.96,
+    498.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    150.36,
+    77.96,
+    163.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    77.96,
+    486.74,
+    80.21,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    77.96,
+    150.41,
+    80.21,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "material",
+   "bbox": [
+    80.21,
+    489.07,
+    116.47,
+    498.07
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    80.21,
+    151.08,
+    116.47,
+    160.08
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    116.47,
+    486.74,
+    118.72,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    116.47,
+    150.41,
+    118.72,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "（或",
+   "bbox": [
+    118.72,
+    485.87,
+    136.72,
+    498.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    118.72,
+    150.36,
+    136.72,
+    163.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    136.72,
+    486.74,
+    138.97,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    136.72,
+    150.41,
+    138.97,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": "intrinsic)",
+   "bbox": [
+    138.97,
+    489.07,
+    177.97,
+    498.07
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    138.97,
+    151.08,
+    177.97,
+    160.08
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    177.97,
+    486.74,
+    180.22,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    177.97,
+    150.41,
+    180.22,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": "坐标",
+   "bbox": [
+    180.22,
+    485.87,
+    198.22,
+    498.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    180.22,
+    150.36,
+    198.22,
+    163.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": " u ",
+   "bbox": [
+    198.22,
+    486.74,
+    207.22,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    198.22,
+    150.41,
+    207.22,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": "命名）。然后，对于给定的",
+   "bbox": [
+    207.22,
+    485.87,
+    315.22,
+    498.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    207.22,
+    150.36,
+    315.22,
+    163.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": " u G ",
+   "bbox": [
+    315.22,
+    486.74,
+    332.97,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    315.22,
+    150.41,
+    332.97,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": "Ω",
+   "bbox": [
+    332.97,
+    489.09,
+    339.97,
+    498.09
+   ],
+   "font": "CenturySchoolbook",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    332.97,
+    151.06,
+    339.97,
+    160.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    339.97,
+    486.74,
+    342.22,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    339.97,
+    150.41,
+    342.22,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": "和时间",
+   "bbox": [
+    342.22,
+    485.87,
+    369.22,
+    498.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    342.22,
+    150.36,
+    369.22,
+    163.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    369.22,
+    486.74,
+    371.47,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    369.22,
+    150.41,
+    371.47,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "t",
+   "bbox": [
+    371.47,
+    489.07,
+    375.14,
+    498.07
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    371.47,
+    151.08,
+    375.14,
+    160.08
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": " G",
+   "bbox": [
+    375.14,
+    486.74,
+    383.88,
+    498.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    375.14,
+    150.41,
+    383.88,
+    162.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": "X",
+   "bbox": [
+    50.97,
+    499.34,
+    57.46,
+    511.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    137.81,
+    57.46,
+    149.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": "，可以通过指定函数",
+   "bbox": [
+    57.46,
+    498.46,
+    138.46,
+    511.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    57.46,
+    137.76,
+    138.46,
+    150.69
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": " q : ",
+   "bbox": [
+    138.46,
+    499.34,
+    152.21,
+    511.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    138.46,
+    137.81,
+    152.21,
+    149.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": "Ω",
+   "bbox": [
+    152.21,
+    501.69,
+    159.22,
+    510.69
+   ],
+   "font": "CenturySchoolbook",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    152.21,
+    138.46,
+    159.22,
+    147.46
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": " x X ",
+   "bbox": [
+    159.22,
+    499.34,
+    176.96,
+    511.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    159.22,
+    137.81,
+    176.96,
+    149.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": "—",
+   "bbox": [
+    176.96,
+    498.46,
+    184.97,
+    511.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    176.96,
+    137.76,
+    184.97,
+    150.69
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": " M3 ",
+   "bbox": [
+    184.98,
+    499.34,
+    201.98,
+    511.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    184.98,
+    137.81,
+    201.98,
+    149.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:80",
+   "operator": "TJ",
+   "text": "给出",
+   "bbox": [
+    201.98,
+    498.46,
+    219.98,
+    511.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    201.98,
+    137.76,
+    219.98,
+    150.69
+   ]
+  },
+  {
+   "pdf_object_id": "text:81",
+   "operator": "TJ",
+   "text": " M3 ",
+   "bbox": [
+    219.98,
+    499.34,
+    236.98,
+    511.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    219.98,
+    137.81,
+    236.98,
+    149.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:82",
+   "operator": "TJ",
+   "text": "中的相应位置。",
+   "bbox": [
+    236.98,
+    498.46,
+    299.98,
+    511.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    236.98,
+    137.76,
+    299.98,
+    150.69
+   ]
+  },
+  {
+   "pdf_object_id": "text:83",
+   "operator": "TJ",
+   "text": "直观上，",
+   "bbox": [
+    66.06,
+    532.91,
+    102.06,
+    545.84
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 23,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    66.06,
+    103.31,
+    102.06,
+    116.24
+   ]
+  },
+  {
+   "pdf_object_id": "text:84",
+   "operator": "TJ",
+   "text": "q(u, ",
+   "bbox": [
+    102.06,
+    533.79,
+    118.56,
+    545.79
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 23,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    102.06,
+    103.36,
+    118.56,
+    115.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:85",
+   "operator": "TJ",
+   "text": "t)",
+   "bbox": [
+    118.56,
+    536.12,
+    125.22,
+    545.12
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 23,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    118.56,
+    104.03,
+    125.22,
+    113.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:86",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    125.22,
+    533.79,
+    127.47,
+    545.79
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 23,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    125.22,
+    103.36,
+    127.47,
+    115.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:87",
+   "operator": "TJ",
+   "text": "将对象中每个点的位置描述为时间的函数。因此，对象可以不受",
+   "bbox": [
+    127.47,
+    532.91,
+    379.47,
+    545.84
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 23,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    127.47,
+    103.31,
+    379.47,
+    116.24
+   ]
+  },
+  {
+   "pdf_object_id": "text:88",
+   "operator": "TJ",
+   "text": "约束地自由改变位置和形状。",
+   "bbox": [
+    51.06,
+    545.51,
+    168.06,
+    558.44
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 24,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    51.06,
+    90.71,
+    168.06,
+    103.64
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

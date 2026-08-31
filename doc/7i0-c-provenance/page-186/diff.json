@@ -1,0 +1,795 @@
+{
+ "page": 186,
+ "total_blocks": 21,
+ "total_render_runs": 21,
+ "matched_runs": 21,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 21,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p186_0",
+   "page": 186,
+   "kind": "paragraph",
+   "source_text": "156",
+   "translated_text": "156",
+   "translation_status": "translated",
+   "src_box": [
+    98.5,
+    674.41,
+    113.5,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_0",
+     "render_object_ref": "R104",
+     "page": 186,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      98.5,
+      674.41,
+      113.5,
+      684.41
+     ],
+     "font_size": 10.0,
+     "text": "156"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "156"
+  },
+  {
+   "node_id": "p186_1",
+   "page": 186,
+   "kind": "filename",
+   "source_text": "// xyza_foo.h",
+   "translated_text": "// xyza_foo.h",
+   "translation_status": "preserved",
+   "src_box": [
+    151.66389,
+    633.86539,
+    214.06389000000001,
+    641.86539
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_1",
+     "render_object_ref": "R105",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      151.66,
+      633.87,
+      214.06,
+      641.87
+     ],
+     "font_size": 8.0,
+     "text": "// xyza_foo.h"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// xyza_foo.h"
+  },
+  {
+   "node_id": "p186_2",
+   "page": 186,
+   "kind": "code",
+   "source_text": "namespace xyza {",
+   "translated_text": "namespace xyza {",
+   "translation_status": "preserved",
+   "src_box": [
+    151.66389,
+    614.66539,
+    228.46389,
+    622.66539
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_2",
+     "render_object_ref": "R106",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      151.66,
+      614.67,
+      228.46,
+      622.67
+     ],
+     "font_size": 8.0,
+     "text": "namespace xyza {"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "namespace xyza {"
+  },
+  {
+   "node_id": "p186_3",
+   "page": 186,
+   "kind": "formula",
+   "source_text": "}",
+   "translated_text": "}",
+   "translation_status": "preserved",
+   "src_box": [
+    151.66389,
+    528.2653899999998,
+    156.46389000000002,
+    536.2653899999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_3",
+     "render_object_ref": "R107",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      151.66,
+      528.27,
+      156.46,
+      536.27
+     ],
+     "font_size": 8.0,
+     "text": "}"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "}"
+  },
+  {
+   "node_id": "p186_4",
+   "page": 186,
+   "kind": "code",
+   "source_text": "const Foo& rhs);",
+   "translated_text": "const Foo& rhs);",
+   "translation_status": "preserved",
+   "src_box": [
+    228.46389,
+    566.6653899999999,
+    305.26389,
+    574.6653899999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_4",
+     "render_object_ref": "R108",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      228.46,
+      566.67,
+      305.26,
+      574.67
+     ],
+     "font_size": 8.0,
+     "text": "const Foo& rhs);"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "const Foo& rhs);"
+  },
+  {
+   "node_id": "p186_5",
+   "page": 186,
+   "kind": "formula",
+   "source_text": "static int s_count; // declaration only",
+   "translated_text": "static int s_count; // declaration only",
+   "translation_status": "preserved",
+   "src_box": [
+    166.1,
+    408.31421,
+    382.10000000000014,
+    417.31421
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_5",
+     "render_object_ref": "R109",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      166.1,
+      408.31,
+      382.1,
+      417.31
+     ],
+     "font_size": 9.0,
+     "text": "static int s_count; // declaration only"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "static int s_count; // declaration only"
+  },
+  {
+   "node_id": "p186_6",
+   "page": 186,
+   "kind": "paragraph",
+   "source_text": "Chapter 1 Compilers, Linkers, and Components",
+   "translated_text": "Chapter 1 Compilers, Linkers, and Components",
+   "translation_status": "translated",
+   "src_box": [
+    300.24,
+    674.41,
+    513.5000000000001,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_6",
+     "render_object_ref": "R110",
+     "page": 186,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      300.24,
+      674.41,
+      513.5,
+      684.41
+     ],
+     "font_size": 12.0,
+     "text": "Chapter 1 Compilers, Linkers, and Components"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Chapter 1 Compilers, Linkers, and Components"
+  },
+  {
+   "node_id": "p186_7",
+   "page": 186,
+   "kind": "filename",
+   "source_text": "// xyza_foo.cpp",
+   "translated_text": "// xyza_foo.cpp",
+   "translation_status": "preserved",
+   "src_box": [
+    319.13589,
+    633.8653899999998,
+    391.13589,
+    641.8653899999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_7",
+     "render_object_ref": "R111",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      319.14,
+      633.87,
+      391.14,
+      641.87
+     ],
+     "font_size": 12.0,
+     "text": "// xyza_foo.cpp"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// xyza_foo.cpp"
+  },
+  {
+   "node_id": "p186_8",
+   "page": 186,
+   "kind": "formula",
+   "source_text": "#include <xyza_foo.h>",
+   "translated_text": "#include <xyza_foo.h>",
+   "translation_status": "preserved",
+   "src_box": [
+    319.13589,
+    614.6653899999998,
+    419.93589000000003,
+    622.6653899999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_8",
+     "render_object_ref": "R112",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      319.14,
+      614.67,
+      419.94,
+      622.67
+     ],
+     "font_size": 12.0,
+     "text": "#include <xyza_foo.h>"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "#include <xyza_foo.h>"
+  },
+  {
+   "node_id": "p186_9",
+   "page": 186,
+   "kind": "paragraph",
+   "source_text": "GOOD IDEA",
+   "translated_text": "GOOD IDEA",
+   "translation_status": "translated",
+   "src_box": [
+    432.62838,
+    599.83909,
+    478.21238,
+    607.83909
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_9",
+     "render_object_ref": "R113",
+     "page": 186,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      432.63,
+      599.84,
+      478.21,
+      607.84
+     ],
+     "font_size": 8.0,
+     "text": "GOOD IDEA"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "GOOD IDEA"
+  },
+  {
+   "node_id": "p186_10",
+   "page": 186,
+   "kind": "code",
+   "source_text": "class Foo { /*...*/ };",
+   "translated_text": "class Foo { /*...*/ };",
+   "translation_status": "preserved",
+   "src_box": [
+    151.66389,
+    595.46539,
+    257.26389,
+    603.46539
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_10",
+     "render_object_ref": "R114",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      151.66,
+      595.47,
+      257.26,
+      603.47
+     ],
+     "font_size": 12.0,
+     "text": "class Foo { /*...*/ };"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "class Foo { /*...*/ };"
+  },
+  {
+   "node_id": "p186_11",
+   "page": 186,
+   "kind": "paragraph",
+   "source_text": "const Foo& rhs)",
+   "translated_text": "const Foo& rhs)",
+   "translation_status": "translated",
+   "src_box": [
+    424.73589,
+    566.6653899999998,
+    496.7358900000001,
+    574.6653899999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_11",
+     "render_object_ref": "R115",
+     "page": 186,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      424.74,
+      566.67,
+      496.74,
+      574.67
+     ],
+     "font_size": 12.0,
+     "text": "const Foo& rhs)"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "const Foo& rhs)"
+  },
+  {
+   "node_id": "p186_12",
+   "page": 186,
+   "kind": "formula",
+   "source_text": "// ...",
+   "translated_text": "// ...",
+   "translation_status": "preserved",
+   "src_box": [
+    338.33589,
+    547.4653899999997,
+    367.13589,
+    555.4653899999997
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_12",
+     "render_object_ref": "R116",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      338.34,
+      547.47,
+      367.14,
+      555.47
+     ],
+     "font_size": 8.0,
+     "text": "// ..."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// ..."
+  },
+  {
+   "node_id": "p186_13",
+   "page": 186,
+   "kind": "formula",
+   "source_text": "// ...",
+   "translated_text": "// ...",
+   "translation_status": "preserved",
+   "src_box": [
+    319.13589,
+    528.2653899999997,
+    347.93589000000003,
+    536.2653899999997
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_13",
+     "render_object_ref": "R117",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      319.14,
+      528.27,
+      347.94,
+      536.27
+     ],
+     "font_size": 12.0,
+     "text": "// ..."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// ..."
+  },
+  {
+   "node_id": "p186_14",
+   "page": 186,
+   "kind": "caption",
+   "source_text": "Figure 1-17: Defining free functions outside their declared scope (GOOD IDEA)",
+   "translated_text": "Figure 1-17: Defining free functions outside their declared scope (GOOD IDEA)",
+   "translation_status": "translated",
+   "src_box": [
+    169.7462,
+    498.98521000000005,
+    478.2481999999998,
+    507.98521000000005
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_14",
+     "render_object_ref": "R118",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      169.75,
+      498.99,
+      478.25,
+      507.99
+     ],
+     "font_size": 9.0,
+     "text": "Figure 1-17: Defining free functions outside their declared scope (GOOD IDEA)"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Figure 1-17: Defining free functions outside their declared scope (GOOD IDEA)"
+  },
+  {
+   "node_id": "p186_15",
+   "page": 186,
+   "kind": "formula",
+   "source_text": "Such non-self-declaring definitions require that the name used in the definition be qualified\nwith the name of the scope containing the corresponding declaration — irrespective of whether\nthat scope is a namespace, struct, or class:",
+   "translated_text": "Such non-self-declaring definitions require that the name used in the definition be qualified\nwith the name of the scope containing the corresponding declaration — irrespective of whether\nthat scope is a namespace, struct, or class:",
+   "translation_status": "preserved",
+   "src_box": [
+    134.5,
+    444.76621,
+    513.5089999999999,
+    482.76621
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_15",
+     "render_object_ref": "R119",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      444.77,
+      513.51,
+      482.77
+     ],
+     "font_size": 10.0,
+     "text": "Such non-self-declaring definitions require that the name used in the definition be qualified\nwith the name of the scope containing the corresponding declaration — irrespective of whether\nthat scope is a namespace, struct, or class:"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Such non-self-declaring definitions require that the name used in the definition be qualified\nwith the name of the scope containing the corresponding declaration — irrespective of whether\nthat scope is a namespace, struct, or class:"
+  },
+  {
+   "node_id": "p186_16",
+   "page": 186,
+   "kind": "identifier",
+   "source_text": "ptg31790760",
+   "translated_text": "ptg31790760",
+   "translation_status": "preserved",
+   "src_box": [
+    712.0,
+    396.162,
+    764.542,
+    405.162
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_16",
+     "render_object_ref": "R120",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      712.0,
+      396.16,
+      764.54,
+      405.16
+     ],
+     "font_size": 9.0,
+     "text": "ptg31790760"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "ptg31790760"
+  },
+  {
+   "node_id": "p186_17",
+   "page": 186,
+   "kind": "code",
+   "source_text": "};\nint Bar::s_count; // This definition will fail to compile if 's_count'",
+   "translated_text": "};\nint Bar::s_count; // This definition will fail to compile if 's_count'",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    380.30620999999996,
+    508.838000000001,
+    403.31021
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_17",
+     "render_object_ref": "R121",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      380.31,
+      508.84,
+      403.31
+     ],
+     "font_size": 9.0,
+     "text": "};\nint Bar::s_count; // This definition will fail to compile if 's_count'"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "};\nint Bar::s_count; // This definition will fail to compile if 's_count'"
+  },
+  {
+   "node_id": "p186_18",
+   "page": 186,
+   "kind": "paragraph",
+   "source_text": "Most declarations that are not also definitions can be repeated any number of times within a\ngiven scope:",
+   "translated_text": "Most declarations that are not also definitions can be repeated any number of times within a\ngiven scope:",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    328.51621,
+    513.4899999999998,
+    352.51621
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_18",
+     "render_object_ref": "R122",
+     "page": 186,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      328.52,
+      513.49,
+      352.52
+     ],
+     "font_size": 10.0,
+     "text": "Most declarations that are not also definitions can be repeated any number of times within a\ngiven scope:"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Most declarations that are not also definitions can be repeated any number of times within a\ngiven scope:"
+  },
+  {
+   "node_id": "p186_19",
+   "page": 186,
+   "kind": "formula",
+   "source_text": "// Class declarations may be repeated within a\n// scope without causing an error.",
+   "translated_text": "// Class declarations may be repeated within a\n// scope without causing an error.",
+   "translation_status": "preserved",
+   "src_box": [
+    238.92529999999994,
+    292.06421,
+    487.7006000000003,
+    315.06821
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_19",
+     "render_object_ref": "R123",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      238.93,
+      292.06,
+      487.7,
+      315.07
+     ],
+     "font_size": 9.0,
+     "text": "// Class declarations may be repeated within a\n// scope without causing an error."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// Class declarations may be repeated within a\n// scope without causing an error."
+  },
+  {
+   "node_id": "p186_20",
+   "page": 186,
+   "kind": "code",
+   "source_text": "typedef int Int; // Remember that a 'typedef' is considered a\ntypedef int Int; // declaration, and not a definition.",
+   "translated_text": "typedef int Int; // Remember that a 'typedef' is considered a\ntypedef int Int; // declaration, and not a definition.",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    250.05220999999997,
+    476.52980000000014,
+    273.05620999999996
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p186_20",
+     "render_object_ref": "R124",
+     "page": 186,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      250.05,
+      476.53,
+      273.06
+     ],
+     "font_size": 9.0,
+     "text": "typedef int Int; // Remember that a 'typedef' is considered a\ntypedef int Int; // declaration, and not a definition."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "typedef int Int; // Remember that a 'typedef' is considered a\ntypedef int Int; // declaration, and not a definition."
+  }
+ ],
+ "defects": [
+  {
+   "defect_id": "F9",
+   "name": "text layer vs visual layer mismatch",
+   "suspect_layer": "renderer",
+   "node_id": "p186_page",
+   "page": 186,
+   "evidence": {
+    "mupdf_syntax_error": [
+     "syntax error: unknown keyword: '-9.000000001435637e'",
+     "syntax error: unknown keyword: '-1.1999999998124622e'",
+     "encountered syntax errors; page may not be correct"
+    ]
+   },
+   "first_divergence": "render",
+   "stage_verdicts": {
+    "source": "PASS",
+    "parser": "PASS",
+    "model": "PASS",
+    "translation": "PASS",
+    "layout": "PASS",
+    "render": "FAIL"
+   },
+   "note": "renderer emitted a malformed float into the page stream"
+  }
+ ]
+}

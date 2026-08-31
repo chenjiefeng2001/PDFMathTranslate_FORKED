@@ -1,0 +1,1394 @@
+{
+ "page": 1,
+ "page_height": 649.1500244140625,
+ "text_runs": [],
+ "drawings": [
+  {
+   "pdf_object_id": 0,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 1,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 2,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 3,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 4,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 5,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 6,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 7,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 8,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 9,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 10,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 11,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 12,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 13,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 14,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 15,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 16,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 17,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 18,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 19,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 20,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 21,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 22,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 23,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 24,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 25,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 26,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 27,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 28,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 29,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 30,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 31,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 32,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 33,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 34,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 35,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 36,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 37,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 38,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 39,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 40,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 41,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 42,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 43,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 44,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 45,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 46,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 47,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 48,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 49,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 50,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 51,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 52,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 53,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 54,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 55,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 56,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 57,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 58,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 59,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 60,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 61,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 62,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 63,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 64,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 65,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 66,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 67,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 68,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 69,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 70,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 71,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 72,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 73,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 74,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 75,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 76,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 77,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 78,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 79,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 80,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 81,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 82,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 83,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 84,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 85,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 86,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 87,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 88,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 89,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 90,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 91,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 92,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 93,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 94,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 95,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 96,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 97,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 98,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 99,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 100,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 101,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 102,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 103,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 104,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 105,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  }
+ ],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 1,
+  "sample": [
+   ".0E"
+  ],
+  "anomaly": true,
+  "source": "regex"
+ }
+}

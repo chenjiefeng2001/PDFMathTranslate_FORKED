@@ -1,0 +1,80 @@
+[
+ {
+  "node_id": "p75_0",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p75_1",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p75_2",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_3",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_4",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p75_5",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_6",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_7",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_8",
+  "kind": "identifier",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_9",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_10",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p75_11",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p75_12",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ }
+]

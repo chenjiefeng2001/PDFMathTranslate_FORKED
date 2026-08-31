@@ -1,0 +1,38 @@
+[
+ {
+  "node_id": "p20_0",
+  "kind": "heading",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p20_1",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p20_2",
+  "kind": "caption",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p20_3",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p20_4",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p20_5",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ }
+]

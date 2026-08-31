@@ -1,0 +1,242 @@
+[
+ {
+  "node_id": "p62_0",
+  "index": 0,
+  "text": "32",
+  "bbox": [
+   98.5,
+   674.41,
+   108.5,
+   684.41
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_1",
+  "index": 1,
+  "text": "Chapter 0 Motivation",
+  "bbox": [
+   413.4,
+   674.41,
+   513.5,
+   684.41
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_2",
+  "index": 2,
+  "text": "Internet-based communication between client and server, as illustrated in Figure 0-23. The initial\nparser was written for HTTP version 1.0, which does not support the latest features. Over time,\nsome clients inform us (complain) that they need the capabilities of the newer HTTP and politely\nrequest (demand) that we release a 1.1-compliant version of our HTTP parser as soon as possible\n(yesterday). The question now becomes, do we upgrade the original parser component (i.e., in\nplace) or release an entirely new component that is 1.1-compliant and continue to support the\noriginal HTTP 1.0 parser component in parallel (i.e., potentially side by side in the same process)?",
+  "bbox": [
+   134.50000000000006,
+   551.0699999999999,
+   513.515,
+   645.0699999999999
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 7,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p62_3",
+  "index": 3,
+  "text": "Client",
+  "bbox": [
+   408.56759,
+   506.02559,
+   429.07959,
+   514.02559
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_4",
+  "index": 4,
+  "text": "Server",
+  "bbox": [
+   219.03358999999998,
+   506.02540000000005,
+   239.88158999999996,
+   514.0254
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_5",
+  "index": 5,
+  "text": "Proxy",
+  "bbox": [
+   314.33459,
+   500.17891000000003,
+   334.18579,
+   508.17891000000003
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_6",
+  "index": 6,
+  "text": "Firewall",
+  "bbox": [
+   310.87359,
+   458.59340000000003,
+   338.36638999999997,
+   466.59340000000003
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_7",
+  "index": 7,
+  "text": "Figure 0-23: Client talking to server across firewall with proxies",
+  "bbox": [
+   200.6562,
+   415.58799000000005,
+   447.33809999999994,
+   424.58799000000005
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_8",
+  "index": 8,
+  "text": "ptg31790760",
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p62_9",
+  "index": 9,
+  "text": "The answer is that we must create a new component with a distinct identity and leave the\noriginal one alone! The parser is a mechanism that resides entirely within the implementation\nof these communication modules. For those applications that control both the client and server\nsides and that do not require the new features, there might never be a need to upgrade to a newer\nversion of HTTP. Moreover, this “upgrade” is a change to existing functionality — not a bug\nfix and not a backward-compatible extension. As such, the decision to change properly rests\nentirely with each individual application owner, who cannot reasonably be required to partake",
+  "bbox": [
+   134.5,
+   305.36899,
+   513.509,
+   399.36899
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 7,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_10",
+  "index": 10,
+  "text": "27",
+  "bbox": [
+   481.22531,
+   294.99899,
+   488.22531,
+   301.99899
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_11",
+  "index": 11,
+  "text": "in subsequent releases or otherwise be coerced according to any centralized timetable.",
+  "bbox": [
+   134.5,
+   291.36899,
+   481.2189999999998,
+   301.36899
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_12",
+  "index": 12,
+  "text": "If the proxies within the firewall require 1.1 compatibility, then exigent circumstances will\noblige application developers to use the new component sooner rather than later. If, however,\nthe proxies themselves are not yet 1.1 compatible, any such change forced upon an existing\napplication would be catastrophic, as the newer format could not be propagated by the older",
+  "bbox": [
+   134.5,
+   223.36899000000003,
+   513.5279999999999,
+   275.36899
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 4,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_13",
+  "index": 13,
+  "text": "27",
+  "bbox": [
+   134.5,
+   194.69299874,
+   140.100006,
+   200.29300474
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_14",
+  "index": 14,
+  "text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a",
+  "bbox": [
+   141.63999,
+   191.78889999999998,
+   499.5631900000001,
+   199.78889999999998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_15",
+  "index": 15,
+  "text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring\nresults in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long\nas the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that\npeople will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical\nvacation). Even so, the precise timing of the upgrade must be orchestrated by the application developer. At least\nthat way the application developer can avoid being in an incoherent state when the changeover occurs.",
+  "bbox": [
+   134.50399000000002,
+   131.78889999999998,
+   508.28159000000016,
+   189.78889999999998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 6,
+  "translation_status": "preserved"
+ }
+]

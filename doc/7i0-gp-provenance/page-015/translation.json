@@ -1,0 +1,90 @@
+[
+ {
+  "node_id": "p15_0",
+  "source_text": "Contents xv",
+  "translated_text": "Contents xv",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_1",
+  "source_text": "14.3 MathematicalProgramming",
+  "translated_text": "14.3 MathematicalProgramming",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_2",
+  "source_text": "14.3.1 Karush–Kuhn–TuckerConditions",
+  "translated_text": "14.3.1 Karush–Kuhn–TuckerConditions",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_3",
+  "source_text": "14.3.2 ConvexQuadraticProgramming",
+  "translated_text": "14.3.2 ConvexQuadraticProgramming",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_4",
+  "source_text": "14.3.3 GeneralDualityTheory",
+  "translated_text": "14.3.3 GeneralDualityTheory",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_5",
+  "source_text": "14.4 Applications",
+  "translated_text": "14.4 Applications",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_6",
+  "source_text": "14.4.1 DistanceCalculations",
+  "translated_text": "14.4.1 DistanceCalculations",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p15_7",
+  "source_text": "14.4.2 ContactForces",
+  "translated_text": "14.4.2 ContactForces",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ }
+]

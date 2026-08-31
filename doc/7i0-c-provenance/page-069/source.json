@@ -1,0 +1,422 @@
+[
+ {
+  "node_id": "p69_0",
+  "index": 0,
+  "text": "Section 0.5 Malleable vs. Stable Software",
+  "bbox": [
+   98.5,
+   674.41,
+   281.52500000000003,
+   684.41
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_1",
+  "index": 1,
+  "text": "Payroll Report Writer",
+  "bbox": [
+   171.54989,
+   506.2191,
+   243.79789,
+   514.2191
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_2",
+  "index": 2,
+  "text": "The device manager\nmust be modified in",
+  "bbox": [
+   148.07769,
+   457.05318,
+   214.23769,
+   474.65318
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_3",
+  "index": 3,
+  "text": "order to support",
+  "bbox": [
+   154.07769,
+   447.45318,
+   208.23769,
+   455.45318
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_4",
+  "index": 4,
+  "text": "PostScript",
+  "bbox": [
+   178.84579,
+   304.29811,
+   211.98179,
+   312.29811
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_5",
+  "index": 5,
+  "text": "Suppose instead we decide to consolidate all of the device interfaces into one interface that can then\nbe used to drive all appropriate devices. Given a collection of existing interfaces, we might consider\nmaking this component a wrapper that logically encapsulates the specific devices, as shown in Fig-\nure 0-28. This solution, although often employed in practice, also fails on multiple counts. Apart\nfrom having to modify the source of the output manager every time a new device comes online,\nwe impose an outrageous physical dependency: Every report writer, to be used (or even tested),\nmust link with every known output device. As if that were not bad enough, some devices (e.g., the\nWindows output device) might not exist on every supported platform! Enough said.",
+  "bbox": [
+   134.5,
+   537.0699999999999,
+   513.6049999999998,
+   645.0699999999999
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 8,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p69_6",
+  "index": 6,
+  "text": "Account Report Writer",
+  "bbox": [
+   276.85958,
+   506.2191,
+   353.35558000000003,
+   514.2191
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_7",
+  "index": 7,
+  "text": "We can easily",
+  "bbox": [
+   449.76849,
+   440.1634,
+   494.60049,
+   448.1634
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_8",
+  "index": 8,
+  "text": "Output Device Manager",
+  "bbox": [
+   274.9905,
+   438.7051,
+   355.2305,
+   446.7051
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_9",
+  "index": 9,
+  "text": "each new device.",
+  "bbox": [
+   153.61369,
+   437.85317999999995,
+   208.69369,
+   445.85317999999995
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_10",
+  "index": 10,
+  "text": "ASCII Output Device",
+  "bbox": [
+   279.80459,
+   366.29811,
+   350.38859,
+   374.29811
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_11",
+  "index": 11,
+  "text": "PostScript Output Device",
+  "bbox": [
+   165.22459,
+   366.2971,
+   248.96859,
+   374.2971
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_12",
+  "index": 12,
+  "text": "ASCII",
+  "bbox": [
+   298.56658,
+   304.29811,
+   317.74258,
+   312.29811
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_13",
+  "index": 13,
+  "text": "Printer",
+  "bbox": [
+   296.87858,
+   294.69811,
+   319.43138,
+   302.69811
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_14",
+  "index": 14,
+  "text": "Windows",
+  "bbox": [
+   405.85159,
+   304.29811,
+   435.93959,
+   312.29811
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_15",
+  "index": 15,
+  "text": "Printer",
+  "bbox": [
+   184.13379,
+   294.69811,
+   206.68579,
+   302.69811
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_16",
+  "index": 16,
+  "text": "Figure 0-28: Encapsulating a readily extensible collection (BAD IDEA)",
+  "bbox": [
+   187.64239,
+   261.6641,
+   460.35319,
+   270.6641
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_17",
+  "index": 17,
+  "text": "As will be a recurring theme throughout this book, we will choose to avoid encapsulating\ninherently extensible, nonportable, third-party, or otherwise uncontrollable or risky software\nthat could potentially produce a destabilizing effect on our core libraries. Instead, we will",
+  "bbox": [
+   134.5,
+   207.44499000000002,
+   513.5059999999999,
+   245.44499000000002
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 3,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_18",
+  "index": 18,
+  "text": "35",
+  "bbox": [
+   347.44958,
+   197.0751,
+   354.44958,
+   204.0751
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_19",
+  "index": 19,
+  "text": "capture the definition of such behavior — typically as a protocol (pure abstract interface)\nclass (see section 1.7.5) — along with detailed comments delineating precisely what behavior\nis expected. In this way, new output devices may be introduced by applications at will; the\nonly caveat is that these new concrete implementations satisfy the contract (see Volume II,",
+  "bbox": [
+   134.49958,
+   151.43509999999998,
+   513.5095799999999,
+   203.4451
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 4,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p69_20",
+  "index": 20,
+  "text": "35\nSection 3.5.7 explores protocols (see section 3.5.7.4) along with several other alternatives including concepts\n(see section 3.5.7.5).",
+  "bbox": [
+   134.5,
+   101.8201,
+   492.75759,
+   120.32410474
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 8.0,
+  "line_count": 3,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p69_21",
+  "index": 21,
+  "text": "Security Report Writer",
+  "bbox": [
+   384.91848,
+   506.2191,
+   460.16648,
+   514.2191
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_22",
+  "index": 22,
+  "text": "Windows Output Device",
+  "bbox": [
+   375.6625,
+   366.2971,
+   457.65450000000004,
+   374.2971
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_23",
+  "index": 23,
+  "text": "Printer",
+  "bbox": [
+   409.61958999999996,
+   294.69811,
+   432.17159,
+   302.69811
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_24",
+  "index": 24,
+  "text": "39",
+  "bbox": [
+   503.5,
+   674.41,
+   513.5,
+   684.41
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_25",
+  "index": 25,
+  "text": "foresee additional",
+  "bbox": [
+   442.81649,
+   430.5634,
+   501.56048999999996,
+   438.5634
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_26",
+  "index": 26,
+  "text": "output devices.",
+  "bbox": [
+   447.31248999999997,
+   420.9634,
+   497.05648999999994,
+   428.9634
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_27",
+  "index": 27,
+  "text": "ptg31790760",
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font": "Helvetica",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ }
+]

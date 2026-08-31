@@ -1,0 +1,33 @@
+{
+ "page": 0,
+ "total_blocks": 0,
+ "total_render_runs": 0,
+ "matched_runs": 0,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "traces": [],
+ "defects": [
+  {
+   "defect_id": "F9",
+   "name": "text layer vs visual layer mismatch",
+   "suspect_layer": "renderer",
+   "node_id": "p0_page",
+   "page": 0,
+   "evidence": {
+    "mupdf_syntax_error": [
+     ".0E"
+    ]
+   },
+   "first_divergence": "render",
+   "stage_verdicts": {
+    "source": "PASS",
+    "parser": "PASS",
+    "model": "PASS",
+    "translation": "PASS",
+    "layout": "PASS",
+    "render": "FAIL"
+   },
+   "note": "renderer emitted a malformed float into the page stream"
+  }
+ ]
+}

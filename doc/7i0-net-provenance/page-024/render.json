@@ -1,0 +1,1510 @@
+{
+ "page": 49,
+ "page_height": 691.6539916992188,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "3",
+   "bbox": [
+    59.52,
+    73.67,
+    80.07,
+    128.49
+   ],
+   "font": "Times-Roman",
+   "font_size": 41.1,
+   "color": 0,
+   "line": 1,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    563.16,
+    80.07,
+    617.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "最近的在线和多人游戏",
+   "bbox": [
+    59.52,
+    143.51,
+    321.04,
+    181.06
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 26.15,
+   "color": 0,
+   "line": 2,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    510.59,
+    321.04,
+    548.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "在本章中，我们将处理以下内容：",
+   "bbox": [
+    59.52,
+    232.34,
+    212.7,
+    247.0
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 3,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    444.65,
+    212.7,
+    459.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "(a) ",
+   "bbox": [
+    60.12,
+    257.21,
+    74.01,
+    270.83
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    60.12,
+    420.82,
+    74.01,
+    434.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "介绍游戏通信架构及其通信模型。",
+   "bbox": [
+    74.01,
+    256.22,
+    227.18,
+    270.88
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    74.01,
+    420.77,
+    227.18,
+    435.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": " (b) ",
+   "bbox": [
+    227.18,
+    257.21,
+    244.2,
+    270.83
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    227.18,
+    420.82,
+    244.2,
+    434.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "简要描述第一人称射击",
+   "bbox": [
+    244.2,
+    256.22,
+    346.31,
+    270.88
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    244.2,
+    420.77,
+    346.31,
+    435.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": " (FPS) ",
+   "bbox": [
+    346.31,
+    257.21,
+    375.25,
+    270.83
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    346.31,
+    420.82,
+    375.25,
+    434.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "游戏、大型",
+   "bbox": [
+    375.25,
+    256.22,
+    426.31,
+    270.88
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    375.25,
+    420.77,
+    426.31,
+    435.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "多人在线游戏、实时策略",
+   "bbox": [
+    59.52,
+    270.52,
+    171.85,
+    285.18
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    406.47,
+    171.85,
+    421.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": " (RTS) ",
+   "bbox": [
+    171.85,
+    271.51,
+    202.48,
+    285.13
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    171.85,
+    406.52,
+    202.48,
+    420.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "游戏和体育游戏的在线游戏发展。",
+   "bbox": [
+    202.48,
+    270.52,
+    355.66,
+    285.18
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    202.48,
+    406.47,
+    355.66,
+    421.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": " (c) ",
+   "bbox": [
+    355.66,
+    271.51,
+    372.1,
+    285.13
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    355.66,
+    406.52,
+    372.1,
+    420.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "简要描述支",
+   "bbox": [
+    372.1,
+    270.52,
+    423.16,
+    285.18
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    372.1,
+    406.47,
+    423.16,
+    421.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "持在线游戏的游戏平台的演变，包括个人电脑",
+   "bbox": [
+    59.52,
+    284.81,
+    263.76,
+    299.48
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    392.17,
+    263.76,
+    406.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": " (PC)",
+   "bbox": [
+    263.76,
+    285.8,
+    285.6,
+    299.43
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    263.76,
+    392.22,
+    285.6,
+    405.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "、游戏机和手持游戏机。",
+   "bbox": [
+    285.6,
+    284.81,
+    397.93,
+    299.48
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    285.6,
+    392.17,
+    397.93,
+    406.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": " (d) ",
+   "bbox": [
+    397.93,
+    285.8,
+    414.94,
+    299.43
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    397.93,
+    392.22,
+    414.94,
+    405.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "将",
+   "bbox": [
+    414.94,
+    284.81,
+    425.15,
+    299.48
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    414.94,
+    392.17,
+    425.15,
+    406.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "游戏置于其他沉浸式环境和分布式模拟的更广泛背景中，包括增强现实",
+   "bbox": [
+    59.52,
+    299.11,
+    376.08,
+    313.77
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 7,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    377.88,
+    376.08,
+    392.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": " (AR)",
+   "bbox": [
+    376.08,
+    300.1,
+    399.62,
+    313.72
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 7,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    376.08,
+    377.93,
+    399.62,
+    391.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "、远程",
+   "bbox": [
+    399.62,
+    299.11,
+    430.26,
+    313.77
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 7,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    399.62,
+    377.88,
+    430.26,
+    392.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "呈现和虚拟现实。",
+   "bbox": [
+    59.52,
+    313.41,
+    141.21,
+    328.07
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    363.58,
+    141.21,
+    378.24
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "3.1 ",
+   "bbox": [
+    59.52,
+    369.29,
+    77.83,
+    385.57
+   ],
+   "font": "Times-Roman",
+   "font_size": 12.2,
+   "color": 0,
+   "line": 9,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    306.08,
+    77.83,
+    322.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "通信架构",
+   "bbox": [
+    77.83,
+    368.11,
+    126.64,
+    385.63
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 12.2,
+   "color": 0,
+   "line": 9,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    77.83,
+    306.02,
+    126.64,
+    323.54
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "在线游戏的发展必须考虑几种不同的架构来安排游戏节点之间的通信。图",
+   "bbox": [
+    59.52,
+    385.88,
+    386.29,
+    400.54
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    291.11,
+    386.29,
+    305.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": " 3.1 ",
+   "bbox": [
+    386.29,
+    386.87,
+    404.16,
+    400.49
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    386.29,
+    291.16,
+    404.16,
+    304.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "描述",
+   "bbox": [
+    404.16,
+    385.88,
+    424.59,
+    400.54
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    404.16,
+    291.11,
+    424.59,
+    305.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "了不同的替代方案。圆圈代表远程计算机上的不同进程，链接表示交换消息的进程",
+   "bbox": [
+    59.52,
+    400.18,
+    427.14,
+    414.84
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 11,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    276.81,
+    427.14,
+    291.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    59.52,
+    414.47,
+    69.73,
+    429.14
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    262.51,
+    69.73,
+    277.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "在多人游戏的早期，玩家之间没有网络。多人游戏功能是通过让两个玩家与同一",
+   "bbox": [
+    69.48,
+    433.7,
+    426.89,
+    448.36
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    69.48,
+    243.29,
+    426.89,
+    257.95
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "台计算机交互来实现的。玩家可以在共享的公共屏幕上操纵他们的化身，或者可以",
+   "bbox": [
+    59.52,
+    448.0,
+    427.14,
+    462.66
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 14,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    228.99,
+    427.14,
+    243.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "通过为每个玩家划分部分视频屏幕来物理“分割”屏幕。许多允许多人游戏的主机",
+   "bbox": [
+    59.52,
+    462.29,
+    427.14,
+    476.96
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 15,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    214.69,
+    427.14,
+    229.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "游戏仍然使用单屏多人游戏架构。",
+   "bbox": [
+    59.52,
+    476.59,
+    212.69,
+    491.25
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 16,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    200.4,
+    212.69,
+    215.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "在",
+   "bbox": [
+    69.48,
+    505.4,
+    79.69,
+    520.06
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    69.48,
+    171.59,
+    79.69,
+    186.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    79.69,
+    506.39,
+    82.24,
+    520.01
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    79.69,
+    171.64,
+    82.24,
+    185.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "peer-to-peer",
+   "bbox": [
+    82.24,
+    509.24,
+    133.39,
+    519.46
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    82.24,
+    172.19,
+    133.39,
+    182.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    133.39,
+    506.39,
+    135.95,
+    520.01
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    133.39,
+    171.64,
+    135.95,
+    185.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "架构中，每个客户端进程都是一个对等进程，因为没有哪个进程",
+   "bbox": [
+    135.95,
+    505.4,
+    421.88,
+    520.06
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    135.95,
+    171.59,
+    421.88,
+    186.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "比其他进程对游戏有更多的控制权。没有中介节点来控制游戏状态或路由游戏消息",
+   "bbox": [
+    59.52,
+    519.18,
+    427.14,
+    533.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 18,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    157.8,
+    427.14,
+    172.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "。由于许多",
+   "bbox": [
+    59.52,
+    532.97,
+    110.58,
+    547.63
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 19,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    144.02,
+    110.58,
+    158.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": " LAN",
+   "bbox": [
+    110.58,
+    533.96,
+    134.12,
+    547.58
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 19,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    110.58,
+    144.07,
+    134.12,
+    157.69
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "（例如有线或无线以太网）的广播支持以及参与单个游戏的玩家数",
+   "bbox": [
+    134.12,
+    532.97,
+    430.26,
+    547.63
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 19,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    134.12,
+    144.02,
+    430.26,
+    158.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "量通常较少，点对点架构在局域网",
+   "bbox": [
+    59.52,
+    546.75,
+    212.7,
+    561.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    130.23,
+    212.7,
+    144.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": " (LAN) ",
+   "bbox": [
+    212.7,
+    547.74,
+    245.59,
+    561.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    212.7,
+    130.28,
+    245.59,
+    143.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": "上玩的多人游戏中很流行。虽然点对点架",
+   "bbox": [
+    245.59,
+    546.75,
+    429.4,
+    561.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    245.59,
+    130.23,
+    429.4,
+    144.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "构可以应用于",
+   "bbox": [
+    59.52,
+    560.54,
+    120.79,
+    575.2
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    116.45,
+    120.79,
+    131.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": "Wide",
+   "bbox": [
+    120.79,
+    561.53,
+    142.91,
+    575.15
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    120.79,
+    116.5,
+    142.91,
+    130.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "Networking",
+   "bbox": [
+    59.52,
+    607.5,
+    93.09,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    76.93,
+    93.09,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    93.09,
+    607.5,
+    95.42,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    93.09,
+    76.93,
+    95.42,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "and Online",
+   "bbox": [
+    95.42,
+    607.5,
+    127.96,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    95.42,
+    76.93,
+    127.96,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    127.96,
+    607.5,
+    130.15,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    127.96,
+    76.93,
+    130.15,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "Games: Understanding",
+   "bbox": [
+    130.15,
+    607.5,
+    197.89,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    130.15,
+    76.93,
+    197.89,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    197.89,
+    607.5,
+    200.16,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    197.89,
+    76.93,
+    200.16,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "and Engineering",
+   "bbox": [
+    200.16,
+    607.5,
+    248.72,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    200.16,
+    76.93,
+    248.72,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    248.72,
+    607.5,
+    250.98,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    248.72,
+    76.93,
+    250.98,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "Multiplayer",
+   "bbox": [
+    250.98,
+    607.5,
+    284.94,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    250.98,
+    76.93,
+    284.94,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    284.94,
+    607.5,
+    287.28,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    284.94,
+    76.93,
+    287.28,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "Internet",
+   "bbox": [
+    287.28,
+    607.5,
+    310.05,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    287.28,
+    76.93,
+    310.05,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    310.05,
+    607.5,
+    312.3,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    310.05,
+    76.93,
+    312.3,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": "Games",
+   "bbox": [
+    312.3,
+    607.5,
+    332.3,
+    614.72
+   ],
+   "font": "Times-Italic",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 22,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    312.3,
+    76.93,
+    332.3,
+    84.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "Grenville Armitage, Mark Claypool, Philip Branch ",
+   "bbox": [
+    59.52,
+    616.51,
+    211.66,
+    623.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 23,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    67.92,
+    211.66,
+    75.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": "",
+   "bbox": [
+    217.2,
+    616.44,
+    222.71,
+    623.42
+   ],
+   "font": "Symbol",
+   "font_size": 6.97,
+   "color": 0,
+   "line": 23,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    217.2,
+    68.23,
+    222.71,
+    75.21
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": " 2006 John Wiley & Sons, Ltd",
+   "bbox": [
+    222.71,
+    616.51,
+    314.07,
+    623.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 23,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    222.71,
+    67.91,
+    314.07,
+    75.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": "  ISBN: 0-470-01857-7",
+   "bbox": [
+    314.08,
+    615.68,
+    381.03,
+    623.83
+   ],
+   "font": "TimesNewRomanPSMT",
+   "font_size": 7.22,
+   "color": 0,
+   "line": 23,
+   "page": 49,
+   "block_type": 0,
+   "v3_bbox": [
+    314.08,
+    67.82,
+    381.03,
+    75.97
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

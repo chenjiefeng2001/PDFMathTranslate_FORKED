@@ -1,0 +1,104 @@
+[
+ {
+  "node_id": "p30_0",
+  "kind": "heading",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_1",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_2",
+  "kind": "toc",
+  "target_bbox": null,
+  "render_path": "overlay"
+ },
+ {
+  "node_id": "p30_3",
+  "kind": "toc",
+  "target_bbox": null,
+  "render_path": "overlay"
+ },
+ {
+  "node_id": "p30_4",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_5",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_6",
+  "kind": "heading",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_7",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_8",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_9",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_10",
+  "kind": "formula",
+  "target_bbox": null,
+  "render_path": "preserve_float"
+ },
+ {
+  "node_id": "p30_11",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_12",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_13",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_14",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_15",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p30_16",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ }
+]

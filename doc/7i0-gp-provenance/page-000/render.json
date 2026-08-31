@@ -1,0 +1,13 @@
+{
+ "page": 1,
+ "page_height": 666.0020141601562,
+ "text_runs": [],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ }
+}

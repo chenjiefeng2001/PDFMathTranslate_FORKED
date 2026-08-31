@@ -1,0 +1,194 @@
+{
+ "page": 30,
+ "total_blocks": 5,
+ "total_render_runs": 5,
+ "matched_runs": 5,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 5,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p30_0",
+   "page": 30,
+   "kind": "paragraph",
+   "source_text": "14",
+   "translated_text": "14",
+   "translation_status": "translated",
+   "src_box": [
+    50.974,
+    590.135,
+    59.181999999999995,
+    599.135
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p30_0",
+     "render_object_ref": "R9",
+     "page": 30,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      50.97,
+      590.13,
+      59.18,
+      599.13
+     ],
+     "font_size": 9.0,
+     "text": "14"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14"
+  },
+  {
+   "node_id": "p30_1",
+   "page": 30,
+   "kind": "heading",
+   "source_text": "2. Background",
+   "translated_text": "2. Background",
+   "translation_status": "translated",
+   "src_box": [
+    322.27,
+    590.135,
+    380.176,
+    599.135
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p30_1",
+     "render_object_ref": "R10",
+     "page": 30,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      322.27,
+      590.13,
+      380.18,
+      599.13
+     ],
+     "font_size": 12.0,
+     "text": "2. Background"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "2. Background"
+  },
+  {
+   "node_id": "p30_2",
+   "page": 30,
+   "kind": "paragraph",
+   "source_text": "cation programming interfaces. One reasonable way to do this is to build a\ncomputer model that explicitly represents intuitive physical concepts, such\nas mass, gravity, moments of inertia, etc.\nPhysical models have allowed the automation of animating passive ob­\njects, such as falling chains, and colliding objects. For animate objects, an\nactive area of research is how to build biomechanical models. So far, it has\nbeen possible to use simplified biomechanical models to automate the pro­\ncess of locomotion learning in a variety of virtual creatures, such as fish,\nsnakes, and some articulated figures.\nCognitive modeling comes out of the attempt to further automate the\nprocess of generating behavior by building behavior models. Thus, cognitive\nmodels are the next logical step in the hierarchy of models that have been\nused for computer games and animation. By introducing such models we\nmake it easier to produce behavior by raising the level of abstraction at\nwhich the user can direct animated characters. This level of functionality is\nobtained by creating an explicit representation of the virtual world from the\ncharacter’s point of view that enables the characters themselves to do more\nof the work.",
+   "translated_text": "cation programming interfaces. One reasonable way to do this is to build a\ncomputer model that explicitly represents intuitive physical concepts, such\nas mass, gravity, moments of inertia, etc.\nPhysical models have allowed the automation of animating passive ob­\njects, such as falling chains, and colliding objects. For animate objects, an\nactive area of research is how to build biomechanical models. So far, it has\nbeen possible to use simplified biomechanical models to automate the pro­\ncess of locomotion learning in a variety of virtual creatures, such as fish,\nsnakes, and some articulated figures.\nCognitive modeling comes out of the attempt to further automate the\nprocess of generating behavior by building behavior models. Thus, cognitive\nmodels are the next logical step in the hierarchy of models that have been\nused for computer games and animation. By introducing such models we\nmake it easier to produce behavior by raising the level of abstraction at\nwhich the user can direct animated characters. This level of functionality is\nobtained by creating an explicit representation of the virtual world from the\ncharacter’s point of view that enables the characters themselves to do more\nof the work.",
+   "translation_status": "translated",
+   "src_box": [
+    50.123999999999995,
+    356.273,
+    381.03299999999996,
+    568.27
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p30_2",
+     "render_object_ref": "R11",
+     "page": 30,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      50.12,
+      356.27,
+      381.03,
+      568.27
+     ],
+     "font_size": 9.0,
+     "text": "cation programming interfaces. One reasonable way to do this is to build a\ncomputer model that explicitly represents intuitive physical concepts, such\nas mass, gravity, moments of inertia, etc.\nPhysical models have allowed the automation of animating passive ob­\njects, such as falling chains, and colliding objects. For animate objects, an\nactive area of research is how to build biomechanical models. So far, it has\nbeen possible to use simplified biomechanical models to automate the pro­\ncess of locomotion learning in a variety of virtual creatures, such as fish,\nsnakes, and some articulated figures.\nCognitive modeling comes out of the attempt to further automate the\nprocess of generating behavior by building behavior models. Thus, cognitive\nmodels are the next logical step in the hierarchy of models that have been\nused for computer games and animation. By introducing such models we\nmake it easier to produce behavior by raising the level of abstraction at\nwhich the user can direct animated characters. This level of functionality is\nobtained by creating an explicit representation of the virtual world from the\ncharacter’s point of view that enables the characters themselves to do more\nof the work."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "cation programming interfaces. One reasonable way to do this is to build a\ncomputer model that explicitly represents intuitive physical concepts, such\nas mass, gravity, moments of inertia, etc.\nPhysical models have allowed the automation of animating passive ob­\njects, such as falling chains, and colliding objects. For animate objects, an\nactive area of research is how to build biomechanical models. So far, it has\nbeen possible to use simplified biomechanical models to automate the pro­\ncess of locomotion learning in a variety of virtual creatures, such as fish,\nsnakes, and some articulated figures.\nCognitive modeling comes out of the attempt to further automate the\nprocess of generating behavior by building behavior models. Thus, cognitive\nmodels are the next logical step in the hierarchy of models that have been\nused for computer games and animation. By introducing such models we\nmake it easier to produce behavior by raising the level of abstraction at\nwhich the user can direct animated characters. This level of functionality is\nobtained by creating an explicit representation of the virtual world from the\ncharacter’s point of view that enables the characters themselves to do more\nof the work."
+  },
+  {
+   "node_id": "p30_3",
+   "page": 30,
+   "kind": "formula",
+   "source_text": "2.1 Geometric Models\nGeometric models capture the form and appearance of a computer char­\nacter. Many characters in animations and games can be quite effectively\ncontrolled even at this low-level and familiar tools for generating motion\ninclude key-framing and motion capture. Due to the predictable nature of\nmotion, building cognitive models for characters that are controlled at the\ngeometric level is generally much simpler.",
+   "translated_text": "2.1 Geometric Models\nGeometric models capture the form and appearance of a computer char­\nacter. Many characters in animations and games can be quite effectively\ncontrolled even at this low-level and familiar tools for generating motion\ninclude key-framing and motion capture. Due to the predictable nature of\nmotion, building cognitive models for characters that are controlled at the\ngeometric level is generally much simpler.",
+   "translation_status": "preserved",
+   "src_box": [
+    50.964999999999954,
+    234.47500000000002,
+    381.10400000000004,
+    331.63800000000003
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p30_3",
+     "render_object_ref": "R12",
+     "page": 30,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      50.96,
+      234.48,
+      381.1,
+      331.64
+     ],
+     "font_size": 9.0,
+     "text": "2.1 Geometric Models\nGeometric models capture the form and appearance of a computer char­\nacter. Many characters in animations and games can be quite effectively\ncontrolled even at this low-level and familiar tools for generating motion\ninclude key-framing and motion capture. Due to the predictable nature of\nmotion, building cognitive models for characters that are controlled at the\ngeometric level is generally much simpler."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "2.1 Geometric Models\nGeometric models capture the form and appearance of a computer char­\nacter. Many characters in animations and games can be quite effectively\ncontrolled even at this low-level and familiar tools for generating motion\ninclude key-framing and motion capture. Due to the predictable nature of\nmotion, building cognitive models for characters that are controlled at the\ngeometric level is generally much simpler."
+  },
+  {
+   "node_id": "p30_4",
+   "page": 30,
+   "kind": "formula",
+   "source_text": "2.1.1 Basics\nIn the most general case, the location and the shape of an object can change\nwith time. A general scheme for describing the shape and location of an\nobject was given in [134]. In particular, let each point in some object Ω\n(without loss of generality Ω = [0, l]n) be named by its material (or intrinsic)\ncoordinates u. Then for some given u G Ω and time t G X, the corresponding\nposition in M3 can be given by specifying the function q : Ω x X —M3.\nIntuitively, q(u, t) describes the position of each point in the object as\na function of time. Thus, the object is free to change position and shape\nwithout constraint.",
+   "translated_text": "2.1.1 Basics\nIn the most general case, the location and the shape of an object can change\nwith time. A general scheme for describing the shape and location of an\nobject was given in [134]. In particular, let each point in some object Ω\n(without loss of generality Ω = [0, l]n) be named by its material (or intrinsic)\ncoordinates u. Then for some given u G Ω and time t G X, the corresponding\nposition in M3 can be given by specifying the function q : Ω x X —M3.\nIntuitively, q(u, t) describes the position of each point in the object as\na function of time. Thus, the object is free to change position and shape\nwithout constraint.",
+   "translation_status": "preserved",
+   "src_box": [
+    50.964999999999954,
+    79.777,
+    381.2479999999999,
+    210.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p30_4",
+     "render_object_ref": "R13",
+     "page": 30,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      50.96,
+      79.78,
+      381.25,
+      210.41
+     ],
+     "font_size": 9.0,
+     "text": "2.1.1 Basics\nIn the most general case, the location and the shape of an object can change\nwith time. A general scheme for describing the shape and location of an\nobject was given in [134]. In particular, let each point in some object Ω\n(without loss of generality Ω = [0, l]n) be named by its material (or intrinsic)\ncoordinates u. Then for some given u G Ω and time t G X, the corresponding\nposition in M3 can be given by specifying the function q : Ω x X —M3.\nIntuitively, q(u, t) describes the position of each point in the object as\na function of time. Thus, the object is free to change position and shape\nwithout constraint."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "2.1.1 Basics\nIn the most general case, the location and the shape of an object can change\nwith time. A general scheme for describing the shape and location of an\nobject was given in [134]. In particular, let each point in some object Ω\n(without loss of generality Ω = [0, l]n) be named by its material (or intrinsic)\ncoordinates u. Then for some given u G Ω and time t G X, the corresponding\nposition in M3 can be given by specifying the function q : Ω x X —M3.\nIntuitively, q(u, t) describes the position of each point in the object as\na function of time. Thus, the object is free to change position and shape\nwithout constraint."
+  }
+ ],
+ "defects": []
+}

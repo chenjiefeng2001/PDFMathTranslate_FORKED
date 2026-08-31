@@ -1,0 +1,122 @@
+{
+ "page": 10,
+ "total_blocks": 3,
+ "total_render_runs": 3,
+ "matched_runs": 3,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 3,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p10_0",
+   "page": 10,
+   "kind": "heading",
+   "source_text": "Q Taylor&Francis",
+   "translated_text": "Q Taylor&Francis",
+   "translation_status": "translated",
+   "src_box": [
+    108.1204,
+    320.9203,
+    322.41457590000005,
+    355.0203
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 22.0,
+   "render_rows": [
+    {
+     "source_node_id": "p10_0",
+     "render_object_ref": "R0",
+     "page": 10,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      108.12,
+      320.92,
+      322.41,
+      355.02
+     ],
+     "font_size": 22.0,
+     "text": "Q Taylor&Francis"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Q Taylor&Francis"
+  },
+  {
+   "node_id": "p10_1",
+   "page": 10,
+   "kind": "paragraph",
+   "source_text": "Taylor&FrancisGroup",
+   "translated_text": "Taylor&FrancisGroup",
+   "translation_status": "translated",
+   "src_box": [
+    167.6895,
+    308.2416,
+    282.0088,
+    319.4416
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 11.2,
+   "render_rows": [
+    {
+     "source_node_id": "p10_1",
+     "render_object_ref": "R1",
+     "page": 10,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      167.69,
+      308.24,
+      282.01,
+      319.44
+     ],
+     "font_size": 11.2,
+     "text": "Taylor&FrancisGroup"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Taylor&FrancisGroup"
+  },
+  {
+   "node_id": "p10_2",
+   "page": 10,
+   "kind": "formula",
+   "source_text": "~http://taylorandfrancis.com",
+   "translated_text": "~http://taylorandfrancis.com",
+   "translation_status": "preserved",
+   "src_box": [
+    108.48,
+    296.2668,
+    263.68586,
+    327.12
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 7.6,
+   "render_rows": [
+    {
+     "source_node_id": "p10_2",
+     "render_object_ref": "R2",
+     "page": 10,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      108.48,
+      296.27,
+      263.69,
+      327.12
+     ],
+     "font_size": 7.6,
+     "text": "~http://taylorandfrancis.com"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "~http://taylorandfrancis.com"
+  }
+ ],
+ "defects": []
+}

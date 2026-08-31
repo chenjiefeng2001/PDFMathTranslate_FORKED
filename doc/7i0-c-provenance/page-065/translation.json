@@ -1,0 +1,244 @@
+[
+ {
+  "node_id": "p65_0",
+  "source_text": "{",
+  "translated_text": "{",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_1",
+  "source_text": "32\n}",
+  "translated_text": "32\n}",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_2",
+  "source_text": "{",
+  "translated_text": "{",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_3",
+  "source_text": "Section 0.5 Malleable vs. Stable Software",
+  "translated_text": "Section 0.5 Malleable vs. Stable Software",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_4",
+  "source_text": "while (lit != lend && rit != rend) {\nif (std::abs(*lit) != std::abs(*rit)) {\nreturn false;",
+  "translated_text": "while (lit != lend && rit != rend) {\nif (std::abs(*lit) != std::abs(*rit)) {\nreturn false;",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_5",
+  "source_text": "++lit, ++rit;",
+  "translated_text": "++lit, ++rit;",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_6",
+  "source_text": "Providing an iterator enables each client of a container to implement virtually any appropriate\nextension immediately. For example, both of the functions in Figure 0-24 are independent,\nclient-side extensions of the list component. By designing in extensibility via iterators, we\ncan reasonably ensure that no source-code modification of the reusable container will ever\nbe needed for that purpose. This principle of unilateral extensibility also helps to ensure that\napplication developers will not be held hostage waiting for enhancements that can be provided\nonly by library developers. Note that all of the container types in the C++ Standard Library",
+  "translated_text": "Providing an iterator enables each client of a container to implement virtually any appropriate\nextension immediately. For example, both of the functions in Figure 0-24 are independent,\nclient-side extensions of the list component. By designing in extensibility via iterators, we\ncan reasonably ensure that no source-code modification of the reusable container will ever\nbe needed for that purpose. This principle of unilateral extensibility also helps to ensure that\napplication developers will not be held hostage waiting for enhancements that can be provided\nonly by library developers. Note that all of the container types in the C++ Standard Library",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 7
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_7",
+  "source_text": "31, 32, 33",
+  "translated_text": "31, 32, 33",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_8",
+  "source_text": "come equipped with iterators that provide efficient access to every contained element.",
+  "translated_text": "come equipped with iterators that provide efficient access to every contained element.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_9",
+  "source_text": "(a) Determining whether two lists are equivalent in a particular way",
+  "translated_text": "(a) Determining whether two lists are equivalent in a particular way",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_10",
+  "source_text": "31",
+  "translated_text": "31",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_11",
+  "source_text": "As another less general, but much more detailed, illustration of enabling the open-closed principle, see",
+  "translated_text": "As another less general, but much more detailed, illustration of enabling the open-closed principle, see",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_12",
+  "source_text": "section 3.2.8.\n32\nAs discussed in the preface, we will sometimes note places where a more modern dialect of C++ provides features\nthat might better express an idea. For example, given that an iterator is a well-known concept having well defined\nsyntactic and semantic properties, the specific C++ type of the iterator becomes unimportant. In such cases we might\nprefer to use the keyword auto to let the compiler figure out that type, rather than force us to type it, or even an alias\nfor it, each time we need it, as the code itself — e.g., lhs.begin() — makes the concept clear:",
+  "translated_text": "section 3.2.8.\n32\nAs discussed in the preface, we will sometimes note places where a more modern dialect of C++ provides features\nthat might better express an idea. For example, given that an iterator is a well-known concept having well defined\nsyntactic and semantic properties, the specific C++ type of the iterator becomes unimportant. In such cases we might\nprefer to use the keyword auto to let the compiler figure out that type, rather than force us to type it, or even an alias\nfor it, each time we need it, as the code itself — e.g., lhs.begin() — makes the concept clear:",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 7
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_13",
+  "source_text": "// RETURN",
+  "translated_text": "// RETURN",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_14",
+  "source_text": "}\n++lit, ++rit;\n}",
+  "translated_text": "}\n++lit, ++rit;\n}",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_15",
+  "source_text": "return lend == lit && rend == rit; // We generally try to avoid placing modifiable operands",
+  "translated_text": "return lend == lit && rend == rit; // We generally try to avoid placing modifiable operands",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_16",
+  "source_text": "}",
+  "translated_text": "}",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_17",
+  "source_text": "35",
+  "translated_text": "35",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_18",
+  "source_text": "// RETURN",
+  "translated_text": "// RETURN",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_19",
+  "source_text": "ptg31790760",
+  "translated_text": "ptg31790760",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_20",
+  "source_text": "}",
+  "translated_text": "}",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_21",
+  "source_text": "// on the left-hand side of an operator==.",
+  "translated_text": "// on the left-hand side of an operator==.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ }
+]

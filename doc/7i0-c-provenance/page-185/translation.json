@@ -1,0 +1,277 @@
+[
+ {
+  "node_id": "p185_0",
+  "source_text": "Section 1.3 Declarations, Definitions, and Linkage",
+  "translated_text": "Section 1.3 Declarations, Definitions, and Linkage",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_1",
+  "source_text": "int a;\nclass Foo { };",
+  "translated_text": "int a;\nclass Foo { };",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_2",
+  "source_text": "34",
+  "translated_text": "34",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_3",
+  "source_text": "// xyza_foo.h",
+  "translated_text": "// xyza_foo.h",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_4",
+  "source_text": "}",
+  "translated_text": "}",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_5",
+  "source_text": "155",
+  "translated_text": "155",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_6",
+  "source_text": "typedef int Int; // 'typedef' declaration of an alias for 'int'3 3\nclass Foo;",
+  "translated_text": "typedef int Int; // 'typedef' declaration of an alias for 'int'3 3\nclass Foo;",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_7",
+  "source_text": "// pure (a.k.a. \"forward\") class declaration",
+  "translated_text": "// pure (a.k.a. \"forward\") class declaration",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_8",
+  "source_text": "A definition characterizes an entity, reserving storage where appropriate:",
+  "translated_text": "A definition characterizes an entity, reserving storage where appropriate:",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_9",
+  "source_text": "// class definition\n// definition of both 'E' and 'X'",
+  "translated_text": "// class definition\n// definition of both 'E' and 'X'",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_10",
+  "source_text": "int f(int x) { return x + 1; } // definition of both 'f' and 'x'",
+  "translated_text": "int f(int x) { return x + 1; } // definition of both 'f' and 'x'",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_11",
+  "source_text": "35",
+  "translated_text": "35",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_12",
+  "source_text": "Most definitions also serve as their own declarations, as is the case with each of the defini-\ntions above. Unfortunately, self-declaring definitions can also lead to subtle problems. Consider\nwhat can happen when a function defined at namespace scope is also separately declared —\ne.g., in a header file as shown in Figure 1-16.",
+  "translated_text": "Most definitions also serve as their own declarations, as is the case with each of the defini-\ntions above. Unfortunately, self-declaring definitions can also lead to subtle problems. Consider\nwhat can happen when a function defined at namespace scope is also separately declared —\ne.g., in a header file as shown in Figure 1-16.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 4
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_13",
+  "source_text": "// xyza_foo.cpp BAD IDEA",
+  "translated_text": "// xyza_foo.cpp BAD IDEA",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_14",
+  "source_text": "namespace xyza {",
+  "translated_text": "namespace xyza {",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_15",
+  "source_text": "namespace xyza {",
+  "translated_text": "namespace xyza {",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_16",
+  "source_text": "ptg31790760",
+  "translated_text": "ptg31790760",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_17",
+  "source_text": "}",
+  "translated_text": "}",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_18",
+  "source_text": "Figure 1-16: Defining free functions within their declared scope (BAD IDEA)",
+  "translated_text": "Figure 1-16: Defining free functions within their declared scope (BAD IDEA)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_19",
+  "source_text": "Do you see the two problems? In the first case, foobar is misspelled; in the second, the name",
+  "translated_text": "Do you see the two problems? In the first case, foobar is misspelled; in the second, the name",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_20",
+  "source_text": "file will not expose this problem: The compiler will see each of the functions defined in the\n.cpp file as distinct entities from those declared in the corresponding .h file. Such mismatches\nin signatures between declaration and definition will go undetected at compile time (and, if\nthese pure declarations go unused, at link time as well). We can, however, ensure that the\ncompiler will report such defects — simply by defining the entity from outside of the scope in\nwhich it is declared — as shown in Figure 1-17.",
+  "translated_text": "file will not expose this problem: The compiler will see each of the functions defined in the\n.cpp file as distinct entities from those declared in the corresponding .h file. Such mismatches\nin signatures between declaration and definition will go undetected at compile time (and, if\nthese pure declarations go unused, at link time as well). We can, however, ensure that the\ncompiler will report such defects — simply by defining the entity from outside of the scope in\nwhich it is declared — as shown in Figure 1-17.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 6
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_21",
+  "source_text": "As of C++11, we could spell it",
+  "translated_text": "As of C++11, we could spell it",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_22",
+  "source_text": "But, by no means, all, as we will demonstrate shortly.",
+  "translated_text": "But, by no means, all, as we will demonstrate shortly.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_23",
+  "source_text": "It might come as a surprise (it did to me) that — according to the C++ language grammar, at least — every",
+  "translated_text": "It might come as a surprise (it did to me) that — according to the C++ language grammar, at least — every",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_24",
+  "source_text": "definition is also considered a declaration. We find this terminology to be most unfortunate, as it doesn’t reflect the\nimportant notion that many definitions are also self-declaring (e.g., int x;), while others, such as those residing\noutside of the namespace in which they must also be separately declared (e.g., int ns::x;), are not. Throughout this\nbook, when we use the term definition only, we mean that the definition itself is explicitly not self-declaring.",
+  "translated_text": "definition is also considered a declaration. We find this terminology to be most unfortunate, as it doesn’t reflect the\nimportant notion that many definitions are also self-declaring (e.g., int x;), while others, such as those residing\noutside of the namespace in which they must also be separately declared (e.g., int ns::x;), are not. Throughout this\nbook, when we use the term definition only, we mean that the definition itself is explicitly not self-declaring.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 4
+  },
+  "translation_status": "preserved"
+ }
+]

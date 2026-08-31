@@ -1,0 +1,26 @@
+[
+ {
+  "node_id": "p12_0",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p12_1",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p12_2",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ },
+ {
+  "node_id": "p12_3",
+  "kind": "paragraph",
+  "target_bbox": null,
+  "render_path": "translate_refit"
+ }
+]

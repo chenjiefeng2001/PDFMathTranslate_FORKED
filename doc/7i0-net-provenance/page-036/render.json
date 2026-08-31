@@ -1,0 +1,2683 @@
+{
+ "page": 73,
+ "page_height": 691.6539916992188,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "Recent",
+   "bbox": [
+    59.52,
+    37.49,
+    85.13,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    644.94,
+    85.13,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    85.13,
+    37.49,
+    88.27,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    85.13,
+    644.94,
+    88.27,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "Online",
+   "bbox": [
+    88.27,
+    37.49,
+    113.37,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    88.27,
+    644.94,
+    113.37,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    113.37,
+    37.49,
+    116.36,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    113.37,
+    644.94,
+    116.36,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "and",
+   "bbox": [
+    116.36,
+    37.49,
+    129.66,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    116.36,
+    644.94,
+    129.66,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    129.66,
+    37.49,
+    132.73,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    129.66,
+    644.94,
+    132.73,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "Multiplayer",
+   "bbox": [
+    132.73,
+    37.49,
+    176.28,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    132.73,
+    644.94,
+    176.28,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    176.28,
+    37.49,
+    179.27,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    176.28,
+    644.94,
+    179.27,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "Games",
+   "bbox": [
+    179.27,
+    37.49,
+    204.88,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    179.27,
+    644.94,
+    204.88,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "27",
+   "bbox": [
+    420.9,
+    37.4,
+    430.13,
+    46.61
+   ],
+   "font": "Times-Bold",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 2,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    420.9,
+    645.04,
+    430.13,
+    654.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "图",
+   "bbox": [
+    66.12,
+    268.71,
+    75.34,
+    281.94
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 3,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    66.12,
+    409.71,
+    75.34,
+    422.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "3.15 ",
+   "bbox": [
+    75.34,
+    269.6,
+    93.77,
+    281.89
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 3,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    75.34,
+    409.76,
+    93.77,
+    422.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": "汽车城在线截图。经艺电许可转载。",
+   "bbox": [
+    93.77,
+    268.71,
+    241.21,
+    281.94
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 3,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    93.77,
+    409.71,
+    241.21,
+    422.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "游戏机的游戏。",
+   "bbox": [
+    59.52,
+    297.14,
+    131.0,
+    311.8
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    379.85,
+    131.0,
+    394.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": " Sega Dreamcast ",
+   "bbox": [
+    131.0,
+    298.13,
+    202.18,
+    311.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    131.0,
+    379.9,
+    202.18,
+    393.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "游戏机的游戏",
+   "bbox": [
+    202.18,
+    297.14,
+    263.45,
+    311.8
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    202.18,
+    379.85,
+    263.45,
+    394.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": " 4 ",
+   "bbox": [
+    263.45,
+    298.13,
+    273.66,
+    311.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    263.45,
+    379.9,
+    273.66,
+    393.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "×",
+   "bbox": [
+    273.66,
+    300.71,
+    281.67,
+    310.93
+   ],
+   "font": "MTSYN",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    273.66,
+    380.72,
+    281.67,
+    390.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": " 4 ",
+   "bbox": [
+    281.67,
+    298.13,
+    291.88,
+    311.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    281.67,
+    379.9,
+    291.88,
+    393.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "Evolution",
+   "bbox": [
+    291.88,
+    300.99,
+    331.54,
+    311.2
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    291.88,
+    380.45,
+    331.54,
+    390.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    331.54,
+    298.13,
+    334.09,
+    311.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    331.54,
+    379.9,
+    334.09,
+    393.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "是第一款允许在",
+   "bbox": [
+    334.09,
+    297.14,
+    405.58,
+    311.8
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    334.09,
+    379.85,
+    405.58,
+    394.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": " Drea",
+   "bbox": [
+    405.58,
+    298.13,
+    427.97,
+    311.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    405.58,
+    379.9,
+    427.97,
+    393.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "mcast",
+   "bbox": [
+    59.52,
+    308.85,
+    83.34,
+    322.48
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    369.17,
+    83.34,
+    382.8
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    83.34,
+    307.86,
+    93.56,
+    322.53
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    83.34,
+    369.12,
+    93.56,
+    383.79
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "Macintosh ",
+   "bbox": [
+    93.56,
+    308.85,
+    139.22,
+    322.48
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    93.56,
+    369.17,
+    139.22,
+    382.8
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    139.22,
+    307.86,
+    149.43,
+    322.53
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    139.22,
+    369.12,
+    149.43,
+    383.79
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": " PC ",
+   "bbox": [
+    149.43,
+    308.85,
+    167.03,
+    322.48
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    149.43,
+    369.17,
+    167.03,
+    382.8
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "平台之间在线玩的游戏。",
+   "bbox": [
+    167.03,
+    307.86,
+    279.36,
+    322.53
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    167.03,
+    369.12,
+    279.36,
+    383.79
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "3.3 ",
+   "bbox": [
+    59.52,
+    341.21,
+    77.83,
+    357.49
+   ],
+   "font": "Times-Roman",
+   "font_size": 12.2,
+   "color": 0,
+   "line": 6,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    334.16,
+    77.83,
+    350.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "网络游戏增长总结",
+   "bbox": [
+    77.83,
+    340.03,
+    175.46,
+    357.55
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 12.2,
+   "color": 0,
+   "line": 6,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    77.83,
+    334.1,
+    175.46,
+    351.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "不同的游戏类型可以用表格的形式概括，并具有一些在线特征：",
+   "bbox": [
+    59.52,
+    358.64,
+    345.45,
+    373.3
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 7,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    318.35,
+    345.45,
+    333.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "Genre",
+   "bbox": [
+    65.34,
+    403.21,
+    90.31,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    65.34,
+    278.23,
+    90.31,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "Notable",
+   "bbox": [
+    196.84,
+    403.21,
+    229.2,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    196.84,
+    278.23,
+    229.2,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    229.2,
+    403.21,
+    232.59,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    229.2,
+    278.23,
+    232.59,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": "release",
+   "bbox": [
+    232.59,
+    403.21,
+    260.97,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    232.59,
+    278.23,
+    260.97,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "Max",
+   "bbox": [
+    287.52,
+    403.21,
+    306.23,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    287.52,
+    278.23,
+    306.23,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    306.23,
+    403.21,
+    309.65,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    306.23,
+    278.23,
+    309.65,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "players",
+   "bbox": [
+    309.65,
+    403.21,
+    339.17,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    309.65,
+    278.23,
+    339.17,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "Architecture",
+   "bbox": [
+    369.52,
+    403.21,
+    420.63,
+    413.42
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 11,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    369.52,
+    278.23,
+    420.63,
+    288.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "Real-Time",
+   "bbox": [
+    65.34,
+    425.65,
+    108.7,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    65.34,
+    255.79,
+    108.7,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    108.7,
+    425.65,
+    112.08,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    108.7,
+    255.79,
+    112.08,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "Strategy",
+   "bbox": [
+    112.08,
+    425.65,
+    146.17,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    112.08,
+    255.79,
+    146.17,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "Warcraft",
+   "bbox": [
+    196.87,
+    425.65,
+    232.37,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    196.87,
+    255.79,
+    232.37,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "About",
+   "bbox": [
+    284.73,
+    425.65,
+    310.28,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 14,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    284.73,
+    255.79,
+    310.28,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    310.28,
+    425.65,
+    313.74,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 14,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    310.28,
+    255.79,
+    313.74,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "10",
+   "bbox": [
+    313.74,
+    425.65,
+    323.96,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 14,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    313.74,
+    255.79,
+    323.96,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": "Client–Server",
+   "bbox": [
+    365.71,
+    425.65,
+    424.29,
+    435.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 15,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    365.71,
+    255.79,
+    424.29,
+    266.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "Sports",
+   "bbox": [
+    65.34,
+    437.59,
+    91.48,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 16,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    65.34,
+    243.85,
+    91.48,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    91.48,
+    437.59,
+    94.89,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 16,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    91.48,
+    243.85,
+    94.89,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "Games",
+   "bbox": [
+    94.89,
+    437.59,
+    123.28,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 16,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    94.89,
+    243.85,
+    123.28,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "Madden",
+   "bbox": [
+    196.89,
+    437.59,
+    230.36,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    196.89,
+    243.85,
+    230.36,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    230.36,
+    437.59,
+    233.72,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    230.36,
+    243.85,
+    233.72,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "NFL",
+   "bbox": [
+    233.72,
+    437.59,
+    253.02,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    233.72,
+    243.85,
+    253.02,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "About",
+   "bbox": [
+    284.82,
+    437.59,
+    310.38,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 18,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    284.82,
+    243.85,
+    310.38,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    310.38,
+    437.59,
+    313.84,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 18,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    310.38,
+    243.85,
+    313.84,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "10",
+   "bbox": [
+    313.84,
+    437.59,
+    324.06,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 18,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    313.84,
+    243.85,
+    324.06,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": "Peer-to-Peer",
+   "bbox": [
+    365.82,
+    437.59,
+    416.94,
+    447.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 19,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    365.82,
+    243.85,
+    416.94,
+    254.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "First",
+   "bbox": [
+    65.34,
+    449.53,
+    84.08,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    65.34,
+    231.91,
+    84.08,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    84.08,
+    449.53,
+    87.48,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    84.08,
+    231.91,
+    87.48,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": "Person",
+   "bbox": [
+    87.48,
+    449.53,
+    115.31,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    87.48,
+    231.91,
+    115.31,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    115.31,
+    449.53,
+    118.66,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    115.31,
+    231.91,
+    118.66,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": "Shooter",
+   "bbox": [
+    118.66,
+    449.53,
+    150.46,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    118.66,
+    231.91,
+    150.46,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": "Doom",
+   "bbox": [
+    196.86,
+    449.53,
+    222.4,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    196.86,
+    231.91,
+    222.4,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": "About",
+   "bbox": [
+    284.83,
+    449.53,
+    310.37,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 22,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    284.83,
+    231.91,
+    310.37,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    310.37,
+    449.53,
+    313.84,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 22,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    310.37,
+    231.91,
+    313.84,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": "50",
+   "bbox": [
+    313.84,
+    449.53,
+    324.05,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 22,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    313.84,
+    231.91,
+    324.05,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": "Client–Server",
+   "bbox": [
+    365.81,
+    449.53,
+    424.34,
+    459.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    365.81,
+    231.91,
+    424.34,
+    242.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": "Online",
+   "bbox": [
+    65.34,
+    461.47,
+    93.14,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    65.34,
+    219.97,
+    93.14,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    93.14,
+    461.47,
+    96.58,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    93.14,
+    219.97,
+    96.58,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "Role",
+   "bbox": [
+    96.58,
+    461.47,
+    115.9,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    96.58,
+    219.97,
+    115.9,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    115.9,
+    461.47,
+    119.29,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    115.9,
+    219.97,
+    119.29,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": "Playing",
+   "bbox": [
+    119.29,
+    461.47,
+    150.52,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    119.29,
+    219.97,
+    150.52,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": "EverQuest",
+   "bbox": [
+    196.95,
+    461.47,
+    240.05,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 25,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    196.95,
+    219.97,
+    240.05,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": "About",
+   "bbox": [
+    284.85,
+    461.47,
+    310.39,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 26,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    284.85,
+    219.97,
+    310.39,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    310.39,
+    461.47,
+    313.85,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 26,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    310.39,
+    219.97,
+    313.85,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": "10,000",
+   "bbox": [
+    313.85,
+    461.47,
+    341.93,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 26,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    313.85,
+    219.97,
+    341.93,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": "Client–Server",
+   "bbox": [
+    365.81,
+    461.47,
+    424.33,
+    471.68
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 27,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    365.81,
+    219.97,
+    424.33,
+    230.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": "每种流派的介绍、受欢迎程度的增长以及在某些情况下的下降可以通过检查与每",
+   "bbox": [
+    69.48,
+    490.04,
+    426.89,
+    504.7
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 28,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    69.48,
+    186.95,
+    426.89,
+    201.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:80",
+   "operator": "TJ",
+   "text": "种流派相关的",
+   "bbox": [
+    59.52,
+    504.34,
+    120.79,
+    519.0
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 29,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    172.65,
+    120.79,
+    187.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:81",
+   "operator": "TJ",
+   "text": " Usenet ",
+   "bbox": [
+    120.79,
+    505.33,
+    154.25,
+    518.95
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 29,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    120.79,
+    172.7,
+    154.25,
+    186.32
+   ]
+  },
+  {
+   "pdf_object_id": "text:82",
+   "operator": "TJ",
+   "text": "新闻帖子的数量来描述。图",
+   "bbox": [
+    154.25,
+    504.34,
+    276.79,
+    519.0
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 29,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    154.25,
+    172.65,
+    276.79,
+    187.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:83",
+   "operator": "TJ",
+   "text": " 3.3 ",
+   "bbox": [
+    276.79,
+    505.33,
+    294.66,
+    518.95
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 29,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    276.79,
+    172.7,
+    294.66,
+    186.32
+   ]
+  },
+  {
+   "pdf_object_id": "text:84",
+   "operator": "TJ",
+   "text": "中的数据可以组合起来，使",
+   "bbox": [
+    294.66,
+    504.34,
+    417.2,
+    519.0
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 29,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    294.66,
+    172.65,
+    417.2,
+    187.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:85",
+   "operator": "TJ",
+   "text": " Us",
+   "bbox": [
+    417.2,
+    505.33,
+    431.1,
+    518.95
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 29,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    417.2,
+    172.7,
+    431.1,
+    186.32
+   ]
+  },
+  {
+   "pdf_object_id": "text:86",
+   "operator": "TJ",
+   "text": "enet ",
+   "bbox": [
+    59.52,
+    519.62,
+    79.09,
+    533.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    158.4,
+    79.09,
+    172.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:87",
+   "operator": "TJ",
+   "text": "新闻组帖子中的“",
+   "bbox": [
+    79.09,
+    518.63,
+    160.78,
+    533.3
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    79.09,
+    158.35,
+    160.78,
+    173.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:88",
+   "operator": "TJ",
+   "text": "Doom ",
+   "bbox": [
+    160.78,
+    519.62,
+    188.86,
+    533.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    160.78,
+    158.4,
+    188.86,
+    172.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:89",
+   "operator": "TJ",
+   "text": "克隆”和“",
+   "bbox": [
+    188.86,
+    518.63,
+    239.92,
+    533.3
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    188.86,
+    158.35,
+    239.92,
+    173.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:90",
+   "operator": "TJ",
+   "text": "FPS",
+   "bbox": [
+    239.92,
+    519.62,
+    256.95,
+    533.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    239.92,
+    158.4,
+    256.95,
+    172.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:91",
+   "operator": "TJ",
+   "text": "”代表所有",
+   "bbox": [
+    256.95,
+    518.63,
+    308.01,
+    533.3
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    256.95,
+    158.35,
+    308.01,
+    173.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:92",
+   "operator": "TJ",
+   "text": " FPS ",
+   "bbox": [
+    308.01,
+    519.62,
+    330.15,
+    533.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    308.01,
+    158.4,
+    330.15,
+    172.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:93",
+   "operator": "TJ",
+   "text": "游戏。同样，与“",
+   "bbox": [
+    330.15,
+    518.63,
+    411.84,
+    533.3
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    330.15,
+    158.35,
+    411.84,
+    173.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:94",
+   "operator": "TJ",
+   "text": "MM",
+   "bbox": [
+    411.84,
+    519.62,
+    430.0,
+    533.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 30,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    411.84,
+    158.4,
+    430.0,
+    172.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:95",
+   "operator": "TJ",
+   "text": "ORPG",
+   "bbox": [
+    59.52,
+    533.92,
+    86.75,
+    547.54
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 31,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    144.11,
+    86.75,
+    157.73
+   ]
+  },
+  {
+   "pdf_object_id": "text:96",
+   "operator": "TJ",
+   "text": "”、“实时策略”和“赛车游戏”相关的",
+   "bbox": [
+    86.75,
+    532.93,
+    270.56,
+    547.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 31,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    86.75,
+    144.06,
+    270.56,
+    158.72
+   ]
+  },
+  {
+   "pdf_object_id": "text:97",
+   "operator": "TJ",
+   "text": " Usenet ",
+   "bbox": [
+    270.56,
+    533.92,
+    304.03,
+    547.54
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 31,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    270.56,
+    144.11,
+    304.03,
+    157.73
+   ]
+  },
+  {
+   "pdf_object_id": "text:98",
+   "operator": "TJ",
+   "text": "帖子",
+   "bbox": [
+    304.03,
+    532.93,
+    324.45,
+    547.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 31,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    304.03,
+    144.06,
+    324.45,
+    158.72
+   ]
+  },
+  {
+   "pdf_object_id": "text:99",
+   "operator": "TJ",
+   "text": "2",
+   "bbox": [
+    324.45,
+    535.5,
+    328.03,
+    542.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.15,
+   "color": 0,
+   "line": 31,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    324.45,
+    149.0,
+    328.03,
+    156.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:100",
+   "operator": "TJ",
+   "text": "数量可以分别代表大型",
+   "bbox": [
+    328.03,
+    532.93,
+    430.14,
+    547.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 31,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    328.03,
+    144.06,
+    430.14,
+    158.72
+   ]
+  },
+  {
+   "pdf_object_id": "text:101",
+   "operator": "TJ",
+   "text": "多人游戏、",
+   "bbox": [
+    59.52,
+    547.23,
+    110.58,
+    561.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 32,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    129.76,
+    110.58,
+    144.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:102",
+   "operator": "TJ",
+   "text": "RTS ",
+   "bbox": [
+    110.58,
+    548.22,
+    131.86,
+    561.84
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 32,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    110.58,
+    129.81,
+    131.86,
+    143.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:103",
+   "operator": "TJ",
+   "text": "和体育类型的普遍性。请注意，除了",
+   "bbox": [
+    131.86,
+    547.23,
+    295.25,
+    561.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 32,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    131.86,
+    129.76,
+    295.25,
+    144.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:104",
+   "operator": "TJ",
+   "text": " MMORGP ",
+   "bbox": [
+    295.25,
+    548.22,
+    345.74,
+    561.84
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 32,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    295.25,
+    129.81,
+    345.74,
+    143.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:105",
+   "operator": "TJ",
+   "text": "类型仍然强劲之外",
+   "bbox": [
+    345.74,
+    547.23,
+    427.44,
+    561.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 32,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    345.74,
+    129.76,
+    427.44,
+    144.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:106",
+   "operator": "TJ",
+   "text": "，所有类型的受欢迎程度都经历了上升然后随后下降（至少根据图",
+   "bbox": [
+    59.52,
+    561.52,
+    355.66,
+    576.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 33,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    115.46,
+    355.66,
+    130.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:107",
+   "operator": "TJ",
+   "text": " 3.16 ",
+   "bbox": [
+    355.66,
+    562.51,
+    378.64,
+    576.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 33,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    355.66,
+    115.51,
+    378.64,
+    129.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:108",
+   "operator": "TJ",
+   "text": "中的",
+   "bbox": [
+    378.64,
+    561.52,
+    399.06,
+    576.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 33,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    378.64,
+    115.46,
+    399.06,
+    130.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:109",
+   "operator": "TJ",
+   "text": " Usenet",
+   "bbox": [
+    399.06,
+    562.51,
+    429.97,
+    576.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 33,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    399.06,
+    115.51,
+    429.97,
+    129.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:110",
+   "operator": "TJ",
+   "text": "帖子）。",
+   "bbox": [
+    59.52,
+    575.82,
+    100.37,
+    590.48
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 34,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    101.17,
+    100.37,
+    115.83
+   ]
+  },
+  {
+   "pdf_object_id": "text:111",
+   "operator": "TJ",
+   "text": "2",
+   "bbox": [
+    67.74,
+    614.69,
+    70.62,
+    620.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 5.75,
+   "color": 0,
+   "line": 35,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    67.74,
+    71.2,
+    70.62,
+    76.96
+   ]
+  },
+  {
+   "pdf_object_id": "text:112",
+   "operator": "TJ",
+   "text": " Obtained",
+   "bbox": [
+    70.62,
+    612.81,
+    102.54,
+    623.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    70.62,
+    67.68,
+    102.54,
+    78.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:113",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    102.54,
+    615.75,
+    105.33,
+    623.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    102.54,
+    67.68,
+    105.33,
+    75.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:114",
+   "operator": "TJ",
+   "text": "from",
+   "bbox": [
+    105.33,
+    615.75,
+    121.27,
+    623.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    105.33,
+    67.68,
+    121.27,
+    75.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:115",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    121.27,
+    615.75,
+    124.0,
+    623.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    121.27,
+    67.68,
+    124.0,
+    75.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:116",
+   "operator": "TJ",
+   "text": "http://groups.google.com/",
+   "bbox": [
+    124.0,
+    615.75,
+    208.7,
+    623.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 73,
+   "block_type": 0,
+   "v3_bbox": [
+    124.0,
+    67.68,
+    208.7,
+    75.9
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

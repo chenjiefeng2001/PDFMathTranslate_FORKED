@@ -1,0 +1,35 @@
+[
+ {
+  "node_id": "p10_0",
+  "source_text": "Q Taylor&Francis",
+  "translated_text": "Q Taylor&Francis",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p10_1",
+  "source_text": "Taylor&FrancisGroup",
+  "translated_text": "Taylor&FrancisGroup",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p10_2",
+  "source_text": "~http://taylorandfrancis.com",
+  "translated_text": "~http://taylorandfrancis.com",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ }
+]

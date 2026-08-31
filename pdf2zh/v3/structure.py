@@ -125,7 +125,7 @@ _RE_MATH_SYMBOL = re.compile(r"[\+\-*/=^_{}<>()~]")
 _RE_CITATION = re.compile(
     r"\[\d+[,\]–-]?|^\s*(?:参考文献|References?|Bibliography)\s*$", re.IGNORECASE
 )
-_RE_LEADER = re.compile(r"(?:[.·…‥][\s.·…‥]*){2,}\s*\d{1,4}\s*$")
+_RE_LEADER = re.compile(r"[.·…‥].*?[.·…‥]\s*\d{1,4}\s*$")
 _RE_DIGIT = re.compile(r"\d")
 _RE_PUNCT = re.compile(r"[^\w\s]")
 _RE_UPPER = re.compile(r"[A-Z]")

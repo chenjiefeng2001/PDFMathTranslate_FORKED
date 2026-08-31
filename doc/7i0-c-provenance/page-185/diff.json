@@ -1,0 +1,939 @@
+{
+ "page": 185,
+ "total_blocks": 25,
+ "total_render_runs": 25,
+ "matched_runs": 25,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 25,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p185_0",
+   "page": 185,
+   "kind": "paragraph",
+   "source_text": "Section 1.3 Declarations, Definitions, and Linkage",
+   "translated_text": "Section 1.3 Declarations, Definitions, and Linkage",
+   "translation_status": "translated",
+   "src_box": [
+    98.5,
+    674.41,
+    319.535,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_0",
+     "render_object_ref": "R79",
+     "page": 185,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      98.5,
+      674.41,
+      319.54,
+      684.41
+     ],
+     "font_size": 10.0,
+     "text": "Section 1.3 Declarations, Definitions, and Linkage"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Section 1.3 Declarations, Definitions, and Linkage"
+  },
+  {
+   "node_id": "p185_1",
+   "page": 185,
+   "kind": "code",
+   "source_text": "int a;\nclass Foo { };",
+   "translated_text": "int a;\nclass Foo { };",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    535.05102,
+    220.1,
+    558.05502
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_1",
+     "render_object_ref": "R80",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      535.05,
+      220.1,
+      558.06
+     ],
+     "font_size": 9.0,
+     "text": "int a;\nclass Foo { };"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "int a;\nclass Foo { };"
+  },
+  {
+   "node_id": "p185_2",
+   "page": 185,
+   "kind": "paragraph",
+   "source_text": "34",
+   "translated_text": "34",
+   "translation_status": "translated",
+   "src_box": [
+    155.05979,
+    487.88298999999995,
+    162.05979,
+    494.88298999999995
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_2",
+     "render_object_ref": "R81",
+     "page": 185,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      155.06,
+      487.88,
+      162.06,
+      494.88
+     ],
+     "font_size": 10.0,
+     "text": "34"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "34"
+  },
+  {
+   "node_id": "p185_3",
+   "page": 185,
+   "kind": "filename",
+   "source_text": "// xyza_foo.h",
+   "translated_text": "// xyza_foo.h",
+   "translation_status": "preserved",
+   "src_box": [
+    150.074,
+    408.18909,
+    214.33,
+    416.18909
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_3",
+     "render_object_ref": "R82",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      150.07,
+      408.19,
+      214.33,
+      416.19
+     ],
+     "font_size": 8.0,
+     "text": "// xyza_foo.h"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// xyza_foo.h"
+  },
+  {
+   "node_id": "p185_4",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "}",
+   "translated_text": "}",
+   "translation_status": "preserved",
+   "src_box": [
+    150.074,
+    369.78909,
+    154.87400000000002,
+    377.78909
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_4",
+     "render_object_ref": "R83",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      150.07,
+      369.79,
+      154.87,
+      377.79
+     ],
+     "font_size": 8.0,
+     "text": "}"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "}"
+  },
+  {
+   "node_id": "p185_5",
+   "page": 185,
+   "kind": "paragraph",
+   "source_text": "155",
+   "translated_text": "155",
+   "translation_status": "translated",
+   "src_box": [
+    498.5,
+    674.41,
+    513.5,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_5",
+     "render_object_ref": "R84",
+     "page": 185,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      498.5,
+      674.41,
+      513.5,
+      684.41
+     ],
+     "font_size": 12.0,
+     "text": "155"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "155"
+  },
+  {
+   "node_id": "p185_6",
+   "page": 185,
+   "kind": "code",
+   "source_text": "typedef int Int; // 'typedef' declaration of an alias for 'int'3 3\nclass Foo;",
+   "translated_text": "typedef int Int; // 'typedef' declaration of an alias for 'int'3 3\nclass Foo;",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    622.30502,
+    496.39469299999996,
+    645.52997237
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_6",
+     "render_object_ref": "R85",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      622.31,
+      496.39,
+      645.53
+     ],
+     "font_size": 9.0,
+     "text": "typedef int Int; // 'typedef' declaration of an alias for 'int'3 3\nclass Foo;"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "typedef int Int; // 'typedef' declaration of an alias for 'int'3 3\nclass Foo;"
+  },
+  {
+   "node_id": "p185_7",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "// pure (a.k.a. \"forward\") class declaration",
+   "translated_text": "// pure (a.k.a. \"forward\") class declaration",
+   "translation_status": "preserved",
+   "src_box": [
+    241.7,
+    622.30502,
+    479.30000000000035,
+    631.30502
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_7",
+     "render_object_ref": "R86",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      241.7,
+      622.31,
+      479.3,
+      631.31
+     ],
+     "font_size": 12.0,
+     "text": "// pure (a.k.a. \"forward\") class declaration"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// pure (a.k.a. \"forward\") class declaration"
+  },
+  {
+   "node_id": "p185_8",
+   "page": 185,
+   "kind": "heading",
+   "source_text": "A definition characterizes an entity, reserving storage where appropriate:",
+   "translated_text": "A definition characterizes an entity, reserving storage where appropriate:",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    571.49302,
+    426.88299999999987,
+    581.50302
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_8",
+     "render_object_ref": "R87",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      571.49,
+      426.88,
+      581.5
+     ],
+     "font_size": 10.0,
+     "text": "A definition characterizes an entity, reserving storage where appropriate:"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "A definition characterizes an entity, reserving storage where appropriate:"
+  },
+  {
+   "node_id": "p185_9",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "// class definition\n// definition of both 'E' and 'X'",
+   "translated_text": "// class definition\n// definition of both 'E' and 'X'",
+   "translation_status": "preserved",
+   "src_box": [
+    317.3,
+    521.04702,
+    495.5000000000004,
+    544.05102
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_9",
+     "render_object_ref": "R88",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      317.3,
+      521.05,
+      495.5,
+      544.05
+     ],
+     "font_size": 9.0,
+     "text": "// class definition\n// definition of both 'E' and 'X'"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// class definition\n// definition of both 'E' and 'X'"
+  },
+  {
+   "node_id": "p185_10",
+   "page": 185,
+   "kind": "code",
+   "source_text": "int f(int x) { return x + 1; } // definition of both 'f' and 'x'",
+   "translated_text": "int f(int x) { return x + 1; } // definition of both 'f' and 'x'",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    508.05102,
+    495.5000000000004,
+    517.05102
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_10",
+     "render_object_ref": "R89",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      508.05,
+      495.5,
+      517.05
+     ],
+     "font_size": 9.0,
+     "text": "int f(int x) { return x + 1; } // definition of both 'f' and 'x'"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "int f(int x) { return x + 1; } // definition of both 'f' and 'x'"
+  },
+  {
+   "node_id": "p185_11",
+   "page": 185,
+   "kind": "paragraph",
+   "source_text": "35",
+   "translated_text": "35",
+   "translation_status": "translated",
+   "src_box": [
+    354.83718,
+    487.88298999999995,
+    361.83718,
+    494.88298999999995
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_11",
+     "render_object_ref": "R90",
+     "page": 185,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      354.84,
+      487.88,
+      361.84,
+      494.88
+     ],
+     "font_size": 12.0,
+     "text": "35"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "35"
+  },
+  {
+   "node_id": "p185_12",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "Most definitions also serve as their own declarations, as is the case with each of the defini-\ntions above. Unfortunately, self-declaring definitions can also lead to subtle problems. Consider\nwhat can happen when a function defined at namespace scope is also separately declared —\ne.g., in a header file as shown in Figure 1-16.",
+   "translated_text": "Most definitions also serve as their own declarations, as is the case with each of the defini-\ntions above. Unfortunately, self-declaring definitions can also lead to subtle problems. Consider\nwhat can happen when a function defined at namespace scope is also separately declared —\ne.g., in a header file as shown in Figure 1-16.",
+   "translation_status": "preserved",
+   "src_box": [
+    134.49717999999996,
+    442.25298999999995,
+    513.5181799999999,
+    494.25298999999995
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_12",
+     "render_object_ref": "R91",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      442.25,
+      513.52,
+      494.25
+     ],
+     "font_size": 10.0,
+     "text": "Most definitions also serve as their own declarations, as is the case with each of the defini-\ntions above. Unfortunately, self-declaring definitions can also lead to subtle problems. Consider\nwhat can happen when a function defined at namespace scope is also separately declared —\ne.g., in a header file as shown in Figure 1-16."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Most definitions also serve as their own declarations, as is the case with each of the defini-\ntions above. Unfortunately, self-declaring definitions can also lead to subtle problems. Consider\nwhat can happen when a function defined at namespace scope is also separately declared —\ne.g., in a header file as shown in Figure 1-16."
+  },
+  {
+   "node_id": "p185_13",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "// xyza_foo.cpp BAD IDEA",
+   "translated_text": "// xyza_foo.cpp BAD IDEA",
+   "translation_status": "preserved",
+   "src_box": [
+    303.346,
+    407.58659,
+    435.2172,
+    416.18908999999996
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_13",
+     "render_object_ref": "R92",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      303.35,
+      407.59,
+      435.22,
+      416.19
+     ],
+     "font_size": 12.0,
+     "text": "// xyza_foo.cpp BAD IDEA"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// xyza_foo.cpp BAD IDEA"
+  },
+  {
+   "node_id": "p185_14",
+   "page": 185,
+   "kind": "code",
+   "source_text": "namespace xyza {",
+   "translated_text": "namespace xyza {",
+   "translation_status": "preserved",
+   "src_box": [
+    150.074,
+    398.58909,
+    229.15400000000002,
+    406.58909
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_14",
+     "render_object_ref": "R93",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      150.07,
+      398.59,
+      229.15,
+      406.59
+     ],
+     "font_size": 8.0,
+     "text": "namespace xyza {"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "namespace xyza {"
+  },
+  {
+   "node_id": "p185_15",
+   "page": 185,
+   "kind": "code",
+   "source_text": "namespace xyza {",
+   "translated_text": "namespace xyza {",
+   "translation_status": "preserved",
+   "src_box": [
+    303.346,
+    398.58908999999994,
+    382.698,
+    406.58908999999994
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_15",
+     "render_object_ref": "R94",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      303.35,
+      398.59,
+      382.7,
+      406.59
+     ],
+     "font_size": 12.0,
+     "text": "namespace xyza {"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "namespace xyza {"
+  },
+  {
+   "node_id": "p185_16",
+   "page": 185,
+   "kind": "identifier",
+   "source_text": "ptg31790760",
+   "translated_text": "ptg31790760",
+   "translation_status": "preserved",
+   "src_box": [
+    712.0,
+    396.162,
+    764.542,
+    405.162
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_16",
+     "render_object_ref": "R95",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      712.0,
+      396.16,
+      764.54,
+      405.16
+     ],
+     "font_size": 12.0,
+     "text": "ptg31790760"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "ptg31790760"
+  },
+  {
+   "node_id": "p185_17",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "}",
+   "translated_text": "}",
+   "translation_status": "preserved",
+   "src_box": [
+    303.346,
+    369.7890899999999,
+    308.146,
+    377.7890899999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_17",
+     "render_object_ref": "R96",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      303.35,
+      369.79,
+      308.15,
+      377.79
+     ],
+     "font_size": 12.0,
+     "text": "}"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "}"
+  },
+  {
+   "node_id": "p185_18",
+   "page": 185,
+   "kind": "caption",
+   "source_text": "Figure 1-16: Defining free functions within their declared scope (BAD IDEA)",
+   "translated_text": "Figure 1-16: Defining free functions within their declared scope (BAD IDEA)",
+   "translation_status": "translated",
+   "src_box": [
+    175.6233,
+    341.85129,
+    472.37129999999996,
+    350.85129
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_18",
+     "render_object_ref": "R97",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      175.62,
+      341.85,
+      472.37,
+      350.85
+     ],
+     "font_size": 9.0,
+     "text": "Figure 1-16: Defining free functions within their declared scope (BAD IDEA)"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Figure 1-16: Defining free functions within their declared scope (BAD IDEA)"
+  },
+  {
+   "node_id": "p185_19",
+   "page": 185,
+   "kind": "paragraph",
+   "source_text": "Do you see the two problems? In the first case, foobar is misspelled; in the second, the name",
+   "translated_text": "Do you see the two problems? In the first case, foobar is misspelled; in the second, the name",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    315.63228999999995,
+    513.5047900000001,
+    325.63228999999995
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_19",
+     "render_object_ref": "R98",
+     "page": 185,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      315.63,
+      513.5,
+      325.63
+     ],
+     "font_size": 10.0,
+     "text": "Do you see the two problems? In the first case, foobar is misspelled; in the second, the name"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Do you see the two problems? In the first case, foobar is misspelled; in the second, the name"
+  },
+  {
+   "node_id": "p185_20",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "file will not expose this problem: The compiler will see each of the functions defined in the\n.cpp file as distinct entities from those declared in the corresponding .h file. Such mismatches\nin signatures between declaration and definition will go undetected at compile time (and, if\nthese pure declarations go unused, at link time as well). We can, however, ensure that the\ncompiler will report such defects — simply by defining the entity from outside of the scope in\nwhich it is declared — as shown in Figure 1-17.",
+   "translated_text": "file will not expose this problem: The compiler will see each of the functions defined in the\n.cpp file as distinct entities from those declared in the corresponding .h file. Such mismatches\nin signatures between declaration and definition will go undetected at compile time (and, if\nthese pure declarations go unused, at link time as well). We can, however, ensure that the\ncompiler will report such defects — simply by defining the entity from outside of the scope in\nwhich it is declared — as shown in Figure 1-17.",
+   "translation_status": "preserved",
+   "src_box": [
+    134.49858999999998,
+    217.63228999999998,
+    513.50259,
+    297.63219999999995
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_20",
+     "render_object_ref": "R99",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      217.63,
+      513.5,
+      297.63
+     ],
+     "font_size": 10.0,
+     "text": "file will not expose this problem: The compiler will see each of the functions defined in the\n.cpp file as distinct entities from those declared in the corresponding .h file. Such mismatches\nin signatures between declaration and definition will go undetected at compile time (and, if\nthese pure declarations go unused, at link time as well). We can, however, ensure that the\ncompiler will report such defects — simply by defining the entity from outside of the scope in\nwhich it is declared — as shown in Figure 1-17."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "file will not expose this problem: The compiler will see each of the functions defined in the\n.cpp file as distinct entities from those declared in the corresponding .h file. Such mismatches\nin signatures between declaration and definition will go undetected at compile time (and, if\nthese pure declarations go unused, at link time as well). We can, however, ensure that the\ncompiler will report such defects — simply by defining the entity from outside of the scope in\nwhich it is declared — as shown in Figure 1-17."
+  },
+  {
+   "node_id": "p185_21",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "As of C++11, we could spell it",
+   "translated_text": "As of C++11, we could spell it",
+   "translation_status": "preserved",
+   "src_box": [
+    141.63999,
+    180.31230000000002,
+    241.41439,
+    188.3203
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_21",
+     "render_object_ref": "R100",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      141.64,
+      180.31,
+      241.41,
+      188.32
+     ],
+     "font_size": 8.0,
+     "text": "As of C++11, we could spell it"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "As of C++11, we could spell it"
+  },
+  {
+   "node_id": "p185_22",
+   "page": 185,
+   "kind": "paragraph",
+   "source_text": "But, by no means, all, as we will demonstrate shortly.",
+   "translated_text": "But, by no means, all, as we will demonstrate shortly.",
+   "translation_status": "translated",
+   "src_box": [
+    141.63999,
+    158.3201,
+    314.6647899999999,
+    166.3201
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 5.6,
+   "render_rows": [
+    {
+     "source_node_id": "p185_22",
+     "render_object_ref": "R101",
+     "page": 185,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      141.64,
+      158.32,
+      314.66,
+      166.32
+     ],
+     "font_size": 5.6,
+     "text": "But, by no means, all, as we will demonstrate shortly."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "But, by no means, all, as we will demonstrate shortly."
+  },
+  {
+   "node_id": "p185_23",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "It might come as a surprise (it did to me) that — according to the C++ language grammar, at least — every",
+   "translated_text": "It might come as a surprise (it did to me) that — according to the C++ language grammar, at least — every",
+   "translation_status": "preserved",
+   "src_box": [
+    141.63999,
+    146.3201,
+    487.4231900000001,
+    154.3201
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_23",
+     "render_object_ref": "R102",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      141.64,
+      146.32,
+      487.42,
+      154.32
+     ],
+     "font_size": 12.0,
+     "text": "It might come as a surprise (it did to me) that — according to the C++ language grammar, at least — every"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "It might come as a surprise (it did to me) that — according to the C++ language grammar, at least — every"
+  },
+  {
+   "node_id": "p185_24",
+   "page": 185,
+   "kind": "formula",
+   "source_text": "definition is also considered a declaration. We find this terminology to be most unfortunate, as it doesn’t reflect the\nimportant notion that many definitions are also self-declaring (e.g., int x;), while others, such as those residing\noutside of the namespace in which they must also be separately declared (e.g., int ns::x;), are not. Throughout this\nbook, when we use the term definition only, we mean that the definition itself is explicitly not self-declaring.",
+   "translated_text": "definition is also considered a declaration. We find this terminology to be most unfortunate, as it doesn’t reflect the\nimportant notion that many definitions are also self-declaring (e.g., int x;), while others, such as those residing\noutside of the namespace in which they must also be separately declared (e.g., int ns::x;), are not. Throughout this\nbook, when we use the term definition only, we mean that the definition itself is explicitly not self-declaring.",
+   "translation_status": "preserved",
+   "src_box": [
+    134.49638000000004,
+    106.3121,
+    513.47718,
+    144.3201
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p185_24",
+     "render_object_ref": "R103",
+     "page": 185,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      106.31,
+      513.48,
+      144.32
+     ],
+     "font_size": 12.0,
+     "text": "definition is also considered a declaration. We find this terminology to be most unfortunate, as it doesn’t reflect the\nimportant notion that many definitions are also self-declaring (e.g., int x;), while others, such as those residing\noutside of the namespace in which they must also be separately declared (e.g., int ns::x;), are not. Throughout this\nbook, when we use the term definition only, we mean that the definition itself is explicitly not self-declaring."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "definition is also considered a declaration. We find this terminology to be most unfortunate, as it doesn’t reflect the\nimportant notion that many definitions are also self-declaring (e.g., int x;), while others, such as those residing\noutside of the namespace in which they must also be separately declared (e.g., int ns::x;), are not. Throughout this\nbook, when we use the term definition only, we mean that the definition itself is explicitly not self-declaring."
+  }
+ ],
+ "defects": [
+  {
+   "defect_id": "F9",
+   "name": "text layer vs visual layer mismatch",
+   "suspect_layer": "renderer",
+   "node_id": "p185_page",
+   "page": 185,
+   "evidence": {
+    "mupdf_syntax_error": [
+     "syntax error: unknown keyword: '-9.000000001435637e'",
+     "syntax error: unknown keyword: '-1.1999999998124622e'",
+     "encountered syntax errors; page may not be correct"
+    ]
+   },
+   "first_divergence": "render",
+   "stage_verdicts": {
+    "source": "PASS",
+    "parser": "PASS",
+    "model": "PASS",
+    "translation": "PASS",
+    "layout": "PASS",
+    "render": "FAIL"
+   },
+   "note": "renderer emitted a malformed float into the page stream"
+  }
+ ]
+}

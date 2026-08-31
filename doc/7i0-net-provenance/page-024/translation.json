@@ -1,0 +1,321 @@
+[
+ {
+  "node_id": "p24_0",
+  "source_text": "16 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "translated_text": "16 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_1",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_2",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_3",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_4",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_5",
+  "source_text": "Client\n(a)",
+  "translated_text": "Client\n(a)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_6",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_7",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_8",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_9",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_10",
+  "source_text": "Server",
+  "translated_text": "Server",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_11",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_12",
+  "source_text": "(d)",
+  "translated_text": "(d)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_13",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_14",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_15",
+  "source_text": "Client\nServer",
+  "translated_text": "Client\nServer",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_16",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_17",
+  "source_text": "Client\n(c)",
+  "translated_text": "Client\n(c)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_18",
+  "source_text": "(b)",
+  "translated_text": "(b)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_19",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_20",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_21",
+  "source_text": "Server",
+  "translated_text": "Server",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_22",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_23",
+  "source_text": "Server",
+  "translated_text": "Server",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_24",
+  "source_text": "Server",
+  "translated_text": "Server",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_25",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_26",
+  "source_text": "(e)",
+  "translated_text": "(e)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_27",
+  "source_text": "Figure3.1 The possible communication architectures for multiplayer and network games:\na)single screen, possibly ‘split’, on a single computer, b)peer-to-peer, c)a client–server,\nd)peer-to-peer-clientserverhybrid,ande)networkofservers",
+  "translated_text": "Figure3.1 The possible communication architectures for multiplayer and network games:\na)single screen, possibly ‘split’, on a single computer, b)peer-to-peer, c)a client–server,\nd)peer-to-peer-clientserverhybrid,ande)networkofservers",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_28",
+  "source_text": "AreaNetworks(WANs)(i.e.theInternet),theydonotscalewellwithoutanadditional\nhierarchicalstructure.\nInaclient–serverarchitecture,oneprocessplaystheroleoftheserver,communicating\nwitheachclientandmediatingthegamestate.Theclientsdonotcommunicatedirectly\nwith each other but rather have the server route messages to the appropriate clients.\nTheserveristhecriticalpartinthecommunicationlink;ifaclientcannotcommunicate\nwiththeserverthegamecannotbeplayedandiftheservercannotkeepupwiththe\ncommunicationandcomputationrequired,thegameplaycandegradeforallclients.The\nclient–server architecture is the most popular architecture used in commercial online\ngamesaswellasintheclassicMultiUserDungeon(MUD)games(seeChapter2fora\ndescriptionofaMUD).\nInthepeer-to-peer,client–serverhybridarchitecture,theserverprocessmediatesgame\nstatesonthebasisofinformationsentbyclientsasinthetraditionalclient–serverarchi-\ntecture,buttheclientsarealsoabletocommunicatewithotherclientsasinthetraditional\npeer-to-peerarchitecture.Thecommunicationamongsttheclientpeersisgenerallyfor\ngameinformationthatisnotessentialforachievingconsistentviewsofthegamestate",
+  "translated_text": "AreaNetworks(WANs)(i.e.theInternet),theydonotscalewellwithoutanadditional\nhierarchicalstructure.\nInaclient–serverarchitecture,oneprocessplaystheroleoftheserver,communicating\nwitheachclientandmediatingthegamestate.Theclientsdonotcommunicatedirectly\nwith each other but rather have the server route messages to the appropriate clients.\nTheserveristhecriticalpartinthecommunicationlink;ifaclientcannotcommunicate\nwiththeserverthegamecannotbeplayedandiftheservercannotkeepupwiththe\ncommunicationandcomputationrequired,thegameplaycandegradeforallclients.The\nclient–server architecture is the most popular architecture used in commercial online\ngamesaswellasintheclassicMultiUserDungeon(MUD)games(seeChapter2fora\ndescriptionofaMUD).\nInthepeer-to-peer,client–serverhybridarchitecture,theserverprocessmediatesgame\nstatesonthebasisofinformationsentbyclientsasinthetraditionalclient–serverarchi-\ntecture,buttheclientsarealsoabletocommunicatewithotherclientsasinthetraditional\npeer-to-peerarchitecture.Thecommunicationamongsttheclientpeersisgenerallyfor\ngameinformationthatisnotessentialforachievingconsistentviewsofthegamestate",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 16
+  },
+  "translation_status": "translated"
+ }
+]

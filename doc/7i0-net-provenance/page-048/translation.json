@@ -1,0 +1,46 @@
+[
+ {
+  "node_id": "p48_0",
+  "source_text": "40 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "translated_text": "40 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p48_1",
+  "source_text": "[CFG+03]A.DavidCheok,S.WanFong,K.HweeGoh,X.Yang,W.LiuandF.Farzbiz,“HumanPacman:\nASensing-basedMobileEntertainmentSystemwithUbiquitousComputingandTangibleInteraction”,Pro-\nceedingsofACMNetworkandSystemSupportforGamesWorkshop(NetGames),RedwoodCity,CA,May\n2003.\n[CNET05]CNETNetworks,Inc.,“Playstation3–Xbox360:TechHeadtoHead”,05/16/2005[Online]http://\nhardware.gamespot.com/Story-ST-x-1985-x-x-x\n[CSD+92]C.Cruz-Neira,D.J.Sandin,T.A.DeFanti,R.KenyonandJ.Hart,“TheCAVE:audiovisualexpe-",
+  "translated_text": "[CFG+03]A.DavidCheok,S.WanFong,K.HweeGoh,X.Yang,W.LiuandF.Farzbiz,“HumanPacman:\nASensing-basedMobileEntertainmentSystemwithUbiquitousComputingandTangibleInteraction”,Pro-\nceedingsofACMNetworkandSystemSupportforGamesWorkshop(NetGames),RedwoodCity,CA,May\n2003.\n[CNET05]CNETNetworks,Inc.,“Playstation3–Xbox360:TechHeadtoHead”,05/16/2005[Online]http://\nhardware.gamespot.com/Story-ST-x-1985-x-x-x\n[CSD+92]C.Cruz-Neira,D.J.Sandin,T.A.DeFanti,R.KenyonandJ.Hart,“TheCAVE:audiovisualexpe-",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 7
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p48_2",
+  "source_text": "rienceautomaticvirtualenvironment”,CommunicationsoftheACM,Vol.35,No.6,pp.65–72,1992.",
+  "translated_text": "rienceautomaticvirtualenvironment”,CommunicationsoftheACM,Vol.35,No.6,pp.65–72,1992.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p48_3",
+  "source_text": "[FS98]E.FreeconandM.Stenius,“DIVE:Ascalablenetworkarchitecturefordistributedvirtualenvironments”,\nDistributedSystemsEngineering,Vol.5,No.3,pp.91–100,1998.\n[Ger02] B.Geryk, “A History of Real-Time Strategy Games, Part I: 1989-1998”, Gamespot, 2002,\n[Online]http://www.gamespot.com/gamespot/features/all/real time.\n[Ken03]S.L.Kent,“MakinganMMOGfortheMasses”,GameSpy.com,October10,2003.\n[Kus03]D.Kushner,MastersofDoom,RandomHouse,2003,ISBN:0-375-50524-5.\n[MADDEN05]Wikipedia,“MaddenNFL”,(asof20January2006)[http://en.wikipedia.org/w/index.php?title=\nMadden NFL&oldid=36020223\n[MS94]M.J.MassiminoandT.B.Sheridan,“TeleoperatorPerformancewithVaryingForceandVisualFeed-\nback”,JournalofHumanFactors,MarkVol.36,No.1,pp.145–157,1994.\n[MSA+94]W.DeanMcCarty,S.Sheasby,P.Amburn,M.R.StytzandC.Switzer,“AVirtualCockpitfora\nDistributedInteractiveSimulation”,IEEEComputerGraphicsandApplications,Vol.14,No.1,pp.49–54,\nJanuary1994.\n[MSTM04]K.Mansley,D.Scott,A.TseandA.Madhavapeddy,“Feedback,Latency,Accuracy:Exploiting\nTradeoffsinLocation-AwareGaming”,ProceedingsofACMNetworkandSystemSupportforGamesWork-\nshop(NetGames),Portand,OG,2004.\n[NC04]J.NicholsandM.Claypool,“TheEffectsofLatencyonOnlineMaddenNFLFootball”,InProceedings\nofthe14thACMInternationalWorkshoponNetworkandOperatingSystemsSupportforDigitalAudioand\nVideo(NOSSDAV),Kinsale,CountyCork,Ireland,June16–18,2004.\n[Ney97] D.L.Neyland, “VirtualCombat: A Guide to Distributed InteractiveSimulation”, StackpoleBooks,\nMechanicsburg,PA,1997.\n[PCS+06]L.S.Ping,A.D.Cheok,J.T.KhengSoon,G.P.LynDebra,C.W.Jie,W.ChuangandF.Farzbiz,\n“AMobilePetWearableComputerandMixedRealitySystemforHuman–PoultryInteractionthroughthe\nInternet”,SpringerJournalofPersonalandUbiquitousComputing,ISSN:1617-4909,(Paper)1617-4917,\n(Online)03November,2005.\n[PT02]W.PiekarskiandB.Thomas,ARQuake:theoutdooraugmentedrealitygamingsystem,Communications\noftheACM,Vol.45,No.1,pp36–38,2002.\n[QWORLD]QuakeWorld.net,http://www.quakeworld.net/,Accessed2006.\n[SG01]S.ShirmohammadiandN.D.Georganas,“AnEnd-to-endCommunicationArchitectureforCollabora-\ntiveVirtualEnvironments”,ComputerNetworks,Vol.35,No.2–3,pp.351–367,2001.\n[SKH02]J.Smed,T.KaukorantaandH.Hakonen,Aspectsofnetworkinginmultiplayercomputergames,The\nElectronicLibrary,Vol.20,No.2,pp.87–97,2002.\n[Tut04] W.Tuttle,“TheFuture ofLive?”,GameSpy, October24, 2004, [Online]http://xbox.gamespy.com/\narticles/559/559846p1.html.\n[Tys06] J.Tyson, “How Video Game Systems Work”, HowStuffWorks, Inc, [Online] http://computer.\nhowstuffworks.com/video-game5.htm\n[Woo05]B.S.Woodcock.“AnAnalysisofMMOGSubscriptionGrowth”,MMOGCHART.COM12.02929\n2004.January1,2005.Online:http://www.mmogchart.com/.",
+  "translated_text": "[FS98]E.FreeconandM.Stenius,“DIVE:Ascalablenetworkarchitecturefordistributedvirtualenvironments”,\nDistributedSystemsEngineering,Vol.5,No.3,pp.91–100,1998.\n[Ger02] B.Geryk, “A History of Real-Time Strategy Games, Part I: 1989-1998”, Gamespot, 2002,\n[Online]http://www.gamespot.com/gamespot/features/all/real time.\n[Ken03]S.L.Kent,“MakinganMMOGfortheMasses”,GameSpy.com,October10,2003.\n[Kus03]D.Kushner,MastersofDoom,RandomHouse,2003,ISBN:0-375-50524-5.\n[MADDEN05]Wikipedia,“MaddenNFL”,(asof20January2006)[http://en.wikipedia.org/w/index.php?title=\nMadden NFL&oldid=36020223\n[MS94]M.J.MassiminoandT.B.Sheridan,“TeleoperatorPerformancewithVaryingForceandVisualFeed-\nback”,JournalofHumanFactors,MarkVol.36,No.1,pp.145–157,1994.\n[MSA+94]W.DeanMcCarty,S.Sheasby,P.Amburn,M.R.StytzandC.Switzer,“AVirtualCockpitfora\nDistributedInteractiveSimulation”,IEEEComputerGraphicsandApplications,Vol.14,No.1,pp.49–54,\nJanuary1994.\n[MSTM04]K.Mansley,D.Scott,A.TseandA.Madhavapeddy,“Feedback,Latency,Accuracy:Exploiting\nTradeoffsinLocation-AwareGaming”,ProceedingsofACMNetworkandSystemSupportforGamesWork-\nshop(NetGames),Portand,OG,2004.\n[NC04]J.NicholsandM.Claypool,“TheEffectsofLatencyonOnlineMaddenNFLFootball”,InProceedings\nofthe14thACMInternationalWorkshoponNetworkandOperatingSystemsSupportforDigitalAudioand\nVideo(NOSSDAV),Kinsale,CountyCork,Ireland,June16–18,2004.\n[Ney97] D.L.Neyland, “VirtualCombat: A Guide to Distributed InteractiveSimulation”, StackpoleBooks,\nMechanicsburg,PA,1997.\n[PCS+06]L.S.Ping,A.D.Cheok,J.T.KhengSoon,G.P.LynDebra,C.W.Jie,W.ChuangandF.Farzbiz,\n“AMobilePetWearableComputerandMixedRealitySystemforHuman–PoultryInteractionthroughthe\nInternet”,SpringerJournalofPersonalandUbiquitousComputing,ISSN:1617-4909,(Paper)1617-4917,\n(Online)03November,2005.\n[PT02]W.PiekarskiandB.Thomas,ARQuake:theoutdooraugmentedrealitygamingsystem,Communications\noftheACM,Vol.45,No.1,pp36–38,2002.\n[QWORLD]QuakeWorld.net,http://www.quakeworld.net/,Accessed2006.\n[SG01]S.ShirmohammadiandN.D.Georganas,“AnEnd-to-endCommunicationArchitectureforCollabora-\ntiveVirtualEnvironments”,ComputerNetworks,Vol.35,No.2–3,pp.351–367,2001.\n[SKH02]J.Smed,T.KaukorantaandH.Hakonen,Aspectsofnetworkinginmultiplayercomputergames,The\nElectronicLibrary,Vol.20,No.2,pp.87–97,2002.\n[Tut04] W.Tuttle,“TheFuture ofLive?”,GameSpy, October24, 2004, [Online]http://xbox.gamespy.com/\narticles/559/559846p1.html.\n[Tys06] J.Tyson, “How Video Game Systems Work”, HowStuffWorks, Inc, [Online] http://computer.\nhowstuffworks.com/video-game5.htm\n[Woo05]B.S.Woodcock.“AnAnalysisofMMOGSubscriptionGrowth”,MMOGCHART.COM12.02929\n2004.January1,2005.Online:http://www.mmogchart.com/.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 38
+  },
+  "translation_status": "preserved"
+ }
+]

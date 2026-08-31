@@ -1,0 +1,410 @@
+{
+ "page": 45,
+ "total_blocks": 11,
+ "total_render_runs": 11,
+ "matched_runs": 11,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 11,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p45_0",
+   "page": 45,
+   "kind": "heading",
+   "source_text": "1.1 ABriefHistoryoftheWorld 3",
+   "translated_text": "1.1 ABriefHistoryoftheWorld 3",
+   "translation_status": "translated",
+   "src_box": [
+    337.2,
+    616.1312971,
+    488.01793899999996,
+    628.0923971
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_0",
+     "render_object_ref": "R25",
+     "page": 45,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      337.2,
+      616.13,
+      488.02,
+      628.09
+     ],
+     "font_size": 9.97,
+     "text": "1.1 ABriefHistoryoftheWorld 3"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "1.1 ABriefHistoryoftheWorld 3"
+  },
+  {
+   "node_id": "p45_1",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "bysendingcrypticescapesequencesofthetypethatyounormallyseeinprinter\ndrivers.",
+   "translated_text": "bysendingcrypticescapesequencesofthetypethatyounormallyseeinprinter\ndrivers.",
+   "translation_status": "translated",
+   "src_box": [
+    153.11900324,
+    565.0077499600001,
+    488.1938318800005,
+    586.9753436
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_1",
+     "render_object_ref": "R26",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      153.12,
+      565.01,
+      488.19,
+      586.98
+     ],
+     "font_size": 9.97,
+     "text": "bysendingcrypticescapesequencesofthetypethatyounormallyseeinprinter\ndrivers."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "bysendingcrypticescapesequencesofthetypethatyounormallyseeinprinter\ndrivers."
+  },
+  {
+   "node_id": "p45_2",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "“640Koughttobeenoughforanybody.”",
+   "translated_text": "“640Koughttobeenoughforanybody.”",
+   "translation_status": "translated",
+   "src_box": [
+    228.96,
+    534.7390488,
+    412.6016391599999,
+    545.7034487999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.96,
+   "render_rows": [
+    {
+     "source_node_id": "p45_2",
+     "render_object_ref": "R27",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      228.96,
+      534.74,
+      412.6,
+      545.7
+     ],
+     "font_size": 10.96,
+     "text": "“640Koughttobeenoughforanybody.”"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "“640Koughttobeenoughforanybody.”"
+  },
+  {
+   "node_id": "p45_3",
+   "page": 45,
+   "kind": "formula",
+   "source_text": "William(“Bill”)H.Gates",
+   "translated_text": "William(“Bill”)H.Gates",
+   "translation_status": "preserved",
+   "src_box": [
+    279.36,
+    520.2537618,
+    362.14436229,
+    529.2246617999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_3",
+     "render_object_ref": "R28",
+     "page": 45,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      279.36,
+      520.25,
+      362.14,
+      529.22
+     ],
+     "font_size": 8.97,
+     "text": "William(“Bill”)H.Gates"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "William(“Bill”)H.Gates"
+  },
+  {
+   "node_id": "p45_4",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "DuringmytenureatUTSA,Ibecamemoreinvolvedincomputer-relatedtop-\nicsandlessinvolvedintheoreticalconsiderationsinmyresearchﬁeldofdifferential\nequations.InparticularIbecameinvolvedwiththeUniversityofTexasHealthScience\nCenter’sDepartmentofRadiology.Theﬁeldofmedicalimagingwasquiteinteresting\ntomewithitsinherentconnectiontocomputergraphicsandvisualization,butalsoof\ninterestwereaspectsofgeometryandnumericalmethodssincewewereinterestedin\nanalyzingandextractinganatomicalinformationfrom3Dmedicalimages.Myinter-\nestinthetopicwasstrongenoughthatIdecidedtoleaveUTSAin1991andbecome\na“retread”bystudyingcomputerscienceandmedicalimagingattheUniversityof\nNorthCarolina(UNC)atChapelHill.\nWhileatUNCIhadaccesstomorepowerfulequipment.WedidnothaveaCray\nsupercomputerwithacoupleofpowerfulprocessors,butwedidhaveamassivelypar-\nallelmachineappropriatelynamedtheMASPARwith8,196processors,individually\nnotverypowerful,butanaturalarchitecturefor2Dimageprocessing.",
+   "translated_text": "DuringmytenureatUTSA,Ibecamemoreinvolvedincomputer-relatedtop-\nicsandlessinvolvedintheoreticalconsiderationsinmyresearchﬁeldofdifferential\nequations.InparticularIbecameinvolvedwiththeUniversityofTexasHealthScience\nCenter’sDepartmentofRadiology.Theﬁeldofmedicalimagingwasquiteinteresting\ntomewithitsinherentconnectiontocomputergraphicsandvisualization,butalsoof\ninterestwereaspectsofgeometryandnumericalmethodssincewewereinterestedin\nanalyzingandextractinganatomicalinformationfrom3Dmedicalimages.Myinter-\nestinthetopicwasstrongenoughthatIdecidedtoleaveUTSAin1991andbecome\na“retread”bystudyingcomputerscienceandmedicalimagingattheUniversityof\nNorthCarolina(UNC)atChapelHill.\nWhileatUNCIhadaccesstomorepowerfulequipment.WedidnothaveaCray\nsupercomputerwithacoupleofpowerfulprocessors,butwedidhaveamassivelypar-\nallelmachineappropriatelynamedtheMASPARwith8,196processors,individually\nnotverypowerful,butanaturalarchitecturefor2Dimageprocessing.",
+   "translation_status": "translated",
+   "src_box": [
+    153.11317024000002,
+    334.8482645999999,
+    488.3325290800006,
+    500.3353436
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_4",
+     "render_object_ref": "R29",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      153.11,
+      334.85,
+      488.33,
+      500.34
+     ],
+     "font_size": 9.97,
+     "text": "DuringmytenureatUTSA,Ibecamemoreinvolvedincomputer-relatedtop-\nicsandlessinvolvedintheoreticalconsiderationsinmyresearchﬁeldofdifferential\nequations.InparticularIbecameinvolvedwiththeUniversityofTexasHealthScience\nCenter’sDepartmentofRadiology.Theﬁeldofmedicalimagingwasquiteinteresting\ntomewithitsinherentconnectiontocomputergraphicsandvisualization,butalsoof\ninterestwereaspectsofgeometryandnumericalmethodssincewewereinterestedin\nanalyzingandextractinganatomicalinformationfrom3Dmedicalimages.Myinter-\nestinthetopicwasstrongenoughthatIdecidedtoleaveUTSAin1991andbecome\na“retread”bystudyingcomputerscienceandmedicalimagingattheUniversityof\nNorthCarolina(UNC)atChapelHill.\nWhileatUNCIhadaccesstomorepowerfulequipment.WedidnothaveaCray\nsupercomputerwithacoupleofpowerfulprocessors,butwedidhaveamassivelypar-\nallelmachineappropriatelynamedtheMASPARwith8,196processors,individually\nnotverypowerful,butanaturalarchitecturefor2Dimageprocessing."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "DuringmytenureatUTSA,Ibecamemoreinvolvedincomputer-relatedtop-\nicsandlessinvolvedintheoreticalconsiderationsinmyresearchﬁeldofdifferential\nequations.InparticularIbecameinvolvedwiththeUniversityofTexasHealthScience\nCenter’sDepartmentofRadiology.Theﬁeldofmedicalimagingwasquiteinteresting\ntomewithitsinherentconnectiontocomputergraphicsandvisualization,butalsoof\ninterestwereaspectsofgeometryandnumericalmethodssincewewereinterestedin\nanalyzingandextractinganatomicalinformationfrom3Dmedicalimages.Myinter-\nestinthetopicwasstrongenoughthatIdecidedtoleaveUTSAin1991andbecome\na“retread”bystudyingcomputerscienceandmedicalimagingattheUniversityof\nNorthCarolina(UNC)atChapelHill.\nWhileatUNCIhadaccesstomorepowerfulequipment.WedidnothaveaCray\nsupercomputerwithacoupleofpowerfulprocessors,butwedidhaveamassivelypar-\nallelmachineappropriatelynamedtheMASPARwith8,196processors,individually\nnotverypowerful,butanaturalarchitecturefor2Dimageprocessing."
+  },
+  {
+   "node_id": "p45_5",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "“Ifyouwereplowingaﬁeld,whichwouldyouratheruse?",
+   "translated_text": "“Ifyouwereplowingaﬁeld,whichwouldyouratheruse?",
+   "translation_status": "translated",
+   "src_box": [
+    191.28,
+    304.5790488,
+    450.1220729999999,
+    315.5434488
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.96,
+   "render_rows": [
+    {
+     "source_node_id": "p45_5",
+     "render_object_ref": "R30",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      191.28,
+      304.58,
+      450.12,
+      315.54
+     ],
+     "font_size": 10.96,
+     "text": "“Ifyouwereplowingaﬁeld,whichwouldyouratheruse?"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "“Ifyouwereplowingaﬁeld,whichwouldyouratheruse?"
+  },
+  {
+   "node_id": "p45_6",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "Twostrongoxenor1024chickens?”\nSeymourCray,fatherofsupercomputing",
+   "translated_text": "Twostrongoxenor1024chickens?”\nSeymourCray,fatherofsupercomputing",
+   "translation_status": "translated",
+   "src_box": [
+    239.27995032,
+    277.1337618,
+    401.56293828,
+    302.583528
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_6",
+     "render_object_ref": "R31",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      239.28,
+      277.13,
+      401.56,
+      302.58
+     ],
+     "font_size": 8.97,
+     "text": "Twostrongoxenor1024chickens?”\nSeymourCray,fatherofsupercomputing"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Twostrongoxenor1024chickens?”\nSeymourCray,fatherofsupercomputing"
+  },
+  {
+   "node_id": "p45_7",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "Still,therewasastrongattractiontocomputenumericallyonapersonalcom-\nputer,toseetheresultsgraphicallyandimmediately,ifnotsooner.",
+   "translated_text": "Still,therewasastrongattractiontocomputenumericallyonapersonalcom-\nputer,toseetheresultsgraphicallyandimmediately,ifnotsooner.",
+   "translation_status": "translated",
+   "src_box": [
+    153.12014756000002,
+    233.80774996000002,
+    487.6607128400001,
+    255.77534359999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_7",
+     "render_object_ref": "R32",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      153.12,
+      233.81,
+      487.66,
+      255.78
+     ],
+     "font_size": 9.97,
+     "text": "Still,therewasastrongattractiontocomputenumericallyonapersonalcom-\nputer,toseetheresultsgraphicallyandimmediately,ifnotsooner."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Still,therewasastrongattractiontocomputenumericallyonapersonalcom-\nputer,toseetheresultsgraphicallyandimmediately,ifnotsooner."
+  },
+  {
+   "node_id": "p45_8",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "“ThePCistheLSDofthe90’s.”",
+   "translated_text": "“ThePCistheLSDofthe90’s.”",
+   "translation_status": "translated",
+   "src_box": [
+    252.24,
+    203.53904880000002,
+    388.8630026400001,
+    214.5034488
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.96,
+   "render_rows": [
+    {
+     "source_node_id": "p45_8",
+     "render_object_ref": "R33",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      252.24,
+      203.54,
+      388.86,
+      214.5
+     ],
+     "font_size": 10.96,
+     "text": "“ThePCistheLSDofthe90’s.”"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "“ThePCistheLSDofthe90’s.”"
+  },
+  {
+   "node_id": "p45_9",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "TimothyLeary,educatorandpsychologist",
+   "translated_text": "TimothyLeary,educatorandpsychologist",
+   "translation_status": "translated",
+   "src_box": [
+    246.24,
+    189.05376180000002,
+    395.8853770800001,
+    198.02466180000002
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_9",
+     "render_object_ref": "R34",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      246.24,
+      189.05,
+      395.89,
+      198.02
+     ],
+     "font_size": 8.97,
+     "text": "TimothyLeary,educatorandpsychologist"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "TimothyLeary,educatorandpsychologist"
+  },
+  {
+   "node_id": "p45_10",
+   "page": 45,
+   "kind": "paragraph",
+   "source_text": "AtthetimeIhadupgradedmyIntel8086machinetoanIntel80486machine\nwithaﬂoatingpointcoprocessor.Iwasabletoimplementmanyalgorithmsofinter-\nestinimageanalysis,includingconstructingsomethingcalledridgesthataredeﬁned\nintermsofdifferentialequations.ThesameprogrammingissuesthataroseatCU\nbitmeagain:applyingnumericalmethodsfordifferentialequationsolverswithout\nthoughtaboutthestabilityofthemethodsorabouttheirapplicabilitytotheprob-\nlemathand.Anotherproblemofinterestwastocomputegeodesiccurvesonsurfaces,\ncurvesthatrepresenttheshortestsurfacepathbetweentwopointsonthesurface.",
+   "translated_text": "AtthetimeIhadupgradedmyIntel8086machinetoanIntel80486machine\nwithaﬂoatingpointcoprocessor.Iwasabletoimplementmanyalgorithmsofinter-\nestinimageanalysis,includingconstructingsomethingcalledridgesthataredeﬁned\nintermsofdifferentialequations.ThesameprogrammingissuesthataroseatCU\nbitmeagain:applyingnumericalmethodsfordifferentialequationsolverswithout\nthoughtaboutthestabilityofthemethodsorabouttheirapplicabilitytotheprob-\nlemathand.Anotherproblemofinterestwastocomputegeodesiccurvesonsurfaces,\ncurvesthatrepresenttheshortestsurfacepathbetweentwopointsonthesurface.",
+   "translation_status": "translated",
+   "src_box": [
+    153.11616052,
+    74.20800728000002,
+    488.1640766400002,
+    167.93534359999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.97,
+   "render_rows": [
+    {
+     "source_node_id": "p45_10",
+     "render_object_ref": "R35",
+     "page": 45,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      153.12,
+      74.21,
+      488.16,
+      167.94
+     ],
+     "font_size": 9.97,
+     "text": "AtthetimeIhadupgradedmyIntel8086machinetoanIntel80486machine\nwithaﬂoatingpointcoprocessor.Iwasabletoimplementmanyalgorithmsofinter-\nestinimageanalysis,includingconstructingsomethingcalledridgesthataredeﬁned\nintermsofdifferentialequations.ThesameprogrammingissuesthataroseatCU\nbitmeagain:applyingnumericalmethodsfordifferentialequationsolverswithout\nthoughtaboutthestabilityofthemethodsorabouttheirapplicabilitytotheprob-\nlemathand.Anotherproblemofinterestwastocomputegeodesiccurvesonsurfaces,\ncurvesthatrepresenttheshortestsurfacepathbetweentwopointsonthesurface."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "AtthetimeIhadupgradedmyIntel8086machinetoanIntel80486machine\nwithaﬂoatingpointcoprocessor.Iwasabletoimplementmanyalgorithmsofinter-\nestinimageanalysis,includingconstructingsomethingcalledridgesthataredeﬁned\nintermsofdifferentialequations.ThesameprogrammingissuesthataroseatCU\nbitmeagain:applyingnumericalmethodsfordifferentialequationsolverswithout\nthoughtaboutthestabilityofthemethodsorabouttheirapplicabilitytotheprob-\nlemathand.Anotherproblemofinterestwastocomputegeodesiccurvesonsurfaces,\ncurvesthatrepresenttheshortestsurfacepathbetweentwopointsonthesurface."
+  }
+ ],
+ "defects": []
+}

@@ -1,0 +1,1464 @@
+{
+ "page": 41,
+ "page_height": 649.14501953125,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "4",
+   "bbox": [
+    50.87,
+    50.13,
+    54.98,
+    59.13
+   ],
+   "font": "ArialNarrow-Bold",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 1,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    590.02,
+    54.98,
+    599.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "1. Introduction",
+   "bbox": [
+    323.97,
+    49.93,
+    380.42,
+    58.93
+   ],
+   "font": "ArialNarrow-Bold",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 2,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    323.97,
+    590.22,
+    380.42,
+    599.22
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "图",
+   "bbox": [
+    119.28,
+    154.17,
+    128.28,
+    167.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    119.28,
+    482.06,
+    128.28,
+    494.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": " 1.2",
+   "bbox": [
+    128.28,
+    155.04,
+    141.78,
+    167.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    128.28,
+    482.1,
+    141.78,
+    494.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    141.78,
+    154.17,
+    150.78,
+    167.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    141.78,
+    482.06,
+    150.78,
+    494.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    150.78,
+    155.04,
+    155.28,
+    167.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    150.78,
+    482.1,
+    155.28,
+    494.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "各种行为的相对权衡。",
+   "bbox": [
+    155.28,
+    154.17,
+    245.28,
+    167.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 3,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    155.28,
+    482.06,
+    245.28,
+    494.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "不良影响。",
+   "bbox": [
+    50.98,
+    187.57,
+    95.98,
+    200.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.98,
+    448.66,
+    95.98,
+    461.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    95.98,
+    188.44,
+    100.48,
+    200.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    95.98,
+    448.7,
+    100.48,
+    460.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "我们可以通过给角色提供",
+   "bbox": [
+    100.48,
+    187.57,
+    199.48,
+    200.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    100.48,
+    448.66,
+    199.48,
+    461.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    199.48,
+    188.44,
+    201.73,
+    200.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    199.48,
+    448.7,
+    201.73,
+    460.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "goals.",
+   "bbox": [
+    201.73,
+    190.78,
+    224.61,
+    199.78
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    201.73,
+    449.37,
+    224.61,
+    458.37
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    224.61,
+    188.44,
+    226.86,
+    200.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    224.61,
+    448.7,
+    226.86,
+    460.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "来告诉角色需要哪些效果。然后角色可",
+   "bbox": [
+    226.86,
+    187.57,
+    379.86,
+    200.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    226.86,
+    448.66,
+    379.86,
+    461.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "以搜索它认为会实现其目标的动作序列。",
+   "bbox": [
+    50.98,
+    200.17,
+    212.98,
+    213.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.98,
+    436.06,
+    212.98,
+    448.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    212.98,
+    201.04,
+    217.48,
+    213.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    212.98,
+    436.1,
+    217.48,
+    448.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "当角色根据其试图实现的目标不确定地选",
+   "bbox": [
+    217.48,
+    200.17,
+    379.48,
+    213.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    217.48,
+    436.06,
+    379.48,
+    448.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "择行动时，我们将其后续行为称为",
+   "bbox": [
+    50.98,
+    212.77,
+    185.98,
+    225.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.98,
+    423.46,
+    185.98,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    185.98,
+    213.64,
+    188.23,
+    225.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    185.98,
+    423.5,
+    188.23,
+    435.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "goal-directed.",
+   "bbox": [
+    188.23,
+    215.98,
+    243.29,
+    224.98
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    188.23,
+    424.17,
+    243.29,
+    433.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "确定性行为和非确定性行为具有不同的优点和缺点。",
+   "bbox": [
+    65.98,
+    247.77,
+    272.98,
+    260.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    65.98,
+    388.46,
+    272.98,
+    401.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    272.98,
+    248.64,
+    277.48,
+    260.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    272.98,
+    388.5,
+    277.48,
+    400.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "图",
+   "bbox": [
+    277.48,
+    247.77,
+    286.48,
+    260.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    277.48,
+    388.46,
+    286.48,
+    401.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": " 1.2 ",
+   "bbox": [
+    286.48,
+    248.64,
+    302.23,
+    260.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    286.48,
+    388.5,
+    302.23,
+    400.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "包含三个插图，描述",
+   "bbox": [
+    302.23,
+    247.77,
+    383.23,
+    260.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    302.23,
+    388.46,
+    383.23,
+    401.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "了使用非确定性目标导向行为与确定性预定义行为的相对权衡。",
+   "bbox": [
+    50.73,
+    260.37,
+    302.73,
+    273.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.73,
+    375.86,
+    302.73,
+    388.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    302.73,
+    261.24,
+    307.23,
+    273.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    302.73,
+    375.9,
+    307.23,
+    387.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "特别是，预定义行",
+   "bbox": [
+    307.23,
+    260.37,
+    379.23,
+    273.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    307.23,
+    375.86,
+    379.23,
+    388.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "为的执行速度很快，因为程序员已经提前完成了所有工作。",
+   "bbox": [
+    50.73,
+    272.97,
+    284.73,
+    285.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.73,
+    363.26,
+    284.73,
+    376.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    284.73,
+    273.84,
+    289.23,
+    285.85
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    284.73,
+    363.3,
+    289.23,
+    375.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "目标导向的行为可以更",
+   "bbox": [
+    289.23,
+    272.97,
+    379.23,
+    285.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    289.23,
+    363.26,
+    379.23,
+    376.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "容易指定，但执行起来可能需要更长的时间，因为角色必须在运行时自行完成大量工",
+   "bbox": [
+    50.73,
+    285.57,
+    383.73,
+    298.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.73,
+    350.66,
+    383.73,
+    363.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "作。",
+   "bbox": [
+    50.73,
+    298.17,
+    68.73,
+    311.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 11,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.73,
+    338.06,
+    68.73,
+    350.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    68.73,
+    299.04,
+    73.23,
+    311.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 11,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    68.73,
+    338.1,
+    73.23,
+    350.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "程序员花在开发高效预定义行为上的额外时间与用户花在使用目标导向行为等",
+   "bbox": [
+    73.23,
+    298.17,
+    379.23,
+    311.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 11,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    73.23,
+    338.06,
+    379.23,
+    350.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": "待角色上的额外时间的相对价值将取决于应用程序。",
+   "bbox": [
+    50.73,
+    310.77,
+    257.73,
+    323.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 12,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.73,
+    325.46,
+    257.73,
+    338.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    257.73,
+    311.64,
+    262.23,
+    323.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 12,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    257.73,
+    325.5,
+    262.23,
+    337.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "对于一次性动画和快速原型制",
+   "bbox": [
+    262.23,
+    310.77,
+    379.23,
+    323.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 12,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    262.23,
+    325.46,
+    379.23,
+    338.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "作，权衡可能会倾向于减少程序员的工作量。",
+   "bbox": [
+    50.73,
+    323.37,
+    230.73,
+    336.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.73,
+    312.86,
+    230.73,
+    325.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "然而，事实证明，在预定义行为和纯粹目标导向行为这两个极端之间存在着一个",
+   "bbox": [
+    65.88,
+    391.57,
+    380.88,
+    404.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 14,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    65.88,
+    244.66,
+    380.88,
+    257.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "重要的中间地带。",
+   "bbox": [
+    50.88,
+    404.17,
+    122.88,
+    417.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.88,
+    232.06,
+    122.88,
+    244.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    122.88,
+    405.04,
+    127.38,
+    417.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    122.88,
+    232.1,
+    127.38,
+    244.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "这个想法是给角色领域知识",
+   "bbox": [
+    127.38,
+    404.17,
+    235.38,
+    417.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    127.38,
+    232.06,
+    235.38,
+    244.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "and",
+   "bbox": [
+    235.38,
+    407.37,
+    251.69,
+    416.37
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    235.38,
+    232.78,
+    251.69,
+    241.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "指令。",
+   "bbox": [
+    251.69,
+    404.17,
+    278.69,
+    417.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    251.69,
+    232.06,
+    278.69,
+    244.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": "知识",
+   "bbox": [
+    139.18,
+    431.64,
+    158.18,
+    445.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.5,
+   "color": 0,
+   "line": 16,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    139.18,
+    203.87,
+    158.18,
+    217.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "+",
+   "bbox": [
+    158.18,
+    435.44,
+    162.92,
+    444.94
+   ],
+   "font": "Calibri",
+   "font_size": 9.5,
+   "color": 0,
+   "line": 16,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    158.18,
+    204.21,
+    162.92,
+    213.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": "指令",
+   "bbox": [
+    162.91,
+    431.64,
+    181.91,
+    445.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.5,
+   "color": 0,
+   "line": 16,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    162.91,
+    203.87,
+    181.91,
+    217.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    181.91,
+    435.44,
+    186.65,
+    444.94
+   ],
+   "font": "Calibri",
+   "font_size": 9.5,
+   "color": 0,
+   "line": 16,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    181.91,
+    204.21,
+    186.65,
+    213.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": "行为",
+   "bbox": [
+    186.65,
+    431.64,
+    205.65,
+    445.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.5,
+   "color": 0,
+   "line": 16,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    186.65,
+    203.87,
+    205.65,
+    217.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "领域知识可用于规划目标，并且说明提供了如何实现这些目标的“草图计划”。",
+   "bbox": [
+    50.99,
+    448.77,
+    365.98,
+    461.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 17,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.99,
+    187.46,
+    365.98,
+    200.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    365.98,
+    449.64,
+    370.48,
+    461.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 17,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    365.98,
+    187.51,
+    370.48,
+    199.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "从",
+   "bbox": [
+    370.48,
+    448.77,
+    379.48,
+    461.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 17,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    370.48,
+    187.46,
+    379.48,
+    200.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "技术上讲，这仍然是目标导向的行为，因此仍然很容易指定，但添加的预定义启发式",
+   "bbox": [
+    50.74,
+    461.37,
+    383.73,
+    474.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 18,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.74,
+    174.86,
+    383.73,
+    187.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "控制信息有可能显着加快执行时间。",
+   "bbox": [
+    50.74,
+    473.96,
+    194.74,
+    486.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.74,
+    162.26,
+    194.74,
+    175.19
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    194.74,
+    474.84,
+    199.24,
+    486.84
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    194.74,
+    162.31,
+    199.24,
+    174.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "该方法甚至适用于增量开发方式，其中主要使",
+   "bbox": [
+    199.24,
+    473.96,
+    379.23,
+    486.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    199.24,
+    162.26,
+    379.23,
+    175.19
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": "用目标导向行为的原型可以逐渐细化（通过减少不确定性）为主要使用预定义行为的",
+   "bbox": [
+    50.74,
+    486.57,
+    383.73,
+    499.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.74,
+    149.66,
+    383.73,
+    162.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "生产代码。",
+   "bbox": [
+    50.74,
+    499.17,
+    95.74,
+    512.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.74,
+    137.06,
+    95.74,
+    149.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": "在大多数情况下，单个应用程序将采用多种方法来生成角色的行为。",
+   "bbox": [
+    65.98,
+    545.26,
+    335.98,
+    558.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    65.98,
+    90.96,
+    335.98,
+    103.89
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    335.98,
+    546.14,
+    340.48,
+    558.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    335.98,
+    91.01,
+    340.48,
+    103.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "这是因为",
+   "bbox": [
+    340.48,
+    545.26,
+    376.48,
+    558.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    340.48,
+    90.96,
+    376.48,
+    103.89
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": "不同的做法",
+   "bbox": [
+    50.98,
+    555.61,
+    95.98,
+    568.54
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 23,
+   "page": 41,
+   "block_type": 0,
+   "v3_bbox": [
+    50.98,
+    80.61,
+    95.98,
+    93.54
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

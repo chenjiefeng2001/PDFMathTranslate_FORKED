@@ -1,0 +1,34 @@
+[
+ {
+  "node_id": "p0_0",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   59.52,
+   531.0308046,
+   374.33712940000004,
+   593.088915
+  ],
+  "font_size": 30.14,
+  "font_major": "FODAKF+Times-Bold",
+  "multifont": false,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p0_1",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   59.52,
+   67.824375,
+   381.03175,
+   84.3123055
+  ],
+  "font_size": 7.22,
+  "font_major": "GFOBMP+Times-Roman",
+  "multifont": true,
+  "reading_order": 1
+ }
+]

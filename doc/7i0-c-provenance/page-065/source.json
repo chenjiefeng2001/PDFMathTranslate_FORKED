@@ -1,0 +1,332 @@
+[
+ {
+  "node_id": "p65_0",
+  "index": 0,
+  "text": "{",
+  "bbox": [
+   126.0026,
+   499.36021,
+   130.8026,
+   507.36021
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_1",
+  "index": 1,
+  "text": "32\n}",
+  "bbox": [
+   126.0026,
+   374.56020999999976,
+   136.55039,
+   383.66990999999996
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 6.0,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_2",
+  "index": 2,
+  "text": "{",
+  "bbox": [
+   142.5,
+   235.79419,
+   146.7,
+   242.79419
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_3",
+  "index": 3,
+  "text": "Section 0.5 Malleable vs. Stable Software",
+  "bbox": [
+   98.5,
+   674.41,
+   281.52500000000003,
+   684.41
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_4",
+  "index": 4,
+  "text": "while (lit != lend && rit != rend) {\nif (std::abs(*lit) != std::abs(*rit)) {\nreturn false;",
+  "bbox": [
+   145.2026,
+   422.56020999999987,
+   351.6026000000002,
+   449.7602099999999
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 3,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_5",
+  "index": 5,
+  "text": "++lit, ++rit;",
+  "bbox": [
+   164.4026,
+   403.3602099999998,
+   226.80259999999998,
+   411.3602099999998
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_6",
+  "index": 6,
+  "text": "Providing an iterator enables each client of a container to implement virtually any appropriate\nextension immediately. For example, both of the functions in Figure 0-24 are independent,\nclient-side extensions of the list component. By designing in extensibility via iterators, we\ncan reasonably ensure that no source-code modification of the reusable container will ever\nbe needed for that purpose. This principle of unilateral extensibility also helps to ensure that\napplication developers will not be held hostage waiting for enhancements that can be provided\nonly by library developers. Note that all of the container types in the C++ Standard Library",
+  "bbox": [
+   134.4963,
+   551.06998,
+   513.4969999999997,
+   645.0699999999999
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 7,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_7",
+  "index": 7,
+  "text": "31, 32, 33",
+  "bbox": [
+   480.02621,
+   540.69998,
+   508.37480999999997,
+   547.69998
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_8",
+  "index": 8,
+  "text": "come equipped with iterators that provide efficient access to every contained element.",
+  "bbox": [
+   134.4963,
+   537.06998,
+   480.0152999999998,
+   547.06998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_9",
+  "index": 9,
+  "text": "(a) Determining whether two lists are equivalent in a particular way",
+  "bbox": [
+   202.13439,
+   359.6429,
+   423.14398999999986,
+   367.6429
+  ],
+  "font": "HALIIO+SabonMTPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_10",
+  "index": 10,
+  "text": "31",
+  "bbox": [
+   134.5,
+   322.72428873999996,
+   140.100006,
+   328.32429473999997
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_11",
+  "index": 11,
+  "text": "As another less general, but much more detailed, illustration of enabling the open-closed principle, see",
+  "bbox": [
+   141.63999,
+   319.8203,
+   472.26878999999997,
+   327.8203
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_12",
+  "index": 12,
+  "text": "section 3.2.8.\n32\nAs discussed in the preface, we will sometimes note places where a more modern dialect of C++ provides features\nthat might better express an idea. For example, given that an iterator is a well-known concept having well defined\nsyntactic and semantic properties, the specific C++ type of the iterator becomes unimportant. In such cases we might\nprefer to use the keyword auto to let the compiler figure out that type, rather than force us to type it, or even an alias\nfor it, each time we need it, as the code itself — e.g., lhs.begin() — makes the concept clear:",
+  "bbox": [
+   134.49889,
+   257.81221,
+   512.7556899999998,
+   317.8203
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 8.0,
+  "line_count": 7,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_13",
+  "index": 13,
+  "text": "// RETURN",
+  "bbox": [
+   451.55280000000005,
+   163.78518999999994,
+   489.7721000000001,
+   170.78518999999994
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_14",
+  "index": 14,
+  "text": "}\n++lit, ++rit;\n}",
+  "bbox": [
+   160.94920000000002,
+   136.77918999999991,
+   234.4457,
+   161.78318999999993
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 3,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_15",
+  "index": 15,
+  "text": "return lend == lit && rend == rit; // We generally try to avoid placing modifiable operands",
+  "bbox": [
+   160.94920000000002,
+   127.50419000000002,
+   474.9734,
+   134.7771899999999
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_16",
+  "index": 16,
+  "text": "}",
+  "bbox": [
+   142.5,
+   118.79619000000001,
+   146.7,
+   125.79619
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_17",
+  "index": 17,
+  "text": "35",
+  "bbox": [
+   503.5,
+   674.41,
+   513.5,
+   684.41
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p65_18",
+  "index": 18,
+  "text": "// RETURN",
+  "bbox": [
+   462.0026000000005,
+   422.56020999999987,
+   505.2026000000006,
+   430.56020999999987
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_19",
+  "index": 19,
+  "text": "ptg31790760",
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_20",
+  "index": 20,
+  "text": "}",
+  "bbox": [
+   145.2026,
+   393.7602099999998,
+   150.0026,
+   401.7602099999998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p65_21",
+  "index": 21,
+  "text": "// on the left-hand side of an operator==.",
+  "bbox": [
+   315.351,
+   118.52319,
+   441.022,
+   125.79619
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ }
+]

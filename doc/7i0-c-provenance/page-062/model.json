@@ -1,0 +1,258 @@
+[
+ {
+  "node_id": "p62_0",
+  "kind": "paragraph",
+  "role": "page_number",
+  "role_confidence": 0.7,
+  "bbox": [
+   98.5,
+   674.41,
+   108.5,
+   684.41
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKKMC+TimesLTPro-Bold",
+  "multifont": false,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p62_1",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   413.4,
+   674.41,
+   513.5,
+   684.41
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 1
+ },
+ {
+  "node_id": "p62_2",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   134.50000000000006,
+   551.0699999999999,
+   513.515,
+   645.0699999999999
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": false,
+  "reading_order": 2
+ },
+ {
+  "node_id": "p62_3",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   408.56759,
+   506.02559,
+   429.07959,
+   514.02559
+  ],
+  "font_size": 8.0,
+  "font_major": "HALIIO+SabonMTPro-Regular",
+  "multifont": false,
+  "reading_order": 3
+ },
+ {
+  "node_id": "p62_4",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   219.03358999999998,
+   506.02540000000005,
+   239.88158999999996,
+   514.0254
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 4
+ },
+ {
+  "node_id": "p62_5",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   314.33459,
+   500.17891000000003,
+   334.18579,
+   508.17891000000003
+  ],
+  "font_size": 8.0,
+  "font_major": "HALIIO+SabonMTPro-Regular",
+  "multifont": false,
+  "reading_order": 5
+ },
+ {
+  "node_id": "p62_6",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   310.87359,
+   458.59340000000003,
+   338.36638999999997,
+   466.59340000000003
+  ],
+  "font_size": 8.0,
+  "font_major": "HALIIO+SabonMTPro-Regular",
+  "multifont": false,
+  "reading_order": 6
+ },
+ {
+  "node_id": "p62_7",
+  "kind": "caption",
+  "role": "caption",
+  "role_confidence": 0.92,
+  "bbox": [
+   200.6562,
+   415.58799000000005,
+   447.33809999999994,
+   424.58799000000005
+  ],
+  "font_size": 9.0,
+  "font_major": "HAKKMC+TimesLTPro-Bold",
+  "multifont": false,
+  "reading_order": 7
+ },
+ {
+  "node_id": "p62_8",
+  "kind": "identifier",
+  "role": "identifier",
+  "role_confidence": 0.7,
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": true,
+  "reading_order": 8
+ },
+ {
+  "node_id": "p62_9",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   134.5,
+   305.36899,
+   513.509,
+   399.36899
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": true,
+  "reading_order": 9
+ },
+ {
+  "node_id": "p62_10",
+  "kind": "paragraph",
+  "role": "page_number",
+  "role_confidence": 0.7,
+  "bbox": [
+   481.22531,
+   294.99899,
+   488.22531,
+   301.99899
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": true,
+  "reading_order": 10
+ },
+ {
+  "node_id": "p62_11",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   134.5,
+   291.36899,
+   481.2189999999998,
+   301.36899
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": true,
+  "reading_order": 11
+ },
+ {
+  "node_id": "p62_12",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   134.5,
+   223.36899000000003,
+   513.5279999999999,
+   275.36899
+  ],
+  "font_size": 10.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": false,
+  "reading_order": 12
+ },
+ {
+  "node_id": "p62_13",
+  "kind": "paragraph",
+  "role": "page_number",
+  "role_confidence": 0.7,
+  "bbox": [
+   134.5,
+   194.69299874,
+   140.100006,
+   200.29300474
+  ],
+  "font_size": 8.0,
+  "font_major": "HAKIBM+TimesLTPro-Roman",
+  "multifont": false,
+  "reading_order": 13
+ },
+ {
+  "node_id": "p62_14",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   141.63999,
+   191.78889999999998,
+   499.5631900000001,
+   199.78889999999998
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 14
+ },
+ {
+  "node_id": "p62_15",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   134.50399000000002,
+   131.78889999999998,
+   508.28159000000016,
+   189.78889999999998
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 15
+ }
+]

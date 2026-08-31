@@ -1,0 +1,1500 @@
+{
+ "page": 125,
+ "page_height": 656.9279174804688,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "32 ",
+   "bbox": [
+    57.96,
+    40.29,
+    70.46,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 1,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    57.96,
+    606.64,
+    70.46,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "Chapter 0 Motivation",
+   "bbox": [
+    372.86,
+    40.29,
+    472.96,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 2,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    372.86,
+    606.64,
+    472.96,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "客户端和服务器之间基于",
+   "bbox": [
+    93.96,
+    75.79,
+    203.96,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    566.78,
+    203.96,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "Internet",
+   "bbox": [
+    203.96,
+    76.76,
+    235.06,
+    90.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    203.96,
+    566.83,
+    235.06,
+    580.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "的通信，如图",
+   "bbox": [
+    235.06,
+    75.79,
+    295.06,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    235.06,
+    566.78,
+    295.06,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "0-23",
+   "bbox": [
+    295.06,
+    76.76,
+    313.39,
+    90.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    295.06,
+    566.83,
+    313.39,
+    580.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "所示。最初的解析器是为",
+   "bbox": [
+    313.39,
+    75.79,
+    423.39,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    313.39,
+    566.78,
+    423.39,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": " HTTP 1.0 ",
+   "bbox": [
+    423.39,
+    76.76,
+    468.39,
+    90.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    423.39,
+    566.83,
+    468.39,
+    580.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "版本编写的，它不支持最新的功能。随着时间的推移，一些客户通知我们（抱怨）他们",
+   "bbox": [
+    93.96,
+    89.79,
+    473.96,
+    104.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 4,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    552.78,
+    473.96,
+    567.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "需要更新的",
+   "bbox": [
+    93.96,
+    103.79,
+    143.96,
+    118.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    538.78,
+    143.96,
+    553.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": " HTTP ",
+   "bbox": [
+    143.96,
+    104.76,
+    173.96,
+    118.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    143.96,
+    538.83,
+    173.96,
+    552.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "功能，并礼貌地请求（要求）我们尽快（昨天）发布符合",
+   "bbox": [
+    173.96,
+    103.79,
+    423.96,
+    118.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    173.96,
+    538.78,
+    423.96,
+    553.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": " 1.1 ",
+   "bbox": [
+    423.96,
+    104.76,
+    441.46,
+    118.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    423.96,
+    538.83,
+    441.46,
+    552.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "规范的",
+   "bbox": [
+    441.46,
+    103.79,
+    471.46,
+    118.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    441.46,
+    538.78,
+    471.46,
+    553.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    471.46,
+    104.76,
+    473.96,
+    118.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    471.46,
+    538.83,
+    473.96,
+    552.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "HTTP ",
+   "bbox": [
+    93.96,
+    118.76,
+    121.46,
+    132.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    524.83,
+    121.46,
+    538.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "解析器版本。现在的问题是，我们是升级原始解析器组件（即就地）还是发布一",
+   "bbox": [
+    121.46,
+    117.79,
+    471.46,
+    132.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    121.46,
+    524.78,
+    471.46,
+    539.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "个符合",
+   "bbox": [
+    93.96,
+    131.79,
+    123.96,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    510.78,
+    123.96,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": " 1.1 ",
+   "bbox": [
+    123.96,
+    132.76,
+    141.46,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    123.96,
+    510.83,
+    141.46,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "标准的全新组件并继续并行支持原始",
+   "bbox": [
+    141.46,
+    131.79,
+    301.46,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    141.46,
+    510.78,
+    301.46,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": " HTTP 1.0 ",
+   "bbox": [
+    301.46,
+    132.76,
+    346.46,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    301.46,
+    510.83,
+    346.46,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "解析器组件（即可能在同一进",
+   "bbox": [
+    346.46,
+    131.79,
+    476.46,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    346.46,
+    510.78,
+    476.46,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "程中并行）？",
+   "bbox": [
+    93.96,
+    145.79,
+    153.96,
+    160.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 8,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    496.78,
+    153.96,
+    511.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "Firewall",
+   "bbox": [
+    270.34,
+    257.99,
+    297.83,
+    265.99
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 9,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    270.34,
+    390.94,
+    297.83,
+    398.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "Server",
+   "bbox": [
+    178.5,
+    210.56,
+    199.35,
+    218.56
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 10,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    178.5,
+    438.37,
+    199.35,
+    446.37
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "Proxy",
+   "bbox": [
+    273.8,
+    216.41,
+    293.65,
+    224.41
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 11,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    273.8,
+    432.52,
+    293.65,
+    440.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "Client",
+   "bbox": [
+    368.03,
+    210.56,
+    388.54,
+    218.56
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 12,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    368.03,
+    438.37,
+    388.54,
+    446.37
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "图",
+   "bbox": [
+    160.12,
+    296.64,
+    169.12,
+    309.57
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    160.12,
+    347.36,
+    169.12,
+    360.29
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": " 0-23",
+   "bbox": [
+    169.12,
+    297.52,
+    187.87,
+    309.52
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    169.12,
+    347.41,
+    187.87,
+    359.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "：客户端通过代理跨防火墙与服务器通信",
+   "bbox": [
+    187.87,
+    296.64,
+    349.87,
+    309.57
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    187.87,
+    347.36,
+    349.87,
+    360.29
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "答案是我们",
+   "bbox": [
+    93.96,
+    321.49,
+    143.96,
+    335.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 14,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    321.08,
+    143.96,
+    335.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "must",
+   "bbox": [
+    143.96,
+    325.33,
+    162.85,
+    335.33
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 14,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    143.96,
+    321.6,
+    162.85,
+    331.6
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "创建一个具有独特身份的新组件，并保留原始组件！解析器是一种完全",
+   "bbox": [
+    162.85,
+    321.49,
+    472.85,
+    335.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 14,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    162.85,
+    321.08,
+    472.85,
+    335.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "驻留在这些通信模块的实现中的机制。对于那些同时控制客户端和服务器端且不需要新",
+   "bbox": [
+    93.96,
+    335.49,
+    473.96,
+    349.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 15,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    307.08,
+    473.96,
+    321.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "功能的应用程序，可能永远不需要升级到较新版本的",
+   "bbox": [
+    93.96,
+    349.49,
+    323.96,
+    363.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    293.08,
+    323.96,
+    307.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": " HTTP",
+   "bbox": [
+    323.96,
+    350.46,
+    351.46,
+    363.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    323.96,
+    293.13,
+    351.46,
+    306.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "。此外，这种“升级”是对",
+   "bbox": [
+    351.46,
+    349.49,
+    471.46,
+    363.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 16,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    351.46,
+    293.08,
+    471.46,
+    307.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "现有功能的更改——不是错误修复，也不是向后兼容的扩展。因此，正确更改的决定完",
+   "bbox": [
+    93.96,
+    363.49,
+    471.76,
+    377.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 17,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    279.08,
+    471.76,
+    293.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "全取决于每个应用程序所有者，他们不能被合理地要求参与后续版本或以其他方式根据",
+   "bbox": [
+    93.96,
+    377.49,
+    473.96,
+    391.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 18,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    265.08,
+    473.96,
+    279.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "任何集中的时间表进行强制。",
+   "bbox": [
+    93.96,
+    391.49,
+    223.96,
+    405.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 19,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    251.08,
+    223.96,
+    265.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "27",
+   "bbox": [
+    223.96,
+    394.63,
+    230.96,
+    401.63
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 19,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    223.96,
+    255.3,
+    230.96,
+    262.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "如果防火墙内的代理需要",
+   "bbox": [
+    93.96,
+    445.49,
+    203.96,
+    459.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 20,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    197.08,
+    203.96,
+    211.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": " 1.1 ",
+   "bbox": [
+    203.96,
+    446.46,
+    221.46,
+    459.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 20,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    203.96,
+    197.13,
+    221.46,
+    210.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "兼容性，那么紧急情况将迫使应用程序开发人员尽早使用",
+   "bbox": [
+    221.46,
+    445.49,
+    471.46,
+    459.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 20,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    221.46,
+    197.08,
+    471.46,
+    211.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "新组件。但是，如果代理本身尚未兼容",
+   "bbox": [
+    93.96,
+    459.49,
+    263.96,
+    473.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    183.08,
+    263.96,
+    197.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": " 1.1",
+   "bbox": [
+    263.96,
+    460.46,
+    278.96,
+    473.8
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    263.96,
+    183.13,
+    278.96,
+    196.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "，则对现有应用程序强行进行的任何此类更",
+   "bbox": [
+    278.96,
+    459.49,
+    468.96,
+    473.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 21,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    278.96,
+    183.08,
+    468.96,
+    197.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": "改都将是灾难性的，因为较新的格式无法由较旧的格式传播",
+   "bbox": [
+    93.96,
+    473.49,
+    353.96,
+    487.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 22,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    169.08,
+    353.96,
+    183.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "27 ",
+   "bbox": [
+    93.96,
+    524.3,
+    100.96,
+    529.9
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 5.6,
+   "color": 0,
+   "line": 23,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    127.03,
+    100.96,
+    132.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a ",
+   "bbox": [
+    101.1,
+    524.87,
+    461.03,
+    532.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 23,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    101.1,
+    124.06,
+    461.03,
+    132.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring ",
+   "bbox": [
+    93.97,
+    534.87,
+    466.56,
+    542.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 24,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.97,
+    114.06,
+    466.56,
+    122.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "results in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long ",
+   "bbox": [
+    93.97,
+    544.87,
+    469.75,
+    552.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.97,
+    104.06,
+    469.75,
+    112.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "as the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that ",
+   "bbox": [
+    93.97,
+    554.87,
+    468.71,
+    562.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.97,
+    94.06,
+    468.71,
+    102.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "people will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical ",
+   "bbox": [
+    93.97,
+    564.87,
+    448.44,
+    572.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 27,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.97,
+    84.06,
+    448.44,
+    92.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "vacation). Even so, the precise timing of the upgrade ",
+   "bbox": [
+    93.97,
+    574.87,
+    266.09,
+    582.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.97,
+    74.06,
+    266.09,
+    82.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": "must",
+   "bbox": [
+    266.3,
+    574.87,
+    281.41,
+    582.87
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    266.3,
+    74.06,
+    281.41,
+    82.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": " be orchestrated by the application developer. At least ",
+   "bbox": [
+    281.41,
+    574.87,
+    455.8,
+    582.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    281.41,
+    74.06,
+    455.8,
+    82.06
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": "that way the application developer can avoid being in an incoherent state when the changeover occurs.",
+   "bbox": [
+    93.97,
+    584.87,
+    423.73,
+    592.87
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 29,
+   "page": 125,
+   "block_type": 0,
+   "v3_bbox": [
+    93.97,
+    64.06,
+    423.73,
+    72.06
+   ]
+  }
+ ],
+ "drawings": [
+  {
+   "pdf_object_id": 0,
+   "operator": "path",
+   "kind": "fs",
+   "bbox": null,
+   "fill": [
+    0.9374837875366211,
+    0.9397726655006409,
+    0.9420004487037659
+   ],
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 1,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 2,
+   "operator": "path",
+   "kind": "fs",
+   "bbox": null,
+   "fill": [
+    0.9791409373283386,
+    0.9799038767814636,
+    0.9806515574455261
+   ],
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 3,
+   "operator": "path",
+   "kind": "fs",
+   "bbox": null,
+   "fill": [
+    0.9791409373283386,
+    0.9799038767814636,
+    0.9806515574455261
+   ],
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 4,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 5,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 6,
+   "operator": "path",
+   "kind": "fs",
+   "bbox": null,
+   "fill": [
+    0.9791409373283386,
+    0.9799038767814636,
+    0.9806515574455261
+   ],
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 7,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 8,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 9,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "has_text": false
+  }
+ ],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 3,
+  "sample": [
+   "syntax error: unknown keyword: '-9.000000001435637e'",
+   "syntax error: unknown keyword: '-1.1999999998124622e'",
+   "encountered syntax errors; page may not be correct"
+  ],
+  "anomaly": true,
+  "source": "mupdf"
+ },
+ "id_direct": true
+}

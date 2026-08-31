@@ -1,0 +1,158 @@
+{
+ "page": 12,
+ "total_blocks": 4,
+ "total_render_runs": 4,
+ "matched_runs": 4,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 4,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p12_0",
+   "page": 12,
+   "kind": "paragraph",
+   "source_text": "3",
+   "translated_text": "3",
+   "translation_status": "translated",
+   "src_box": [
+    425.5209549,
+    645.2408225,
+    430.1287049,
+    654.4563224999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.22,
+   "render_rows": [
+    {
+     "source_node_id": "p12_0",
+     "render_object_ref": "R2",
+     "page": 12,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      425.52,
+      645.24,
+      430.13,
+      654.46
+     ],
+     "font_size": 9.22,
+     "text": "3"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "3"
+  },
+  {
+   "node_id": "p12_1",
+   "page": 12,
+   "kind": "paragraph",
+   "source_text": "Introduction",
+   "translated_text": "Introduction",
+   "translation_status": "translated",
+   "src_box": [
+    59.52,
+    645.1302365,
+    105.1625284,
+    654.3457365
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p12_1",
+     "render_object_ref": "R3",
+     "page": 12,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      59.52,
+      645.13,
+      105.16,
+      654.35
+     ],
+     "font_size": 12.0,
+     "text": "Introduction"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Introduction"
+  },
+  {
+   "node_id": "p12_2",
+   "page": 12,
+   "kind": "paragraph",
+   "source_text": "freelyavailableopen-sourceoperatingsystemsandpacketsnifﬁngtools.Thenwelook\natexistingresearchondailyandweeklyplayerusagetrends,trendsinserver-discovery\nprobetrafﬁcthathityourserverwhetherpeopleplayornot,andnotesometechniques\nformappingfromIPaddressestogeographicallocation.\nAttheotherendofthespectrumisthepacket-by-packetpatternshiddeninpacketsize\ndistributionsandinter-packetarrivaltimes.In‘OnlineGameTrafﬁcPatterns’,welookat\nhowtomeasuretrafﬁcpatternsatmillisecondtimescales,andshowhowthesepatterns\ncomeaboutinFirst-PersonShooter(FPS)games–themostdemandinginteractivegames\navailable.Itisatthislevelthatnetworkoperatorsneedtocarefullyunderstandtheload\nbeingputontheirnetworkinordertoproperlyconﬁgureroutersandlinksforminimal\npacket loss and jitter. We review how typical FPS packet size distributions are quite\ndifferentintheclient-to-serverandserver-to-clientdirections,andhowserver-to-client\npackettransmissionsarestructuredasafunctionofthenumberofclients.Overallthis\nchapterprovidesgreatinsightintotheburstinessthatyournetworkmustsupportifyou\nwishtoavoidskewingthelatencyandjitterexperiencedbyeveryplayer.\nThenin‘FutureDirections’,MarkClaypoolprovidesgeneralthoughtsonsometopics\nrelating to the future of online multi-player games. We particularly focus on the use\nofwirelesstechnologies,automaticconﬁgurationofQualityofServicewithoutplayer\nintervention, hybrid client–server architectures,cheaters,augmented reality,massively\nmulti-playergames,time-shiftinggames(whereyoucanstartandstopatanytime)and\nnewapproachestoserverdiscovery.\nFinally,in‘SettinguponlineFPSgameservers’,wewrapupthisbookwithapractical\nintroductiontoinstallingandstartingyourownFPSgameserversonfree,open-source\nplatforms.Inparticular,welookatthebasicsofdownloading,installingandstartingboth\nWolfensteinEnemyTerritory(acompletelyfreeteam-playFPSgame)andValve’sHalf-\nLife2(acommercialFPS).Inbothcases,wediscusstheuseofLinux-baseddedicated\ngameservers,andprovidesomethoughtsonrunningthemunderFreeBSD(bothLinux\nandFreeBSDarefree,open-sourceUNIX-likeoperatingsystemsavailableforstandard\nPChardware).\nWehopeyouwillﬁndthisbookasourceofinterestinginformationandnewideas,\nwhetheryouareanetworkingengineerinterestedingamesoragamedeveloperinterested\ningainingabetterunderstandingofyourgame’sinteractionswiththeInternet.",
+   "translated_text": "freelyavailableopen-sourceoperatingsystemsandpacketsnifﬁngtools.Thenwelook\natexistingresearchondailyandweeklyplayerusagetrends,trendsinserver-discovery\nprobetrafﬁcthathityourserverwhetherpeopleplayornot,andnotesometechniques\nformappingfromIPaddressestogeographicallocation.\nAttheotherendofthespectrumisthepacket-by-packetpatternshiddeninpacketsize\ndistributionsandinter-packetarrivaltimes.In‘OnlineGameTrafﬁcPatterns’,welookat\nhowtomeasuretrafﬁcpatternsatmillisecondtimescales,andshowhowthesepatterns\ncomeaboutinFirst-PersonShooter(FPS)games–themostdemandinginteractivegames\navailable.Itisatthislevelthatnetworkoperatorsneedtocarefullyunderstandtheload\nbeingputontheirnetworkinordertoproperlyconﬁgureroutersandlinksforminimal\npacket loss and jitter. We review how typical FPS packet size distributions are quite\ndifferentintheclient-to-serverandserver-to-clientdirections,andhowserver-to-client\npackettransmissionsarestructuredasafunctionofthenumberofclients.Overallthis\nchapterprovidesgreatinsightintotheburstinessthatyournetworkmustsupportifyou\nwishtoavoidskewingthelatencyandjitterexperiencedbyeveryplayer.\nThenin‘FutureDirections’,MarkClaypoolprovidesgeneralthoughtsonsometopics\nrelating to the future of online multi-player games. We particularly focus on the use\nofwirelesstechnologies,automaticconﬁgurationofQualityofServicewithoutplayer\nintervention, hybrid client–server architectures,cheaters,augmented reality,massively\nmulti-playergames,time-shiftinggames(whereyoucanstartandstopatanytime)and\nnewapproachestoserverdiscovery.\nFinally,in‘SettinguponlineFPSgameservers’,wewrapupthisbookwithapractical\nintroductiontoinstallingandstartingyourownFPSgameserversonfree,open-source\nplatforms.Inparticular,welookatthebasicsofdownloading,installingandstartingboth\nWolfensteinEnemyTerritory(acompletelyfreeteam-playFPSgame)andValve’sHalf-\nLife2(acommercialFPS).Inbothcases,wediscusstheuseofLinux-baseddedicated\ngameservers,andprovidesomethoughtsonrunningthemunderFreeBSD(bothLinux\nandFreeBSDarefree,open-sourceUNIX-likeoperatingsystemsavailableforstandard\nPChardware).\nWehopeyouwillﬁndthisbookasourceofinterestinginformationandnewideas,\nwhetheryouareanetworkingengineerinterestedingamesoragamedeveloperinterested\ningainingabetterunderstandingofyourgame’sinteractionswiththeInternet.",
+   "translation_status": "translated",
+   "src_box": [
+    59.52,
+    239.80389651000004,
+    430.2710860499998,
+    620.6257611
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.21,
+   "render_rows": [
+    {
+     "source_node_id": "p12_2",
+     "render_object_ref": "R4",
+     "page": 12,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      59.52,
+      239.8,
+      430.27,
+      620.63
+     ],
+     "font_size": 10.21,
+     "text": "freelyavailableopen-sourceoperatingsystemsandpacketsnifﬁngtools.Thenwelook\natexistingresearchondailyandweeklyplayerusagetrends,trendsinserver-discovery\nprobetrafﬁcthathityourserverwhetherpeopleplayornot,andnotesometechniques\nformappingfromIPaddressestogeographicallocation.\nAttheotherendofthespectrumisthepacket-by-packetpatternshiddeninpacketsize\ndistributionsandinter-packetarrivaltimes.In‘OnlineGameTrafﬁcPatterns’,welookat\nhowtomeasuretrafﬁcpatternsatmillisecondtimescales,andshowhowthesepatterns\ncomeaboutinFirst-PersonShooter(FPS)games–themostdemandinginteractivegames\navailable.Itisatthislevelthatnetworkoperatorsneedtocarefullyunderstandtheload\nbeingputontheirnetworkinordertoproperlyconﬁgureroutersandlinksforminimal\npacket loss and jitter. We review how typical FPS packet size distributions are quite\ndifferentintheclient-to-serverandserver-to-clientdirections,andhowserver-to-client\npackettransmissionsarestructuredasafunctionofthenumberofclients.Overallthis\nchapterprovidesgreatinsightintotheburstinessthatyournetworkmustsupportifyou\nwishtoavoidskewingthelatencyandjitterexperiencedbyeveryplayer.\nThenin‘FutureDirections’,MarkClaypoolprovidesgeneralthoughtsonsometopics\nrelating to the future of online multi-player games. We particularly focus on the use\nofwirelesstechnologies,automaticconﬁgurationofQualityofServicewithoutplayer\nintervention, hybrid client–server architectures,cheaters,augmented reality,massively\nmulti-playergames,time-shiftinggames(whereyoucanstartandstopatanytime)and\nnewapproachestoserverdiscovery.\nFinally,in‘SettinguponlineFPSgameservers’,wewrapupthisbookwithapractical\nintroductiontoinstallingandstartingyourownFPSgameserversonfree,open-source\nplatforms.Inparticular,welookatthebasicsofdownloading,installingandstartingboth\nWolfensteinEnemyTerritory(acompletelyfreeteam-playFPSgame)andValve’sHalf-\nLife2(acommercialFPS).Inbothcases,wediscusstheuseofLinux-baseddedicated\ngameservers,andprovidesomethoughtsonrunningthemunderFreeBSD(bothLinux\nandFreeBSDarefree,open-sourceUNIX-likeoperatingsystemsavailableforstandard\nPChardware).\nWehopeyouwillﬁndthisbookasourceofinterestinginformationandnewideas,\nwhetheryouareanetworkingengineerinterestedingamesoragamedeveloperinterested\ningainingabetterunderstandingofyourgame’sinteractionswiththeInternet."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "freelyavailableopen-sourceoperatingsystemsandpacketsnifﬁngtools.Thenwelook\natexistingresearchondailyandweeklyplayerusagetrends,trendsinserver-discovery\nprobetrafﬁcthathityourserverwhetherpeopleplayornot,andnotesometechniques\nformappingfromIPaddressestogeographicallocation.\nAttheotherendofthespectrumisthepacket-by-packetpatternshiddeninpacketsize\ndistributionsandinter-packetarrivaltimes.In‘OnlineGameTrafﬁcPatterns’,welookat\nhowtomeasuretrafﬁcpatternsatmillisecondtimescales,andshowhowthesepatterns\ncomeaboutinFirst-PersonShooter(FPS)games–themostdemandinginteractivegames\navailable.Itisatthislevelthatnetworkoperatorsneedtocarefullyunderstandtheload\nbeingputontheirnetworkinordertoproperlyconﬁgureroutersandlinksforminimal\npacket loss and jitter. We review how typical FPS packet size distributions are quite\ndifferentintheclient-to-serverandserver-to-clientdirections,andhowserver-to-client\npackettransmissionsarestructuredasafunctionofthenumberofclients.Overallthis\nchapterprovidesgreatinsightintotheburstinessthatyournetworkmustsupportifyou\nwishtoavoidskewingthelatencyandjitterexperiencedbyeveryplayer.\nThenin‘FutureDirections’,MarkClaypoolprovidesgeneralthoughtsonsometopics\nrelating to the future of online multi-player games. We particularly focus on the use\nofwirelesstechnologies,automaticconﬁgurationofQualityofServicewithoutplayer\nintervention, hybrid client–server architectures,cheaters,augmented reality,massively\nmulti-playergames,time-shiftinggames(whereyoucanstartandstopatanytime)and\nnewapproachestoserverdiscovery.\nFinally,in‘SettinguponlineFPSgameservers’,wewrapupthisbookwithapractical\nintroductiontoinstallingandstartingyourownFPSgameserversonfree,open-source\nplatforms.Inparticular,welookatthebasicsofdownloading,installingandstartingboth\nWolfensteinEnemyTerritory(acompletelyfreeteam-playFPSgame)andValve’sHalf-\nLife2(acommercialFPS).Inbothcases,wediscusstheuseofLinux-baseddedicated\ngameservers,andprovidesomethoughtsonrunningthemunderFreeBSD(bothLinux\nandFreeBSDarefree,open-sourceUNIX-likeoperatingsystemsavailableforstandard\nPChardware).\nWehopeyouwillﬁndthisbookasourceofinterestinginformationandnewideas,\nwhetheryouareanetworkingengineerinterestedingamesoragamedeveloperinterested\ningainingabetterunderstandingofyourgame’sinteractionswiththeInternet."
+  },
+  {
+   "node_id": "p12_3",
+   "page": 12,
+   "kind": "paragraph",
+   "source_text": "GrenvilleArmitage(authorandeditor)",
+   "translated_text": "GrenvilleArmitage(authorandeditor)",
+   "translation_status": "translated",
+   "src_box": [
+    267.9009713699999,
+    215.86358703000005,
+    430.14139746000006,
+    226.07528703000006
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p12_3",
+     "render_object_ref": "R5",
+     "page": 12,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      267.9,
+      215.86,
+      430.14,
+      226.08
+     ],
+     "font_size": 12.0,
+     "text": "GrenvilleArmitage(authorandeditor)"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "GrenvilleArmitage(authorandeditor)"
+  }
+ ],
+ "defects": []
+}

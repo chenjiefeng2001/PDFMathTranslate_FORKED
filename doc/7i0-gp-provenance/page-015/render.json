@@ -1,0 +1,705 @@
+{
+ "page": 31,
+ "page_height": 666.0020141601562,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "Contents",
+   "bbox": [
+    429.36,
+    39.55,
+    463.5,
+    49.52
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 1,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    429.36,
+    616.48,
+    463.5,
+    626.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "xv",
+   "bbox": [
+    476.64,
+    38.06,
+    488.06,
+    50.02
+   ],
+   "font": "Minion-Bold",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 2,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    476.64,
+    615.98,
+    488.06,
+    627.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "14.3 ",
+   "bbox": [
+    153.12,
+    75.01,
+    177.04,
+    90.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 3,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    575.03,
+    177.04,
+    590.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "数学规划",
+   "bbox": [
+    177.04,
+    73.85,
+    224.89,
+    91.03
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 3,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    177.04,
+    574.97,
+    224.89,
+    592.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "838",
+   "bbox": [
+    224.89,
+    75.01,
+    242.83,
+    90.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 3,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    224.89,
+    575.03,
+    242.83,
+    590.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "14.3.1 ",
+   "bbox": [
+    181.2,
+    90.04,
+    208.61,
+    103.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    181.2,
+    562.67,
+    208.61,
+    575.96
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "卡鲁什",
+   "bbox": [
+    208.61,
+    89.07,
+    238.51,
+    103.38
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    208.61,
+    562.62,
+    238.51,
+    576.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "-",
+   "bbox": [
+    238.51,
+    90.04,
+    241.83,
+    103.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    238.51,
+    562.67,
+    241.83,
+    575.96
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "库恩",
+   "bbox": [
+    241.83,
+    89.07,
+    261.77,
+    103.38
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    241.83,
+    562.62,
+    261.77,
+    576.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "-",
+   "bbox": [
+    261.77,
+    90.04,
+    265.09,
+    103.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    261.77,
+    562.67,
+    265.09,
+    575.96
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "塔克条件",
+   "bbox": [
+    265.09,
+    89.07,
+    304.96,
+    103.38
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    265.09,
+    562.62,
+    304.96,
+    576.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": " 841 14.3.2 ",
+   "bbox": [
+    304.96,
+    90.04,
+    352.3,
+    103.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    304.96,
+    562.67,
+    352.3,
+    575.96
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": "凸二次规划",
+   "bbox": [
+    352.3,
+    89.07,
+    402.14,
+    103.38
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    352.3,
+    562.62,
+    402.14,
+    576.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": " 843 14.3.3 ",
+   "bbox": [
+    402.14,
+    90.04,
+    449.49,
+    103.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    402.14,
+    562.67,
+    449.49,
+    575.96
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "一般对",
+   "bbox": [
+    449.49,
+    89.07,
+    479.39,
+    103.38
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    449.49,
+    562.62,
+    479.39,
+    576.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "偶理论",
+   "bbox": [
+    181.2,
+    103.02,
+    211.1,
+    117.34
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    181.2,
+    548.66,
+    211.1,
+    562.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": " 846",
+   "bbox": [
+    211.1,
+    103.99,
+    228.55,
+    117.29
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    211.1,
+    548.71,
+    228.55,
+    562.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "14.4 ",
+   "bbox": [
+    153.12,
+    129.01,
+    177.04,
+    144.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 6,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    521.03,
+    177.04,
+    536.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "应用",
+   "bbox": [
+    177.04,
+    127.85,
+    200.96,
+    145.03
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 6,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    177.04,
+    520.97,
+    200.96,
+    538.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": " 847 14.4.1 ",
+   "bbox": [
+    200.96,
+    129.01,
+    257.78,
+    144.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 6,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    200.96,
+    521.03,
+    257.78,
+    536.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "距离计算",
+   "bbox": [
+    257.78,
+    127.85,
+    305.62,
+    145.03
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 6,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    257.78,
+    520.97,
+    305.62,
+    538.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": " 847 14.4.2 ",
+   "bbox": [
+    305.62,
+    129.01,
+    362.44,
+    144.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 6,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    305.62,
+    521.03,
+    362.44,
+    536.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "接触力",
+   "bbox": [
+    362.44,
+    127.85,
+    398.32,
+    145.03
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 6,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    362.44,
+    520.97,
+    398.32,
+    538.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": " 855",
+   "bbox": [
+    398.32,
+    129.01,
+    419.25,
+    144.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 6,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    398.32,
+    521.03,
+    419.25,
+    536.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "参考书目",
+   "bbox": [
+    153.12,
+    171.36,
+    208.94,
+    191.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 13.95,
+   "color": 0,
+   "line": 7,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    474.6,
+    208.94,
+    494.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    208.94,
+    172.72,
+    212.43,
+    191.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 13.95,
+   "color": 0,
+   "line": 7,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    208.94,
+    474.67,
+    212.43,
+    493.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "857",
+   "bbox": [
+    212.43,
+    179.95,
+    226.81,
+    189.92
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 7,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    212.43,
+    476.08,
+    226.81,
+    486.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "索引",
+   "bbox": [
+    153.6,
+    192.24,
+    181.51,
+    212.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 13.95,
+   "color": 0,
+   "line": 8,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    153.6,
+    453.72,
+    181.51,
+    473.76
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    181.51,
+    193.6,
+    185.0,
+    212.21
+   ],
+   "font": "Times-Roman",
+   "font_size": 13.95,
+   "color": 0,
+   "line": 8,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    181.51,
+    453.79,
+    185.0,
+    472.4
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "865",
+   "bbox": [
+    185.0,
+    200.83,
+    199.38,
+    210.8
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 8,
+   "page": 31,
+   "block_type": 0,
+   "v3_bbox": [
+    185.0,
+    455.2,
+    199.38,
+    465.17
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

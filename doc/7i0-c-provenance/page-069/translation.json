@@ -1,0 +1,310 @@
+[
+ {
+  "node_id": "p69_0",
+  "source_text": "Section 0.5 Malleable vs. Stable Software",
+  "translated_text": "Section 0.5 Malleable vs. Stable Software",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_1",
+  "source_text": "Payroll Report Writer",
+  "translated_text": "Payroll Report Writer",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_2",
+  "source_text": "The device manager\nmust be modified in",
+  "translated_text": "The device manager\nmust be modified in",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_3",
+  "source_text": "order to support",
+  "translated_text": "order to support",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_4",
+  "source_text": "PostScript",
+  "translated_text": "PostScript",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_5",
+  "source_text": "Suppose instead we decide to consolidate all of the device interfaces into one interface that can then\nbe used to drive all appropriate devices. Given a collection of existing interfaces, we might consider\nmaking this component a wrapper that logically encapsulates the specific devices, as shown in Fig-\nure 0-28. This solution, although often employed in practice, also fails on multiple counts. Apart\nfrom having to modify the source of the output manager every time a new device comes online,\nwe impose an outrageous physical dependency: Every report writer, to be used (or even tested),\nmust link with every known output device. As if that were not bad enough, some devices (e.g., the\nWindows output device) might not exist on every supported platform! Enough said.",
+  "translated_text": "Suppose instead we decide to consolidate all of the device interfaces into one interface that can then\nbe used to drive all appropriate devices. Given a collection of existing interfaces, we might consider\nmaking this component a wrapper that logically encapsulates the specific devices, as shown in Fig-\nure 0-28. This solution, although often employed in practice, also fails on multiple counts. Apart\nfrom having to modify the source of the output manager every time a new device comes online,\nwe impose an outrageous physical dependency: Every report writer, to be used (or even tested),\nmust link with every known output device. As if that were not bad enough, some devices (e.g., the\nWindows output device) might not exist on every supported platform! Enough said.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 8
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p69_6",
+  "source_text": "Account Report Writer",
+  "translated_text": "Account Report Writer",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_7",
+  "source_text": "We can easily",
+  "translated_text": "We can easily",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_8",
+  "source_text": "Output Device Manager",
+  "translated_text": "Output Device Manager",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_9",
+  "source_text": "each new device.",
+  "translated_text": "each new device.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_10",
+  "source_text": "ASCII Output Device",
+  "translated_text": "ASCII Output Device",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_11",
+  "source_text": "PostScript Output Device",
+  "translated_text": "PostScript Output Device",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_12",
+  "source_text": "ASCII",
+  "translated_text": "ASCII",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_13",
+  "source_text": "Printer",
+  "translated_text": "Printer",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_14",
+  "source_text": "Windows",
+  "translated_text": "Windows",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_15",
+  "source_text": "Printer",
+  "translated_text": "Printer",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_16",
+  "source_text": "Figure 0-28: Encapsulating a readily extensible collection (BAD IDEA)",
+  "translated_text": "Figure 0-28: Encapsulating a readily extensible collection (BAD IDEA)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_17",
+  "source_text": "As will be a recurring theme throughout this book, we will choose to avoid encapsulating\ninherently extensible, nonportable, third-party, or otherwise uncontrollable or risky software\nthat could potentially produce a destabilizing effect on our core libraries. Instead, we will",
+  "translated_text": "As will be a recurring theme throughout this book, we will choose to avoid encapsulating\ninherently extensible, nonportable, third-party, or otherwise uncontrollable or risky software\nthat could potentially produce a destabilizing effect on our core libraries. Instead, we will",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_18",
+  "source_text": "35",
+  "translated_text": "35",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_19",
+  "source_text": "capture the definition of such behavior — typically as a protocol (pure abstract interface)\nclass (see section 1.7.5) — along with detailed comments delineating precisely what behavior\nis expected. In this way, new output devices may be introduced by applications at will; the\nonly caveat is that these new concrete implementations satisfy the contract (see Volume II,",
+  "translated_text": "capture the definition of such behavior — typically as a protocol (pure abstract interface)\nclass (see section 1.7.5) — along with detailed comments delineating precisely what behavior\nis expected. In this way, new output devices may be introduced by applications at will; the\nonly caveat is that these new concrete implementations satisfy the contract (see Volume II,",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 4
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p69_20",
+  "source_text": "35\nSection 3.5.7 explores protocols (see section 3.5.7.4) along with several other alternatives including concepts\n(see section 3.5.7.5).",
+  "translated_text": "35\nSection 3.5.7 explores protocols (see section 3.5.7.4) along with several other alternatives including concepts\n(see section 3.5.7.5).",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p69_21",
+  "source_text": "Security Report Writer",
+  "translated_text": "Security Report Writer",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_22",
+  "source_text": "Windows Output Device",
+  "translated_text": "Windows Output Device",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_23",
+  "source_text": "Printer",
+  "translated_text": "Printer",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_24",
+  "source_text": "39",
+  "translated_text": "39",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_25",
+  "source_text": "foresee additional",
+  "translated_text": "foresee additional",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_26",
+  "source_text": "output devices.",
+  "translated_text": "output devices.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p69_27",
+  "source_text": "ptg31790760",
+  "translated_text": "ptg31790760",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ }
+]

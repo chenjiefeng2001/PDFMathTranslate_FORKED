@@ -1,0 +1,24 @@
+{
+ "documents": [
+  {
+   "path": "pdf2zh_files/Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6.pdf",
+   "pages": [
+    0,
+    12,
+    24,
+    36,
+    48
+   ]
+  }
+ ],
+ "defects": {},
+ "first_divergence_stage_histogram": {
+  "source": 0,
+  "parser": 0,
+  "model": 0,
+  "translation": 0,
+  "layout": 0,
+  "render": 0,
+  "pdf": 0
+ }
+}

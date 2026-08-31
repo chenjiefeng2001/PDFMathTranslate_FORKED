@@ -1,0 +1,82 @@
+[
+ {
+  "node_id": "p30_0",
+  "kind": "paragraph",
+  "role": "page_number",
+  "role_confidence": 0.7,
+  "bbox": [
+   50.974,
+   590.135,
+   59.181999999999995,
+   599.135
+  ],
+  "font_size": 9.0,
+  "font_major": "SHEJLS+ArialNarrow-Bold",
+  "multifont": false,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p30_1",
+  "kind": "heading",
+  "role": "heading",
+  "role_confidence": 0.72,
+  "bbox": [
+   322.27,
+   590.135,
+   380.176,
+   599.135
+  ],
+  "font_size": 0.0,
+  "font_major": "",
+  "multifont": false,
+  "reading_order": 1
+ },
+ {
+  "node_id": "p30_2",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   50.123999999999995,
+   356.273,
+   381.03299999999996,
+   568.27
+  ],
+  "font_size": 9.0,
+  "font_major": "LSEBRO+CenturySchoolbook",
+  "multifont": true,
+  "reading_order": 2
+ },
+ {
+  "node_id": "p30_3",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   50.964999999999954,
+   234.47500000000002,
+   381.10400000000004,
+   331.63800000000003
+  ],
+  "font_size": 9.0,
+  "font_major": "LSEBRO+CenturySchoolbook",
+  "multifont": true,
+  "reading_order": 3
+ },
+ {
+  "node_id": "p30_4",
+  "kind": "formula",
+  "role": "formula",
+  "role_confidence": 0.9,
+  "bbox": [
+   50.964999999999954,
+   79.777,
+   381.2479999999999,
+   210.41
+  ],
+  "font_size": 9.0,
+  "font_major": "LSEBRO+CenturySchoolbook",
+  "multifont": true,
+  "reading_order": 4
+ }
+]

@@ -1,0 +1,437 @@
+[
+ {
+  "node_id": "p24_0",
+  "index": 0,
+  "text": "16 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "bbox": [
+   46.08,
+   645.1302365,
+   416.53296294999984,
+   654.4563224999999
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 9.22,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_1",
+  "index": 1,
+  "text": "Client",
+  "bbox": [
+   107.7108,
+   437.5718434,
+   124.8712728,
+   444.28564339999997
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_2",
+  "index": 2,
+  "text": "Client",
+  "bbox": [
+   64.07119999999999,
+   383.8616434,
+   81.23167279999998,
+   390.5754434
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_3",
+  "index": 3,
+  "text": "Client",
+  "bbox": [
+   107.7108,
+   330.15171477999996,
+   124.8712728,
+   336.86551477999996
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_4",
+  "index": 4,
+  "text": "Client",
+  "bbox": [
+   231.91532861999997,
+   514.7804434,
+   249.07580141999998,
+   521.4942434000001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_5",
+  "index": 5,
+  "text": "Client\n(a)",
+  "bbox": [
+   79.20989539999995,
+   497.6749434,
+   96.37036819999994,
+   514.7803630400001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_6",
+  "index": 6,
+  "text": "Client",
+  "bbox": [
+   151.3506,
+   383.8616434,
+   168.5110728,
+   390.5754434
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_7",
+  "index": 7,
+  "text": "Client",
+  "bbox": [
+   198.34699999999998,
+   551.7063433999999,
+   215.5074728,
+   558.4201434
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_8",
+  "index": 8,
+  "text": "Client",
+  "bbox": [
+   198.3471,
+   477.8548434,
+   215.50757280000002,
+   484.5686434
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_9",
+  "index": 9,
+  "text": "Client",
+  "bbox": [
+   377.93987862000006,
+   383.86137202000003,
+   395.10035142000004,
+   390.57517202
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_10",
+  "index": 10,
+  "text": "Server",
+  "bbox": [
+   107.1397,
+   380.5048434,
+   126.94541000000001,
+   387.2186434
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_11",
+  "index": 11,
+  "text": "Client",
+  "bbox": [
+   377.93987862000006,
+   330.1516434,
+   395.10035142000004,
+   336.8654434
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_12",
+  "index": 12,
+  "text": "(d)",
+  "bbox": [
+   113.18373753999995,
+   320.06673544000006,
+   121.38800113999994,
+   326.78053544000005
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_13",
+  "index": 13,
+  "text": "Client",
+  "bbox": [
+   332.6228,
+   581.9185434,
+   349.78327279999996,
+   588.6323434000001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_14",
+  "index": 14,
+  "text": "Client",
+  "bbox": [
+   288.9832,
+   528.2083434,
+   306.1436728,
+   534.9221434000001
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_15",
+  "index": 15,
+  "text": "Client\nServer",
+  "bbox": [
+   332.0522,
+   524.8513433999999,
+   393.4230728,
+   534.9221434000001
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_16",
+  "index": 16,
+  "text": "Client",
+  "bbox": [
+   161.4211,
+   514.7804434,
+   178.5815728,
+   521.4942434000001
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_17",
+  "index": 17,
+  "text": "Client\n(c)",
+  "bbox": [
+   332.6228,
+   465.14456826,
+   349.78327279999996,
+   481.21221478
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_18",
+  "index": 18,
+  "text": "(b)",
+  "bbox": [
+   202.142,
+   465.1444434,
+   210.3462636,
+   471.8582434
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_19",
+  "index": 19,
+  "text": "Client",
+  "bbox": [
+   377.941,
+   420.7877434,
+   395.10147279999995,
+   427.5015434
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_20",
+  "index": 20,
+  "text": "Client",
+  "bbox": [
+   258.7706,
+   410.71724340000003,
+   275.9310728,
+   417.4310434
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_21",
+  "index": 21,
+  "text": "Server",
+  "bbox": [
+   335.40795562000005,
+   397.28897202,
+   355.21366562000003,
+   404.00277202
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_22",
+  "index": 22,
+  "text": "Client",
+  "bbox": [
+   252.05724999999995,
+   370.4342434,
+   269.21772279999993,
+   377.1480434
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_23",
+  "index": 23,
+  "text": "Server",
+  "bbox": [
+   295.1261,
+   367.0775434,
+   314.93181,
+   373.7913434
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_24",
+  "index": 24,
+  "text": "Server",
+  "bbox": [
+   335.40795562000005,
+   343.5792434,
+   355.21366562000003,
+   350.2930434
+  ],
+  "font": "FLAMND+Helvetica",
+  "font_size": 6.71,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_25",
+  "index": 25,
+  "text": "Client",
+  "bbox": [
+   262.12817138,
+   330.1516434,
+   279.28864418,
+   336.8654434
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p24_26",
+  "index": 26,
+  "text": "(e)",
+  "bbox": [
+   320.47231253999996,
+   320.06673544000006,
+   328.67657614,
+   326.78053544000005
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_27",
+  "index": 27,
+  "text": "Figure3.1 The possible communication architectures for multiplayer and network games:\na)single screen, possibly ‘split’, on a single computer, b)peer-to-peer, c)a client–server,\nd)peer-to-peer-clientserverhybrid,ande)networkofservers",
+  "bbox": [
+   46.08,
+   277.38980000000004,
+   416.7366255,
+   308.6764225
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 9.22,
+  "line_count": 3,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p24_28",
+  "index": 28,
+  "text": "AreaNetworks(WANs)(i.e.theInternet),theydonotscalewellwithoutanadditional\nhierarchicalstructure.\nInaclient–serverarchitecture,oneprocessplaystheroleoftheserver,communicating\nwitheachclientandmediatingthegamestate.Theclientsdonotcommunicatedirectly\nwith each other but rather have the server route messages to the appropriate clients.\nTheserveristhecriticalpartinthecommunicationlink;ifaclientcannotcommunicate\nwiththeserverthegamecannotbeplayedandiftheservercannotkeepupwiththe\ncommunicationandcomputationrequired,thegameplaycandegradeforallclients.The\nclient–server architecture is the most popular architecture used in commercial online\ngamesaswellasintheclassicMultiUserDungeon(MUD)games(seeChapter2fora\ndescriptionofaMUD).\nInthepeer-to-peer,client–serverhybridarchitecture,theserverprocessmediatesgame\nstatesonthebasisofinformationsentbyclientsasinthetraditionalclient–serverarchi-\ntecture,buttheclientsarealsoabletocommunicatewithotherclientsasinthetraditional\npeer-to-peerarchitecture.Thecommunicationamongsttheclientpeersisgenerallyfor\ngameinformationthatisnotessentialforachievingconsistentviewsofthegamestate",
+  "bbox": [
+   46.08,
+   67.41827813999988,
+   416.7289690500001,
+   257.44576109999997
+  ],
+  "font": "GFOBMP+Times-Roman",
+  "font_size": 10.21,
+  "line_count": 16,
+  "translation_status": "translated"
+ }
+]

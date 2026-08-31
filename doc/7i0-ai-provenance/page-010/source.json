@@ -1,0 +1,47 @@
+[
+ {
+  "node_id": "p10_0",
+  "index": 0,
+  "text": "Q Taylor&Francis",
+  "bbox": [
+   108.1204,
+   320.9203,
+   322.41457590000005,
+   355.0203
+  ],
+  "font": "Helvetica-Bold",
+  "font_size": 22.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p10_1",
+  "index": 1,
+  "text": "Taylor&FrancisGroup",
+  "bbox": [
+   167.6895,
+   308.2416,
+   282.0088,
+   319.4416
+  ],
+  "font": "Helvetica-Bold",
+  "font_size": 11.2,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p10_2",
+  "index": 2,
+  "text": "~http://taylorandfrancis.com",
+  "bbox": [
+   108.48,
+   296.2668,
+   263.68586,
+   327.12
+  ],
+  "font": "Helvetica",
+  "font_size": 7.6,
+  "line_count": 1,
+  "translation_status": "preserved"
+ }
+]

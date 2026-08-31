@@ -1,0 +1,377 @@
+[
+ {
+  "node_id": "p185_0",
+  "index": 0,
+  "text": "Section 1.3 Declarations, Definitions, and Linkage",
+  "bbox": [
+   98.5,
+   674.41,
+   319.535,
+   684.41
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_1",
+  "index": 1,
+  "text": "int a;\nclass Foo { };",
+  "bbox": [
+   144.5,
+   535.05102,
+   220.1,
+   558.05502
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_2",
+  "index": 2,
+  "text": "34",
+  "bbox": [
+   155.05979,
+   487.88298999999995,
+   162.05979,
+   494.88298999999995
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_3",
+  "index": 3,
+  "text": "// xyza_foo.h",
+  "bbox": [
+   150.074,
+   408.18909,
+   214.33,
+   416.18909
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_4",
+  "index": 4,
+  "text": "}",
+  "bbox": [
+   150.074,
+   369.78909,
+   154.87400000000002,
+   377.78909
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_5",
+  "index": 5,
+  "text": "155",
+  "bbox": [
+   498.5,
+   674.41,
+   513.5,
+   684.41
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_6",
+  "index": 6,
+  "text": "typedef int Int; // 'typedef' declaration of an alias for 'int'3 3\nclass Foo;",
+  "bbox": [
+   144.5,
+   622.30502,
+   496.39469299999996,
+   645.52997237
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_7",
+  "index": 7,
+  "text": "// pure (a.k.a. \"forward\") class declaration",
+  "bbox": [
+   241.7,
+   622.30502,
+   479.30000000000035,
+   631.30502
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_8",
+  "index": 8,
+  "text": "A definition characterizes an entity, reserving storage where appropriate:",
+  "bbox": [
+   134.5,
+   571.49302,
+   426.88299999999987,
+   581.50302
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_9",
+  "index": 9,
+  "text": "// class definition\n// definition of both 'E' and 'X'",
+  "bbox": [
+   317.3,
+   521.04702,
+   495.5000000000004,
+   544.05102
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_10",
+  "index": 10,
+  "text": "int f(int x) { return x + 1; } // definition of both 'f' and 'x'",
+  "bbox": [
+   144.5,
+   508.05102,
+   495.5000000000004,
+   517.05102
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_11",
+  "index": 11,
+  "text": "35",
+  "bbox": [
+   354.83718,
+   487.88298999999995,
+   361.83718,
+   494.88298999999995
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_12",
+  "index": 12,
+  "text": "Most definitions also serve as their own declarations, as is the case with each of the defini-\ntions above. Unfortunately, self-declaring definitions can also lead to subtle problems. Consider\nwhat can happen when a function defined at namespace scope is also separately declared —\ne.g., in a header file as shown in Figure 1-16.",
+  "bbox": [
+   134.49717999999996,
+   442.25298999999995,
+   513.5181799999999,
+   494.25298999999995
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 4,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_13",
+  "index": 13,
+  "text": "// xyza_foo.cpp BAD IDEA",
+  "bbox": [
+   303.346,
+   407.58659,
+   435.2172,
+   416.18908999999996
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_14",
+  "index": 14,
+  "text": "namespace xyza {",
+  "bbox": [
+   150.074,
+   398.58909,
+   229.15400000000002,
+   406.58909
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_15",
+  "index": 15,
+  "text": "namespace xyza {",
+  "bbox": [
+   303.346,
+   398.58908999999994,
+   382.698,
+   406.58908999999994
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_16",
+  "index": 16,
+  "text": "ptg31790760",
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_17",
+  "index": 17,
+  "text": "}",
+  "bbox": [
+   303.346,
+   369.7890899999999,
+   308.146,
+   377.7890899999999
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_18",
+  "index": 18,
+  "text": "Figure 1-16: Defining free functions within their declared scope (BAD IDEA)",
+  "bbox": [
+   175.6233,
+   341.85129,
+   472.37129999999996,
+   350.85129
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_19",
+  "index": 19,
+  "text": "Do you see the two problems? In the first case, foobar is misspelled; in the second, the name",
+  "bbox": [
+   134.5,
+   315.63228999999995,
+   513.5047900000001,
+   325.63228999999995
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_20",
+  "index": 20,
+  "text": "file will not expose this problem: The compiler will see each of the functions defined in the\n.cpp file as distinct entities from those declared in the corresponding .h file. Such mismatches\nin signatures between declaration and definition will go undetected at compile time (and, if\nthese pure declarations go unused, at link time as well). We can, however, ensure that the\ncompiler will report such defects — simply by defining the entity from outside of the scope in\nwhich it is declared — as shown in Figure 1-17.",
+  "bbox": [
+   134.49858999999998,
+   217.63228999999998,
+   513.50259,
+   297.63219999999995
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 6,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_21",
+  "index": 21,
+  "text": "As of C++11, we could spell it",
+  "bbox": [
+   141.63999,
+   180.31230000000002,
+   241.41439,
+   188.3203
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_22",
+  "index": 22,
+  "text": "But, by no means, all, as we will demonstrate shortly.",
+  "bbox": [
+   141.63999,
+   158.3201,
+   314.6647899999999,
+   166.3201
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 5.6,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p185_23",
+  "index": 23,
+  "text": "It might come as a surprise (it did to me) that — according to the C++ language grammar, at least — every",
+  "bbox": [
+   141.63999,
+   146.3201,
+   487.4231900000001,
+   154.3201
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p185_24",
+  "index": 24,
+  "text": "definition is also considered a declaration. We find this terminology to be most unfortunate, as it doesn’t reflect the\nimportant notion that many definitions are also self-declaring (e.g., int x;), while others, such as those residing\noutside of the namespace in which they must also be separately declared (e.g., int ns::x;), are not. Throughout this\nbook, when we use the term definition only, we mean that the definition itself is explicitly not self-declaring.",
+  "bbox": [
+   134.49638000000004,
+   106.3121,
+   513.47718,
+   144.3201
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 4,
+  "translation_status": "preserved"
+ }
+]

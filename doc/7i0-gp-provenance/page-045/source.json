@@ -1,0 +1,167 @@
+[
+ {
+  "node_id": "p45_0",
+  "index": 0,
+  "text": "1.1 ABriefHistoryoftheWorld 3",
+  "bbox": [
+   337.2,
+   616.1312971,
+   488.01793899999996,
+   628.0923971
+  ],
+  "font": "OKMFAH+Minion-Regular",
+  "font_size": 9.97,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_1",
+  "index": 1,
+  "text": "bysendingcrypticescapesequencesofthetypethatyounormallyseeinprinter\ndrivers.",
+  "bbox": [
+   153.11900324,
+   565.0077499600001,
+   488.1938318800005,
+   586.9753436
+  ],
+  "font": "OKMFAH+Minion-Regular",
+  "font_size": 9.97,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_2",
+  "index": 2,
+  "text": "“640Koughttobeenoughforanybody.”",
+  "bbox": [
+   228.96,
+   534.7390488,
+   412.6016391599999,
+   545.7034487999999
+  ],
+  "font": "OKNLPI+Myriad-Roman",
+  "font_size": 10.96,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_3",
+  "index": 3,
+  "text": "William(“Bill”)H.Gates",
+  "bbox": [
+   279.36,
+   520.2537618,
+   362.14436229,
+   529.2246617999999
+  ],
+  "font": "OKNMAJ+Myriad-Italic",
+  "font_size": 8.97,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p45_4",
+  "index": 4,
+  "text": "DuringmytenureatUTSA,Ibecamemoreinvolvedincomputer-relatedtop-\nicsandlessinvolvedintheoreticalconsiderationsinmyresearchﬁeldofdifferential\nequations.InparticularIbecameinvolvedwiththeUniversityofTexasHealthScience\nCenter’sDepartmentofRadiology.Theﬁeldofmedicalimagingwasquiteinteresting\ntomewithitsinherentconnectiontocomputergraphicsandvisualization,butalsoof\ninterestwereaspectsofgeometryandnumericalmethodssincewewereinterestedin\nanalyzingandextractinganatomicalinformationfrom3Dmedicalimages.Myinter-\nestinthetopicwasstrongenoughthatIdecidedtoleaveUTSAin1991andbecome\na“retread”bystudyingcomputerscienceandmedicalimagingattheUniversityof\nNorthCarolina(UNC)atChapelHill.\nWhileatUNCIhadaccesstomorepowerfulequipment.WedidnothaveaCray\nsupercomputerwithacoupleofpowerfulprocessors,butwedidhaveamassivelypar-\nallelmachineappropriatelynamedtheMASPARwith8,196processors,individually\nnotverypowerful,butanaturalarchitecturefor2Dimageprocessing.",
+  "bbox": [
+   153.11317024000002,
+   334.8482645999999,
+   488.3325290800006,
+   500.3353436
+  ],
+  "font": "OKMFAH+Minion-Regular",
+  "font_size": 9.97,
+  "line_count": 14,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_5",
+  "index": 5,
+  "text": "“Ifyouwereplowingaﬁeld,whichwouldyouratheruse?",
+  "bbox": [
+   191.28,
+   304.5790488,
+   450.1220729999999,
+   315.5434488
+  ],
+  "font": "OKNLPI+Myriad-Roman",
+  "font_size": 10.96,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_6",
+  "index": 6,
+  "text": "Twostrongoxenor1024chickens?”\nSeymourCray,fatherofsupercomputing",
+  "bbox": [
+   239.27995032,
+   277.1337618,
+   401.56293828,
+   302.583528
+  ],
+  "font": "OKNMAJ+Myriad-Italic",
+  "font_size": 8.97,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_7",
+  "index": 7,
+  "text": "Still,therewasastrongattractiontocomputenumericallyonapersonalcom-\nputer,toseetheresultsgraphicallyandimmediately,ifnotsooner.",
+  "bbox": [
+   153.12014756000002,
+   233.80774996000002,
+   487.6607128400001,
+   255.77534359999999
+  ],
+  "font": "OKMFAH+Minion-Regular",
+  "font_size": 9.97,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_8",
+  "index": 8,
+  "text": "“ThePCistheLSDofthe90’s.”",
+  "bbox": [
+   252.24,
+   203.53904880000002,
+   388.8630026400001,
+   214.5034488
+  ],
+  "font": "OKNLPI+Myriad-Roman",
+  "font_size": 10.96,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_9",
+  "index": 9,
+  "text": "TimothyLeary,educatorandpsychologist",
+  "bbox": [
+   246.24,
+   189.05376180000002,
+   395.8853770800001,
+   198.02466180000002
+  ],
+  "font": "OKNMAJ+Myriad-Italic",
+  "font_size": 8.97,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_10",
+  "index": 10,
+  "text": "AtthetimeIhadupgradedmyIntel8086machinetoanIntel80486machine\nwithaﬂoatingpointcoprocessor.Iwasabletoimplementmanyalgorithmsofinter-\nestinimageanalysis,includingconstructingsomethingcalledridgesthataredeﬁned\nintermsofdifferentialequations.ThesameprogrammingissuesthataroseatCU\nbitmeagain:applyingnumericalmethodsfordifferentialequationsolverswithout\nthoughtaboutthestabilityofthemethodsorabouttheirapplicabilitytotheprob-\nlemathand.Anotherproblemofinterestwastocomputegeodesiccurvesonsurfaces,\ncurvesthatrepresenttheshortestsurfacepathbetweentwopointsonthesurface.",
+  "bbox": [
+   153.11616052,
+   74.20800728000002,
+   488.1640766400002,
+   167.93534359999998
+  ],
+  "font": "OKMFAH+Minion-Regular",
+  "font_size": 9.97,
+  "line_count": 8,
+  "translation_status": "translated"
+ }
+]

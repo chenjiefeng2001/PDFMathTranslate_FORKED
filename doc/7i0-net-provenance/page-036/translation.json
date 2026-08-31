@@ -1,0 +1,299 @@
+[
+ {
+  "node_id": "p36_0",
+  "source_text": "28 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "translated_text": "28 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_1",
+  "source_text": "FPS",
+  "translated_text": "FPS",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_2",
+  "source_text": "MMORPG",
+  "translated_text": "MMORPG",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_3",
+  "source_text": "RTS\nRacing",
+  "translated_text": "RTS\nRacing",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_4",
+  "source_text": "a 8000",
+  "translated_text": "a 8000",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_5",
+  "source_text": "p 6000",
+  "translated_text": "p 6000",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_6",
+  "source_text": "4000",
+  "translated_text": "4000",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_7",
+  "source_text": "2000",
+  "translated_text": "2000",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_8",
+  "source_text": "0",
+  "translated_text": "0",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_9",
+  "source_text": "400",
+  "translated_text": "400",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_10",
+  "source_text": "o 350",
+  "translated_text": "o 350",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_11",
+  "source_text": "300",
+  "translated_text": "300",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_12",
+  "source_text": "s 250",
+  "translated_text": "s 250",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_13",
+  "source_text": "e 200",
+  "translated_text": "e 200",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_14",
+  "source_text": "I 150",
+  "translated_text": "I 150",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_15",
+  "source_text": "e 100",
+  "translated_text": "e 100",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_16",
+  "source_text": "u 50",
+  "translated_text": "u 50",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_17",
+  "source_text": "3\nDataobtainedfromNetworkWizards,http://www.nw.com/",
+  "translated_text": "3\nDataobtainedfromNetworkWizards,http://www.nw.com/",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p36_18",
+  "source_text": "1994 1996 1998 2000 2002 2004",
+  "translated_text": "1994 1996 1998 2000 2002 2004",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p36_19",
+  "source_text": "Year",
+  "translated_text": "Year",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_20",
+  "source_text": "Figure3.16 ThegrowthinInternetgames,depictedbythefrequencyofoccurrenceinUsenet\nnewsgrouppostings",
+  "translated_text": "Figure3.16 ThegrowthinInternetgames,depictedbythefrequencyofoccurrenceinUsenet\nnewsgrouppostings",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_21",
+  "source_text": "1993 1995 1997 1999 2001 2003 2005",
+  "translated_text": "1993 1995 1997 1999 2001 2003 2005",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p36_22",
+  "source_text": "Year",
+  "translated_text": "Year",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_23",
+  "source_text": "Figure3.17 ThegrowthoftheInternet,depictedbythenumberofInternetaddressesthathave\nbeenassignedaname",
+  "translated_text": "Figure3.17 ThegrowthoftheInternet,depictedbythenumberofInternetaddressesthathave\nbeenassignedaname",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_24",
+  "source_text": "Whilethegrowthintheonlinegamegenreshavebeensubstantialandperhapseven\nimpressive, it is interesting to put the online game growth in the context of Internet",
+  "translated_text": "Whilethegrowthintheonlinegamegenreshavebeensubstantialandperhapseven\nimpressive, it is interesting to put the online game growth in the context of Internet",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_25",
+  "source_text": "3",
+  "translated_text": "3",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p36_26",
+  "source_text": "growth.Figure3.17depictsthegrowthoftheInternetintermsofthenumberofhosts.\nTheInternethasshownexponentialincreaseinthenumberofhostsduringthesametime\nperiod,althoughtherearesignsthatthisexponentialgrowthmaybeslowing.",
+  "translated_text": "growth.Figure3.17depictsthegrowthoftheInternetintermsofthenumberofhosts.\nTheInternethasshownexponentialincreaseinthenumberofhostsduringthesametime\nperiod,althoughtherearesignsthatthisexponentialgrowthmaybeslowing.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "translated"
+ }
+]

@@ -1,0 +1,302 @@
+{
+ "page": 15,
+ "total_blocks": 8,
+ "total_render_runs": 8,
+ "matched_runs": 8,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 8,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p15_0",
+   "page": 15,
+   "kind": "paragraph",
+   "source_text": "Contents xv",
+   "translated_text": "Contents xv",
+   "translation_status": "translated",
+   "src_box": [
+    429.36,
+    616.1312971,
+    488.05706606,
+    628.0923971
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.97,
+   "render_rows": [
+    {
+     "source_node_id": "p15_0",
+     "render_object_ref": "R0",
+     "page": 15,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      429.36,
+      616.13,
+      488.06,
+      628.09
+     ],
+     "font_size": 9.97,
+     "text": "Contents xv"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Contents xv"
+  },
+  {
+   "node_id": "p15_1",
+   "page": 15,
+   "kind": "heading",
+   "source_text": "14.3 MathematicalProgramming",
+   "translated_text": "14.3 MathematicalProgramming",
+   "translation_status": "translated",
+   "src_box": [
+    153.12,
+    576.7695084,
+    348.6374583499999,
+    591.3152167
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 11.96,
+   "render_rows": [
+    {
+     "source_node_id": "p15_1",
+     "render_object_ref": "R1",
+     "page": 15,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      153.12,
+      576.77,
+      348.64,
+      591.32
+     ],
+     "font_size": 11.96,
+     "text": "14.3 MathematicalProgramming"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14.3 MathematicalProgramming"
+  },
+  {
+   "node_id": "p15_2",
+   "page": 15,
+   "kind": "footnote",
+   "source_text": "14.3.1 Karush–Kuhn–TuckerConditions",
+   "translated_text": "14.3.1 Karush–Kuhn–TuckerConditions",
+   "translation_status": "translated",
+   "src_box": [
+    181.20098212,
+    563.0879902,
+    346.0102643199999,
+    573.0555902
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.97,
+   "render_rows": [
+    {
+     "source_node_id": "p15_2",
+     "render_object_ref": "R2",
+     "page": 15,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      181.2,
+      563.09,
+      346.01,
+      573.06
+     ],
+     "font_size": 9.97,
+     "text": "14.3.1 Karush–Kuhn–TuckerConditions"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14.3.1 Karush–Kuhn–TuckerConditions"
+  },
+  {
+   "node_id": "p15_3",
+   "page": 15,
+   "kind": "toc",
+   "source_text": "14.3.2 ConvexQuadraticProgramming",
+   "translated_text": "14.3.2 ConvexQuadraticProgramming",
+   "translation_status": "translated",
+   "src_box": [
+    181.20098212,
+    551.0879965600001,
+    341.27067051999995,
+    561.05559656
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": null,
+   "render_rows": [
+    {
+     "source_node_id": "p15_3",
+     "render_object_ref": "R3",
+     "page": 15,
+     "object_type": "toc",
+     "final_bbox_v3": [
+      181.2,
+      551.09,
+      341.27,
+      561.06
+     ],
+     "font_size": 9.97,
+     "text": "14.3.2 ConvexQuadraticProgramming"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14.3.2 ConvexQuadraticProgramming"
+  },
+  {
+   "node_id": "p15_4",
+   "page": 15,
+   "kind": "toc",
+   "source_text": "14.3.3 GeneralDualityTheory",
+   "translated_text": "14.3.3 GeneralDualityTheory",
+   "translation_status": "translated",
+   "src_box": [
+    181.20098212,
+    539.0880029200001,
+    305.42718091999996,
+    549.0556029200001
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": null,
+   "render_rows": [
+    {
+     "source_node_id": "p15_4",
+     "render_object_ref": "R4",
+     "page": 15,
+     "object_type": "toc",
+     "final_bbox_v3": [
+      181.2,
+      539.09,
+      305.43,
+      549.06
+     ],
+     "font_size": 9.97,
+     "text": "14.3.3 GeneralDualityTheory"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14.3.3 GeneralDualityTheory"
+  },
+  {
+   "node_id": "p15_5",
+   "page": 15,
+   "kind": "toc",
+   "source_text": "14.4 Applications",
+   "translated_text": "14.4 Applications",
+   "translation_status": "translated",
+   "src_box": [
+    153.12,
+    522.7695084,
+    259.03207381,
+    537.3152167
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": null,
+   "render_rows": [
+    {
+     "source_node_id": "p15_5",
+     "render_object_ref": "R5",
+     "page": 15,
+     "object_type": "toc",
+     "final_bbox_v3": [
+      153.12,
+      522.77,
+      259.03,
+      537.32
+     ],
+     "font_size": 11.96,
+     "text": "14.4 Applications"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14.4 Applications"
+  },
+  {
+   "node_id": "p15_6",
+   "page": 15,
+   "kind": "toc",
+   "source_text": "14.4.1 DistanceCalculations",
+   "translated_text": "14.4.1 DistanceCalculations",
+   "translation_status": "translated",
+   "src_box": [
+    181.20097564000008,
+    509.0879902,
+    297.03844228000014,
+    519.0555902
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": null,
+   "render_rows": [
+    {
+     "source_node_id": "p15_6",
+     "render_object_ref": "R6",
+     "page": 15,
+     "object_type": "toc",
+     "final_bbox_v3": [
+      181.2,
+      509.09,
+      297.04,
+      519.06
+     ],
+     "font_size": 9.97,
+     "text": "14.4.1 DistanceCalculations"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14.4.1 DistanceCalculations"
+  },
+  {
+   "node_id": "p15_7",
+   "page": 15,
+   "kind": "toc",
+   "source_text": "14.4.2 ContactForces",
+   "translated_text": "14.4.2 ContactForces",
+   "translation_status": "translated",
+   "src_box": [
+    181.20097564000008,
+    497.08799655999997,
+    270.1847311200001,
+    507.05559655999997
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": null,
+   "render_rows": [
+    {
+     "source_node_id": "p15_7",
+     "render_object_ref": "R7",
+     "page": 15,
+     "object_type": "toc",
+     "final_bbox_v3": [
+      181.2,
+      497.09,
+      270.18,
+      507.06
+     ],
+     "font_size": 9.97,
+     "text": "14.4.2 ContactForces"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "14.4.2 ContactForces"
+  }
+ ],
+ "defects": []
+}

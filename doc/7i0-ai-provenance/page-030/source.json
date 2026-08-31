@@ -1,0 +1,77 @@
+[
+ {
+  "node_id": "p30_0",
+  "index": 0,
+  "text": "14",
+  "bbox": [
+   50.974,
+   590.135,
+   59.181999999999995,
+   599.135
+  ],
+  "font": "SHEJLS+ArialNarrow-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_1",
+  "index": 1,
+  "text": "2. Background",
+  "bbox": [
+   322.27,
+   590.135,
+   380.176,
+   599.135
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_2",
+  "index": 2,
+  "text": "cation programming interfaces. One reasonable way to do this is to build a\ncomputer model that explicitly represents intuitive physical concepts, such\nas mass, gravity, moments of inertia, etc.\nPhysical models have allowed the automation of animating passive ob­\njects, such as falling chains, and colliding objects. For animate objects, an\nactive area of research is how to build biomechanical models. So far, it has\nbeen possible to use simplified biomechanical models to automate the pro­\ncess of locomotion learning in a variety of virtual creatures, such as fish,\nsnakes, and some articulated figures.\nCognitive modeling comes out of the attempt to further automate the\nprocess of generating behavior by building behavior models. Thus, cognitive\nmodels are the next logical step in the hierarchy of models that have been\nused for computer games and animation. By introducing such models we\nmake it easier to produce behavior by raising the level of abstraction at\nwhich the user can direct animated characters. This level of functionality is\nobtained by creating an explicit representation of the virtual world from the\ncharacter’s point of view that enables the characters themselves to do more\nof the work.",
+  "bbox": [
+   50.123999999999995,
+   356.273,
+   381.03299999999996,
+   568.27
+  ],
+  "font": "LSEBRO+CenturySchoolbook",
+  "font_size": 9.0,
+  "line_count": 18,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p30_3",
+  "index": 3,
+  "text": "2.1 Geometric Models\nGeometric models capture the form and appearance of a computer char­\nacter. Many characters in animations and games can be quite effectively\ncontrolled even at this low-level and familiar tools for generating motion\ninclude key-framing and motion capture. Due to the predictable nature of\nmotion, building cognitive models for characters that are controlled at the\ngeometric level is generally much simpler.",
+  "bbox": [
+   50.964999999999954,
+   234.47500000000002,
+   381.10400000000004,
+   331.63800000000003
+  ],
+  "font": "LSEBRO+CenturySchoolbook",
+  "font_size": 9.0,
+  "line_count": 7,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p30_4",
+  "index": 4,
+  "text": "2.1.1 Basics\nIn the most general case, the location and the shape of an object can change\nwith time. A general scheme for describing the shape and location of an\nobject was given in [134]. In particular, let each point in some object Ω\n(without loss of generality Ω = [0, l]n) be named by its material (or intrinsic)\ncoordinates u. Then for some given u G Ω and time t G X, the corresponding\nposition in M3 can be given by specifying the function q : Ω x X —M3.\nIntuitively, q(u, t) describes the position of each point in the object as\na function of time. Thus, the object is free to change position and shape\nwithout constraint.",
+  "bbox": [
+   50.964999999999954,
+   79.777,
+   381.2479999999999,
+   210.41
+  ],
+  "font": "LSEBRO+CenturySchoolbook",
+  "font_size": 9.0,
+  "line_count": 10,
+  "translation_status": "preserved"
+ }
+]

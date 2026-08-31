@@ -1,0 +1,831 @@
+{
+ "page": 65,
+ "total_blocks": 22,
+ "total_render_runs": 22,
+ "matched_runs": 22,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 22,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p65_0",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "{",
+   "translated_text": "{",
+   "translation_status": "preserved",
+   "src_box": [
+    126.0026,
+    499.36021,
+    130.8026,
+    507.36021
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_0",
+     "render_object_ref": "R16",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      126.0,
+      499.36,
+      130.8,
+      507.36
+     ],
+     "font_size": 8.0,
+     "text": "{"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "{"
+  },
+  {
+   "node_id": "p65_1",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "32\n}",
+   "translated_text": "32\n}",
+   "translation_status": "preserved",
+   "src_box": [
+    126.0026,
+    374.56020999999976,
+    136.55039,
+    383.66990999999996
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 6.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_1",
+     "render_object_ref": "R17",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      126.0,
+      374.56,
+      136.55,
+      383.67
+     ],
+     "font_size": 6.0,
+     "text": "32\n}"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "32\n}"
+  },
+  {
+   "node_id": "p65_2",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "{",
+   "translated_text": "{",
+   "translation_status": "preserved",
+   "src_box": [
+    142.5,
+    235.79419,
+    146.7,
+    242.79419
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_2",
+     "render_object_ref": "R18",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      142.5,
+      235.79,
+      146.7,
+      242.79
+     ],
+     "font_size": 12.0,
+     "text": "{"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "{"
+  },
+  {
+   "node_id": "p65_3",
+   "page": 65,
+   "kind": "heading",
+   "source_text": "Section 0.5 Malleable vs. Stable Software",
+   "translated_text": "Section 0.5 Malleable vs. Stable Software",
+   "translation_status": "translated",
+   "src_box": [
+    98.5,
+    674.41,
+    281.52500000000003,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_3",
+     "render_object_ref": "R19",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      98.5,
+      674.41,
+      281.53,
+      684.41
+     ],
+     "font_size": 10.0,
+     "text": "Section 0.5 Malleable vs. Stable Software"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Section 0.5 Malleable vs. Stable Software"
+  },
+  {
+   "node_id": "p65_4",
+   "page": 65,
+   "kind": "code",
+   "source_text": "while (lit != lend && rit != rend) {\nif (std::abs(*lit) != std::abs(*rit)) {\nreturn false;",
+   "translated_text": "while (lit != lend && rit != rend) {\nif (std::abs(*lit) != std::abs(*rit)) {\nreturn false;",
+   "translation_status": "preserved",
+   "src_box": [
+    145.2026,
+    422.56020999999987,
+    351.6026000000002,
+    449.7602099999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_4",
+     "render_object_ref": "R20",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      145.2,
+      422.56,
+      351.6,
+      449.76
+     ],
+     "font_size": 8.0,
+     "text": "while (lit != lend && rit != rend) {\nif (std::abs(*lit) != std::abs(*rit)) {\nreturn false;"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "while (lit != lend && rit != rend) {\nif (std::abs(*lit) != std::abs(*rit)) {\nreturn false;"
+  },
+  {
+   "node_id": "p65_5",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "++lit, ++rit;",
+   "translated_text": "++lit, ++rit;",
+   "translation_status": "preserved",
+   "src_box": [
+    164.4026,
+    403.3602099999998,
+    226.80259999999998,
+    411.3602099999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_5",
+     "render_object_ref": "R21",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      164.4,
+      403.36,
+      226.8,
+      411.36
+     ],
+     "font_size": 8.0,
+     "text": "++lit, ++rit;"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "++lit, ++rit;"
+  },
+  {
+   "node_id": "p65_6",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "Providing an iterator enables each client of a container to implement virtually any appropriate\nextension immediately. For example, both of the functions in Figure 0-24 are independent,\nclient-side extensions of the list component. By designing in extensibility via iterators, we\ncan reasonably ensure that no source-code modification of the reusable container will ever\nbe needed for that purpose. This principle of unilateral extensibility also helps to ensure that\napplication developers will not be held hostage waiting for enhancements that can be provided\nonly by library developers. Note that all of the container types in the C++ Standard Library",
+   "translated_text": "Providing an iterator enables each client of a container to implement virtually any appropriate\nextension immediately. For example, both of the functions in Figure 0-24 are independent,\nclient-side extensions of the list component. By designing in extensibility via iterators, we\ncan reasonably ensure that no source-code modification of the reusable container will ever\nbe needed for that purpose. This principle of unilateral extensibility also helps to ensure that\napplication developers will not be held hostage waiting for enhancements that can be provided\nonly by library developers. Note that all of the container types in the C++ Standard Library",
+   "translation_status": "preserved",
+   "src_box": [
+    134.4963,
+    551.06998,
+    513.4969999999997,
+    645.0699999999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_6",
+     "render_object_ref": "R22",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      551.07,
+      513.5,
+      645.07
+     ],
+     "font_size": 10.0,
+     "text": "Providing an iterator enables each client of a container to implement virtually any appropriate\nextension immediately. For example, both of the functions in Figure 0-24 are independent,\nclient-side extensions of the list component. By designing in extensibility via iterators, we\ncan reasonably ensure that no source-code modification of the reusable container will ever\nbe needed for that purpose. This principle of unilateral extensibility also helps to ensure that\napplication developers will not be held hostage waiting for enhancements that can be provided\nonly by library developers. Note that all of the container types in the C++ Standard Library"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Providing an iterator enables each client of a container to implement virtually any appropriate\nextension immediately. For example, both of the functions in Figure 0-24 are independent,\nclient-side extensions of the list component. By designing in extensibility via iterators, we\ncan reasonably ensure that no source-code modification of the reusable container will ever\nbe needed for that purpose. This principle of unilateral extensibility also helps to ensure that\napplication developers will not be held hostage waiting for enhancements that can be provided\nonly by library developers. Note that all of the container types in the C++ Standard Library"
+  },
+  {
+   "node_id": "p65_7",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "31, 32, 33",
+   "translated_text": "31, 32, 33",
+   "translation_status": "preserved",
+   "src_box": [
+    480.02621,
+    540.69998,
+    508.37480999999997,
+    547.69998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_7",
+     "render_object_ref": "R23",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      480.03,
+      540.7,
+      508.37,
+      547.7
+     ],
+     "font_size": 10.0,
+     "text": "31, 32, 33"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "31, 32, 33"
+  },
+  {
+   "node_id": "p65_8",
+   "page": 65,
+   "kind": "paragraph",
+   "source_text": "come equipped with iterators that provide efficient access to every contained element.",
+   "translated_text": "come equipped with iterators that provide efficient access to every contained element.",
+   "translation_status": "translated",
+   "src_box": [
+    134.4963,
+    537.06998,
+    480.0152999999998,
+    547.06998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_8",
+     "render_object_ref": "R24",
+     "page": 65,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      537.07,
+      480.02,
+      547.07
+     ],
+     "font_size": 12.0,
+     "text": "come equipped with iterators that provide efficient access to every contained element."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "come equipped with iterators that provide efficient access to every contained element."
+  },
+  {
+   "node_id": "p65_9",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "(a) Determining whether two lists are equivalent in a particular way",
+   "translated_text": "(a) Determining whether two lists are equivalent in a particular way",
+   "translation_status": "preserved",
+   "src_box": [
+    202.13439,
+    359.6429,
+    423.14398999999986,
+    367.6429
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_9",
+     "render_object_ref": "R25",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      202.13,
+      359.64,
+      423.14,
+      367.64
+     ],
+     "font_size": 8.0,
+     "text": "(a) Determining whether two lists are equivalent in a particular way"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "(a) Determining whether two lists are equivalent in a particular way"
+  },
+  {
+   "node_id": "p65_10",
+   "page": 65,
+   "kind": "paragraph",
+   "source_text": "31",
+   "translated_text": "31",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    322.72428873999996,
+    140.100006,
+    328.32429473999997
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_10",
+     "render_object_ref": "R26",
+     "page": 65,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      322.72,
+      140.1,
+      328.32
+     ],
+     "font_size": 8.0,
+     "text": "31"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "31"
+  },
+  {
+   "node_id": "p65_11",
+   "page": 65,
+   "kind": "paragraph",
+   "source_text": "As another less general, but much more detailed, illustration of enabling the open-closed principle, see",
+   "translated_text": "As another less general, but much more detailed, illustration of enabling the open-closed principle, see",
+   "translation_status": "translated",
+   "src_box": [
+    141.63999,
+    319.8203,
+    472.26878999999997,
+    327.8203
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_11",
+     "render_object_ref": "R27",
+     "page": 65,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      141.64,
+      319.82,
+      472.27,
+      327.82
+     ],
+     "font_size": 12.0,
+     "text": "As another less general, but much more detailed, illustration of enabling the open-closed principle, see"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "As another less general, but much more detailed, illustration of enabling the open-closed principle, see"
+  },
+  {
+   "node_id": "p65_12",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "section 3.2.8.\n32\nAs discussed in the preface, we will sometimes note places where a more modern dialect of C++ provides features\nthat might better express an idea. For example, given that an iterator is a well-known concept having well defined\nsyntactic and semantic properties, the specific C++ type of the iterator becomes unimportant. In such cases we might\nprefer to use the keyword auto to let the compiler figure out that type, rather than force us to type it, or even an alias\nfor it, each time we need it, as the code itself — e.g., lhs.begin() — makes the concept clear:",
+   "translated_text": "section 3.2.8.\n32\nAs discussed in the preface, we will sometimes note places where a more modern dialect of C++ provides features\nthat might better express an idea. For example, given that an iterator is a well-known concept having well defined\nsyntactic and semantic properties, the specific C++ type of the iterator becomes unimportant. In such cases we might\nprefer to use the keyword auto to let the compiler figure out that type, rather than force us to type it, or even an alias\nfor it, each time we need it, as the code itself — e.g., lhs.begin() — makes the concept clear:",
+   "translation_status": "preserved",
+   "src_box": [
+    134.49889,
+    257.81221,
+    512.7556899999998,
+    317.8203
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_12",
+     "render_object_ref": "R28",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      257.81,
+      512.76,
+      317.82
+     ],
+     "font_size": 8.0,
+     "text": "section 3.2.8.\n32\nAs discussed in the preface, we will sometimes note places where a more modern dialect of C++ provides features\nthat might better express an idea. For example, given that an iterator is a well-known concept having well defined\nsyntactic and semantic properties, the specific C++ type of the iterator becomes unimportant. In such cases we might\nprefer to use the keyword auto to let the compiler figure out that type, rather than force us to type it, or even an alias\nfor it, each time we need it, as the code itself — e.g., lhs.begin() — makes the concept clear:"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "section 3.2.8.\n32\nAs discussed in the preface, we will sometimes note places where a more modern dialect of C++ provides features\nthat might better express an idea. For example, given that an iterator is a well-known concept having well defined\nsyntactic and semantic properties, the specific C++ type of the iterator becomes unimportant. In such cases we might\nprefer to use the keyword auto to let the compiler figure out that type, rather than force us to type it, or even an alias\nfor it, each time we need it, as the code itself — e.g., lhs.begin() — makes the concept clear:"
+  },
+  {
+   "node_id": "p65_13",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "// RETURN",
+   "translated_text": "// RETURN",
+   "translation_status": "preserved",
+   "src_box": [
+    451.55280000000005,
+    163.78518999999994,
+    489.7721000000001,
+    170.78518999999994
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_13",
+     "render_object_ref": "R29",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      451.55,
+      163.79,
+      489.77,
+      170.79
+     ],
+     "font_size": 12.0,
+     "text": "// RETURN"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// RETURN"
+  },
+  {
+   "node_id": "p65_14",
+   "page": 65,
+   "kind": "code",
+   "source_text": "}\n++lit, ++rit;\n}",
+   "translated_text": "}\n++lit, ++rit;\n}",
+   "translation_status": "preserved",
+   "src_box": [
+    160.94920000000002,
+    136.77918999999991,
+    234.4457,
+    161.78318999999993
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_14",
+     "render_object_ref": "R30",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      160.95,
+      136.78,
+      234.45,
+      161.78
+     ],
+     "font_size": 12.0,
+     "text": "}\n++lit, ++rit;\n}"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "}\n++lit, ++rit;\n}"
+  },
+  {
+   "node_id": "p65_15",
+   "page": 65,
+   "kind": "code",
+   "source_text": "return lend == lit && rend == rit; // We generally try to avoid placing modifiable operands",
+   "translated_text": "return lend == lit && rend == rit; // We generally try to avoid placing modifiable operands",
+   "translation_status": "preserved",
+   "src_box": [
+    160.94920000000002,
+    127.50419000000002,
+    474.9734,
+    134.7771899999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_15",
+     "render_object_ref": "R31",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      160.95,
+      127.5,
+      474.97,
+      134.78
+     ],
+     "font_size": 12.0,
+     "text": "return lend == lit && rend == rit; // We generally try to avoid placing modifiable operands"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "return lend == lit && rend == rit; // We generally try to avoid placing modifiable operands"
+  },
+  {
+   "node_id": "p65_16",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "}",
+   "translated_text": "}",
+   "translation_status": "preserved",
+   "src_box": [
+    142.5,
+    118.79619000000001,
+    146.7,
+    125.79619
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_16",
+     "render_object_ref": "R32",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      142.5,
+      118.8,
+      146.7,
+      125.8
+     ],
+     "font_size": 12.0,
+     "text": "}"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "}"
+  },
+  {
+   "node_id": "p65_17",
+   "page": 65,
+   "kind": "paragraph",
+   "source_text": "35",
+   "translated_text": "35",
+   "translation_status": "translated",
+   "src_box": [
+    503.5,
+    674.41,
+    513.5,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_17",
+     "render_object_ref": "R33",
+     "page": 65,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      503.5,
+      674.41,
+      513.5,
+      684.41
+     ],
+     "font_size": 12.0,
+     "text": "35"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "35"
+  },
+  {
+   "node_id": "p65_18",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "// RETURN",
+   "translated_text": "// RETURN",
+   "translation_status": "preserved",
+   "src_box": [
+    462.0026000000005,
+    422.56020999999987,
+    505.2026000000006,
+    430.56020999999987
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_18",
+     "render_object_ref": "R34",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      462.0,
+      422.56,
+      505.2,
+      430.56
+     ],
+     "font_size": 12.0,
+     "text": "// RETURN"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// RETURN"
+  },
+  {
+   "node_id": "p65_19",
+   "page": 65,
+   "kind": "identifier",
+   "source_text": "ptg31790760",
+   "translated_text": "ptg31790760",
+   "translation_status": "preserved",
+   "src_box": [
+    712.0,
+    396.162,
+    764.542,
+    405.162
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_19",
+     "render_object_ref": "R35",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      712.0,
+      396.16,
+      764.54,
+      405.16
+     ],
+     "font_size": 8.0,
+     "text": "ptg31790760"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "ptg31790760"
+  },
+  {
+   "node_id": "p65_20",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "}",
+   "translated_text": "}",
+   "translation_status": "preserved",
+   "src_box": [
+    145.2026,
+    393.7602099999998,
+    150.0026,
+    401.7602099999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_20",
+     "render_object_ref": "R36",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      145.2,
+      393.76,
+      150.0,
+      401.76
+     ],
+     "font_size": 12.0,
+     "text": "}"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "}"
+  },
+  {
+   "node_id": "p65_21",
+   "page": 65,
+   "kind": "formula",
+   "source_text": "// on the left-hand side of an operator==.",
+   "translated_text": "// on the left-hand side of an operator==.",
+   "translation_status": "preserved",
+   "src_box": [
+    315.351,
+    118.52319,
+    441.022,
+    125.79619
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p65_21",
+     "render_object_ref": "R37",
+     "page": 65,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      315.35,
+      118.52,
+      441.02,
+      125.8
+     ],
+     "font_size": 12.0,
+     "text": "// on the left-hand side of an operator==."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// on the left-hand side of an operator==."
+  }
+ ],
+ "defects": [
+  {
+   "defect_id": "F9",
+   "name": "text layer vs visual layer mismatch",
+   "suspect_layer": "renderer",
+   "node_id": "p65_page",
+   "page": 65,
+   "evidence": {
+    "mupdf_syntax_error": [
+     "syntax error: unknown keyword: '-9.000000001435637e'",
+     "syntax error: unknown keyword: '-1.1999999998124622e'",
+     "encountered syntax errors; page may not be correct"
+    ]
+   },
+   "first_divergence": "render",
+   "stage_verdicts": {
+    "source": "PASS",
+    "parser": "PASS",
+    "model": "PASS",
+    "translation": "PASS",
+    "layout": "PASS",
+    "render": "FAIL"
+   },
+   "note": "renderer emitted a malformed float into the page stream"
+  }
+ ]
+}

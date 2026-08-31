@@ -1,0 +1,176 @@
+{
+ "page": 21,
+ "page_height": 648.9600219726562,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "Q",
+   "bbox": [
+    108.12,
+    284.73,
+    132.74,
+    330.22
+   ],
+   "font": "Times-Roman",
+   "font_size": 34.1,
+   "color": 0,
+   "line": 1,
+   "page": 21,
+   "block_type": 0,
+   "v3_bbox": [
+    108.12,
+    318.74,
+    132.74,
+    364.23
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "~",
+   "bbox": [
+    108.48,
+    321.84,
+    133.92,
+    347.28
+   ],
+   "font": "HiddenHorzOCR",
+   "font_size": 25.44,
+   "color": 0,
+   "line": 2,
+   "page": 21,
+   "block_type": 0,
+   "v3_bbox": [
+    108.48,
+    301.68,
+    133.92,
+    327.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "\u0000\u0000\u0000\u0000\u0000\u0000",
+   "bbox": [
+    167.14,
+    301.93,
+    236.3,
+    326.48
+   ],
+   "font": "Arial-BoldMT",
+   "font_size": 22.0,
+   "color": 0,
+   "line": 3,
+   "page": 21,
+   "block_type": 0,
+   "v3_bbox": [
+    167.14,
+    322.48,
+    236.3,
+    347.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "\u0000",
+   "bbox": [
+    233.71,
+    302.11,
+    250.06,
+    326.44
+   ],
+   "font": "Arial-BoldMT",
+   "font_size": 21.8,
+   "color": 0,
+   "line": 3,
+   "page": 21,
+   "block_type": 0,
+   "v3_bbox": [
+    233.71,
+    322.52,
+    250.06,
+    346.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": " \u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+   "bbox": [
+    250.06,
+    301.93,
+    327.66,
+    326.48
+   ],
+   "font": "Arial-BoldMT",
+   "font_size": 22.0,
+   "color": 0,
+   "line": 3,
+   "page": 21,
+   "block_type": 0,
+   "v3_bbox": [
+    250.06,
+    322.48,
+    327.66,
+    347.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000 \u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+   "bbox": [
+    167.69,
+    328.26,
+    283.57,
+    340.76
+   ],
+   "font": "Arial-BoldMT",
+   "font_size": 11.2,
+   "color": 0,
+   "line": 4,
+   "page": 21,
+   "block_type": 0,
+   "v3_bbox": [
+    167.69,
+    308.2,
+    283.57,
+    320.7
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+   "bbox": [
+    167.61,
+    344.24,
+    263.06,
+    352.72
+   ],
+   "font": "ArialMT",
+   "font_size": 7.6,
+   "color": 0,
+   "line": 5,
+   "page": 21,
+   "block_type": 0,
+   "v3_bbox": [
+    167.61,
+    296.24,
+    263.06,
+    304.72
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

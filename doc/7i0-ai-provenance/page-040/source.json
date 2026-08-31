@@ -1,0 +1,62 @@
+[
+ {
+  "node_id": "p40_0",
+  "index": 0,
+  "text": "24",
+  "bbox": [
+   50.873,
+   590.235,
+   59.278999999999996,
+   599.235
+  ],
+  "font": "SHEJLS+ArialNarrow-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p40_1",
+  "index": 1,
+  "text": "2. Background",
+  "bbox": [
+   322.421,
+   590.235,
+   380.327,
+   599.235
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p40_2",
+  "index": 2,
+  "text": "2.3.3 Forward Dynamics\nThe forward dynamics problem is that of computing positions and velocities\nfrom given forces and torques. The unknowns in the equations of motion of\nthe previous sections are the forces, torques, and accelerations. So the first\npart of the problem is to solve the equations of motion for the accelerations,\nin terms of the forces and torques.\nIn general, this gives a set of coupled second order nonlinear differential\nequations. Any set of nth order differential equations can be reduced to an\nequivalent first-order one of the form: x = k(x(£), v(£)), where v(t) supplies\nvalues for all the unknown forces and torques. With suitable initial (or\nboundary) values x(to) = Xo, this system of equations can be numerically\nintegrated over some interval [£q,£i] to give positions and velocities x(t).\nA survey of numerical integration techniques for computer animation and\ngames is given in [56].\nMuch early work in animation and games (as well as robotics) was con­\ncerned with producing programs that embodied the equations of motion for\nrigid body articulated figures [145, 4]. Software now exists that can take a\nphysical description of some articulated figure and produce the correspond­\ning equations of motion (for example, the “dynamics compiler” in [140]).\nSuch software is now available in robust and efficient commercial simulators\nsuch as [131]. Thus, for inanimate objects it is possible to create realistic\nmotion in a completely automatic way by using simulation. All the anima­\ntor or programmer need do is define the physical object descriptions, set the\ninitial conditions, and watch the motion unfold.\nThe situation is slightly complicated by the possibility that objects may\ncollide. If a nonanalytic collision resolution algorithm is used, the springs and\ndampers can either be incorporated when a collision is detected (see Section\n2.4.1) or, if all the points of possible contact can be surmised in advance,\nthey can be included a priori in the equations of motion. If an analytic\nmethod is used in which a discontinuous change of velocity occurs, then\nwhen the simulator detects a collision it suspends the simulation, resolves\nthe collision (see Section 2.4.2), and then restarts the simulation with the\nnew initial conditions.",
+  "bbox": [
+   50.619,
+   165.227,
+   381.1890000000002,
+   570.655
+  ],
+  "font": "LSEBRO+CenturySchoolbook",
+  "font_size": 9.0,
+  "line_count": 33,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p40_3",
+  "index": 3,
+  "text": "2.3.4 Inverse Dynamics\nIt is also possible to solve the equations of motion for the forces and torques\nin terms of the accelerations. Then given some desired motion it is possible\n(by differentiating twice) to calculate these accelerations to, in turn, calculate\nthe forces and torques that would be required to produce such a motion.",
+  "bbox": [
+   50.869,
+   80.37799999999999,
+   380.9220000000001,
+   150.91199999999998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 5,
+  "translation_status": "preserved"
+ }
+]

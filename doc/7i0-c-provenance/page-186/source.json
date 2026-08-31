@@ -1,0 +1,317 @@
+[
+ {
+  "node_id": "p186_0",
+  "index": 0,
+  "text": "156",
+  "bbox": [
+   98.5,
+   674.41,
+   113.5,
+   684.41
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 10.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_1",
+  "index": 1,
+  "text": "// xyza_foo.h",
+  "bbox": [
+   151.66389,
+   633.86539,
+   214.06389000000001,
+   641.86539
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_2",
+  "index": 2,
+  "text": "namespace xyza {",
+  "bbox": [
+   151.66389,
+   614.66539,
+   228.46389,
+   622.66539
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_3",
+  "index": 3,
+  "text": "}",
+  "bbox": [
+   151.66389,
+   528.2653899999998,
+   156.46389000000002,
+   536.2653899999998
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_4",
+  "index": 4,
+  "text": "const Foo& rhs);",
+  "bbox": [
+   228.46389,
+   566.6653899999999,
+   305.26389,
+   574.6653899999999
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_5",
+  "index": 5,
+  "text": "static int s_count; // declaration only",
+  "bbox": [
+   166.1,
+   408.31421,
+   382.10000000000014,
+   417.31421
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_6",
+  "index": 6,
+  "text": "Chapter 1 Compilers, Linkers, and Components",
+  "bbox": [
+   300.24,
+   674.41,
+   513.5000000000001,
+   684.41
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_7",
+  "index": 7,
+  "text": "// xyza_foo.cpp",
+  "bbox": [
+   319.13589,
+   633.8653899999998,
+   391.13589,
+   641.8653899999998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_8",
+  "index": 8,
+  "text": "#include <xyza_foo.h>",
+  "bbox": [
+   319.13589,
+   614.6653899999998,
+   419.93589000000003,
+   622.6653899999998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_9",
+  "index": 9,
+  "text": "GOOD IDEA",
+  "bbox": [
+   432.62838,
+   599.83909,
+   478.21238,
+   607.83909
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_10",
+  "index": 10,
+  "text": "class Foo { /*...*/ };",
+  "bbox": [
+   151.66389,
+   595.46539,
+   257.26389,
+   603.46539
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_11",
+  "index": 11,
+  "text": "const Foo& rhs)",
+  "bbox": [
+   424.73589,
+   566.6653899999998,
+   496.7358900000001,
+   574.6653899999998
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_12",
+  "index": 12,
+  "text": "// ...",
+  "bbox": [
+   338.33589,
+   547.4653899999997,
+   367.13589,
+   555.4653899999997
+  ],
+  "font": "HAMGAN+CourierPSPro-Regular",
+  "font_size": 8.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_13",
+  "index": 13,
+  "text": "// ...",
+  "bbox": [
+   319.13589,
+   528.2653899999997,
+   347.93589000000003,
+   536.2653899999997
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_14",
+  "index": 14,
+  "text": "Figure 1-17: Defining free functions outside their declared scope (GOOD IDEA)",
+  "bbox": [
+   169.7462,
+   498.98521000000005,
+   478.2481999999998,
+   507.98521000000005
+  ],
+  "font": "HAKKMC+TimesLTPro-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_15",
+  "index": 15,
+  "text": "Such non-self-declaring definitions require that the name used in the definition be qualified\nwith the name of the scope containing the corresponding declaration — irrespective of whether\nthat scope is a namespace, struct, or class:",
+  "bbox": [
+   134.5,
+   444.76621,
+   513.5089999999999,
+   482.76621
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 3,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_16",
+  "index": 16,
+  "text": "ptg31790760",
+  "bbox": [
+   712.0,
+   396.162,
+   764.542,
+   405.162
+  ],
+  "font": "Helvetica",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_17",
+  "index": 17,
+  "text": "};\nint Bar::s_count; // This definition will fail to compile if 's_count'",
+  "bbox": [
+   144.5,
+   380.30620999999996,
+   508.838000000001,
+   403.31021
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_18",
+  "index": 18,
+  "text": "Most declarations that are not also definitions can be repeated any number of times within a\ngiven scope:",
+  "bbox": [
+   134.5,
+   328.51621,
+   513.4899999999998,
+   352.51621
+  ],
+  "font": "HAKIBM+TimesLTPro-Roman",
+  "font_size": 10.0,
+  "line_count": 2,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p186_19",
+  "index": 19,
+  "text": "// Class declarations may be repeated within a\n// scope without causing an error.",
+  "bbox": [
+   238.92529999999994,
+   292.06421,
+   487.7006000000003,
+   315.06821
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 2,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p186_20",
+  "index": 20,
+  "text": "typedef int Int; // Remember that a 'typedef' is considered a\ntypedef int Int; // declaration, and not a definition.",
+  "bbox": [
+   144.5,
+   250.05220999999997,
+   476.52980000000014,
+   273.05620999999996
+  ],
+  "font": "HAKKPI+CourierPSPro-Regular",
+  "font_size": 9.0,
+  "line_count": 2,
+  "translation_status": "preserved"
+ }
+]

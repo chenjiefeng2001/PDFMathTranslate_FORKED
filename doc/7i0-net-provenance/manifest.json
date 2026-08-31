@@ -1,0 +1,23 @@
+{
+ "schema_version": 1,
+ "meta": {
+  "source": "pdf2zh_files/Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6.pdf",
+  "dual": "pdf2zh_files/Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6-dual.pdf",
+  "version": "0.1.0",
+  "pages": [
+   0,
+   12,
+   24,
+   36,
+   48
+  ]
+ },
+ "pages": {
+  "0": null,
+  "12": null,
+  "24": null,
+  "36": null,
+  "48": null
+ },
+ "summary": "summary.json"
+}

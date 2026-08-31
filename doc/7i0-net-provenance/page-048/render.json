@@ -1,0 +1,4776 @@
+{
+ "page": 97,
+ "page_height": 691.6539916992188,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "Recent",
+   "bbox": [
+    59.52,
+    37.49,
+    85.13,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    644.94,
+    85.13,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    85.13,
+    37.49,
+    88.27,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    85.13,
+    644.94,
+    88.27,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "Online",
+   "bbox": [
+    88.27,
+    37.49,
+    113.37,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    88.27,
+    644.94,
+    113.37,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    113.37,
+    37.49,
+    116.36,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    113.37,
+    644.94,
+    116.36,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "and",
+   "bbox": [
+    116.36,
+    37.49,
+    129.66,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    116.36,
+    644.94,
+    129.66,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    129.66,
+    37.49,
+    132.73,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    129.66,
+    644.94,
+    132.73,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "Multiplayer",
+   "bbox": [
+    132.73,
+    37.49,
+    176.28,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    132.73,
+    644.94,
+    176.28,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    176.28,
+    37.49,
+    179.27,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    176.28,
+    644.94,
+    179.27,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "Games",
+   "bbox": [
+    179.27,
+    37.49,
+    204.88,
+    46.71
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 1,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    179.27,
+    644.94,
+    204.88,
+    654.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "39",
+   "bbox": [
+    420.9,
+    37.4,
+    430.13,
+    46.61
+   ],
+   "font": "Times-Bold",
+   "font_size": 9.22,
+   "color": 0,
+   "line": 2,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    420.9,
+    645.04,
+    430.13,
+    654.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "AR ",
+   "bbox": [
+    69.48,
+    68.27,
+    86.22,
+    81.89
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 3,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    69.48,
+    609.76,
+    86.22,
+    623.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "提供了一种将计算机游戏、体育锻炼和社交互动相结合的方式。除了娱乐之",
+   "bbox": [
+    86.22,
+    67.28,
+    423.2,
+    81.94
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 3,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    86.22,
+    609.71,
+    423.2,
+    624.37
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": "外，更重要的用途包括军事或灾难响应训练的潜力，允许通过计算机通过虚拟冲突",
+   "bbox": [
+    59.52,
+    81.58,
+    427.14,
+    96.24
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 4,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    595.41,
+    427.14,
+    610.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "增强物理现实进行体能训练。",
+   "bbox": [
+    59.52,
+    95.87,
+    192.27,
+    110.54
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 5,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    581.11,
+    192.27,
+    595.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "3.5.4",
+   "bbox": [
+    59.52,
+    136.23,
+    79.93,
+    146.44
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    545.21,
+    79.93,
+    555.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    79.93,
+    136.23,
+    84.42,
+    146.44
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    79.93,
+    545.21,
+    84.42,
+    555.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "Distributed",
+   "bbox": [
+    84.42,
+    136.23,
+    130.93,
+    146.44
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    84.42,
+    545.21,
+    130.93,
+    555.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    130.93,
+    136.23,
+    134.04,
+    146.44
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    130.93,
+    545.21,
+    134.04,
+    555.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "Virtual",
+   "bbox": [
+    134.04,
+    136.23,
+    162.16,
+    146.44
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    134.04,
+    545.21,
+    162.16,
+    555.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    162.16,
+    136.23,
+    165.26,
+    146.44
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    162.16,
+    545.21,
+    165.26,
+    555.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "Environments",
+   "bbox": [
+    165.26,
+    136.23,
+    221.59,
+    146.44
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 6,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    165.26,
+    545.21,
+    221.59,
+    555.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "大多数电脑游戏都属于虚拟现实集群，在这个集群中，虚拟现实产生了与电脑游戏",
+   "bbox": [
+    59.52,
+    147.44,
+    427.14,
+    162.1
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 7,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    529.55,
+    427.14,
+    544.21
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "有一定相关性的三个研究分支",
+   "bbox": [
+    59.52,
+    161.74,
+    192.27,
+    176.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    515.25,
+    192.27,
+    529.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "[SKH02]",
+   "bbox": [
+    192.27,
+    162.73,
+    229.71,
+    176.35
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    192.27,
+    515.3,
+    229.71,
+    528.92
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "：",
+   "bbox": [
+    229.71,
+    161.74,
+    239.92,
+    176.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    229.71,
+    515.25,
+    239.92,
+    529.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "military",
+   "bbox": [
+    239.92,
+    165.58,
+    272.18,
+    175.8
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    239.92,
+    515.85,
+    272.18,
+    526.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    272.18,
+    165.58,
+    275.68,
+    175.8
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    272.18,
+    515.85,
+    275.68,
+    526.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "simulations",
+   "bbox": [
+    275.68,
+    165.58,
+    322.67,
+    175.8
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    275.68,
+    515.85,
+    322.67,
+    526.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    322.67,
+    161.74,
+    332.88,
+    176.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 8,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    322.67,
+    515.25,
+    332.88,
+    529.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "Computer",
+   "bbox": [
+    59.52,
+    179.88,
+    100.36,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    501.56,
+    100.36,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    100.36,
+    179.88,
+    103.71,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    100.36,
+    501.56,
+    103.71,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "Supported",
+   "bbox": [
+    103.71,
+    179.88,
+    145.68,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    103.71,
+    501.56,
+    145.68,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    145.68,
+    179.88,
+    149.09,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    145.68,
+    501.56,
+    149.09,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "Cooperative",
+   "bbox": [
+    149.09,
+    179.88,
+    199.6,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    149.09,
+    501.56,
+    199.6,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    199.6,
+    179.88,
+    202.99,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    199.6,
+    501.56,
+    202.99,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": "Work",
+   "bbox": [
+    202.99,
+    179.88,
+    224.15,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    202.99,
+    501.56,
+    224.15,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    224.15,
+    179.98,
+    229.08,
+    190.2
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    224.15,
+    501.45,
+    229.08,
+    511.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "(CSCW)",
+   "bbox": [
+    229.08,
+    177.02,
+    264.82,
+    190.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    229.08,
+    501.0,
+    264.82,
+    514.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    264.82,
+    176.03,
+    275.03,
+    190.7
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    264.82,
+    500.95,
+    275.03,
+    515.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "virtual reality",
+   "bbox": [
+    275.03,
+    179.88,
+    331.53,
+    190.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    275.03,
+    501.56,
+    331.53,
+    511.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    331.53,
+    176.03,
+    341.74,
+    190.7
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 9,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    331.53,
+    500.95,
+    341.74,
+    515.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "(a) ",
+   "bbox": [
+    59.52,
+    208.13,
+    73.41,
+    221.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    469.9,
+    73.41,
+    483.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "Military simulations",
+   "bbox": [
+    73.41,
+    210.99,
+    155.93,
+    221.2
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    73.41,
+    470.45,
+    155.93,
+    480.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    155.93,
+    208.13,
+    158.48,
+    221.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    155.93,
+    469.9,
+    158.48,
+    483.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "已经通过了",
+   "bbox": [
+    158.48,
+    207.14,
+    209.54,
+    221.8
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    158.48,
+    469.85,
+    209.54,
+    484.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    209.54,
+    208.13,
+    212.09,
+    221.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    209.54,
+    469.9,
+    212.09,
+    483.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "Distributed Interactive Simulation",
+   "bbox": [
+    212.09,
+    210.99,
+    351.09,
+    221.2
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    212.09,
+    470.45,
+    351.09,
+    480.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    351.09,
+    211.09,
+    354.18,
+    221.3
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    351.09,
+    470.35,
+    354.18,
+    480.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "(",
+   "bbox": [
+    354.18,
+    211.09,
+    357.58,
+    221.3
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    354.18,
+    470.35,
+    357.58,
+    480.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": "DIS",
+   "bbox": [
+    357.59,
+    210.99,
+    373.5,
+    221.2
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    357.59,
+    470.45,
+    373.5,
+    480.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    374.99,
+    211.09,
+    378.4,
+    221.3
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    374.99,
+    470.35,
+    378.4,
+    480.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "，这是一种",
+   "bbox": [
+    378.4,
+    207.14,
+    429.45,
+    221.8
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 10,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    378.4,
+    469.85,
+    429.45,
+    484.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "IEEE ",
+   "bbox": [
+    59.52,
+    222.43,
+    84.19,
+    236.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 11,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    455.6,
+    84.19,
+    469.22
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "通信标准，旨在允许网络模拟器通过使用兼容架构、建模、协议、标准和数",
+   "bbox": [
+    84.19,
+    221.44,
+    421.18,
+    236.1
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 11,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    84.19,
+    455.55,
+    421.18,
+    470.21
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "据库的模拟进行交互",
+   "bbox": [
+    59.52,
+    235.73,
+    151.43,
+    250.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    441.25,
+    151.43,
+    455.92
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": " [Ney97]",
+   "bbox": [
+    151.43,
+    236.72,
+    188.0,
+    250.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    151.43,
+    441.31,
+    188.0,
+    454.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    188.0,
+    235.73,
+    198.22,
+    250.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    188.0,
+    441.25,
+    198.22,
+    455.92
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": " DIS ",
+   "bbox": [
+    198.22,
+    236.72,
+    219.77,
+    250.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    198.22,
+    441.31,
+    219.77,
+    454.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "系统必须足够灵活和强大，以支持数百甚至数",
+   "bbox": [
+    219.77,
+    235.73,
+    424.01,
+    250.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 12,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    219.77,
+    441.25,
+    424.01,
+    455.92
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": "千个模拟器。",
+   "bbox": [
+    59.52,
+    250.03,
+    120.79,
+    264.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    426.96,
+    120.79,
+    441.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    120.79,
+    251.02,
+    123.34,
+    264.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    120.79,
+    427.01,
+    123.34,
+    440.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "Virtual Cockpit",
+   "bbox": [
+    123.34,
+    253.88,
+    186.16,
+    264.09
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    123.34,
+    427.56,
+    186.16,
+    437.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    186.16,
+    251.02,
+    188.72,
+    264.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    186.16,
+    427.01,
+    188.72,
+    440.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": "是一种飞行员战术训练器，是参与",
+   "bbox": [
+    188.72,
+    250.03,
+    341.89,
+    264.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    188.72,
+    426.96,
+    341.89,
+    441.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": " DIS [MSA+94] ",
+   "bbox": [
+    341.89,
+    251.02,
+    410.9,
+    264.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    341.89,
+    427.01,
+    410.9,
+    440.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": "的典",
+   "bbox": [
+    410.9,
+    250.03,
+    431.33,
+    264.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 13,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    410.9,
+    426.96,
+    431.33,
+    441.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": "型车辆的示例。虚拟驾驶舱是空军技术学院制造的",
+   "bbox": [
+    59.52,
+    264.32,
+    284.18,
+    278.99
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 14,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    412.66,
+    284.18,
+    427.33
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": " F-15E ",
+   "bbox": [
+    284.18,
+    265.32,
+    314.81,
+    278.94
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 14,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    284.18,
+    412.71,
+    314.81,
+    426.33
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": "喷气式战斗机的低成本有",
+   "bbox": [
+    314.81,
+    264.32,
+    427.14,
+    278.99
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 14,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    314.81,
+    412.66,
+    427.14,
+    427.33
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": "人驾驶飞行模拟器。一名士兵使用手动油门和操纵杆驾驶虚拟驾驶舱，同时在头戴",
+   "bbox": [
+    59.52,
+    278.62,
+    427.14,
+    293.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 15,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    398.37,
+    427.14,
+    413.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "式显示器上查看内部和窗外的视图。",
+   "bbox": [
+    59.52,
+    292.92,
+    222.91,
+    307.58
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 16,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    384.07,
+    222.91,
+    398.73
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": "(b) ",
+   "bbox": [
+    58.98,
+    327.71,
+    73.44,
+    341.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    58.98,
+    350.32,
+    73.44,
+    363.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": "Computer Supported Cooperative Work",
+   "bbox": [
+    73.44,
+    330.56,
+    236.69,
+    340.78
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    73.44,
+    350.87,
+    236.69,
+    361.09
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    236.69,
+    330.67,
+    241.08,
+    340.88
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    236.69,
+    350.77,
+    241.08,
+    360.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": "(CSCW) ",
+   "bbox": [
+    241.08,
+    327.71,
+    279.37,
+    341.33
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    241.08,
+    350.32,
+    279.37,
+    363.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": "侧重于使用计算机支持用户协作",
+   "bbox": [
+    279.37,
+    326.72,
+    422.34,
+    341.38
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 17,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    279.37,
+    350.27,
+    422.34,
+    364.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    58.98,
+    341.01,
+    69.19,
+    355.68
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 18,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    58.98,
+    335.97,
+    69.19,
+    350.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": " CSCW ",
+   "bbox": [
+    69.19,
+    342.0,
+    103.24,
+    355.63
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 18,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    69.19,
+    336.02,
+    103.24,
+    349.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": "应用程序的一个示例是共享白板，参与者可以使用各种媒体（包括文本、",
+   "bbox": [
+    103.24,
+    341.01,
+    430.01,
+    355.68
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 18,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    103.24,
+    335.97,
+    430.01,
+    350.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:80",
+   "operator": "TJ",
+   "text": "图片、视频和语音）阅读、编辑和注释共享文档。将",
+   "bbox": [
+    58.98,
+    355.31,
+    293.85,
+    369.97
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 19,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    58.98,
+    321.68,
+    293.85,
+    336.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:81",
+   "operator": "TJ",
+   "text": " CSCW ",
+   "bbox": [
+    293.85,
+    356.3,
+    327.89,
+    369.92
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 19,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    293.85,
+    321.73,
+    327.89,
+    335.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:82",
+   "operator": "TJ",
+   "text": "与虚拟现实相结合的努",
+   "bbox": [
+    327.89,
+    355.31,
+    430.01,
+    369.97
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 19,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    327.89,
+    321.68,
+    430.01,
+    336.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:83",
+   "operator": "TJ",
+   "text": "力产生了",
+   "bbox": [
+    58.98,
+    369.61,
+    99.83,
+    384.27
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    58.98,
+    307.38,
+    99.83,
+    322.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:84",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    99.83,
+    370.6,
+    102.38,
+    384.22
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    99.83,
+    307.43,
+    102.38,
+    321.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:85",
+   "operator": "TJ",
+   "text": "collaborative",
+   "bbox": [
+    102.38,
+    373.45,
+    156.79,
+    383.67
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    102.38,
+    307.98,
+    156.79,
+    318.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:86",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    156.79,
+    373.45,
+    160.05,
+    383.67
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    156.79,
+    307.98,
+    160.05,
+    318.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:87",
+   "operator": "TJ",
+   "text": "virtual",
+   "bbox": [
+    160.05,
+    373.45,
+    187.29,
+    383.67
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    160.05,
+    307.98,
+    187.29,
+    318.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:88",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    187.29,
+    373.45,
+    190.45,
+    383.67
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    187.29,
+    307.98,
+    190.45,
+    318.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:89",
+   "operator": "TJ",
+   "text": "environments",
+   "bbox": [
+    190.45,
+    373.45,
+    245.06,
+    383.67
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    190.45,
+    307.98,
+    245.06,
+    318.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:90",
+   "operator": "TJ",
+   "text": " (CVE) [BGRP01] ",
+   "bbox": [
+    245.06,
+    370.6,
+    323.63,
+    384.22
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    245.06,
+    307.43,
+    323.63,
+    321.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:91",
+   "operator": "TJ",
+   "text": "和网络架构以支持其在",
+   "bbox": [
+    323.63,
+    369.61,
+    425.75,
+    384.27
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 20,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    323.63,
+    307.38,
+    425.75,
+    322.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:92",
+   "operator": "TJ",
+   "text": "线使用",
+   "bbox": [
+    58.98,
+    383.9,
+    89.61,
+    398.57
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    58.98,
+    293.08,
+    89.61,
+    307.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:93",
+   "operator": "TJ",
+   "text": " [SG01]",
+   "bbox": [
+    89.61,
+    384.89,
+    122.23,
+    398.52
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    89.61,
+    293.13,
+    122.23,
+    306.76
+   ]
+  },
+  {
+   "pdf_object_id": "text:94",
+   "operator": "TJ",
+   "text": "。成功的",
+   "bbox": [
+    122.23,
+    383.9,
+    163.08,
+    398.57
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    122.23,
+    293.08,
+    163.08,
+    307.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:95",
+   "operator": "TJ",
+   "text": " CVE ",
+   "bbox": [
+    163.08,
+    384.89,
+    188.61,
+    398.52
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    163.08,
+    293.13,
+    188.61,
+    306.76
+   ]
+  },
+  {
+   "pdf_object_id": "text:96",
+   "operator": "TJ",
+   "text": "应用程序允许用户远程控制化身在共享媒体上进行操",
+   "bbox": [
+    188.61,
+    383.9,
+    423.48,
+    398.57
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 21,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    188.61,
+    293.08,
+    423.48,
+    307.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:97",
+   "operator": "TJ",
+   "text": "作，从而实现",
+   "bbox": [
+    58.98,
+    398.2,
+    120.25,
+    412.86
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 22,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    58.98,
+    278.79,
+    120.25,
+    293.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:98",
+   "operator": "TJ",
+   "text": " 3D ",
+   "bbox": [
+    120.25,
+    399.19,
+    137.83,
+    412.81
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 22,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    120.25,
+    278.84,
+    137.83,
+    292.46
+   ]
+  },
+  {
+   "pdf_object_id": "text:99",
+   "operator": "TJ",
+   "text": "编辑、产品开发甚至游戏设计。",
+   "bbox": [
+    137.83,
+    398.2,
+    280.8,
+    412.86
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 22,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    137.83,
+    278.79,
+    280.8,
+    293.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:100",
+   "operator": "TJ",
+   "text": "(c) ",
+   "bbox": [
+    59.52,
+    423.34,
+    73.41,
+    436.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    254.68,
+    73.41,
+    268.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:101",
+   "operator": "TJ",
+   "text": "Distributed",
+   "bbox": [
+    73.41,
+    426.2,
+    119.89,
+    436.41
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    73.41,
+    255.24,
+    119.89,
+    265.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:102",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    119.89,
+    426.2,
+    123.67,
+    436.41
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    119.89,
+    255.24,
+    123.67,
+    265.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:103",
+   "operator": "TJ",
+   "text": "Virtual",
+   "bbox": [
+    123.67,
+    426.2,
+    151.79,
+    436.41
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    123.67,
+    255.24,
+    151.79,
+    265.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:104",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    151.79,
+    426.2,
+    155.62,
+    436.41
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    151.79,
+    255.24,
+    155.62,
+    265.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:105",
+   "operator": "TJ",
+   "text": "Environments",
+   "bbox": [
+    155.62,
+    426.2,
+    211.93,
+    436.41
+   ],
+   "font": "Times-Italic",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    155.62,
+    255.24,
+    211.93,
+    265.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:106",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    211.93,
+    426.3,
+    216.93,
+    436.52
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    211.93,
+    255.13,
+    216.93,
+    265.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:107",
+   "operator": "TJ",
+   "text": "(DVE) ",
+   "bbox": [
+    216.93,
+    423.34,
+    247.27,
+    436.97
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    216.93,
+    254.68,
+    247.27,
+    268.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:108",
+   "operator": "TJ",
+   "text": "是面向技术的环境，供用户沉浸在虚拟世",
+   "bbox": [
+    247.27,
+    422.35,
+    431.08,
+    437.02
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 23,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    247.27,
+    254.63,
+    431.08,
+    269.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:109",
+   "operator": "TJ",
+   "text": "界中。",
+   "bbox": [
+    59.52,
+    436.65,
+    90.15,
+    451.31
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    240.34,
+    90.15,
+    255.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:110",
+   "operator": "TJ",
+   "text": " DVE ",
+   "bbox": [
+    90.15,
+    437.64,
+    116.25,
+    451.26
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    90.15,
+    240.39,
+    116.25,
+    254.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:111",
+   "operator": "TJ",
+   "text": "的一个例子是“",
+   "bbox": [
+    116.25,
+    436.65,
+    187.73,
+    451.31
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    116.25,
+    240.34,
+    187.73,
+    255.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:112",
+   "operator": "TJ",
+   "text": "Cave",
+   "bbox": [
+    187.73,
+    437.64,
+    208.71,
+    451.26
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    187.73,
+    240.39,
+    208.71,
+    254.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:113",
+   "operator": "TJ",
+   "text": "”，其中用户使用",
+   "bbox": [
+    208.71,
+    436.65,
+    290.41,
+    451.31
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    208.71,
+    240.34,
+    290.41,
+    255.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:114",
+   "operator": "TJ",
+   "text": " VR ",
+   "bbox": [
+    290.41,
+    437.64,
+    309.7,
+    451.26
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    290.41,
+    240.39,
+    309.7,
+    254.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:115",
+   "operator": "TJ",
+   "text": "护目镜、",
+   "bbox": [
+    309.7,
+    436.65,
+    350.54,
+    451.31
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    309.7,
+    240.34,
+    350.54,
+    255.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:116",
+   "operator": "TJ",
+   "text": "VR ",
+   "bbox": [
+    350.54,
+    437.64,
+    367.28,
+    451.26
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    350.54,
+    240.39,
+    367.28,
+    254.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:117",
+   "operator": "TJ",
+   "text": "手套和魔杖以",
+   "bbox": [
+    367.28,
+    436.65,
+    428.55,
+    451.31
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 24,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    367.28,
+    240.34,
+    428.55,
+    255.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:118",
+   "operator": "TJ",
+   "text": "及各种",
+   "bbox": [
+    59.52,
+    450.95,
+    90.15,
+    465.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 25,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    226.04,
+    90.15,
+    240.7
+   ]
+  },
+  {
+   "pdf_object_id": "text:119",
+   "operator": "TJ",
+   "text": " 3D ",
+   "bbox": [
+    90.15,
+    451.94,
+    107.74,
+    465.56
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 25,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    90.15,
+    226.09,
+    107.74,
+    239.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:120",
+   "operator": "TJ",
+   "text": "音频组件的各种组合沉浸在人工",
+   "bbox": [
+    107.74,
+    450.95,
+    250.7,
+    465.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 25,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    107.74,
+    226.04,
+    250.7,
+    240.7
+   ]
+  },
+  {
+   "pdf_object_id": "text:121",
+   "operator": "TJ",
+   "text": " 3D ",
+   "bbox": [
+    250.7,
+    451.94,
+    268.29,
+    465.56
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 25,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    250.7,
+    226.09,
+    268.29,
+    239.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:122",
+   "operator": "TJ",
+   "text": "世界中",
+   "bbox": [
+    268.29,
+    450.95,
+    298.92,
+    465.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 25,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    268.29,
+    226.04,
+    298.92,
+    240.7
+   ]
+  },
+  {
+   "pdf_object_id": "text:123",
+   "operator": "TJ",
+   "text": " [http://www.evl.uic.edu/pape/C",
+   "bbox": [
+    298.92,
+    451.94,
+    430.53,
+    465.56
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 25,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    298.92,
+    226.09,
+    430.53,
+    239.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:124",
+   "operator": "TJ",
+   "text": "AVE/, CSD+92]",
+   "bbox": [
+    59.52,
+    466.23,
+    127.68,
+    479.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 26,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    211.79,
+    127.68,
+    225.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:125",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    127.68,
+    465.24,
+    137.89,
+    479.91
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 26,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    127.68,
+    211.74,
+    137.89,
+    226.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:126",
+   "operator": "TJ",
+   "text": " DVE ",
+   "bbox": [
+    137.89,
+    466.23,
+    163.99,
+    479.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 26,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    137.89,
+    211.79,
+    163.99,
+    225.42
+   ]
+  },
+  {
+   "pdf_object_id": "text:127",
+   "operator": "TJ",
+   "text": "专注于玩家代表以及与世界互动的技术。通常，它们只支持",
+   "bbox": [
+    163.99,
+    465.24,
+    429.49,
+    479.91
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 26,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    163.99,
+    211.74,
+    429.49,
+    226.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:128",
+   "operator": "TJ",
+   "text": "少数本地用户的参与，尽管正在开发架构以允许更多参与者进行更大规模的交互",
+   "bbox": [
+    59.52,
+    479.54,
+    416.93,
+    494.2
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 27,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    197.45,
+    416.93,
+    212.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:129",
+   "operator": "TJ",
+   "text": "[B",
+   "bbox": [
+    416.93,
+    480.53,
+    427.14,
+    494.15
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 27,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    416.93,
+    197.5,
+    427.14,
+    211.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:130",
+   "operator": "TJ",
+   "text": "WA96",
+   "bbox": [
+    59.52,
+    494.83,
+    86.74,
+    508.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 28,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    183.2,
+    86.74,
+    196.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:131",
+   "operator": "TJ",
+   "text": "，",
+   "bbox": [
+    86.74,
+    493.84,
+    96.96,
+    508.5
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 28,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    86.74,
+    183.15,
+    96.96,
+    197.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:132",
+   "operator": "TJ",
+   "text": "FS98]",
+   "bbox": [
+    96.96,
+    494.83,
+    121.92,
+    508.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 28,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    96.96,
+    183.2,
+    121.92,
+    196.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:133",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    121.92,
+    493.84,
+    132.13,
+    508.5
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.21,
+   "color": 0,
+   "line": 28,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    121.92,
+    183.15,
+    132.13,
+    197.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:134",
+   "operator": "TJ",
+   "text": "参考",
+   "bbox": [
+    59.52,
+    534.13,
+    83.93,
+    551.65
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 12.2,
+   "color": 0,
+   "line": 29,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    140.0,
+    83.93,
+    157.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:135",
+   "operator": "TJ",
+   "text": "[BGR",
+   "bbox": [
+    59.52,
+    553.61,
+    79.16,
+    564.57
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    127.08,
+    79.16,
+    138.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:136",
+   "operator": "TJ",
+   "text": "+",
+   "bbox": [
+    79.16,
+    555.69,
+    85.57,
+    563.91
+   ],
+   "font": "MTSYN",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    79.16,
+    127.74,
+    85.57,
+    135.96
+   ]
+  },
+  {
+   "pdf_object_id": "text:137",
+   "operator": "TJ",
+   "text": "98] S. Benford",
+   "bbox": [
+    85.57,
+    553.61,
+    134.19,
+    564.57
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    85.57,
+    127.08,
+    134.19,
+    138.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:138",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    134.19,
+    552.81,
+    142.41,
+    564.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    134.19,
+    127.04,
+    142.41,
+    138.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:139",
+   "operator": "TJ",
+   "text": "C. Greenhalgh",
+   "bbox": [
+    142.41,
+    553.61,
+    190.35,
+    564.57
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    142.41,
+    127.08,
+    190.35,
+    138.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:140",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    190.35,
+    552.81,
+    198.56,
+    564.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    190.35,
+    127.04,
+    198.56,
+    138.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:141",
+   "operator": "TJ",
+   "text": "G. Reynard",
+   "bbox": [
+    198.56,
+    553.61,
+    236.45,
+    564.57
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    198.56,
+    127.08,
+    236.45,
+    138.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:142",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    236.45,
+    552.81,
+    244.67,
+    564.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    236.45,
+    127.04,
+    244.67,
+    138.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:143",
+   "operator": "TJ",
+   "text": "C. Brown ",
+   "bbox": [
+    244.67,
+    553.61,
+    278.69,
+    564.57
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    244.67,
+    127.08,
+    278.69,
+    138.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:144",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    278.69,
+    552.81,
+    286.91,
+    564.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    278.69,
+    127.04,
+    286.91,
+    138.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:145",
+   "operator": "TJ",
+   "text": " B. Koleva",
+   "bbox": [
+    286.91,
+    553.61,
+    322.3,
+    564.57
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    286.91,
+    127.08,
+    322.3,
+    138.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:146",
+   "operator": "TJ",
+   "text": "，“理解和构建具有混合现实",
+   "bbox": [
+    322.3,
+    552.81,
+    429.15,
+    564.61
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 30,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    322.3,
+    127.04,
+    429.15,
+    138.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:147",
+   "operator": "TJ",
+   "text": "边界的共享空间”，",
+   "bbox": [
+    59.52,
+    563.91,
+    133.49,
+    575.71
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    115.94,
+    133.49,
+    127.74
+   ]
+  },
+  {
+   "pdf_object_id": "text:148",
+   "operator": "TJ",
+   "text": "ACM Transactions on Computer-Human Interaction (TOCHI)",
+   "bbox": [
+    133.49,
+    567.0,
+    338.4,
+    575.22
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    133.49,
+    116.43,
+    338.4,
+    124.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:149",
+   "operator": "TJ",
+   "text": "，卷。",
+   "bbox": [
+    338.4,
+    563.91,
+    363.06,
+    575.71
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    338.4,
+    115.94,
+    363.06,
+    127.74
+   ]
+  },
+  {
+   "pdf_object_id": "text:150",
+   "operator": "TJ",
+   "text": " 5",
+   "bbox": [
+    363.06,
+    564.71,
+    369.23,
+    575.67
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    363.06,
+    115.98,
+    369.23,
+    126.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:151",
+   "operator": "TJ",
+   "text": "，第",
+   "bbox": [
+    369.23,
+    563.91,
+    385.66,
+    575.71
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    369.23,
+    115.94,
+    385.66,
+    127.74
+   ]
+  },
+  {
+   "pdf_object_id": "text:152",
+   "operator": "TJ",
+   "text": " 3 ",
+   "bbox": [
+    385.66,
+    564.71,
+    393.88,
+    575.67
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    385.66,
+    115.98,
+    393.88,
+    126.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:153",
+   "operator": "TJ",
+   "text": "期，第",
+   "bbox": [
+    393.88,
+    563.91,
+    418.54,
+    575.71
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    393.88,
+    115.94,
+    418.54,
+    127.74
+   ]
+  },
+  {
+   "pdf_object_id": "text:154",
+   "operator": "TJ",
+   "text": " 18",
+   "bbox": [
+    418.54,
+    564.71,
+    428.82,
+    575.67
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 31,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    418.54,
+    115.98,
+    428.82,
+    126.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:155",
+   "operator": "TJ",
+   "text": "5",
+   "bbox": [
+    59.52,
+    575.8,
+    63.63,
+    586.77
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    104.88,
+    63.63,
+    115.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:156",
+   "operator": "TJ",
+   "text": "–",
+   "bbox": [
+    63.63,
+    575.0,
+    68.25,
+    586.81
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    63.63,
+    104.84,
+    68.25,
+    116.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:157",
+   "operator": "TJ",
+   "text": "223 ",
+   "bbox": [
+    68.26,
+    575.8,
+    82.64,
+    586.77
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    68.26,
+    104.88,
+    82.64,
+    115.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:158",
+   "operator": "TJ",
+   "text": "页，",
+   "bbox": [
+    82.64,
+    575.0,
+    99.08,
+    586.81
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    82.64,
+    104.84,
+    99.08,
+    116.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:159",
+   "operator": "TJ",
+   "text": "1998 ",
+   "bbox": [
+    99.08,
+    575.8,
+    117.57,
+    586.77
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    99.08,
+    104.88,
+    117.57,
+    115.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:160",
+   "operator": "TJ",
+   "text": "年。",
+   "bbox": [
+    117.57,
+    575.0,
+    134.01,
+    586.81
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    117.57,
+    104.84,
+    134.01,
+    116.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:161",
+   "operator": "TJ",
+   "text": "[BGRP01] S. Benford",
+   "bbox": [
+    134.01,
+    575.8,
+    206.84,
+    586.77
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    134.01,
+    104.88,
+    206.84,
+    115.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:162",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    206.84,
+    575.0,
+    215.06,
+    586.81
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    206.84,
+    104.84,
+    215.06,
+    116.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:163",
+   "operator": "TJ",
+   "text": "C. Greenhalgh",
+   "bbox": [
+    215.06,
+    575.8,
+    262.99,
+    586.77
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    215.06,
+    104.88,
+    262.99,
+    115.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:164",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    262.99,
+    575.0,
+    271.21,
+    586.81
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    262.99,
+    104.84,
+    271.21,
+    116.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:165",
+   "operator": "TJ",
+   "text": "T. Rodden ",
+   "bbox": [
+    271.21,
+    575.8,
+    307.97,
+    586.77
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    271.21,
+    104.88,
+    307.97,
+    115.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:166",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    307.97,
+    575.0,
+    316.19,
+    586.81
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    307.97,
+    104.84,
+    316.19,
+    116.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:167",
+   "operator": "TJ",
+   "text": " J. Pycock",
+   "bbox": [
+    316.19,
+    575.8,
+    349.75,
+    586.77
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    316.19,
+    104.88,
+    349.75,
+    115.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:168",
+   "operator": "TJ",
+   "text": "，“协作虚拟环境”",
+   "bbox": [
+    349.75,
+    575.0,
+    423.72,
+    586.81
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 32,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    349.75,
+    104.84,
+    423.72,
+    116.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:169",
+   "operator": "TJ",
+   "text": "，",
+   "bbox": [
+    59.52,
+    586.1,
+    67.74,
+    597.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    93.75,
+    67.74,
+    105.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:170",
+   "operator": "TJ",
+   "text": "Com-",
+   "bbox": [
+    67.74,
+    589.2,
+    85.97,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    67.74,
+    94.23,
+    85.97,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:171",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    85.97,
+    586.9,
+    88.03,
+    597.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    85.97,
+    93.79,
+    88.03,
+    104.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:172",
+   "operator": "TJ",
+   "text": "munications",
+   "bbox": [
+    88.03,
+    589.2,
+    128.03,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    88.03,
+    94.23,
+    128.03,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:173",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    128.03,
+    589.2,
+    130.59,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    128.03,
+    94.23,
+    130.59,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:174",
+   "operator": "TJ",
+   "text": "of",
+   "bbox": [
+    130.59,
+    589.2,
+    136.97,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    130.59,
+    94.23,
+    136.97,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:175",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    136.97,
+    589.2,
+    139.48,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    136.97,
+    94.23,
+    139.48,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:176",
+   "operator": "TJ",
+   "text": "the",
+   "bbox": [
+    139.48,
+    589.2,
+    149.49,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    139.48,
+    94.23,
+    149.49,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:177",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    149.49,
+    589.2,
+    151.96,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    149.49,
+    94.23,
+    151.96,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:178",
+   "operator": "TJ",
+   "text": "ACM",
+   "bbox": [
+    151.96,
+    589.2,
+    169.31,
+    597.42
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    151.96,
+    94.23,
+    169.31,
+    102.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:179",
+   "operator": "TJ",
+   "text": "，卷。",
+   "bbox": [
+    169.31,
+    586.1,
+    193.97,
+    597.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    169.31,
+    93.75,
+    193.97,
+    105.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:180",
+   "operator": "TJ",
+   "text": " 44",
+   "bbox": [
+    193.97,
+    586.9,
+    204.24,
+    597.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    193.97,
+    93.79,
+    204.24,
+    104.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:181",
+   "operator": "TJ",
+   "text": "，第",
+   "bbox": [
+    204.24,
+    586.1,
+    220.68,
+    597.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    204.24,
+    93.75,
+    220.68,
+    105.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:182",
+   "operator": "TJ",
+   "text": " 7 ",
+   "bbox": [
+    220.68,
+    586.9,
+    228.9,
+    597.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    220.68,
+    93.79,
+    228.9,
+    104.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:183",
+   "operator": "TJ",
+   "text": "期，第",
+   "bbox": [
+    228.9,
+    586.1,
+    253.56,
+    597.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    228.9,
+    93.75,
+    253.56,
+    105.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:184",
+   "operator": "TJ",
+   "text": " 79-85 ",
+   "bbox": [
+    253.56,
+    586.9,
+    276.84,
+    597.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    253.56,
+    93.79,
+    276.84,
+    104.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:185",
+   "operator": "TJ",
+   "text": "页，",
+   "bbox": [
+    276.84,
+    586.1,
+    293.28,
+    597.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    276.84,
+    93.75,
+    293.28,
+    105.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:186",
+   "operator": "TJ",
+   "text": "2001 ",
+   "bbox": [
+    293.28,
+    586.9,
+    311.77,
+    597.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    293.28,
+    93.79,
+    311.77,
+    104.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:187",
+   "operator": "TJ",
+   "text": "年。",
+   "bbox": [
+    311.77,
+    586.1,
+    328.21,
+    597.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    311.77,
+    93.75,
+    328.21,
+    105.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:188",
+   "operator": "TJ",
+   "text": "[BWA96] J.W.",
+   "bbox": [
+    328.21,
+    586.9,
+    378.2,
+    597.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    328.21,
+    93.79,
+    378.2,
+    104.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:189",
+   "operator": "TJ",
+   "text": "巴勒斯，",
+   "bbox": [
+    378.2,
+    586.1,
+    411.08,
+    597.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    378.2,
+    93.75,
+    411.08,
+    105.55
+   ]
+  },
+  {
+   "pdf_object_id": "text:190",
+   "operator": "TJ",
+   "text": "R.C.",
+   "bbox": [
+    411.08,
+    586.9,
+    426.15,
+    597.86
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 33,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    411.08,
+    93.79,
+    426.15,
+    104.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:191",
+   "operator": "TJ",
+   "text": "沃特斯和",
+   "bbox": [
+    59.52,
+    597.2,
+    92.4,
+    609.0
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 34,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    82.65,
+    92.4,
+    94.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:192",
+   "operator": "TJ",
+   "text": " D.B. Anderson",
+   "bbox": [
+    92.4,
+    597.99,
+    143.99,
+    608.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 34,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    92.4,
+    82.69,
+    143.99,
+    93.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:193",
+   "operator": "TJ",
+   "text": "，“区域设置：支持大型多用户虚拟环境”，",
+   "bbox": [
+    143.99,
+    597.2,
+    308.37,
+    609.0
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 34,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    143.99,
+    82.65,
+    308.37,
+    94.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:194",
+   "operator": "TJ",
+   "text": "IEEE Computer",
+   "bbox": [
+    59.52,
+    611.39,
+    112.52,
+    619.61
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    59.52,
+    72.04,
+    112.52,
+    80.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:195",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    112.52,
+    611.39,
+    115.09,
+    619.61
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    112.52,
+    72.04,
+    115.09,
+    80.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:196",
+   "operator": "TJ",
+   "text": "Graphics",
+   "bbox": [
+    115.09,
+    611.39,
+    145.57,
+    619.61
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    115.09,
+    72.04,
+    145.57,
+    80.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:197",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    145.57,
+    611.39,
+    148.07,
+    619.61
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    145.57,
+    72.04,
+    148.07,
+    80.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:198",
+   "operator": "TJ",
+   "text": "and",
+   "bbox": [
+    148.07,
+    611.39,
+    160.37,
+    619.61
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    148.07,
+    72.04,
+    160.37,
+    80.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:199",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    160.37,
+    611.39,
+    162.86,
+    619.61
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    160.37,
+    72.04,
+    162.86,
+    80.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:200",
+   "operator": "TJ",
+   "text": "Applications",
+   "bbox": [
+    162.86,
+    611.39,
+    204.29,
+    619.61
+   ],
+   "font": "Times-Italic",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    162.86,
+    72.04,
+    204.29,
+    80.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:201",
+   "operator": "TJ",
+   "text": "，卷。",
+   "bbox": [
+    204.29,
+    608.29,
+    228.95,
+    620.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    204.29,
+    71.56,
+    228.95,
+    83.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:202",
+   "operator": "TJ",
+   "text": " 16",
+   "bbox": [
+    228.95,
+    609.09,
+    239.22,
+    620.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    228.95,
+    71.6,
+    239.22,
+    82.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:203",
+   "operator": "TJ",
+   "text": "、第",
+   "bbox": [
+    239.22,
+    608.29,
+    255.66,
+    620.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    239.22,
+    71.56,
+    255.66,
+    83.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:204",
+   "operator": "TJ",
+   "text": "6",
+   "bbox": [
+    255.66,
+    609.09,
+    259.77,
+    620.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    255.66,
+    71.6,
+    259.77,
+    82.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:205",
+   "operator": "TJ",
+   "text": "期，",
+   "bbox": [
+    259.77,
+    608.29,
+    276.21,
+    620.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    259.77,
+    71.56,
+    276.21,
+    83.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:206",
+   "operator": "TJ",
+   "text": "1996",
+   "bbox": [
+    276.21,
+    609.09,
+    292.65,
+    620.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    276.21,
+    71.6,
+    292.65,
+    82.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:207",
+   "operator": "TJ",
+   "text": "年。",
+   "bbox": [
+    292.65,
+    608.29,
+    309.09,
+    620.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.22,
+   "color": 0,
+   "line": 35,
+   "page": 97,
+   "block_type": 0,
+   "v3_bbox": [
+    292.65,
+    71.56,
+    309.09,
+    83.36
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

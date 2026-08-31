@@ -1,0 +1,86 @@
+{
+ "page": 0,
+ "total_blocks": 2,
+ "total_render_runs": 2,
+ "matched_runs": 2,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 2,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p0_0",
+   "page": 0,
+   "kind": "paragraph",
+   "source_text": "NETWORKING\nANDONLINEGAMES",
+   "translated_text": "NETWORKING\nANDONLINEGAMES",
+   "translation_status": "translated",
+   "src_box": [
+    59.52,
+    531.0308046,
+    374.33712940000004,
+    593.088915
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 30.14,
+   "render_rows": [
+    {
+     "source_node_id": "p0_0",
+     "render_object_ref": "R0",
+     "page": 0,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      59.52,
+      531.03,
+      374.34,
+      593.09
+     ],
+     "font_size": 30.14,
+     "text": "NETWORKING\nANDONLINEGAMES"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "NETWORKING\nANDONLINEGAMES"
+  },
+  {
+   "node_id": "p0_1",
+   "page": 0,
+   "kind": "paragraph",
+   "source_text": "NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames\nGrenville Armitage, Mark Claypool, Philip Branch  2006 John Wiley & Sons, Ltd ISBN: 0-470-01857-7",
+   "translated_text": "NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames\nGrenville Armitage, Mark Claypool, Philip Branch  2006 John Wiley & Sons, Ltd ISBN: 0-470-01857-7",
+   "translation_status": "translated",
+   "src_box": [
+    59.52,
+    67.824375,
+    381.03175,
+    84.3123055
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 7.22,
+   "render_rows": [
+    {
+     "source_node_id": "p0_1",
+     "render_object_ref": "R1",
+     "page": 0,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      59.52,
+      67.82,
+      381.03,
+      84.31
+     ],
+     "font_size": 7.22,
+     "text": "NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames\nGrenville Armitage, Mark Claypool, Philip Branch  2006 John Wiley & Sons, Ltd ISBN: 0-470-01857-7"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames\nGrenville Armitage, Mark Claypool, Philip Branch  2006 John Wiley & Sons, Ltd ISBN: 0-470-01857-7"
+  }
+ ],
+ "defects": []
+}

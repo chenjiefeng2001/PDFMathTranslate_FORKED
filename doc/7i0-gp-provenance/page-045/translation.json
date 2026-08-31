@@ -1,0 +1,123 @@
+[
+ {
+  "node_id": "p45_0",
+  "source_text": "1.1 ABriefHistoryoftheWorld 3",
+  "translated_text": "1.1 ABriefHistoryoftheWorld 3",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_1",
+  "source_text": "bysendingcrypticescapesequencesofthetypethatyounormallyseeinprinter\ndrivers.",
+  "translated_text": "bysendingcrypticescapesequencesofthetypethatyounormallyseeinprinter\ndrivers.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_2",
+  "source_text": "“640Koughttobeenoughforanybody.”",
+  "translated_text": "“640Koughttobeenoughforanybody.”",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_3",
+  "source_text": "William(“Bill”)H.Gates",
+  "translated_text": "William(“Bill”)H.Gates",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p45_4",
+  "source_text": "DuringmytenureatUTSA,Ibecamemoreinvolvedincomputer-relatedtop-\nicsandlessinvolvedintheoreticalconsiderationsinmyresearchﬁeldofdifferential\nequations.InparticularIbecameinvolvedwiththeUniversityofTexasHealthScience\nCenter’sDepartmentofRadiology.Theﬁeldofmedicalimagingwasquiteinteresting\ntomewithitsinherentconnectiontocomputergraphicsandvisualization,butalsoof\ninterestwereaspectsofgeometryandnumericalmethodssincewewereinterestedin\nanalyzingandextractinganatomicalinformationfrom3Dmedicalimages.Myinter-\nestinthetopicwasstrongenoughthatIdecidedtoleaveUTSAin1991andbecome\na“retread”bystudyingcomputerscienceandmedicalimagingattheUniversityof\nNorthCarolina(UNC)atChapelHill.\nWhileatUNCIhadaccesstomorepowerfulequipment.WedidnothaveaCray\nsupercomputerwithacoupleofpowerfulprocessors,butwedidhaveamassivelypar-\nallelmachineappropriatelynamedtheMASPARwith8,196processors,individually\nnotverypowerful,butanaturalarchitecturefor2Dimageprocessing.",
+  "translated_text": "DuringmytenureatUTSA,Ibecamemoreinvolvedincomputer-relatedtop-\nicsandlessinvolvedintheoreticalconsiderationsinmyresearchﬁeldofdifferential\nequations.InparticularIbecameinvolvedwiththeUniversityofTexasHealthScience\nCenter’sDepartmentofRadiology.Theﬁeldofmedicalimagingwasquiteinteresting\ntomewithitsinherentconnectiontocomputergraphicsandvisualization,butalsoof\ninterestwereaspectsofgeometryandnumericalmethodssincewewereinterestedin\nanalyzingandextractinganatomicalinformationfrom3Dmedicalimages.Myinter-\nestinthetopicwasstrongenoughthatIdecidedtoleaveUTSAin1991andbecome\na“retread”bystudyingcomputerscienceandmedicalimagingattheUniversityof\nNorthCarolina(UNC)atChapelHill.\nWhileatUNCIhadaccesstomorepowerfulequipment.WedidnothaveaCray\nsupercomputerwithacoupleofpowerfulprocessors,butwedidhaveamassivelypar-\nallelmachineappropriatelynamedtheMASPARwith8,196processors,individually\nnotverypowerful,butanaturalarchitecturefor2Dimageprocessing.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 14
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_5",
+  "source_text": "“Ifyouwereplowingaﬁeld,whichwouldyouratheruse?",
+  "translated_text": "“Ifyouwereplowingaﬁeld,whichwouldyouratheruse?",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_6",
+  "source_text": "Twostrongoxenor1024chickens?”\nSeymourCray,fatherofsupercomputing",
+  "translated_text": "Twostrongoxenor1024chickens?”\nSeymourCray,fatherofsupercomputing",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_7",
+  "source_text": "Still,therewasastrongattractiontocomputenumericallyonapersonalcom-\nputer,toseetheresultsgraphicallyandimmediately,ifnotsooner.",
+  "translated_text": "Still,therewasastrongattractiontocomputenumericallyonapersonalcom-\nputer,toseetheresultsgraphicallyandimmediately,ifnotsooner.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_8",
+  "source_text": "“ThePCistheLSDofthe90’s.”",
+  "translated_text": "“ThePCistheLSDofthe90’s.”",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_9",
+  "source_text": "TimothyLeary,educatorandpsychologist",
+  "translated_text": "TimothyLeary,educatorandpsychologist",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p45_10",
+  "source_text": "AtthetimeIhadupgradedmyIntel8086machinetoanIntel80486machine\nwithaﬂoatingpointcoprocessor.Iwasabletoimplementmanyalgorithmsofinter-\nestinimageanalysis,includingconstructingsomethingcalledridgesthataredeﬁned\nintermsofdifferentialequations.ThesameprogrammingissuesthataroseatCU\nbitmeagain:applyingnumericalmethodsfordifferentialequationsolverswithout\nthoughtaboutthestabilityofthemethodsorabouttheirapplicabilitytotheprob-\nlemathand.Anotherproblemofinterestwastocomputegeodesiccurvesonsurfaces,\ncurvesthatrepresenttheshortestsurfacepathbetweentwopointsonthesurface.",
+  "translated_text": "AtthetimeIhadupgradedmyIntel8086machinetoanIntel80486machine\nwithaﬂoatingpointcoprocessor.Iwasabletoimplementmanyalgorithmsofinter-\nestinimageanalysis,includingconstructingsomethingcalledridgesthataredeﬁned\nintermsofdifferentialequations.ThesameprogrammingissuesthataroseatCU\nbitmeagain:applyingnumericalmethodsfordifferentialequationsolverswithout\nthoughtaboutthestabilityofthemethodsorabouttheirapplicabilitytotheprob-\nlemathand.Anotherproblemofinterestwastocomputegeodesiccurvesonsurfaces,\ncurvesthatrepresenttheshortestsurfacepathbetweentwopointsonthesurface.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 8
+  },
+  "translation_status": "translated"
+ }
+]

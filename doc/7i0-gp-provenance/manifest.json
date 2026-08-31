@@ -1,0 +1,21 @@
+{
+ "schema_version": 1,
+ "meta": {
+  "source": "pdf2zh_files/Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk.pdf",
+  "dual": "pdf2zh_files/Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk-dual.pdf",
+  "version": "0.1.0",
+  "pages": [
+   0,
+   15,
+   30,
+   45
+  ]
+ },
+ "pages": {
+  "0": null,
+  "15": null,
+  "30": null,
+  "45": null
+ },
+ "summary": "summary.json"
+}

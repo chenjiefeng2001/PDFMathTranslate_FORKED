@@ -26,10 +26,44 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
 log = logging.getLogger(__name__)
+
+# ── 7I-1 termination / diagnostic checkpoint ────────────────────────────
+# 默认关闭：只有 logging DEBUG 级启用时才计时。纯诊断 instrument，不改任何
+# 行为/输出。用于定位 build_document_model 对复杂 PDF 的 First Non-\
+# Terminating Stage（F2 这类缺陷的对应物）：逐页逐 stage 记录 elapsed，
+# 卡住时最后一条 checkpoint 正是非终止点。
+def _checkpoint(ctx, page, stage) -> None:
+    if not log.isEnabledFor(logging.DEBUG):
+        return
+    t = time.monotonic()
+    last = ctx.get("last_ts")
+    dt = (t - last) if last is not None else 0.0
+    ctx["last_ts"] = t
+    ctx.setdefault("count", 0)
+    ctx["count"] += 1
+    block_cnt = len(getattr(page, "blocks", []) or [])
+    log.debug(
+        "dm[%s] stage=%s blocks=%s elapsed_since_prev=%.3f cumulative=%.3f",
+        ctx.get("label", "?"),
+        stage,
+        block_cnt,
+        dt,
+        t - ctx["t0"],
+    )
+
+
+class _TimerBox(dict):
+    """同 dict 的 checkpoint 上下文，附加 t0 原点和 label。"""
+
+    def __init__(self, label: str):
+        super().__init__()
+        self["label"] = label
+        self["t0"] = time.monotonic()
 
 # Relations（与 v3.graph.EdgeType 对齐的子集）
 REL_FOLLOWS = "follows"
@@ -396,13 +430,16 @@ def build_document_model(
     )
 
     model = DocumentModel()
+    _t = _TimerBox("build_document_model")
     for ltpage in ltpages or []:
         pno = getattr(ltpage, "pageid", 0)
+        _checkpoint(_t, None, f"page:{pno}:enter")
         try:
             page = build_page_model(ltpage, page_num=pno)
         except Exception as e:  # noqa: BLE001
             log.debug("document_model: page %s failed: %s", pno, e)
             continue
+        _checkpoint(_t, page, "build_page_model")
         # Lv3/Lv4：Font Resolution + 对齐标注 → Lv2 段内拆块（标题并入正文
         # 的排版级联修复）。先于 Role 标注，使角色判定在拆分后的块上进行。
         try:
@@ -410,18 +447,25 @@ def build_document_model(
             apply_layout_splits(page)
         except Exception as e:  # noqa: BLE001
             log.debug("document_model: layout passes page %s failed: %s", pno, e)
+        _checkpoint(_t, page, "style+splits")
         annotate_roles(page, classifier=classifier)
+        _checkpoint(_t, page, "roles")
         annotate_formulas(page)
+        _checkpoint(_t, page, "formulas")
         try:
             from pdf2zh.v3.toc_analyzer import split_toc_blocks
 
             split_toc_blocks(page)
         except Exception as e:  # noqa: BLE001
             log.debug("document_model: split_toc_blocks page %s failed: %s", pno, e)
+        _checkpoint(_t, page, "split_toc")
         annotate_toc_scan(page)
+        _checkpoint(_t, page, "toc_scan")
         for entry in (annotate_toc_entries or {}).get(pno, []) or []:
             annotate_toc(page, [entry])
+        _checkpoint(_t, page, "toc_entries")
         annotate_render(page)
+        _checkpoint(_t, page, "render")
         model.add_page(page)
     return model
 

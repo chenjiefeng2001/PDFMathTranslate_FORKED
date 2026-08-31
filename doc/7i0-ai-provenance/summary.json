@@ -1,0 +1,31 @@
+{
+ "documents": [
+  {
+   "path": "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5.pdf",
+   "pages": [
+    0,
+    10,
+    20,
+    30,
+    40
+   ]
+  }
+ ],
+ "defects": {
+  "F9": {
+   "total": 1,
+   "by_first_divergence": {
+    "render": 1
+   }
+  }
+ },
+ "first_divergence_stage_histogram": {
+  "source": 0,
+  "parser": 0,
+  "model": 0,
+  "translation": 0,
+  "layout": 0,
+  "render": 1,
+  "pdf": 0
+ }
+}

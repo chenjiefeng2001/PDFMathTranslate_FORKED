@@ -1,0 +1,795 @@
+{
+ "page": 187,
+ "total_blocks": 21,
+ "total_render_runs": 21,
+ "matched_runs": 21,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 21,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p187_0",
+   "page": 187,
+   "kind": "paragraph",
+   "source_text": "Section 1.3 Declarations, Definitions, and Linkage",
+   "translated_text": "Section 1.3 Declarations, Definitions, and Linkage",
+   "translation_status": "translated",
+   "src_box": [
+    98.5,
+    674.41,
+    319.535,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_0",
+     "render_object_ref": "R125",
+     "page": 187,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      98.5,
+      674.41,
+      319.54,
+      684.41
+     ],
+     "font_size": 10.0,
+     "text": "Section 1.3 Declarations, Definitions, and Linkage"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Section 1.3 Declarations, Definitions, and Linkage"
+  },
+  {
+   "node_id": "p187_1",
+   "page": 187,
+   "kind": "code",
+   "source_text": "int f();",
+   "translated_text": "int f();",
+   "translation_status": "preserved",
+   "src_box": [
+    166.1,
+    500.60597999999993,
+    209.29999999999998,
+    509.60597999999993
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_1",
+     "render_object_ref": "R126",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      166.1,
+      500.61,
+      209.3,
+      509.61
+     ],
+     "font_size": 9.0,
+     "text": "int f();"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "int f();"
+  },
+  {
+   "node_id": "p187_2",
+   "page": 187,
+   "kind": "code",
+   "source_text": "class Baz;",
+   "translated_text": "class Baz;",
+   "translation_status": "preserved",
+   "src_box": [
+    166.1,
+    416.5819799999998,
+    220.1,
+    425.5819799999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_2",
+     "render_object_ref": "R127",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      166.1,
+      416.58,
+      220.1,
+      425.58
+     ],
+     "font_size": 9.0,
+     "text": "class Baz;"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "class Baz;"
+  },
+  {
+   "node_id": "p187_3",
+   "page": 187,
+   "kind": "paragraph",
+   "source_text": "157",
+   "translated_text": "157",
+   "translation_status": "translated",
+   "src_box": [
+    498.5,
+    674.41,
+    513.5,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_3",
+     "render_object_ref": "R128",
+     "page": 187,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      498.5,
+      674.41,
+      513.5,
+      684.41
+     ],
+     "font_size": 12.0,
+     "text": "157"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "157"
+  },
+  {
+   "node_id": "p187_4",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "Notable exceptions are member functions and static member data, which are declarations\nnested within a class or struct definition and cannot be repeated. Having two identical\ntypedef declarations within the same class definition (unlike file, namespace, or function\nscope) also doesn’t work; however, repeating a nested class, struct, or union declaration\nwithin a class definition is legal C++:",
+   "translated_text": "Notable exceptions are member functions and static member data, which are declarations\nnested within a class or struct definition and cannot be repeated. Having two identical\ntypedef declarations within the same class definition (unlike file, namespace, or function\nscope) also doesn’t work; however, repeating a nested class, struct, or union declaration\nwithin a class definition is legal C++:",
+   "translation_status": "preserved",
+   "src_box": [
+    134.49779999999998,
+    579.06998,
+    513.5063899999999,
+    645.0699999999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_4",
+     "render_object_ref": "R129",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      579.07,
+      513.51,
+      645.07
+     ],
+     "font_size": 10.0,
+     "text": "Notable exceptions are member functions and static member data, which are declarations\nnested within a class or struct definition and cannot be repeated. Having two identical\ntypedef declarations within the same class definition (unlike file, namespace, or function\nscope) also doesn’t work; however, repeating a nested class, struct, or union declaration\nwithin a class definition is legal C++:"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Notable exceptions are member functions and static member data, which are declarations\nnested within a class or struct definition and cannot be repeated. Having two identical\ntypedef declarations within the same class definition (unlike file, namespace, or function\nscope) also doesn’t work; however, repeating a nested class, struct, or union declaration\nwithin a class definition is legal C++:"
+  },
+  {
+   "node_id": "p187_5",
+   "page": 187,
+   "kind": "code",
+   "source_text": "static int s_count; // static data member declaration\nstatic int s_count; // Error!",
+   "translated_text": "static int s_count; // static data member declaration\nstatic int s_count; // Error!",
+   "translation_status": "preserved",
+   "src_box": [
+    166.1,
+    528.61398,
+    457.70000000000033,
+    551.61798
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_5",
+     "render_object_ref": "R130",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      166.1,
+      528.61,
+      457.7,
+      551.62
+     ],
+     "font_size": 9.0,
+     "text": "static int s_count; // static data member declaration\nstatic int s_count; // Error!"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "static int s_count; // static data member declaration\nstatic int s_count; // Error!"
+  },
+  {
+   "node_id": "p187_6",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "// Error!",
+   "translated_text": "// Error!",
+   "translation_status": "preserved",
+   "src_box": [
+    279.49999999999994,
+    486.6019799999999,
+    328.1,
+    495.6019799999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_6",
+     "render_object_ref": "R131",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      279.5,
+      486.6,
+      328.1,
+      495.6
+     ],
+     "font_size": 9.0,
+     "text": "// Error!"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// Error!"
+  },
+  {
+   "node_id": "p187_7",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "// member function declaration",
+   "translated_text": "// member function declaration",
+   "translation_status": "preserved",
+   "src_box": [
+    279.49999999999994,
+    500.60597999999993,
+    441.5000000000003,
+    509.60597999999993
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_7",
+     "render_object_ref": "R132",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      279.5,
+      500.61,
+      441.5,
+      509.61
+     ],
+     "font_size": 12.0,
+     "text": "// member function declaration"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// member function declaration"
+  },
+  {
+   "node_id": "p187_8",
+   "page": 187,
+   "kind": "code",
+   "source_text": "int f();",
+   "translated_text": "int f();",
+   "translation_status": "preserved",
+   "src_box": [
+    166.1,
+    486.6019799999999,
+    209.29999999999998,
+    495.6019799999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_8",
+     "render_object_ref": "R133",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      166.1,
+      486.6,
+      209.3,
+      495.6
+     ],
+     "font_size": 12.0,
+     "text": "int f();"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "int f();"
+  },
+  {
+   "node_id": "p187_9",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "// typedef decl. nested within class scope\n// Error!",
+   "translated_text": "// typedef decl. nested within class scope\n// Error!",
+   "translation_status": "preserved",
+   "src_box": [
+    279.49999999999994,
+    444.58997999999985,
+    506.3000000000004,
+    467.5939799999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_9",
+     "render_object_ref": "R134",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      279.5,
+      444.59,
+      506.3,
+      467.59
+     ],
+     "font_size": 9.0,
+     "text": "// typedef decl. nested within class scope\n// Error!"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// typedef decl. nested within class scope\n// Error!"
+  },
+  {
+   "node_id": "p187_10",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "// A class decl. can be repeated anywhere.",
+   "translated_text": "// A class decl. can be repeated anywhere.",
+   "translation_status": "preserved",
+   "src_box": [
+    279.49999999999994,
+    416.5819799999998,
+    506.3000000000004,
+    425.5819799999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_10",
+     "render_object_ref": "R135",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      279.5,
+      416.58,
+      506.3,
+      425.58
+     ],
+     "font_size": 12.0,
+     "text": "// A class decl. can be repeated anywhere."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// A class decl. can be repeated anywhere."
+  },
+  {
+   "node_id": "p187_11",
+   "page": 187,
+   "kind": "code",
+   "source_text": "class Baz;",
+   "translated_text": "class Baz;",
+   "translation_status": "preserved",
+   "src_box": [
+    166.1,
+    402.5779799999998,
+    220.1,
+    411.5779799999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_11",
+     "render_object_ref": "R136",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      166.1,
+      402.58,
+      220.1,
+      411.58
+     ],
+     "font_size": 9.0,
+     "text": "class Baz;"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "class Baz;"
+  },
+  {
+   "node_id": "p187_12",
+   "page": 187,
+   "kind": "identifier",
+   "source_text": "ptg31790760",
+   "translated_text": "ptg31790760",
+   "translation_status": "preserved",
+   "src_box": [
+    712.0,
+    396.162,
+    764.542,
+    405.162
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_12",
+     "render_object_ref": "R137",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      712.0,
+      396.16,
+      764.54,
+      405.16
+     ],
+     "font_size": 9.0,
+     "text": "ptg31790760"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "ptg31790760"
+  },
+  {
+   "node_id": "p187_13",
+   "page": 187,
+   "kind": "code",
+   "source_text": "};",
+   "translated_text": "};",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    389.5819799999998,
+    155.3,
+    398.5819799999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_13",
+     "render_object_ref": "R138",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      389.58,
+      155.3,
+      398.58
+     ],
+     "font_size": 9.0,
+     "text": "};"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "};"
+  },
+  {
+   "node_id": "p187_14",
+   "page": 187,
+   "kind": "paragraph",
+   "source_text": "By contrast, definitions must never be repeated:",
+   "translated_text": "By contrast, definitions must never be repeated:",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    365.82000999999997,
+    326.73400000000004,
+    375.82000999999997
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_14",
+     "render_object_ref": "R139",
+     "page": 187,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      365.82,
+      326.73,
+      375.82
+     ],
+     "font_size": 10.0,
+     "text": "By contrast, definitions must never be repeated:"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "By contrast, definitions must never be repeated:"
+  },
+  {
+   "node_id": "p187_15",
+   "page": 187,
+   "kind": "code",
+   "source_text": "class Foo { }; // class definition",
+   "translated_text": "class Foo { }; // class definition",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    343.37201,
+    333.5,
+    352.37201
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_15",
+     "render_object_ref": "R140",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      343.37,
+      333.5,
+      352.37
+     ],
+     "font_size": 9.0,
+     "text": "class Foo { }; // class definition"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "class Foo { }; // class definition"
+  },
+  {
+   "node_id": "p187_16",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "// Error!",
+   "translated_text": "// Error!",
+   "translation_status": "preserved",
+   "src_box": [
+    230.89999999999998,
+    287.3560099999999,
+    279.49999999999994,
+    296.3560099999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_16",
+     "render_object_ref": "R141",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      230.9,
+      287.36,
+      279.5,
+      296.36
+     ],
+     "font_size": 9.0,
+     "text": "// Error!"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// Error!"
+  },
+  {
+   "node_id": "p187_17",
+   "page": 187,
+   "kind": "code",
+   "source_text": "int i;",
+   "translated_text": "int i;",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    217.3360099999999,
+    176.9,
+    226.3360099999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_17",
+     "render_object_ref": "R142",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      217.34,
+      176.9,
+      226.34
+     ],
+     "font_size": 9.0,
+     "text": "int i;"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "int i;"
+  },
+  {
+   "node_id": "p187_18",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "// data definition (reserves storage)",
+   "translated_text": "// data definition (reserves storage)",
+   "translation_status": "preserved",
+   "src_box": [
+    230.89999999999998,
+    217.3360099999999,
+    430.7000000000003,
+    226.3360099999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_18",
+     "render_object_ref": "R143",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      230.9,
+      217.34,
+      430.7,
+      226.34
+     ],
+     "font_size": 12.0,
+     "text": "// data definition (reserves storage)"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// data definition (reserves storage)"
+  },
+  {
+   "node_id": "p187_19",
+   "page": 187,
+   "kind": "code",
+   "source_text": "int i;",
+   "translated_text": "int i;",
+   "translation_status": "preserved",
+   "src_box": [
+    144.5,
+    204.3400099999999,
+    176.9,
+    213.3400099999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_19",
+     "render_object_ref": "R144",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      144.5,
+      204.34,
+      176.9,
+      213.34
+     ],
+     "font_size": 9.0,
+     "text": "int i;"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "int i;"
+  },
+  {
+   "node_id": "p187_20",
+   "page": 187,
+   "kind": "formula",
+   "source_text": "// Error!",
+   "translated_text": "// Error!",
+   "translation_status": "preserved",
+   "src_box": [
+    230.89999999999998,
+    204.3400099999999,
+    279.49999999999994,
+    213.3400099999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p187_20",
+     "render_object_ref": "R145",
+     "page": 187,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      230.9,
+      204.34,
+      279.5,
+      213.34
+     ],
+     "font_size": 12.0,
+     "text": "// Error!"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "// Error!"
+  }
+ ],
+ "defects": [
+  {
+   "defect_id": "F9",
+   "name": "text layer vs visual layer mismatch",
+   "suspect_layer": "renderer",
+   "node_id": "p187_page",
+   "page": 187,
+   "evidence": {
+    "mupdf_syntax_error": [
+     "syntax error: unknown keyword: '-9.000000001435637e'",
+     "syntax error: unknown keyword: '-1.1999999998124622e'",
+     "encountered syntax errors; page may not be correct"
+    ]
+   },
+   "first_divergence": "render",
+   "stage_verdicts": {
+    "source": "PASS",
+    "parser": "PASS",
+    "model": "PASS",
+    "translation": "PASS",
+    "layout": "PASS",
+    "render": "FAIL"
+   },
+   "note": "renderer emitted a malformed float into the page stream"
+  }
+ ]
+}

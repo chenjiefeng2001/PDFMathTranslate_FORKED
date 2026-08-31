@@ -1,0 +1,986 @@
+{
+ "page": 36,
+ "total_blocks": 27,
+ "total_render_runs": 27,
+ "matched_runs": 27,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 27,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p36_0",
+   "page": 36,
+   "kind": "heading",
+   "source_text": "28 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+   "translated_text": "28 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames",
+   "translation_status": "translated",
+   "src_box": [
+    46.08,
+    645.1302365,
+    416.53296294999984,
+    654.4563224999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.22,
+   "render_rows": [
+    {
+     "source_node_id": "p36_0",
+     "render_object_ref": "R35",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      46.08,
+      645.13,
+      416.53,
+      654.46
+     ],
+     "font_size": 9.22,
+     "text": "28 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "28 NetworkingandOnlineGames:UnderstandingandEngineeringMultiplayerInternetGames"
+  },
+  {
+   "node_id": "p36_1",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "FPS",
+   "translated_text": "FPS",
+   "translation_status": "translated",
+   "src_box": [
+    179.7985879,
+    596.688173,
+    195.9255554,
+    604.979673
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_1",
+     "render_object_ref": "R36",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      179.8,
+      596.69,
+      195.93,
+      604.98
+     ],
+     "font_size": 8.29,
+     "text": "FPS"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "FPS"
+  },
+  {
+   "node_id": "p36_2",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "MMORPG",
+   "translated_text": "MMORPG",
+   "translation_status": "translated",
+   "src_box": [
+    157.6917,
+    588.3966595,
+    195.92380649999998,
+    596.6881595000001
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_2",
+     "render_object_ref": "R37",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      157.69,
+      588.4,
+      195.92,
+      596.69
+     ],
+     "font_size": 8.29,
+     "text": "MMORPG"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "MMORPG"
+  },
+  {
+   "node_id": "p36_3",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "RTS\nRacing",
+   "translated_text": "RTS\nRacing",
+   "translation_status": "translated",
+   "src_box": [
+    170.1219,
+    571.8136595,
+    195.925048,
+    588.3966595
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_3",
+     "render_object_ref": "R38",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      170.12,
+      571.81,
+      195.93,
+      588.4
+     ],
+     "font_size": 8.29,
+     "text": "RTS\nRacing"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "RTS\nRacing"
+  },
+  {
+   "node_id": "p36_4",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "a 8000",
+   "translated_text": "a 8000",
+   "translation_status": "translated",
+   "src_box": [
+    104.9764405,
+    555.761852,
+    141.081496,
+    566.1977595000001
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_4",
+     "render_object_ref": "R39",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      104.98,
+      555.76,
+      141.08,
+      566.2
+     ],
+     "font_size": 8.29,
+     "text": "a 8000"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "a 8000"
+  },
+  {
+   "node_id": "p36_5",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "p 6000",
+   "translated_text": "p 6000",
+   "translation_status": "translated",
+   "src_box": [
+    104.9764405,
+    532.0520595,
+    141.081496,
+    540.3435595000001
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_5",
+     "render_object_ref": "R40",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      104.98,
+      532.05,
+      141.08,
+      540.34
+     ],
+     "font_size": 8.29,
+     "text": "p 6000"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "p 6000"
+  },
+  {
+   "node_id": "p36_6",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "4000",
+   "translated_text": "4000",
+   "translation_status": "translated",
+   "src_box": [
+    122.6412,
+    506.1978595,
+    141.081496,
+    514.4893595
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_6",
+     "render_object_ref": "R41",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      122.64,
+      506.2,
+      141.08,
+      514.49
+     ],
+     "font_size": 8.29,
+     "text": "4000"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "4000"
+  },
+  {
+   "node_id": "p36_7",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "2000",
+   "translated_text": "2000",
+   "translation_status": "translated",
+   "src_box": [
+    122.6412,
+    480.3435595,
+    141.081496,
+    488.6350595
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_7",
+     "render_object_ref": "R42",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      122.64,
+      480.34,
+      141.08,
+      488.64
+     ],
+     "font_size": 8.29,
+     "text": "2000"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "2000"
+  },
+  {
+   "node_id": "p36_8",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "0",
+   "translated_text": "0",
+   "translation_status": "translated",
+   "src_box": [
+    136.4714,
+    454.4893595,
+    141.081474,
+    462.78085949999996
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_8",
+     "render_object_ref": "R43",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      136.47,
+      454.49,
+      141.08,
+      462.78
+     ],
+     "font_size": 8.29,
+     "text": "0"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "0"
+  },
+  {
+   "node_id": "p36_9",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "400",
+   "translated_text": "400",
+   "translation_status": "translated",
+   "src_box": [
+    116.179,
+    372.67236410000004,
+    130.0462516,
+    380.9860641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_9",
+     "render_object_ref": "R44",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      116.18,
+      372.67,
+      130.05,
+      380.99
+     ],
+     "font_size": 8.31,
+     "text": "400"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "400"
+  },
+  {
+   "node_id": "p36_10",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "o 350",
+   "translated_text": "o 350",
+   "translation_status": "translated",
+   "src_box": [
+    100.18483590000001,
+    351.40582660000007,
+    130.0462516,
+    361.52406410000003
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_10",
+     "render_object_ref": "R45",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      100.18,
+      351.41,
+      130.05,
+      361.52
+     ],
+     "font_size": 8.31,
+     "text": "o 350"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "o 350"
+  },
+  {
+   "node_id": "p36_11",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "300",
+   "translated_text": "300",
+   "translation_status": "translated",
+   "src_box": [
+    116.179,
+    333.78696410000003,
+    130.0462516,
+    342.1006641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_11",
+     "render_object_ref": "R46",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      116.18,
+      333.79,
+      130.05,
+      342.1
+     ],
+     "font_size": 8.31,
+     "text": "300"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "300"
+  },
+  {
+   "node_id": "p36_12",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "s 250",
+   "translated_text": "s 250",
+   "translation_status": "translated",
+   "src_box": [
+    100.18483590000001,
+    312.6141024000001,
+    130.0462516,
+    322.6386641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_12",
+     "render_object_ref": "R47",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      100.18,
+      312.61,
+      130.05,
+      322.64
+     ],
+     "font_size": 8.31,
+     "text": "s 250"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "s 250"
+  },
+  {
+   "node_id": "p36_13",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "e 200",
+   "translated_text": "e 200",
+   "translation_status": "translated",
+   "src_box": [
+    100.18483590000001,
+    294.12443360000003,
+    130.0462516,
+    303.2147641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_13",
+     "render_object_ref": "R48",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      100.18,
+      294.12,
+      130.05,
+      303.21
+     ],
+     "font_size": 8.31,
+     "text": "e 200"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "e 200"
+  },
+  {
+   "node_id": "p36_14",
+   "page": 36,
+   "kind": "heading",
+   "source_text": "I 150",
+   "translated_text": "I 150",
+   "translation_status": "translated",
+   "src_box": [
+    100.18483590000001,
+    272.65846020000004,
+    130.0462516,
+    283.7538641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_14",
+     "render_object_ref": "R49",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      100.18,
+      272.66,
+      130.05,
+      283.75
+     ],
+     "font_size": 8.31,
+     "text": "I 150"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "I 150"
+  },
+  {
+   "node_id": "p36_15",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "e 100",
+   "translated_text": "e 100",
+   "translation_status": "translated",
+   "src_box": [
+    100.18483590000001,
+    253.71153790000002,
+    130.0462516,
+    264.3284641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_15",
+     "render_object_ref": "R50",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      100.18,
+      253.71,
+      130.05,
+      264.33
+     ],
+     "font_size": 8.31,
+     "text": "e 100"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "e 100"
+  },
+  {
+   "node_id": "p36_16",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "u 50",
+   "translated_text": "u 50",
+   "translation_status": "translated",
+   "src_box": [
+    100.18483590000001,
+    236.5527641,
+    130.0463344,
+    244.8664641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_16",
+     "render_object_ref": "R51",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      100.18,
+      236.55,
+      130.05,
+      244.87
+     ],
+     "font_size": 8.31,
+     "text": "u 50"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "u 50"
+  },
+  {
+   "node_id": "p36_17",
+   "page": 36,
+   "kind": "formula",
+   "source_text": "3\nDataobtainedfromNetworkWizards,http://www.nw.com/",
+   "translated_text": "3\nDataobtainedfromNetworkWizards,http://www.nw.com/",
+   "translation_status": "preserved",
+   "src_box": [
+    54.3,
+    67.8465336,
+    258.39340832000016,
+    77.0744641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.22,
+   "render_rows": [
+    {
+     "source_node_id": "p36_17",
+     "render_object_ref": "R52",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      54.3,
+      67.85,
+      258.39,
+      77.07
+     ],
+     "font_size": 8.22,
+     "text": "3\nDataobtainedfromNetworkWizards,http://www.nw.com/"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "3\nDataobtainedfromNetworkWizards,http://www.nw.com/"
+  },
+  {
+   "node_id": "p36_18",
+   "page": 36,
+   "kind": "formula",
+   "source_text": "1994 1996 1998 2000 2002 2004",
+   "translated_text": "1994 1996 1998 2000 2002 2004",
+   "translation_status": "preserved",
+   "src_box": [
+    153.4483,
+    446.1978595,
+    359.217596,
+    454.4893595
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_18",
+     "render_object_ref": "R53",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      153.45,
+      446.2,
+      359.22,
+      454.49
+     ],
+     "font_size": 8.29,
+     "text": "1994 1996 1998 2000 2002 2004"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "1994 1996 1998 2000 2002 2004"
+  },
+  {
+   "node_id": "p36_19",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "Year",
+   "translated_text": "Year",
+   "translation_status": "translated",
+   "src_box": [
+    239.31,
+    433.6026595,
+    255.66083799999998,
+    441.8941595
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.29,
+   "render_rows": [
+    {
+     "source_node_id": "p36_19",
+     "render_object_ref": "R54",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      239.31,
+      433.6,
+      255.66,
+      441.89
+     ],
+     "font_size": 8.29,
+     "text": "Year"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Year"
+  },
+  {
+   "node_id": "p36_20",
+   "page": 36,
+   "kind": "caption",
+   "source_text": "Figure3.16 ThegrowthinInternetgames,depictedbythefrequencyofoccurrenceinUsenet\nnewsgrouppostings",
+   "translated_text": "Figure3.16 ThegrowthinInternetgames,depictedbythefrequencyofoccurrenceinUsenet\nnewsgrouppostings",
+   "translation_status": "translated",
+   "src_box": [
+    46.07999999999999,
+    401.34996825,
+    416.66013684999996,
+    421.6563225
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.22,
+   "render_rows": [
+    {
+     "source_node_id": "p36_20",
+     "render_object_ref": "R55",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      46.08,
+      401.35,
+      416.66,
+      421.66
+     ],
+     "font_size": 9.22,
+     "text": "Figure3.16 ThegrowthinInternetgames,depictedbythefrequencyofoccurrenceinUsenet\nnewsgrouppostings"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Figure3.16 ThegrowthinInternetgames,depictedbythefrequencyofoccurrenceinUsenet\nnewsgrouppostings"
+  },
+  {
+   "node_id": "p36_21",
+   "page": 36,
+   "kind": "formula",
+   "source_text": "1993 1995 1997 1999 2001 2003 2005",
+   "translated_text": "1993 1995 1997 1999 2001 2003 2005",
+   "translation_status": "preserved",
+   "src_box": [
+    123.8719,
+    211.0107641,
+    362.9021688,
+    219.3244641
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_21",
+     "render_object_ref": "R56",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      123.87,
+      211.01,
+      362.9,
+      219.32
+     ],
+     "font_size": 8.31,
+     "text": "1993 1995 1997 1999 2001 2003 2005"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "1993 1995 1997 1999 2001 2003 2005"
+  },
+  {
+   "node_id": "p36_22",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "Year",
+   "translated_text": "Year",
+   "translation_status": "translated",
+   "src_box": [
+    235.1896,
+    198.5625641,
+    251.5842164,
+    206.87626410000001
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.31,
+   "render_rows": [
+    {
+     "source_node_id": "p36_22",
+     "render_object_ref": "R57",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      235.19,
+      198.56,
+      251.58,
+      206.88
+     ],
+     "font_size": 8.31,
+     "text": "Year"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Year"
+  },
+  {
+   "node_id": "p36_23",
+   "page": 36,
+   "kind": "caption",
+   "source_text": "Figure3.17 ThegrowthoftheInternet,depictedbythenumberofInternetaddressesthathave\nbeenassignedaname",
+   "translated_text": "Figure3.17 ThegrowthoftheInternet,depictedbythenumberofInternetaddressesthathave\nbeenassignedaname",
+   "translation_status": "translated",
+   "src_box": [
+    46.07999999999999,
+    167.04996825,
+    416.74491944999966,
+    187.3563225
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.22,
+   "render_rows": [
+    {
+     "source_node_id": "p36_23",
+     "render_object_ref": "R58",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      46.08,
+      167.05,
+      416.74,
+      187.36
+     ],
+     "font_size": 9.22,
+     "text": "Figure3.17 ThegrowthoftheInternet,depictedbythenumberofInternetaddressesthathave\nbeenassignedaname"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Figure3.17 ThegrowthoftheInternet,depictedbythenumberofInternetaddressesthathave\nbeenassignedaname"
+  },
+  {
+   "node_id": "p36_24",
+   "page": 36,
+   "kind": "heading",
+   "source_text": "Whilethegrowthintheonlinegamegenreshavebeensubstantialandperhapseven\nimpressive, it is interesting to put the online game growth in the context of Internet",
+   "translated_text": "Whilethegrowthintheonlinegamegenreshavebeensubstantialandperhapseven\nimpressive, it is interesting to put the online game growth in the context of Internet",
+   "translation_status": "translated",
+   "src_box": [
+    46.079507819999996,
+    126.81429243,
+    416.76217548000017,
+    149.0257611
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.21,
+   "render_rows": [
+    {
+     "source_node_id": "p36_24",
+     "render_object_ref": "R59",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      46.08,
+      126.81,
+      416.76,
+      149.03
+     ],
+     "font_size": 10.21,
+     "text": "Whilethegrowthintheonlinegamegenreshavebeensubstantialandperhapseven\nimpressive, it is interesting to put the online game growth in the context of Internet"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Whilethegrowthintheonlinegamegenreshavebeensubstantialandperhapseven\nimpressive, it is interesting to put the online game growth in the context of Internet"
+  },
+  {
+   "node_id": "p36_25",
+   "page": 36,
+   "kind": "paragraph",
+   "source_text": "3",
+   "translated_text": "3",
+   "translation_status": "translated",
+   "src_box": [
+    412.62,
+    119.1990491,
+    416.19385,
+    126.34674910000001
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.21,
+   "render_rows": [
+    {
+     "source_node_id": "p36_25",
+     "render_object_ref": "R60",
+     "page": 36,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      412.62,
+      119.2,
+      416.19,
+      126.35
+     ],
+     "font_size": 10.21,
+     "text": "3"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "3"
+  },
+  {
+   "node_id": "p36_26",
+   "page": 36,
+   "kind": "heading",
+   "source_text": "growth.Figure3.17depictsthegrowthoftheInternetintermsofthenumberofhosts.\nTheInternethasshownexponentialincreaseinthenumberofhostsduringthesametime\nperiod,althoughtherearesignsthatthisexponentialgrowthmaybeslowing.",
+   "translated_text": "growth.Figure3.17depictsthegrowthoftheInternetintermsofthenumberofhosts.\nTheInternethasshownexponentialincreaseinthenumberofhostsduringthesametime\nperiod,althoughtherearesignsthatthisexponentialgrowthmaybeslowing.",
+   "translation_status": "translated",
+   "src_box": [
+    46.079507819999996,
+    90.93464146000001,
+    416.57783589,
+    125.08647278999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.21,
+   "render_rows": [
+    {
+     "source_node_id": "p36_26",
+     "render_object_ref": "R61",
+     "page": 36,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      46.08,
+      90.93,
+      416.58,
+      125.09
+     ],
+     "font_size": 10.21,
+     "text": "growth.Figure3.17depictsthegrowthoftheInternetintermsofthenumberofhosts.\nTheInternethasshownexponentialincreaseinthenumberofhostsduringthesametime\nperiod,althoughtherearesignsthatthisexponentialgrowthmaybeslowing."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "growth.Figure3.17depictsthegrowthoftheInternetintermsofthenumberofhosts.\nTheInternethasshownexponentialincreaseinthenumberofhostsduringthesametime\nperiod,althoughtherearesignsthatthisexponentialgrowthmaybeslowing."
+  }
+ ],
+ "defects": []
+}

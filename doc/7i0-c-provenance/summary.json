@@ -1,0 +1,33 @@
+{
+ "documents": [
+  {
+   "path": "pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4.pdf",
+   "pages": [
+    62,
+    65,
+    69,
+    75,
+    185,
+    186,
+    187
+   ]
+  }
+ ],
+ "defects": {
+  "F9": {
+   "total": 7,
+   "by_first_divergence": {
+    "render": 7
+   }
+  }
+ },
+ "first_divergence_stage_histogram": {
+  "source": 0,
+  "parser": 0,
+  "model": 0,
+  "translation": 0,
+  "layout": 0,
+  "render": 7,
+  "pdf": 0
+ }
+}

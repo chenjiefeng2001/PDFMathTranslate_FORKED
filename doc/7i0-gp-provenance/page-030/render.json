@@ -1,0 +1,4914 @@
+{
+ "page": 61,
+ "page_height": 666.0020141601562,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "xxx",
+   "bbox": [
+    49.68,
+    38.06,
+    67.05,
+    50.02
+   ],
+   "font": "Minion-Bold",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 1,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    49.68,
+    615.98,
+    67.05,
+    627.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "Figures",
+   "bbox": [
+    79.2,
+    39.55,
+    107.1,
+    49.52
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 2,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    79.2,
+    616.48,
+    107.1,
+    626.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "7.20 IR",
+   "bbox": [
+    133.2,
+    76.12,
+    163.1,
+    89.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.2,
+    576.59,
+    163.1,
+    589.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "3",
+   "bbox": [
+    163.1,
+    77.34,
+    166.74,
+    84.92
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    163.1,
+    581.08,
+    166.74,
+    588.66
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    166.74,
+    76.12,
+    169.23,
+    89.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    166.74,
+    576.59,
+    169.23,
+    589.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "及其正交补集",
+   "bbox": [
+    169.23,
+    75.15,
+    229.04,
+    89.46
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    169.23,
+    576.54,
+    229.04,
+    590.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    229.04,
+    76.12,
+    231.53,
+    89.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    229.04,
+    576.59,
+    231.53,
+    589.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "U",
+   "bbox": [
+    231.53,
+    79.15,
+    238.7,
+    89.12
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    231.53,
+    576.88,
+    238.7,
+    586.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    238.7,
+    76.95,
+    240.17,
+    88.13
+   ],
+   "font": "MTSYN",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    238.7,
+    577.87,
+    240.17,
+    589.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "⊥",
+   "bbox": [
+    240.17,
+    76.95,
+    246.08,
+    84.53
+   ],
+   "font": "MTSYN",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    240.17,
+    581.47,
+    246.08,
+    589.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    246.08,
+    76.12,
+    248.57,
+    89.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    246.08,
+    576.59,
+    248.57,
+    589.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "的子空间",
+   "bbox": [
+    248.57,
+    75.15,
+    288.44,
+    89.46
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    248.57,
+    576.54,
+    288.44,
+    590.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    288.44,
+    76.12,
+    290.94,
+    89.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    288.44,
+    576.59,
+    290.94,
+    589.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "U",
+   "bbox": [
+    290.94,
+    79.15,
+    298.11,
+    89.12
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    290.94,
+    576.88,
+    298.11,
+    586.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    298.11,
+    75.15,
+    308.08,
+    89.46
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    298.11,
+    576.54,
+    308.08,
+    590.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": " 608 7.21 ",
+   "bbox": [
+    308.08,
+    76.12,
+    347.95,
+    89.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    308.08,
+    576.59,
+    347.95,
+    589.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "四个基本子空间。",
+   "bbox": [
+    347.95,
+    75.15,
+    427.69,
+    89.46
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    347.95,
+    576.54,
+    427.69,
+    590.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": " 613 7.22 ",
+   "bbox": [
+    427.69,
+    76.12,
+    467.56,
+    89.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    427.69,
+    576.59,
+    467.56,
+    589.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "b ",
+   "bbox": [
+    133.19,
+    90.07,
+    140.67,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    562.63,
+    140.67,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "∈",
+   "bbox": [
+    140.67,
+    92.59,
+    146.94,
+    102.56
+   ],
+   "font": "MTSYN",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    140.67,
+    563.44,
+    146.94,
+    573.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": " IR",
+   "bbox": [
+    146.94,
+    90.07,
+    159.4,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    146.94,
+    562.63,
+    159.4,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "3",
+   "bbox": [
+    159.4,
+    91.3,
+    163.04,
+    98.87
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    159.4,
+    567.13,
+    163.04,
+    574.7
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    163.04,
+    90.07,
+    165.53,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    163.04,
+    562.63,
+    165.53,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "的投影",
+   "bbox": [
+    165.53,
+    89.1,
+    195.43,
+    103.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    165.53,
+    562.58,
+    195.43,
+    576.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": " p ",
+   "bbox": [
+    195.43,
+    90.07,
+    205.4,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    195.43,
+    562.63,
+    205.4,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "∈",
+   "bbox": [
+    205.4,
+    92.59,
+    211.67,
+    102.56
+   ],
+   "font": "MTSYN",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    205.4,
+    563.44,
+    211.67,
+    573.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "S",
+   "bbox": [
+    214.04,
+    93.11,
+    218.8,
+    103.08
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    214.04,
+    562.92,
+    218.8,
+    572.89
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "，其中",
+   "bbox": [
+    218.8,
+    89.1,
+    248.71,
+    103.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    218.8,
+    562.58,
+    248.71,
+    576.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    248.71,
+    90.07,
+    251.2,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    248.71,
+    562.63,
+    251.2,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "S",
+   "bbox": [
+    251.2,
+    93.11,
+    255.96,
+    103.08
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    251.2,
+    562.92,
+    255.96,
+    572.89
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    255.96,
+    90.07,
+    258.45,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    255.96,
+    562.63,
+    258.45,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "是",
+   "bbox": [
+    258.45,
+    89.1,
+    268.42,
+    103.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    258.45,
+    562.58,
+    268.42,
+    576.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": " IR",
+   "bbox": [
+    268.42,
+    90.07,
+    280.88,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    268.42,
+    562.63,
+    280.88,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "3",
+   "bbox": [
+    280.88,
+    91.3,
+    284.52,
+    98.87
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    280.88,
+    567.13,
+    284.52,
+    574.7
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    284.52,
+    89.51,
+    287.36,
+    99.48
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    284.52,
+    566.52,
+    287.36,
+    576.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": "(",
+   "bbox": [
+    287.36,
+    93.11,
+    291.05,
+    103.08
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    287.36,
+    562.92,
+    291.05,
+    572.89
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    291.05,
+    90.07,
+    293.54,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    291.05,
+    562.63,
+    293.54,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "通过原点",
+   "bbox": [
+    293.54,
+    89.1,
+    333.41,
+    103.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    293.54,
+    562.58,
+    333.41,
+    576.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    333.41,
+    90.07,
+    335.9,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    333.41,
+    562.63,
+    335.9,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    335.9,
+    93.11,
+    339.59,
+    103.08
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    335.9,
+    562.92,
+    339.59,
+    572.89
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    339.59,
+    90.07,
+    342.08,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    339.59,
+    562.63,
+    342.08,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "的平面的二维子空间。",
+   "bbox": [
+    342.08,
+    89.1,
+    441.76,
+    103.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    342.08,
+    562.58,
+    441.76,
+    576.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": " 614 7.",
+   "bbox": [
+    441.76,
+    90.07,
+    469.17,
+    103.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 4,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    441.76,
+    562.63,
+    469.17,
+    575.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "23 ",
+   "bbox": [
+    133.19,
+    104.03,
+    145.65,
+    117.32
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    548.68,
+    145.65,
+    561.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "关于两个不同基数（水平箭头）从",
+   "bbox": [
+    145.65,
+    103.06,
+    295.17,
+    117.37
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    145.65,
+    548.63,
+    295.17,
+    562.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    295.17,
+    104.03,
+    297.66,
+    117.32
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    295.17,
+    548.68,
+    297.66,
+    561.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "V",
+   "bbox": [
+    297.66,
+    107.06,
+    304.19,
+    117.03
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    297.66,
+    548.97,
+    304.19,
+    558.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    304.19,
+    104.03,
+    306.68,
+    117.32
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    304.19,
+    548.68,
+    306.68,
+    561.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "到",
+   "bbox": [
+    306.68,
+    103.06,
+    316.65,
+    117.37
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    306.68,
+    548.63,
+    316.65,
+    562.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    316.65,
+    104.03,
+    319.14,
+    117.32
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    316.65,
+    548.68,
+    319.14,
+    561.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "V",
+   "bbox": [
+    319.14,
+    107.06,
+    325.67,
+    117.03
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    319.14,
+    548.97,
+    325.67,
+    558.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    325.67,
+    104.03,
+    328.16,
+    117.32
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    325.67,
+    548.68,
+    328.16,
+    561.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "的线性变换。",
+   "bbox": [
+    328.16,
+    103.06,
+    387.97,
+    117.37
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    328.16,
+    548.63,
+    387.97,
+    562.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    387.97,
+    104.03,
+    390.46,
+    117.32
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    387.97,
+    548.68,
+    390.46,
+    561.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "V",
+   "bbox": [
+    390.46,
+    107.06,
+    396.99,
+    117.03
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    390.46,
+    548.97,
+    396.99,
+    558.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    396.99,
+    107.06,
+    400.78,
+    117.03
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    396.99,
+    548.97,
+    400.78,
+    558.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "(",
+   "bbox": [
+    400.78,
+    107.06,
+    404.47,
+    117.03
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    400.78,
+    548.97,
+    404.47,
+    558.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": "垂直箭头",
+   "bbox": [
+    404.47,
+    103.06,
+    444.34,
+    117.37
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    404.47,
+    548.63,
+    444.34,
+    562.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    444.34,
+    107.06,
+    448.02,
+    117.03
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    444.34,
+    548.97,
+    448.02,
+    558.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": "的基",
+   "bbox": [
+    448.02,
+    103.06,
+    467.96,
+    117.37
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 5,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    448.02,
+    548.63,
+    467.96,
+    562.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": "础发生变化。",
+   "bbox": [
+    133.19,
+    117.01,
+    193.0,
+    131.33
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    534.67,
+    193.0,
+    548.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": " 624 7.24 (a) ",
+   "bbox": [
+    193.0,
+    117.98,
+    246.43,
+    131.28
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    193.0,
+    534.72,
+    246.43,
+    548.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": "单位面积的正方形。",
+   "bbox": [
+    246.43,
+    117.01,
+    336.13,
+    131.33
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    246.43,
+    534.67,
+    336.13,
+    548.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": " (b)",
+   "bbox": [
+    336.13,
+    117.98,
+    350.25,
+    131.28
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    336.13,
+    534.72,
+    350.25,
+    548.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": "当变换后的基向量与基向",
+   "bbox": [
+    350.25,
+    117.01,
+    459.89,
+    131.33
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    350.25,
+    534.67,
+    459.89,
+    548.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": "量具有相同阶数时，通过变换正方形获得的平行四边形。",
+   "bbox": [
+    133.19,
+    130.97,
+    382.38,
+    145.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 7,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    520.72,
+    382.38,
+    535.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": " (c)",
+   "bbox": [
+    382.38,
+    131.93,
+    395.94,
+    145.23
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 7,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    382.38,
+    520.77,
+    395.94,
+    534.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": "当变换后的基向",
+   "bbox": [
+    395.94,
+    130.97,
+    465.71,
+    145.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 7,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    395.94,
+    520.72,
+    465.71,
+    535.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": "量与基向量具有相反的阶数时，通过变换正方形获得的平行四边形。",
+   "bbox": [
+    133.19,
+    144.92,
+    432.22,
+    159.24
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 8,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    506.76,
+    432.22,
+    521.08
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": " (d) ",
+   "bbox": [
+    432.22,
+    145.89,
+    448.83,
+    159.19
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 8,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    432.22,
+    506.81,
+    448.83,
+    520.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "映射",
+   "bbox": [
+    448.83,
+    144.92,
+    468.76,
+    159.24
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 8,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    448.83,
+    506.76,
+    468.76,
+    521.08
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": "到平行向量的基向量，在这种情况下",
+   "bbox": [
+    133.19,
+    158.88,
+    292.68,
+    173.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    492.81,
+    292.68,
+    507.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": "A",
+   "bbox": [
+    292.68,
+    162.88,
+    298.99,
+    172.85
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    292.68,
+    493.15,
+    298.99,
+    503.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": "是不可逆的。",
+   "bbox": [
+    298.99,
+    158.88,
+    358.79,
+    173.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    298.99,
+    492.81,
+    358.79,
+    507.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": " 627 7.25 3 ",
+   "bbox": [
+    358.79,
+    159.84,
+    406.14,
+    173.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    358.79,
+    492.86,
+    406.14,
+    506.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": "×",
+   "bbox": [
+    406.14,
+    162.37,
+    413.95,
+    172.33
+   ],
+   "font": "MTSYN",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    406.14,
+    493.67,
+    413.95,
+    503.63
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": " 3 ",
+   "bbox": [
+    413.95,
+    159.84,
+    423.92,
+    173.14
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    413.95,
+    492.86,
+    423.92,
+    506.16
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": "矩阵行列",
+   "bbox": [
+    423.92,
+    158.88,
+    463.79,
+    173.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    423.92,
+    492.81,
+    463.79,
+    507.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": "式的蝴蝶法则的图示。",
+   "bbox": [
+    133.19,
+    172.83,
+    232.87,
+    187.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 10,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    478.85,
+    232.87,
+    493.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:80",
+   "operator": "TJ",
+   "text": " 629 7.26 (a) ",
+   "bbox": [
+    232.87,
+    173.8,
+    286.3,
+    187.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 10,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    232.87,
+    478.9,
+    286.3,
+    492.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:81",
+   "operator": "TJ",
+   "text": "单位体积的立方体。",
+   "bbox": [
+    286.3,
+    172.83,
+    376.01,
+    187.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 10,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    286.3,
+    478.85,
+    376.01,
+    493.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:82",
+   "operator": "TJ",
+   "text": " (b)",
+   "bbox": [
+    376.01,
+    173.8,
+    390.12,
+    187.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 10,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    376.01,
+    478.9,
+    390.12,
+    492.2
+   ]
+  },
+  {
+   "pdf_object_id": "text:83",
+   "operator": "TJ",
+   "text": "当变换后的基向",
+   "bbox": [
+    390.12,
+    172.83,
+    459.89,
+    187.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 10,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    390.12,
+    478.85,
+    459.89,
+    493.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:84",
+   "operator": "TJ",
+   "text": "量与基向量具有相同阶数时，通过变换立方体获得的平行六面体。",
+   "bbox": [
+    133.19,
+    186.79,
+    422.25,
+    201.1
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    464.9,
+    422.25,
+    479.21
+   ]
+  },
+  {
+   "pdf_object_id": "text:85",
+   "operator": "TJ",
+   "text": " 630 7.27 ",
+   "bbox": [
+    422.25,
+    187.75,
+    462.13,
+    201.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    422.25,
+    464.95,
+    462.13,
+    478.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:86",
+   "operator": "TJ",
+   "text": "三张图显示临界点。",
+   "bbox": [
+    133.19,
+    200.74,
+    222.9,
+    215.05
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    450.95,
+    222.9,
+    465.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:87",
+   "operator": "TJ",
+   "text": " (a) ",
+   "bbox": [
+    222.9,
+    201.71,
+    238.95,
+    215.0
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    222.9,
+    451.0,
+    238.95,
+    464.29
+   ]
+  },
+  {
+   "pdf_object_id": "text:88",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    238.95,
+    204.74,
+    241.62,
+    214.71
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    238.95,
+    451.29,
+    241.62,
+    461.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:89",
+   "operator": "TJ",
+   "text": " (",
+   "bbox": [
+    241.62,
+    204.23,
+    247.71,
+    214.2
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    241.62,
+    451.8,
+    247.71,
+    461.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:90",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    247.59,
+    204.74,
+    252.17,
+    214.71
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    247.59,
+    451.29,
+    252.17,
+    461.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:91",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    252.15,
+    207.98,
+    255.79,
+    215.55
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    252.15,
+    450.45,
+    255.79,
+    458.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:92",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    256.23,
+    204.23,
+    259.95,
+    214.2
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    256.23,
+    451.8,
+    259.95,
+    461.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:93",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    259.95,
+    201.71,
+    262.44,
+    215.0
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    259.95,
+    451.0,
+    262.44,
+    464.29
+   ]
+  },
+  {
+   "pdf_object_id": "text:94",
+   "operator": "TJ",
+   "text": "是局部最小值。",
+   "bbox": [
+    262.44,
+    200.74,
+    332.22,
+    215.05
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    262.44,
+    450.95,
+    332.22,
+    465.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:95",
+   "operator": "TJ",
+   "text": " (b) ",
+   "bbox": [
+    332.22,
+    201.71,
+    348.82,
+    215.0
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    332.22,
+    451.0,
+    348.82,
+    464.29
+   ]
+  },
+  {
+   "pdf_object_id": "text:96",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    348.82,
+    204.75,
+    351.49,
+    214.71
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    348.82,
+    451.29,
+    351.49,
+    461.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:97",
+   "operator": "TJ",
+   "text": " (",
+   "bbox": [
+    351.49,
+    204.23,
+    357.58,
+    214.2
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    351.49,
+    451.8,
+    357.58,
+    461.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:98",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    357.46,
+    204.75,
+    362.04,
+    214.71
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    357.46,
+    451.29,
+    362.04,
+    461.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:99",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    362.02,
+    207.98,
+    365.66,
+    215.55
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    362.02,
+    450.45,
+    365.66,
+    458.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:100",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    366.1,
+    204.23,
+    369.82,
+    214.2
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    366.1,
+    451.8,
+    369.82,
+    461.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:101",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    369.82,
+    201.71,
+    372.31,
+    215.0
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    369.82,
+    451.0,
+    372.31,
+    464.29
+   ]
+  },
+  {
+   "pdf_object_id": "text:102",
+   "operator": "TJ",
+   "text": "是局部最小值。",
+   "bbox": [
+    372.31,
+    200.74,
+    442.09,
+    215.05
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    372.31,
+    450.95,
+    442.09,
+    465.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:103",
+   "operator": "TJ",
+   "text": " (c) ",
+   "bbox": [
+    442.09,
+    201.71,
+    458.14,
+    215.0
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    442.09,
+    451.0,
+    458.14,
+    464.29
+   ]
+  },
+  {
+   "pdf_object_id": "text:104",
+   "operator": "TJ",
+   "text": "(",
+   "bbox": [
+    133.19,
+    218.18,
+    136.91,
+    228.15
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    437.85,
+    136.91,
+    447.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:105",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    136.79,
+    218.7,
+    141.37,
+    228.67
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    136.79,
+    437.33,
+    141.37,
+    447.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:106",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    141.36,
+    221.93,
+    145.0,
+    229.51
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    141.36,
+    436.49,
+    145.0,
+    444.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:107",
+   "operator": "TJ",
+   "text": ", ",
+   "bbox": [
+    145.0,
+    215.66,
+    149.98,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    145.0,
+    437.04,
+    149.98,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:108",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    149.98,
+    218.7,
+    152.65,
+    228.67
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    149.98,
+    437.33,
+    152.65,
+    447.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:109",
+   "operator": "TJ",
+   "text": " (",
+   "bbox": [
+    152.65,
+    218.18,
+    158.74,
+    228.15
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    152.65,
+    437.85,
+    158.74,
+    447.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:110",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    158.62,
+    218.7,
+    163.19,
+    228.67
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    158.62,
+    437.33,
+    163.19,
+    447.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:111",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    163.18,
+    221.93,
+    166.82,
+    229.51
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    163.18,
+    436.49,
+    166.82,
+    444.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:112",
+   "operator": "TJ",
+   "text": "))",
+   "bbox": [
+    167.5,
+    218.18,
+    174.82,
+    228.15
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    167.5,
+    437.85,
+    174.82,
+    447.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:113",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    174.82,
+    215.66,
+    177.31,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    174.82,
+    437.04,
+    177.31,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:114",
+   "operator": "TJ",
+   "text": "是",
+   "bbox": [
+    177.31,
+    214.7,
+    187.28,
+    229.01
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    177.31,
+    436.99,
+    187.28,
+    451.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:115",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    187.28,
+    215.66,
+    189.77,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    187.28,
+    437.04,
+    189.77,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:116",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    189.77,
+    218.7,
+    192.44,
+    228.67
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    189.77,
+    437.33,
+    192.44,
+    447.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:117",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    192.44,
+    215.66,
+    194.93,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    192.44,
+    437.04,
+    194.93,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:118",
+   "operator": "TJ",
+   "text": "图形的拐点。",
+   "bbox": [
+    194.93,
+    214.7,
+    254.74,
+    229.01
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    194.93,
+    436.99,
+    254.74,
+    451.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:119",
+   "operator": "TJ",
+   "text": " 655 7.28 ",
+   "bbox": [
+    254.74,
+    215.66,
+    294.61,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    254.74,
+    437.04,
+    294.61,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:120",
+   "operator": "TJ",
+   "text": "三张图显示临界点。",
+   "bbox": [
+    294.61,
+    214.7,
+    384.32,
+    229.01
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    294.61,
+    436.99,
+    384.32,
+    451.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:121",
+   "operator": "TJ",
+   "text": " (a) ",
+   "bbox": [
+    384.32,
+    215.66,
+    400.36,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    384.32,
+    437.04,
+    400.36,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:122",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    400.36,
+    218.7,
+    403.04,
+    228.67
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    400.36,
+    437.33,
+    403.04,
+    447.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:123",
+   "operator": "TJ",
+   "text": " (",
+   "bbox": [
+    403.04,
+    218.18,
+    409.12,
+    228.15
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    403.04,
+    437.85,
+    409.12,
+    447.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:124",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    409.12,
+    215.66,
+    414.11,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    409.12,
+    437.04,
+    414.11,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:125",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    414.11,
+    221.93,
+    417.74,
+    229.51
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    414.11,
+    436.49,
+    417.74,
+    444.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:126",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    418.43,
+    218.18,
+    422.14,
+    228.15
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    418.43,
+    437.85,
+    422.14,
+    447.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:127",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    422.14,
+    215.66,
+    424.64,
+    228.96
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    422.14,
+    437.04,
+    424.64,
+    450.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:128",
+   "operator": "TJ",
+   "text": "是局部最",
+   "bbox": [
+    424.64,
+    214.7,
+    464.51,
+    229.01
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    424.64,
+    436.99,
+    464.51,
+    451.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:129",
+   "operator": "TJ",
+   "text": "小值。",
+   "bbox": [
+    133.19,
+    228.65,
+    163.1,
+    242.96
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    423.04,
+    163.1,
+    437.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:130",
+   "operator": "TJ",
+   "text": " (b) ",
+   "bbox": [
+    163.1,
+    229.62,
+    179.7,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    163.1,
+    423.09,
+    179.7,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:131",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    179.7,
+    232.66,
+    182.37,
+    242.62
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    179.7,
+    423.38,
+    182.37,
+    433.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:132",
+   "operator": "TJ",
+   "text": " (",
+   "bbox": [
+    182.37,
+    232.14,
+    188.46,
+    242.11
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    182.37,
+    423.89,
+    188.46,
+    433.86
+   ]
+  },
+  {
+   "pdf_object_id": "text:133",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    188.46,
+    229.62,
+    193.44,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    188.46,
+    423.09,
+    193.44,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:134",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    193.44,
+    235.89,
+    197.08,
+    243.46
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    193.44,
+    422.54,
+    197.08,
+    430.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:135",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    197.76,
+    232.14,
+    201.48,
+    242.11
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    197.76,
+    423.89,
+    201.48,
+    433.86
+   ]
+  },
+  {
+   "pdf_object_id": "text:136",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    201.48,
+    229.62,
+    203.97,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    201.48,
+    423.09,
+    203.97,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:137",
+   "operator": "TJ",
+   "text": "是局部最小值。",
+   "bbox": [
+    203.97,
+    228.65,
+    273.75,
+    242.96
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    203.97,
+    423.04,
+    273.75,
+    437.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:138",
+   "operator": "TJ",
+   "text": " (c) ",
+   "bbox": [
+    273.75,
+    229.62,
+    289.8,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    273.75,
+    423.09,
+    289.8,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:139",
+   "operator": "TJ",
+   "text": "(",
+   "bbox": [
+    289.8,
+    232.14,
+    293.51,
+    242.11
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    289.8,
+    423.89,
+    293.51,
+    433.86
+   ]
+  },
+  {
+   "pdf_object_id": "text:140",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    293.51,
+    229.62,
+    298.5,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    293.51,
+    423.09,
+    298.5,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:141",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    298.5,
+    235.89,
+    302.13,
+    243.46
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    298.5,
+    422.54,
+    302.13,
+    430.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:142",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    302.13,
+    228.65,
+    312.1,
+    242.96
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    302.13,
+    423.04,
+    312.1,
+    437.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:143",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    312.1,
+    232.66,
+    314.77,
+    242.62
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    312.1,
+    423.38,
+    314.77,
+    433.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:144",
+   "operator": "TJ",
+   "text": " (",
+   "bbox": [
+    314.77,
+    232.14,
+    320.62,
+    242.11
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    314.77,
+    423.89,
+    320.62,
+    433.86
+   ]
+  },
+  {
+   "pdf_object_id": "text:145",
+   "operator": "TJ",
+   "text": "x",
+   "bbox": [
+    320.62,
+    229.62,
+    325.61,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    320.62,
+    423.09,
+    325.61,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:146",
+   "operator": "TJ",
+   "text": "0",
+   "bbox": [
+    325.61,
+    235.89,
+    329.24,
+    243.46
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    325.61,
+    422.54,
+    329.24,
+    430.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:147",
+   "operator": "TJ",
+   "text": "))",
+   "bbox": [
+    329.93,
+    232.14,
+    337.24,
+    242.11
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    329.93,
+    423.89,
+    337.24,
+    433.86
+   ]
+  },
+  {
+   "pdf_object_id": "text:148",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    337.24,
+    229.62,
+    339.74,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    337.24,
+    423.09,
+    339.74,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:149",
+   "operator": "TJ",
+   "text": "是",
+   "bbox": [
+    339.74,
+    228.65,
+    349.7,
+    242.96
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    339.74,
+    423.04,
+    349.7,
+    437.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:150",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    349.7,
+    229.62,
+    352.19,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    349.7,
+    423.09,
+    352.19,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:151",
+   "operator": "TJ",
+   "text": "f",
+   "bbox": [
+    352.19,
+    232.66,
+    354.87,
+    242.62
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    352.19,
+    423.38,
+    354.87,
+    433.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:152",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    354.87,
+    229.62,
+    357.36,
+    242.91
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    354.87,
+    423.09,
+    357.36,
+    436.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:153",
+   "operator": "TJ",
+   "text": "图上的鞍点。所有三幅图",
+   "bbox": [
+    357.36,
+    228.65,
+    467.0,
+    242.96
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    357.36,
+    423.04,
+    467.0,
+    437.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:154",
+   "operator": "TJ",
+   "text": "中都显示了图形点处的切平面。",
+   "bbox": [
+    133.19,
+    242.61,
+    272.74,
+    256.92
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    409.08,
+    272.74,
+    423.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:155",
+   "operator": "TJ",
+   "text": " 657 8.1 (a) ",
+   "bbox": [
+    272.74,
+    243.57,
+    321.18,
+    256.87
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    272.74,
+    409.13,
+    321.18,
+    422.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:156",
+   "operator": "TJ",
+   "text": "连接两点",
+   "bbox": [
+    321.18,
+    242.61,
+    361.05,
+    256.92
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    321.18,
+    409.08,
+    361.05,
+    423.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:157",
+   "operator": "TJ",
+   "text": "P",
+   "bbox": [
+    361.05,
+    246.09,
+    367.99,
+    256.06
+   ],
+   "font": "CMSY10",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    361.05,
+    409.94,
+    367.99,
+    419.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:158",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    367.99,
+    242.61,
+    377.96,
+    256.92
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    367.99,
+    409.08,
+    377.96,
+    423.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:159",
+   "operator": "TJ",
+   "text": "Q",
+   "bbox": [
+    377.96,
+    246.09,
+    386.1,
+    256.06
+   ],
+   "font": "CMSY10",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    377.96,
+    409.94,
+    386.1,
+    419.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:160",
+   "operator": "TJ",
+   "text": "的向量",
+   "bbox": [
+    386.1,
+    242.61,
+    416.01,
+    256.92
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    386.1,
+    409.08,
+    416.01,
+    423.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:161",
+   "operator": "TJ",
+   "text": "v",
+   "bbox": [
+    416.01,
+    243.57,
+    420.99,
+    256.87
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    416.01,
+    409.13,
+    420.99,
+    422.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:162",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    420.99,
+    242.61,
+    430.96,
+    256.92
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    420.99,
+    409.08,
+    430.96,
+    423.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:163",
+   "operator": "TJ",
+   "text": " (b) ",
+   "bbox": [
+    430.96,
+    243.57,
+    447.56,
+    256.87
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    430.96,
+    409.13,
+    447.56,
+    422.43
+   ]
+  },
+  {
+   "pdf_object_id": "text:164",
+   "operator": "TJ",
+   "text": "向量",
+   "bbox": [
+    447.56,
+    242.61,
+    467.5,
+    256.92
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    447.56,
+    409.08,
+    467.5,
+    423.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:165",
+   "operator": "TJ",
+   "text": "之和，每个向量由两个点确定。",
+   "bbox": [
+    133.19,
+    256.56,
+    272.74,
+    270.87
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 16,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    395.13,
+    272.74,
+    409.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:166",
+   "operator": "TJ",
+   "text": " 660 8.2 ",
+   "bbox": [
+    272.74,
+    257.53,
+    307.63,
+    270.82
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 16,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    272.74,
+    395.18,
+    307.63,
+    408.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:167",
+   "operator": "TJ",
+   "text": "仿射代数的平行四边形定律。",
+   "bbox": [
+    307.63,
+    256.56,
+    437.21,
+    270.87
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 16,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    307.63,
+    395.13,
+    437.21,
+    409.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:168",
+   "operator": "TJ",
+   "text": " 661 8.",
+   "bbox": [
+    437.21,
+    257.53,
+    464.62,
+    270.82
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 16,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    437.21,
+    395.18,
+    464.62,
+    408.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:169",
+   "operator": "TJ",
+   "text": "3 ",
+   "bbox": [
+    133.19,
+    271.48,
+    140.67,
+    284.78
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 17,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    381.22,
+    140.67,
+    394.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:170",
+   "operator": "TJ",
+   "text": "平面上的三个坐标系。请注意，坐标系中的向量不需要是单位长度或成对",
+   "bbox": [
+    140.67,
+    270.51,
+    459.63,
+    284.83
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 17,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    140.67,
+    381.17,
+    459.63,
+    395.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:171",
+   "operator": "TJ",
+   "text": "垂直。",
+   "bbox": [
+    133.19,
+    284.47,
+    163.1,
+    298.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    367.22,
+    163.1,
+    381.53
+   ]
+  },
+  {
+   "pdf_object_id": "text:172",
+   "operator": "TJ",
+   "text": " 663 8.4 ",
+   "bbox": [
+    163.1,
+    285.44,
+    197.98,
+    298.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    163.1,
+    367.27,
+    197.98,
+    380.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:173",
+   "operator": "TJ",
+   "text": "仿射变换定义条件",
+   "bbox": [
+    197.98,
+    284.47,
+    277.72,
+    298.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    197.98,
+    367.22,
+    277.72,
+    381.53
+   ]
+  },
+  {
+   "pdf_object_id": "text:174",
+   "operator": "TJ",
+   "text": "1",
+   "bbox": [
+    277.72,
+    285.44,
+    282.71,
+    298.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    277.72,
+    367.27,
+    282.71,
+    380.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:175",
+   "operator": "TJ",
+   "text": "的说明。",
+   "bbox": [
+    282.71,
+    284.47,
+    322.58,
+    298.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    282.71,
+    367.22,
+    322.58,
+    381.53
+   ]
+  },
+  {
+   "pdf_object_id": "text:176",
+   "operator": "TJ",
+   "text": " 666 8.5 ",
+   "bbox": [
+    322.58,
+    285.44,
+    357.47,
+    298.73
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    322.58,
+    367.27,
+    357.47,
+    380.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:177",
+   "operator": "TJ",
+   "text": "两点",
+   "bbox": [
+    357.47,
+    284.47,
+    377.4,
+    298.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    357.47,
+    367.22,
+    377.4,
+    381.53
+   ]
+  },
+  {
+   "pdf_object_id": "text:178",
+   "operator": "TJ",
+   "text": "P",
+   "bbox": [
+    377.4,
+    287.96,
+    384.34,
+    297.93
+   ],
+   "font": "CMSY10",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    377.4,
+    368.07,
+    384.34,
+    378.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:179",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    384.34,
+    284.47,
+    394.31,
+    298.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    384.34,
+    367.22,
+    394.31,
+    381.53
+   ]
+  },
+  {
+   "pdf_object_id": "text:180",
+   "operator": "TJ",
+   "text": "Q",
+   "bbox": [
+    394.31,
+    287.96,
+    402.45,
+    297.93
+   ],
+   "font": "CMSY10",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    394.31,
+    368.07,
+    402.45,
+    378.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:181",
+   "operator": "TJ",
+   "text": "的各种重心组",
+   "bbox": [
+    402.45,
+    284.47,
+    462.25,
+    298.78
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 18,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    402.45,
+    367.22,
+    462.25,
+    381.53
+   ]
+  },
+  {
+   "pdf_object_id": "text:182",
+   "operator": "TJ",
+   "text": "合。",
+   "bbox": [
+    133.19,
+    298.42,
+    153.13,
+    312.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    353.26,
+    153.13,
+    367.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:183",
+   "operator": "TJ",
+   "text": " 668 8.6 ",
+   "bbox": [
+    153.13,
+    299.39,
+    188.02,
+    312.69
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    153.13,
+    353.31,
+    188.02,
+    366.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:184",
+   "operator": "TJ",
+   "text": "三角形将平面分为七个区域。",
+   "bbox": [
+    188.02,
+    298.42,
+    317.6,
+    312.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    188.02,
+    353.26,
+    317.6,
+    367.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:185",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    317.6,
+    299.39,
+    320.09,
+    312.69
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    317.6,
+    353.31,
+    320.09,
+    366.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:186",
+   "operator": "TJ",
+   "text": "c",
+   "bbox": [
+    320.09,
+    302.43,
+    323.68,
+    312.39
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    320.09,
+    353.61,
+    323.68,
+    363.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:187",
+   "operator": "TJ",
+   "text": "1",
+   "bbox": [
+    323.69,
+    305.66,
+    327.33,
+    313.23
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    323.69,
+    352.77,
+    327.33,
+    360.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:188",
+   "operator": "TJ",
+   "text": "、",
+   "bbox": [
+    327.33,
+    298.42,
+    337.3,
+    312.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    327.33,
+    353.26,
+    337.3,
+    367.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:189",
+   "operator": "TJ",
+   "text": "c",
+   "bbox": [
+    337.3,
+    302.43,
+    340.88,
+    312.4
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    337.3,
+    353.6,
+    340.88,
+    363.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:190",
+   "operator": "TJ",
+   "text": "2",
+   "bbox": [
+    340.9,
+    305.66,
+    344.53,
+    313.23
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    340.9,
+    352.77,
+    344.53,
+    360.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:191",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    344.53,
+    299.39,
+    347.02,
+    312.69
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    344.53,
+    353.31,
+    347.02,
+    366.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:192",
+   "operator": "TJ",
+   "text": "和",
+   "bbox": [
+    347.02,
+    298.42,
+    356.99,
+    312.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    347.02,
+    353.26,
+    356.99,
+    367.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:193",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    356.99,
+    299.39,
+    359.48,
+    312.69
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    356.99,
+    353.31,
+    359.48,
+    366.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:194",
+   "operator": "TJ",
+   "text": "c",
+   "bbox": [
+    359.48,
+    302.43,
+    363.07,
+    312.4
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    359.48,
+    353.6,
+    363.07,
+    363.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:195",
+   "operator": "TJ",
+   "text": "3",
+   "bbox": [
+    363.08,
+    305.66,
+    366.72,
+    313.23
+   ],
+   "font": "Minion-Regular",
+   "font_size": 7.58,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    363.08,
+    352.77,
+    366.72,
+    360.34
+   ]
+  },
+  {
+   "pdf_object_id": "text:196",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    366.72,
+    299.39,
+    369.21,
+    312.69
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    366.72,
+    353.31,
+    369.21,
+    366.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:197",
+   "operator": "TJ",
+   "text": "的符号被列为有序三元",
+   "bbox": [
+    369.21,
+    298.42,
+    468.89,
+    312.74
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 19,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    369.21,
+    353.26,
+    468.89,
+    367.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:198",
+   "operator": "TJ",
+   "text": "组。",
+   "bbox": [
+    133.19,
+    312.38,
+    153.13,
+    326.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    339.31,
+    153.13,
+    353.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:199",
+   "operator": "TJ",
+   "text": " 669 8.7 (a) ",
+   "bbox": [
+    153.13,
+    313.35,
+    201.57,
+    326.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    153.13,
+    339.36,
+    201.57,
+    352.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:200",
+   "operator": "TJ",
+   "text": "一个三角形，其底长为",
+   "bbox": [
+    201.57,
+    312.38,
+    301.25,
+    326.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    201.57,
+    339.31,
+    301.25,
+    353.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:201",
+   "operator": "TJ",
+   "text": "b",
+   "bbox": [
+    301.25,
+    316.38,
+    305.94,
+    326.35
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    301.25,
+    339.65,
+    305.94,
+    349.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:202",
+   "operator": "TJ",
+   "text": "，高为",
+   "bbox": [
+    305.94,
+    312.38,
+    335.85,
+    326.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    305.94,
+    339.31,
+    335.85,
+    353.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:203",
+   "operator": "TJ",
+   "text": "h",
+   "bbox": [
+    335.85,
+    316.38,
+    340.88,
+    326.35
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    335.85,
+    339.65,
+    340.88,
+    349.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:204",
+   "operator": "TJ",
+   "text": "。三角形的面积是",
+   "bbox": [
+    340.88,
+    312.38,
+    420.62,
+    326.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    340.88,
+    339.31,
+    420.62,
+    353.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:205",
+   "operator": "TJ",
+   "text": "bh",
+   "bbox": [
+    420.62,
+    316.38,
+    430.45,
+    326.35
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    420.62,
+    339.65,
+    430.45,
+    349.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:206",
+   "operator": "TJ",
+   "text": "/",
+   "bbox": [
+    430.94,
+    315.87,
+    435.63,
+    325.83
+   ],
+   "font": "MTMI",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    430.94,
+    340.17,
+    435.63,
+    350.13
+   ]
+  },
+  {
+   "pdf_object_id": "text:207",
+   "operator": "TJ",
+   "text": "2",
+   "bbox": [
+    435.63,
+    313.35,
+    440.61,
+    326.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    435.63,
+    339.36,
+    440.61,
+    352.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:208",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    440.61,
+    312.38,
+    450.58,
+    326.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    440.61,
+    339.31,
+    450.58,
+    353.62
+   ]
+  },
+  {
+   "pdf_object_id": "text:209",
+   "operator": "TJ",
+   "text": " (b) ",
+   "bbox": [
+    450.58,
+    313.35,
+    467.18,
+    326.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    450.58,
+    339.36,
+    467.18,
+    352.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:210",
+   "operator": "TJ",
+   "text": "一个三角形被视为无限数量的不同长度的线段的并集（仅显示了一些）。三",
+   "bbox": [
+    133.19,
+    326.33,
+    462.13,
+    340.65
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 21,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    325.35,
+    462.13,
+    339.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:211",
+   "operator": "TJ",
+   "text": "角形的面积是这些线段的长度之和。第",
+   "bbox": [
+    133.19,
+    340.29,
+    302.64,
+    354.6
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    133.19,
+    311.4,
+    302.64,
+    325.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:212",
+   "operator": "TJ",
+   "text": "672",
+   "bbox": [
+    302.64,
+    341.25,
+    317.6,
+    354.55
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    302.64,
+    311.45,
+    317.6,
+    324.75
+   ]
+  },
+  {
+   "pdf_object_id": "text:213",
+   "operator": "TJ",
+   "text": "章",
+   "bbox": [
+    317.6,
+    340.29,
+    327.56,
+    354.6
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 22,
+   "page": 61,
+   "block_type": 0,
+   "v3_bbox": [
+    317.6,
+    311.4,
+    327.56,
+    325.71
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

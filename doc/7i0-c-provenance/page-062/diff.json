@@ -1,0 +1,615 @@
+{
+ "page": 62,
+ "total_blocks": 16,
+ "total_render_runs": 16,
+ "matched_runs": 16,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 16,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p62_0",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "32",
+   "translated_text": "32",
+   "translation_status": "translated",
+   "src_box": [
+    98.5,
+    674.41,
+    108.5,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_0",
+     "render_object_ref": "R0",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      98.5,
+      674.41,
+      108.5,
+      684.41
+     ],
+     "font_size": 10.0,
+     "text": "32"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "32"
+  },
+  {
+   "node_id": "p62_1",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "Chapter 0 Motivation",
+   "translated_text": "Chapter 0 Motivation",
+   "translation_status": "translated",
+   "src_box": [
+    413.4,
+    674.41,
+    513.5,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_1",
+     "render_object_ref": "R1",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      413.4,
+      674.41,
+      513.5,
+      684.41
+     ],
+     "font_size": 12.0,
+     "text": "Chapter 0 Motivation"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Chapter 0 Motivation"
+  },
+  {
+   "node_id": "p62_2",
+   "page": 62,
+   "kind": "formula",
+   "source_text": "Internet-based communication between client and server, as illustrated in Figure 0-23. The initial\nparser was written for HTTP version 1.0, which does not support the latest features. Over time,\nsome clients inform us (complain) that they need the capabilities of the newer HTTP and politely\nrequest (demand) that we release a 1.1-compliant version of our HTTP parser as soon as possible\n(yesterday). The question now becomes, do we upgrade the original parser component (i.e., in\nplace) or release an entirely new component that is 1.1-compliant and continue to support the\noriginal HTTP 1.0 parser component in parallel (i.e., potentially side by side in the same process)?",
+   "translated_text": "Internet-based communication between client and server, as illustrated in Figure 0-23. The initial\nparser was written for HTTP version 1.0, which does not support the latest features. Over time,\nsome clients inform us (complain) that they need the capabilities of the newer HTTP and politely\nrequest (demand) that we release a 1.1-compliant version of our HTTP parser as soon as possible\n(yesterday). The question now becomes, do we upgrade the original parser component (i.e., in\nplace) or release an entirely new component that is 1.1-compliant and continue to support the\noriginal HTTP 1.0 parser component in parallel (i.e., potentially side by side in the same process)?",
+   "translation_status": "preserved",
+   "src_box": [
+    134.50000000000006,
+    551.0699999999999,
+    513.515,
+    645.0699999999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_2",
+     "render_object_ref": "R2",
+     "page": 62,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      551.07,
+      513.51,
+      645.07
+     ],
+     "font_size": 10.0,
+     "text": "Internet-based communication between client and server, as illustrated in Figure 0-23. The initial\nparser was written for HTTP version 1.0, which does not support the latest features. Over time,\nsome clients inform us (complain) that they need the capabilities of the newer HTTP and politely\nrequest (demand) that we release a 1.1-compliant version of our HTTP parser as soon as possible\n(yesterday). The question now becomes, do we upgrade the original parser component (i.e., in\nplace) or release an entirely new component that is 1.1-compliant and continue to support the\noriginal HTTP 1.0 parser component in parallel (i.e., potentially side by side in the same process)?"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Internet-based communication between client and server, as illustrated in Figure 0-23. The initial\nparser was written for HTTP version 1.0, which does not support the latest features. Over time,\nsome clients inform us (complain) that they need the capabilities of the newer HTTP and politely\nrequest (demand) that we release a 1.1-compliant version of our HTTP parser as soon as possible\n(yesterday). The question now becomes, do we upgrade the original parser component (i.e., in\nplace) or release an entirely new component that is 1.1-compliant and continue to support the\noriginal HTTP 1.0 parser component in parallel (i.e., potentially side by side in the same process)?"
+  },
+  {
+   "node_id": "p62_3",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "Client",
+   "translated_text": "Client",
+   "translation_status": "translated",
+   "src_box": [
+    408.56759,
+    506.02559,
+    429.07959,
+    514.02559
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_3",
+     "render_object_ref": "R3",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      408.57,
+      506.03,
+      429.08,
+      514.03
+     ],
+     "font_size": 8.0,
+     "text": "Client"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Client"
+  },
+  {
+   "node_id": "p62_4",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "Server",
+   "translated_text": "Server",
+   "translation_status": "translated",
+   "src_box": [
+    219.03358999999998,
+    506.02540000000005,
+    239.88158999999996,
+    514.0254
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_4",
+     "render_object_ref": "R4",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      219.03,
+      506.03,
+      239.88,
+      514.03
+     ],
+     "font_size": 12.0,
+     "text": "Server"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Server"
+  },
+  {
+   "node_id": "p62_5",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "Proxy",
+   "translated_text": "Proxy",
+   "translation_status": "translated",
+   "src_box": [
+    314.33459,
+    500.17891000000003,
+    334.18579,
+    508.17891000000003
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_5",
+     "render_object_ref": "R5",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      314.33,
+      500.18,
+      334.19,
+      508.18
+     ],
+     "font_size": 8.0,
+     "text": "Proxy"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Proxy"
+  },
+  {
+   "node_id": "p62_6",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "Firewall",
+   "translated_text": "Firewall",
+   "translation_status": "translated",
+   "src_box": [
+    310.87359,
+    458.59340000000003,
+    338.36638999999997,
+    466.59340000000003
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_6",
+     "render_object_ref": "R6",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      310.87,
+      458.59,
+      338.37,
+      466.59
+     ],
+     "font_size": 8.0,
+     "text": "Firewall"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Firewall"
+  },
+  {
+   "node_id": "p62_7",
+   "page": 62,
+   "kind": "caption",
+   "source_text": "Figure 0-23: Client talking to server across firewall with proxies",
+   "translated_text": "Figure 0-23: Client talking to server across firewall with proxies",
+   "translation_status": "translated",
+   "src_box": [
+    200.6562,
+    415.58799000000005,
+    447.33809999999994,
+    424.58799000000005
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 9.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_7",
+     "render_object_ref": "R7",
+     "page": 62,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      200.66,
+      415.59,
+      447.34,
+      424.59
+     ],
+     "font_size": 9.0,
+     "text": "Figure 0-23: Client talking to server across firewall with proxies"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Figure 0-23: Client talking to server across firewall with proxies"
+  },
+  {
+   "node_id": "p62_8",
+   "page": 62,
+   "kind": "identifier",
+   "source_text": "ptg31790760",
+   "translated_text": "ptg31790760",
+   "translation_status": "preserved",
+   "src_box": [
+    712.0,
+    396.162,
+    764.542,
+    405.162
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_8",
+     "render_object_ref": "R8",
+     "page": 62,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      712.0,
+      396.16,
+      764.54,
+      405.16
+     ],
+     "font_size": 12.0,
+     "text": "ptg31790760"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "ptg31790760"
+  },
+  {
+   "node_id": "p62_9",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "The answer is that we must create a new component with a distinct identity and leave the\noriginal one alone! The parser is a mechanism that resides entirely within the implementation\nof these communication modules. For those applications that control both the client and server\nsides and that do not require the new features, there might never be a need to upgrade to a newer\nversion of HTTP. Moreover, this “upgrade” is a change to existing functionality — not a bug\nfix and not a backward-compatible extension. As such, the decision to change properly rests\nentirely with each individual application owner, who cannot reasonably be required to partake",
+   "translated_text": "The answer is that we must create a new component with a distinct identity and leave the\noriginal one alone! The parser is a mechanism that resides entirely within the implementation\nof these communication modules. For those applications that control both the client and server\nsides and that do not require the new features, there might never be a need to upgrade to a newer\nversion of HTTP. Moreover, this “upgrade” is a change to existing functionality — not a bug\nfix and not a backward-compatible extension. As such, the decision to change properly rests\nentirely with each individual application owner, who cannot reasonably be required to partake",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    305.36899,
+    513.509,
+    399.36899
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_9",
+     "render_object_ref": "R9",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      305.37,
+      513.51,
+      399.37
+     ],
+     "font_size": 10.0,
+     "text": "The answer is that we must create a new component with a distinct identity and leave the\noriginal one alone! The parser is a mechanism that resides entirely within the implementation\nof these communication modules. For those applications that control both the client and server\nsides and that do not require the new features, there might never be a need to upgrade to a newer\nversion of HTTP. Moreover, this “upgrade” is a change to existing functionality — not a bug\nfix and not a backward-compatible extension. As such, the decision to change properly rests\nentirely with each individual application owner, who cannot reasonably be required to partake"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "The answer is that we must create a new component with a distinct identity and leave the\noriginal one alone! The parser is a mechanism that resides entirely within the implementation\nof these communication modules. For those applications that control both the client and server\nsides and that do not require the new features, there might never be a need to upgrade to a newer\nversion of HTTP. Moreover, this “upgrade” is a change to existing functionality — not a bug\nfix and not a backward-compatible extension. As such, the decision to change properly rests\nentirely with each individual application owner, who cannot reasonably be required to partake"
+  },
+  {
+   "node_id": "p62_10",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "27",
+   "translated_text": "27",
+   "translation_status": "translated",
+   "src_box": [
+    481.22531,
+    294.99899,
+    488.22531,
+    301.99899
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_10",
+     "render_object_ref": "R10",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      481.23,
+      295.0,
+      488.23,
+      302.0
+     ],
+     "font_size": 10.0,
+     "text": "27"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "27"
+  },
+  {
+   "node_id": "p62_11",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "in subsequent releases or otherwise be coerced according to any centralized timetable.",
+   "translated_text": "in subsequent releases or otherwise be coerced according to any centralized timetable.",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    291.36899,
+    481.2189999999998,
+    301.36899
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_11",
+     "render_object_ref": "R11",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      291.37,
+      481.22,
+      301.37
+     ],
+     "font_size": 12.0,
+     "text": "in subsequent releases or otherwise be coerced according to any centralized timetable."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "in subsequent releases or otherwise be coerced according to any centralized timetable."
+  },
+  {
+   "node_id": "p62_12",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "If the proxies within the firewall require 1.1 compatibility, then exigent circumstances will\noblige application developers to use the new component sooner rather than later. If, however,\nthe proxies themselves are not yet 1.1 compatible, any such change forced upon an existing\napplication would be catastrophic, as the newer format could not be propagated by the older",
+   "translated_text": "If the proxies within the firewall require 1.1 compatibility, then exigent circumstances will\noblige application developers to use the new component sooner rather than later. If, however,\nthe proxies themselves are not yet 1.1 compatible, any such change forced upon an existing\napplication would be catastrophic, as the newer format could not be propagated by the older",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    223.36899000000003,
+    513.5279999999999,
+    275.36899
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_12",
+     "render_object_ref": "R12",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      223.37,
+      513.53,
+      275.37
+     ],
+     "font_size": 10.0,
+     "text": "If the proxies within the firewall require 1.1 compatibility, then exigent circumstances will\noblige application developers to use the new component sooner rather than later. If, however,\nthe proxies themselves are not yet 1.1 compatible, any such change forced upon an existing\napplication would be catastrophic, as the newer format could not be propagated by the older"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "If the proxies within the firewall require 1.1 compatibility, then exigent circumstances will\noblige application developers to use the new component sooner rather than later. If, however,\nthe proxies themselves are not yet 1.1 compatible, any such change forced upon an existing\napplication would be catastrophic, as the newer format could not be propagated by the older"
+  },
+  {
+   "node_id": "p62_13",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "27",
+   "translated_text": "27",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    194.69299874,
+    140.100006,
+    200.29300474
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 8.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_13",
+     "render_object_ref": "R13",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      194.69,
+      140.1,
+      200.29
+     ],
+     "font_size": 8.0,
+     "text": "27"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "27"
+  },
+  {
+   "node_id": "p62_14",
+   "page": 62,
+   "kind": "paragraph",
+   "source_text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a",
+   "translated_text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a",
+   "translation_status": "translated",
+   "src_box": [
+    141.63999,
+    191.78889999999998,
+    499.5631900000001,
+    199.78889999999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_14",
+     "render_object_ref": "R14",
+     "page": 62,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      141.64,
+      191.79,
+      499.56,
+      199.79
+     ],
+     "font_size": 12.0,
+     "text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a"
+  },
+  {
+   "node_id": "p62_15",
+   "page": 62,
+   "kind": "formula",
+   "source_text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring\nresults in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long\nas the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that\npeople will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical\nvacation). Even so, the precise timing of the upgrade must be orchestrated by the application developer. At least\nthat way the application developer can avoid being in an incoherent state when the changeover occurs.",
+   "translated_text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring\nresults in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long\nas the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that\npeople will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical\nvacation). Even so, the precise timing of the upgrade must be orchestrated by the application developer. At least\nthat way the application developer can avoid being in an incoherent state when the changeover occurs.",
+   "translation_status": "preserved",
+   "src_box": [
+    134.50399000000002,
+    131.78889999999998,
+    508.28159000000016,
+    189.78889999999998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p62_15",
+     "render_object_ref": "R15",
+     "page": 62,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      131.79,
+      508.28,
+      189.79
+     ],
+     "font_size": 12.0,
+     "text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring\nresults in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long\nas the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that\npeople will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical\nvacation). Even so, the precise timing of the upgrade must be orchestrated by the application developer. At least\nthat way the application developer can avoid being in an incoherent state when the changeover occurs."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring\nresults in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long\nas the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that\npeople will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical\nvacation). Even so, the precise timing of the upgrade must be orchestrated by the application developer. At least\nthat way the application developer can avoid being in an incoherent state when the changeover occurs."
+  }
+ ],
+ "defects": [
+  {
+   "defect_id": "F9",
+   "name": "text layer vs visual layer mismatch",
+   "suspect_layer": "renderer",
+   "node_id": "p62_page",
+   "page": 62,
+   "evidence": {
+    "mupdf_syntax_error": [
+     "syntax error: unknown keyword: '-9.000000001435637e'",
+     "syntax error: unknown keyword: '-1.1999999998124622e'",
+     "encountered syntax errors; page may not be correct"
+    ]
+   },
+   "first_divergence": "render",
+   "stage_verdicts": {
+    "source": "PASS",
+    "parser": "PASS",
+    "model": "PASS",
+    "translation": "PASS",
+    "layout": "PASS",
+    "render": "FAIL"
+   },
+   "note": "renderer emitted a malformed float into the page stream"
+  }
+ ]
+}

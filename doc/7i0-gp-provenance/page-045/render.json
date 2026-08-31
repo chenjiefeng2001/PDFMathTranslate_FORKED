@@ -1,0 +1,1711 @@
+{
+ "page": 91,
+ "page_height": 666.0020141601562,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "1.1",
+   "bbox": [
+    337.2,
+    39.55,
+    349.15,
+    49.52
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 1,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    337.2,
+    616.48,
+    349.15,
+    626.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    349.15,
+    39.55,
+    356.13,
+    49.52
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 1,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    349.15,
+    616.48,
+    356.13,
+    626.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "A Brief History of the World",
+   "bbox": [
+    356.13,
+    39.55,
+    468.92,
+    49.52
+   ],
+   "font": "Minion-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 1,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    356.13,
+    616.48,
+    468.92,
+    626.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "3",
+   "bbox": [
+    482.16,
+    38.06,
+    488.02,
+    50.02
+   ],
+   "font": "Minion-Bold",
+   "font_size": 11.96,
+   "color": 0,
+   "line": 2,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    482.16,
+    615.98,
+    488.02,
+    627.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "通过发送您通常在打印机驱动程序中看到的类型的神秘转义序列。",
+   "bbox": [
+    153.12,
+    75.15,
+    442.18,
+    89.46
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 3,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    576.54,
+    442.18,
+    590.85
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "“",
+   "bbox": [
+    228.96,
+    116.48,
+    239.92,
+    132.23
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 4,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    228.96,
+    533.77,
+    239.92,
+    549.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "640K ",
+   "bbox": [
+    239.92,
+    117.55,
+    267.03,
+    132.17
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 4,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    239.92,
+    533.83,
+    267.03,
+    548.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "对于任何人来说都应该足够了",
+   "bbox": [
+    267.03,
+    116.48,
+    409.57,
+    132.23
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 4,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    267.03,
+    533.77,
+    409.57,
+    549.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "。”",
+   "bbox": [
+    228.96,
+    129.09,
+    250.89,
+    144.84
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 5,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    228.96,
+    521.16,
+    250.89,
+    536.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    250.89,
+    130.16,
+    253.63,
+    144.78
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 5,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    250.89,
+    521.22,
+    253.63,
+    535.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "William(“Bill”)H. Gates",
+   "bbox": [
+    253.63,
+    134.69,
+    336.41,
+    143.66
+   ],
+   "font": "Myriad-Italic",
+   "font_size": 8.97,
+   "color": 0,
+   "line": 5,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    253.63,
+    522.34,
+    336.41,
+    531.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "在",
+   "bbox": [
+    168.24,
+    161.79,
+    178.21,
+    176.1
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    168.24,
+    489.9,
+    178.21,
+    504.21
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": " UTSA ",
+   "bbox": [
+    178.21,
+    162.76,
+    209.22,
+    176.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    178.21,
+    489.95,
+    209.22,
+    503.24
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "任职期间，我更多地参与与计算机相关的主题，而较少参与微分",
+   "bbox": [
+    209.22,
+    161.79,
+    488.31,
+    176.1
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 6,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    209.22,
+    489.9,
+    488.31,
+    504.21
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "方程研究领域的理论考虑。我特别参与了德克萨斯大学健康科学中心放射科",
+   "bbox": [
+    153.11,
+    175.74,
+    482.04,
+    190.06
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 7,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.11,
+    475.94,
+    482.04,
+    490.26
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "的工作。医学成像领域对我来说非常有趣，因为它与计算机图形和可视化有",
+   "bbox": [
+    153.11,
+    189.7,
+    482.04,
+    204.01
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 8,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.11,
+    461.99,
+    482.04,
+    476.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "着内在的联系，但几何和数值方法方面也很有趣，因为我们对从",
+   "bbox": [
+    153.11,
+    203.65,
+    432.21,
+    217.97
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.11,
+    448.03,
+    432.21,
+    462.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": " 3D ",
+   "bbox": [
+    432.21,
+    204.62,
+    449.37,
+    217.92
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    432.21,
+    448.08,
+    449.37,
+    461.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "医学图像",
+   "bbox": [
+    449.37,
+    203.65,
+    489.24,
+    217.97
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 9,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    449.37,
+    448.03,
+    489.24,
+    462.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "中分析和提取解剖信息感兴趣。我对这个主题的兴趣非常浓厚，以至于我决",
+   "bbox": [
+    153.11,
+    217.61,
+    482.04,
+    231.92
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 10,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.11,
+    434.08,
+    482.04,
+    448.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "定在",
+   "bbox": [
+    153.11,
+    231.56,
+    173.05,
+    245.88
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.11,
+    420.12,
+    173.05,
+    434.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": " 1991 ",
+   "bbox": [
+    173.05,
+    232.53,
+    197.97,
+    245.83
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    173.05,
+    420.17,
+    197.97,
+    433.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "年离开",
+   "bbox": [
+    197.97,
+    231.56,
+    227.87,
+    245.88
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    197.97,
+    420.12,
+    227.87,
+    434.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": " UTSA",
+   "bbox": [
+    227.87,
+    232.53,
+    256.39,
+    245.83
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    227.87,
+    420.17,
+    256.39,
+    433.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "，并在教堂山的北卡罗来纳大学",
+   "bbox": [
+    256.39,
+    231.56,
+    395.93,
+    245.88
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    256.39,
+    420.12,
+    395.93,
+    434.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": " (UNC) ",
+   "bbox": [
+    395.93,
+    232.53,
+    428.6,
+    245.83
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    395.93,
+    420.17,
+    428.6,
+    433.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "学习计算机科",
+   "bbox": [
+    428.6,
+    231.56,
+    488.4,
+    245.88
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 11,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    428.6,
+    420.12,
+    488.4,
+    434.44
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "学和医学成像，成为“重读”者。",
+   "bbox": [
+    153.11,
+    245.52,
+    302.63,
+    259.83
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 12,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.11,
+    406.17,
+    302.63,
+    420.48
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "在北卡罗来纳大学期间，我获得了更强大的设备。我们没有配备多个强大",
+   "bbox": [
+    168.24,
+    281.55,
+    487.2,
+    295.86
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 13,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    168.24,
+    370.14,
+    487.2,
+    384.45
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "处理器的",
+   "bbox": [
+    153.12,
+    292.51,
+    192.99,
+    306.83
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    359.17,
+    192.99,
+    373.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": " Cray ",
+   "bbox": [
+    192.99,
+    293.48,
+    217.35,
+    306.78
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    192.99,
+    359.22,
+    217.35,
+    372.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "超级计算机，但我们确实拥有一台大规模并行计算机，名为",
+   "bbox": [
+    217.35,
+    292.51,
+    476.5,
+    306.83
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    217.35,
+    359.17,
+    476.5,
+    373.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": " M",
+   "bbox": [
+    476.5,
+    293.48,
+    487.86,
+    306.78
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 14,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    476.5,
+    359.22,
+    487.86,
+    372.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "ASPAR",
+   "bbox": [
+    153.12,
+    304.44,
+    185.24,
+    317.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    348.26,
+    185.24,
+    361.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "，拥有",
+   "bbox": [
+    185.24,
+    303.48,
+    215.14,
+    317.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    185.24,
+    348.21,
+    215.14,
+    362.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": " 8,196 ",
+   "bbox": [
+    215.14,
+    304.44,
+    242.56,
+    317.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    215.14,
+    348.26,
+    242.56,
+    361.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "个处理器，单个处理器的功能不是很强大，但却是",
+   "bbox": [
+    242.56,
+    303.48,
+    461.84,
+    317.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    242.56,
+    348.21,
+    461.84,
+    362.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": " 2D ",
+   "bbox": [
+    461.84,
+    304.44,
+    479.01,
+    317.74
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    461.84,
+    348.26,
+    479.01,
+    361.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "图",
+   "bbox": [
+    479.01,
+    303.48,
+    488.97,
+    317.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 15,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    479.01,
+    348.21,
+    488.97,
+    362.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "像处理的自然架构。",
+   "bbox": [
+    153.12,
+    314.44,
+    242.82,
+    328.76
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 16,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    337.24,
+    242.82,
+    351.56
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "“如果你在耕地，你更愿意用哪一个？两只强壮的牛",
+   "bbox": [
+    191.28,
+    346.64,
+    443.46,
+    362.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 17,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    191.28,
+    303.61,
+    443.46,
+    319.36
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "还是",
+   "bbox": [
+    191.28,
+    358.16,
+    213.21,
+    373.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 18,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    191.28,
+    292.1,
+    213.21,
+    307.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": " 1024 ",
+   "bbox": [
+    213.21,
+    359.22,
+    240.62,
+    373.85
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 18,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    213.21,
+    292.15,
+    240.62,
+    306.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "只鸡？”",
+   "bbox": [
+    240.62,
+    358.16,
+    284.48,
+    373.9
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 18,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    240.62,
+    292.1,
+    284.48,
+    307.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "Seymour Cray, fatherof supercomputing",
+   "bbox": [
+    248.4,
+    380.08,
+    393.77,
+    389.05
+   ],
+   "font": "Myriad-Italic",
+   "font_size": 8.97,
+   "color": 0,
+   "line": 19,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    248.4,
+    276.95,
+    393.77,
+    285.92
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": "尽管如此，在个人计算机上进行数值计算仍然具有强烈的吸引力，可以立",
+   "bbox": [
+    168.24,
+    406.35,
+    487.2,
+    420.66
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 20,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    168.24,
+    245.34,
+    487.2,
+    259.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "即（甚至更快）以图形方式查看结果。",
+   "bbox": [
+    153.12,
+    417.31,
+    322.57,
+    431.63
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 21,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    234.37,
+    322.57,
+    248.69
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": "“",
+   "bbox": [
+    252.24,
+    447.68,
+    263.2,
+    463.43
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 22,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    252.24,
+    202.57,
+    263.2,
+    218.32
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "PC ",
+   "bbox": [
+    263.2,
+    448.75,
+    279.35,
+    463.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 22,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    263.2,
+    202.63,
+    279.35,
+    217.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": "是",
+   "bbox": [
+    279.35,
+    447.68,
+    290.32,
+    463.43
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 22,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    279.35,
+    202.57,
+    290.32,
+    218.32
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": " 90 ",
+   "bbox": [
+    290.32,
+    448.75,
+    306.77,
+    463.37
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 22,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    290.32,
+    202.63,
+    306.77,
+    217.25
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "年代的迷幻药。”",
+   "bbox": [
+    306.77,
+    447.68,
+    394.48,
+    463.43
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.96,
+   "color": 0,
+   "line": 22,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    306.77,
+    202.57,
+    394.48,
+    218.32
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "TimothyLeary, educatorand psychologist",
+   "bbox": [
+    246.24,
+    468.16,
+    395.89,
+    477.13
+   ],
+   "font": "Myriad-Italic",
+   "font_size": 8.97,
+   "color": 0,
+   "line": 23,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    246.24,
+    188.87,
+    395.89,
+    197.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "当时我已将我的",
+   "bbox": [
+    168.24,
+    494.19,
+    238.01,
+    508.5
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 24,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    168.24,
+    157.5,
+    238.01,
+    171.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": " Intel 8086 ",
+   "bbox": [
+    238.01,
+    495.16,
+    283.69,
+    508.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 24,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    238.01,
+    157.55,
+    283.69,
+    170.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": "机器升级为带有浮点协处理器的",
+   "bbox": [
+    283.69,
+    494.19,
+    423.24,
+    508.5
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 24,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    283.69,
+    157.5,
+    423.24,
+    171.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": " Intel 80486 ",
+   "bbox": [
+    423.24,
+    495.16,
+    473.91,
+    508.45
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 24,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    423.24,
+    157.55,
+    473.91,
+    170.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": "机",
+   "bbox": [
+    473.91,
+    494.19,
+    483.87,
+    508.5
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 24,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    473.91,
+    157.5,
+    483.87,
+    171.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "器。我能够实现许多图像分析中感兴趣的算法，包括构造一个用微分方程定",
+   "bbox": [
+    153.12,
+    508.14,
+    482.05,
+    522.46
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 25,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    143.54,
+    482.05,
+    157.86
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": "义的称为",
+   "bbox": [
+    153.12,
+    522.1,
+    192.99,
+    536.41
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 26,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    129.59,
+    192.99,
+    143.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    192.99,
+    523.07,
+    195.48,
+    536.36
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 26,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    192.99,
+    129.64,
+    195.48,
+    142.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "ridges",
+   "bbox": [
+    195.48,
+    526.1,
+    218.1,
+    536.07
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 26,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    195.48,
+    129.93,
+    218.1,
+    139.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    218.1,
+    523.07,
+    220.59,
+    536.36
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 26,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    218.1,
+    129.64,
+    220.59,
+    142.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": "的算法。",
+   "bbox": [
+    220.59,
+    522.1,
+    260.46,
+    536.41
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 26,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    220.59,
+    129.59,
+    260.46,
+    143.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": " CU ",
+   "bbox": [
+    260.46,
+    523.07,
+    279.29,
+    536.36
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 26,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    260.46,
+    129.64,
+    279.29,
+    142.93
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": "中出现的相同编程问题再次困扰着我：将数值方",
+   "bbox": [
+    279.29,
+    522.1,
+    488.61,
+    536.41
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 26,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    279.29,
+    129.59,
+    488.61,
+    143.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": "法应用于微分方程求解器，而不考虑方法的稳定性或它们对当前问题的适用",
+   "bbox": [
+    153.12,
+    536.05,
+    482.05,
+    550.37
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 27,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    115.63,
+    482.05,
+    129.95
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": "性。另一个有趣的问题是计算曲面上的",
+   "bbox": [
+    153.12,
+    550.01,
+    322.57,
+    564.32
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 28,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    101.68,
+    322.57,
+    115.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    322.57,
+    550.97,
+    325.06,
+    564.27
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 28,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    322.57,
+    101.73,
+    325.06,
+    115.03
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": "geodesic curves",
+   "bbox": [
+    325.06,
+    554.01,
+    381.75,
+    563.98
+   ],
+   "font": "Minion-Italic",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 28,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    325.06,
+    102.02,
+    381.75,
+    111.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "，曲线表示曲面上两点",
+   "bbox": [
+    381.75,
+    550.01,
+    481.43,
+    564.32
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 28,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    381.75,
+    101.68,
+    481.43,
+    115.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": "之间的最短曲面路径。",
+   "bbox": [
+    153.12,
+    563.96,
+    252.79,
+    578.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.97,
+   "color": 0,
+   "line": 29,
+   "page": 91,
+   "block_type": 0,
+   "v3_bbox": [
+    153.12,
+    87.72,
+    252.79,
+    102.04
+   ]
+  }
+ ],
+ "drawings": [
+  {
+   "pdf_object_id": 0,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.8202029466629028,
+    0.8260013461112976,
+    0.8322880864143372
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 1,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.8202029466629028,
+    0.8260013461112976,
+    0.8322880864143372
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 2,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.8202029466629028,
+    0.8260013461112976,
+    0.8322880864143372
+   ],
+   "color": null,
+   "has_text": false
+  }
+ ],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

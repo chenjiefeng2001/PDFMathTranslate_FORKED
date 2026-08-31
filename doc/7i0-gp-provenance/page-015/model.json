@@ -1,0 +1,130 @@
+[
+ {
+  "node_id": "p15_0",
+  "kind": "paragraph",
+  "role": "body_text",
+  "role_confidence": 0.6,
+  "bbox": [
+   429.36,
+   616.1312971,
+   488.05706606,
+   628.0923971
+  ],
+  "font_size": 9.97,
+  "font_major": "OKMGEC+Minion-Italic",
+  "multifont": true,
+  "reading_order": 0
+ },
+ {
+  "node_id": "p15_1",
+  "kind": "heading",
+  "role": "heading",
+  "role_confidence": 0.72,
+  "bbox": [
+   153.12,
+   576.7695084,
+   348.6374583499999,
+   591.3152167
+  ],
+  "font_size": 11.96,
+  "font_major": "OKMGPA+CopperplateGothicBT-Roman",
+  "multifont": true,
+  "reading_order": 1
+ },
+ {
+  "node_id": "p15_2",
+  "kind": "footnote",
+  "role": "footnote",
+  "role_confidence": 0.8,
+  "bbox": [
+   181.20098212,
+   563.0879902,
+   346.0102643199999,
+   573.0555902
+  ],
+  "font_size": 9.97,
+  "font_major": "OKMFAH+Minion-Regular",
+  "multifont": true,
+  "reading_order": 2
+ },
+ {
+  "node_id": "p15_3",
+  "kind": "toc",
+  "role": null,
+  "role_confidence": null,
+  "bbox": [
+   181.20098212,
+   551.0879965600001,
+   341.27067051999995,
+   561.05559656
+  ],
+  "font_size": null,
+  "font_major": null,
+  "multifont": false,
+  "reading_order": 3
+ },
+ {
+  "node_id": "p15_4",
+  "kind": "toc",
+  "role": null,
+  "role_confidence": null,
+  "bbox": [
+   181.20098212,
+   539.0880029200001,
+   305.42718091999996,
+   549.0556029200001
+  ],
+  "font_size": null,
+  "font_major": null,
+  "multifont": false,
+  "reading_order": 4
+ },
+ {
+  "node_id": "p15_5",
+  "kind": "toc",
+  "role": null,
+  "role_confidence": null,
+  "bbox": [
+   153.12,
+   522.7695084,
+   259.03207381,
+   537.3152167
+  ],
+  "font_size": null,
+  "font_major": null,
+  "multifont": false,
+  "reading_order": 5
+ },
+ {
+  "node_id": "p15_6",
+  "kind": "toc",
+  "role": null,
+  "role_confidence": null,
+  "bbox": [
+   181.20097564000008,
+   509.0879902,
+   297.03844228000014,
+   519.0555902
+  ],
+  "font_size": null,
+  "font_major": null,
+  "multifont": false,
+  "reading_order": 6
+ },
+ {
+  "node_id": "p15_7",
+  "kind": "toc",
+  "role": null,
+  "role_confidence": null,
+  "bbox": [
+   181.20097564000008,
+   497.08799655999997,
+   270.1847311200001,
+   507.05559655999997
+  ],
+  "font_size": null,
+  "font_major": null,
+  "multifont": false,
+  "reading_order": 7
+ }
+]

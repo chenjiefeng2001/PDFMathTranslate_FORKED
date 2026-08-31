@@ -1,0 +1,178 @@
+[
+ {
+  "node_id": "p62_0",
+  "source_text": "32",
+  "translated_text": "32",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_1",
+  "source_text": "Chapter 0 Motivation",
+  "translated_text": "Chapter 0 Motivation",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_2",
+  "source_text": "Internet-based communication between client and server, as illustrated in Figure 0-23. The initial\nparser was written for HTTP version 1.0, which does not support the latest features. Over time,\nsome clients inform us (complain) that they need the capabilities of the newer HTTP and politely\nrequest (demand) that we release a 1.1-compliant version of our HTTP parser as soon as possible\n(yesterday). The question now becomes, do we upgrade the original parser component (i.e., in\nplace) or release an entirely new component that is 1.1-compliant and continue to support the\noriginal HTTP 1.0 parser component in parallel (i.e., potentially side by side in the same process)?",
+  "translated_text": "Internet-based communication between client and server, as illustrated in Figure 0-23. The initial\nparser was written for HTTP version 1.0, which does not support the latest features. Over time,\nsome clients inform us (complain) that they need the capabilities of the newer HTTP and politely\nrequest (demand) that we release a 1.1-compliant version of our HTTP parser as soon as possible\n(yesterday). The question now becomes, do we upgrade the original parser component (i.e., in\nplace) or release an entirely new component that is 1.1-compliant and continue to support the\noriginal HTTP 1.0 parser component in parallel (i.e., potentially side by side in the same process)?",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 7
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p62_3",
+  "source_text": "Client",
+  "translated_text": "Client",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_4",
+  "source_text": "Server",
+  "translated_text": "Server",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_5",
+  "source_text": "Proxy",
+  "translated_text": "Proxy",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_6",
+  "source_text": "Firewall",
+  "translated_text": "Firewall",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_7",
+  "source_text": "Figure 0-23: Client talking to server across firewall with proxies",
+  "translated_text": "Figure 0-23: Client talking to server across firewall with proxies",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_8",
+  "source_text": "ptg31790760",
+  "translated_text": "ptg31790760",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p62_9",
+  "source_text": "The answer is that we must create a new component with a distinct identity and leave the\noriginal one alone! The parser is a mechanism that resides entirely within the implementation\nof these communication modules. For those applications that control both the client and server\nsides and that do not require the new features, there might never be a need to upgrade to a newer\nversion of HTTP. Moreover, this “upgrade” is a change to existing functionality — not a bug\nfix and not a backward-compatible extension. As such, the decision to change properly rests\nentirely with each individual application owner, who cannot reasonably be required to partake",
+  "translated_text": "The answer is that we must create a new component with a distinct identity and leave the\noriginal one alone! The parser is a mechanism that resides entirely within the implementation\nof these communication modules. For those applications that control both the client and server\nsides and that do not require the new features, there might never be a need to upgrade to a newer\nversion of HTTP. Moreover, this “upgrade” is a change to existing functionality — not a bug\nfix and not a backward-compatible extension. As such, the decision to change properly rests\nentirely with each individual application owner, who cannot reasonably be required to partake",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 7
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_10",
+  "source_text": "27",
+  "translated_text": "27",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_11",
+  "source_text": "in subsequent releases or otherwise be coerced according to any centralized timetable.",
+  "translated_text": "in subsequent releases or otherwise be coerced according to any centralized timetable.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_12",
+  "source_text": "If the proxies within the firewall require 1.1 compatibility, then exigent circumstances will\noblige application developers to use the new component sooner rather than later. If, however,\nthe proxies themselves are not yet 1.1 compatible, any such change forced upon an existing\napplication would be catastrophic, as the newer format could not be propagated by the older",
+  "translated_text": "If the proxies within the firewall require 1.1 compatibility, then exigent circumstances will\noblige application developers to use the new component sooner rather than later. If, however,\nthe proxies themselves are not yet 1.1 compatible, any such change forced upon an existing\napplication would be catastrophic, as the newer format could not be propagated by the older",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 4
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_13",
+  "source_text": "27",
+  "translated_text": "27",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_14",
+  "source_text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a",
+  "translated_text": "There are times when library developers must coerce application developers to accept upgrades of libraries to a",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p62_15",
+  "source_text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring\nresults in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long\nas the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that\npeople will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical\nvacation). Even so, the precise timing of the upgrade must be orchestrated by the application developer. At least\nthat way the application developer can avoid being in an incoherent state when the changeover occurs.",
+  "translated_text": "new release version to exploit new functionality. This coercion is especially necessary when continuous refactoring\nresults in changes to types that are commonly used across interface boundaries (see Volume II, section 4.4). As long\nas the “upgrade” is substantially backward-compatible (Volume II, section 5.5), it is not unreasonable to expect that\npeople will migrate in a “reasonable” timeframe (i.e., somewhat longer than the maximum length of a typical\nvacation). Even so, the precise timing of the upgrade must be orchestrated by the application developer. At least\nthat way the application developer can avoid being in an incoherent state when the changeover occurs.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 6
+  },
+  "translation_status": "preserved"
+ }
+]

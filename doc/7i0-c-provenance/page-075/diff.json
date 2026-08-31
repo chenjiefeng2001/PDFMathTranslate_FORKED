@@ -1,0 +1,507 @@
+{
+ "page": 75,
+ "total_blocks": 13,
+ "total_render_runs": 13,
+ "matched_runs": 13,
+ "unmatched_runs": 0,
+ "dangling_blocks": [],
+ "id_direct": true,
+ "present_blocks": 13,
+ "stray_records": [],
+ "traces": [
+  {
+   "node_id": "p75_0",
+   "page": 75,
+   "kind": "paragraph",
+   "source_text": "Section 0.6 The Key Role of Physical Design",
+   "translated_text": "Section 0.6 The Key Role of Physical Design",
+   "translation_status": "translated",
+   "src_box": [
+    98.5,
+    674.41,
+    294.003,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_0",
+     "render_object_ref": "R66",
+     "page": 75,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      98.5,
+      674.41,
+      294.0,
+      684.41
+     ],
+     "font_size": 10.0,
+     "text": "Section 0.6 The Key Role of Physical Design"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Section 0.6 The Key Role of Physical Design"
+  },
+  {
+   "node_id": "p75_1",
+   "page": 75,
+   "kind": "paragraph",
+   "source_text": "45",
+   "translated_text": "45",
+   "translation_status": "translated",
+   "src_box": [
+    503.5,
+    674.41,
+    513.5,
+    684.41
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_1",
+     "render_object_ref": "R67",
+     "page": 75,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      503.5,
+      674.41,
+      513.5,
+      684.41
+     ],
+     "font_size": 12.0,
+     "text": "45"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "45"
+  },
+  {
+   "node_id": "p75_2",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "Physical design dictates where (physically) — e.g., in what library — codified functionality\nbelongs relative to other functionality throughout our enterprise. Recognizing compile-time\nand link-time dependencies across physical boundaries will help shape both logical and physi-\ncal design aspects of our software. For example, common functionality intended for firm-wide\nreuse belongs (physically) at a low level in our software repository, where application software\ndevelopers working at higher levels can find and use it (e.g., see Figure 0-7b, section 0.2),\nindependently of other applications.",
+   "translated_text": "Physical design dictates where (physically) — e.g., in what library — codified functionality\nbelongs relative to other functionality throughout our enterprise. Recognizing compile-time\nand link-time dependencies across physical boundaries will help shape both logical and physi-\ncal design aspects of our software. For example, common functionality intended for firm-wide\nreuse belongs (physically) at a low level in our software repository, where application software\ndevelopers working at higher levels can find and use it (e.g., see Figure 0-7b, section 0.2),\nindependently of other applications.",
+   "translation_status": "preserved",
+   "src_box": [
+    134.5,
+    551.0699999999999,
+    513.5189999999997,
+    645.0699999999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_2",
+     "render_object_ref": "R68",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      551.07,
+      513.52,
+      645.07
+     ],
+     "font_size": 10.0,
+     "text": "Physical design dictates where (physically) — e.g., in what library — codified functionality\nbelongs relative to other functionality throughout our enterprise. Recognizing compile-time\nand link-time dependencies across physical boundaries will help shape both logical and physi-\ncal design aspects of our software. For example, common functionality intended for firm-wide\nreuse belongs (physically) at a low level in our software repository, where application software\ndevelopers working at higher levels can find and use it (e.g., see Figure 0-7b, section 0.2),\nindependently of other applications."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Physical design dictates where (physically) — e.g., in what library — codified functionality\nbelongs relative to other functionality throughout our enterprise. Recognizing compile-time\nand link-time dependencies across physical boundaries will help shape both logical and physi-\ncal design aspects of our software. For example, common functionality intended for firm-wide\nreuse belongs (physically) at a low level in our software repository, where application software\ndevelopers working at higher levels can find and use it (e.g., see Figure 0-7b, section 0.2),\nindependently of other applications."
+  },
+  {
+   "node_id": "p75_3",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "37,38,39",
+   "translated_text": "37,38,39",
+   "translation_status": "preserved",
+   "src_box": [
+    256.68399,
+    528.69998,
+    281.18399,
+    535.69998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_3",
+     "render_object_ref": "R69",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      256.68,
+      528.7,
+      281.18,
+      535.7
+     ],
+     "font_size": 10.0,
+     "text": "37,38,39"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "37,38,39"
+  },
+  {
+   "node_id": "p75_4",
+   "page": 75,
+   "kind": "paragraph",
+   "source_text": "It has become well-recognized",
+   "translated_text": "It has become well-recognized",
+   "translation_status": "translated",
+   "src_box": [
+    134.5,
+    525.0699999999999,
+    256.69000000000005,
+    535.0699999999999
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_4",
+     "render_object_ref": "R70",
+     "page": 75,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.5,
+      525.07,
+      256.69,
+      535.07
+     ],
+     "font_size": 12.0,
+     "text": "It has become well-recognized"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "It has become well-recognized"
+  },
+  {
+   "node_id": "p75_5",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "that cyclic dependencies among (physical) modules are to",
+   "translated_text": "that cyclic dependencies among (physical) modules are to",
+   "translation_status": "preserved",
+   "src_box": [
+    283.59389000000004,
+    525.05998,
+    513.51989,
+    535.06998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_5",
+     "render_object_ref": "R71",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      283.59,
+      525.06,
+      513.52,
+      535.07
+     ],
+     "font_size": 12.0,
+     "text": "that cyclic dependencies among (physical) modules are to"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "that cyclic dependencies among (physical) modules are to"
+  },
+  {
+   "node_id": "p75_6",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "be avoided (see sections 2.2–2.4, 2.6, 2.8–2.9, 2.14, and 3.4). By employing established physi-\ncal design techniques (see section 3.5), we ensure that we pay (in terms of link time and execut-\nable size) only for what we need (see section 3.6). Moreover, we want to develop reusable\nsolutions that are independent of peer solutions (see section 3.7) and can co-exist with them in\nthe same process (see section 3.9). Detailed physical design will require us to answer correctly\nmany important questions that are simply not addressed by logical design. For example,",
+   "translated_text": "be avoided (see sections 2.2–2.4, 2.6, 2.8–2.9, 2.14, and 3.4). By employing established physi-\ncal design techniques (see section 3.5), we ensure that we pay (in terms of link time and execut-\nable size) only for what we need (see section 3.6). Moreover, we want to develop reusable\nsolutions that are independent of peer solutions (see section 3.7) and can co-exist with them in\nthe same process (see section 3.9). Detailed physical design will require us to answer correctly\nmany important questions that are simply not addressed by logical design. For example,",
+   "translation_status": "preserved",
+   "src_box": [
+    134.50389,
+    441.06998,
+    513.53589,
+    521.06998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_6",
+     "render_object_ref": "R72",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.5,
+      441.07,
+      513.54,
+      521.07
+     ],
+     "font_size": 10.0,
+     "text": "be avoided (see sections 2.2–2.4, 2.6, 2.8–2.9, 2.14, and 3.4). By employing established physi-\ncal design techniques (see section 3.5), we ensure that we pay (in terms of link time and execut-\nable size) only for what we need (see section 3.6). Moreover, we want to develop reusable\nsolutions that are independent of peer solutions (see section 3.7) and can co-exist with them in\nthe same process (see section 3.9). Detailed physical design will require us to answer correctly\nmany important questions that are simply not addressed by logical design. For example,"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "be avoided (see sections 2.2–2.4, 2.6, 2.8–2.9, 2.14, and 3.4). By employing established physi-\ncal design techniques (see section 3.5), we ensure that we pay (in terms of link time and execut-\nable size) only for what we need (see section 3.6). Moreover, we want to develop reusable\nsolutions that are independent of peer solutions (see section 3.7) and can co-exist with them in\nthe same process (see section 3.9). Detailed physical design will require us to answer correctly\nmany important questions that are simply not addressed by logical design. For example,"
+  },
+  {
+   "node_id": "p75_7",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "• Should two given classes be defined in the same header file or in two separate ones?\n(See section 3.3.)",
+   "translated_text": "• Should two given classes be defined in the same header file or in two separate ones?\n(See section 3.3.)",
+   "translation_status": "preserved",
+   "src_box": [
+    152.50389,
+    401.06998,
+    501.52788999999984,
+    425.06998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_7",
+     "render_object_ref": "R73",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      152.5,
+      401.07,
+      501.53,
+      425.07
+     ],
+     "font_size": 10.0,
+     "text": "• Should two given classes be defined in the same header file or in two separate ones?\n(See section 3.3.)"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "• Should two given classes be defined in the same header file or in two separate ones?\n(See section 3.3.)"
+  },
+  {
+   "node_id": "p75_8",
+   "page": 75,
+   "kind": "identifier",
+   "source_text": "ptg31790760",
+   "translated_text": "ptg31790760",
+   "translation_status": "preserved",
+   "src_box": [
+    712.0,
+    396.162,
+    764.542,
+    405.162
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_8",
+     "render_object_ref": "R74",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      712.0,
+      396.16,
+      764.54,
+      405.16
+     ],
+     "font_size": 12.0,
+     "text": "ptg31790760"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "ptg31790760"
+  },
+  {
+   "node_id": "p75_9",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "• Should a given translation unit depend on some other translation unit at all?\n(See section 3.8.)\n• Should we #include the header file containing the declaration of a given logical\nentity or instead simply forward declare it? (See Volume II, section 6.6.)\n• Should a given function be declared inline? (See Volume II, section 6.7.)",
+   "translated_text": "• Should a given translation unit depend on some other translation unit at all?\n(See section 3.8.)\n• Should we #include the header file containing the declaration of a given logical\nentity or instead simply forward declare it? (See Volume II, section 6.6.)\n• Should a given function be declared inline? (See Volume II, section 6.7.)",
+   "translation_status": "preserved",
+   "src_box": [
+    152.49900000000002,
+    331.07000999999997,
+    490.26899999999995,
+    397.06998
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_9",
+     "render_object_ref": "R75",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      152.5,
+      331.07,
+      490.27,
+      397.07
+     ],
+     "font_size": 10.0,
+     "text": "• Should a given translation unit depend on some other translation unit at all?\n(See section 3.8.)\n• Should we #include the header file containing the declaration of a given logical\nentity or instead simply forward declare it? (See Volume II, section 6.6.)\n• Should a given function be declared inline? (See Volume II, section 6.7.)"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "• Should a given translation unit depend on some other translation unit at all?\n(See section 3.8.)\n• Should we #include the header file containing the declaration of a given logical\nentity or instead simply forward declare it? (See Volume II, section 6.6.)\n• Should a given function be declared inline? (See Volume II, section 6.7.)"
+  },
+  {
+   "node_id": "p75_10",
+   "page": 75,
+   "kind": "paragraph",
+   "source_text": "These kinds of physical design questions, while closely tied to the technical aspects of devel-\nopment, bring with them a dimension of design with which even “expert” software developers\nmight have little or no experience. Physical design, though less widely understood than logical\ndesign, nonetheless plays an increasingly crucial role as the number and size of the applications\nand libraries developed within a group, department, or company grow.",
+   "translated_text": "These kinds of physical design questions, while closely tied to the technical aspects of devel-\nopment, bring with them a dimension of design with which even “expert” software developers\nmight have little or no experience. Physical design, though less widely understood than logical\ndesign, nonetheless plays an increasingly crucial role as the number and size of the applications\nand libraries developed within a group, department, or company grow.",
+   "translation_status": "translated",
+   "src_box": [
+    134.55840999999998,
+    249.07001,
+    513.55841,
+    315.07000999999997
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 10.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_10",
+     "render_object_ref": "R76",
+     "page": 75,
+     "object_type": "flow",
+     "final_bbox_v3": [
+      134.56,
+      249.07,
+      513.56,
+      315.07
+     ],
+     "font_size": 10.0,
+     "text": "These kinds of physical design questions, while closely tied to the technical aspects of devel-\nopment, bring with them a dimension of design with which even “expert” software developers\nmight have little or no experience. Physical design, though less widely understood than logical\ndesign, nonetheless plays an increasingly crucial role as the number and size of the applications\nand libraries developed within a group, department, or company grow."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "These kinds of physical design questions, while closely tied to the technical aspects of devel-\nopment, bring with them a dimension of design with which even “expert” software developers\nmight have little or no experience. Physical design, though less widely understood than logical\ndesign, nonetheless plays an increasingly crucial role as the number and size of the applications\nand libraries developed within a group, department, or company grow."
+  },
+  {
+   "node_id": "p75_11",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "Combining thoughtful logical design with careful physical packaging will enable software\ndevelopers to “mix and match” existing solutions, subsolutions, and so on, at finely graduated\nlevels of integration (section 0.3). This combinatorial flexibility along with logical and physical",
+   "translated_text": "Combining thoughtful logical design with careful physical packaging will enable software\ndevelopers to “mix and match” existing solutions, subsolutions, and so on, at finely graduated\nlevels of integration (section 0.3). This combinatorial flexibility along with logical and physical",
+   "translation_status": "preserved",
+   "src_box": [
+    134.55840999999998,
+    195.07001,
+    513.5534099999999,
+    233.07001
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_11",
+     "render_object_ref": "R77",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      134.56,
+      195.07,
+      513.55,
+      233.07
+     ],
+     "font_size": 12.0,
+     "text": "Combining thoughtful logical design with careful physical packaging will enable software\ndevelopers to “mix and match” existing solutions, subsolutions, and so on, at finely graduated\nlevels of integration (section 0.3). This combinatorial flexibility along with logical and physical"
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "Combining thoughtful logical design with careful physical packaging will enable software\ndevelopers to “mix and match” existing solutions, subsolutions, and so on, at finely graduated\nlevels of integration (section 0.3). This combinatorial flexibility along with logical and physical"
+  },
+  {
+   "node_id": "p75_12",
+   "page": 75,
+   "kind": "formula",
+   "source_text": "lakos96, section 4.11, pp. 184–187, and section 7.3, pp. 493–503\nsutter05, item 22, pp. 40–41\nWith respect to compile-time dependency (only), see also meyers05, item 31, pp. 140–148.",
+   "translated_text": "lakos96, section 4.11, pp. 184–187, and section 7.3, pp. 493–503\nsutter05, item 22, pp. 40–41\nWith respect to compile-time dependency (only), see also meyers05, item 31, pp. 140–148.",
+   "translation_status": "preserved",
+   "src_box": [
+    141.63999,
+    138.32,
+    436.58079,
+    170.328
+   ],
+   "dst_box": null,
+   "layout_font_size": null,
+   "parser_font_size": 0.0,
+   "render_rows": [
+    {
+     "source_node_id": "p75_12",
+     "render_object_ref": "R78",
+     "page": 75,
+     "object_type": "wrapped",
+     "final_bbox_v3": [
+      141.64,
+      138.32,
+      436.58,
+      170.33
+     ],
+     "font_size": 12.0,
+     "text": "lakos96, section 4.11, pp. 184–187, and section 7.3, pp. 493–503\nsutter05, item 22, pp. 40–41\nWith respect to compile-time dependency (only), see also meyers05, item 31, pp. 140–148."
+    }
+   ],
+   "matched_present": true,
+   "render_box": null,
+   "rendered_text": "lakos96, section 4.11, pp. 184–187, and section 7.3, pp. 493–503\nsutter05, item 22, pp. 40–41\nWith respect to compile-time dependency (only), see also meyers05, item 31, pp. 140–148."
+  }
+ ],
+ "defects": [
+  {
+   "defect_id": "F9",
+   "name": "text layer vs visual layer mismatch",
+   "suspect_layer": "renderer",
+   "node_id": "p75_page",
+   "page": 75,
+   "evidence": {
+    "mupdf_syntax_error": [
+     "syntax error: unknown keyword: '-9.000000001435637e'",
+     "syntax error: unknown keyword: '-1.1999999998124622e'",
+     "encountered syntax errors; page may not be correct"
+    ]
+   },
+   "first_divergence": "render",
+   "stage_verdicts": {
+    "source": "PASS",
+    "parser": "PASS",
+    "model": "PASS",
+    "translation": "PASS",
+    "layout": "PASS",
+    "render": "FAIL"
+   },
+   "note": "renderer emitted a malformed float into the page stream"
+  }
+ ]
+}

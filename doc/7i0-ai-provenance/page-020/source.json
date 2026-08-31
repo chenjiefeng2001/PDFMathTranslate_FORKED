@@ -1,0 +1,92 @@
+[
+ {
+  "node_id": "p20_0",
+  "index": 0,
+  "text": "1. Introduction",
+  "bbox": [
+   323.973,
+   590.3349999999999,
+   380.42100000000005,
+   599.335
+  ],
+  "font": "SHEJLS+ArialNarrow-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p20_1",
+  "index": 1,
+  "text": "4",
+  "bbox": [
+   50.873,
+   590.135,
+   54.977,
+   599.135
+  ],
+  "font": "",
+  "font_size": 0.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p20_2",
+  "index": 2,
+  "text": "Figure 1.2. Relative trade-offs of various behaviors.",
+  "bbox": [
+   119.28300000000002,
+   482.7349999999999,
+   311.1000000000001,
+   491.7349999999999
+  ],
+  "font": "SHEJLS+ArialNarrow-Bold",
+  "font_size": 9.0,
+  "line_count": 1,
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p20_3",
+  "index": 3,
+  "text": "undesirable effects. We can tell the character which effects are desirable by\ngiving it goals. The character can then search for action sequences that it\nbelieves will result in it attaining its goals. When a character nondetermin-\nistically selects actions based on a goal it is trying to achieve, we refer to its\nsubsequent behavior as goal-directed.\nDeterministic behavior and nondeterministic behavior have different ad­\nvantages and disadvantages. Figure 1.2 contains three illustrations that de­\npict the relative trade-offs of using nondeterministic goal-directed behavior\nversus deterministic predefined behavior. In particular, predefined behavior\nis fast to execute because the programmer has done all the work in advance.\nGoal-directed behavior can be a lot easier to specify, but can take longer to\nexecute as the character has to do a lot of the work itself at run-time. The\nrelative value of the programmer’s extra time spent developing efficient pre­\ndefined behavior, versus the user’s extra time spent waiting for a character\nusing goal-directed behavior, will depend on the application. For a one-off\nanimation, and for rapid prototyping, the trade-off may well be weighted in\nfavor of reducing the programmer’s effort.\nIt turns out, however, that there is an important middle ground between\nthe two extremes of predefined and pure goal-directed behavior. The idea is\nto give characters domain knowledge and instructions.",
+  "bbox": [
+   50.734,
+   221.87399999999982,
+   381.0400000000001,
+   458.4709999999999
+  ],
+  "font": "LSEBRO+CenturySchoolbook",
+  "font_size": 9.0,
+  "line_count": 20,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p20_4",
+  "index": 4,
+  "text": "knowledge + instruction = behavior",
+  "bbox": [
+   139.18400000000003,
+   204.2049999999998,
+   289.27450000000005,
+   213.7049999999998
+  ],
+  "font": "DDYECM+Calibri",
+  "font_size": 9.5,
+  "line_count": 1,
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p20_5",
+  "index": 5,
+  "text": "The domain knowledge can be used to plan goals and the instructions pro­\nvide a “sketch plan” of how to achieve those goals. Technically this is still\ngoal-directed behavior, and thus it is still easy to specify, but the added pre­\ndefined heuristic control information has the potential to significantly speed\nup execution times. The approach even lends itself to an incremental style of\ndevelopment in which a prototype, which mainly uses goal-directed behav­\nior, can be gradually refined (by reducing the nondeterminism) to production\ncode, which mainly uses predefined behavior.\nIn most cases, a single application will employ more than one approach\nto generating a character’s behavior. This is because different approaches",
+  "bbox": [
+   50.73500000000003,
+   79.67799999999981,
+   381.07800000000003,
+   197.2749999999998
+  ],
+  "font": "LSEBRO+CenturySchoolbook",
+  "font_size": 9.0,
+  "line_count": 10,
+  "translation_status": "preserved"
+ }
+]

@@ -86,6 +86,27 @@ class TestClassifier:
         block = StructureClassifier().classify_paragraph(para)
         assert block.role is BlockRole.TOC_ENTRY
 
+    def test_leader_regex_linear_non_backtracking(self):
+        r"""7I-1 regression: long dot-leader TOC text without a trailing digit must
+        terminate linearly. Previously ``(?:[.·…‥][\s.·…‥]*){2,}\s*\d{1,4}\s*$"
+        had nested-greedy quantifiers -> catastrophic backtracking (an
+exponential-time artificial string would hang build_document_model).
+        """
+        import time
+
+        from pdf2zh.v3.structure import _RE_LEADER
+
+        # failure case (dot run followed by non-digit page number) -> must be fast
+        text = "Acknowledgments " + "." * 300 + " xix\nSuggestedways " + "." * 300 + "end"
+        t0 = time.perf_counter()
+        m = _RE_LEADER.search(text)
+        assert m is None
+        assert time.perf_counter() - t0 < 1.0  # linear, bounds catastrophic re-growth
+
+        # match case still classifies as TOC entry
+        ok = _RE_LEADER.search("1. Introduction .......... 3")
+        assert ok is not None
+
     def test_page_number_detected(self):
         para = _para("42", 30)
         page = _page([para, _para("body", 300), _para("body2", 280)])

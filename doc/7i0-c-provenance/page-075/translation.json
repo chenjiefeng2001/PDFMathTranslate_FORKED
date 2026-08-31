@@ -1,0 +1,145 @@
+[
+ {
+  "node_id": "p75_0",
+  "source_text": "Section 0.6 The Key Role of Physical Design",
+  "translated_text": "Section 0.6 The Key Role of Physical Design",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p75_1",
+  "source_text": "45",
+  "translated_text": "45",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p75_2",
+  "source_text": "Physical design dictates where (physically) — e.g., in what library — codified functionality\nbelongs relative to other functionality throughout our enterprise. Recognizing compile-time\nand link-time dependencies across physical boundaries will help shape both logical and physi-\ncal design aspects of our software. For example, common functionality intended for firm-wide\nreuse belongs (physically) at a low level in our software repository, where application software\ndevelopers working at higher levels can find and use it (e.g., see Figure 0-7b, section 0.2),\nindependently of other applications.",
+  "translated_text": "Physical design dictates where (physically) — e.g., in what library — codified functionality\nbelongs relative to other functionality throughout our enterprise. Recognizing compile-time\nand link-time dependencies across physical boundaries will help shape both logical and physi-\ncal design aspects of our software. For example, common functionality intended for firm-wide\nreuse belongs (physically) at a low level in our software repository, where application software\ndevelopers working at higher levels can find and use it (e.g., see Figure 0-7b, section 0.2),\nindependently of other applications.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 7
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_3",
+  "source_text": "37,38,39",
+  "translated_text": "37,38,39",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_4",
+  "source_text": "It has become well-recognized",
+  "translated_text": "It has become well-recognized",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p75_5",
+  "source_text": "that cyclic dependencies among (physical) modules are to",
+  "translated_text": "that cyclic dependencies among (physical) modules are to",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_6",
+  "source_text": "be avoided (see sections 2.2–2.4, 2.6, 2.8–2.9, 2.14, and 3.4). By employing established physi-\ncal design techniques (see section 3.5), we ensure that we pay (in terms of link time and execut-\nable size) only for what we need (see section 3.6). Moreover, we want to develop reusable\nsolutions that are independent of peer solutions (see section 3.7) and can co-exist with them in\nthe same process (see section 3.9). Detailed physical design will require us to answer correctly\nmany important questions that are simply not addressed by logical design. For example,",
+  "translated_text": "be avoided (see sections 2.2–2.4, 2.6, 2.8–2.9, 2.14, and 3.4). By employing established physi-\ncal design techniques (see section 3.5), we ensure that we pay (in terms of link time and execut-\nable size) only for what we need (see section 3.6). Moreover, we want to develop reusable\nsolutions that are independent of peer solutions (see section 3.7) and can co-exist with them in\nthe same process (see section 3.9). Detailed physical design will require us to answer correctly\nmany important questions that are simply not addressed by logical design. For example,",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 6
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_7",
+  "source_text": "• Should two given classes be defined in the same header file or in two separate ones?\n(See section 3.3.)",
+  "translated_text": "• Should two given classes be defined in the same header file or in two separate ones?\n(See section 3.3.)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 2
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_8",
+  "source_text": "ptg31790760",
+  "translated_text": "ptg31790760",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 1
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_9",
+  "source_text": "• Should a given translation unit depend on some other translation unit at all?\n(See section 3.8.)\n• Should we #include the header file containing the declaration of a given logical\nentity or instead simply forward declare it? (See Volume II, section 6.6.)\n• Should a given function be declared inline? (See Volume II, section 6.7.)",
+  "translated_text": "• Should a given translation unit depend on some other translation unit at all?\n(See section 3.8.)\n• Should we #include the header file containing the declaration of a given logical\nentity or instead simply forward declare it? (See Volume II, section 6.6.)\n• Should a given function be declared inline? (See Volume II, section 6.7.)",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 5
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_10",
+  "source_text": "These kinds of physical design questions, while closely tied to the technical aspects of devel-\nopment, bring with them a dimension of design with which even “expert” software developers\nmight have little or no experience. Physical design, though less widely understood than logical\ndesign, nonetheless plays an increasingly crucial role as the number and size of the applications\nand libraries developed within a group, department, or company grow.",
+  "translated_text": "These kinds of physical design questions, while closely tied to the technical aspects of devel-\nopment, bring with them a dimension of design with which even “expert” software developers\nmight have little or no experience. Physical design, though less widely understood than logical\ndesign, nonetheless plays an increasingly crucial role as the number and size of the applications\nand libraries developed within a group, department, or company grow.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 5
+  },
+  "translation_status": "translated"
+ },
+ {
+  "node_id": "p75_11",
+  "source_text": "Combining thoughtful logical design with careful physical packaging will enable software\ndevelopers to “mix and match” existing solutions, subsolutions, and so on, at finely graduated\nlevels of integration (section 0.3). This combinatorial flexibility along with logical and physical",
+  "translated_text": "Combining thoughtful logical design with careful physical packaging will enable software\ndevelopers to “mix and match” existing solutions, subsolutions, and so on, at finely graduated\nlevels of integration (section 0.3). This combinatorial flexibility along with logical and physical",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "preserved"
+ },
+ {
+  "node_id": "p75_12",
+  "source_text": "lakos96, section 4.11, pp. 184–187, and section 7.3, pp. 493–503\nsutter05, item 22, pp. 40–41\nWith respect to compile-time dependency (only), see also meyers05, item 31, pp. 140–148.",
+  "translated_text": "lakos96, section 4.11, pp. 184–187, and section 7.3, pp. 493–503\nsutter05, item 22, pp. 40–41\nWith respect to compile-time dependency (only), see also meyers05, item 31, pp. 140–148.",
+  "same": true,
+  "segmentation": {
+   "unit_kind": null,
+   "line_count": 3
+  },
+  "translation_status": "preserved"
+ }
+]

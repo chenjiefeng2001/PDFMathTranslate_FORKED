@@ -1,0 +1,198 @@
+{
+  "book": "tests/file/The Art of Multiprocessor Programming, 2e.pdf",
+  "total_pages": 562,
+  "sample_pages": [
+    0,
+    5,
+    8,
+    12,
+    20,
+    40,
+    80,
+    120,
+    200,
+    300,
+    400,
+    500,
+    550
+  ],
+  "model_blocks_total": 223,
+  "defects": {
+    "total": 2,
+    "by_first_divergence": {
+      "render": 2
+    },
+    "by_defect_id": {
+      "F4": 2
+    }
+  },
+  "pages": {
+    "0": {
+      "blocks": 0,
+      "present": 0,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {}
+    },
+    "5": {
+      "blocks": 8,
+      "present": 8,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "paragraph": 8
+      }
+    },
+    "8": {
+      "blocks": 34,
+      "present": 34,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "paragraph": 2,
+        "toc": 32
+      }
+    },
+    "12": {
+      "blocks": 36,
+      "present": 36,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "paragraph": 2,
+        "toc": 34
+      }
+    },
+    "20": {
+      "blocks": 6,
+      "present": 6,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "paragraph": 6
+      }
+    },
+    "40": {
+      "blocks": 18,
+      "present": 18,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 4,
+        "formula": 8,
+        "code": 3,
+        "paragraph": 1,
+        "caption": 1,
+        "toc": 1
+      }
+    },
+    "80": {
+      "blocks": 4,
+      "present": 4,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 2,
+        "paragraph": 2
+      }
+    },
+    "120": {
+      "blocks": 10,
+      "present": 10,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 2,
+        "code": 1,
+        "formula": 1,
+        "caption": 1,
+        "paragraph": 5
+      }
+    },
+    "200": {
+      "blocks": 11,
+      "present": 11,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 1,
+        "code": 3,
+        "formula": 5,
+        "caption": 1,
+        "paragraph": 1
+      }
+    },
+    "300": {
+      "blocks": 13,
+      "present": 13,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 2,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 2,
+        "code": 2,
+        "formula": 2,
+        "caption": 1,
+        "paragraph": 6
+      }
+    },
+    "400": {
+      "blocks": 15,
+      "present": 15,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 3,
+        "code": 6,
+        "formula": 5,
+        "paragraph": 1
+      }
+    },
+    "500": {
+      "blocks": 6,
+      "present": 6,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 2,
+        "paragraph": 4
+      }
+    },
+    "550": {
+      "blocks": 62,
+      "present": 62,
+      "dangling": 0,
+      "stray": 0,
+      "findings": 0,
+      "preserved_violation": 0,
+      "by_kind": {
+        "heading": 2,
+        "paragraph": 54,
+        "formula": 6
+      }
+    }
+  }
+}

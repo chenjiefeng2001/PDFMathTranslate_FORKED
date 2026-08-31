@@ -1,0 +1,2154 @@
+{
+ "page": 81,
+ "page_height": 649.14501953125,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "24",
+   "bbox": [
+    50.87,
+    50.03,
+    59.28,
+    59.03
+   ],
+   "font": "ArialNarrow-Bold",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 1,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    590.12,
+    59.28,
+    599.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "2. Background",
+   "bbox": [
+    322.42,
+    50.03,
+    380.33,
+    59.03
+   ],
+   "font": "ArialNarrow-Bold",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 2,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    322.42,
+    590.12,
+    380.33,
+    599.12
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "2.3.3 ",
+   "bbox": [
+    50.72,
+    75.33,
+    77.72,
+    91.34
+   ],
+   "font": "Times-Roman",
+   "font_size": 12.0,
+   "color": 0,
+   "line": 3,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.72,
+    557.81,
+    77.72,
+    573.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "前向动态",
+   "bbox": [
+    77.72,
+    74.17,
+    125.72,
+    91.4
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 12.0,
+   "color": 0,
+   "line": 3,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    77.72,
+    557.75,
+    125.72,
+    574.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "正向动力学问题是根据给定的力和扭矩计算位置和速度。",
+   "bbox": [
+    50.87,
+    100.77,
+    275.87,
+    113.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    535.46,
+    275.87,
+    548.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    275.87,
+    101.64,
+    280.37,
+    113.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    275.87,
+    535.5,
+    280.37,
+    547.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "前面部分运动方程中的未",
+   "bbox": [
+    280.37,
+    100.77,
+    379.37,
+    113.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 4,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    280.37,
+    535.46,
+    379.37,
+    548.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "知数是力、扭矩和加速度。",
+   "bbox": [
+    50.87,
+    113.37,
+    158.87,
+    126.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    522.86,
+    158.87,
+    535.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    158.87,
+    114.24,
+    163.37,
+    126.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    158.87,
+    522.9,
+    163.37,
+    534.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "因此，问题的第一部分是根据力和扭矩求解加速度的运",
+   "bbox": [
+    163.37,
+    113.37,
+    379.37,
+    126.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 5,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    163.37,
+    522.86,
+    379.37,
+    535.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "动方程。",
+   "bbox": [
+    50.87,
+    125.97,
+    86.87,
+    138.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 6,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    510.26,
+    86.87,
+    523.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "一般来说，这给出了一组耦合的二阶非线性微分方程。",
+   "bbox": [
+    65.72,
+    160.67,
+    281.72,
+    173.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    65.72,
+    475.56,
+    281.72,
+    488.48
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    281.72,
+    161.54,
+    286.22,
+    173.55
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    281.72,
+    475.6,
+    286.22,
+    487.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "任何一组",
+   "bbox": [
+    286.22,
+    160.67,
+    322.22,
+    173.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    286.22,
+    475.56,
+    322.22,
+    488.48
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    322.22,
+    161.54,
+    324.47,
+    173.55
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    322.22,
+    475.6,
+    324.47,
+    487.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": "nth",
+   "bbox": [
+    324.47,
+    163.87,
+    339.14,
+    172.87
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    324.47,
+    476.28,
+    339.14,
+    485.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    339.14,
+    161.54,
+    341.39,
+    173.55
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    339.14,
+    475.6,
+    341.39,
+    487.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "阶微分方",
+   "bbox": [
+    341.39,
+    160.67,
+    377.39,
+    173.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 7,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    341.39,
+    475.56,
+    377.39,
+    488.48
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "程都可以简化为以下形式的等效一阶方程：",
+   "bbox": [
+    50.63,
+    173.27,
+    221.63,
+    186.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.63,
+    462.96,
+    221.63,
+    475.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "x ",
+   "bbox": [
+    221.63,
+    174.14,
+    228.38,
+    186.15
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    221.63,
+    463.0,
+    228.38,
+    475.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    228.38,
+    176.5,
+    233.84,
+    185.5
+   ],
+   "font": "CenturySchoolbook",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    228.38,
+    463.65,
+    233.84,
+    472.65
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": " k(x(£), v(£))",
+   "bbox": [
+    233.84,
+    174.14,
+    281.07,
+    186.15
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    233.84,
+    463.0,
+    281.07,
+    475.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "，其中",
+   "bbox": [
+    281.07,
+    173.27,
+    308.07,
+    186.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    281.07,
+    462.96,
+    308.07,
+    475.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    308.07,
+    174.14,
+    310.32,
+    186.15
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    308.07,
+    463.0,
+    310.32,
+    475.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "v(t)",
+   "bbox": [
+    310.32,
+    176.47,
+    326.68,
+    185.47
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    310.32,
+    463.68,
+    326.68,
+    472.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    326.68,
+    174.14,
+    328.93,
+    186.15
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    326.68,
+    463.0,
+    328.93,
+    475.01
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "提供所有未知",
+   "bbox": [
+    328.93,
+    173.27,
+    382.93,
+    186.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 8,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    328.93,
+    462.96,
+    382.93,
+    475.88
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "力和扭矩的值。",
+   "bbox": [
+    50.63,
+    185.87,
+    113.63,
+    198.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.63,
+    450.36,
+    113.63,
+    463.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    113.63,
+    186.74,
+    118.13,
+    198.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    113.63,
+    450.4,
+    118.13,
+    462.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "通过合适的初始（或边界）值",
+   "bbox": [
+    118.13,
+    185.87,
+    235.13,
+    198.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    118.13,
+    450.36,
+    235.13,
+    463.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    235.13,
+    186.74,
+    237.38,
+    198.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    235.13,
+    450.4,
+    237.38,
+    462.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "x(to)",
+   "bbox": [
+    237.38,
+    189.07,
+    258.24,
+    198.07
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    237.38,
+    451.08,
+    258.24,
+    460.08
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    258.24,
+    186.74,
+    260.49,
+    198.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    258.24,
+    450.4,
+    260.49,
+    462.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    260.49,
+    189.1,
+    265.95,
+    198.1
+   ],
+   "font": "CenturySchoolbook",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    260.49,
+    451.05,
+    265.95,
+    460.05
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": " Xo",
+   "bbox": [
+    265.95,
+    186.74,
+    279.2,
+    198.75
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    265.95,
+    450.4,
+    279.2,
+    462.41
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": "，该方程组可以在某个区",
+   "bbox": [
+    279.2,
+    185.87,
+    378.2,
+    198.79
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 9,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    279.2,
+    450.36,
+    378.2,
+    463.28
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": "间",
+   "bbox": [
+    50.63,
+    198.47,
+    59.63,
+    211.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.63,
+    437.76,
+    59.63,
+    450.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": " [£q,£i] ",
+   "bbox": [
+    59.63,
+    199.34,
+    88.38,
+    211.35
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    59.63,
+    437.8,
+    88.38,
+    449.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "上进行数值积分，以给出位置和速度",
+   "bbox": [
+    88.38,
+    198.47,
+    232.38,
+    211.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    88.38,
+    437.76,
+    232.38,
+    450.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    232.38,
+    199.34,
+    234.63,
+    211.35
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    232.38,
+    437.8,
+    234.63,
+    449.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": "x(t).",
+   "bbox": [
+    234.63,
+    201.67,
+    253.76,
+    210.67
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    234.63,
+    438.48,
+    253.76,
+    447.48
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    253.76,
+    198.47,
+    262.76,
+    211.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    253.76,
+    437.76,
+    262.76,
+    450.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "[56] ",
+   "bbox": [
+    262.76,
+    199.34,
+    280.01,
+    211.35
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    262.76,
+    437.8,
+    280.01,
+    449.81
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "中给出了计算机动画和游",
+   "bbox": [
+    280.01,
+    198.47,
+    379.01,
+    211.39
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 10,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    280.01,
+    437.76,
+    379.01,
+    450.68
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": "戏的数值积分技术的综述。",
+   "bbox": [
+    50.63,
+    211.07,
+    158.63,
+    223.99
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 11,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.63,
+    425.16,
+    158.63,
+    438.08
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": "动画和游戏（以及机器人技术）领域的许多早期工作都涉及生成体现刚体铰接人",
+   "bbox": [
+    65.86,
+    256.57,
+    380.86,
+    269.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 12,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    65.86,
+    379.66,
+    380.86,
+    392.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": "物运动方程的程序",
+   "bbox": [
+    50.71,
+    269.17,
+    122.71,
+    282.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.71,
+    367.06,
+    122.71,
+    379.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": " [145, 4]",
+   "bbox": [
+    122.71,
+    270.04,
+    153.46,
+    282.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    122.71,
+    367.1,
+    153.46,
+    379.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    153.46,
+    269.17,
+    162.46,
+    282.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    153.46,
+    367.06,
+    162.46,
+    379.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    162.46,
+    270.04,
+    166.96,
+    282.05
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    162.46,
+    367.1,
+    166.96,
+    379.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "现在存在的软件可以对某些铰接图形进行物理描述并生",
+   "bbox": [
+    166.96,
+    269.17,
+    382.96,
+    282.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 13,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    166.96,
+    367.06,
+    382.96,
+    379.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "成相应的运动方程（例如，",
+   "bbox": [
+    50.71,
+    281.77,
+    158.71,
+    294.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 14,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.71,
+    354.46,
+    158.71,
+    367.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": "[140]",
+   "bbox": [
+    158.71,
+    282.64,
+    178.2,
+    294.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 14,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    158.71,
+    354.5,
+    178.2,
+    366.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "中的“动力学编译器”）。",
+   "bbox": [
+    178.21,
+    281.77,
+    286.21,
+    294.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 14,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    178.21,
+    354.46,
+    286.21,
+    367.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    286.2,
+    282.64,
+    290.7,
+    294.65
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 14,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    286.2,
+    354.5,
+    290.7,
+    366.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": "此类软件现在可以在强",
+   "bbox": [
+    290.7,
+    281.77,
+    380.7,
+    294.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 14,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    290.7,
+    354.46,
+    380.7,
+    367.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "大且高效的商业",
+   "bbox": [
+    50.71,
+    294.37,
+    113.71,
+    307.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.71,
+    341.86,
+    113.71,
+    354.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": "simulators",
+   "bbox": [
+    113.71,
+    297.57,
+    158.73,
+    306.57
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    113.71,
+    342.58,
+    158.73,
+    351.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "中使用，例如",
+   "bbox": [
+    158.73,
+    294.37,
+    212.73,
+    307.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    158.73,
+    341.86,
+    212.73,
+    354.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": "[131]",
+   "bbox": [
+    212.73,
+    295.24,
+    232.22,
+    307.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    212.73,
+    341.9,
+    232.22,
+    353.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    232.22,
+    294.37,
+    241.22,
+    307.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    232.22,
+    341.86,
+    241.22,
+    354.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    241.22,
+    295.24,
+    245.72,
+    307.25
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    241.22,
+    341.9,
+    245.72,
+    353.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": "因此，对于无生命的物体，可以使",
+   "bbox": [
+    245.72,
+    294.37,
+    380.72,
+    307.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 15,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    245.72,
+    341.86,
+    380.72,
+    354.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": "用",
+   "bbox": [
+    50.71,
+    306.97,
+    59.71,
+    319.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.71,
+    329.26,
+    59.71,
+    342.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    59.71,
+    307.84,
+    61.96,
+    319.85
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    59.71,
+    329.3,
+    61.96,
+    341.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": "simulation",
+   "bbox": [
+    61.96,
+    310.17,
+    107.98,
+    319.17
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    61.96,
+    329.98,
+    107.98,
+    338.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    107.98,
+    307.84,
+    110.23,
+    319.85
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    107.98,
+    329.3,
+    110.23,
+    341.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": "以完全自动的方式创建真实的运动。",
+   "bbox": [
+    110.23,
+    306.97,
+    254.23,
+    319.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    110.23,
+    329.26,
+    254.23,
+    342.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    254.23,
+    307.84,
+    258.73,
+    319.85
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    254.23,
+    329.3,
+    258.73,
+    341.31
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": "动画师或程序员所需要做的就",
+   "bbox": [
+    258.73,
+    306.97,
+    375.73,
+    319.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 16,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    258.73,
+    329.26,
+    375.73,
+    342.18
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": "是定义物理对象描述、设置初始条件并观察运动的展开。",
+   "bbox": [
+    50.71,
+    319.57,
+    275.71,
+    332.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 17,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.71,
+    316.66,
+    275.71,
+    329.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": "由于物体可能发生碰撞，情况会稍微复杂一些。",
+   "bbox": [
+    65.71,
+    376.17,
+    254.71,
+    389.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 18,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    65.71,
+    260.06,
+    254.71,
+    272.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    254.71,
+    377.04,
+    259.21,
+    389.04
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 18,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    254.71,
+    260.11,
+    259.21,
+    272.11
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": "如果使用非解析碰撞解决算法",
+   "bbox": [
+    259.21,
+    376.17,
+    376.21,
+    389.09
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 18,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    259.21,
+    260.06,
+    376.21,
+    272.98
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": "，则可以在检测到碰撞时合并弹簧和阻尼器（参见第",
+   "bbox": [
+    50.62,
+    388.77,
+    257.62,
+    401.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.62,
+    247.46,
+    257.62,
+    260.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": " 2.4.1 ",
+   "bbox": [
+    257.62,
+    389.64,
+    280.12,
+    401.64
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    257.62,
+    247.51,
+    280.12,
+    259.51
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": "节），或者如果可以提前",
+   "bbox": [
+    280.12,
+    388.77,
+    379.12,
+    401.69
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 19,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    280.12,
+    247.46,
+    379.12,
+    260.38
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": "推测所有可能的接触点，则可以将它们包含在运动方程中",
+   "bbox": [
+    50.62,
+    401.37,
+    275.62,
+    414.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.62,
+    234.86,
+    275.62,
+    247.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    275.62,
+    402.24,
+    277.87,
+    414.24
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    275.62,
+    234.91,
+    277.87,
+    246.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:80",
+   "operator": "TJ",
+   "text": "a priori",
+   "bbox": [
+    277.87,
+    404.57,
+    312.27,
+    413.57
+   ],
+   "font": "CenturySchoolbook-BoldIt",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    277.87,
+    235.58,
+    312.27,
+    244.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:81",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    312.27,
+    401.37,
+    321.27,
+    414.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    312.27,
+    234.86,
+    321.27,
+    247.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:82",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    321.27,
+    402.24,
+    325.77,
+    414.24
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    321.27,
+    234.91,
+    325.77,
+    246.91
+   ]
+  },
+  {
+   "pdf_object_id": "text:83",
+   "operator": "TJ",
+   "text": "如果使用发生",
+   "bbox": [
+    325.77,
+    401.37,
+    379.77,
+    414.29
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 20,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    325.77,
+    234.86,
+    379.77,
+    247.78
+   ]
+  },
+  {
+   "pdf_object_id": "text:84",
+   "operator": "TJ",
+   "text": "速度不连续变化的解析方法，则当模拟器检测到碰撞时，它会暂停模拟，解决碰撞（",
+   "bbox": [
+    50.62,
+    413.96,
+    383.62,
+    426.89
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 21,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.62,
+    222.26,
+    383.62,
+    235.19
+   ]
+  },
+  {
+   "pdf_object_id": "text:85",
+   "operator": "TJ",
+   "text": "参见第",
+   "bbox": [
+    50.62,
+    426.57,
+    77.62,
+    439.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.62,
+    209.66,
+    77.62,
+    222.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:86",
+   "operator": "TJ",
+   "text": " 2.4.2 ",
+   "bbox": [
+    77.62,
+    427.44,
+    100.12,
+    439.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    77.62,
+    209.71,
+    100.12,
+    221.71
+   ]
+  },
+  {
+   "pdf_object_id": "text:87",
+   "operator": "TJ",
+   "text": "节），然后使用新的初始条件重新启动模拟。",
+   "bbox": [
+    100.12,
+    426.57,
+    280.12,
+    439.49
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 22,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    100.12,
+    209.66,
+    280.12,
+    222.58
+   ]
+  },
+  {
+   "pdf_object_id": "text:88",
+   "operator": "TJ",
+   "text": "2.3.4 ",
+   "bbox": [
+    50.87,
+    495.08,
+    77.87,
+    511.09
+   ],
+   "font": "Times-Roman",
+   "font_size": 12.0,
+   "color": 0,
+   "line": 23,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.87,
+    138.06,
+    77.87,
+    154.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:89",
+   "operator": "TJ",
+   "text": "逆动力学",
+   "bbox": [
+    77.87,
+    493.91,
+    125.87,
+    511.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 12.0,
+   "color": 0,
+   "line": 23,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    77.87,
+    138.0,
+    125.87,
+    155.24
+   ]
+  },
+  {
+   "pdf_object_id": "text:90",
+   "operator": "TJ",
+   "text": "还可以根据加速度求解力和扭矩的运动方程。",
+   "bbox": [
+    50.97,
+    520.66,
+    230.97,
+    533.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 24,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    115.56,
+    230.97,
+    128.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:91",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    230.97,
+    521.54,
+    235.47,
+    533.54
+   ],
+   "font": "Times-Roman",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 24,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    230.97,
+    115.61,
+    235.47,
+    127.61
+   ]
+  },
+  {
+   "pdf_object_id": "text:92",
+   "operator": "TJ",
+   "text": "然后，给定一些所需的运动，可以（",
+   "bbox": [
+    235.47,
+    520.66,
+    379.47,
+    533.59
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 24,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    235.47,
+    115.56,
+    379.47,
+    128.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:93",
+   "operator": "TJ",
+   "text": "通过两次微分）计算这些加速度，进而计算产生这种运动所需的力和扭矩。",
+   "bbox": [
+    50.97,
+    533.26,
+    347.97,
+    546.19
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 9.0,
+   "color": 0,
+   "line": 25,
+   "page": 81,
+   "block_type": 0,
+   "v3_bbox": [
+    50.97,
+    102.96,
+    347.97,
+    115.89
+   ]
+  }
+ ],
+ "drawings": [],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 0,
+  "sample": [],
+  "anomaly": false,
+  "source": "regex"
+ },
+ "id_direct": true
+}

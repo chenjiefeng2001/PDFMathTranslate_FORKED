@@ -1,0 +1,2638 @@
+{
+ "page": 131,
+ "page_height": 656.9279174804688,
+ "text_runs": [
+  {
+   "pdf_object_id": "text:1",
+   "operator": "TJ",
+   "text": "Section 0.5 Malleable vs. Stable Software ",
+   "bbox": [
+    57.96,
+    40.29,
+    243.49,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 1,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    57.96,
+    606.64,
+    243.49,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:2",
+   "operator": "TJ",
+   "text": "35",
+   "bbox": [
+    462.96,
+    40.29,
+    472.96,
+    50.29
+   ],
+   "font": "TimesLTPro-Bold",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 2,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    462.96,
+    606.64,
+    472.96,
+    616.64
+   ]
+  },
+  {
+   "pdf_object_id": "text:3",
+   "operator": "TJ",
+   "text": "提供迭代器使容器的每个客户端能够立即实现几乎任何适当的扩展。",
+   "bbox": [
+    93.96,
+    75.79,
+    393.96,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    566.78,
+    393.96,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:4",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    393.96,
+    76.76,
+    398.96,
+    90.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    393.96,
+    566.83,
+    398.96,
+    580.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:5",
+   "operator": "TJ",
+   "text": "例如，图",
+   "bbox": [
+    398.96,
+    75.79,
+    438.96,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    398.96,
+    566.78,
+    438.96,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:6",
+   "operator": "TJ",
+   "text": " 0-24 ",
+   "bbox": [
+    438.96,
+    76.76,
+    462.29,
+    90.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    438.96,
+    566.83,
+    462.29,
+    580.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:7",
+   "operator": "TJ",
+   "text": "中",
+   "bbox": [
+    462.29,
+    75.79,
+    472.29,
+    90.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 3,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    462.29,
+    566.78,
+    472.29,
+    581.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:8",
+   "operator": "TJ",
+   "text": "的两个函数都是列表组件的独立客户端扩展。通过迭代器的可扩展性设计，我们可以合",
+   "bbox": [
+    93.96,
+    89.79,
+    473.96,
+    104.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 4,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    552.78,
+    473.96,
+    567.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:9",
+   "operator": "TJ",
+   "text": "理地确保为此目的不需要对可重用容器进行源代码修改。这种单方面可扩展性的原则还",
+   "bbox": [
+    93.96,
+    103.79,
+    473.96,
+    118.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 5,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    538.78,
+    473.96,
+    553.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:10",
+   "operator": "TJ",
+   "text": "有助于确保应用程序开发人员不会被迫等待只能由库开发人员提供的增强功能。",
+   "bbox": [
+    93.96,
+    117.79,
+    443.96,
+    132.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    524.78,
+    443.96,
+    539.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:11",
+   "operator": "TJ",
+   "text": "  ",
+   "bbox": [
+    443.96,
+    118.76,
+    448.96,
+    132.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    443.96,
+    524.83,
+    448.96,
+    538.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:12",
+   "operator": "TJ",
+   "text": "请注",
+   "bbox": [
+    448.96,
+    117.79,
+    468.96,
+    132.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 6,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    448.96,
+    524.78,
+    468.96,
+    539.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:13",
+   "operator": "TJ",
+   "text": "意，",
+   "bbox": [
+    93.96,
+    131.79,
+    113.96,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    510.78,
+    113.96,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:14",
+   "operator": "TJ",
+   "text": "C",
+   "bbox": [
+    113.96,
+    132.76,
+    120.63,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    113.96,
+    510.83,
+    120.63,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:15",
+   "operator": "TJ",
+   "text": "++",
+   "bbox": [
+    120.63,
+    135.63,
+    131.91,
+    145.63
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    120.63,
+    511.3,
+    131.91,
+    521.3
+   ]
+  },
+  {
+   "pdf_object_id": "text:16",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    131.91,
+    132.76,
+    134.41,
+    146.1
+   ],
+   "font": "Times-Roman",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    131.91,
+    510.83,
+    134.41,
+    524.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:17",
+   "operator": "TJ",
+   "text": "标准库中的所有容器类型都配备了迭代器，可以有效访问每个包含的元素。",
+   "bbox": [
+    134.41,
+    131.79,
+    464.41,
+    146.15
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 10.0,
+   "color": 0,
+   "line": 7,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    134.41,
+    510.78,
+    464.41,
+    525.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:18",
+   "operator": "TJ",
+   "text": "31, 32, 33",
+   "bbox": [
+    93.96,
+    148.93,
+    122.31,
+    155.93
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 8,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    501.0,
+    122.31,
+    508.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:19",
+   "operator": "TJ",
+   "text": "bool myAreAbsEqual(const List& lhs, const List& rhs)",
+   "bbox": [
+    85.47,
+    207.86,
+    335.07,
+    215.86
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 9,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    441.07,
+    335.07,
+    449.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:20",
+   "operator": "TJ",
+   "text": "{",
+   "bbox": [
+    85.47,
+    217.46,
+    90.27,
+    225.46
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 10,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    431.47,
+    90.27,
+    439.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:21",
+   "operator": "TJ",
+   "text": "    List::const_iterator lit = lhs.begin();",
+   "bbox": [
+    85.47,
+    227.06,
+    291.87,
+    235.06
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 11,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    421.87,
+    291.87,
+    429.87
+   ]
+  },
+  {
+   "pdf_object_id": "text:22",
+   "operator": "TJ",
+   "text": "    List::const_iterator rit = rhs.begin();",
+   "bbox": [
+    85.47,
+    236.66,
+    291.87,
+    244.66
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 12,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    412.27,
+    291.87,
+    420.27
+   ]
+  },
+  {
+   "pdf_object_id": "text:23",
+   "operator": "TJ",
+   "text": "    const List::const_iterator lend = lhs.end();",
+   "bbox": [
+    85.47,
+    246.26,
+    315.87,
+    254.26
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 13,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    402.67,
+    315.87,
+    410.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:24",
+   "operator": "TJ",
+   "text": "    const List::const_iterator rend = rhs.end();",
+   "bbox": [
+    85.47,
+    255.86,
+    315.87,
+    263.86
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 14,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    393.07,
+    315.87,
+    401.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:25",
+   "operator": "TJ",
+   "text": "    while (lit != lend && rit != rend) {",
+   "bbox": [
+    85.47,
+    275.06,
+    277.47,
+    283.06
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 15,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    373.87,
+    277.47,
+    381.87
+   ]
+  },
+  {
+   "pdf_object_id": "text:26",
+   "operator": "TJ",
+   "text": "        if (std::abs(*lit) != std::abs(*rit)) {",
+   "bbox": [
+    85.47,
+    284.66,
+    311.07,
+    292.66
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 16,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    364.27,
+    311.07,
+    372.27
+   ]
+  },
+  {
+   "pdf_object_id": "text:27",
+   "operator": "TJ",
+   "text": "            return false;                                             // RETURN ",
+   "bbox": [
+    85.47,
+    294.26,
+    469.47,
+    302.26
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 17,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    354.67,
+    469.47,
+    362.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:28",
+   "operator": "TJ",
+   "text": "        }",
+   "bbox": [
+    85.47,
+    303.86,
+    128.67,
+    311.86
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 18,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    345.07,
+    128.67,
+    353.07
+   ]
+  },
+  {
+   "pdf_object_id": "text:29",
+   "operator": "TJ",
+   "text": "        ++lit, ++rit;",
+   "bbox": [
+    85.47,
+    313.46,
+    186.27,
+    321.46
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 19,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    335.47,
+    186.27,
+    343.47
+   ]
+  },
+  {
+   "pdf_object_id": "text:30",
+   "operator": "TJ",
+   "text": "    }",
+   "bbox": [
+    85.47,
+    323.06,
+    109.47,
+    331.06
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 20,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    325.87,
+    109.47,
+    333.87
+   ]
+  },
+  {
+   "pdf_object_id": "text:31",
+   "operator": "TJ",
+   "text": "    return lend == lit && rend == rit;",
+   "bbox": [
+    85.47,
+    332.66,
+    267.87,
+    340.66
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 21,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    316.27,
+    267.87,
+    324.27
+   ]
+  },
+  {
+   "pdf_object_id": "text:32",
+   "operator": "TJ",
+   "text": "}",
+   "bbox": [
+    85.47,
+    342.26,
+    90.27,
+    350.26
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 22,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    85.47,
+    306.67,
+    90.27,
+    314.67
+   ]
+  },
+  {
+   "pdf_object_id": "text:33",
+   "operator": "TJ",
+   "text": "32",
+   "bbox": [
+    90.27,
+    340.89,
+    96.01,
+    346.89
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 6.0,
+   "color": 0,
+   "line": 22,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    90.27,
+    310.04,
+    96.01,
+    316.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:34",
+   "operator": "TJ",
+   "text": "(",
+   "bbox": [
+    161.6,
+    356.94,
+    164.18,
+    364.94
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 23,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    161.6,
+    291.99,
+    164.18,
+    299.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:35",
+   "operator": "TJ",
+   "text": "a",
+   "bbox": [
+    164.18,
+    354.71,
+    167.73,
+    365.38
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 23,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    164.18,
+    291.55,
+    167.73,
+    302.22
+   ]
+  },
+  {
+   "pdf_object_id": "text:36",
+   "operator": "TJ",
+   "text": ")",
+   "bbox": [
+    167.73,
+    356.94,
+    170.32,
+    364.94
+   ],
+   "font": "SabonMTPro-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 23,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    167.73,
+    291.99,
+    170.32,
+    299.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:37",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    170.32,
+    354.71,
+    172.32,
+    365.38
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 23,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    170.32,
+    291.55,
+    172.32,
+    302.22
+   ]
+  },
+  {
+   "pdf_object_id": "text:38",
+   "operator": "TJ",
+   "text": "确定两个列表是否以特定方式等效",
+   "bbox": [
+    172.32,
+    353.93,
+    292.32,
+    365.42
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 23,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    172.32,
+    291.51,
+    292.32,
+    303.0
+   ]
+  },
+  {
+   "pdf_object_id": "text:39",
+   "operator": "TJ",
+   "text": "31 ",
+   "bbox": [
+    93.96,
+    394.54,
+    103.96,
+    405.21
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 24,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    251.72,
+    103.96,
+    262.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:40",
+   "operator": "TJ",
+   "text": "作为另一个不太笼统但更详细的启用开闭原则的说明，请参阅第",
+   "bbox": [
+    103.96,
+    393.76,
+    327.96,
+    405.25
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 24,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    103.96,
+    251.68,
+    327.96,
+    263.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:41",
+   "operator": "TJ",
+   "text": " 3.2.8 ",
+   "bbox": [
+    327.96,
+    394.54,
+    347.96,
+    405.21
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 24,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    327.96,
+    251.72,
+    347.96,
+    262.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:42",
+   "operator": "TJ",
+   "text": "节。",
+   "bbox": [
+    347.96,
+    393.76,
+    363.96,
+    405.25
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 24,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    347.96,
+    251.68,
+    363.96,
+    263.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:43",
+   "operator": "TJ",
+   "text": "32 ",
+   "bbox": [
+    93.96,
+    416.54,
+    103.96,
+    427.21
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    229.72,
+    103.96,
+    240.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:44",
+   "operator": "TJ",
+   "text": "正如前言中所讨论的，我们有时会注意到更现代的",
+   "bbox": [
+    103.96,
+    415.76,
+    279.96,
+    427.25
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    103.96,
+    229.68,
+    279.96,
+    241.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:45",
+   "operator": "TJ",
+   "text": " C",
+   "bbox": [
+    279.96,
+    416.54,
+    287.3,
+    427.21
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    279.96,
+    229.72,
+    287.3,
+    240.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:46",
+   "operator": "TJ",
+   "text": "++",
+   "bbox": [
+    287.3,
+    418.83,
+    296.32,
+    426.83
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    287.3,
+    230.1,
+    296.32,
+    238.1
+   ]
+  },
+  {
+   "pdf_object_id": "text:47",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    296.32,
+    416.54,
+    298.32,
+    427.21
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    296.32,
+    229.72,
+    298.32,
+    240.39
+   ]
+  },
+  {
+   "pdf_object_id": "text:48",
+   "operator": "TJ",
+   "text": "方言提供了可以更好地表达想法的功能的地方。例",
+   "bbox": [
+    298.32,
+    415.76,
+    474.32,
+    427.25
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 25,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    298.32,
+    229.68,
+    474.32,
+    241.17
+   ]
+  },
+  {
+   "pdf_object_id": "text:49",
+   "operator": "TJ",
+   "text": "如，假设迭代器是众所周知的",
+   "bbox": [
+    93.96,
+    426.96,
+    197.96,
+    438.45
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    218.48,
+    197.96,
+    229.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:50",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    197.96,
+    427.74,
+    199.96,
+    438.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    197.96,
+    218.52,
+    199.96,
+    229.19
+   ]
+  },
+  {
+   "pdf_object_id": "text:51",
+   "operator": "TJ",
+   "text": "concept",
+   "bbox": [
+    199.96,
+    430.04,
+    224.84,
+    438.04
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    199.96,
+    218.89,
+    224.84,
+    226.89
+   ]
+  },
+  {
+   "pdf_object_id": "text:52",
+   "operator": "TJ",
+   "text": "，具有明确定义的语法和语义属性，则迭代器的特定",
+   "bbox": [
+    224.84,
+    426.96,
+    408.84,
+    438.45
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    224.84,
+    218.48,
+    408.84,
+    229.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:53",
+   "operator": "TJ",
+   "text": " C",
+   "bbox": [
+    408.84,
+    427.74,
+    416.18,
+    438.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    408.84,
+    218.52,
+    416.18,
+    229.19
+   ]
+  },
+  {
+   "pdf_object_id": "text:54",
+   "operator": "TJ",
+   "text": "++",
+   "bbox": [
+    416.18,
+    430.03,
+    425.2,
+    438.03
+   ],
+   "font": "TimesLTPro-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    416.18,
+    218.9,
+    425.2,
+    226.9
+   ]
+  },
+  {
+   "pdf_object_id": "text:55",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    425.2,
+    427.74,
+    427.2,
+    438.41
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    425.2,
+    218.52,
+    427.2,
+    229.19
+   ]
+  },
+  {
+   "pdf_object_id": "text:56",
+   "operator": "TJ",
+   "text": "类型变得不",
+   "bbox": [
+    427.2,
+    426.96,
+    467.2,
+    438.45
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 26,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    427.2,
+    218.48,
+    467.2,
+    229.97
+   ]
+  },
+  {
+   "pdf_object_id": "text:57",
+   "operator": "TJ",
+   "text": "重要。在这种情况下，我们可能更愿意使用关键字",
+   "bbox": [
+    93.96,
+    438.16,
+    269.96,
+    449.65
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 27,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    207.28,
+    269.96,
+    218.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:58",
+   "operator": "TJ",
+   "text": " auto ",
+   "bbox": [
+    269.96,
+    438.94,
+    287.74,
+    449.61
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 27,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    269.96,
+    207.32,
+    287.74,
+    217.99
+   ]
+  },
+  {
+   "pdf_object_id": "text:59",
+   "operator": "TJ",
+   "text": "让编译器找出该类型，而不是强迫我们在每次需要时",
+   "bbox": [
+    287.74,
+    438.16,
+    471.74,
+    449.65
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 27,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    287.74,
+    207.28,
+    471.74,
+    218.77
+   ]
+  },
+  {
+   "pdf_object_id": "text:60",
+   "operator": "TJ",
+   "text": "键入它，甚至是它的别名，因为代码本身",
+   "bbox": [
+    93.96,
+    449.36,
+    237.96,
+    460.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    93.96,
+    196.08,
+    237.96,
+    207.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:61",
+   "operator": "TJ",
+   "text": " - ",
+   "bbox": [
+    237.96,
+    450.14,
+    244.63,
+    460.81
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    237.96,
+    196.12,
+    244.63,
+    206.79
+   ]
+  },
+  {
+   "pdf_object_id": "text:62",
+   "operator": "TJ",
+   "text": "例如",
+   "bbox": [
+    244.63,
+    449.36,
+    260.63,
+    460.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    244.63,
+    196.08,
+    260.63,
+    207.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:63",
+   "operator": "TJ",
+   "text": " lhs.begin() - ",
+   "bbox": [
+    260.63,
+    450.14,
+    303.73,
+    460.81
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    260.63,
+    196.12,
+    303.73,
+    206.79
+   ]
+  },
+  {
+   "pdf_object_id": "text:64",
+   "operator": "TJ",
+   "text": "使",
+   "bbox": [
+    303.73,
+    449.36,
+    311.73,
+    460.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    303.73,
+    196.08,
+    311.73,
+    207.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:65",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    311.73,
+    450.14,
+    313.73,
+    460.81
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    311.73,
+    196.12,
+    313.73,
+    206.79
+   ]
+  },
+  {
+   "pdf_object_id": "text:66",
+   "operator": "TJ",
+   "text": "concept",
+   "bbox": [
+    313.73,
+    452.44,
+    338.61,
+    460.44
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    313.73,
+    196.49,
+    338.61,
+    204.49
+   ]
+  },
+  {
+   "pdf_object_id": "text:67",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    338.61,
+    450.14,
+    340.61,
+    460.81
+   ],
+   "font": "Times-Roman",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    338.61,
+    196.12,
+    340.61,
+    206.79
+   ]
+  },
+  {
+   "pdf_object_id": "text:68",
+   "operator": "TJ",
+   "text": "变得清晰：",
+   "bbox": [
+    340.61,
+    449.36,
+    380.61,
+    460.85
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 8.0,
+   "color": 0,
+   "line": 28,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    340.61,
+    196.08,
+    380.61,
+    207.57
+   ]
+  },
+  {
+   "pdf_object_id": "text:69",
+   "operator": "TJ",
+   "text": "bool myAreAbsEqual(const List& lhs, const List& rhs) { auto lit ",
+   "bbox": [
+    101.96,
+    471.09,
+    285.57,
+    480.43
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 29,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    101.96,
+    176.5,
+    285.57,
+    185.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:70",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    285.57,
+    472.98,
+    289.77,
+    479.98
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 29,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    285.57,
+    176.95,
+    289.77,
+    183.95
+   ]
+  },
+  {
+   "pdf_object_id": "text:71",
+   "operator": "TJ",
+   "text": " lhs.cbegin();     ",
+   "bbox": [
+    289.77,
+    471.09,
+    335.46,
+    480.43
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 29,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    289.77,
+    176.5,
+    335.46,
+    185.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:72",
+   "operator": "TJ",
+   "text": "自动启动",
+   "bbox": [
+    335.46,
+    470.41,
+    363.46,
+    480.47
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 29,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    335.46,
+    176.46,
+    363.46,
+    186.52
+   ]
+  },
+  {
+   "pdf_object_id": "text:73",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    363.46,
+    471.09,
+    365.21,
+    480.43
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 29,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    363.46,
+    176.5,
+    365.21,
+    185.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:74",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    365.21,
+    472.98,
+    369.41,
+    479.98
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 29,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    365.21,
+    176.95,
+    369.41,
+    183.95
+   ]
+  },
+  {
+   "pdf_object_id": "text:75",
+   "operator": "TJ",
+   "text": " rhs.cbegin();  ",
+   "bbox": [
+    369.41,
+    471.09,
+    410.24,
+    480.43
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 29,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    369.41,
+    176.5,
+    410.24,
+    185.84
+   ]
+  },
+  {
+   "pdf_object_id": "text:76",
+   "operator": "TJ",
+   "text": "自动常量借出",
+   "bbox": [
+    101.94,
+    480.21,
+    143.94,
+    490.27
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    101.94,
+    166.66,
+    143.94,
+    176.72
+   ]
+  },
+  {
+   "pdf_object_id": "text:77",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    143.94,
+    480.89,
+    145.69,
+    490.23
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    143.94,
+    166.7,
+    145.69,
+    176.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:78",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    145.69,
+    482.78,
+    149.89,
+    489.78
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    145.69,
+    167.15,
+    149.89,
+    174.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:79",
+   "operator": "TJ",
+   "text": " lhs.cend();     ",
+   "bbox": [
+    149.89,
+    480.89,
+    190.13,
+    490.23
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    149.89,
+    166.7,
+    190.13,
+    176.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:80",
+   "operator": "TJ",
+   "text": "自动常量撕裂",
+   "bbox": [
+    190.13,
+    480.21,
+    232.13,
+    490.27
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    190.13,
+    166.66,
+    232.13,
+    176.72
+   ]
+  },
+  {
+   "pdf_object_id": "text:81",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    232.13,
+    480.89,
+    233.88,
+    490.23
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    232.13,
+    166.7,
+    233.88,
+    176.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:82",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    233.88,
+    482.78,
+    238.08,
+    489.78
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    233.88,
+    167.15,
+    238.08,
+    174.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:83",
+   "operator": "TJ",
+   "text": " rhs.cend();     while (lit !",
+   "bbox": [
+    238.08,
+    480.89,
+    308.26,
+    490.23
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    238.08,
+    166.7,
+    308.26,
+    176.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:84",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    308.26,
+    482.78,
+    312.46,
+    489.78
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    308.26,
+    167.15,
+    312.46,
+    174.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:85",
+   "operator": "TJ",
+   "text": " sell && rit !",
+   "bbox": [
+    312.46,
+    480.89,
+    348.63,
+    490.23
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    312.46,
+    166.7,
+    348.63,
+    176.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:86",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    348.63,
+    482.78,
+    352.83,
+    489.78
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    348.63,
+    167.15,
+    352.83,
+    174.15
+   ]
+  },
+  {
+   "pdf_object_id": "text:87",
+   "operator": "TJ",
+   "text": " rend) { if (abs(*lit) ",
+   "bbox": [
+    352.83,
+    480.89,
+    409.65,
+    490.23
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 30,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    352.83,
+    166.7,
+    409.65,
+    176.04
+   ]
+  },
+  {
+   "pdf_object_id": "text:88",
+   "operator": "TJ",
+   "text": "!",
+   "bbox": [
+    101.94,
+    490.69,
+    104.27,
+    500.03
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 31,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    101.94,
+    156.9,
+    104.27,
+    166.24
+   ]
+  },
+  {
+   "pdf_object_id": "text:89",
+   "operator": "TJ",
+   "text": "=",
+   "bbox": [
+    104.27,
+    492.58,
+    108.47,
+    499.58
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 31,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    104.27,
+    157.35,
+    108.47,
+    164.35
+   ]
+  },
+  {
+   "pdf_object_id": "text:90",
+   "operator": "TJ",
+   "text": " abs(*rit)) { return false; }",
+   "bbox": [
+    108.47,
+    490.69,
+    181.86,
+    500.03
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 31,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    108.47,
+    156.9,
+    181.86,
+    166.24
+   ]
+  },
+  {
+   "pdf_object_id": "text:91",
+   "operator": "TJ",
+   "text": "// RETURN",
+   "bbox": [
+    411.02,
+    553.99,
+    449.24,
+    560.99
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 32,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    411.02,
+    95.94,
+    449.24,
+    102.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:92",
+   "operator": "TJ",
+   "text": "} ",
+   "bbox": [
+    101.94,
+    561.11,
+    107.05,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    101.94,
+    86.49,
+    107.05,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:93",
+   "operator": "TJ",
+   "text": "++",
+   "bbox": [
+    107.05,
+    562.99,
+    115.45,
+    569.99
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    107.05,
+    86.94,
+    115.45,
+    93.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:94",
+   "operator": "TJ",
+   "text": "lit",
+   "bbox": [
+    115.45,
+    561.11,
+    121.28,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    115.45,
+    86.49,
+    121.28,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:95",
+   "operator": "TJ",
+   "text": "，",
+   "bbox": [
+    121.28,
+    560.43,
+    128.28,
+    570.48
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    121.28,
+    86.45,
+    128.28,
+    96.5
+   ]
+  },
+  {
+   "pdf_object_id": "text:96",
+   "operator": "TJ",
+   "text": "++",
+   "bbox": [
+    128.28,
+    562.99,
+    136.68,
+    569.99
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    128.28,
+    86.94,
+    136.68,
+    93.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:97",
+   "operator": "TJ",
+   "text": "rit;     } ",
+   "bbox": [
+    136.68,
+    561.11,
+    158.71,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    136.68,
+    86.49,
+    158.71,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:98",
+   "operator": "TJ",
+   "text": "返回借出",
+   "bbox": [
+    158.71,
+    560.43,
+    186.71,
+    570.48
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    158.71,
+    86.45,
+    186.71,
+    96.5
+   ]
+  },
+  {
+   "pdf_object_id": "text:99",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    186.71,
+    561.11,
+    188.46,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    186.71,
+    86.49,
+    188.46,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:100",
+   "operator": "TJ",
+   "text": "==",
+   "bbox": [
+    188.46,
+    562.99,
+    196.86,
+    569.99
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    188.46,
+    86.94,
+    196.86,
+    93.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:101",
+   "operator": "TJ",
+   "text": " lit && ",
+   "bbox": [
+    196.86,
+    561.11,
+    218.84,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    196.86,
+    86.49,
+    218.84,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:102",
+   "operator": "TJ",
+   "text": "撕裂",
+   "bbox": [
+    218.84,
+    560.43,
+    232.84,
+    570.48
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    218.84,
+    86.45,
+    232.84,
+    96.5
+   ]
+  },
+  {
+   "pdf_object_id": "text:103",
+   "operator": "TJ",
+   "text": " ",
+   "bbox": [
+    232.84,
+    561.11,
+    234.59,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    232.84,
+    86.49,
+    234.59,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:104",
+   "operator": "TJ",
+   "text": "==",
+   "bbox": [
+    234.59,
+    562.99,
+    242.99,
+    569.99
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    234.59,
+    86.94,
+    242.99,
+    93.94
+   ]
+  },
+  {
+   "pdf_object_id": "text:105",
+   "operator": "TJ",
+   "text": " rit;  ",
+   "bbox": [
+    242.99,
+    561.11,
+    256.41,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    242.99,
+    86.49,
+    256.41,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:106",
+   "operator": "TJ",
+   "text": "// We generally try to avoid placing modifiable operands",
+   "bbox": [
+    256.41,
+    563.11,
+    415.43,
+    570.11
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    256.41,
+    86.82,
+    415.43,
+    93.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:107",
+   "operator": "TJ",
+   "text": " } ",
+   "bbox": [
+    415.43,
+    561.11,
+    422.29,
+    570.44
+   ],
+   "font": "Times-Roman",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 33,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    415.43,
+    86.49,
+    422.29,
+    95.82
+   ]
+  },
+  {
+   "pdf_object_id": "text:108",
+   "operator": "TJ",
+   "text": "// on the left-hand side of an ",
+   "bbox": [
+    101.94,
+    572.91,
+    183.68,
+    579.91
+   ],
+   "font": "TimesLTPro-Italic",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 34,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    101.94,
+    77.02,
+    183.68,
+    84.02
+   ]
+  },
+  {
+   "pdf_object_id": "text:109",
+   "operator": "TJ",
+   "text": "运算符",
+   "bbox": [
+    183.68,
+    570.23,
+    204.68,
+    580.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 34,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    183.68,
+    76.65,
+    204.68,
+    86.7
+   ]
+  },
+  {
+   "pdf_object_id": "text:110",
+   "operator": "TJ",
+   "text": "==",
+   "bbox": [
+    204.68,
+    572.79,
+    213.08,
+    579.79
+   ],
+   "font": "CourierPSPro-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 34,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    204.68,
+    77.14,
+    213.08,
+    84.14
+   ]
+  },
+  {
+   "pdf_object_id": "text:111",
+   "operator": "TJ",
+   "text": "。",
+   "bbox": [
+    213.08,
+    570.23,
+    220.08,
+    580.28
+   ],
+   "font": "SourceHanSerifCN-Regular",
+   "font_size": 7.0,
+   "color": 0,
+   "line": 34,
+   "page": 131,
+   "block_type": 0,
+   "v3_bbox": [
+    213.08,
+    76.65,
+    220.08,
+    86.7
+   ]
+  }
+ ],
+ "drawings": [
+  {
+   "pdf_object_id": 0,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    0.9791409373283386,
+    0.9799038767814636,
+    0.9806515574455261
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 1,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.7453116774559021,
+    0.7527275681495667,
+    0.7609979510307312
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 2,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    0.13669031858444214,
+    0.12195010483264923,
+    0.1252918243408203
+   ],
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 3,
+   "operator": "path",
+   "kind": "f",
+   "bbox": null,
+   "fill": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "color": null,
+   "has_text": false
+  },
+  {
+   "pdf_object_id": 4,
+   "operator": "path",
+   "kind": "s",
+   "bbox": null,
+   "fill": null,
+   "color": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "has_text": false
+  }
+ ],
+ "content_stream": {
+  "checked": true,
+  "syntax_error_tokens": 3,
+  "sample": [
+   "syntax error: unknown keyword: '-9.000000001435637e'",
+   "syntax error: unknown keyword: '-1.1999999998124622e'",
+   "encountered syntax errors; page may not be correct"
+  ],
+  "anomaly": true,
+  "source": "mupdf"
+ },
+ "id_direct": true
+}
