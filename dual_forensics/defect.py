@@ -33,6 +33,13 @@ __all__ = [
     "DEFECTS",
     "DefectFinding",
     "run_defect_detectors",
+    "STATUS_PASS",
+    "STATUS_FAIL",
+    "STATUS_SKIP",
+    "STATUS_NOT_MEASURED",
+    "Coverage",
+    "coverage_page",
+    "aggregate_coverage",
 ]
 
 F1 = "F1"
@@ -137,6 +144,47 @@ class DefectFinding:
         }
 
 
+STATUS_PASS = "PASS"
+STATUS_FAIL = "FAIL"
+STATUS_SKIP = "SKIP"
+STATUS_NOT_MEASURED = "NOT_MEASURED"
+
+# defect ids covered by an *implemented* detector that can return PASS/FAIL.
+# anything else stays NOT_MEASURED (distinct from a clean PASS).
+_NODE_DETECTORS = (F1, F2, F3, F4, F8)
+_ALL_F_IDS = (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)
+
+
+@dataclass
+class Coverage:
+    """Per-detector page status under the 7I-4 contract.
+
+    Contract:
+      PASS   = detector ran on >=1 node with sufficient evidence, no defect
+      FAIL   = detector ran and found >=1 defect
+      SKIP   = detector ran but no node had sufficient evidence (nothing measured)
+      NOT_MEASURED = detector is not implemented yet (5I-4 later steps)
+
+    The point: never let ``SKIP``/``NOT_MEASURED`` masquerade as ``0``.
+    """
+
+    defect_id: str
+    status: str = STATUS_SKIP
+    evaluated_nodes: int = 0  # nodes where the detector had sufficient evidence
+    findings: List[DefectFinding] = field(default_factory=list)
+    note: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "defect_id": self.defect_id,
+            "name": DEFECTS.get(self.defect_id, {}).get("name"),
+            "status": self.status,
+            "evaluated_nodes": self.evaluated_nodes,
+            "findings": [f.to_dict() for f in self.findings],
+            "note": self.note,
+        }
+
+
 def _cjk_ratio(text: str) -> float:
     if not text:
         return 0.0
@@ -232,29 +280,79 @@ def _detect_f2_code_translated(trace) -> List[DefectFinding]:
 
 
 def _detect_f4_font_anomaly(trace) -> List[DefectFinding]:
-    """F4: mojibake / replacement glyphs / navy font change in translated text."""
+    """F4: mojibake / replacement glyphs / ``(cid:N)`` placeholders.
+
+    Attribution is **stage-faithful** (7I-3A): instead of blaming the renderer
+    whenever the rendered text carries the artifact, we walk the stage
+    snapshots on the trace — parser source text → translation text → rendered
+    text — and record the *first* stage whose text already contains it:
+
+    - present in parser text      → parser FAIL (source-PDF encoding/ToUnicode
+      gap; every later stage faithfully passed it through);
+    - clean at parser, present in translation text → translation FAIL;
+    - clean earlier, present in rendered text      → render FAIL.
+
+    This stops ``(cid:N)`` placeholders that the *source PDF* cannot decode
+    from being misattributed to this pipeline's renderer (7I-2 §4 E).
+    """
     findings: List[DefectFinding] = []
-    text = trace.rendered_text or trace.translated_text or ""
-    has_fffd = "\ufffd" in text
-    has_cid = "(cid:" in text
-    if not (has_fffd or has_cid):
+    src = (trace.source_text or "").strip()
+    tr = (trace.translated_text or "").strip()
+    rendered = (trace.rendered_text or "").strip()
+
+    def _has_artifact(t: str) -> bool:
+        return "(cid:" in t or "\ufffd" in t
+
+    if not (_has_artifact(src) or _has_artifact(tr) or _has_artifact(rendered)):
         return findings
+
     verdicts = {s: None for s in STAGES}
     verdicts["source"] = "PASS"
-    verdicts["parser"] = "PASS"
-    verdicts["translation"] = "PASS"
-    verdicts["layout"] = "PASS"
-    verdicts["render"] = "FAIL"  # glyphs can't map → renderer/font layer
-    findings.append(
-        _fin(
-            verdicts,
-            F4,
-            trace.node_id,
-            trace.page,
-            "replacement/CID glyphs in rendered text",
-            {"fffd": has_fffd, "cid": has_cid, "text": text[:40]},
-        )
-    )
+    if _has_artifact(src):
+        # parser-originated: the artifact already exists in the source PDF's
+        # text layer before this pipeline touched it.
+        verdicts["parser"] = "FAIL"
+        verdicts["translation"] = "PASS"
+        verdicts["layout"] = "PASS"
+        verdicts["render"] = "PASS"
+        note = "CID/replacement glyph already present at parser stage (source-PDF encoding gap)"
+        evidence = {
+            "parser_originated": True,
+            "stage_snapshot": "parser",
+            "cid": "(cid:" in src,
+            "fffd": "\ufffd" in src,
+            "text": src[:40],
+        }
+    elif _has_artifact(tr):
+        # clean at parser, artifact introduced with the translation text.
+        verdicts["parser"] = "PASS"
+        verdicts["model"] = "PASS"
+        verdicts["translation"] = "FAIL"
+        verdicts["layout"] = "PASS"
+        verdicts["render"] = "PASS"
+        note = "CID/replacement glyph introduced at translation stage"
+        evidence = {
+            "parser_originated": False,
+            "stage_snapshot": "translation",
+            "cid": "(cid:" in tr,
+            "fffd": "\ufffd" in tr,
+            "text": tr[:40],
+        }
+    else:
+        # clean at parser and translation, artifact first appears rendered.
+        verdicts["parser"] = "PASS"
+        verdicts["translation"] = "PASS"
+        verdicts["layout"] = "PASS"
+        verdicts["render"] = "FAIL"
+        note = "CID/replacement glyph first appears in rendered text"
+        evidence = {
+            "parser_originated": False,
+            "stage_snapshot": "render",
+            "cid": "(cid:" in rendered,
+            "fffd": "\ufffd" in rendered,
+            "text": rendered[:40],
+        }
+    findings.append(_fin(verdicts, F4, trace.node_id, trace.page, note, evidence))
     return findings
 
 
@@ -269,15 +367,477 @@ def _detect_f2_style_alias(trace, raw_duals: Dict[str, Any]) -> List[DefectFindi
     return []
 
 
+def _node_render_box(trace) -> Optional[List[float]]:
+    """Union of the node's rendered run bboxes (y-up)."""
+    if getattr(trace, "render_box", None):
+        return list(trace.render_box)
+    boxes = [
+        r.get("final_bbox_v3") or r.get("v3_bbox") or r.get("bbox")
+        for r in (trace.render_rows or [])
+    ]
+    boxes = [b for b in boxes if b and len(b) == 4]
+    if not boxes:
+        return None
+    return [
+        min(b[0] for b in boxes),
+        min(b[1] for b in boxes),
+        max(b[2] for b in boxes),
+        max(b[3] for b in boxes),
+    ]
+
+
+def _iou(a: List[float], b: List[float]) -> Optional[float]:
+    """Intersection-over-union of two y-up boxes; None if either is empty."""
+    if not a or not b or len(a) != 4 or len(b) != 4:
+        return None
+    ix = max(0.0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    au = (a[2] - a[0]) * (a[3] - a[1])
+    bu = (b[2] - b[0]) * (b[3] - b[1])
+    if au <= 0 or bu <= 0:
+        return None
+    return inter / (au + bu - inter)
+
+
+def _detect_f1_wrong_area(trace) -> List[DefectFinding]:
+    """F1: translated content rendered in a substantially different area than
+    the layout planned (``dst_box``), or missing a planned location entirely.
+
+    Evidence-based: we only judge when we have BOTH a layout ``dst_box`` and an
+    actually-drawn render box.  A node that was never drawn (no render box / no
+    matched run) is **SKIP**, not a placement FAIL — its absence is elsewhere
+    (F8/F10 dangling), not proof of a wrong area.
+    """
+    findings: List[DefectFinding] = []
+    dst = trace.dst_box
+    rbox = _node_render_box(trace)
+    if not dst or not rbox:
+        return findings  # cannot judge placement -> SKIP (no finding emitted)
+    iou = _iou(rbox, dst)
+    if iou is None:
+        return findings
+    # Genuine wrong-area: essentially no overlap between where we drew and where
+    # the plan said to draw, with a meaningful distance apart.
+    if iou < 0.20:
+        verdicts = {s: None for s in STAGES}
+        verdicts["source"] = "PASS"
+        verdicts["parser"] = "PASS"
+        verdicts["model"] = "PASS"
+        verdicts["translation"] = "PASS"
+        verdicts["layout"] = "FAIL"
+        verdicts["render"] = "PASS"
+        findings.append(
+            _fin(
+                verdicts,
+                F1,
+                trace.node_id,
+                trace.page,
+                f"rendered area overlaps planned dst_box by only {iou:.0%}",
+                {
+                    "render_box": rbox,
+                    "dst_box": dst,
+                    "iou": round(iou, 3),
+                    "confidence": "uncertain",
+                },
+            )
+        )
+    return findings
+
+
+_FONT_RATIO_LOW = 0.55  # rendered/target below this is a suspicious shrink
+_FONT_RATIO_HIGH = 1.6  # rendered/target above this is a suspicious enlarg
+
+
+def _detect_f3_font_size(trace) -> List[DefectFinding]:
+    """F3: rendered font size diverges abnormally from the layout target size.
+
+    Compare what was actually drawn (render row ``font_size``) against the
+    layout target (``layout_font_size``).  A large relative deviation is an
+    abnormal font size; if no drawn font size is available we SKIP (nothing
+    measurable) rather than guess.
+    """
+    findings: List[DefectFinding] = []
+    target = trace.layout_font_size
+    if not target:
+        return findings  # no layout plan size to compare -> SKIP
+    drawn_sizes = [float(r.get("font_size") or 0) for r in (trace.render_rows or [])]
+    drawn_sizes = [s for s in drawn_sizes if s and s > 0]
+    if not drawn_sizes:
+        return findings  # not drawn -> SKIP (absence handled elsewhere)
+    drawn = max(drawn_sizes)  # dominant line size
+    ratio = drawn / float(target)
+    if ratio < _FONT_RATIO_LOW or ratio > _FONT_RATIO_HIGH:
+        verdicts = {s: None for s in STAGES}
+        verdicts["source"] = "PASS"
+        verdicts["parser"] = "PASS"
+        verdicts["model"] = "PASS"
+        verdicts["translation"] = "PASS"
+        verdicts["layout"] = "FAIL"
+        verdicts["render"] = "PASS"
+        findings.append(
+            _fin(
+                verdicts,
+                F3,
+                trace.node_id,
+                trace.page,
+                f"drawn font size {drawn:.1f} vs layout target {float(target):.1f} "
+                f"(ratio {ratio:.2f})",
+                {
+                    "drawn_font_size": round(drawn, 2),
+                    "layout_font_size": float(target),
+                    "ratio": round(ratio, 3),
+                    "confidence": "uncertain",
+                },
+            )
+        )
+    return findings
+
+
+def _detect_f8_text_truncated(trace) -> List[DefectFinding]:
+    """F8: a block the layout declared would be **clipped** (text truncated).
+
+    Evidence contract:
+      min evidence  = the settled flow layout carries ``overflow`` and a
+                      ``recovery`` dict whose ``decision`` is ``clip`` (7F-7);
+      boundary       = F8 ≠ F10 (object lost/drifted) and ≠ F5 (float detached).
+                      F8 only fires on a **present** block whose *text* the
+                      layout had to clip — not on a missing object.
+      unavailable    = page/block with no settled overflow verdict -> SKIP.
+
+    Attribution: the clip decision is made by the layout stage, so F8 defaults
+    to ``layout FAIL``.  It carries ``confidence: uncertain`` (a clip of a
+    zero/whitespace tail may be benign, but a clipped content line is truncation).
+    """
+    findings: List[DefectFinding] = []
+    if trace.layout_overflow is not True:
+        return findings  # not flagged as overflow by layout -> not F8
+    rec = trace.layout_recovery or {}
+    decision = (rec or {}).get("decision") or ""
+    if decision != "clip":
+        return findings  # overflow with a non-clip recovery isn't truncation
+    verdicts = {s: None for s in STAGES}
+    verdicts["source"] = "PASS"
+    verdicts["parser"] = "PASS"
+    verdicts["model"] = "PASS"
+    verdicts["translation"] = "PASS"
+    verdicts["layout"] = "FAIL"
+    verdicts["render"] = "PASS"
+    findings.append(
+        _fin(
+            verdicts,
+            F8,
+            trace.node_id,
+            trace.page,
+            f"flow layout clipped block (reason={rec.get('reason')}), "
+            f"steps={rec.get('steps')}",
+            {
+                "reason": rec.get("reason"),
+                "decision": decision,
+                "steps": rec.get("steps"),
+                "original_font_size": rec.get("original_font_size"),
+                "final_font_size": rec.get("final_font_size"),
+                "confidence": "uncertain",
+            },
+        )
+    )
+    return findings
+
+
+# F5/F6 are page-level: they compare a figure/table/caption block against
+# the surrounding text blocks on the same page, so they need the full trace
+# list, not one node in isolation.
+_FLOAT_KINDS = {"figure", "table", "image"}
+_TEXT_KINDS = {"paragraph", "heading", "caption", "formula"}
+
+
+def _box_distance(
+    a: Optional[List[float]], b: Optional[List[float]]
+) -> Optional[float]:
+    """Min distance between two y-up boxes (0.0 if they overlap)."""
+    if not a or not b or len(a) != 4 or len(b) != 4:
+        return None
+    dx = max(0.0, max(a[0], b[0]) - min(a[2], b[2]), min(a[2], b[2]) - min(a[0], b[0]))
+    dx = max(0.0, max(a[0] - b[2], b[0] - a[2]))
+    dy = max(0.0, max(a[1] - b[3], b[1] - a[3]))
+    return (dx * dx + dy * dy) ** 0.5
+
+
+_F5_DETACH_GAP = 4.0  # gap (in block-heights) beyond which a float is "detached"
+_F6_IOU = 0.30
+
+
+def _detect_f5_detached_page(traces: List[Any]) -> "tuple[List[DefectFinding], int]":
+    """F5: a figure/table/image block rendered far from the surrounding text.
+
+    Evidence contract:
+      min evidence  = a float block with a drawn box **and** >=1 other text
+                      block on the page (so "detached from text" is measurable);
+      unavailable    = page with no float block at all -> SKIP (nothing measured),
+                      never a clean 0.
+    """
+    findings: List[DefectFinding] = []
+    floats = [t for t in traces if t.kind in _FLOAT_KINDS]
+    if not floats:
+        return findings, 0  # no float block -> SKIP
+    text_boxes = [
+        (t.dst_box or _node_render_box(t))
+        for t in traces
+        if t.kind in _TEXT_KINDS and (t.dst_box or _node_render_box(t))
+    ]
+    evaled = 0
+    for t in floats:
+        rbox = _node_render_box(t)
+        dst = t.dst_box or rbox
+        if not dst or not rbox:
+            continue  # float not drawn -> absence is F10/F8, not F5 detachment
+        evaled += 1
+        if not text_boxes:
+            continue  # no text blocks to be near -> can't judge, still evaluated
+        gap = min(
+            (g for g in (_box_distance(dst, b) for b in text_boxes) if g is not None),
+            default=None,
+        )
+        height = max(1e-6, float((dst[3] - dst[1]) or 1.0))
+        if gap is not None and gap > _F5_DETACH_GAP * height:
+            verdicts = {s: None for s in STAGES}
+            verdicts["source"] = "PASS"
+            verdicts["parser"] = "PASS"
+            verdicts["model"] = "PASS"
+            verdicts["translation"] = "PASS"
+            verdicts["layout"] = "FAIL"
+            verdicts["render"] = "PASS"
+            findings.append(
+                _fin(
+                    verdicts,
+                    F5,
+                    t.node_id,
+                    t.page,
+                    f"float block {gap:.0f}pt from nearest text (> {_F5_DETACH_GAP}x its height)",
+                    {
+                        "kind": t.kind,
+                        "dst_box": dst,
+                        "nearest_text_gap": round(gap, 1) if gap else None,
+                        "confidence": "uncertain",
+                    },
+                )
+            )
+    return findings, evaled
+
+
+def _detect_f6_caption_displaced_page(
+    traces: List[Any],
+) -> "tuple[List[DefectFinding], int]":
+    """F6: a caption rendered in a substantially different place than planned.
+
+    Evidence contract:
+      min evidence  = a caption block with both a layout ``dst_box`` and a drawn
+                      box;
+      unavailable    = page with no caption block -> SKIP.
+
+    Here we detect the *caption's own* displacement from its planned position.
+    (The caption→host relationship, when the model exposes it, is the stronger
+    F6 signal; that topdown relation is checked when ``src_box`` is absent.)
+    """
+    findings: List[DefectFinding] = []
+    caps = [t for t in traces if t.kind == "caption"]
+    if not caps:
+        return findings, 0  # no caption -> SKIP
+    evaled = 0
+    for t in caps:
+        dst = t.dst_box
+        rbox = _node_render_box(t)
+        if not dst or not rbox:
+            continue
+        evaled += 1
+        iou = _iou(rbox, dst)
+        if iou is not None and iou < _F6_IOU:
+            verdicts = {s: None for s in STAGES}
+            verdicts["source"] = "PASS"
+            verdicts["parser"] = "PASS"
+            verdicts["model"] = "PASS"
+            verdicts["translation"] = "PASS"
+            verdicts["layout"] = "FAIL"
+            verdicts["render"] = "PASS"
+            findings.append(
+                _fin(
+                    verdicts,
+                    F6,
+                    t.node_id,
+                    t.page,
+                    f"caption rendered with only {iou:.0%} overlap of planned dst_box",
+                    {
+                        "render_box": rbox,
+                        "dst_box": dst,
+                        "iou": round(iou, 3),
+                        "confidence": "uncertain",
+                    },
+                )
+            )
+    return findings, evaled
+
+
+# F5/F6 are page-level detectors that compare a block against the page's text;
+# both take the full trace list and return (findings, evaluated_nodes).
+_PAGE_DETECTORS = {
+    F5: _detect_f5_detached_page,
+    F6: _detect_f6_caption_displaced_page,
+}
+
+# node-level detector dispatch: defect_id -> (can_evaluate, run)
+_NODE_DISPARITY = {
+    F4: (
+        lambda t: bool(
+            (t.source_text or "").strip() or (t.rendered_text or "").strip()
+        ),
+        _detect_f4_font_anomaly,
+    ),
+    F2: (
+        lambda t: bool(
+            (t.source_text or "").strip()
+            and _is_code_like((t.source_text or "").strip())
+        ),
+        _detect_f2_code_translated,
+    ),
+    F1: (lambda t: bool(t.dst_box and _node_render_box(t)), _detect_f1_wrong_area),
+    F3: (
+        lambda t: bool(
+            t.layout_font_size
+            and [
+                float(r.get("font_size") or 0)
+                for r in (t.render_rows or [])
+                if r.get("font_size")
+            ]
+        ),
+        _detect_f3_font_size,
+    ),
+    # F8 evaluates any node with a *settled* flow layout verdict; FAIL only
+    # fires when that verdict says the block was clipped.
+    F8: (
+        lambda t: t.layout_overflow is not None,
+        _detect_f8_text_truncated,
+    ),
+}
+
+
 def run_defect_detectors(
     traces: List[Any], dual_page: Optional[Any] = None
 ) -> List[DefectFinding]:
-    """Run all enabled detectors over a list of :class:`.diff.Trace` objects."""
+    """Run all enabled detectors over a list of :class:`.diff.Trace` objects.
+
+    Returns only **FAIL findings** (backward compatible).  Use
+    :func:`coverage_page` when you need the PASS/FAIL/SKIP accounting too.
+    """
     findings: List[DefectFinding] = []
     for trace in traces:
         findings.extend(_detect_f2_code_translated(trace))
+        findings.extend(_detect_f1_wrong_area(trace))
+        findings.extend(_detect_f3_font_size(trace))
         findings.extend(_detect_f4_font_anomaly(trace))
+        findings.extend(_detect_f8_text_truncated(trace))
+    # page-level detectors (F5/F6 compare a block against the page's text)
+    page_finds, _ = _detect_f5_detached_page(list(traces))
+    findings.extend(page_finds)
+    cap_finds, _ = _detect_f6_caption_displaced_page(list(traces))
+    findings.extend(cap_finds)
     return findings
+
+
+def coverage_page(
+    traces: List[Any], dual_page: Optional[Any] = None
+) -> Dict[str, Coverage]:
+    """7I-4 contract: per-defect page status with PASS/FAIL/SKIP/NOT_MEASURED.
+
+    For each F-id we:
+      - NOT_MEASURED when no implemented detector can judge it yet;
+      - otherwise evaluate every node; if >=1 node had sufficient evidence and
+        produced a defect -> FAIL; if nodes were evaluable and all clean -> PASS;
+        if no node had sufficient evidence -> SKIP (nothing measured).
+
+    This keeps ``0`` honest: a SKIP/NOT_MEASURED page is *not* a clean page.
+    """
+    _traces = list(traces or [])
+    out: Dict[str, Coverage] = {}
+    for fid in _ALL_F_IDS:
+        cov = Coverage(defect_id=fid)
+        if fid in _PAGE_DETECTORS:
+            all_find, evaled = _PAGE_DETECTORS[fid](_traces)
+            cov.evaluated_nodes = evaled
+            cov.findings = all_find
+            if evaled == 0:
+                cov.status = STATUS_SKIP
+                cov.note = "no node on this page had sufficient evidence"
+            elif all_find:
+                cov.status = STATUS_FAIL
+            else:
+                cov.status = STATUS_PASS
+            out[fid] = cov
+            continue
+        if fid not in _NODE_DETECTORS:
+            cov.status = STATUS_NOT_MEASURED
+            cov.note = "detector not implemented in this release"
+            out[fid] = cov
+            continue
+        can_eval, run_fn = _NODE_DISPARITY[fid]
+        all_find = []
+        evaled = 0
+        for tr in _traces:
+            if not can_eval(tr):
+                continue
+            evaled += 1
+            all_find.extend(run_fn(tr))
+        cov.evaluated_nodes = evaled
+        cov.findings = all_find
+        if evaled == 0:
+            cov.status = STATUS_SKIP
+            cov.note = "no node had sufficient evidence on this page"
+        elif all_find:
+            cov.status = STATUS_FAIL
+        else:
+            cov.status = STATUS_PASS
+        out[fid] = cov
+    return out
+
+
+def aggregate_coverage(pages: Dict[int, Dict[str, Coverage]]) -> Dict[str, Any]:
+    """Merge per-page :class:`Coverage` into a corpus-level summary.
+
+    Returns ``{defect_id: {status, pages_evaluated, pages_total, pass, fail,
+    skip, not_measured, findings}}`` — the acceptance table for 7I-4.
+    """
+    agg: Dict[str, Any] = {}
+    for fid in _ALL_F_IDS:
+        statuses = [p.get(fid).status for p in pages.values() if p.get(fid) is not None]
+        total = len(statuses)
+        fail_pages = statuses.count(STATUS_FAIL)
+        skip_pages = statuses.count(STATUS_SKIP)
+        nm_pages = statuses.count(STATUS_NOT_MEASURED)
+        pass_pages = statuses.count(STATUS_PASS)
+        # pages_evaluated = pages where the detector actually ran and could
+        # conclude something (PASS or FAIL), i.e. not SKIP/NOT_MEASURED.
+        evaluated = pass_pages + fail_pages
+        findings = [
+            f
+            for p in pages.values()
+            for f in (p.get(fid).findings if p.get(fid) else [])
+        ]
+        if total == 0 or evaluated == 0:
+            status = STATUS_NOT_MEASURED if total == 0 else STATUS_SKIP
+        elif fail_pages:
+            status = STATUS_FAIL
+        else:
+            status = STATUS_PASS
+        agg[fid] = {
+            "status": status,
+            "pages_evaluated": evaluated,
+            "pages_total": total,
+            "pass": pass_pages,
+            "fail": fail_pages,
+            "skip": skip_pages,
+            "not_measured": nm_pages,
+            "findings": [f.to_dict() for f in findings],
+        }
+    return agg
 
 
 def classify_findings(findings: List[DefectFinding]) -> Dict[str, Any]:

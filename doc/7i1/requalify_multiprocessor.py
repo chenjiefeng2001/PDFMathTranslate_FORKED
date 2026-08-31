@@ -21,7 +21,10 @@ from dual_forensics.pdf_inspector import inspect_page
 import pymupdf
 
 BOOK = "tests/file/The Art of Multiprocessor Programming, 2e.pdf"
-OUT = "doc/7i1-multiprocessor-provenance"
+# 7I-3C: 输出目录可用 PDF2ZH_REQUAL_OUT 覆盖，避免覆写 7I-1/7I-2 存档证据。
+OUT = os.environ.get(
+    "PDF2ZH_REQUAL_OUT", "doc/7i1-multiprocessor-provenance"
+)
 # Sample: front matter (TOC, roman numerals), body, code, index.
 PAGES = [0, 5, 8, 12, 20, 40, 80, 120, 200, 300, 400, 500, 550]
 

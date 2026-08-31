@@ -1,0 +1,889 @@
+{
+ "schema_version": 2,
+ "post_7i3": true,
+ "books": [
+  {
+   "label": "C book",
+   "path": "pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4.pdf",
+   "pages": [
+    62,
+    65,
+    69,
+    75,
+    185,
+    186,
+    187
+   ],
+   "blocks": 146,
+   "present": 146,
+   "dangling": 0,
+   "stray": 0,
+   "preserved_violation": 0,
+   "defects": {},
+   "by_first_divergence": {},
+   "anomalies": {
+    "parser": 0,
+    "translation": 0,
+    "layout": 0,
+    "render": 0
+   },
+   "cid": {
+    "undefined_total": 0,
+    "recovered_unicode": 0,
+    "preserved_placeholder": 0,
+    "recoverable": {
+     "count": 0,
+     "examples": []
+    },
+    "unrecoverable": {
+     "count": 0,
+     "examples": []
+    }
+   },
+   "per_page": {
+    "62": {
+     "blocks": 16,
+     "findings": 0
+    },
+    "65": {
+     "blocks": 22,
+     "findings": 0
+    },
+    "69": {
+     "blocks": 28,
+     "findings": 0
+    },
+    "75": {
+     "blocks": 13,
+     "findings": 0
+    },
+    "185": {
+     "blocks": 25,
+     "findings": 0
+    },
+    "186": {
+     "blocks": 21,
+     "findings": 0
+    },
+    "187": {
+     "blocks": 21,
+     "findings": 0
+    }
+   },
+   "detector_coverage": {
+    "F1": {
+     "status": "PASS",
+     "pages_evaluated": 7,
+     "pages_total": 7,
+     "pass": 7,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F2": {
+     "status": "PASS",
+     "pages_evaluated": 5,
+     "pages_total": 7,
+     "pass": 5,
+     "fail": 0,
+     "skip": 2,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F3": {
+     "status": "PASS",
+     "pages_evaluated": 7,
+     "pages_total": 7,
+     "pass": 7,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F4": {
+     "status": "PASS",
+     "pages_evaluated": 7,
+     "pages_total": 7,
+     "pass": 7,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F5": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 7,
+     "pass": 0,
+     "fail": 0,
+     "skip": 7,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F6": {
+     "status": "PASS",
+     "pages_evaluated": 4,
+     "pages_total": 7,
+     "pass": 4,
+     "fail": 0,
+     "skip": 3,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F7": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 7,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 7,
+     "findings": []
+    },
+    "F8": {
+     "status": "PASS",
+     "pages_evaluated": 7,
+     "pages_total": 7,
+     "pass": 7,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F9": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 7,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 7,
+     "findings": []
+    },
+    "F10": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 7,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 7,
+     "findings": []
+    }
+   }
+  },
+  {
+   "label": "AI for Games",
+   "path": "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5.pdf",
+   "pages": [
+    0,
+    10,
+    20,
+    30,
+    40
+   ],
+   "blocks": 18,
+   "present": 18,
+   "dangling": 0,
+   "stray": 0,
+   "preserved_violation": 0,
+   "defects": {},
+   "by_first_divergence": {},
+   "anomalies": {
+    "parser": 0,
+    "translation": 0,
+    "layout": 0,
+    "render": 0
+   },
+   "cid": {
+    "undefined_total": 0,
+    "recovered_unicode": 0,
+    "preserved_placeholder": 0,
+    "recoverable": {
+     "count": 0,
+     "examples": []
+    },
+    "unrecoverable": {
+     "count": 0,
+     "examples": []
+    }
+   },
+   "per_page": {
+    "10": {
+     "blocks": 3,
+     "findings": 0
+    },
+    "20": {
+     "blocks": 6,
+     "findings": 0
+    },
+    "30": {
+     "blocks": 5,
+     "findings": 0
+    },
+    "40": {
+     "blocks": 4,
+     "findings": 0
+    }
+   },
+   "detector_coverage": {
+    "F1": {
+     "status": "PASS",
+     "pages_evaluated": 4,
+     "pages_total": 4,
+     "pass": 4,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F2": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 4,
+     "pass": 0,
+     "fail": 0,
+     "skip": 4,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F3": {
+     "status": "PASS",
+     "pages_evaluated": 4,
+     "pages_total": 4,
+     "pass": 4,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F4": {
+     "status": "PASS",
+     "pages_evaluated": 4,
+     "pages_total": 4,
+     "pass": 4,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F5": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 4,
+     "pass": 0,
+     "fail": 0,
+     "skip": 4,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F6": {
+     "status": "PASS",
+     "pages_evaluated": 1,
+     "pages_total": 4,
+     "pass": 1,
+     "fail": 0,
+     "skip": 3,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F7": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 4,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 4,
+     "findings": []
+    },
+    "F8": {
+     "status": "PASS",
+     "pages_evaluated": 4,
+     "pages_total": 4,
+     "pass": 4,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F9": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 4,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 4,
+     "findings": []
+    },
+    "F10": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 4,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 4,
+     "findings": []
+    }
+   }
+  },
+  {
+   "label": "Game Physics",
+   "path": "pdf2zh_files/Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk.pdf",
+   "pages": [
+    0,
+    15,
+    30,
+    45
+   ],
+   "blocks": 36,
+   "present": 36,
+   "dangling": 0,
+   "stray": 0,
+   "preserved_violation": 0,
+   "defects": {},
+   "by_first_divergence": {},
+   "anomalies": {
+    "parser": 0,
+    "translation": 0,
+    "layout": 0,
+    "render": 0
+   },
+   "cid": {
+    "undefined_total": 0,
+    "recovered_unicode": 0,
+    "preserved_placeholder": 0,
+    "recoverable": {
+     "count": 0,
+     "examples": []
+    },
+    "unrecoverable": {
+     "count": 0,
+     "examples": []
+    }
+   },
+   "per_page": {
+    "15": {
+     "blocks": 8,
+     "findings": 0
+    },
+    "30": {
+     "blocks": 17,
+     "findings": 0
+    },
+    "45": {
+     "blocks": 11,
+     "findings": 0
+    }
+   },
+   "detector_coverage": {
+    "F1": {
+     "status": "PASS",
+     "pages_evaluated": 3,
+     "pages_total": 3,
+     "pass": 3,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F2": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 3,
+     "pass": 0,
+     "fail": 0,
+     "skip": 3,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F3": {
+     "status": "PASS",
+     "pages_evaluated": 3,
+     "pages_total": 3,
+     "pass": 3,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F4": {
+     "status": "PASS",
+     "pages_evaluated": 3,
+     "pages_total": 3,
+     "pass": 3,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F5": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 3,
+     "pass": 0,
+     "fail": 0,
+     "skip": 3,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F6": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 3,
+     "pass": 0,
+     "fail": 0,
+     "skip": 3,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F7": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 3,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 3,
+     "findings": []
+    },
+    "F8": {
+     "status": "PASS",
+     "pages_evaluated": 3,
+     "pages_total": 3,
+     "pass": 3,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F9": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 3,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 3,
+     "findings": []
+    },
+    "F10": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 3,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 3,
+     "findings": []
+    }
+   }
+  },
+  {
+   "label": "Networking",
+   "path": "pdf2zh_files/Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6.pdf",
+   "pages": [
+    0,
+    12,
+    24,
+    36,
+    48
+   ],
+   "blocks": 66,
+   "present": 66,
+   "dangling": 0,
+   "stray": 0,
+   "preserved_violation": 0,
+   "defects": {},
+   "by_first_divergence": {},
+   "anomalies": {
+    "parser": 0,
+    "translation": 0,
+    "layout": 0,
+    "render": 0
+   },
+   "cid": {
+    "undefined_total": 0,
+    "recovered_unicode": 0,
+    "preserved_placeholder": 0,
+    "recoverable": {
+     "count": 0,
+     "examples": []
+    },
+    "unrecoverable": {
+     "count": 0,
+     "examples": []
+    }
+   },
+   "per_page": {
+    "0": {
+     "blocks": 2,
+     "findings": 0
+    },
+    "12": {
+     "blocks": 4,
+     "findings": 0
+    },
+    "24": {
+     "blocks": 29,
+     "findings": 0
+    },
+    "36": {
+     "blocks": 27,
+     "findings": 0
+    },
+    "48": {
+     "blocks": 4,
+     "findings": 0
+    }
+   },
+   "detector_coverage": {
+    "F1": {
+     "status": "PASS",
+     "pages_evaluated": 5,
+     "pages_total": 5,
+     "pass": 5,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F2": {
+     "status": "PASS",
+     "pages_evaluated": 1,
+     "pages_total": 5,
+     "pass": 1,
+     "fail": 0,
+     "skip": 4,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F3": {
+     "status": "PASS",
+     "pages_evaluated": 5,
+     "pages_total": 5,
+     "pass": 5,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F4": {
+     "status": "PASS",
+     "pages_evaluated": 5,
+     "pages_total": 5,
+     "pass": 5,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F5": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 5,
+     "pass": 0,
+     "fail": 0,
+     "skip": 5,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F6": {
+     "status": "PASS",
+     "pages_evaluated": 1,
+     "pages_total": 5,
+     "pass": 1,
+     "fail": 0,
+     "skip": 4,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F7": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 5,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 5,
+     "findings": []
+    },
+    "F8": {
+     "status": "PASS",
+     "pages_evaluated": 5,
+     "pages_total": 5,
+     "pass": 5,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F9": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 5,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 5,
+     "findings": []
+    },
+    "F10": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 5,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 5,
+     "findings": []
+    }
+   }
+  },
+  {
+   "label": "Multiprocessor 2e",
+   "path": "tests/file/The Art of Multiprocessor Programming, 2e.pdf",
+   "pages": [
+    0,
+    5,
+    8,
+    12,
+    20,
+    40,
+    80,
+    120,
+    200,
+    300,
+    400,
+    500,
+    550
+   ],
+   "blocks": 223,
+   "present": 223,
+   "dangling": 0,
+   "stray": 0,
+   "preserved_violation": 0,
+   "defects": {
+    "F4": 1
+   },
+   "by_first_divergence": {
+    "parser": 1
+   },
+   "anomalies": {
+    "parser": 1,
+    "translation": 0,
+    "layout": 0,
+    "render": 0
+   },
+   "cid": {
+    "undefined_total": 3,
+    "recovered_unicode": 1,
+    "preserved_placeholder": 2,
+    "recoverable": {
+     "count": 1,
+     "examples": [
+      [
+       "GLBJKM+MTMI",
+       3,
+       "Θ"
+      ]
+     ]
+    },
+    "unrecoverable": {
+     "count": 2,
+     "examples": [
+      [
+       "GLBJJG+Times-Roman",
+       129
+      ],
+      [
+       "GLBJJG+Times-Roman",
+       129
+      ]
+     ]
+    }
+   },
+   "per_page": {
+    "5": {
+     "blocks": 8,
+     "findings": 0
+    },
+    "8": {
+     "blocks": 34,
+     "findings": 0
+    },
+    "12": {
+     "blocks": 36,
+     "findings": 0
+    },
+    "20": {
+     "blocks": 6,
+     "findings": 0
+    },
+    "40": {
+     "blocks": 18,
+     "findings": 0
+    },
+    "80": {
+     "blocks": 4,
+     "findings": 0
+    },
+    "120": {
+     "blocks": 10,
+     "findings": 0
+    },
+    "200": {
+     "blocks": 11,
+     "findings": 0
+    },
+    "300": {
+     "blocks": 13,
+     "findings": 1
+    },
+    "400": {
+     "blocks": 15,
+     "findings": 0
+    },
+    "500": {
+     "blocks": 6,
+     "findings": 0
+    },
+    "550": {
+     "blocks": 62,
+     "findings": 0
+    }
+   },
+   "detector_coverage": {
+    "F1": {
+     "status": "PASS",
+     "pages_evaluated": 12,
+     "pages_total": 12,
+     "pass": 12,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F2": {
+     "status": "PASS",
+     "pages_evaluated": 6,
+     "pages_total": 12,
+     "pass": 6,
+     "fail": 0,
+     "skip": 6,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F3": {
+     "status": "PASS",
+     "pages_evaluated": 12,
+     "pages_total": 12,
+     "pass": 12,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F4": {
+     "status": "FAIL",
+     "pages_evaluated": 12,
+     "pages_total": 12,
+     "pass": 11,
+     "fail": 1,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": [
+      {
+       "defect_id": "F4",
+       "name": "font anomaly / mojibake",
+       "suspect_layer": "font mapping / renderer",
+       "node_id": "p300_8",
+       "page": 300,
+       "evidence": {
+        "parser_originated": true,
+        "stage_snapshot": "parser",
+        "cid": true,
+        "fffd": false,
+        "text": "(cid:129) Ifthenumberofconcurrenttokensi"
+       },
+       "first_divergence": "parser",
+       "stage_verdicts": {
+        "source": "PASS",
+        "parser": "FAIL",
+        "model": null,
+        "translation": "PASS",
+        "layout": "PASS",
+        "render": "PASS",
+        "pdf": null
+       },
+       "note": "CID/replacement glyph already present at parser stage (source-PDF encoding gap)"
+      }
+     ]
+    },
+    "F5": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 12,
+     "pass": 0,
+     "fail": 0,
+     "skip": 12,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F6": {
+     "status": "PASS",
+     "pages_evaluated": 4,
+     "pages_total": 12,
+     "pass": 4,
+     "fail": 0,
+     "skip": 8,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F7": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 12,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 12,
+     "findings": []
+    },
+    "F8": {
+     "status": "PASS",
+     "pages_evaluated": 12,
+     "pages_total": 12,
+     "pass": 12,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 0,
+     "findings": []
+    },
+    "F9": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 12,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 12,
+     "findings": []
+    },
+    "F10": {
+     "status": "SKIP",
+     "pages_evaluated": 0,
+     "pages_total": 12,
+     "pass": 0,
+     "fail": 0,
+     "skip": 0,
+     "not_measured": 12,
+     "findings": []
+    }
+   }
+  }
+ ]
+}

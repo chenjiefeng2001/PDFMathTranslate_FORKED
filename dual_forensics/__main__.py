@@ -10,13 +10,17 @@ from __future__ import annotations
 
 import argparse
 import logging
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import pymupdf
 
 from dual_forensics import __version__
 from dual_forensics.diff import aggregate_page, aggregate_page_id_direct, load_provenance
-from dual_forensics.defect import run_defect_detectors
+from dual_forensics.defect import (
+    aggregate_coverage,
+    coverage_page,
+    run_defect_detectors,
+)
 from dual_forensics.pdf_inspector import inspect_page
 from dual_forensics.report import build_summary, write_report_tree
 from dual_forensics.snapshot import capture_source_chain
@@ -57,7 +61,8 @@ def _render_plan_with_provenance(source, page_ids, out_dir):
         translate_document,
     )
     from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
-    from pdfminer.high_level import extract_pages
+    # 7I-3B: 与生产管线一致的字符规范化（字体能证明 glyph 时还原 (cid:N)）。
+    from pdf2zh.cid_recovery import extract_pages_recovering as extract_pages
 
     from dual_forensics.snapshot import identity
 
@@ -90,6 +95,7 @@ def _run_pages(source, dual, pages: List[int], out: str, prov_render: bool = Fal
 
     all_pages: Dict[int, Dict] = {}
     findings: List[dict] = []
+    coverage_by_page: Dict[int, Dict[str, Any]] = {}
     prov_by_page: Dict[int, dict] = {}
     if prov_render:
         try:
@@ -143,6 +149,8 @@ def _run_pages(source, dual, pages: List[int], out: str, prov_render: bool = Fal
             aggr = aggregate_page(pno, rows, dual_evidence.get("text_runs") or [])
         traces = aggr["traces"]  # list of Trace
         finds = run_defect_detectors(traces, dual_evidence)
+        cover = coverage_page(traces, dual_evidence)
+        coverage_by_page[pno] = cover  # keep raw Coverage for aggregation
         # Page-level renderer signal: MuPDF emitter failure → one F9/F10 page
         # finding (not one per block).  The malformed float is emitted once; a
         # per-block cascade would inflate the count 100x.
@@ -212,6 +220,10 @@ def _run_pages(source, dual, pages: List[int], out: str, prov_render: bool = Fal
         aggr_dict["defects"] = [
             f.to_dict() if hasattr(f, "to_dict") else f for f in finds
         ]
+        aggr_dict["coverage"] = {
+            k: v.to_dict() if hasattr(v, "to_dict") else v
+            for k, v in coverage_by_page[pno].items()
+        }
 
         all_pages[pno] = {
             "source": source_stage,
@@ -227,6 +239,7 @@ def _run_pages(source, dual, pages: List[int], out: str, prov_render: bool = Fal
         [{"path": source, "pages_analysed": sorted(all_pages)}],
         findings,
     )
+    summary["detector_coverage"] = aggregate_coverage(coverage_by_page)
     write_report_tree(
         out,
         all_pages,

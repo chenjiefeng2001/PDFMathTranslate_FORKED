@@ -102,6 +102,15 @@ def _translation_evidence_for_block(block, page_num: int, index: int) -> dict:
 
 
 def _layout_evidence_for_plan_entry(entry: dict) -> dict:
+    """Stable per-block layout evidence.
+
+    7I-4-3: flow blocks carry the settled layout verdict in
+    ``render_payload`` (``overflow`` / ``layout_ok`` / ``recovery``, see
+    7F-7) — the *production* signal for F8 text truncation.  We mirror it into
+    forensic layout evidence so F8 can be measured without re-laying-out or
+    touching production: reading a plan field is observability, not semantics.
+    """
+    rp = (entry or {}).get("render_payload") or {}
     return {
         "target_bbox": entry.get("dst_box"),
         "target_font": None,  # resolved at render
@@ -109,7 +118,9 @@ def _layout_evidence_for_plan_entry(entry: dict) -> dict:
         "scale": None,
         "clipping": None,
         "collision": None,
-        "recovery": None,
+        "recovery": rp.get("recovery"),  # {reason,decision,steps,...} or None
+        "overflow": rp.get("overflow"),  # True => a line would be clipped
+        "layout_ok": rp.get("layout_ok"),  # False => fit failed, recovery used
         "render_path": entry.get("render_path"),
     }
 
@@ -178,7 +189,9 @@ def capture_source_chain(
     Returns a dict with ``pages`` (ev id → evidence list) and diagnostic stats.
     Never fails: parse failure yields empty payload.
     """
-    from pdfminer.high_level import extract_pages
+    # 7I-3B: parser 侧走与生产管线一致的字符规范化 —— 字体能证明 glyph 时
+    # 还原 (font, cid) → Unicode，无法可靠恢复才保留 (cid:N) 占位符。
+    from pdf2zh.cid_recovery import extract_pages_recovering as extract_pages
 
     from pdf2zh.v3.document_model import (
         build_document_model,
@@ -200,20 +213,22 @@ def capture_source_chain(
     result["page_count"] = len(lt)
     try:
         model = build_document_model(lt)
+        # pdfminer's ``pageid`` is an internal counter, not the 0-based page
+        # index we requested.  Renumber *before* building the render plan so the
+        # plan's ``block_id`` (``p{page_num}_{index}``) matches the caller's
+        # ``page_ids`` — otherwise the layout evidence lookup in
+        # :func:`block_evidence_per_page` never finds its plan entry and F1/F3
+        # (which read ``dst_box`` / ``target_font_size``) silently SKIP.
+        if page_ids:
+            wanted_sorted = sorted(page_ids)
+            for k, p in enumerate(model.pages):
+                if k < len(wanted_sorted):
+                    p.page_num = wanted_sorted[k]
         translate_document(model, identity)
         plan = render_plan_from_model(model)
     except Exception as exc:  # noqa: BLE001
         result["errors"].append(f"pipeline failed: {exc}")
         return result
-
-    # pdfminer's ``pageid`` is an internal counter, not the 0-based page index
-    # we requested — renumber the returned pages in order so block ids and page
-    # keys match the caller's ``page_ids`` (and thus pymupdf's page numbering).
-    if page_ids:
-        wanted_sorted = sorted(page_ids)
-        for k, p in enumerate(model.pages):
-            if k < len(wanted_sorted):
-                p.page_num = wanted_sorted[k]
 
     wanted = set(page_ids or [])
     for p in model.pages:

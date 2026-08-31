@@ -37,6 +37,9 @@ class Trace:
     src_box: Optional[List[float]] = None
     dst_box: Optional[List[float]] = None
     layout_font_size: Optional[float] = None
+    layout_overflow: Optional[bool] = None  # flow layout said a line would clip
+    layout_recovery: Optional[dict] = None  # {reason,decision,steps,...}
+    layout_ok: Optional[bool] = None
     parser_font_size: Optional[float] = None
     render_rows: List[dict] = field(default_factory=list)  # matched dual runs
     matched_present: bool = False
@@ -127,6 +130,9 @@ def build_traces(
                 src_box=(ev.get("parser") or {}).get("bbox"),
                 dst_box=layout.get("target_bbox"),
                 layout_font_size=layout.get("target_font_size"),
+                layout_overflow=layout.get("overflow"),
+                layout_recovery=layout.get("recovery"),
+                layout_ok=layout.get("layout_ok"),
                 parser_font_size=parser.get("font_size"),
                 render_rows=matched,
                 matched_present=bool(matched),
@@ -190,6 +196,9 @@ def aggregate_page_id_direct(
                 src_box=(ev.get("parser") or {}).get("bbox"),
                 dst_box=layout.get("target_bbox"),
                 layout_font_size=layout.get("target_font_size"),
+                layout_overflow=layout.get("overflow"),
+                layout_recovery=layout.get("recovery"),
+                layout_ok=layout.get("layout_ok"),
                 parser_font_size=parser.get("font_size"),
                 render_rows=recs,
                 matched_present=bool(recs),

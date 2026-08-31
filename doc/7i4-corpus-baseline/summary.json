@@ -1,0 +1,722 @@
+{
+ "schema_version": 3,
+ "post_7i4_3": true,
+ "global_coverage_matrix": {
+  "F1": {
+   "PASS": 31,
+   "FAIL": 0,
+   "SKIP": 0,
+   "NOT_MEASURED": 0
+  },
+  "F2": {
+   "PASS": 12,
+   "FAIL": 0,
+   "SKIP": 19,
+   "NOT_MEASURED": 0
+  },
+  "F3": {
+   "PASS": 31,
+   "FAIL": 0,
+   "SKIP": 0,
+   "NOT_MEASURED": 0
+  },
+  "F4": {
+   "PASS": 30,
+   "FAIL": 1,
+   "SKIP": 0,
+   "NOT_MEASURED": 0
+  },
+  "F5": {
+   "PASS": 0,
+   "FAIL": 0,
+   "SKIP": 31,
+   "NOT_MEASURED": 0
+  },
+  "F6": {
+   "PASS": 10,
+   "FAIL": 0,
+   "SKIP": 21,
+   "NOT_MEASURED": 0
+  },
+  "F7": {
+   "PASS": 0,
+   "FAIL": 0,
+   "SKIP": 0,
+   "NOT_MEASURED": 31
+  },
+  "F8": {
+   "PASS": 31,
+   "FAIL": 0,
+   "SKIP": 0,
+   "NOT_MEASURED": 0
+  },
+  "F9": {
+   "PASS": 0,
+   "FAIL": 0,
+   "SKIP": 0,
+   "NOT_MEASURED": 31
+  },
+  "F10": {
+   "PASS": 0,
+   "FAIL": 0,
+   "SKIP": 0,
+   "NOT_MEASURED": 31
+  }
+ },
+ "total_residual": 1,
+ "by_defect": {
+  "F4": 1
+ },
+ "by_first_divergence": {
+  "parser": 1
+ },
+ "f8_distribution": {
+  "total_clip_blocks": 0,
+  "by_kind": {},
+  "by_reason": {},
+  "by_steps": {},
+  "small_font_clips": 0,
+  "final_font_sizes": [],
+  "translated_source_ratio_mean": null
+ },
+ "f5_observability_gap": {
+  "no_model_float_pages": 31,
+  "model_float_pages": 0,
+  "physical_drawings": 142,
+  "physical_images": 10
+ },
+ "histogram_md": "- 总 residual: **1**\n- **F4** = 1  (FDS: parser=1)",
+ "f8_md": "- 总 clip 块数（含重复页）：0\n- by kind: {}\n- by recovery reason: {}\n- by steps: {}\n- final_font_size 分布(<=7pt): 0 / 0\n- by line_count: {}\n- translated/source 长度比均值: n/a",
+ "f5_md": "- 无 model float 块的页 / 有 model float 的页: 31 / 0\n- 这些无 model float 页的物理层对象（抽样）：drawings=142, images=10\n→ F5 的 representation gap **普遍**：即便物理层有 drawings，document model 也无 figure/table/image 语义块，F5 只能 SKIP。",
+ "books": [
+  {
+   "label": "C book",
+   "path": "pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4.pdf",
+   "pages": [
+    62,
+    65,
+    69,
+    75,
+    185,
+    186,
+    187
+   ],
+   "blocks": 146,
+   "per_page": {
+    "62": {
+     "blocks": 16,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "65": {
+     "blocks": 22,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "69": {
+     "blocks": 28,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "75": {
+     "blocks": 13,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "185": {
+     "blocks": 25,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "186": {
+     "blocks": 21,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "187": {
+     "blocks": 21,
+     "findings": 0,
+     "model_float_blocks": 0
+    }
+   },
+   "matrix": {
+    "F1": {
+     "PASS": 7,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F2": {
+     "PASS": 5,
+     "FAIL": 0,
+     "SKIP": 2,
+     "NOT_MEASURED": 0
+    },
+    "F3": {
+     "PASS": 7,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F4": {
+     "PASS": 7,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F5": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 7,
+     "NOT_MEASURED": 0
+    },
+    "F6": {
+     "PASS": 4,
+     "FAIL": 0,
+     "SKIP": 3,
+     "NOT_MEASURED": 0
+    },
+    "F7": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 7
+    },
+    "F8": {
+     "PASS": 7,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F9": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 7
+    },
+    "F10": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 7
+    }
+   },
+   "defects": {},
+   "f8_blocks": [],
+   "kind_counts": {
+    "paragraph": 55,
+    "formula": 51,
+    "caption": 4,
+    "identifier": 7,
+    "heading": 4,
+    "code": 22,
+    "filename": 3
+   },
+   "f5_gap": {
+    "pages_with_no_model_float": 7,
+    "physical_drawings": 102,
+    "physical_images": 0,
+    "model_float_pages": 0,
+    "model_float_blocks": 0
+   }
+  },
+  {
+   "label": "AI for Games",
+   "path": "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5.pdf",
+   "pages": [
+    10,
+    20,
+    30,
+    40
+   ],
+   "blocks": 18,
+   "per_page": {
+    "10": {
+     "blocks": 3,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "20": {
+     "blocks": 6,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "30": {
+     "blocks": 5,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "40": {
+     "blocks": 4,
+     "findings": 0,
+     "model_float_blocks": 0
+    }
+   },
+   "matrix": {
+    "F1": {
+     "PASS": 4,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F2": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 4,
+     "NOT_MEASURED": 0
+    },
+    "F3": {
+     "PASS": 4,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F4": {
+     "PASS": 4,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F5": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 4,
+     "NOT_MEASURED": 0
+    },
+    "F6": {
+     "PASS": 1,
+     "FAIL": 0,
+     "SKIP": 3,
+     "NOT_MEASURED": 0
+    },
+    "F7": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 4
+    },
+    "F8": {
+     "PASS": 4,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F9": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 4
+    },
+    "F10": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 4
+    }
+   },
+   "defects": {},
+   "f8_blocks": [],
+   "kind_counts": {
+    "heading": 4,
+    "paragraph": 5,
+    "formula": 8,
+    "caption": 1
+   },
+   "f5_gap": {
+    "pages_with_no_model_float": 4,
+    "physical_drawings": 0,
+    "physical_images": 4,
+    "model_float_pages": 0,
+    "model_float_blocks": 0
+   }
+  },
+  {
+   "label": "Game Physics",
+   "path": "pdf2zh_files/Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk.pdf",
+   "pages": [
+    15,
+    30,
+    45
+   ],
+   "blocks": 36,
+   "per_page": {
+    "15": {
+     "blocks": 8,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "30": {
+     "blocks": 17,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "45": {
+     "blocks": 11,
+     "findings": 0,
+     "model_float_blocks": 0
+    }
+   },
+   "matrix": {
+    "F1": {
+     "PASS": 3,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F2": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 3,
+     "NOT_MEASURED": 0
+    },
+    "F3": {
+     "PASS": 3,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F4": {
+     "PASS": 3,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F5": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 3,
+     "NOT_MEASURED": 0
+    },
+    "F6": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 3,
+     "NOT_MEASURED": 0
+    },
+    "F7": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 3
+    },
+    "F8": {
+     "PASS": 3,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F9": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 3
+    },
+    "F10": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 3
+    }
+   },
+   "defects": {},
+   "f8_blocks": [],
+   "kind_counts": {
+    "paragraph": 22,
+    "heading": 4,
+    "footnote": 1,
+    "toc": 7,
+    "formula": 2
+   },
+   "f5_gap": {
+    "pages_with_no_model_float": 3,
+    "physical_drawings": 3,
+    "physical_images": 0,
+    "model_float_pages": 0,
+    "model_float_blocks": 0
+   }
+  },
+  {
+   "label": "Networking",
+   "path": "pdf2zh_files/Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6.pdf",
+   "pages": [
+    0,
+    12,
+    24,
+    36,
+    48
+   ],
+   "blocks": 66,
+   "per_page": {
+    "0": {
+     "blocks": 2,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "12": {
+     "blocks": 4,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "24": {
+     "blocks": 29,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "36": {
+     "blocks": 27,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "48": {
+     "blocks": 4,
+     "findings": 0,
+     "model_float_blocks": 0
+    }
+   },
+   "matrix": {
+    "F1": {
+     "PASS": 5,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F2": {
+     "PASS": 1,
+     "FAIL": 0,
+     "SKIP": 4,
+     "NOT_MEASURED": 0
+    },
+    "F3": {
+     "PASS": 5,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F4": {
+     "PASS": 5,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F5": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 5,
+     "NOT_MEASURED": 0
+    },
+    "F6": {
+     "PASS": 1,
+     "FAIL": 0,
+     "SKIP": 4,
+     "NOT_MEASURED": 0
+    },
+    "F7": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 5
+    },
+    "F8": {
+     "PASS": 5,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F9": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 5
+    },
+    "F10": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 5
+    }
+   },
+   "defects": {},
+   "f8_blocks": [],
+   "kind_counts": {
+    "paragraph": 46,
+    "heading": 7,
+    "formula": 11,
+    "caption": 2
+   },
+   "f5_gap": {
+    "pages_with_no_model_float": 5,
+    "physical_drawings": 0,
+    "physical_images": 6,
+    "model_float_pages": 0,
+    "model_float_blocks": 0
+   }
+  },
+  {
+   "label": "Multiprocessor 2e",
+   "path": "tests/file/The Art of Multiprocessor Programming, 2e.pdf",
+   "pages": [
+    5,
+    8,
+    12,
+    20,
+    40,
+    80,
+    120,
+    200,
+    300,
+    400,
+    500,
+    550
+   ],
+   "blocks": 223,
+   "per_page": {
+    "5": {
+     "blocks": 8,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "8": {
+     "blocks": 34,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "12": {
+     "blocks": 36,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "20": {
+     "blocks": 6,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "40": {
+     "blocks": 18,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "80": {
+     "blocks": 4,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "120": {
+     "blocks": 10,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "200": {
+     "blocks": 11,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "300": {
+     "blocks": 13,
+     "findings": 1,
+     "model_float_blocks": 0
+    },
+    "400": {
+     "blocks": 15,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "500": {
+     "blocks": 6,
+     "findings": 0,
+     "model_float_blocks": 0
+    },
+    "550": {
+     "blocks": 62,
+     "findings": 0,
+     "model_float_blocks": 0
+    }
+   },
+   "matrix": {
+    "F1": {
+     "PASS": 12,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F2": {
+     "PASS": 6,
+     "FAIL": 0,
+     "SKIP": 6,
+     "NOT_MEASURED": 0
+    },
+    "F3": {
+     "PASS": 12,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F4": {
+     "PASS": 11,
+     "FAIL": 1,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F5": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 12,
+     "NOT_MEASURED": 0
+    },
+    "F6": {
+     "PASS": 4,
+     "FAIL": 0,
+     "SKIP": 8,
+     "NOT_MEASURED": 0
+    },
+    "F7": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 12
+    },
+    "F8": {
+     "PASS": 12,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 0
+    },
+    "F9": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 12
+    },
+    "F10": {
+     "PASS": 0,
+     "FAIL": 0,
+     "SKIP": 0,
+     "NOT_MEASURED": 12
+    }
+   },
+   "defects": {
+    "F4": {
+     "count": 1,
+     "by_first_divergence": {
+      "parser": 1
+     }
+    }
+   },
+   "f8_blocks": [],
+   "kind_counts": {
+    "paragraph": 92,
+    "toc": 67,
+    "heading": 18,
+    "formula": 27,
+    "code": 15,
+    "caption": 4
+   },
+   "f5_gap": {
+    "pages_with_no_model_float": 12,
+    "physical_drawings": 37,
+    "physical_images": 0,
+    "model_float_pages": 0,
+    "model_float_blocks": 0
+   }
+  }
+ ]
+}

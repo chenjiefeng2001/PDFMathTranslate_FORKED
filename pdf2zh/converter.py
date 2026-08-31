@@ -75,6 +75,7 @@ class PDFConverterEx(PDFConverter):
         rsrcmgr: PDFResourceManager,
     ) -> None:
         PDFConverter.__init__(self, rsrcmgr, None, "utf-8", 1, None)
+        self.cid_recovery_stats = {"recovered": 0, "unresolved": 0}  # 7I-3B cid→Unicode
 
     def begin_page(self, page, ctm) -> None:
         # 重载替换 cropbox
@@ -143,7 +144,19 @@ class PDFConverterEx(PDFConverter):
         self.cur_item.add(item)
         item.cid = cid  # hack 插入原字符编码
         item.font = font  # hack 插入原字符字体
+        item.cid_placeholder = text == "(cid:%d)" % cid  # 7I-3B: parser CID anomaly
         return item.adv
+
+    def handle_undefined_char(self, font, cid: int) -> str:
+        """7I-3B: font-aware (font, cid)→Unicode recovery before ``(cid:N)``."""
+        from pdf2zh.cid_recovery import recover_unicode
+
+        recovered = recover_unicode(font, cid)
+        if recovered is not None:
+            self.cid_recovery_stats["recovered"] += 1
+            return recovered
+        self.cid_recovery_stats["unresolved"] += 1
+        return super().handle_undefined_char(font, cid)
 
 
 class Paragraph:

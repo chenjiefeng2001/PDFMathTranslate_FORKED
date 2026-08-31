@@ -143,8 +143,8 @@ class TestConverterStrangulation:
             with open(p, encoding="utf-8") as f:
                 l = len(f.readlines())
             assert (
-                0 < l < 1095
-            )  # strangulation 死线：V1.19 浮动至 ~949；F2/F3（接管段真实译文求解/display 垂直流/白底擦除旧图层）逻辑外移 v3/reconstruction_render.py，converter 仅含渲染循环内嵌接线（~15 行），浮动至 ~1091；余量留 ~4 行；核心逻辑仍在 v3/ 侧通道
+                0 < l < 1108
+            )  # strangulation 死线：V1.19 浮动至 ~949；F2/F3（接管段真实译文求解/display 垂直流/白底擦除旧图层）逻辑外移 v3/reconstruction_render.py，converter 仅含渲染循环内嵌接线（~15 行），浮动至 ~1091；7I-3B（cid→Unicode 恢复）在 converter 只留薄钩子 handle_undefined_char（~13 行，font-aware 逻辑外移 pdf2zh/cid_recovery.py），浮动至 ~1104；核心逻辑仍在 v3/ 侧通道
         else:
             pytest.skip("nf")
 

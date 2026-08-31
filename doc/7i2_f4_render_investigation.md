@@ -92,3 +92,18 @@ detector: rendered_text 含 '(cid:' → F4 @ first_divergence=render  ← 归因
 
 7I-2 取证阶段 **✅ COMPLETE**（F4 × 2 定性：源 PDF 固有 + 检测器归因错位）。
 修复（检测器归因 + cid 语义还原）→ 下一阶段决策。
+
+### 6.1 7I-3 跟进（2026-08-31，已实施，见 `doc/7i3_cid_recovery_implementation_report.md`）
+
+- 7I-3A：`_detect_f4_font_anomaly` 改为 stage-snapshot 归因 —— parser 阶段已存在
+  的 `(cid:N)`/`�` 一律 `FDS=parser`（源 PDF 固有），不再误记 render。
+- 7I-3B：`pdf2zh/cid_recovery.py` 在字符解码层做 font-aware `(font, cid) → Unicode`
+  恢复（CFF charset/声明编码 + AGL，绝不猜测）。MTMI `(cid:3)` → `Θ` 已恢复；
+  Times-Roman `(cid:129)` **无可靠证据、保留占位符**（见下）。
+- **事实修正**：本报告 §3.2 所述「Adobe StandardEncoding 0x81 = bullet」**不成立** ——
+  StandardEncoding 中 bullet 位于 **0xB7**，0x81 在所有声明编码（WinAnsi+Differences、
+  CFF StandardEncoding）中均为 undefined；MuPDF 虽渲染 bullet（rawdict U+2022），
+  但该 code→glyph 映射不存在于字体自身的任何编码表。7I-3B 按「不要猜」策略
+  保留 `(cid:129)` 为显式 parser anomaly。
+- 7I-3C：Multiprocessor 13 页 requalification → **F4 2 → 1，FDS render → parser**
+  （结果见 `doc/7i3-multiprocessor-requalification/summary.json`）。
