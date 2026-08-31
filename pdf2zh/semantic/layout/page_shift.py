@@ -177,6 +177,122 @@ def _group_by_page(placements):
     return pages
 
 
+def _boxes_h_overlap(a_box, b_box) -> bool:
+    """True when two ``(x0, bottom, x1, top)`` boxes share an x-band."""
+    return min(a_box[2], b_box[2]) - max(a_box[0], b_box[0]) > _TOL
+
+
+def _rebuild_placement(p: BlockPlacement, resolved_bbox: tuple) -> BlockPlacement:
+    """New placement with an explicit resolved bbox (pure, only-Y)."""
+    return BlockPlacement(
+        block_index=p.block_index,
+        page=p.page,
+        kind=p.kind,
+        bbox=p.bbox,
+        resolved_bbox=resolved_bbox,
+        height=round(resolved_bbox[3] - resolved_bbox[1], 2),
+        preserved=p.preserved,
+        has_continuation=p.has_continuation,
+    )
+
+
+def _ordered_cascade_plan(placements, page_height: float) -> dict:
+    """Ordered two-phase SHIFT_DOWN plan — 7G-4 (receiver-at-final-position).
+
+    Returns ``{block_index: shift}`` (v3 y-up: positive = down) for a single
+    page's placements.  The exact bug 7G-4 fixes (report §14.2/§14.3, corpus
+    ledger §5): the old cascade decided each SHIFT_DOWN from its own pre-move
+    geometry, so ``SHIFT_DOWN(L)`` landed L's drawn extent on the receiver ``R``
+    below it that no decision bounded.  The two phases mirror 7G-2.1
+    ``compact → re-anchor``:
+
+    **Phase 1 — intent (the authoritative 8c decisions).**  Run the SAME
+    iterative ``detect → decide → apply`` cascade the V1 baseline uses — the
+    only blocks with a real detected SHIFT_DOWN collision move, by their exact
+    ``required_shift``, and only so far as the collision actually overlaps.  A
+    block with a gap — or a multi-line title split / inline-formula artefact
+    that 8b filters out — does NOT move.  This keeps the classic V1 behaviour
+    (focused, per-collision moves) that the corpus ledger verified.
+
+    **Phase 2 — receiver-at-FINAL floor.**  After intent is fixed, each moved
+    block's shift is capped so its drawn bottom never passes the drawn TOP of
+    the nearest horizontally-overlapping movable block **below it at that
+    block's OWN final position**.  Because the cap uses R's *final* position
+    (not its pre-move slot), a real cascade ``U↕L→L↕R`` is not starved — R's
+    final position already reflects R's own move, so L may descend to R's new
+    top.  But a block is never shoved onto a receiver that merely sits below;
+    THAT is what turns the recovery-widened gap into re-introduced overlap.
+
+    Page-bottom and preserved blocks are immovable floors: a movable block's
+    shift is also bounded so it never crosses the page bottom edge.
+
+    This is deliberately a **correction layer over the frozen V1 cascade** —
+    it changes only the *amount* of an already-decided move, never the set of
+    moved blocks, never X / src / preserved / NEXT_PAGE semantics.
+    """
+    if not placements:
+        return {}
+    from pdf2zh.semantic.layout.page_recovery import (
+        PageRecoveryDecision,
+        decide_block_shift,
+    )
+    # Phase 1 — intent: the classic V1 cascade on THIS page (detect→decide→apply
+    # required_shift, re-detect until no decided SHIFT_DOWN can apply).  Bounded
+    # by the same no-progress rule, so it cannot run away on a congested page.
+    work = {p.block_index: p for p in placements}
+    intended: dict[int, float] = {}
+    for _pass in range(len(placements) + 1):
+        colls = detect_collisions_from_placements(list(work.values()))
+        if not colls:
+            break
+        applied_this = 0
+        for c in colls:
+            d = decide_block_shift(c, page_height=page_height or None)
+            if d.decision is not PageRecoveryDecision.SHIFT_DOWN or d.shift_y <= _TOL:
+                continue
+            idx = c.lower.block_index
+            shifted = shift_box_down(work[idx].resolved_bbox, d.shift_y)
+            if shifted[1] < -_TOL:
+                continue  # would cross the page bottom — 8e's concern, not 8d's
+            intended[idx] = round(intended.get(idx, 0.0) + d.shift_y, 2)
+            work[idx] = _rebuild_placement(work[idx], shifted)
+            applied_this += 1
+        if not applied_this:
+            break
+    # Phase 2 — receiver-at-FINAL floor, resolved BOTTOM-UP so a receiver's own
+    # (already capped) move propagates to the block above it.  For each movable
+    # block the descent bound is the highest drawn TOP of a horizontally-
+    # overlapping receiver below it at that receiver's FINAL position:
+    #   - preserved receiver  → its (immovable) top is a hard floor;
+    #   - movable receiver    → its OWN final top (top_i − shift_i), itself
+    #                           bounded by the receiver further below;
+    #   - the page bottom edge (drawn bottom >= 0) is the last-resort floor.
+    # A block's shift is capped so its DRAWN BOTTOM never passes the bound:
+    # ``shift <= bottom_i − bound_top``.  Because the bound uses each receiver's
+    # FINAL position (not its pre-move slot), a genuine cascade ``U↕L→L↕R`` is
+    # NOT starved — R's own move is already inside its final top — but a block
+    # is never shoved onto a receiver that merely sits below; THAT is what
+    # turned the recovery-widened gap into re-introduced overlap.
+    by_top = sorted(placements, key=lambda p: p.top, reverse=True)  # top-first
+    processed: list = []                       # blocks below, bottom-up (finalized)
+    final: dict[int, float] = {}               # block_index -> capped shift
+    for p in reversed(by_top):                 # bottom block first
+        if p.preserved:
+            final[p.block_index] = 0.0
+            processed.append(p)
+            continue
+        bound_top = 0.0                        # page bottom edge (drawn bottom >= 0)
+        for q in processed:
+            if not _boxes_h_overlap(p.resolved_bbox, q.resolved_bbox):
+                continue                       # different column is not a floor
+            q_final_top = q.top - final.get(q.block_index, 0.0)
+            bound_top = max(bound_top, q_final_top)
+        cap = max(0.0, p.bottom - bound_top)
+        final[p.block_index] = round(min(intended.get(p.block_index, 0.0), cap), 2)
+        processed.append(p)
+    return {bi: s for bi, s in final.items() if s > _TOL}
+
+
 def resolve_page_shifts(
     plan,
     page_sizes: Optional[dict] = None,
@@ -190,8 +306,10 @@ def resolve_page_shifts(
     - detect resolved collisions on the **current** placements (8b authority);
     - decide each collision (8c authority — ``required_shift`` consumed, never
       recomputed);
-    - apply every ``SHIFT_DOWN`` simultaneously (a sweep); NEXT_PAGE and
-      PRESERVE_OVERFLOW are never applied.
+    - apply every ``SHIFT_DOWN`` via the **ordered two-phase plan** (7G-4) —
+      reading-order top-first, each block bounded by the receiver below at its
+      FINAL position, so a cascade resolves without creating new overlaps;
+      NEXT_PAGE and PRESERVE_OVERFLOW are never applied.
 
     A pass with zero applicable shifts cannot make progress → stops early.
     After the budget, any remaining collisions are recorded as unresolved
@@ -219,15 +337,42 @@ def resolve_page_shifts(
             decide_block_shift(c, page_height=sizes.get(c.page))
             for c in collisions
         ]
-        # A SHIFT_DOWN that moves nothing is NOT progress: 8b's required_shift
-        # is rounded to 2dp, so a sub-centipoint overlap (e.g. 0.004 pt from
-        # line-spacing padding / bbox inflation) becomes a zero-delta no-op.
-        # Applying it would re-surface the SAME collision every pass until the
-        # budget is burnt.  Skip it — its collision is recorded unresolved.
-        applicable = [
-            d for d in decisions
-            if d.decision is PageRecoveryDecision.SHIFT_DOWN and d.shift_y > _TOL
-        ]
+        # 7G-4: an ordered per-page plan -- every SHIFT_DOWN amount is computed
+        # against the receiver's FINAL position in the same reading-order sweep.
+        # A SHIFT_DOWN that moves nothing is NOT progress (8b's required_shift
+        # is rounded to 2dp, so a sub-centipoint overlap -> zero-delta no-op).
+        by_page: dict[int, dict] = {}
+        page_h = {
+            pg: (float(sizes.get(pg, 0.0) or 0.0) or None)
+            for pg in sorted({p.page for p in current.values()})
+        }
+        plan_by_page: dict[int, list] = {}
+        for p in current.values():
+            plan_by_page.setdefault(p.page, []).append(p)
+        for pg, page_blocks in plan_by_page.items():
+            by_page[pg] = _ordered_cascade_plan(page_blocks, page_h.get(pg) or 0.0)
+        # apply the ordered plan, but only for blocks that ARE a decided
+        # SHIFT_DOWN (PRESERVE / NEXT_PAGE anchors stay put)
+        decided = {
+            (d.page, d.block_index): d.decision
+            for d in decisions
+        }
+        applicable: list = []
+        for pg, page_plan in by_page.items():
+            for blk_index, shift in page_plan.items():
+                key = (pg, blk_index)
+                if (
+                    decided.get(key) is PageRecoveryDecision.SHIFT_DOWN
+                    and shift > _TOL
+                ):
+                    applicable.append(BlockShiftDecision(
+                        block_index=blk_index, page=pg,
+                        decision=PageRecoveryDecision.SHIFT_DOWN,
+                        shift_y=shift, reason="overlap",
+                        source_bbox=current[key].bbox,
+                        resolved_bbox=current[key].resolved_bbox,
+                        target="lower", collision=None,
+                    ))
         if not applicable:
             report.stopped_early = True
             report.stopped_reason = "no_progress"
