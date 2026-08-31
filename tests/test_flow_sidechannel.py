@@ -207,12 +207,15 @@ class TestRenderFlowText(unittest.TestCase):
         self.assertEqual(" ".join(out["lines"]), text)
 
     def test_last_line_flagged_when_overflow(self):
+        # 7I-5C: a 40pt box now re-wraps (WRAP -> SHRINK re-wrap fits) with no
+        # overflow.  Use a genuinely narrow box so the text clips — the overflow
+        # marker must land only on the last line (renderer reports the
+        # observable overflow there).
         out = render_flow_text(
             "This text is definitely too wide for the box at all",
-            origin=(0.0, 100.0), max_width=40.0, max_height=400.0,
+            origin=(0.0, 100.0), max_width=8.0, max_height=400.0,
             font_size=10.0, measure=_measure,
         )
-        # 溢出标记只落在最后一行（renderer 用它上报可观测溢出）
         flagged = [c for c in out["commands"] if c["overflow"]]
         self.assertTrue(flagged)
         self.assertTrue(all(c["is_last"] for c in flagged))

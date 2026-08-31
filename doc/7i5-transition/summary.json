@@ -1,0 +1,38 @@
+{
+  "schema_version": 4,
+  "post_7i5c": true,
+  "total_blocks": 489,
+  "total_clip": 0,
+  "ladder_histogram": {
+    "NO_ACTION": 309,
+    "WRAP->SHRINK": 84,
+    "SHRINK": 96
+  },
+  "clip_ladders": {},
+  "per_book": {
+    "C book": {
+      "NO_ACTION": 95,
+      "WRAP->SHRINK": 30,
+      "SHRINK": 21
+    },
+    "AI for Games": {
+      "NO_ACTION": 15,
+      "SHRINK": 3
+    },
+    "Game Physics": {
+      "NO_ACTION": 24,
+      "WRAP->SHRINK": 6,
+      "SHRINK": 6
+    },
+    "Networking": {
+      "NO_ACTION": 37,
+      "WRAP->SHRINK": 3,
+      "SHRINK": 26
+    },
+    "Multiprocessor 2e": {
+      "WRAP->SHRINK": 45,
+      "SHRINK": 40,
+      "NO_ACTION": 138
+    }
+  }
+}

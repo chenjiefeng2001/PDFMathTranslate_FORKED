@@ -66,6 +66,14 @@ _DEFAULT_MIN_FONT = 5.0
 _TITLE_SHRINK_STEP = 0.85       # geometric font descent per SHRINK iteration
 _MAX_TITLE_SHRINK_STEPS = 8     # bounded: never a while-loop
 
+# ── body SHRINK re-wrap ladder (7I-5C).  SHRINK must re-lay-out from the
+# already-WRAPped state (shrink font, then re-WRAP under the same box) instead
+# of calling the single-line ``shrink_to_fit``, which collapsed a valid
+# multi-line layout to one line and drove it to the floor.  Shared geometry
+# with the title path; still bounded — never a while-loop. ──
+_SHRINK_REWRAP_STEP = 0.85
+_MAX_SHRINK_REWRAP_STEPS = 12
+
 
 def _stage_steps(stage: OverflowPolicy) -> str:
     return {OverflowPolicy.WRAP: "WRAP", OverflowPolicy.SHRINK: "SHRINK",
@@ -287,24 +295,41 @@ def adaptive_layout(
         )
 
     # Stage 2: SHRINK (budget-gated, clamped to a readable floor).
+    # 7I-5C: SHRINK re-lays-out from the *current* (already WRAPped) state by
+    # shrinking the font and re-wrapping under the same box — it must NOT
+    # discard the WRAP line structure into a single-line ``shrink_to_fit``.
+    # Mirrors the 7F-5a title ladder; bounded, never a while-loop.  SHRINK is
+    # recorded as ONE stage: the re-wrap iterations are internal execution, and
+    # the single trace entry reflects the stage's final state (fit, or at the
+    # floor).  This keeps the 7F-7 stage-per-decision trace shape intact.
     if b.allow_shrink and result.overflow and reason is not OverflowReason.PRESERVED_REGION:
         floor = _shrink_floor(b, original)
-        result = lay_out(
-            primitive,
-            measure=measure,
-            avail_width=avail_width,
-            avail_height=avail_height,
-            constraints=constraints,
-            font_size=cur_fs,
-            policy=OverflowPolicy.SHRINK,
-            allow_shrink=True,
-            min_font_size=floor,
-        )
+        size = cur_fs
         steps.append(_stage_steps(OverflowPolicy.SHRINK))
-        cur_fs = float(result.font_size or cur_fs)
-        trace.append(_trace_entry("SHRINK", result.overflow, len(result.lines), cur_fs))
+        candidate = result
+        for _ in range(_MAX_SHRINK_REWRAP_STEPS):
+            size = max(floor, size * _SHRINK_REWRAP_STEP)
+            candidate = lay_out(
+                primitive,
+                measure=measure,
+                avail_width=avail_width,
+                avail_height=avail_height,
+                constraints=constraints,
+                font_size=size,
+                policy=OverflowPolicy.WRAP,
+            )
+            cur_fs = float(candidate.font_size or size)
+            if not candidate.overflow:
+                break
+            # short-circuit once we hit the floor -- no point shrinking further
+            if size <= floor + 1e-6:
+                break
+        result = candidate
+        trace.append(_trace_entry("SHRINK", result.overflow,
+                                  len(result.lines), cur_fs))
         if not result.overflow:
-            return _finalize(result, reason, RecoveryDecision.SHRINK, steps, original, trace)
+            return _finalize(result, reason, RecoveryDecision.SHRINK,
+                             steps, original, trace)
         reason = classify_reason(
             result, avail_width=avail_width, avail_height=avail_height
         )

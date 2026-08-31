@@ -1,83 +1,82 @@
 {
- "schema_version": 1,
- "blocks": [
-  {
-   "schema_version": 1,
-   "kind": "flow",
-   "primitive_kind": "flow",
-   "target": null,
-   "overflow": true,
-   "recovery_decision": "clip",
-   "recovery_steps": [
-    "WRAP",
-    "SHRINK",
-    "CLIP"
-   ],
-   "anchors": {}
-  },
-  {
-   "schema_version": 1,
-   "kind": "flow",
-   "primitive_kind": "flow",
-   "target": null,
-   "overflow": false,
-   "recovery_decision": null,
-   "recovery_steps": [],
-   "anchors": {}
-  },
-  {
-   "schema_version": 1,
-   "kind": "list",
-   "primitive_kind": "list",
-   "target": "list_item",
-   "overflow": false,
-   "recovery_decision": null,
-   "recovery_steps": [],
-   "anchors": {
-    "content_x": 71.0,
-    "marker_x": 60.0
-   }
-  },
-  {
-   "schema_version": 1,
-   "kind": "toc",
-   "primitive_kind": "toc",
-   "target": "toc_entry",
-   "overflow": false,
-   "recovery_decision": null,
-   "recovery_steps": [],
-   "anchors": {
-    "page_x": 500.0,
-    "title_x": 72.0
-   }
-  },
-  {
-   "schema_version": 1,
-   "kind": "code",
-   "primitive_kind": "preserved",
-   "target": null,
-   "overflow": false,
-   "recovery_decision": null,
-   "recovery_steps": [],
-   "anchors": {}
-  },
-  {
-   "schema_version": 1,
-   "kind": "flow",
-   "primitive_kind": "flow",
-   "target": null,
-   "overflow": true,
-   "recovery_decision": "clip",
-   "recovery_steps": [
-    "SHRINK",
-    "CLIP"
-   ],
-   "anchors": {}
+  "schema_version": 1,
+  "blocks": [
+    {
+      "schema_version": 1,
+      "kind": "flow",
+      "primitive_kind": "flow",
+      "target": null,
+      "overflow": false,
+      "recovery_decision": "shrink",
+      "recovery_steps": [
+        "WRAP",
+        "SHRINK"
+      ],
+      "anchors": {}
+    },
+    {
+      "schema_version": 1,
+      "kind": "flow",
+      "primitive_kind": "flow",
+      "target": null,
+      "overflow": false,
+      "recovery_decision": null,
+      "recovery_steps": [],
+      "anchors": {}
+    },
+    {
+      "schema_version": 1,
+      "kind": "list",
+      "primitive_kind": "list",
+      "target": "list_item",
+      "overflow": false,
+      "recovery_decision": null,
+      "recovery_steps": [],
+      "anchors": {
+        "content_x": 71.0,
+        "marker_x": 60.0
+      }
+    },
+    {
+      "schema_version": 1,
+      "kind": "toc",
+      "primitive_kind": "toc",
+      "target": "toc_entry",
+      "overflow": false,
+      "recovery_decision": null,
+      "recovery_steps": [],
+      "anchors": {
+        "page_x": 500.0,
+        "title_x": 72.0
+      }
+    },
+    {
+      "schema_version": 1,
+      "kind": "code",
+      "primitive_kind": "preserved",
+      "target": null,
+      "overflow": false,
+      "recovery_decision": null,
+      "recovery_steps": [],
+      "anchors": {}
+    },
+    {
+      "schema_version": 1,
+      "kind": "flow",
+      "primitive_kind": "flow",
+      "target": null,
+      "overflow": true,
+      "recovery_decision": "clip",
+      "recovery_steps": [
+        "SHRINK",
+        "CLIP"
+      ],
+      "anchors": {}
+    }
+  ],
+  "summary": {
+    "blocks": 6,
+    "overflow": 1,
+    "recovered": 2
   }
- ],
- "summary": {
-  "blocks": 6,
-  "overflow": 2,
-  "recovered": 2
- }
 }

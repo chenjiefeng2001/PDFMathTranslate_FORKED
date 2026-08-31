@@ -436,10 +436,16 @@ class TestGoldenDiagnosticGate(unittest.TestCase):
         by_kind = {b["kind"]: b for b in baseline["blocks"]}
         self.assertEqual(by_kind["toc"]["anchors"]["page_x"], 500.0)
         self.assertEqual(by_kind["list"]["anchors"]["marker_x"], 60.0)
+        # 7I-5C: a wrapable flow block now re-wraps to a fit (no CLIP), and a
+        # genuinely unbreakable flow block stays a terminal CLIP.  Lock both.
+        rewrapped = [b for b in baseline["blocks"]
+                     if b["kind"] == "flow" and b["overflow"] is False
+                     and b.get("recovery_steps")]
+        self.assertEqual(rewrapped[0]["recovery_steps"], ["WRAP", "SHRINK"])
         flow_overflow = [b for b in baseline["blocks"]
                          if b["kind"] == "flow" and b["overflow"]]
         self.assertEqual(flow_overflow[0]["recovery_steps"],
-                         ["WRAP", "SHRINK", "CLIP"])
+                         ["SHRINK", "CLIP"])
 
 
 # ---------------------------------------------------------------------------

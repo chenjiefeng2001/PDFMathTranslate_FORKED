@@ -174,10 +174,13 @@ def test_shrink_insufficient_goes_clip():
 
 
 def test_full_ladder_steps_order():
-    text = "word " * 60  # wraps into many lines; height + width both overflow
+    # 7I-5C: with a *narrow* box the wrapped text cannot fit even after
+    # SHRINK re-wraps, so the full WRAP -> SHRINK -> CLIP ladder runs in order.
+    # (A wider box that re-wrap can fit now stops at WRAP -> SHRINK.)
+    text = "word " * 60
     r = adaptive_layout(
-        _flow(text, w=100.0, h=40.0), measure=_measure, font_size=10.0,
-        avail_width=100.0, avail_height=40.0, budget=_flow_budget(),
+        _flow(text, w=4.0, h=400.0), measure=_measure, font_size=10.0,
+        avail_width=4.0, avail_height=400.0, budget=_flow_budget(),
     )
     assert r.recovery_steps == ["WRAP", "SHRINK", "CLIP"]
     assert r.overflow is True
@@ -186,7 +189,9 @@ def test_full_ladder_steps_order():
 
 def test_no_stale_decision_when_overflow():
     """overflow=True must never carry a stale wrap/no_action decision."""
-    for text, w, h in [("word " * 60, 100.0, 40.0), ("A" * 80, 30.0, 300.0)]:
+    # 7I-5C: both inputs genuinely overflow (narrow wrapable box, unbreakable
+    # token) so overflow must never carry a stale wrap/no_action decision.
+    for text, w, h in [("word " * 60, 4.0, 400.0), ("A" * 80, 30.0, 300.0)]:
         out = render_flow_text(
             text, origin=(0.0, 0.0), max_width=w, max_height=h,
             font_size=10.0, measure=_measure,

@@ -1,0 +1,64 @@
+{
+ "schema_version": 1,
+ "post_7i5a": true,
+ "total_clip": 0,
+ "cluster_detail": {
+  "total": 0,
+  "by_steps": {},
+  "by_reason": {},
+  "by_kind": {},
+  "clip_at_or_below_5pt": 0,
+  "width_ratio_le_1p0_at_clip": 0,
+  "height_bound_count": 0,
+  "near_fit_width_090_105": 0,
+  "wrap_multi": 0,
+  "wrap_multi_collapse": 0,
+  "floor_after_wrap": 0,
+  "not_wrapped": 0,
+  "tiny_src_box_lt_20pt": 0,
+  "font_shrunk_cases": 0,
+  "examples": []
+ },
+ "books": [
+  {
+   "label": "C book",
+   "path": "pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4.pdf",
+   "pages_total": 7,
+   "clip_blocks": 0,
+   "by_page": {},
+   "cases": []
+  },
+  {
+   "label": "AI for Games",
+   "path": "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5.pdf",
+   "pages_total": 5,
+   "clip_blocks": 0,
+   "by_page": {},
+   "cases": []
+  },
+  {
+   "label": "Game Physics",
+   "path": "pdf2zh_files/Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk.pdf",
+   "pages_total": 4,
+   "clip_blocks": 0,
+   "by_page": {},
+   "cases": []
+  },
+  {
+   "label": "Networking",
+   "path": "pdf2zh_files/Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6.pdf",
+   "pages_total": 5,
+   "clip_blocks": 0,
+   "by_page": {},
+   "cases": []
+  },
+  {
+   "label": "Multiprocessor 2e",
+   "path": "tests/file/The Art of Multiprocessor Programming, 2e.pdf",
+   "pages_total": 13,
+   "clip_blocks": 0,
+   "by_page": {},
+   "cases": []
+  }
+ ]
+}
