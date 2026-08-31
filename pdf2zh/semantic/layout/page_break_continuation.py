@@ -52,6 +52,7 @@ from pdf2zh.semantic.layout.page_break import (
     PageBreakExecution,
     break_placement_to_page,
     decide_page_breaks,
+    last_page_index,
     next_free_page,
     next_page_start_y,
     page_break_execution,
@@ -332,6 +333,13 @@ def execute_continuation_breaks(
 
     decs = _normalize_decisions(placements, decisions, page_sizes)
     taken = {p.page for p in placements}
+    # 7G-2.1 P0: a NEXT_PAGE break may only land on a page that really exists
+    # (last_page_index = max page_sizes key).  Pushing a block past the
+    # document's last page puts it on a page the renderer cannot carry — the
+    # words are dropped (lol.pdf: 170 -> 387 on a 382-page book, 280 words
+    # lost).  When no free real page exists, the block stays and is recorded
+    # unresolved, never silently moved off-document.
+    max_page = last_page_index(page_sizes)
     budget = bound
     out: list[dict] = []
 
@@ -370,7 +378,18 @@ def execute_continuation_breaks(
 
         # try a list / TOC continuation split first; landing goes through the
         # 8e-1 page chain (never reuses a taken page, never unbounded)
-        target = next_free_page(p.page, taken)
+        target = next_free_page(p.page, taken, max_page=max_page)
+        if target is None:
+            # no real page below this one exists — out-of-document overflow
+            # (7G-2.1 P0): leave the block in place, surface as unresolved.
+            record = ContinuationBreakRecord(
+                block_index=p.block_index, source_page=p.page,
+                target_page=p.page, kind=p.kind, mode="whole_block",
+                reason="no_page")
+            report.deferred.append(record)
+            report.unresolved.append(p)
+            out.append(e)
+            continue
         split = None
         if e.get("kind") in _SPLIT_KINDS:
             split = split_continuation_break(
@@ -391,7 +410,16 @@ def execute_continuation_breaks(
             continue
 
         # unsplittable movable block → whole-block move (8e-2 semantics)
-        target = next_free_page(p.page, taken)
+        target = next_free_page(p.page, taken, max_page=max_page)
+        if target is None:
+            record = ContinuationBreakRecord(
+                block_index=p.block_index, source_page=p.page,
+                target_page=p.page, kind=p.kind, mode="whole_block",
+                reason="no_page")
+            report.deferred.append(record)
+            report.unresolved.append(p)
+            out.append(e)
+            continue
         mapped = break_placement_to_page(p, target_page=target, page_start_y=start_y)
         delta = round(float(mapped.resolved_bbox[3]) - float(p.resolved_bbox[3]), 2)
         _move_entry_page(e, delta, target)

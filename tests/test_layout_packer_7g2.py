@@ -87,7 +87,12 @@ def _plan(placements, page_height=792.0):
             "render_payload": {
                 "kind": p.kind,
                 "commands": [
-                    {"text": "t", "x": p.left + 2.0, "y": p.top - 5.0, "font_size": 11.0}
+                    # 7G-2.1: a well-formed block's single baseline sits INSIDE
+                    # its dst box (ascent 0.8*11 = 8.8 -> baseline at top-9 has
+                    # glyph excess 0).  Blocks whose lines poke ABOVE dst_box
+                    # are the P0 word-overlap case, tested separately in
+                    # tests/test_7g21_p0_fixes.py.
+                    {"text": "t", "x": p.left + 2.0, "y": p.top - 9.0, "font_size": 11.0}
                 ],
             },
         })

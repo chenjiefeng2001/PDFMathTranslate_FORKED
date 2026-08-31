@@ -53,6 +53,7 @@ from pdf2zh.semantic.layout.page_break import (
     PageBreakExecution,
     break_placement_to_page,
     decide_page_breaks,
+    last_page_index,
     next_free_page,
     next_page_start_y,
     page_break_execution,
@@ -240,6 +241,13 @@ def execute_page_breaks(
 
     decs = _normalize_decisions(placements, decisions, page_sizes)
     taken = {p.page for p in placements}
+    # 7G-2.1 P0: a NEXT_PAGE break may only land on a page that really exists
+    # (last_page_index = max page_sizes key).  Pushing a block past the
+    # document's last page puts it on a page the renderer cannot carry — the
+    # words are dropped (lol.pdf: 170 -> 387 on a 382-page book, 280 words
+    # lost).  When no free real page exists, the block stays and is recorded
+    # unresolved, never silently moved off-document.
+    max_page = last_page_index(page_sizes)
     budget = bound
 
     for i, (p, dec) in enumerate(zip(placements, decs)):
@@ -266,7 +274,16 @@ def execute_page_breaks(
             continue
 
         next_y = next_page_start_y(float(page_start_y))
-        target = next_free_page(p.page, sorted(taken))
+        target = next_free_page(p.page, sorted(taken), max_page=max_page)
+        if target is None:
+            # no real page below this one exists — out-of-document overflow
+            # (7G-2.1 P0): leave the block in place, surface as unresolved.
+            record, _ = page_break_execution(
+                p, target_page=p.page, page_start_y=float(page_start_y)
+            )
+            report.deferred.append(record)
+            report.unresolved.append(p)
+            continue
         mapped = break_placement_to_page(
             p, target_page=target, page_start_y=next_y
         )

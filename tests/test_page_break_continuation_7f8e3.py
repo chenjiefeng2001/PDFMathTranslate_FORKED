@@ -119,7 +119,10 @@ def _flow(block_id, page=0, x0=60.0, y0=-20.0, x1=260.0, y1=50.0):
                   payload={"kind": "flow", "commands": []})
 
 
-_PAGES = {0: 792.0, 1: 792.0, 2: 792.0}
+# 7G-2.1 P0: a break may only land on a page that exists (max page_sizes key).
+# The mixed corpus needs THREE target pages (1, 2, 3) — the document must
+# declare page 3 or the third break is correctly deferred as out-of-document.
+_PAGES = {0: 792.0, 1: 792.0, 2: 792.0, 3: 792.0}
 _PAGE_START = 792.0
 _BOTTOM = 10.0  # fitted margin: lines below y=10 are the continuation tail
 

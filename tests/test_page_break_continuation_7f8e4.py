@@ -51,8 +51,12 @@ _BASELINE = _HERE / "baselines" / "page_break_continuation_7f8e4.json"
 PAGE_W, PAGE_H = 612.0, 792.0
 PAGE_START = 752.0   # v3 y-up content top edge (40pt margin below the top edge)
 BOTTOM = 10.0        # fitted margin: lines below y=10 are the continuation tail
-HEIGHTS = {0: PAGE_H, 1: PAGE_H, 2: PAGE_H}
-SIZES = {0: [PAGE_W, PAGE_H], 1: [PAGE_W, PAGE_H], 2: [PAGE_W, PAGE_H]}
+# 7G-2.1 P0: a break may only land on a page that exists (max page_sizes key).
+# The mixed corpus needs THREE target pages (1, 2, 3) — the document must
+# declare page 3 or the third break is correctly deferred as out-of-document.
+HEIGHTS = {0: PAGE_H, 1: PAGE_H, 2: PAGE_H, 3: PAGE_H}
+SIZES = {0: [PAGE_W, PAGE_H], 1: [PAGE_W, PAGE_H], 2: [PAGE_W, PAGE_H],
+         3: [PAGE_W, PAGE_H]}
 
 
 def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,

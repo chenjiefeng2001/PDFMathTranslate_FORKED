@@ -64,6 +64,7 @@ __all__ = [
     "break_placement_to_page",
     "page_break_execution",
     "next_free_page",
+    "last_page_index",
     "break_invariants",
     "assert_break_invariants",
 ]
@@ -212,17 +213,50 @@ def break_placement_to_page(
     )
 
 
-def next_free_page(source_page: int, occupied: Sequence[int]) -> int:
-    """The next page after ``source_page`` not already occupied (monotonic).
+def last_page_index(page_sizes) -> Optional[int]:
+    """The largest real page index a break may land on, or ``None``.
+
+    8e may propose a page change, but it must never generate page / geometry
+    the renderer cannot carry (7G-2.1 P0): a block pushed past the document's
+    last real page lands on a page that has no size, gets dropped from the
+    render, and loses words.  The last real page is therefore the largest
+    key in the ``page_sizes`` map — the set of pages the renderer will emit.
+    ``None`` when no page sizes are known (the caller then stays unbounded,
+    preserving historical behaviour for callers without a size map).
+    """
+    sizes = dict(page_sizes or {})
+    numeric = [int(k) for k in sizes.keys() if isinstance(k, (int, float))]
+    if not numeric:
+        return None
+    return max(numeric)
+
+
+def next_free_page(
+    source_page: int,
+    occupied: Sequence[int],
+    *,
+    max_page: Optional[int] = None,
+) -> Optional[int]:
+    """The next page after ``source_page`` not already occupied.
+
+    7G-2.1 P0 (8e out-of-document overflow): a block may only break to a
+    page that actually exists.  ``max_page`` is the document's last real page
+    (see :func:`last_page_index`); when the monotonic scan runs past it there
+    is no real page to land on, so this returns ``None`` — the caller records
+    the block as unresolved instead of placing it on a phantom page that the
+    renderer will not carry.
 
     Pins the page-chain semantics: A stays on 0, a break from 0 lands on 1,
     a second break from 0 lands on 2 (never all on one page, never reusing a
-    taken page, never an unbounded page stream — bounded by the occupied set).
+    taken page).  Without ``max_page`` the chain is bounded only by the
+    occupied set (historical callers / unit tests that pass no size map).
     """
     page = int(source_page) + 1
     taken = set(int(o) for o in occupied)
     while page in taken:
         page += 1
+    if max_page is not None and page > int(max_page):
+        return None
     return page
 
 
