@@ -34,6 +34,48 @@ _DEFAULT_PAGE = (612.0, 792.0)
 _DEFAULT_FONT_SIZE = 12.0
 
 
+# 渲染 provenance 记录器（7H-2A）：把「哪个 source_node_id 画到 PDF 的哪个
+# 对象」逐块采集。纯增量：不传就是 None，历史行为/测试完全不受影响。
+class _RenderProvenance:
+    """Accumulates a block-id → render-object map while ``render_plan_to_pdf``
+    draws.  Each drawn block appends its own record; the resulting ``records``
+    are returned by the caller for the forensic tool's ID-direct diff."""
+
+    def __init__(self) -> None:
+        self.records: List[Dict[str, Any]] = []
+        self._seq = 0
+
+    def record(
+        self,
+        source_node_id: str,
+        page: int,
+        object_type: str,
+        final_bbox_v3: List[float],
+        font_size: Optional[float],
+        text: str,
+    ) -> None:
+        """Append one drawn-object record.
+
+        ``final_bbox_v3`` is the block's dst_box in v3 y-up (what the plan
+        asked to draw).  ``render_object_ref`` is a monotonic ref to the
+        sequence position among drawn objects (the drawn object itself is the
+        text/glyph stream we just wrote).
+        """
+        ref = f"R{self._seq}"
+        self._seq += 1
+        self.records.append(
+            {
+                "source_node_id": source_node_id,
+                "render_object_ref": ref,
+                "page": page,
+                "object_type": object_type,
+                "final_bbox_v3": [round(float(v), 2) for v in final_bbox_v3],
+                "font_size": round(float(font_size), 2) if font_size else None,
+                "text": text,
+            }
+        )
+
+
 def _flip_v3_box(box: Sequence[float], page_height: float) -> list[float]:
     """v3 坐标系（左下原点、y 向上）→ PDF 左上原点、y 向下。"""
     x0, y0, x1, y1 = (float(v) for v in box)
@@ -214,6 +256,7 @@ def _render_toc_commands(
         src_doc,
     )
 
+
 def render_plan_to_pdf(
     plan: Optional[Sequence[dict]],
     page_sizes: Optional[Dict[int, Sequence[float]]] = None,
@@ -221,6 +264,7 @@ def render_plan_to_pdf(
     font_size_fallback: float = _DEFAULT_FONT_SIZE,
     cjk_font: bool = True,
     source_pdf: Optional[str] = None,
+    provenance: bool = False,
 ) -> Tuple[bytes, dict]:
     """把（fixup 后的）render_plan 渲染为 PDF。
 
@@ -237,9 +281,14 @@ def render_plan_to_pdf(
             仅对**真正翻译**的块（``translated != text``）用白色矩形覆盖原文
             区域后写入译文；不提供时保持纯文本层（所有块直接写文本，兼容测试
             与无需背景的场景）。
+        provenance: 为 True 时把逐块渲染对象（``source_node_id`` 关联到
+            ``render_object_ref`` + 对象类型 + 最终 v3 bbox）采集到
+            ``stats["provenance"]``，供 7H-2A 的 ID-direct 差分诊断使用。
+            缺省 False：完全保持既有行为，stats 不含该键。
 
     Returns:
-        ``(pdf_bytes, stats)``，``stats`` 含 ``pages``/``blocks``/``glyphs``。
+        ``(pdf_bytes, stats)``，``stats`` 含 ``pages``/``blocks``/``glyphs``；
+        ``provenance=True`` 时另含 ``stats["provenance"]``（list[dict]）。
     """
     import pymupdf
 
@@ -280,6 +329,7 @@ def render_plan_to_pdf(
     doc = pymupdf.Document()
     stats = {"pages": 0, "blocks": 0, "glyphs": 0}
     fontname = "china-ss" if cjk_font else None
+    prov = _RenderProvenance() if provenance else None
 
     # 空 plan 也产出至少 1 个空页，保证下游可打开（pymupdf 无 0 页 PDF）。
     if not by_page:
@@ -325,6 +375,12 @@ def render_plan_to_pdf(
                 _render_list_commands(
                     page, list_cmds, h, font_size, fontname, rect, stats, src_doc
                 )
+                if prov is not None:
+                    prov.record(
+                        entry.get("block_id", "?"), pno, "list",
+                        entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
+                        font_size, text,
+                    )
                 continue
             toc_cmds = payload.get("commands") or []
             if payload_kind == "toc" or (
@@ -347,6 +403,12 @@ def render_plan_to_pdf(
                 _render_toc_commands(
                     page, toc_cmds, h, font_size, fontname, rect, stats, src_doc
                 )
+                if prov is not None:
+                    prov.record(
+                        entry.get("block_id", "?"), pno, "toc",
+                        entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
+                        font_size, text,
+                    )
                 continue
             # Commit 7E-1: flow block with a settled FlowText LayoutResult draws
             # its pre-laid-out lines directly (the renderer does NOT re-wrap).
@@ -366,6 +428,12 @@ def render_plan_to_pdf(
                 _render_flow_commands(
                     page, flow_cmds, h, font_size, fontname, rect, stats, src_doc, entry
                 )
+                if prov is not None:
+                    prov.record(
+                        entry.get("block_id", "?"), pno, "flow",
+                        entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
+                        font_size, text,
+                    )
                 stats["flow_layout_used"] = stats.get("flow_layout_used", 0) + 1
                 continue
             # Observable legacy fallback: a flow block whose LayoutResult could
@@ -406,12 +474,21 @@ def render_plan_to_pdf(
             _insert_text_wrapped(page, rect, text, font_size, block_font)
             stats["blocks"] += 1
             stats["glyphs"] += len(text)
+            if prov is not None:
+                prov.record(
+                    entry.get("block_id", "?"), pno, "wrapped",
+                    entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
+                    font_size, text,
+                )
         stats["pages"] += 1
 
     result = doc.write(deflate=True, garbage=3)
     doc.close()
     if src_doc is not None:
         src_doc.close()
+    if prov is not None:
+        stats = dict(stats)
+        stats["provenance"] = prov.records
     if output_path:
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         with open(output_path, "wb") as fh:
@@ -419,4 +496,4 @@ def render_plan_to_pdf(
     return result, stats
 
 
-__all__ = ["render_plan_to_pdf"]
+__all__ = ["render_plan_to_pdf", "_RenderProvenance"]

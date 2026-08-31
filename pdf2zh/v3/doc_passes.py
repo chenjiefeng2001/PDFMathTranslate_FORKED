@@ -295,8 +295,22 @@ class SemanticPass(DocumentPass):
 
 # ── 2.4 TranslationPolicyPass ────────────────────────────────────────────
 
+# 7H-2C：PRESERVE 类别（semantic role → 策略层统一消费）。CODE / COMMAND /
+# FILENAME / IDENTIFIER 由角色仲裁定型，落入 policy 后强制 preserve。
 _KEEP_KINDS = frozenset(
-    {"formula", "figure", "image", "table", "code", "header", "footer", "page_number"}
+    {
+        "formula",
+        "figure",
+        "image",
+        "table",
+        "code",
+        "command",
+        "filename",
+        "identifier",
+        "header",
+        "footer",
+        "page_number",
+    }
 )
 
 # 题注编号提取（与 CaptionNodeProcessor 同源）

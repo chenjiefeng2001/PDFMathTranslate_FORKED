@@ -57,6 +57,12 @@ class BlockRole(Enum):
     BODY_TEXT = "body_text"
     UNKNOWN = "unknown"
 
+    # 7H-2C：语义策略层角色（F2 修复 —— CODE 由可靠证据确认后不得被降级）
+    CODE = "code"
+    COMMAND = "command"
+    FILENAME = "filename"
+    IDENTIFIER = "identifier"
+
     @property
     def semantic_role(self) -> SemanticRole:
         return _SEMANTIC_BY_ROLE.get(self, SemanticRole.UNKNOWN)
@@ -74,12 +80,37 @@ _SEMANTIC_BY_ROLE = {
     BlockRole.CITATION: SemanticRole.CITATION,
     BlockRole.BODY_TEXT: SemanticRole.BODY_TEXT,
     BlockRole.UNKNOWN: SemanticRole.UNKNOWN,
+    # 7H-2C
+    BlockRole.CODE: SemanticRole.CODE,
+    BlockRole.COMMAND: SemanticRole.UNKNOWN,
+    BlockRole.FILENAME: SemanticRole.UNKNOWN,
+    BlockRole.IDENTIFIER: SemanticRole.UNKNOWN,
 }
 
 # ── 正则特征 ──────────────────────────────────────────────────────────────
 
 _RE_CAPTION = re.compile(
     r"^\s*(?:Fig(?:ure)?|Fig\.?|Table|Tab\.?|Tab|图|表|图\s|表\s)" r"[\s.:]?\s*\d+",
+    re.IGNORECASE,
+)
+
+# ── 7H-2C 角色仲裁：CODE / COMMAND / FILENAME / IDENTIFIER ───────────────
+# 一旦这些类别由可靠证据确认，后续普通角色规则（formula/body）不得覆盖。
+_RE_CODE_LINE_KW = re.compile(
+    r"^\s*(?:if|else|elif|for|while|do|switch|case|return|break|continue|def|class|"
+    r"struct|typedef|using|namespace|include|import|from|export|function|var|let|const|"
+    r"static|public|private|protected|void|int|float|double|char|bool|unsigned|signed|"
+    r"long|short|template|typename|lambda|yield|pass|print|printf|catch|try)\b",
+    re.IGNORECASE,
+)
+_RE_CODE_SYMBOLS = re.compile(r"(::|->|=>|\+\+|--|==|!=|&&|\|\||<=|>=|;\s*$)")
+_RE_BRACE = re.compile(r"[{}]")
+_RE_PATH_TRAIL = re.compile(r"(?:^|\s)[\w.\-]+(?:/[\w.\-]+)*(?:\.[A-Za-z0-9]{1,8})$")
+_RE_IDENT_SNAKE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_RE_COMMAND_VERB = re.compile(
+    r"^\s*(?:sudo|cd|ls|cat|echo|gcc|clang|pip|npm|apt|yum|cmake|make|git|docker|"
+    r"curl|wget|ssh|scp|export|chmod|python|python3|java|javac|node|npm|go|"
+    r"pip3|conda|install|unzip|tar)\b",
     re.IGNORECASE,
 )
 _RE_HEADING_NUM = re.compile(
@@ -268,6 +299,96 @@ class StructureClassifier:
         role, conf = self._decide(para, f, has_page_context)
         return ClassifiedBlock(paragraph=para, role=role, confidence=conf, features=f)
 
+    def _arbitrate_preserve_role(
+        self,
+        para: Paragraph,
+        f: BlockFeatures,
+        text: str,
+    ) -> Optional[Tuple[BlockRole, float]]:
+        """7H-2C：高置信度 PRESERVE 类角色的可靠证据仲裁。
+
+        PEP/风格纪律：**只放能被翻译器/策略层正确消费的类别**，且每个类别都
+        要求“可靠证据”（不靠单一弱信号），杜绝把正文简单句子误判为代码。
+        命中即返回高优先级角色；未命中返回 ``None``，交给既有规则流继续。
+
+        判定顺序（优先级从高到低）：CODE → COMMAND → FILENAME → IDENTIFIER。
+        为保守起见，只有**整块**满足多行证据时才给 CODE（含大括号/分号/
+        作用域运算符/代码关键字的行占比过半），避免单行 `int x = 5;` 式弱信号
+        或带代码示例的正文误伤。
+        """
+        if not text or len(text) > 4000:
+            return None
+        # 行跨度：整列代码块（多行、过半行命中结构信号）→ CODE。
+        # 适配器（analyzer._RuleParagraphAdapter / document_model._NodeProxy）
+        # 可能给出无 ``.text`` 的合成行 —— 此时回退按块文本换行拆解，
+        # 保证 code 仲裁在 forensic/build_document_model 主路径同样生效。
+        raw_lines = [
+            (getattr(l, "text", "") or "").strip()
+            for l in getattr(para, "lines", []) or []
+        ]
+        lines = [ln for ln in raw_lines if ln]
+        if not lines:
+            lines = [ln for ln in text.splitlines() if ln] or [text]
+        if lines:
+            sig_lines = sum(
+                1
+                for ln in lines
+                if _RE_CODE_LINE_KW.search(ln)
+                or _RE_BRACE.search(ln)
+                or ln.rstrip().endswith(";")
+                or _RE_CODE_SYMBOLS.search(ln)
+            )
+            # ≥2 行且命中行 ≥½：整列代码块。
+            if len(lines) >= 2 and sig_lines >= 2 and sig_lines >= len(lines) / 2:
+                return BlockRole.CODE, 0.92
+            # 单/短代码行：需较强的单一主体责任信号（代码关键字 + 结构符号同现）
+            if (
+                len(lines) == 1
+                and len(ln := lines[0]) <= 160
+                and _RE_CODE_LINE_KW.search(ln)
+                and (_RE_BRACE.search(ln) or ln.rstrip().endswith(";"))
+            ):
+                return BlockRole.CODE, 0.85
+            # 作用域运算符/箭头：C++ 风格代码极强信号（`namespace std::` 等）
+            if len(lines) <= 2 and _RE_CODE_SYMBOLS.search(text):
+                if _RE_CODE_LINE_KW.search(text) or _RE_BRACE.search(text):
+                    return BlockRole.CODE, 0.9
+        # 单行 COMMAND（shell/CLI 动词起始）：只保护命令本身，不误伤正文。
+        if (
+            f.line_count <= 1
+            and len(text) <= 200
+            and _RE_COMMAND_VERB.match(text)
+            and len(text.split()) >= 2
+        ):
+            return BlockRole.COMMAND, 0.8
+        # 单行 FILENAME/路径。两种可靠证据（都需单行、短、非题注、不以句点收尾）：
+        #   a) 以可识别扩展名结尾（config/settings.yaml / data.csv）
+        #   b) 无空格的多段路径（/usr/local/bin/python3）—— 无扩展名也按路径保护。
+        if (
+            f.line_count <= 1
+            and len(text) <= 160
+            and not text.endswith(".")
+            and not _RE_CAPTION.match(text)
+        ):
+            _last = text.split()[-1]
+            if ("." in text and "." in _last and _RE_PATH_TRAIL.search(text)) or (
+                len(text.split()) == 1
+                and "/" in text
+                and "." not in _last
+                and not text.isspace()
+            ):
+                return BlockRole.FILENAME, 0.72
+        # 单 token IDENTIFIER（snake_case / camelCase / 含下划线，无空格）
+        tok = text.strip()
+        if (
+            len(tok.split()) == 1
+            and len(tok) <= 120
+            and _RE_IDENT_SNAKE.match(tok)
+            and ("_" in tok or any(c.isdigit() for c in tok))
+        ):
+            return BlockRole.IDENTIFIER, 0.7
+        return None
+
     def _decide(
         self, para: Paragraph, f: BlockFeatures, has_page_context: bool
     ) -> Tuple[BlockRole, float]:
@@ -293,6 +414,13 @@ class StructureClassifier:
         # 3. 题注：Figure/Table/图/表 + 编号
         if _RE_CAPTION.match(text) and len(text) <= 200:
             return BlockRole.CAPTION, 0.92
+
+        # 3.5 7H-2C 角色仲裁：CODE / COMMAND / FILENAME / IDENTIFIER ——
+        # 必须在 formula（第 4 步）之前判定，否则代码里的 `->`/`=`/大括号会
+        # 被数学符号密度规则吞成 formula，绕过 KEEP_KINDS 的保护。
+        arb = self._arbitrate_preserve_role(para, f, text)
+        if arb is not None:
+            return arb
 
         # 4. 公式：数学符号密度（连续公式行 / 公式表达式）
         if _RE_FORMULA_SYMBOLS.match(text) or (

@@ -46,8 +46,20 @@ __all__ = [
 ]
 
 #: 保留块（不翻译、几何原样保留）—— 与 document_model._KEEP_KINDS 对齐。
+#: 7H-2C：纳入 COMMAND / FILENAME / IDENTIFIER（由语义角色仲裁定型后保留）。
 KEEP_KINDS = frozenset(
-    {"formula", "figure", "image", "table", "code", "header", "footer"}
+    {
+        "formula",
+        "figure",
+        "image",
+        "table",
+        "code",
+        "command",
+        "filename",
+        "identifier",
+        "header",
+        "footer",
+    }
 )
 
 

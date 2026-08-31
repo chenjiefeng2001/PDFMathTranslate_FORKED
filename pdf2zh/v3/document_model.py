@@ -280,6 +280,12 @@ def annotate_roles(page, classifier=None) -> int:
         "toc_entry": "toc",
         "header": "header",
         "footer": "footer",
+        # 7H-2C：语义策略层角色 → kind（CODE 等 PRESERVE 类别在模型层定型，
+        # 桥接同源，使 forensic/build_document_model 主路径也保护代码）。
+        "code": "code",
+        "command": "command",
+        "filename": "filename",
+        "identifier": "identifier",
     }
     hits = 0
     for block in page.blocks:
@@ -339,7 +345,17 @@ def annotate_render(page) -> int:
     返回标注块数。
     """
     overlay = {"toc", "header", "footer"}
-    preserve = {"figure", "image", "table", "formula", "formula_inline", "code"}
+    preserve = {
+        "figure",
+        "image",
+        "table",
+        "formula",
+        "formula_inline",
+        "code",
+        "command",
+        "filename",
+        "identifier",
+    }
     hits = 0
     for block in page.blocks:
         kind = block.kind
@@ -414,7 +430,18 @@ def build_document_model(
 
 
 _KEEP_KINDS = frozenset(
-    {"formula", "figure", "image", "table", "code", "header", "footer"}
+    {
+        "formula",
+        "figure",
+        "image",
+        "table",
+        "code",
+        "command",
+        "filename",
+        "identifier",
+        "header",
+        "footer",
+    }
 )
 
 
