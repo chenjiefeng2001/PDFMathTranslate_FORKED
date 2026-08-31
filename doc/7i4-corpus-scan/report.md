@@ -48,8 +48,8 @@
 
 | 书 | F1 | F2 | F3 | F4 | F5 | F6 | F8 | F9 | F10 |
 |---|---|---|---|---|---|---|---|---|---|
-| C book | PASS 7/7 | PASS 5/7 | PASS 7/7 | PASS 7/7 | SKIP 0/7 | PASS 4/7 | PASS 7/7 | SKIP 0/7 | SKIP 0/7 |
-| AI for Games | PASS 4/4 | SKIP 0/4 | PASS 4/4 | PASS 4/4 | SKIP 0/4 | PASS 1/4 | PASS 4/4 | SKIP 0/4 | SKIP 0/4 |
-| Game Physics | PASS 3/3 | SKIP 0/3 | PASS 3/3 | PASS 3/3 | SKIP 0/3 | SKIP 0/3 | PASS 3/3 | SKIP 0/3 | SKIP 0/3 |
-| Networking | PASS 5/5 | PASS 1/5 | PASS 5/5 | PASS 5/5 | SKIP 0/5 | PASS 1/5 | PASS 5/5 | SKIP 0/5 | SKIP 0/5 |
-| Multiprocessor 2e | PASS 12/12 | PASS 6/12 | PASS 12/12 | FAIL 12/12 | SKIP 0/12 | PASS 4/12 | PASS 12/12 | SKIP 0/12 | SKIP 0/12 |
+| C book | PASS 7/7 | PASS 5/7 | PASS 7/7 | PASS 7/7 | SKIP 0/7 | PASS 4/7 | PASS 7/7 | PASS 7/7 | PASS 7/7 |
+| AI for Games | PASS 4/4 | SKIP 0/4 | PASS 4/4 | PASS 4/4 | SKIP 0/4 | PASS 1/4 | PASS 4/4 | PASS 4/4 | PASS 4/4 |
+| Game Physics | PASS 3/3 | SKIP 0/3 | PASS 3/3 | PASS 3/3 | SKIP 0/3 | SKIP 0/3 | PASS 3/3 | PASS 3/3 | PASS 3/3 |
+| Networking | PASS 5/5 | PASS 1/5 | PASS 5/5 | PASS 5/5 | SKIP 0/5 | PASS 1/5 | PASS 5/5 | PASS 5/5 | PASS 5/5 |
+| Multiprocessor 2e | PASS 12/12 | PASS 6/12 | PASS 12/12 | FAIL 12/12 | SKIP 0/12 | PASS 4/12 | PASS 12/12 | PASS 12/12 | PASS 12/12 |

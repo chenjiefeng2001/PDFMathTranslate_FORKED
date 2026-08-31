@@ -185,6 +185,14 @@ def _run_book(book, out_dir):
         page = src_doc[pno]
         dual_evidence = inspect_page(src_doc, pno, page.rect.height)
         aggr = aggregate_page_id_direct(pno, rows, prov_by_page.get(pno, {}))
+        # 7I-6B: surface the ID-direct provenance summary to the F10 page-level
+        # detector on ``dual_page`` (present/dangling/stray).
+        dual_evidence["id_direct"] = {
+            "page": pno,
+            "present_blocks": aggr.get("present_blocks"),
+            "dangling_blocks": aggr.get("dangling_blocks"),
+            "stray_records": aggr.get("stray_records"),
+        }
         traces = aggr["traces"]
         finds = run_defect_detectors(traces, dual_evidence)
         cover = coverage_page(traces, dual_evidence)

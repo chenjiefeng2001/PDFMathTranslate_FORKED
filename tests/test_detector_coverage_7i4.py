@@ -44,8 +44,8 @@ def _trace(**kw):
 
 def test_not_measured_defects_do_not_read_as_zero():
     # A page with only a plain paragraph has no F1/F3 evidence → SKIP, no
-    # float/caption → F5/F6 SKIP, and the not-yet-implemented detectors
-    # (F7/F8/F9/F10) remain explicitly NOT_MEASURED.
+    # float/caption → F5/F6 SKIP, F8 no settled verdict → SKIP, no dual_page
+    # (F9/F10 wired but no content-stream/provenance evidence) → SKIP.
     cov = coverage_page([_trace(dst_box=None, layout_font_size=None, kind="paragraph")])
     # no dst_box / no drawn box → F1 cannot judge → SKIP
     assert cov["F1"].status == STATUS_SKIP
@@ -57,9 +57,11 @@ def test_not_measured_defects_do_not_read_as_zero():
     assert cov["F6"].status == STATUS_SKIP
     # no settled flow layout verdict → F8 nothing to measure → SKIP
     assert cov["F8"].status == STATUS_SKIP
-    # not-yet-implemented detectors are explicitly NOT_MEASURED
-    for fid in ("F7", "F9", "F10"):
-        assert cov[fid].status == STATUS_NOT_MEASURED
+    # wired in 7I-6B but a page without dual_page evidence → SKIP (never PASS)
+    assert cov["F9"].status == STATUS_SKIP
+    assert cov["F10"].status == STATUS_SKIP
+    # the only not-implemented detector remains explicitly NOT_MEASURED
+    assert cov["F7"].status == STATUS_NOT_MEASURED
     # a SKIP page contributes 0 to "pages_evaluated", so aggregate can't
     # claim coverage it does not have.
     agg = aggregate_coverage({0: cov})

@@ -51,16 +51,16 @@
    "NOT_MEASURED": 0
   },
   "F9": {
-   "PASS": 0,
+   "PASS": 31,
    "FAIL": 0,
    "SKIP": 0,
-   "NOT_MEASURED": 31
+   "NOT_MEASURED": 0
   },
   "F10": {
-   "PASS": 0,
+   "PASS": 31,
    "FAIL": 0,
    "SKIP": 0,
-   "NOT_MEASURED": 31
+   "NOT_MEASURED": 0
   }
  },
  "total_residual": 1,
@@ -189,16 +189,16 @@
      "NOT_MEASURED": 0
     },
     "F9": {
-     "PASS": 0,
+     "PASS": 7,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 7
+     "NOT_MEASURED": 0
     },
     "F10": {
-     "PASS": 0,
+     "PASS": 7,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 7
+     "NOT_MEASURED": 0
     }
    },
    "defects": {},
@@ -302,16 +302,16 @@
      "NOT_MEASURED": 0
     },
     "F9": {
-     "PASS": 0,
+     "PASS": 4,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 4
+     "NOT_MEASURED": 0
     },
     "F10": {
-     "PASS": 0,
+     "PASS": 4,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 4
+     "NOT_MEASURED": 0
     }
    },
    "defects": {},
@@ -406,16 +406,16 @@
      "NOT_MEASURED": 0
     },
     "F9": {
-     "PASS": 0,
+     "PASS": 3,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 3
+     "NOT_MEASURED": 0
     },
     "F10": {
-     "PASS": 0,
+     "PASS": 3,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 3
+     "NOT_MEASURED": 0
     }
    },
    "defects": {},
@@ -523,16 +523,16 @@
      "NOT_MEASURED": 0
     },
     "F9": {
-     "PASS": 0,
+     "PASS": 5,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 5
+     "NOT_MEASURED": 0
     },
     "F10": {
-     "PASS": 0,
+     "PASS": 5,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 5
+     "NOT_MEASURED": 0
     }
    },
    "defects": {},
@@ -681,16 +681,16 @@
      "NOT_MEASURED": 0
     },
     "F9": {
-     "PASS": 0,
+     "PASS": 12,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 12
+     "NOT_MEASURED": 0
     },
     "F10": {
-     "PASS": 0,
+     "PASS": 12,
      "FAIL": 0,
      "SKIP": 0,
-     "NOT_MEASURED": 12
+     "NOT_MEASURED": 0
     }
    },
    "defects": {

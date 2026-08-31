@@ -15,7 +15,11 @@ from typing import Any, Dict, List
 import pymupdf
 
 from dual_forensics import __version__
-from dual_forensics.diff import aggregate_page, aggregate_page_id_direct, load_provenance
+from dual_forensics.diff import (
+    aggregate_page,
+    aggregate_page_id_direct,
+    load_provenance,
+)
 from dual_forensics.defect import (
     aggregate_coverage,
     coverage_page,
@@ -61,12 +65,15 @@ def _render_plan_with_provenance(source, page_ids, out_dir):
         translate_document,
     )
     from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
+
     # 7I-3B: 与生产管线一致的字符规范化（字体能证明 glyph 时还原 (cid:N)）。
     from pdf2zh.cid_recovery import extract_pages_recovering as extract_pages
 
     from dual_forensics.snapshot import identity
 
-    lt = list(extract_pages(source, page_numbers=sorted(page_ids) if page_ids else None))
+    lt = list(
+        extract_pages(source, page_numbers=sorted(page_ids) if page_ids else None)
+    )
     model = build_document_model(lt)
     wanted = sorted(page_ids) if page_ids else None
     if wanted:
@@ -75,7 +82,10 @@ def _render_plan_with_provenance(source, page_ids, out_dir):
                 p.page_num = wanted[k]
     translate_document(model, identity)
     plan = render_plan_from_model(model)
-    sizes = {p.page_num: [float(p.width) or 612.0, float(p.height) or 792.0] for p in model.pages}
+    sizes = {
+        p.page_num: [float(p.width) or 612.0, float(p.height) or 792.0]
+        for p in model.pages
+    }
     _, stats = render_plan_to_pdf(plan, page_sizes=sizes, provenance=True)
     by_page: Dict[int, List] = {}
     for r in stats.get("provenance") or []:
@@ -83,7 +93,9 @@ def _render_plan_with_provenance(source, page_ids, out_dir):
     return by_page
 
 
-def _run_pages(source, dual, pages: List[int], out: str, prov_render: bool = False) -> int:
+def _run_pages(
+    source, dual, pages: List[int], out: str, prov_render: bool = False
+) -> int:
     src_doc = pymupdf.open(source)
     dual_doc = pymupdf.open(dual)
     try:
@@ -144,7 +156,14 @@ def _run_pages(source, dual, pages: List[int], out: str, prov_render: bool = Fal
 
         if prov_by_page.get(pno):
             aggr = aggregate_page_id_direct(pno, rows, prov_by_page[pno])
-            dual_evidence["id_direct"] = True
+            # 7I-6B: surface the ID-direct provenance summary to F10's
+            # page-level detector on ``dual_page`` (present/dangling/stray).
+            dual_evidence["id_direct"] = {
+                "page": pno,
+                "present_blocks": aggr.get("present_blocks"),
+                "dangling_blocks": aggr.get("dangling_blocks"),
+                "stray_records": aggr.get("stray_records"),
+            }
         else:
             aggr = aggregate_page(pno, rows, dual_evidence.get("text_runs") or [])
         traces = aggr["traces"]  # list of Trace

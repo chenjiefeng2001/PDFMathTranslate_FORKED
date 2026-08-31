@@ -625,6 +625,145 @@ def _detect_f5_detached_page(traces: List[Any]) -> "tuple[List[DefectFinding], i
     return findings, evaled
 
 
+_F8_CLIP_END = ("CLIP",)
+
+
+# ── F9 / F10 page-level detectors (7I-6B wiring) ───────────────────────────
+# These read *page-level render evidence* (``dual_page``), not per-node traces:
+#   - F9  reads ``dual_page["content_stream"]`` (``content_stream_anomaly``), the
+#         render/PDF-layer emitter signal;
+#   - F10 reads ``dual_page["id_direct"]`` — the ID-direct provenance summary
+#         (``present_blocks`` / ``dangling_blocks`` / ``stray_records``) that
+#         :func:`.diff.aggregate_page_id_direct` already computes.
+# Both follow the 7I-4 contract: without sufficient page-level evidence they are
+# SKIP (nothing measured), never a fabricated PASS or a clean 0.
+
+
+def _detect_f9_text_visual_mismatch_page(
+    traces: List[Any],
+    dual_page: Optional[Any] = None,
+) -> "tuple[List[DefectFinding], int]":
+    """F9: the rendered text layer vs the visual layer disagree.
+
+    Evidence = ``dual_page["content_stream"]`` from
+    :func:`.pdf_inspector.content_stream_anomaly`:
+      - present + ``anomaly``      → FAIL (FDS render/pdf);
+      - present + no anomaly       → PASS (emitter clean);
+      - absent / not checked       → SKIP (nothing measurable), never PASS.
+
+    7I-6B boundary: this only *wires* the 7H-2B emitter sensor into the
+    coverage contract — the sensor itself is unchanged.
+    """
+    findings: List[DefectFinding] = []
+    cs = (
+        (dual_page or {}).get("content_stream") if isinstance(dual_page, dict) else None
+    )
+    cs = cs or {}
+    if not cs.get("checked"):
+        return findings, 0  # no inspectable content stream -> SKIP
+    if not cs.get("anomaly"):
+        return findings, 1  # scanner ran, emitter clean -> PASS
+    page = traces[0].page if traces else (dual_page or {}).get("page", 0)
+    verdicts = {s: None for s in STAGES}
+    verdicts["source"] = "PASS"
+    verdicts["parser"] = "PASS"
+    verdicts["model"] = "PASS"
+    verdicts["translation"] = "PASS"
+    verdicts["layout"] = "PASS"
+    verdicts["render"] = "FAIL"
+    findings.append(
+        _fin(
+            verdicts,
+            F9,
+            f"p{page}_page",
+            page,
+            "renderer emitted a malformed numeric token into the page stream",
+            {
+                "mupdf_syntax_error": list(cs.get("sample") or [])[:5],
+                "source": cs.get("source"),
+                "confidence": "medium",
+            },
+        )
+    )
+    return findings, 1
+
+
+def _detect_f10_object_lost_page(
+    traces: List[Any],
+    dual_page: Optional[Any] = None,
+) -> "tuple[List[DefectFinding], int]":
+    """F10: a model block lost / drifted / stray in the render layer.
+
+    Evidence = ``dual_page["id_direct"]``, the summary that
+    :func:`.diff.aggregate_page_id_direct` already produces from
+    ``source_node_id → render_object_ref`` provenance:
+      - present  + provenance        → PASS;
+      - any dangling/absent block    → FAIL (FDS render);
+      - any stray render record      → FAIL (FDS render);
+      - no provenance ran            → SKIP (nothing measured), never PASS;
+      - a block never owed by plan   → SKIP (not a dropped object), not FAIL.
+
+    Boundary: F10 ≠ F8 (a *present* block whose text was clipped) and ≠ F5
+    (a float's placement).  F10 is strictly about object presence / drift.
+    """
+    findings: List[DefectFinding] = []
+    prov = (dual_page or {}).get("id_direct") if isinstance(dual_page, dict) else None
+    if not isinstance(prov, dict) or not prov:
+        return findings, 0  # no ID-direct provenance for this page -> SKIP
+    page = (
+        prov.get("page")
+        if prov.get("page") is not None
+        else (traces[0].page if traces else (dual_page or {}).get("page", 0))
+    )
+    dangling = list(prov.get("dangling_blocks") or [])
+    stray = list(prov.get("stray_records") or [])
+    present = int(prov.get("present_blocks") or 0)
+    # The page is measured to the extent provenance decided each owed block's
+    # presence: present _and_ dangling are authoritative outcomes.
+    eval_count = present + len(dangling)
+
+    def _mk(nid, evidence, note):
+        v = {s: None for s in STAGES}
+        v["source"], v["parser"], v["model"] = "PASS", "PASS", "PASS"
+        v["translation"], v["layout"] = "PASS", "PASS"
+        v["render"] = "FAIL"
+        return _fin(v, F10, nid, page, note, evidence)
+
+    for nid in dangling:
+        findings.append(
+            _mk(
+                nid,
+                {
+                    "dangling": True,
+                    "object_presence": "absent",
+                    "confidence": "confirmed",
+                },
+                "model block had no render object (ID-direct provenance)",
+            )
+        )
+    for rec in stray:
+        findings.append(
+            _mk(
+                rec.get("source_node_id") or "stray",
+                {"stray": True, "render_object_ref": rec, "confidence": "confirmed"},
+                "render object produced without a backing model block",
+            )
+        )
+    # evaluated > 0 only if provenance gave an authoritative presence decision
+    # for at least one block; otherwise (no blocks, or never owed) -> SKIP.
+    if eval_count == 0 and not dangling and not stray:
+        return findings, 0
+    return findings, max(eval_count, 1)
+
+
+_PAGE_DETECTORS = {
+    F5: lambda traces, dual_page=None: _detect_f5_detached_page(traces),
+    F6: lambda traces, dual_page=None: _detect_f6_caption_displaced_page(traces),
+    F9: _detect_f9_text_visual_mismatch_page,
+    F10: _detect_f10_object_lost_page,
+}
+
+
 def _detect_f6_caption_displaced_page(
     traces: List[Any],
 ) -> "tuple[List[DefectFinding], int]":
@@ -676,13 +815,6 @@ def _detect_f6_caption_displaced_page(
             )
     return findings, evaled
 
-
-# F5/F6 are page-level detectors that compare a block against the page's text;
-# both take the full trace list and return (findings, evaluated_nodes).
-_PAGE_DETECTORS = {
-    F5: _detect_f5_detached_page,
-    F6: _detect_f6_caption_displaced_page,
-}
 
 # node-level detector dispatch: defect_id -> (can_evaluate, run)
 _NODE_DISPARITY = {
@@ -740,6 +872,13 @@ def run_defect_detectors(
     findings.extend(page_finds)
     cap_finds, _ = _detect_f6_caption_displaced_page(list(traces))
     findings.extend(cap_finds)
+    # 7I-6B: F9 (content_stream) / F10 (ID-direct provenance) page-level wiring.
+    # They need page-level render evidence (``dual_page``), which must be passed
+    # in; without it they SKIP (never a fabricated 0).
+    f9_finds, _ = _detect_f9_text_visual_mismatch_page(list(traces), dual_page)
+    findings.extend(f9_finds)
+    f10_finds, _ = _detect_f10_object_lost_page(list(traces), dual_page)
+    findings.extend(f10_finds)
     return findings
 
 
@@ -761,7 +900,7 @@ def coverage_page(
     for fid in _ALL_F_IDS:
         cov = Coverage(defect_id=fid)
         if fid in _PAGE_DETECTORS:
-            all_find, evaled = _PAGE_DETECTORS[fid](_traces)
+            all_find, evaled = _PAGE_DETECTORS[fid](_traces, dual_page)
             cov.evaluated_nodes = evaled
             cov.findings = all_find
             if evaled == 0:

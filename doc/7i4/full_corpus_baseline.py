@@ -56,6 +56,21 @@ from residual_corpus_scan import (  # noqa: E402
 _F_IDS = ("F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10")
 
 
+def _content_stream(path: str, pno: int):
+    """content_stream_anomaly verdict for a page, or None if unavailable."""
+    from dual_forensics.pdf_inspector import content_stream_anomaly
+
+    try:
+        d = pymupdf.open(path)
+        try:
+            cs = content_stream_anomaly(d, pno)
+        finally:
+            d.close()
+    except Exception:  # noqa: BLE001
+        return None
+    return cs or {}
+
+
 def _model_kind_counts(rows):
     return Counter(r.get("kind") for r in rows)
 
@@ -119,9 +134,22 @@ def _run_book(book, out_dir):
             continue
         aggr = aggregate_page_id_direct(pno, rows, prov_by_page.get(pno, {}))
         traces = aggr["traces"]
-        cov = coverage_page(traces or [], {})
+        # 7I-6B: surface ID-direct provenance summary (F10) + content-stream
+        # (F9) as page-level evidence so coverage measures them in-pipeline.
+        dual_evidence = {
+            "id_direct": {
+                "page": pno,
+                "present_blocks": aggr.get("present_blocks"),
+                "dangling_blocks": aggr.get("dangling_blocks"),
+                "stray_records": aggr.get("stray_records"),
+            }
+        }
+        cs = _content_stream(path, pno)
+        if cs is not None:
+            dual_evidence["content_stream"] = cs
+        cov = coverage_page(traces or [], dual_evidence)
         cov_pages[pno] = cov
-        finds = run_defect_detectors(traces or [], {})
+        finds = run_defect_detectors(traces or [], dual_evidence)
         findings_all.extend(finds)
         # F5 observability gap: model float blocks on this page vs physical.
         fk = _model_kind_counts(rows)

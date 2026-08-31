@@ -152,23 +152,23 @@
      "findings": []
     },
     "F9": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 7,
      "pages_total": 7,
-     "pass": 0,
+     "pass": 7,
      "fail": 0,
      "skip": 0,
-     "not_measured": 7,
+     "not_measured": 0,
      "findings": []
     },
     "F10": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 7,
      "pages_total": 7,
-     "pass": 0,
+     "pass": 7,
      "fail": 0,
      "skip": 0,
-     "not_measured": 7,
+     "not_measured": 0,
      "findings": []
     }
    }
@@ -309,23 +309,23 @@
      "findings": []
     },
     "F9": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 4,
      "pages_total": 4,
-     "pass": 0,
+     "pass": 4,
      "fail": 0,
      "skip": 0,
-     "not_measured": 4,
+     "not_measured": 0,
      "findings": []
     },
     "F10": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 4,
      "pages_total": 4,
-     "pass": 0,
+     "pass": 4,
      "fail": 0,
      "skip": 0,
-     "not_measured": 4,
+     "not_measured": 0,
      "findings": []
     }
    }
@@ -461,23 +461,23 @@
      "findings": []
     },
     "F9": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 3,
      "pages_total": 3,
-     "pass": 0,
+     "pass": 3,
      "fail": 0,
      "skip": 0,
-     "not_measured": 3,
+     "not_measured": 0,
      "findings": []
     },
     "F10": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 3,
      "pages_total": 3,
-     "pass": 0,
+     "pass": 3,
      "fail": 0,
      "skip": 0,
-     "not_measured": 3,
+     "not_measured": 0,
      "findings": []
     }
    }
@@ -622,23 +622,23 @@
      "findings": []
     },
     "F9": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 5,
      "pages_total": 5,
-     "pass": 0,
+     "pass": 5,
      "fail": 0,
      "skip": 0,
-     "not_measured": 5,
+     "not_measured": 0,
      "findings": []
     },
     "F10": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 5,
      "pages_total": 5,
-     "pass": 0,
+     "pass": 5,
      "fail": 0,
      "skip": 0,
-     "not_measured": 5,
+     "not_measured": 0,
      "findings": []
     }
    }
@@ -864,23 +864,23 @@
      "findings": []
     },
     "F9": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 12,
      "pages_total": 12,
-     "pass": 0,
+     "pass": 12,
      "fail": 0,
      "skip": 0,
-     "not_measured": 12,
+     "not_measured": 0,
      "findings": []
     },
     "F10": {
-     "status": "SKIP",
-     "pages_evaluated": 0,
+     "status": "PASS",
+     "pages_evaluated": 12,
      "pages_total": 12,
-     "pass": 0,
+     "pass": 12,
      "fail": 0,
      "skip": 0,
-     "not_measured": 12,
+     "not_measured": 0,
      "findings": []
     }
    }

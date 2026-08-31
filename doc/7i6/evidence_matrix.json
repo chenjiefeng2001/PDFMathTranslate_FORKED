@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "post_7i6a": true,
+  "method": "evidence-only; no production change",
+  "pages_seen": 31,
+  "signals": {
+    "F5": {
+      "float_model_blocks": 0,
+      "float_pages": 0,
+      "status": "SKIP",
+      "gap_type": "representation",
+      "why": "no figure/table/image model block in corpus despite physical drawings/images"
+    },
+    "F7": {
+      "status": "NOT_MEASURED",
+      "gap_type": "detector+methodology",
+      "why": "identity translation makes source-vs-translation degenerate; needs real-translation corpus"
+    },
+    "F9": {
+      "in_pipeline_anomaly_pages": 0,
+      "signal_available": true,
+      "status": "NOT_MEASURED",
+      "gap_type": "wiring",
+      "why": "content_stream_anomaly implemented but not exposed to coverage_page"
+    },
+    "F10": {
+      "dangling_blocks": 0,
+      "stray_records": 0,
+      "signal_available": true,
+      "status": "NOT_MEASURED",
+      "gap_type": "wiring",
+      "why": "aggregate_page_id_direct computes present/dangling/stray but not wired into coverage contract"
+    }
+  },
+  "recommendation_order": [
+    "F10",
+    "F9",
+    "F7(contract only)",
+    "F5(leave as gap)"
+  ]
+}
