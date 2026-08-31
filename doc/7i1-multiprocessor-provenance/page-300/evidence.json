@@ -1,0 +1,613 @@
+[
+ {
+  "node_id": "p300_0",
+  "page_id": 300,
+  "primitive_index": 0,
+  "parser": {
+   "text": "288 CHAPTER12 Counting,sorting,anddistributedcoordination",
+   "bbox": [
+    119.538,
+    695.747909,
+    444.0091112000002,
+    706.7725624
+   ],
+   "font": "GLBJJI+TradeGothic-Light",
+   "font_size": 10.96,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "heading",
+   "role": "heading",
+   "role_confidence": 0.7036,
+   "bbox": [
+    119.538,
+    695.747909,
+    444.0091112000002,
+    706.7725624
+   ],
+   "font_size": 10.96,
+   "font_major": "GLBJJI+TradeGothic-Light",
+   "multifont": true,
+   "reading_order": 0
+  },
+  "translation": {
+   "source_text": "288 CHAPTER12 Counting,sorting,anddistributedcoordination",
+   "translated_text": "288 CHAPTER12 Counting,sorting,anddistributedcoordination",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "heading"
+ },
+ {
+  "node_id": "p300_1",
+  "page_id": 300,
+  "primitive_index": 1,
+  "parser": {
+   "text": "2 Block[] block;",
+   "bbox": [
+    143.298,
+    631.901554,
+    219.49025121,
+    639.971254
+   ],
+   "font": "GLBJKL+LetterGothic12PitchBT-Roman",
+   "font_size": 8.07,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "heading",
+   "role": "heading",
+   "role_confidence": 0.72,
+   "bbox": [
+    143.298,
+    631.901554,
+    219.49025121,
+    639.971254
+   ],
+   "font_size": 8.07,
+   "font_major": "GLBJKL+LetterGothic12PitchBT-Roman",
+   "multifont": true,
+   "reading_order": 1
+  },
+  "translation": {
+   "source_text": "2 Block[] block;",
+   "translated_text": "2 Block[] block;",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "heading"
+ },
+ {
+  "node_id": "p300_2",
+  "page_id": 300,
+  "primitive_index": 2,
+  "parser": {
+   "text": "for (int i = 0; i < logSize; i++) {",
+   "bbox": [
+    170.28,
+    533.2392054999999,
+    311.48683847999996,
+    541.349254
+   ],
+   "font": "GLBJKL+LetterGothic12PitchBT-Roman",
+   "font_size": 8.07,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "code",
+   "role": "code",
+   "role_confidence": 0.85,
+   "bbox": [
+    170.28,
+    533.2392054999999,
+    311.48683847999996,
+    541.349254
+   ],
+   "font_size": 8.07,
+   "font_major": "GLBJKL+LetterGothic12PitchBT-Roman",
+   "multifont": true,
+   "reading_order": 2
+  },
+  "translation": {
+   "source_text": "for (int i = 0; i < logSize; i++) {",
+   "translated_text": "for (int i = 0; i < logSize; i++) {",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "preserved"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "preserve_float"
+  },
+  "kind": "code"
+ },
+ {
+  "node_id": "p300_3",
+  "page_id": 300,
+  "primitive_index": 3,
+  "parser": {
+   "text": "block[i] = new Block(width);",
+   "bbox": [
+    177.534,
+    522.2771055,
+    290.50092333,
+    530.387154
+   ],
+   "font": "GLBJKL+LetterGothic12PitchBT-Roman",
+   "font_size": 8.07,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "formula",
+   "role": "formula",
+   "role_confidence": 0.9,
+   "bbox": [
+    177.534,
+    522.2771055,
+    290.50092333,
+    530.387154
+   ],
+   "font_size": 8.07,
+   "font_major": "GLBJKL+LetterGothic12PitchBT-Roman",
+   "multifont": true,
+   "reading_order": 3
+  },
+  "translation": {
+   "source_text": "block[i] = new Block(width);",
+   "translated_text": "block[i] = new Block(width);",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "preserved"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "preserve_float"
+  },
+  "kind": "formula"
+ },
+ {
+  "node_id": "p300_4",
+  "page_id": 300,
+  "primitive_index": 4,
+  "parser": {
+   "text": "14 }",
+   "bbox": [
+    140.814,
+    500.411454,
+    167.04285000000002,
+    508.481154
+   ],
+   "font": "GLBJJG+Times-Roman",
+   "font_size": 4.98,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "formula",
+   "role": "formula",
+   "role_confidence": 0.9,
+   "bbox": [
+    140.814,
+    500.411454,
+    167.04285000000002,
+    508.481154
+   ],
+   "font_size": 4.98,
+   "font_major": "GLBJJG+Times-Roman",
+   "multifont": true,
+   "reading_order": 4
+  },
+  "translation": {
+   "source_text": "14 }",
+   "translated_text": "14 }",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "preserved"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "preserve_float"
+  },
+  "kind": "formula"
+ },
+ {
+  "node_id": "p300_5",
+  "page_id": 300,
+  "primitive_index": 5,
+  "parser": {
+   "text": "21 }\n22 }",
+   "bbox": [
+    140.814,
+    412.733454,
+    167.04285000000002,
+    431.76515400000005
+   ],
+   "font": "GLBJJG+Times-Roman",
+   "font_size": 4.98,
+   "line_count": 2
+  },
+  "model": {
+   "kind": "code",
+   "role": "code",
+   "role_confidence": 0.92,
+   "bbox": [
+    140.814,
+    412.733454,
+    167.04285000000002,
+    431.76515400000005
+   ],
+   "font_size": 4.98,
+   "font_major": "GLBJJG+Times-Roman",
+   "multifont": true,
+   "reading_order": 5
+  },
+  "translation": {
+   "source_text": "21 }\n22 }",
+   "translated_text": "21 }\n22 }",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 2
+   },
+   "translation_status": "preserved"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "preserve_float"
+  },
+  "kind": "code"
+ },
+ {
+  "node_id": "p300_6",
+  "page_id": 300,
+  "primitive_index": 6,
+  "parser": {
+   "text": "FIGURE12.22",
+   "bbox": [
+    155.754,
+    392.5863784,
+    205.63090367999996,
+    401.3036784
+   ],
+   "font": "GLBJJJ+TradeGothic-Bold",
+   "font_size": 8.72,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "caption",
+   "role": "caption",
+   "role_confidence": 0.92,
+   "bbox": [
+    155.754,
+    392.5863784,
+    205.63090367999996,
+    401.3036784
+   ],
+   "font_size": 8.72,
+   "font_major": "GLBJJJ+TradeGothic-Bold",
+   "multifont": false,
+   "reading_order": 6
+  },
+  "translation": {
+   "source_text": "FIGURE12.22",
+   "translated_text": "FIGURE12.22",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "caption"
+ },
+ {
+  "node_id": "p300_7",
+  "page_id": 300,
+  "primitive_index": 7,
+  "parser": {
+   "text": "ThePeriodicnetwork.",
+   "bbox": [
+    155.754,
+    377.93211679999996,
+    237.50178337999998,
+    386.6494168
+   ],
+   "font": "GLBJJI+TradeGothic-Light",
+   "font_size": 8.72,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "paragraph",
+   "role": "body_text",
+   "role_confidence": 0.6,
+   "bbox": [
+    155.754,
+    377.93211679999996,
+    237.50178337999998,
+    386.6494168
+   ],
+   "font_size": 8.72,
+   "font_major": "GLBJJI+TradeGothic-Light",
+   "multifont": true,
+   "reading_order": 7
+  },
+  "translation": {
+   "source_text": "ThePeriodicnetwork.",
+   "translated_text": "ThePeriodicnetwork.",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "paragraph"
+ },
+ {
+  "node_id": "p300_8",
+  "page_id": 300,
+  "primitive_index": 8,
+  "parser": {
+   "text": "(cid:129) Ifthenumberofconcurrenttokensisgreaterthanthenumberofbalancers,then\nthepipelinebecomescloggedbecausetoomanytokensarriveateachbalancerat\nthesametime,resultinginper-balancercontention.\n(cid:129) Throughputismaximizedwhenthenumberoftokensisroughlyequaltothenum-",
+   "bbox": [
+    155.754,
+    310.63062998,
+    492.28863547999964,
+    356.6648158
+   ],
+   "font": "GLBJJG+Times-Roman",
+   "font_size": 9.96,
+   "line_count": 4
+  },
+  "model": {
+   "kind": "paragraph",
+   "role": "body_text",
+   "role_confidence": 0.6,
+   "bbox": [
+    155.754,
+    310.63062998,
+    492.28863547999964,
+    356.6648158
+   ],
+   "font_size": 9.96,
+   "font_major": "GLBJJG+Times-Roman",
+   "multifont": false,
+   "reading_order": 8
+  },
+  "translation": {
+   "source_text": "(cid:129) Ifthenumberofconcurrenttokensisgreaterthanthenumberofbalancers,then\nthepipelinebecomescloggedbecausetoomanytokensarriveateachbalancerat\nthesametime,resultinginper-balancercontention.\n(cid:129) Throughputismaximizedwhenthenumberoftokensisroughlyequaltothenum-",
+   "translated_text": "(cid:129) Ifthenumberofconcurrenttokensisgreaterthanthenumberofbalancers,then\nthepipelinebecomescloggedbecausetoomanytokensarriveateachbalancerat\nthesametime,resultinginper-balancercontention.\n(cid:129) Throughputismaximizedwhenthenumberoftokensisroughlyequaltothenum-",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 4
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "paragraph"
+ },
+ {
+  "node_id": "p300_9",
+  "page_id": 300,
+  "primitive_index": 9,
+  "parser": {
+   "text": "Ifanapplicationneedsacountingnetwork,thenthebestnetworksizetochooseisone\nthatensuresthatthenumberoftokenstraversingthebalanceratanytimeisroughly\nequaltothenumberofbalancers.",
+   "bbox": [
+    155.754,
+    253.04879449999993,
+    492.3344634399996,
+    287.0591183799999
+   ],
+   "font": "GLBJJG+Times-Roman",
+   "font_size": 9.96,
+   "line_count": 3
+  },
+  "model": {
+   "kind": "paragraph",
+   "role": "body_text",
+   "role_confidence": 0.6,
+   "bbox": [
+    155.754,
+    253.04879449999993,
+    492.3344634399996,
+    287.0591183799999
+   ],
+   "font_size": 9.96,
+   "font_major": "GLBJJG+Times-Roman",
+   "multifont": false,
+   "reading_order": 9
+  },
+  "translation": {
+   "source_text": "Ifanapplicationneedsacountingnetwork,thenthebestnetworksizetochooseisone\nthatensuresthatthenumberoftokenstraversingthebalanceratanytimeisroughly\nequaltothenumberofbalancers.",
+   "translated_text": "Ifanapplicationneedsacountingnetwork,thenthebestnetworksizetochooseisone\nthatensuresthatthenumberoftokenstraversingthebalanceratanytimeisroughly\nequaltothenumberofbalancers.",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 3
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "paragraph"
+ },
+ {
+  "node_id": "p300_10",
+  "page_id": 300,
+  "primitive_index": 10,
+  "parser": {
+   "text": "Countingnetworksprovideahighdegreeofpipelining,sothroughputislargelyin-\ndependentofnetworkdepth.Latency,however,doesdependonnetworkdepth.Of",
+   "bbox": [
+    155.754,
+    177.64625386,
+    492.3364559599997,
+    199.6327158
+   ],
+   "font": "GLBJJG+Times-Roman",
+   "font_size": 9.96,
+   "line_count": 2
+  },
+  "model": {
+   "kind": "paragraph",
+   "role": "body_text",
+   "role_confidence": 0.6,
+   "bbox": [
+    155.754,
+    177.64625386,
+    492.3364559599997,
+    199.6327158
+   ],
+   "font_size": 9.96,
+   "font_major": "GLBJJG+Times-Roman",
+   "multifont": true,
+   "reading_order": 10
+  },
+  "translation": {
+   "source_text": "Countingnetworksprovideahighdegreeofpipelining,sothroughputislargelyin-\ndependentofnetworkdepth.Latency,however,doesdependonnetworkdepth.Of",
+   "translated_text": "Countingnetworksprovideahighdegreeofpipelining,sothroughputislargelyin-\ndependentofnetworkdepth.Latency,however,doesdependonnetworkdepth.Of",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 2
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "paragraph"
+ },
+ {
+  "node_id": "p300_11",
+  "page_id": 300,
+  "primitive_index": 11,
+  "parser": {
+   "text": "2",
+   "bbox": [
+    452.97,
+    169.9750628,
+    456.7558,
+    177.5466628
+   ],
+   "font": "GLBJJG+Times-Roman",
+   "font_size": 9.96,
+   "line_count": 1
+  },
+  "model": {
+   "kind": "paragraph",
+   "role": "page_number",
+   "role_confidence": 0.7,
+   "bbox": [
+    452.97,
+    169.9750628,
+    456.7558,
+    177.5466628
+   ],
+   "font_size": 9.96,
+   "font_major": "GLBJJG+Times-Roman",
+   "multifont": true,
+   "reading_order": 11
+  },
+  "translation": {
+   "source_text": "2",
+   "translated_text": "2",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 1
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "paragraph"
+ },
+ {
+  "node_id": "p300_12",
+  "page_id": 300,
+  "primitive_index": 12,
+  "parser": {
+   "text": "thecountingnetworkswehaveseen,themostshallowhasdepth(cid:3)(log w).Can\nwedesignalogarithmic-depthcountingnetwork?Thegoodnewsisyes,suchnet-\nworksexist,butthebadnewsisthatforallknownconstructions,theconstantfactors\ninvolvedrendertheseconstructionsimpractical.",
+   "bbox": [
+    155.754,
+    129.56846266000002,
+    492.3454683199995,
+    175.66469272
+   ],
+   "font": "GLBJJG+Times-Roman",
+   "font_size": 9.96,
+   "line_count": 4
+  },
+  "model": {
+   "kind": "paragraph",
+   "role": "body_text",
+   "role_confidence": 0.6,
+   "bbox": [
+    155.754,
+    129.56846266000002,
+    492.3454683199995,
+    175.66469272
+   ],
+   "font_size": 9.96,
+   "font_major": "GLBJJG+Times-Roman",
+   "multifont": true,
+   "reading_order": 12
+  },
+  "translation": {
+   "source_text": "thecountingnetworkswehaveseen,themostshallowhasdepth(cid:3)(log w).Can\nwedesignalogarithmic-depthcountingnetwork?Thegoodnewsisyes,suchnet-\nworksexist,butthebadnewsisthatforallknownconstructions,theconstantfactors\ninvolvedrendertheseconstructionsimpractical.",
+   "translated_text": "thecountingnetworkswehaveseen,themostshallowhasdepth(cid:3)(log w).Can\nwedesignalogarithmic-depthcountingnetwork?Thegoodnewsisyes,suchnet-\nworksexist,butthebadnewsisthatforallknownconstructions,theconstantfactors\ninvolvedrendertheseconstructionsimpractical.",
+   "same": true,
+   "segmentation": {
+    "unit_kind": null,
+    "line_count": 4
+   },
+   "translation_status": "translated"
+  },
+  "layout": {
+   "target_bbox": null,
+   "render_path": "translate_refit"
+  },
+  "kind": "paragraph"
+ }
+]

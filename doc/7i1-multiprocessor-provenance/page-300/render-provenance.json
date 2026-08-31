@@ -1,0 +1,184 @@
+[
+ {
+  "source_node_id": "p300_0",
+  "render_object_ref": "R0",
+  "page": 300,
+  "object_type": "wrapped",
+  "final_bbox_v3": [
+   119.54,
+   695.75,
+   444.01,
+   706.77
+  ],
+  "font_size": 10.96,
+  "text": "288 CHAPTER12 Counting,sorting,anddistributedcoordination"
+ },
+ {
+  "source_node_id": "p300_1",
+  "render_object_ref": "R1",
+  "page": 300,
+  "object_type": "wrapped",
+  "final_bbox_v3": [
+   143.3,
+   631.9,
+   219.49,
+   639.97
+  ],
+  "font_size": 8.07,
+  "text": "2 Block[] block;"
+ },
+ {
+  "source_node_id": "p300_2",
+  "render_object_ref": "R2",
+  "page": 300,
+  "object_type": "wrapped",
+  "final_bbox_v3": [
+   170.28,
+   533.24,
+   311.49,
+   541.35
+  ],
+  "font_size": 8.07,
+  "text": "for (int i = 0; i < logSize; i++) {"
+ },
+ {
+  "source_node_id": "p300_3",
+  "render_object_ref": "R3",
+  "page": 300,
+  "object_type": "wrapped",
+  "final_bbox_v3": [
+   177.53,
+   522.28,
+   290.5,
+   530.39
+  ],
+  "font_size": 8.07,
+  "text": "block[i] = new Block(width);"
+ },
+ {
+  "source_node_id": "p300_4",
+  "render_object_ref": "R4",
+  "page": 300,
+  "object_type": "wrapped",
+  "final_bbox_v3": [
+   140.81,
+   500.41,
+   167.04,
+   508.48
+  ],
+  "font_size": 4.98,
+  "text": "14 }"
+ },
+ {
+  "source_node_id": "p300_5",
+  "render_object_ref": "R5",
+  "page": 300,
+  "object_type": "wrapped",
+  "final_bbox_v3": [
+   140.81,
+   412.73,
+   167.04,
+   431.77
+  ],
+  "font_size": 4.98,
+  "text": "21 }\n22 }"
+ },
+ {
+  "source_node_id": "p300_6",
+  "render_object_ref": "R6",
+  "page": 300,
+  "object_type": "wrapped",
+  "final_bbox_v3": [
+   155.75,
+   392.59,
+   205.63,
+   401.3
+  ],
+  "font_size": 8.72,
+  "text": "FIGURE12.22"
+ },
+ {
+  "source_node_id": "p300_7",
+  "render_object_ref": "R7",
+  "page": 300,
+  "object_type": "flow",
+  "final_bbox_v3": [
+   155.75,
+   377.93,
+   237.5,
+   386.65
+  ],
+  "font_size": 8.72,
+  "text": "ThePeriodicnetwork."
+ },
+ {
+  "source_node_id": "p300_8",
+  "render_object_ref": "R8",
+  "page": 300,
+  "object_type": "flow",
+  "final_bbox_v3": [
+   155.75,
+   310.63,
+   492.29,
+   356.66
+  ],
+  "font_size": 9.96,
+  "text": "(cid:129) Ifthenumberofconcurrenttokensisgreaterthanthenumberofbalancers,then\nthepipelinebecomescloggedbecausetoomanytokensarriveateachbalancerat\nthesametime,resultinginper-balancercontention.\n(cid:129) Throughputismaximizedwhenthenumberoftokensisroughlyequaltothenum-"
+ },
+ {
+  "source_node_id": "p300_9",
+  "render_object_ref": "R9",
+  "page": 300,
+  "object_type": "flow",
+  "final_bbox_v3": [
+   155.75,
+   253.05,
+   492.33,
+   287.06
+  ],
+  "font_size": 9.96,
+  "text": "Ifanapplicationneedsacountingnetwork,thenthebestnetworksizetochooseisone\nthatensuresthatthenumberoftokenstraversingthebalanceratanytimeisroughly\nequaltothenumberofbalancers."
+ },
+ {
+  "source_node_id": "p300_10",
+  "render_object_ref": "R10",
+  "page": 300,
+  "object_type": "flow",
+  "final_bbox_v3": [
+   155.75,
+   177.65,
+   492.34,
+   199.63
+  ],
+  "font_size": 9.96,
+  "text": "Countingnetworksprovideahighdegreeofpipelining,sothroughputislargelyin-\ndependentofnetworkdepth.Latency,however,doesdependonnetworkdepth.Of"
+ },
+ {
+  "source_node_id": "p300_11",
+  "render_object_ref": "R11",
+  "page": 300,
+  "object_type": "flow",
+  "final_bbox_v3": [
+   452.97,
+   169.98,
+   456.76,
+   177.55
+  ],
+  "font_size": 9.96,
+  "text": "2"
+ },
+ {
+  "source_node_id": "p300_12",
+  "render_object_ref": "R12",
+  "page": 300,
+  "object_type": "flow",
+  "final_bbox_v3": [
+   155.75,
+   129.57,
+   492.35,
+   175.66
+  ],
+  "font_size": 9.96,
+  "text": "thecountingnetworkswehaveseen,themostshallowhasdepth(cid:3)(log w).Can\nwedesignalogarithmic-depthcountingnetwork?Thegoodnewsisyes,suchnet-\nworksexist,butthebadnewsisthatforallknownconstructions,theconstantfactors\ninvolvedrendertheseconstructionsimpractical."
+ }
+]
