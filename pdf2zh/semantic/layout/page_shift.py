@@ -51,6 +51,10 @@ from pdf2zh.semantic.layout.page_flow import (
     detect_collisions_from_placements,
     placements_from_plan,
 )
+from pdf2zh.semantic.layout.packer import (
+    _entry_occupied_bottom_spill,
+    _glyph_excess_by_key,
+)
 from pdf2zh.semantic.layout.page_recovery import (
     BlockShiftDecision,
     PageRecoveryDecision,
@@ -196,7 +200,56 @@ def _rebuild_placement(p: BlockPlacement, resolved_bbox: tuple) -> BlockPlacemen
     )
 
 
-def _ordered_cascade_plan(placements, page_height: float) -> dict:
+def _recovery_draw_extent_by_key(plan) -> tuple[dict, dict]:
+    """``(excess_by_key, spill_by_key)`` — 7G-5 recovery-side draw-extent parity.
+
+    The recovery cascade's receiver-at-FINAL floor (7G-4) bounds a descending
+    block by the receiver's **resolved box top**.  But a block's REAL drawn
+    glyph top can rise above that box top — the settled baseline + a
+    conservative ascent pokes out of ``dst_box`` (single-line fragments whose
+    lines sit high in the box).  When recovery shifts ``L`` down to exactly
+    ``R``'s box top, ``L``'s words land on ``R``'s actual glyphs — the
+    residual ``recovery_introduced`` overlap on heavy books (report §15.5).
+
+    Returns two maps keyed by the placement key ``(page, block_index)``:
+
+    - ``excess_by_key`` — the receiver's TOP glyph excess (``_glyph_excess``,
+      command blocks only; command-less blocks have no read geometry → 0);
+    - ``spill_by_key`` — the movable block's BOTTOM spill for COMMAND-LESS
+      blocks only (legacy ``_insert_text_wrapped`` fallback whose wrapped
+      extent dips below ``dst_box``).  A command block's drawn bottom is ALREADY
+      folded into ``resolved_bbox`` by 7F-8b's ``_resolve_bbox``, so applying
+      its spill again would double-count — it is deliberately excluded.
+
+    Pure read of the settled plan (no re-layout, no renderer); the maps only
+    affect the AMOUNT of an already-decided move, never the set of moved
+    blocks (the §13.3 "extend resolved_bbox" rejection stays intact).
+    """
+    excess_by_key = _glyph_excess_by_key(plan)
+    spill_by_key: dict = {}
+    counts: dict[int, int] = {}
+    for e in plan or []:
+        if not isinstance(e, dict):
+            continue
+        page = int(e.get("page") or 0)
+        idx = counts.get(page, 0)
+        counts[page] = idx + 1
+        payload = e.get("render_payload")
+        cmds = payload.get("commands") if isinstance(payload, dict) else None
+        if isinstance(cmds, list) and cmds:
+            continue  # command block — drawn bottom already in resolved_bbox
+        sp = _entry_occupied_bottom_spill(e)
+        if sp > 0.0:
+            spill_by_key[(page, idx)] = sp
+    return excess_by_key, spill_by_key
+
+
+def _ordered_cascade_plan(
+    placements,
+    page_height: float,
+    excess_by_key: Optional[dict] = None,
+    spill_by_key: Optional[dict] = None,
+) -> dict:
     """Ordered two-phase SHIFT_DOWN plan — 7G-4 (receiver-at-final-position).
 
     Returns ``{block_index: shift}`` (v3 y-up: positive = down) for a single
@@ -222,6 +275,14 @@ def _ordered_cascade_plan(placements, page_height: float) -> dict:
     final position already reflects R's own move, so L may descend to R's new
     top.  But a block is never shoved onto a receiver that merely sits below;
     THAT is what turns the recovery-widened gap into re-introduced overlap.
+
+    **7G-5 parity (``excess_by_key`` / ``spill_by_key``).**  The floor is the
+    receiver's REAL drawn glyph top — ``final_top + glyph_excess`` (a
+    single-line fragment whose settled baseline + ascent pokes above its
+    ``dst_box`` top must not be landed on); and a command-less movable block's
+    own wrapped bottom spill reduces the cap so it never descends past the
+    neighbour below it.  Absent maps are the exact 7G-4 behaviour (zero
+    excess / zero spill → floor = box top, cap = box bottom).
 
     Page-bottom and preserved blocks are immovable floors: a movable block's
     shift is also bounded so it never crosses the page bottom edge.
@@ -286,8 +347,22 @@ def _ordered_cascade_plan(placements, page_height: float) -> dict:
             if not _boxes_h_overlap(p.resolved_bbox, q.resolved_bbox):
                 continue                       # different column is not a floor
             q_final_top = q.top - final.get(q.block_index, 0.0)
+            # 7G-5: the floor is the receiver's REAL drawn glyph top, not its
+            # resolved box top — a block whose settled lines rise above
+            # ``dst_box`` must not be landed on (single-line fragment parity).
+            if excess_by_key:
+                q_ex = max(0.0, float(excess_by_key.get(
+                    (q.page, q.block_index), 0.0) or 0.0))
+                q_final_top += q_ex
             bound_top = max(bound_top, q_final_top)
-        cap = max(0.0, p.bottom - bound_top)
+        # 7G-5: a command-less movable block's own wrapped glyphs may dip
+        # below its ``dst_box`` bottom; the cap clears the REAL drawn bottom
+        # (never double-counts a command block — 7F-8b already folded it in).
+        occ_bottom = p.bottom
+        if spill_by_key:
+            occ_bottom -= max(0.0, float(spill_by_key.get(
+                (p.page, p.block_index), 0.0) or 0.0))
+        cap = max(0.0, occ_bottom - bound_top)
         final[p.block_index] = round(min(intended.get(p.block_index, 0.0), cap), 2)
         processed.append(p)
     return {bi: s for bi, s in final.items() if s > _TOL}
@@ -326,6 +401,12 @@ def resolve_page_shifts(
     current = {key: p for key, p in zip(order, initial)}
     bound = max_passes if max_passes is not None else len(initial) + 1
     report = ShiftExecutionReport(max_passes=max(bound, 1))
+    # 7G-5: recovery-side drawn-extent parity — the receiver-at-FINAL floor is
+    # raised to the receiver's REAL drawn glyph top (single-line fragments),
+    # and a command-less movable block's own wrapped bottom spill clears the
+    # cap.  Computed once from the settled plan (pure read); it only changes
+    # the AMOUNT of an already-decided move, never the moved set.
+    excess_by_key, spill_by_key = _recovery_draw_extent_by_key(plan)
 
     for i in range(bound):
         collisions = detect_collisions_from_placements(
@@ -350,7 +431,9 @@ def resolve_page_shifts(
         for p in current.values():
             plan_by_page.setdefault(p.page, []).append(p)
         for pg, page_blocks in plan_by_page.items():
-            by_page[pg] = _ordered_cascade_plan(page_blocks, page_h.get(pg) or 0.0)
+            by_page[pg] = _ordered_cascade_plan(
+                page_blocks, page_h.get(pg) or 0.0,
+                excess_by_key=excess_by_key, spill_by_key=spill_by_key)
         # apply the ordered plan, but only for blocks that ARE a decided
         # SHIFT_DOWN (PRESERVE / NEXT_PAGE anchors stay put)
         decided = {

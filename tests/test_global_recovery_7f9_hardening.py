@@ -57,11 +57,21 @@ def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None):
 
 
 def _flow(block_id, page, x0, y0, x1, y1):
-    """Flow entry with a single settled command line at its top edge."""
+    """Flow entry with a single settled command line inside its box.
+
+    7G-5 (recovery-side draw-extent parity): the cascade floor is the
+    receiver's REAL glyph top (settled baseline + ascent).  A well-formed
+    block's baseline sits INSIDE its box, so the command baseline is placed
+    at ``top - 9`` (ascent 0.8*10 = 8 → glyph top = top - 1 < top → zero
+    excess, the 7G-2.1 convention).  Tiny boxes (height < 12) center the
+    line so the drawn bottom never pokes below the box.
+    """
+    box_h = float(y1) - float(y0)
+    cmd_y = float(y1) - 9.0 if box_h >= 12.0 else (float(y0) + float(y1)) / 2.0
     payload = {
         "kind": "flow", "font_size": 10.0,
         "commands": [{"kind": "flow-text", "text": "t", "x": float(x0),
-                      "y": float(y1), "width": 100.0, "line": 0,
+                      "y": cmd_y, "width": 100.0, "line": 0,
                       "is_last": True, "overflow": False}],
     }
     return _entry(block_id, page, "flow", x0, y0, x1, y1, payload=payload)

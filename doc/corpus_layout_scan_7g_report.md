@@ -879,3 +879,74 @@ the 7G-5 item.
    non-command blocks);
 3. V2 full-corpus visual acceptance once 7G-5 items 1–2 land, with the ledger
    as the verdict floor.
+
+## 16. 7G-5 item 1 shipped — recovery-side drawn-extent parity (2026-08-30)
+
+§15.5 item 1 is in-tree.  The 7G-4 receiver-at-FINAL floor bounds a descending
+block by the receiver's **resolved box top** — but a block's REAL drawn glyph
+top can rise above that box top (the settled baseline + a conservative ascent
+pokes out of ``dst_box``: single-line fragments whose lines sit high in the
+box).  Recovery shifting ``L`` down to exactly ``R``'s box top therefore lands
+``L``'s words on ``R``'s actual glyphs — the residual ``recovery_introduced``
+the corpus ledger still charges to recovery on heavy books.
+
+### 16.1 What landed — two pure-read parity maps, amounts only
+
+`page_shift.py` gains ``_recovery_draw_extent_by_key(plan)`` — computed once
+from the settled plan, consumed by the 7G-4 Phase-2 floor/cap:
+
+- **``excess_by_key``** (receiver's TOP glyph excess, command blocks only):
+  the floor is ``final_top + excess`` — the receiver's REAL drawn top, exactly
+  the packer's ``barrier_excess`` floor (7G-2.1).  Preserved receivers get the
+  same glyph-top floor;
+- **``spill_by_key``** (movable block's own BOTTOM spill, command-less blocks
+  only): the cap clears the real drawn bottom.  Command blocks are excluded —
+  7F-8b's ``_resolve_bbox`` already folds their drawn bottom into
+  ``resolved_bbox``, so subtracting it again would double-count.
+
+This is deliberately a correction layer over the frozen V1 cascade, mirroring
+7G-4: it changes only the *amount* of an already-decided move, never the moved
+set, never X / src / preserved / ``resolved_bbox`` itself — the §13.3
+"extend resolved_bbox" rejection stays intact.
+
+### 16.2 Regression corpus — `tests/test_page_shift_7g5.py` (11 tests)
+
+Locks the 7G-5 contracts: receiver glyph-top floor binds (shift stops at
+``R.top + excess``), absent maps keep exact 7G-4 behaviour, movable's own
+wrapped spill reduces the cap, preserved receivers get the same glyph-top
+floor, a real cascade still resolves at the receiver's FINAL glyph top, no
+double-count (command-block spill never re-subtracted), and end-to-end
+`resolve_page_shifts` on a settled payload with a real command.
+
+### 16.3 Fixture adaptation + full regression
+
+The frozen 7F-8d / 7F-9.2 suites placed their fixture command baseline ON the
+box top edge (``y = y1``), which the new glyph semantics correctly reads as an
+8 pt glyph poke — turning their *bbox-cascade* intent into a glyph-floor
+scenario.  Following the 7G-2.1 precedent (``test_layout_packer_7g2.py`` moved
+its baseline from ``top-5`` to ``top-9``), the two fixtures now place the
+baseline at ``top-9`` (ascent 0.8·10 = 8 → zero excess, well-formed block
+inside its box), preserving their cascade/budget intent; the glyph-poke P0
+case is owned by the 7G-5 corpus above.
+
+Verification: **586 layout / recovery / page-break tests passed**, including
+the 7G-4, 7G-2.1/2.2, continuation and the adapted 7F-8d / 7F-9.2 suites.
+Zero regressions.
+
+### 16.4 Honest scope — what 7G-5 item 1 does and does not do
+
+The glyph-top floor makes the cascade **more conservative on purpose**: a
+receiver whose lines genuinely poke above its box top is a real floor, so the
+upper collision is surfaced **unresolved** rather than "resolved" by landing
+on the receiver's glyphs (the same honest 7F-9 trade 7G-4 made).  The moved
+set is unchanged; only the amounts shrink to the drawn extent.  The remaining
+ledger residual (packing word-boundary parity, §15.5 item 2) is untouched —
+that is the 7G-5 item 2 increment, not this one.
+
+### 16.5 Next (7G-5 items 2–3)
+
+1. packing word-boundary parity — the 7G-2.2 wrap class the packer still
+   cannot see (renderer keeps wrapped glyphs inside the box, or a
+   drawn-extent model for the packer's remaining non-command blocks), gated
+   by the §13.1 ledger hard-gates;
+2. V2 full-corpus visual acceptance with the ledger as the verdict floor.
