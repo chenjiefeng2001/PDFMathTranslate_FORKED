@@ -2,6 +2,11 @@
 
 **Status: COMPLETE (evidence-only, zero production changes)**
 
+**Declared boundary: Annotation preservation = UNSUPPORTED / out of scope.**
+This is a *requirements boundary* recorded by the pipeline, not a defect the
+forensic system failed to detect. The corpus below stays as the standing
+regression fixture for any future unlock (see section 6).
+
 ## 1. Question
 
 Where do PDF annotations (highlight / underline / link / text) disappear in the
