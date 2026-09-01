@@ -14,6 +14,8 @@
     - unknown glyph names (``g1``, ``.notdef``) never fabricate Unicode.
 """
 
+import pytest
+
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfinterp import PDFPageInterpreter, PDFResourceManager
 from pdfminer.pdfpage import PDFPage
@@ -26,7 +28,18 @@ from pdf2zh.cid_recovery import (
 )
 from pdf2zh.converter import PDFConverterEx
 
+from pathlib import Path
+
 BOOK = "tests/file/The Art of Multiprocessor Programming, 2e.pdf"
+
+
+# 大 PDF fixture 不入库（.gitignore 排除 *.pdf）—— CI clean checkout 没有该
+# 文件时必须优雅 skip，而不是 FileNotFoundError 使整个 release gate 变红。
+# 本地有 fixture 时这些测试照常执行（corpus 取证依赖）。
+requires_book = pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[1] / BOOK).exists(),
+    reason=f"fixture not present in this checkout: {BOOK}",
+)
 
 
 # ── 7I-3B: glyph-name → Unicode (AGL + math-variant, never fabricates) ─────
@@ -149,6 +162,7 @@ def _chars_of(conv: PDFConverterEx):
     return chars
 
 
+@requires_book
 def test_converter_recovers_theta_keeps_unresolvable_bullet():
     conv = _run_page_300_converter()
     chars = _chars_of(conv)
@@ -169,6 +183,7 @@ def test_converter_recovers_theta_keeps_unresolvable_bullet():
 # ── 7I-3B: forensic snapshot reflects the same character normalization ─────
 
 
+@requires_book
 def test_capture_source_chain_recovers_page_300():
     from dual_forensics.diff import Trace
     from dual_forensics.defect import F4, run_defect_detectors
@@ -290,6 +305,7 @@ def test_f4_no_finding_when_clean():
     assert not [f for f in run_defect_detectors([trace]) if f.defect_id == F4]
 
 
+@requires_book
 def test_extract_pages_recovering_matches_extract_pages_semantics():
     """The snapshot helper must still parse a plain PDF (no (cid:) impact)."""
     from pdfminer.high_level import extract_pages

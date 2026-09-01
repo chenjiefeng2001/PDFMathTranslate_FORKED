@@ -179,6 +179,11 @@ def test_books_are_page_level_text_high_risk():
         "Second Edition (Yvette Kosmann-Schwarzbach) "
         "(z-library.sk, 1lib.sk, z-lib.sk).pdf",
     ]
+    # 大 PDF fixture 不入库（.gitignore 排除 *.pdf）；CI clean checkout 没有
+    # 这些文件时优雅 skip，本地 corpus 取证时照常执行。
+    missing = [b for b in books if not (root / b).exists()]
+    if missing:
+        pytest.skip(f"fixtures not present in this checkout: {missing}")
     for b in books:
         doc = pymupdf.open(str(root / b))
         page = doc[2]  # a body-ish page
