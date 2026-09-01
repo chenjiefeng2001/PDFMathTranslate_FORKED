@@ -4,7 +4,7 @@
   "latch_tests": {
    "command": "C:\\Python313\\python.exe -m pytest tests/test_xobj_unicode_7i7.py tests/test_text_layer_integrity_7j3a.py tests/test_detector_coverage_7i4.py tests/test_evidence_inventory_7i6a.py tests/test_evidence_wiring_7i6b.py tests/test_cid_recovery.py tests/test_layout_policy_contract_7i5b.py tests/test_eligibility_7i6c.py tests/test_case_b_token_7j3c.py -q",
    "returncode": 0,
-   "summary": "95 passed in 7.28s",
+   "summary": "95 passed in 12.27s",
    "ok": true
   },
   "corpus_baseline": {
