@@ -369,6 +369,14 @@ def run_babeldoc_translation(
 
     apply_babeldoc_formula_protect()
 
+    # 7I-7C: BabelDOC 0.6.x ``TypesettingUnit`` 对 unicode 单元断言 xobj_id
+    # 非 None，但 page-level 文本解析后可能为 None → 任务失败。此处把 None
+    # 归一化为 BabelDOC 自身的 "-1"（无 XObject）哨兵。upstream workaround：
+    # 上游修复进入依赖版本后删除本 shim。
+    from pdf2zh.babeldoc_xobj_shim import apply_babeldoc_xobj_shim
+
+    apply_babeldoc_xobj_shim()
+
     from pdf2zh.converter_docx import convert_to_pdf, is_convertible
 
     from pdf2zh.high_level import download_remote_fonts
