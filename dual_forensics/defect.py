@@ -646,45 +646,98 @@ def _detect_f9_text_visual_mismatch_page(
     """F9: the rendered text layer vs the visual layer disagree.
 
     Evidence = ``dual_page["content_stream"]`` from
-    :func:`.pdf_inspector.content_stream_anomaly`:
-      - present + ``anomaly``      → FAIL (FDS render/pdf);
-      - present + no anomaly       → PASS (emitter clean);
-      - absent / not checked       → SKIP (nothing measurable), never PASS.
+    :func:`.pdf_inspector.content_stream_anomaly` (7H-2B emitter sensor)
+    **plus** ``dual_page["text_layer"]`` from
+    :func:`.pdf_inspector.text_layer_integrity` (7J-3A sensor):
 
-    7I-6B boundary: this only *wires* the 7H-2B emitter sensor into the
-    coverage contract — the sensor itself is unchanged.
+      - content-stream syntax anomaly  → FAIL (FDS render/pdf);
+      - text-layer NUL corruption      → FAIL (FDS render), but **only** when
+        cross-stage evidence supports it (see contract below);
+      - both clean                     → PASS;
+      - neither inspectable            → SKIP (nothing measurable), never PASS.
+
+    7J-3A contract (locked): ``NUL/mojibake ≠ automatic corruption``.  A NUL
+    count alone is not FAIL: the page must also carry translated content (a
+    render-stage corruption of *passthrough or translated* text) so a
+    legitimate binary/control char in an exotic font cannot be mislabelled.
+    Pages with no translated text keep the signal as evidence but stay SKIP.
     """
     findings: List[DefectFinding] = []
-    cs = (
-        (dual_page or {}).get("content_stream") if isinstance(dual_page, dict) else None
+    dp = dual_page if isinstance(dual_page, dict) else {}
+    cs = (dp.get("content_stream") or {}) or {}
+    tl = (dp.get("text_layer") or {}) or {}
+    cs_checked = bool(cs.get("checked"))
+    tl_checked = bool(tl.get("checked"))
+    if not cs_checked and not tl_checked:
+        return findings, 0  # no inspectable evidence -> SKIP
+
+    page = traces[0].page if traces else dp.get("page", 0)
+
+    # 7J-3A cross-stage gate for the text-layer signal: the page must have
+    # translated content for a render-stage NUL to be attributable.  Without
+    # it the corruption suspect is recorded but not FAILed (SKIP semantics:
+    # evidence exists, verdict not established).
+    translated_present = any(
+        (getattr(t, "translated_text", None) or "").strip() for t in traces
     )
-    cs = cs or {}
-    if not cs.get("checked"):
-        return findings, 0  # no inspectable content stream -> SKIP
-    if not cs.get("anomaly"):
-        return findings, 1  # scanner ran, emitter clean -> PASS
-    page = traces[0].page if traces else (dual_page or {}).get("page", 0)
-    verdicts = {s: None for s in STAGES}
-    verdicts["source"] = "PASS"
-    verdicts["parser"] = "PASS"
-    verdicts["model"] = "PASS"
-    verdicts["translation"] = "PASS"
-    verdicts["layout"] = "PASS"
-    verdicts["render"] = "FAIL"
-    findings.append(
-        _fin(
-            verdicts,
-            F9,
-            f"p{page}_page",
-            page,
-            "renderer emitted a malformed numeric token into the page stream",
-            {
-                "mupdf_syntax_error": list(cs.get("sample") or [])[:5],
-                "source": cs.get("source"),
-                "confidence": "medium",
-            },
+    nul = int(tl.get("nul_chars") or 0) if tl_checked else 0
+    tl_corrupt = tl_checked and bool(tl.get("corruption_suspect")) and nul > 0
+
+    if cs.get("anomaly"):
+        verdicts = {s: None for s in STAGES}
+        verdicts["source"] = "PASS"
+        verdicts["parser"] = "PASS"
+        verdicts["model"] = "PASS"
+        verdicts["translation"] = "PASS"
+        verdicts["layout"] = "PASS"
+        verdicts["render"] = "FAIL"
+        findings.append(
+            _fin(
+                verdicts,
+                F9,
+                f"p{page}_page",
+                page,
+                "renderer emitted a malformed numeric token into the page stream",
+                {
+                    "mupdf_syntax_error": list(cs.get("sample") or [])[:5],
+                    "source": cs.get("source"),
+                    "confidence": "medium",
+                },
+            )
         )
-    )
+        return findings, 1
+
+    if tl_corrupt and translated_present:
+        verdicts = {s: None for s in STAGES}
+        verdicts["source"] = "PASS"
+        verdicts["parser"] = "PASS"
+        verdicts["model"] = "PASS"
+        verdicts["translation"] = "PASS"
+        verdicts["layout"] = "PASS"
+        verdicts["render"] = "FAIL"
+        findings.append(
+            _fin(
+                verdicts,
+                F9,
+                f"p{page}_page",
+                page,
+                "text layer contains NUL corruption (ToUnicode / lost code point)",
+                {
+                    "nul_chars": nul,
+                    "text_layer_samples": list(tl.get("samples") or [])[:3],
+                    "cross_stage": {"translated_present": True},
+                    "confidence": "medium",
+                },
+            )
+        )
+        return findings, 1
+
+    if tl_corrupt and not translated_present:
+        # 7J-3A: evidence exists but cross-stage attribution is unavailable.
+        # Keep it SKIP (evaluated=0) — never a fabricated PASS nor FAIL.
+        return findings, 0
+
+    # scanner(s) ran, everything clean -> PASS
     return findings, 1
 
 

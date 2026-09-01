@@ -204,6 +204,54 @@ def content_stream_anomaly(doc: pymupdf.Document, pno: int) -> dict:
     }
 
 
+def text_layer_integrity(doc: pymupdf.Document, pno: int) -> dict:
+    """Scan the extracted text layer for NUL / mojibake corruption (7J-3A).
+
+    The 7J-2 forensics found two corruption families invisible to MuPDF
+    syntax-error scanning (Case A: ``/ToUnicode`` CID-space mismatch on
+    passthrough text; Case B: lost code points → ``\x00`` in translated
+    spans).  Both destroy the *text layer* while the visual glyphs stay
+    correct and MuPDF reports no syntax error.
+
+    This sensor only *reports* suspicious signals with their count and a
+    couple of samples; it never auto-classifies a page as corrupt — the F9
+    detector decides FAIL vs SKIP using cross-stage evidence (7J-3A
+    contract: NUL/mojibake ≠ automatic corruption).
+
+    Signals (7J-2 corpus):
+      - NUL chars (``\x00``) — footer CMap mismatch and lost code points;
+      - a CJK span that is actually GBK-mojibake of an ASCII footer is not
+        distinguishable from real CJK at the text layer alone, so we count
+        NUL + replacement/control chars and leave mojibake to the
+        content-stream / cross-stage evidence.
+
+    Returns::
+
+        {"checked": bool, "nul_chars": int, "samples": [...up to 3...]}
+    """
+    try:
+        text = doc[pno].get_text()
+    except Exception:  # noqa: BLE001
+        return {"checked": False, "nul_chars": 0, "samples": []}
+    nul = text.count("\x00")
+    samples = []
+    if nul:
+        idx = 0
+        for _ in range(min(3, nul)):
+            idx = text.find("\x00", idx)
+            if idx < 0:
+                break
+            ctx = text[max(0, idx - 25) : idx + 25].replace("\n", " ")
+            samples.append(f"...{ctx}...")
+            idx += 1
+    return {
+        "checked": True,
+        "nul_chars": nul,
+        "samples": samples,
+        "corruption_suspect": nul > 0,
+    }
+
+
 def inspect_page(doc: pymupdf.Document, pno: int, page_height: float) -> Dict[str, Any]:
     """Assemble the ``render``+``pdf`` evidence for one target page."""
     texts = inspect_page_text(doc, pno)
@@ -221,6 +269,7 @@ def inspect_page(doc: pymupdf.Document, pno: int, page_height: float) -> Dict[st
         "text_runs": texts,
         "drawings": page_drawings(doc, pno),
         "content_stream": content_stream_anomaly(doc, pno),
+        "text_layer": text_layer_integrity(doc, pno),
     }
 
 
@@ -228,5 +277,6 @@ __all__ = [
     "inspect_page_text",
     "page_drawings",
     "content_stream_anomaly",
+    "text_layer_integrity",
     "inspect_page",
 ]
