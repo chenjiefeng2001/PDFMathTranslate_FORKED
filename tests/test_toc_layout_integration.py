@@ -80,7 +80,9 @@ class TestLayoutTocEntry(unittest.TestCase):
     def test_geometry_passthrough_verbatim(self):
         r = layout_toc_entry(
             _entry(title_x=123.0, page_x=456.0, level=2),
-            measure=_measure, size=_SIZE, y=700.0,
+            measure=_measure,
+            size=_SIZE,
+            y=700.0,
             translated_title="Introduction",
         )
         self.assertEqual(r.title_x, 123.0)
@@ -96,11 +98,15 @@ class TestLayoutTocEntry(unittest.TestCase):
     def test_leader_shrinks_but_page_x_never_moves(self):
         short = layout_toc_entry(
             _entry(title_only="Intro", page_x=500.0),
-            measure=_measure, size=_SIZE, translated_title="Intro",
+            measure=_measure,
+            size=_SIZE,
+            translated_title="Intro",
         )
         long = layout_toc_entry(
             _entry(title_only="A much much longer translated title", page_x=500.0),
-            measure=_measure, size=_SIZE, translated_title="A much much longer translated title",
+            measure=_measure,
+            size=_SIZE,
+            translated_title="A much much longer translated title",
         )
         self.assertEqual(short.page_x, long.page_x)
         self.assertEqual(short.page_x, 500.0)
@@ -116,7 +122,9 @@ class TestLayoutTocEntry(unittest.TestCase):
     def test_no_leader_never_forces_dots(self):
         r = layout_toc_entry(
             _entry(leader_present=False, leader=""),
-            measure=_measure, size=_SIZE, translated_title="Intro",
+            measure=_measure,
+            size=_SIZE,
+            translated_title="Intro",
         )
         self.assertIsNone(r.leader)
         cmds = toc_layout_commands(r)
@@ -127,8 +135,11 @@ class TestLayoutTocEntry(unittest.TestCase):
         # 极端标题才显式 overflow（page_x 仍不移动）。
         r = layout_toc_entry(
             _entry(title_x=72.0, page_x=100.0, leader_present=False),
-            measure=_measure, size=_SIZE,
-            translated_title=("This title is far too long for the narrow column " * 3).strip(),
+            measure=_measure,
+            size=_SIZE,
+            translated_title=(
+                "This title is far too long for the narrow column " * 3
+            ).strip(),
         )
         self.assertTrue(r.overflow)
         # leader 不再发射，page 仍钉在 page_x —— 明确 overflow 而非静默
@@ -141,8 +152,11 @@ class TestLayoutTocEntry(unittest.TestCase):
         """7F-5b：长标题在 extra-line 预算内 → 多行 WRAP，overflow=False。"""
         r = layout_toc_entry(
             _entry(title_x=72.0, page_x=500.0),
-            measure=_measure, size=_SIZE,
-            translated_title=("A much longer translated title that now wraps into several lines " * 2).strip(),
+            measure=_measure,
+            size=_SIZE,
+            translated_title=(
+                "A much longer translated title that now wraps into several lines " * 2
+            ).strip(),
         )
         self.assertGreaterEqual(r.line_count, 2)
         self.assertFalse(r.overflow)
@@ -150,7 +164,9 @@ class TestLayoutTocEntry(unittest.TestCase):
 
     def test_page_number_preserved_never_translated_here(self):
         r = layout_toc_entry(
-            _entry(page_number="42"), measure=_measure, size=_SIZE,
+            _entry(page_number="42"),
+            measure=_measure,
+            size=_SIZE,
             translated_title="Intro",
         )
         self.assertEqual(_cmd(toc_layout_commands(r), "page")["text"], "42")
@@ -160,8 +176,12 @@ class TestLayoutTocMultiline(unittest.TestCase):
     def test_continuation_anchors_below_first_line(self):
         r = layout_toc_entry(
             _entry(title_x=72.0, page_x=500.0, continuation=["continues here"]),
-            measure=_measure, size=_SIZE, y=700.0, line_height=14.0,
-            translated_title="A long title", translated_continuation=["continues here"],
+            measure=_measure,
+            size=_SIZE,
+            y=700.0,
+            line_height=14.0,
+            translated_title="A long title",
+            translated_continuation=["continues here"],
         )
         self.assertEqual(len(r.continuation), 1)
         cont = r.continuation[0]
@@ -172,10 +192,18 @@ class TestLayoutTocMultiline(unittest.TestCase):
 
     def test_multiline_page_number_stays(self):
         r = layout_toc_entry(
-            _entry(title_x=72.0, page_x=500.0, page_number="5",
-                   continuation=["line two", "line three"]),
-            measure=_measure, size=_SIZE, y=700.0, line_height=14.0,
-            translated_title="First line", translated_continuation=["line two", "line three"],
+            _entry(
+                title_x=72.0,
+                page_x=500.0,
+                page_number="5",
+                continuation=["line two", "line three"],
+            ),
+            measure=_measure,
+            size=_SIZE,
+            y=700.0,
+            line_height=14.0,
+            translated_title="First line",
+            translated_continuation=["line two", "line three"],
         )
         self.assertEqual(len(r.continuation), 2)
         # 延续行逐行下移
@@ -189,23 +217,45 @@ class TestNestedTocEntries(unittest.TestCase):
     def test_title_x_comes_from_node_not_level(self):
         """title_x(1) < title_x(1.1) < title_x(1.1.1) 且逐字来自节点。"""
         nodes = [
-            _entry(title="1 Intro", number="1", title_only="Intro", level=0, title_x=72.0),
-            _entry(title="1.1 Background", number="1.1", title_only="Background", level=1, title_x=96.0),
-            _entry(title="1.1.1 Deep", number="1.1.1", title_only="Deep", level=2, title_x=120.0),
+            _entry(
+                title="1 Intro", number="1", title_only="Intro", level=0, title_x=72.0
+            ),
+            _entry(
+                title="1.1 Background",
+                number="1.1",
+                title_only="Background",
+                level=1,
+                title_x=96.0,
+            ),
+            _entry(
+                title="1.1.1 Deep",
+                number="1.1.1",
+                title_only="Deep",
+                level=2,
+                title_x=120.0,
+            ),
         ]
         xs = []
         for n in nodes:
-            r = layout_toc_entry(n, measure=_measure, size=_SIZE, translated_title=n["title_only"])
+            r = layout_toc_entry(
+                n, measure=_measure, size=_SIZE, translated_title=n["title_only"]
+            )
             num = [c for c in toc_layout_commands(r) if c["kind"] == "number"]
             xs.append(num[0]["x"] if num else r.title_x)
         self.assertEqual(xs, [72.0, 96.0, 120.0])
         self.assertEqual(xs, sorted(xs))
         # 与 level 无函数关系：同 level 不同 x 也存在（不靠 level 计算）
         r1 = layout_toc_entry(
-            _entry(level=1, title_x=88.0), measure=_measure, size=_SIZE, translated_title="A"
+            _entry(level=1, title_x=88.0),
+            measure=_measure,
+            size=_SIZE,
+            translated_title="A",
         )
         r2 = layout_toc_entry(
-            _entry(level=1, title_x=140.0), measure=_measure, size=_SIZE, translated_title="B"
+            _entry(level=1, title_x=140.0),
+            measure=_measure,
+            size=_SIZE,
+            translated_title="B",
         )
         self.assertEqual(r1.title_x, 88.0)
         self.assertEqual(r2.title_x, 140.0)
@@ -214,7 +264,9 @@ class TestNestedTocEntries(unittest.TestCase):
 class TestBlockTocPayloadTranslation(unittest.TestCase):
     def _block(self, entries):
         page = PageModel(page_num=1)
-        host = BlockModel(text="TOC placeholder", kind="paragraph", x0=40, y0=40, x1=500, y1=200)
+        host = BlockModel(
+            text="TOC placeholder", kind="paragraph", x0=40, y0=40, x1=500, y1=200
+        )
         page.blocks.append(host)
         nodes = []
         for e in entries:
@@ -242,8 +294,17 @@ class TestBlockTocPayloadTranslation(unittest.TestCase):
             calls.append(s)
             return "译_" + s
 
-        block = self._block([_entry(title="1 Introduction", number="1", title_only="Introduction",
-                                    page_number="12", leader="..............")])
+        block = self._block(
+            [
+                _entry(
+                    title="1 Introduction",
+                    number="1",
+                    title_only="Introduction",
+                    page_number="12",
+                    leader="..............",
+                )
+            ]
+        )
         payload = build_block_toc_payload(block, translate=tr, size=_SIZE)
         self.assertEqual(calls, ["Introduction"])
         self.assertTrue(payload["commands"])
@@ -253,13 +314,17 @@ class TestBlockTocPayloadTranslation(unittest.TestCase):
 
     def test_commands_json_safe_and_translated(self):
         block = self._block([_entry(title_only="Introduction", page_number="12")])
-        payload = build_block_toc_payload(block, translate=lambda s: "译_" + s, size=_SIZE)
+        payload = build_block_toc_payload(
+            block, translate=lambda s: "译_" + s, size=_SIZE
+        )
         json.dumps(payload)
         joined = "".join(c["text"] for c in payload["commands"] if c["kind"] == "title")
         self.assertIn("译_Introduction", joined)
 
     def test_no_geometry_reinference_in_payload(self):
-        block = self._block([_entry(title_only="Intro", page_number="7", title_x=99.0, page_x=520.0)])
+        block = self._block(
+            [_entry(title_only="Intro", page_number="7", title_x=99.0, page_x=520.0)]
+        )
         payload = build_block_toc_payload(block, translate=lambda s: s, size=_SIZE)
         num = [c for c in payload["commands"] if c["kind"] == "number"]
         title = [c for c in payload["commands"] if c["kind"] == "title"]

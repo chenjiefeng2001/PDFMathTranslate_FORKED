@@ -13,8 +13,8 @@ import inspect
 
 from pdf2zh.semantic.layout.measure import measure_text, measure_text_estimate
 
-
 # -- 6. CJK measurement ---------------------------------------------------
+
 
 def test_cjk_measures_wider_than_latin():
     """Same number of glyphs: CJK (full-width) is wider than Latin."""
@@ -27,12 +27,13 @@ def test_cjk_measures_wider_than_latin():
 def test_fullwidth_vs_halfwidth():
     w_cjk = measure_text("字", font_size=12.0)
     w_asc = measure_text("a", font_size=12.0)
-    assert w_cjk == 12.0          # ~1em
-    assert w_asc == 6.0           # ~0.5em
+    assert w_cjk == 12.0  # ~1em
+    assert w_asc == 6.0  # ~0.5em
     assert w_cjk > w_asc
 
 
 # -- 7. empty text measurement --------------------------------------------
+
 
 def test_empty_text_measures_zero():
     assert measure_text("") == 0.0
@@ -45,6 +46,7 @@ def test_whitespace_only_nonzero_but_small():
 
 
 # -- 8. translated width independent from original x -----------------------
+
 
 def test_width_independent_from_original_x():
     """measure_text has no geometry input — the same text always measures the
@@ -74,6 +76,7 @@ def test_variable_length_changes_width_not_column():
 
 # -- font-aware path -------------------------------------------------------
 
+
 def test_font_name_string_measures_latin():
     # pymupdf is a core dep; guard against a missing import gracefully.
     try:
@@ -92,6 +95,7 @@ def test_font_name_string_cjk_does_not_raise():
 
 
 # -- 11. TOC uses common measurement API -----------------------------------
+
 
 def test_toc_renderer_consumes_measure_api():
     """The TOC renderer delegates default measurement to the layout layer."""

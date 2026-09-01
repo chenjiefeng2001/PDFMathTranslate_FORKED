@@ -37,17 +37,32 @@ from pdf2zh.semantic.layout.page_flow import (
 )
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,
-           list_items=None, toc_entries=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    list_items=None,
+    toc_entries=None,
+):
     """One settled render-plan entry (v3 y-up boxes: y0 bottom, y1 top)."""
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
         "list_items": list_items,
         "toc_entries": toc_entries,
     }
@@ -67,9 +82,17 @@ def _wrapped_payload(font_size=10.0, baselines=(714.0, 700.0, 686.0, 672.0)):
         "kind": "flow",
         "font_size": font_size,
         "commands": [
-            {"kind": "flow-text", "text": "l", "x": 60.0, "y": y,
-             "width": 100.0, "line": i, "is_last": i == len(baselines) - 1,
-             "overflow": True, "font_size": font_size}
+            {
+                "kind": "flow-text",
+                "text": "l",
+                "x": 60.0,
+                "y": y,
+                "width": 100.0,
+                "line": i,
+                "is_last": i == len(baselines) - 1,
+                "overflow": True,
+                "font_size": font_size,
+            }
             for i, y in enumerate(baselines)
         ],
     }
@@ -85,9 +108,13 @@ def _real_wrapped_payload(text, x0, y0, x1, y1, font_size=10.0):
     from pdf2zh.semantic.renderer.flow import render_flow_text
 
     return render_flow_text(
-        text, origin=(x0, y1), max_width=max(1.0, x1 - x0),
-        max_height=max(1.0, y1 - y0), font_size=font_size,
-        allow_shrink=False, line_step=-(font_size * 1.4),
+        text,
+        origin=(x0, y1),
+        max_width=max(1.0, x1 - x0),
+        max_height=max(1.0, y1 - y0),
+        font_size=font_size,
+        allow_shrink=False,
+        line_step=-(font_size * 1.4),
     )
 
 
@@ -99,8 +126,17 @@ def _real_wrapped_payload(text, x0, y0, x1, y1, font_size=10.0):
 class TestResolvedBbox(unittest.TestCase):
     def test_resolved_extends_down_when_drawn_lines_spill(self):
         # box [60,700,260,728]; drawn lines step to 672 -> drawn bottom 669.5
-        plan = [_flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                      payload=_wrapped_payload(font_size=10.0))]
+        plan = [
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0),
+            )
+        ]
         p = placements_from_plan(plan)[0]
         # bbox stays pure source
         self.assertEqual(p.bbox, (60.0, 700.0, 260.0, 728.0))
@@ -118,9 +154,17 @@ class TestResolvedBbox(unittest.TestCase):
 
     def test_no_refinement_when_drawn_lines_fit(self):
         # lines at 728, 714 -> drawn bottom 711.5, still above box bottom 700
-        plan = [_flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                      payload=_wrapped_payload(font_size=10.0,
-                                               baselines=(728.0, 714.0)))]
+        plan = [
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0, baselines=(728.0, 714.0)),
+            )
+        ]
         p = placements_from_plan(plan)[0]
         self.assertEqual(p.resolved_bbox, (60.0, 700.0, 260.0, 728.0))
 
@@ -132,14 +176,21 @@ class TestResolvedBbox(unittest.TestCase):
         }
         plan = [_flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0, payload=payload)]
         p = placements_from_plan(plan)[0]
-        self.assertAlmostEqual(p.resolved_bbox[1], 690.0 - 11.0 * 0.25,
-                               places=1)
+        self.assertAlmostEqual(p.resolved_bbox[1], 690.0 - 11.0 * 0.25, places=1)
 
     def test_resolved_never_shrinks_declared_box(self):
         # drawn lines above the box bottom must not move the bottom edge up
-        plan = [_flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                      payload=_wrapped_payload(font_size=10.0,
-                                               baselines=(720.0, 715.0)))]
+        plan = [
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0, baselines=(720.0, 715.0)),
+            )
+        ]
         p = placements_from_plan(plan)[0]
         self.assertEqual(p.resolved_bbox[1], 700.0)
 
@@ -161,8 +212,15 @@ class TestBboxMode(unittest.TestCase):
     def test_source_mode_uses_source_geometry(self):
         # drawn spill only; source boxes have a clean gap -> no source collision
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                  payload=_wrapped_payload(font_size=10.0)),
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0),
+            ),
             _flow("p1_1", 1, 60.0, 660.0, 260.0, 688.0),
         ]
         self.assertEqual(detect_page_collisions(plan, bbox_mode="source"), [])
@@ -176,9 +234,18 @@ class TestBboxMode(unittest.TestCase):
             _flow("p1_1", 1, 60.0, 660.0, 260.0, 720.0),
         ]
         d = detect_page_collisions(plan)[0].to_dict()
-        self.assertEqual(set(d),
-                         {"page", "upper", "lower", "overlap",
-                          "required_shift", "reason", "bbox_mode"})
+        self.assertEqual(
+            set(d),
+            {
+                "page",
+                "upper",
+                "lower",
+                "overlap",
+                "required_shift",
+                "reason",
+                "bbox_mode",
+            },
+        )
         json.dumps(d)
 
     def test_invalid_mode_rejected(self):
@@ -218,8 +285,15 @@ class TestGoldenCases(unittest.TestCase):
         # THE 8b case: source has a clean 12pt gap, the wrapped translation
         # spills below the box -> 0 source / 1 resolved
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                  payload=_wrapped_payload(font_size=10.0)),
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0),
+            ),
             _flow("p1_1", 1, 60.0, 660.0, 260.0, 688.0),
         ]
         s = build_page_flow_report(plan).summary()
@@ -234,8 +308,15 @@ class TestGoldenCases(unittest.TestCase):
     def test_golden_cross_page_no_false_positive(self):
         # same geometry, different pages -> no collision in either mode
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                  payload=_wrapped_payload(font_size=10.0)),
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0),
+            ),
             _flow("p2_0", 2, 60.0, 660.0, 260.0, 688.0),
         ]
         s = build_page_flow_report(plan).summary()
@@ -246,9 +327,8 @@ class TestGoldenCases(unittest.TestCase):
         # build the inflated geometry with the actual flow pipeline (no-clip
         # budget): translation wraps to many lines below a 2-line source box
         text = "translated text that wraps over several lines " * 8
-        payload = _real_wrapped_payload(text, 60.0, 700.0, 260.0, 728.0,
-                                        font_size=10.0)
-        self.assertTrue(payload["overflow"])       # PRESERVE_OVERFLOW run
+        payload = _real_wrapped_payload(text, 60.0, 700.0, 260.0, 728.0, font_size=10.0)
+        self.assertTrue(payload["overflow"])  # PRESERVE_OVERFLOW run
         self.assertGreaterEqual(len(payload["commands"]), 2)
         plan = [
             _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0, payload=payload),
@@ -270,15 +350,28 @@ class TestGoldenCases(unittest.TestCase):
 class TestSummaryAndReadOnly(unittest.TestCase):
     def test_summary_keys_including_provenance(self):
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                  payload=_wrapped_payload(font_size=10.0)),
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0),
+            ),
             _flow("p1_1", 1, 60.0, 660.0, 260.0, 688.0),
         ]
         s = build_page_flow_report(plan).summary()
         self.assertEqual(
             set(s),
-            {"blocks", "collision_count", "resolved_collision_count",
-             "source_collision_count", "page_overflow_count", "by_reason"},
+            {
+                "blocks",
+                "collision_count",
+                "resolved_collision_count",
+                "source_collision_count",
+                "page_overflow_count",
+                "by_reason",
+            },
         )
         self.assertEqual(s["collision_count"], s["resolved_collision_count"])
         self.assertEqual(s["by_reason"], {"overlap": 1})
@@ -286,9 +379,17 @@ class TestSummaryAndReadOnly(unittest.TestCase):
 
     def test_detection_is_still_read_only(self):
         import copy
+
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                  payload=_wrapped_payload(font_size=10.0)),
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0),
+            ),
             _flow("p1_1", 1, 60.0, 660.0, 260.0, 688.0),
         ]
         snapshot = copy.deepcopy(plan)
@@ -297,8 +398,15 @@ class TestSummaryAndReadOnly(unittest.TestCase):
 
     def test_reason_classification_holds_in_resolved_mode(self):
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0,
-                  payload=_wrapped_payload(font_size=10.0)),
+            _flow(
+                "p1_0",
+                1,
+                60.0,
+                700.0,
+                260.0,
+                728.0,
+                payload=_wrapped_payload(font_size=10.0),
+            ),
             _entry("p1_1", 1, "code", 60.0, 660.0, 260.0, 688.0),
         ]
         c = detect_page_collisions(plan)[0]

@@ -29,7 +29,7 @@ def parse_truetype_cmap(data: bytes) -> dict[int, int]:
     """
     if len(data) < 12:
         return {}
-    (_, num_tables) = struct.unpack_from(">HH", data, 4)
+    _, num_tables = struct.unpack_from(">HH", data, 4)
     cmap_data: bytes | None = None
     for i in range(num_tables):
         rec = 12 + 16 * i
@@ -41,7 +41,7 @@ def parse_truetype_cmap(data: bytes) -> dict[int, int]:
             break
     if cmap_data is None:
         return {}
-    (_, num_records) = struct.unpack_from(">HH", cmap_data, 0)
+    _, num_records = struct.unpack_from(">HH", cmap_data, 0)
     best: tuple[int, bytes] | None = None
     for i in range(num_records):
         platform, encoding, offset = struct.unpack_from(">HHI", cmap_data, 4 + 8 * i)
@@ -83,7 +83,12 @@ def _parse_cmap4(sub: bytes) -> dict[int, int]:
             if id_range_offset[i] == 0:
                 gid = (c + id_delta[i]) & 0xFFFF
             else:
-                abs_off = id_range_off_pos + 2 * i + id_range_offset[i] + 2 * (c - start_code[i])
+                abs_off = (
+                    id_range_off_pos
+                    + 2 * i
+                    + id_range_offset[i]
+                    + 2 * (c - start_code[i])
+                )
                 if abs_off + 2 > len(sub):
                     continue
                 gid = struct.unpack_from(">H", sub, abs_off)[0]
@@ -119,12 +124,16 @@ def parse_tounicode_cmap(data: bytes) -> dict[int, int]:
     def parse_mapping(text: bytes) -> list[int]:
         return [int(x, 16) for x in re.findall(rb"<([0-9a-fA-F]+)>", text)]
 
-    for m in re.finditer(rb"\s+beginbfrange\s*(?P<r>(<[0-9a-fA-F]+>\s*)+)endbfrange\s+", data):
+    for m in re.finditer(
+        rb"\s+beginbfrange\s*(?P<r>(<[0-9a-fA-F]+>\s*)+)endbfrange\s+", data
+    ):
         vals = parse_mapping(m.group("r"))
         for start, stop, value in zip(vals[::3], vals[1::3], vals[2::3]):
             for c in range(start, stop + 1):
                 cmap[c] = value + c - start
-    for m in re.finditer(rb"\s+beginbfchar\s*(?P<c>(<[0-9a-fA-F]+>\s*)+)endbfchar", data):
+    for m in re.finditer(
+        rb"\s+beginbfchar\s*(?P<c>(<[0-9a-fA-F]+>\s*)+)endbfchar", data
+    ):
         vals = parse_mapping(m.group("c"))
         for k, v in zip(vals[::2], vals[1::2]):
             cmap[k] = v
@@ -214,8 +223,15 @@ def main() -> int:
             if "skipped" in diag:
                 continue
             cur, fixed, gid2cid = diag["current"], diag["fixed"], diag["gid2cid"]
-            if base in ("DQQQAE+Arial Bold", "UMHYOM+Arial Bold", "DGPIWC+Arial Regular", "GTCLZO+Arial Regular"):
-                g2c_of_cur = {hex(k): hex(gid2cid[k]) for k in sorted(cur) if k in gid2cid}
+            if base in (
+                "DQQQAE+Arial Bold",
+                "UMHYOM+Arial Bold",
+                "DGPIWC+Arial Regular",
+                "GTCLZO+Arial Regular",
+            ):
+                g2c_of_cur = {
+                    hex(k): hex(gid2cid[k]) for k in sorted(cur) if k in gid2cid
+                }
                 fixed_sample = {hex(k): chr(v) for k, v in list(fixed.items())[:6]}
                 sample[base] = (
                     f"cur_keys={[hex(k) for k in sorted(cur)[:6]]} "
@@ -236,7 +252,9 @@ def main() -> int:
         after = nul_stats(check, page_index)
         text = check[page_index].get_text()
         ok = want_line in text or "taylorandfrancis" in text.lower()
-        print(f"fonts fixed: {changed}  NUL before={before} after={after}  recovered={ok!r}")
+        print(
+            f"fonts fixed: {changed}  NUL before={before} after={after}  recovered={ok!r}"
+        )
         if ok:
             for line in text.splitlines():
                 if "Taylor" in line or "francis" in line.lower():

@@ -48,12 +48,15 @@ def test_list_indentation_regression(tmp_path):
     # broken output: continuation lines shifted +25pt indentation
     bad = str(tmp_path / "list_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (60, 100, "1. Algorithm design", "body", 12),
-        (120, 115, "a wrapped continuation line", "body", 12),
-        (60, 150, "2. Evaluation on the test set", "body", 12),
-        (120, 165, "second continuation line", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (60, 100, "1. Algorithm design", "body", 12),
+            (120, 115, "a wrapped continuation line", "body", 12),
+            (60, 150, "2. Evaluation on the test set", "body", 12),
+            (120, 165, "second continuation line", "body", 12),
+        ],
+    )
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
     assert broke["list_continuation_x_accuracy"] < 0.5
@@ -75,11 +78,14 @@ def test_toc_column_regression(tmp_path):
     # broken output: second entry's page number column drawn further right
     bad = str(tmp_path / "toc_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (72, 80, "Contents", "bold", 14),
-        (72, 110, "Introduction ................. 1", "body", 12),
-        (96, 135, "Background ........................ 3", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (72, 80, "Contents", "bold", 14),
+            (72, 110, "Introduction ................. 1", "body", 12),
+            (96, 135, "Background ........................ 3", "body", 12),
+        ],
+    )
     doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
@@ -100,11 +106,14 @@ def test_toc_leader_integrity(tmp_path):
     # broken output: the second entry loses its leader dots entirely
     bad = str(tmp_path / "tl_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (72, 80, "Contents", "bold", 14),
-        (72, 110, "Introduction ......... 1", "body", 12),
-        (96, 135, "Background 3", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (72, 80, "Contents", "bold", 14),
+            (72, 110, "Introduction ......... 1", "body", 12),
+            (96, 135, "Background 3", "body", 12),
+        ],
+    )
     doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
@@ -123,13 +132,16 @@ def test_toc_leader_not_invented(tmp_path):
     # broken output: dots invented on the second no-leader entry
     bad = str(tmp_path / "nl_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (72, 80, "Contents", "bold", 14),
-        (72, 110, "Introduction", "body", 12),
-        (500, 110, "1", "body", 12),
-        (96, 135, "Background ..........", "body", 12),
-        (500, 135, "3", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (72, 80, "Contents", "bold", 14),
+            (72, 110, "Introduction", "body", 12),
+            (500, 110, "1", "body", 12),
+            (96, 135, "Background ..........", "body", 12),
+            (500, 135, "3", "body", 12),
+        ],
+    )
     doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
@@ -148,12 +160,15 @@ def test_toc_continuation_x_accuracy(tmp_path):
     # broken output: the continuation line dragged to a new column (and lost)
     bad = str(tmp_path / "tc_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (72, 80, "Contents", "bold", 14),
-        (72, 110, "A very long title that ......... 1", "body", 12),
-        (180, 130, "continues here", "body", 12),
-        (96, 155, "Background .......... 3", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (72, 80, "Contents", "bold", 14),
+            (72, 110, "A very long title that ......... 1", "body", 12),
+            (180, 130, "continues here", "body", 12),
+            (96, 155, "Background .......... 3", "body", 12),
+        ],
+    )
     doc.set_toc([[1, "Introduction", 1], [2, "Background", 1]])
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
@@ -172,10 +187,13 @@ def test_code_preserved_bbox_regression(tmp_path):
 
     bad = str(tmp_path / "code_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (120, 90, "def f(x, y):", "mono", 10),
-        (132, 110, "return x + long_identifier_name(y)", "mono", 10),
-    ])
+    add_page(
+        doc,
+        [
+            (120, 90, "def f(x, y):", "mono", 10),
+            (132, 110, "return x + long_identifier_name(y)", "mono", 10),
+        ],
+    )
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
     assert broke["code_preserved_bbox"] < 1.0
@@ -192,12 +210,15 @@ def test_list_marker_x_regression(tmp_path):
 
     bad = str(tmp_path / "mk_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (85, 100, "1. Algorithm design", "body", 12),
-        (95, 115, "a wrapped continuation line", "body", 12),
-        (85, 150, "2. Evaluation on the test set", "body", 12),
-        (95, 165, "second continuation line", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (85, 100, "1. Algorithm design", "body", 12),
+            (95, 115, "a wrapped continuation line", "body", 12),
+            (85, 150, "2. Evaluation on the test set", "body", 12),
+            (95, 165, "second continuation line", "body", 12),
+        ],
+    )
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
     assert broke["list_marker_x_accuracy"] < 0.5
@@ -216,11 +237,14 @@ def test_list_wrap_integrity_marker_loss(tmp_path):
     # a marker-less line) — marker 2. never reaches the output
     bad = str(tmp_path / "wi_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (60, 100, "1. Algorithm design", "body", 12),
-        (95, 115, "a wrapped continuation line", "body", 12),
-        (60, 150, "Evaluation on the test set", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (60, 100, "1. Algorithm design", "body", 12),
+            (95, 115, "a wrapped continuation line", "body", 12),
+            (60, 150, "Evaluation on the test set", "body", 12),
+        ],
+    )
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
     assert broke["list_wrap_integrity"] < 1.0
@@ -239,12 +263,15 @@ def test_list_nested_geometry_flattened(tmp_path):
     # broken output: all items at the same column (nesting flattened)
     bad = str(tmp_path / "nl_bad.pdf")
     doc = new_doc()
-    add_page(doc, [
-        (40, 100, "1. Intro", "body", 12),
-        (40, 120, "a. Background", "body", 12),
-        (40, 140, "i. deep", "body", 12),
-        (40, 180, "2. Method", "body", 12),
-    ])
+    add_page(
+        doc,
+        [
+            (40, 100, "1. Intro", "body", 12),
+            (40, 120, "a. Background", "body", 12),
+            (40, 140, "i. deep", "body", 12),
+            (40, 180, "2. Method", "body", 12),
+        ],
+    )
     write(doc, bad)
     broke = evaluate(src, bad)["metrics"]
     assert broke["list_nested_geometry_accuracy"] < 1.0
@@ -267,6 +294,7 @@ def test_overflow_count(tmp_path):
 
 
 # -- 7D integration: real PDFs across five categories -----------------------
+
 
 class TestRealPdfIntegration:
     """Evaluate faithful copies of code / list / toc / style / cjk PDFs."""

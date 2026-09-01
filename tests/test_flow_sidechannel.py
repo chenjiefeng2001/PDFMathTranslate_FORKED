@@ -70,7 +70,9 @@ def _block(
     """一个 v3 段落块（可带行/基线/字号 metadata）。"""
     line = LineModel(text=text, baseline=baseline, x0=x0, y0=y0, x1=x1, y1=y1)
     if font_size:
-        line.spans.append(SpanModel(size=font_size, text=text, x0=x0, y0=y0, x1=x1, y1=y1))
+        line.spans.append(
+            SpanModel(size=font_size, text=text, x0=x0, y0=y0, x1=x1, y1=y1)
+        )
     md = dict(metadata or {})
     if translated is not None:
         md["translated"] = translated
@@ -87,6 +89,7 @@ def _block(
 
 
 # ── 1. flow_text_from_block：几何透传 + 译文优先 + 字号解析 ──────────────
+
 
 class TestFlowTextFromBlock(unittest.TestCase):
     def test_geometry_passthrough(self):
@@ -120,6 +123,7 @@ class TestFlowTextFromBlock(unittest.TestCase):
 
 
 # ── 2. build_block_flow_payload：JSON 安全 + 译文布局 + 失败兜底 ────────
+
 
 class TestBuildBlockFlowPayload(unittest.TestCase):
     def test_payload_shape_json_safe(self):
@@ -179,11 +183,16 @@ class TestBuildBlockFlowPayload(unittest.TestCase):
 
 # ── 3. render_flow_text：完整管线（wrap / overflow 委托 lay_out）────────
 
+
 class TestRenderFlowText(unittest.TestCase):
     def test_short_text_single_line(self):
         out = render_flow_text(
-            "Hello", origin=(72.0, 722.0), max_width=468.0, max_height=22.0,
-            font_size=12.0, measure=_measure,
+            "Hello",
+            origin=(72.0, 722.0),
+            max_width=468.0,
+            max_height=22.0,
+            font_size=12.0,
+            measure=_measure,
         )
         self.assertEqual(out["kind"], "flow")
         self.assertEqual(out["lines"], ["Hello"])
@@ -195,8 +204,13 @@ class TestRenderFlowText(unittest.TestCase):
     def test_long_text_wraps_with_negative_step_y_up(self):
         text = "This is a long paragraph that must wrap over several lines"
         out = render_flow_text(
-            text, origin=(72.0, 722.0), max_width=120.0, max_height=200.0,
-            font_size=10.0, measure=_measure, line_step=-14.0,
+            text,
+            origin=(72.0, 722.0),
+            max_width=120.0,
+            max_height=200.0,
+            font_size=10.0,
+            measure=_measure,
+            line_step=-14.0,
         )
         self.assertGreaterEqual(len(out["lines"]), 2)
         ys = [c["y"] for c in out["commands"]]
@@ -213,8 +227,11 @@ class TestRenderFlowText(unittest.TestCase):
         # observable overflow there).
         out = render_flow_text(
             "This text is definitely too wide for the box at all",
-            origin=(0.0, 100.0), max_width=8.0, max_height=400.0,
-            font_size=10.0, measure=_measure,
+            origin=(0.0, 100.0),
+            max_width=8.0,
+            max_height=400.0,
+            font_size=10.0,
+            measure=_measure,
         )
         flagged = [c for c in out["commands"] if c["overflow"]]
         self.assertTrue(flagged)
@@ -228,7 +245,10 @@ class TestRenderFlowText(unittest.TestCase):
             side_effect=RuntimeError("layout broke"),
         ):
             out = render_flow_text(
-                "anything", origin=(0.0, 0.0), max_width=100.0, max_height=100.0,
+                "anything",
+                origin=(0.0, 0.0),
+                max_width=100.0,
+                max_height=100.0,
                 font_size=10.0,
             )
         self.assertFalse(out["layout_ok"])
@@ -237,6 +257,7 @@ class TestRenderFlowText(unittest.TestCase):
 
 
 # ── 4. FlowTextRenderer：命令形状 ────────────────────────────────────────
+
 
 class TestFlowTextRenderer(unittest.TestCase):
     def test_command_shape(self):
@@ -259,7 +280,9 @@ class TestFlowTextRenderer(unittest.TestCase):
         rr = FlowTextRenderer(line_height=1.4)
         cmds = rr.render(
             LayoutResult(
-                text="x", lines=["a", "b"], line_widths=[1.0, 1.0],
+                text="x",
+                lines=["a", "b"],
+                line_widths=[1.0, 1.0],
                 font_size=10.0,
             )
         )
@@ -267,6 +290,7 @@ class TestFlowTextRenderer(unittest.TestCase):
 
 
 # ── 5. 架构：不直接调 wrap/shrink/clip、不重推断几何 ────────────────────
+
 
 class TestFlowArchitecture(unittest.TestCase):
     def test_sidechannel_never_calls_wrap_shrink_clip_directly(self):
@@ -296,10 +320,18 @@ class TestFlowArchitecture(unittest.TestCase):
 
 # ── 6. document_model 集成：paragraph → render_payload.kind == flow ─────
 
+
 def _model_with_paragraph(text="A translated paragraph."):
     page = PageModel(page_num=1)
     page.blocks.append(
-        _block(text="Source paragraph.", translated=text, x0=72.0, y0=700.0, x1=540.0, y1=722.0)
+        _block(
+            text="Source paragraph.",
+            translated=text,
+            x0=72.0,
+            y0=700.0,
+            x1=540.0,
+            y1=722.0,
+        )
     )
     model = DocumentModel()
     model.pages = [page]

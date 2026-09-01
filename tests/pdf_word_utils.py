@@ -50,8 +50,9 @@ def page_word_x(words: list[dict], text: str) -> float | None:
     return hits[0]["x0"] if hits else None
 
 
-def assert_page_column_stable(result, words, page_x: float, page_number: str,
-                              eps: float = 1.5) -> None:
+def assert_page_column_stable(
+    result, words, page_x: float, page_number: str, eps: float = 1.5
+) -> None:
     """Double-layered ``page_x`` verification (7F-5c DoD):
 
     1. Layout contract — the settled ``TocEntryLayoutResult.page_x`` equals
@@ -59,12 +60,12 @@ def assert_page_column_stable(result, words, page_x: float, page_number: str,
     2. PDF reality — the page-number word's left edge equals ``page_x``.
     """
     # layer 1: semantic -> layout geometry does not drift
-    assert abs(float(result.page_x) - float(page_x)) < 1e-6, (
-        f"layout page_x drifted: {result.page_x} != {page_x}"
-    )
+    assert (
+        abs(float(result.page_x) - float(page_x)) < 1e-6
+    ), f"layout page_x drifted: {result.page_x} != {page_x}"
     # layer 2: layout -> render command -> PDF glyph does not drift
     x = page_word_x(words, page_number)
     assert x is not None, f"page number {page_number!r} not found in PDF words"
-    assert abs(x - float(page_x)) <= eps, (
-        f"PDF page-number x drifted: {x} != {page_x} (eps {eps})"
-    )
+    assert (
+        abs(x - float(page_x)) <= eps
+    ), f"PDF page-number x drifted: {x} != {page_x} (eps {eps})"

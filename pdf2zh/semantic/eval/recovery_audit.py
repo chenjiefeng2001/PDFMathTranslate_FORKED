@@ -153,7 +153,9 @@ def audit_recovery(result: Any) -> dict:
         ok = False
     return {
         "recovery_policy_integrity": 1.0 if ok else 0.0,
-        "recovery_bounded": 1.0 if len(steps) <= _STEP_BOUND.get(kind, _DEFAULT_STEP_BOUND) else 0.0,
+        "recovery_bounded": (
+            1.0 if len(steps) <= _STEP_BOUND.get(kind, _DEFAULT_STEP_BOUND) else 0.0
+        ),
         "decision": decision,
         "steps": steps,
         "overflow": overflow,
@@ -190,10 +192,15 @@ def audit_list(aggregate: Any) -> dict:
     marker = getattr(aggregate, "marker", None)
     adaptive = [c for c in channels if c is not marker and c is not None]
     marker_clean = bool(
-        not marker or not (getattr(marker, "recovery_decision", None)
-                           or getattr(marker, "recovery_steps", None))
+        not marker
+        or not (
+            getattr(marker, "recovery_decision", None)
+            or getattr(marker, "recovery_steps", None)
+        )
     )
-    steps_max = max((len(getattr(r, "recovery_steps", None) or []) for r in adaptive), default=0)
+    steps_max = max(
+        (len(getattr(r, "recovery_steps", None) or []) for r in adaptive), default=0
+    )
     integrity = bool(
         marker_clean
         and all(_decision_ok(r) for r in adaptive)
@@ -218,13 +225,18 @@ def audit_toc(aggregate: Any) -> dict:
     page = getattr(aggregate, "page", None)
     adaptive = [c for c in channels if c is not page and c is not None]
     page_clean = bool(
-        not page or not (getattr(page, "recovery_decision", None)
-                         or getattr(page, "recovery_steps", None))
+        not page
+        or not (
+            getattr(page, "recovery_decision", None)
+            or getattr(page, "recovery_steps", None)
+        )
     )
     title_no_clip = bool(
         not title or "CLIP" not in (getattr(title, "recovery_steps", None) or [])
     )
-    steps_max = max((len(getattr(r, "recovery_steps", None) or []) for r in adaptive), default=0)
+    steps_max = max(
+        (len(getattr(r, "recovery_steps", None) or []) for r in adaptive), default=0
+    )
     overflow = bool(getattr(aggregate, "overflow", False))
     honest = bool(
         (not overflow)
@@ -232,9 +244,7 @@ def audit_toc(aggregate: Any) -> dict:
         or steps_max > 0
     )
     integrity = bool(
-        page_clean
-        and title_no_clip
-        and all(_decision_ok(r) for r in adaptive)
+        page_clean and title_no_clip and all(_decision_ok(r) for r in adaptive)
     )
     return {
         "toc_recovery_integrity": 1.0 if integrity else 0.0,

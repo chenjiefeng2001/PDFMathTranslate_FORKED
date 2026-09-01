@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "doc" / "7k1"
 
 # Built-in pymupdf fonts only -> self-contained corpus, no host font paths.
-LATIN_FONT = "helv"   # base-14 Helvetica
+LATIN_FONT = "helv"  # base-14 Helvetica
 CJK_FONT = "china-s"  # built-in CJK (STSong-Light via Adobe CMaps)
 
 CASES: list[dict] = []
@@ -56,9 +56,24 @@ def main() -> int:
 
     # ── page 1: Latin text, basic highlight/underline/text/link ──────────
     page = doc.new_page()
-    page.insert_text((72, 90), "The quick brown fox jumps over the lazy dog.", fontname=LATIN_FONT, fontsize=12)
-    page.insert_text((72, 120), "Annotation preservation is the question under study.", fontname=LATIN_FONT, fontsize=12)
-    page.insert_text((72, 150), "Visit the documentation page for details.", fontname=LATIN_FONT, fontsize=12)
+    page.insert_text(
+        (72, 90),
+        "The quick brown fox jumps over the lazy dog.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 120),
+        "Annotation preservation is the question under study.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 150),
+        "Visit the documentation page for details.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
     r = pymupdf.Rect(72, 84, 330, 96)
     page.add_highlight_annot(r)
     reg("A01", "highlight", 1, "The quick brown fox", 2.0)
@@ -66,7 +81,9 @@ def main() -> int:
     page.add_underline_annot(r)
     reg("A02", "underline", 1, "Annotation preservation", 2.0)
     r = pymupdf.Rect(72, 144, 310, 156)
-    page.insert_link({"kind": pymupdf.LINK_URI, "from": r, "uri": "https://example.com/docs"})
+    page.insert_link(
+        {"kind": pymupdf.LINK_URI, "from": r, "uri": "https://example.com/docs"}
+    )
     reg("A03", "link", 1, "Visit the documentation page", 2.0)
     r = pymupdf.Rect(420, 84, 540, 160)
     page.add_text_annot(r, "Reader note: check section 3.")
@@ -77,9 +94,18 @@ def main() -> int:
 
     # ── page 2: CJK text with annotations ────────────────────────────────
     page = doc.new_page()
-    page.insert_text((72, 90), "这是一个用于验证标注保真度的中文测试页面。", fontname=CJK_FONT, fontsize=12)
-    page.insert_text((72, 120), "标注内容应当与原文保持一致。", fontname=CJK_FONT, fontsize=12)
-    page.insert_text((72, 150), "第二行中文用于跨行高亮测试。", fontname=CJK_FONT, fontsize=12)
+    page.insert_text(
+        (72, 90),
+        "这是一个用于验证标注保真度的中文测试页面。",
+        fontname=CJK_FONT,
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 120), "标注内容应当与原文保持一致。", fontname=CJK_FONT, fontsize=12
+    )
+    page.insert_text(
+        (72, 150), "第二行中文用于跨行高亮测试。", fontname=CJK_FONT, fontsize=12
+    )
     r = pymupdf.Rect(72, 84, 420, 96)
     page.add_highlight_annot(r)
     reg("B01", "highlight", 2, "这是一个用于验证标注保真度的", 2.0)
@@ -87,7 +113,9 @@ def main() -> int:
     page.add_underline_annot(r)
     reg("B02", "underline", 2, "标注内容应当", 2.0)
     r = pymupdf.Rect(72, 144, 360, 156)
-    page.insert_link({"kind": pymupdf.LINK_URI, "from": r, "uri": "https://example.com/zh"})
+    page.insert_link(
+        {"kind": pymupdf.LINK_URI, "from": r, "uri": "https://example.com/zh"}
+    )
     reg("B03", "link", 2, "第二行中文", 2.0)
     r = pymupdf.Rect(430, 84, 545, 150)
     page.add_text_annot(r, "中文注释：请核对翻译")
@@ -96,16 +124,33 @@ def main() -> int:
     page.add_highlight_annot(r)
     reg("B05", "highlight", 2, "标注内容应当", 2.0)
     # mixed CJK + Latin on one line
-    page.insert_text((72, 180), "Mixed line: alpha 中文与Latin共存。", fontname=CJK_FONT, fontsize=12)
+    page.insert_text(
+        (72, 180), "Mixed line: alpha 中文与Latin共存。", fontname=CJK_FONT, fontsize=12
+    )
     r = pymupdf.Rect(72, 174, 400, 186)
     page.add_highlight_annot(r)
     reg("B06", "highlight", 2, "Mixed line: alpha 中文与Latin共存", 2.0)
 
     # ── page 3: cross-line / multi-annotation same region ────────────────
     page = doc.new_page()
-    page.insert_text((72, 90), "Line one of a long paragraph that continues", fontname=LATIN_FONT, fontsize=12)
-    page.insert_text((72, 120), "across multiple lines for a cross-line test.", fontname=LATIN_FONT, fontsize=12)
-    page.insert_text((72, 150), "This line holds two separate annotations.", fontname=LATIN_FONT, fontsize=12)
+    page.insert_text(
+        (72, 90),
+        "Line one of a long paragraph that continues",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 120),
+        "across multiple lines for a cross-line test.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 150),
+        "This line holds two separate annotations.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
     # cross-line highlight: two rects joined logically
     r1 = pymupdf.Rect(72, 84, 400, 96)
     r2 = pymupdf.Rect(72, 114, 300, 126)
@@ -126,10 +171,19 @@ def main() -> int:
 
     # ── page 4: annotations near a figure/table ──────────────────────────
     page = doc.new_page()
-    page.insert_text((72, 80), "Figure 1: sample chart caption.", fontname=LATIN_FONT, fontsize=12)
+    page.insert_text(
+        (72, 80), "Figure 1: sample chart caption.", fontname=LATIN_FONT, fontsize=12
+    )
     page.draw_rect(pymupdf.Rect(72, 100, 360, 260), color=(0, 0, 0), width=1)
-    page.draw_rect(pymupdf.Rect(100, 120, 180, 200), color=(0.2, 0.4, 0.8), width=0, fill=True)
-    page.insert_text((72, 300), "Text that overlaps the figure region below.", fontname=LATIN_FONT, fontsize=12)
+    page.draw_rect(
+        pymupdf.Rect(100, 120, 180, 200), color=(0.2, 0.4, 0.8), width=0, fill=True
+    )
+    page.insert_text(
+        (72, 300),
+        "Text that overlaps the figure region below.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
     # annotation overlapping the drawn figure
     r = pymupdf.Rect(90, 110, 190, 210)
     page.add_highlight_annot(r)
@@ -146,13 +200,25 @@ def main() -> int:
 
     # ── page 5: symbols + internal link + cross-page reference ───────────
     page = doc.new_page()
-    page.insert_text((72, 90), "Formula symbols: alpha beta gamma delta", fontname=LATIN_FONT, fontsize=12)
-    page.insert_text((72, 120), "See page 3 for the cross-line example.", fontname=LATIN_FONT, fontsize=12)
+    page.insert_text(
+        (72, 90),
+        "Formula symbols: alpha beta gamma delta",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 120),
+        "See page 3 for the cross-line example.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
     r = pymupdf.Rect(72, 84, 400, 96)
     page.add_highlight_annot(r)
     reg("E01", "highlight", 5, "Formula symbols: alpha beta", 2.0)
     r = pymupdf.Rect(72, 114, 400, 126)
-    page.insert_link({"kind": pymupdf.LINK_URI, "from": r, "uri": "https://example.com/internal"})
+    page.insert_link(
+        {"kind": pymupdf.LINK_URI, "from": r, "uri": "https://example.com/internal"}
+    )
     reg("E02", "link", 5, "See page 3 for the cross-line", 2.0)
     r = pymupdf.Rect(72, 84, 200, 96)
     page.add_underline_annot(r)
@@ -163,8 +229,18 @@ def main() -> int:
 
     # ── page 6: negative control (no annotations) ────────────────────────
     page = doc.new_page()
-    page.insert_text((72, 90), "This page intentionally carries no annotations.", fontname=LATIN_FONT, fontsize=12)
-    page.insert_text((72, 120), "It is the negative control for the corpus.", fontname=LATIN_FONT, fontsize=12)
+    page.insert_text(
+        (72, 90),
+        "This page intentionally carries no annotations.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
+    page.insert_text(
+        (72, 120),
+        "It is the negative control for the corpus.",
+        fontname=LATIN_FONT,
+        fontsize=12,
+    )
     reg("F00", "none", 6, "negative control", 0.0)
 
     doc.save(str(pdf))

@@ -63,7 +63,9 @@ def dump_site(book: str, kind: str, pno: int, want: str) -> None:
             for span in line["spans"]:
                 s = "".join(ch["c"] for ch in span.get("chars", []))
                 if "\x00" in s and (want == "\x00" or want in s):
-                    print(f"    span font={span['font']!r} size={span['size']:.1f} text={s[:70]!r}")
+                    print(
+                        f"    span font={span['font']!r} size={span['size']:.1f} text={s[:70]!r}"
+                    )
                     # which char indexes are NUL
                     nul_idx = [i for i, ch in enumerate(s) if ch == "\x00"]
                     print(f"      nul char offsets in span: {nul_idx}")
@@ -75,7 +77,9 @@ def dump_site(book: str, kind: str, pno: int, want: str) -> None:
     # content stream codes near the span y
     raw = page.read_contents()
     codes = parse_hex_strings(raw)
-    print(f"      content-stream hex codes on page: {len(codes)} (first 40: {[hex(c) for c in codes[:40]]})")
+    print(
+        f"      content-stream hex codes on page: {len(codes)} (first 40: {[hex(c) for c in codes[:40]]})"
+    )
     doc.close()
 
 

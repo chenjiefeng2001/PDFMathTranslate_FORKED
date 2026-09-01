@@ -221,7 +221,9 @@ def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb, lang=None)
     return adapter.parse(path, **kwargs)
 
 
-def run_magicpdf_main(parsed_args, progress_cb=None, degrade_to: str | None = None) -> int:
+def run_magicpdf_main(
+    parsed_args, progress_cb=None, degrade_to: str | None = None
+) -> int:
     """magicpdf 解析引擎主流程（引擎不可用时自动降级）。
 
     ``progress_cb(stage, pct, msg, detail=None)``（可选）：解析期页级/

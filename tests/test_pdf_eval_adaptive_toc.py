@@ -63,19 +63,35 @@ class TestCorpusPairs:
     """The six golden cases: every adaptive metric is perfect."""
 
     def test_short_title(self, tmp_path):
-        _assert_all_one(_metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_short))
+        _assert_all_one(
+            _metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_short)
+        )
 
     def test_long_title_wrap(self, tmp_path):
-        _assert_all_one(_metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_wrap_output))
+        _assert_all_one(
+            _metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_wrap_output)
+        )
 
     def test_long_title_shrink(self, tmp_path):
-        _assert_all_one(_metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_shrink_output))
+        _assert_all_one(
+            _metrics(
+                tmp_path, build_toc_adaptive_short, build_toc_adaptive_shrink_output
+            )
+        )
 
     def test_extreme_preserve_overflow(self, tmp_path):
-        _assert_all_one(_metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_extreme_output))
+        _assert_all_one(
+            _metrics(
+                tmp_path, build_toc_adaptive_short, build_toc_adaptive_extreme_output
+            )
+        )
 
     def test_cjk_wrap(self, tmp_path):
-        _assert_all_one(_metrics(tmp_path, build_toc_adaptive_cjk_source, build_toc_adaptive_cjk_output))
+        _assert_all_one(
+            _metrics(
+                tmp_path, build_toc_adaptive_cjk_source, build_toc_adaptive_cjk_output
+            )
+        )
 
     def test_multiline_continuation(self, tmp_path):
         _assert_all_one(_metrics(tmp_path, build_toc_multiline, build_toc_multiline))
@@ -85,7 +101,9 @@ class TestSensitivity:
     """Each intentional break drops exactly the metric it targets."""
 
     def test_page_column_shifted(self, tmp_path):
-        r = _metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_page_column_shifted)
+        r = _metrics(
+            tmp_path, build_toc_adaptive_short, build_toc_adaptive_page_column_shifted
+        )
         assert r["toc_page_column_stability"] < 1.0
         assert r["toc_page_x_accuracy"] < 1.0  # graded twin also drops
         # nothing else about the entry is harmed
@@ -98,19 +116,27 @@ class TestSensitivity:
         assert r["toc_page_column_stability"] == 1.0
 
     def test_wrapped_word_deleted(self, tmp_path):
-        r = _metrics(tmp_path, build_toc_adaptive_wrap_output, build_toc_adaptive_wrap_missing_word)
+        r = _metrics(
+            tmp_path,
+            build_toc_adaptive_wrap_output,
+            build_toc_adaptive_wrap_missing_word,
+        )
         assert r["toc_adaptive_wrap_integrity"] < 1.0
         # geometry unaffected — only the same-language text loss is flagged
         assert r["toc_page_column_stability"] == 1.0
         assert r["toc_adaptive_font_size"] == 1.0
 
     def test_shrink_undone(self, tmp_path):
-        r = _metrics(tmp_path, build_toc_adaptive_short, build_toc_adaptive_shrink_undone)
+        r = _metrics(
+            tmp_path, build_toc_adaptive_short, build_toc_adaptive_shrink_undone
+        )
         assert r["toc_adaptive_font_size"] < 1.0
         assert r["toc_page_column_stability"] == 1.0
 
     def test_extreme_clip(self, tmp_path):
-        r = _metrics(tmp_path, build_toc_adaptive_extreme_output, build_toc_adaptive_extreme_clip)
+        r = _metrics(
+            tmp_path, build_toc_adaptive_extreme_output, build_toc_adaptive_extreme_clip
+        )
         assert r["toc_adaptive_overflow"] < 1.0
         # the page column is not what broke
         assert r["toc_page_column_stability"] == 1.0

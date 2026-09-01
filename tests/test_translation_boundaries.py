@@ -27,6 +27,7 @@ def _spy(calls):
     def tr(s):
         calls.append(s)
         return f"T:{s}"
+
     return tr
 
 
@@ -38,7 +39,11 @@ def _spy(calls):
 def test_code_zero_translator_calls():
     b = BlockModel(
         text='def hello():\n    print("hello")',
-        kind="code", x0=40, y0=40, x1=500, y1=100,
+        kind="code",
+        x0=40,
+        y0=40,
+        x1=500,
+        y1=100,
     )
     calls = []
     unit = block_translation_unit(b, _spy(calls))
@@ -95,10 +100,22 @@ def test_list_translator_calls_exact_content():
 
 def _toc_lines():
     return [
-        {"text": "Introduction ........ 42", "x0": 72, "y0": 700,
-         "x1": 540, "y1": 712, "size": 12},
-        {"text": "Background .......... 3", "x0": 96, "y0": 680,
-         "x1": 540, "y1": 692, "size": 12},
+        {
+            "text": "Introduction ........ 42",
+            "x0": 72,
+            "y0": 700,
+            "x1": 540,
+            "y1": 712,
+            "size": 12,
+        },
+        {
+            "text": "Background .......... 3",
+            "x0": 96,
+            "y0": 680,
+            "x1": 540,
+            "y1": 692,
+            "size": 12,
+        },
     ]
 
 
@@ -160,6 +177,7 @@ def test_style_italic_survives_translation():
 
 def test_evil_translator_cannot_break_list_structure():
     """translator 返回垃圾 / 吞 marker / insert 假编号 —— 结构不破。"""
+
     def evil(s):
         # 吞掉原文里的 marker、插入 "1. " 前缀、返回超长、返回空
         return "1. " + s.replace("1.", "").replace("2.", "").strip() * 100
@@ -176,9 +194,7 @@ def test_evil_translator_cannot_break_list_structure():
 
 def test_evil_empty_translator_list_structure_kept():
     """translator 返回 "" —— marker 仍在，content 空（不崩）。"""
-    plan = build_page_list_plan(
-        ["1. A", "2. B"], translate=lambda s: ""
-    )
+    plan = build_page_list_plan(["1. A", "2. B"], translate=lambda s: "")
     markers = [c for c in plan["commands"] if c["kind"] == "marker"]
     assert [m["text"] for m in markers] == ["1.", "2."]
     # 至少 marker 命令存在；空 content 不会生成 text 命令但仍不抛异常
@@ -187,6 +203,7 @@ def test_evil_empty_translator_list_structure_kept():
 
 def test_evil_translator_cannot_break_toc_page_column():
     """translator 把 title 改得超长 —— page_x 页码列不动、结构仍在。"""
+
     def evil(s):
         return s * 100 if s else s
 
@@ -219,18 +236,33 @@ def test_toc_heading_ref_survives_translation(tmp_path):
     from pdf2zh.v3.document_model import DocumentModel
     from pdf2zh.v3.render_payload import block_translation_unit
 
-    head = BlockModel(text="Introduction", kind="heading", x0=40, y0=300,
-                      x1=300, y1=315)
+    head = BlockModel(
+        text="Introduction", kind="heading", x0=40, y0=300, x1=300, y1=315
+    )
     toc_b = BlockModel(
         text="1. Introduction",
-        kind="toc", x0=72, y0=110, x1=540, y1=130,
+        kind="toc",
+        x0=72,
+        y0=110,
+        x1=540,
+        y1=130,
         metadata={
-            "toc_entries": [{
-                "title": "1. Introduction", "number": "1.", "title_only": "Introduction",
-                "level": 0, "page_number": "42", "title_x": 72.0, "page_x": 540.0,
-                "indent": 72.0, "dot_leader": "......", "leader_present": True,
-                "continuation": [], "bbox": [72, 40, 540, 60],
-            }],
+            "toc_entries": [
+                {
+                    "title": "1. Introduction",
+                    "number": "1.",
+                    "title_only": "Introduction",
+                    "level": 0,
+                    "page_number": "42",
+                    "title_x": 72.0,
+                    "page_x": 540.0,
+                    "indent": 72.0,
+                    "dot_leader": "......",
+                    "leader_present": True,
+                    "continuation": [],
+                    "bbox": [72, 40, 540, 60],
+                }
+            ],
         },
     )
     page = PageModel(page_num=1)
@@ -249,4 +281,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

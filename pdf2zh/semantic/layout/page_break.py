@@ -82,7 +82,7 @@ _BREAK_INVARIANT_X = {
 class PageBreakDecision(Enum):
     """What to do with a block that does not fit its page (8e-1)."""
 
-    KEEP = "keep"                            # fits — stay on the current page
+    KEEP = "keep"  # fits — stay on the current page
     BREAK_TO_NEXT_PAGE = "break_to_next_page"  # whole block → next page
     PRESERVE_OVERFLOW = "preserve_overflow"  # immovable — never split/move
 
@@ -295,10 +295,7 @@ def _page_command_count(entry: dict) -> int:
     cmds = payload.get("commands")
     if not isinstance(cmds, list):
         return 0
-    return sum(
-        1 for c in cmds
-        if isinstance(c, dict) and c.get("kind") == "page"
-    )
+    return sum(1 for c in cmds if isinstance(c, dict) and c.get("kind") == "page")
 
 
 def assert_break_invariants(source_entry: dict, target_entry: dict) -> list[str]:
@@ -319,9 +316,7 @@ def assert_break_invariants(source_entry: dict, target_entry: dict) -> list[str]
     dst_anchors = break_invariants(target_entry)
     for k, v in sorted(src_anchors.items()):
         if dst_anchors.get(k) != v:
-            violations.append(
-                f"{k} changed across break: {v} -> {dst_anchors.get(k)}"
-            )
+            violations.append(f"{k} changed across break: {v} -> {dst_anchors.get(k)}")
     if target_entry.get("src_box") != source_entry.get("src_box"):
         violations.append("src_box changed across break (source must stay immutable)")
     src_dst = source_entry.get("dst_box") or [0, 0, 0, 0]
@@ -333,8 +328,10 @@ def assert_break_invariants(source_entry: dict, target_entry: dict) -> list[str]
             violations.append("dst_box y did not move (no break executed)")
     kind = str(target_entry.get("kind") or "")
     if kind in PRESERVE_KINDS:
-        if target_entry.get("page") != source_entry.get("page") or \
-                dst_dst[1:4:2] != src_dst[1:4:2]:
+        if (
+            target_entry.get("page") != source_entry.get("page")
+            or dst_dst[1:4:2] != src_dst[1:4:2]
+        ):
             violations.append("preserved block must never break/move")
     src_pages = _page_command_count(source_entry)
     dst_pages = _page_command_count(target_entry)

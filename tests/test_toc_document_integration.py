@@ -63,7 +63,9 @@ def tent(
 def build_model(entries, headings=None, page_num=1):
     """一页：宿主块承载 TOC 条目 + 可选的 heading 块。"""
     page = PageModel(page_num=page_num)
-    host = BlockModel(text="TOC placeholder", kind="paragraph", x0=40, y0=40, x1=500, y1=200)
+    host = BlockModel(
+        text="TOC placeholder", kind="paragraph", x0=40, y0=40, x1=500, y1=200
+    )
     page.blocks.append(host)
     for h in headings or []:
         page.blocks.append(
@@ -117,7 +119,9 @@ class TestTocDocumentIntegration(unittest.TestCase):
         self.assertNotIn("15", calls)  # page number
         self.assertNotIn("..............", calls)  # leader
         self.assertNotIn("9", calls)  # destination
-        self.assertTrue(not any(("2.1" in c or c.strip() == "2.1") for c in calls))  # numbering
+        self.assertTrue(
+            not any(("2.1" in c or c.strip() == "2.1") for c in calls)
+        )  # numbering
         entry = model.pages[0].blocks[0].metadata["toc_entries"][0]
         self.assertEqual(entry["translated_title"], "译_Dataset")
         self.assertEqual(entry["page_number"], "15")
@@ -137,8 +141,12 @@ class TestTocDocumentIntegration(unittest.TestCase):
     def test_translated_keeps_geometry_metadata(self):
         entries = [
             tent(
-                "Method", page_number="5", title_x=72.0, page_x=530.0,
-                indent=72.0, bbox=(40, 40, 540, 200),
+                "Method",
+                page_number="5",
+                title_x=72.0,
+                page_x=530.0,
+                indent=72.0,
+                bbox=(40, 40, 540, 200),
             )
         ]
         calls, tr = spy_translator()
@@ -218,8 +226,12 @@ class TestTocDocumentIntegration(unittest.TestCase):
     def test_render_plan_carries_toc_entries(self):
         entries = [
             tent(
-                "1. Introduction", page_number="1", dest=3,
-                title_x=72.0, page_x=540.0, indent=72.0,
+                "1. Introduction",
+                page_number="1",
+                dest=3,
+                title_x=72.0,
+                page_x=540.0,
+                indent=72.0,
             )
         ]
         model = build_model(entries)
@@ -234,9 +246,7 @@ class TestTocDocumentIntegration(unittest.TestCase):
 
     # ── toc_records_from_model：结构化条目 → 记录 ──────────────
     def test_toc_records_structured(self):
-        entries = [
-            tent("2.1 Dataset", page_number="15", dest=17)
-        ]
+        entries = [tent("2.1 Dataset", page_number="15", dest=17)]
         model = build_model(entries)
         calls, tr = spy_translator()
         translate_document(model, tr)

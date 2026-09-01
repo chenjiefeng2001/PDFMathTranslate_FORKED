@@ -122,8 +122,9 @@ def _insert_text_wrapped(
 
     def _width(s: str) -> float:
         if effective_font in ("helv", "cour"):
-            return pymupdf.get_text_length(s, fontsize=font_size,
-                                           fontname=effective_font)
+            return pymupdf.get_text_length(
+                s, fontsize=font_size, fontname=effective_font
+            )
         # CJK 内置字体（china-ss）对全角/拉丁均近似 1em 等宽，逐字符估算。
         return len(s) * font_size
 
@@ -167,7 +168,7 @@ def _render_list_commands(
         # 覆盖原文区域（白色矩形），保证译文不与原文混排。
         page.draw_rect(block_rect, color=None, fill=(1, 1, 1))
     for c in commands or []:
-        t = (c.get("text") or "")
+        t = c.get("text") or ""
         if not t:
             continue
         x = float(c.get("x") or 0.0)
@@ -202,7 +203,7 @@ def _render_flow_commands(
         page.draw_rect(block_rect, color=None, fill=(1, 1, 1))
     overflow_hit = False
     for c in commands or []:
-        t = (c.get("text") or "")
+        t = c.get("text") or ""
         if not t:
             continue
         x = float(c.get("x") or 0.0)
@@ -377,9 +378,12 @@ def render_plan_to_pdf(
                 )
                 if prov is not None:
                     prov.record(
-                        entry.get("block_id", "?"), pno, "list",
+                        entry.get("block_id", "?"),
+                        pno,
+                        "list",
                         entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
-                        font_size, text,
+                        font_size,
+                        text,
                     )
                 continue
             toc_cmds = payload.get("commands") or []
@@ -405,9 +409,12 @@ def render_plan_to_pdf(
                 )
                 if prov is not None:
                     prov.record(
-                        entry.get("block_id", "?"), pno, "toc",
+                        entry.get("block_id", "?"),
+                        pno,
+                        "toc",
                         entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
-                        font_size, text,
+                        font_size,
+                        text,
                     )
                 continue
             # Commit 7E-1: flow block with a settled FlowText LayoutResult draws
@@ -430,9 +437,12 @@ def render_plan_to_pdf(
                 )
                 if prov is not None:
                     prov.record(
-                        entry.get("block_id", "?"), pno, "flow",
+                        entry.get("block_id", "?"),
+                        pno,
+                        "flow",
                         entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
-                        font_size, text,
+                        font_size,
+                        text,
                     )
                 stats["flow_layout_used"] = stats.get("flow_layout_used", 0) + 1
                 continue
@@ -476,9 +486,12 @@ def render_plan_to_pdf(
             stats["glyphs"] += len(text)
             if prov is not None:
                 prov.record(
-                    entry.get("block_id", "?"), pno, "wrapped",
+                    entry.get("block_id", "?"),
+                    pno,
+                    "wrapped",
                     entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0],
-                    font_size, text,
+                    font_size,
+                    text,
                 )
         stats["pages"] += 1
 

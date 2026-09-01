@@ -19,8 +19,15 @@ from pdf2zh.semantic.code_detector import (
 
 # ── 字体识别 ────────────────────────────────────────────────
 def test_is_monospace_font_positives():
-    for name in ["CourierNew", "Consolas", "Menlo", "SourceCodePro",
-                 "DejaVuSansMono", "ABC+RobotoMono-Bold", "FiraCode"]:
+    for name in [
+        "CourierNew",
+        "Consolas",
+        "Menlo",
+        "SourceCodePro",
+        "DejaVuSansMono",
+        "ABC+RobotoMono-Bold",
+        "FiraCode",
+    ]:
         assert is_monospace_font(name)
 
 
@@ -50,8 +57,10 @@ def test_code_without_mono_font_is_not_code():
 
 
 def test_body_prose_not_code():
-    text = ("This paper studies the effect of translation quality on "
-            "reader comprehension and proposes a new evaluation metric.")
+    text = (
+        "This paper studies the effect of translation quality on "
+        "reader comprehension and proposes a new evaluation metric."
+    )
     is_code, score, reasons = detect_code(text, ["TimesNewRoman"])
     assert is_code is False
 
@@ -59,9 +68,7 @@ def test_body_prose_not_code():
 def test_code_with_require_mono_off_can_trigger():
     # require_mono=False：缩进 + 符号 + 关键字三重信号也能命中
     text = "for x in range(10):\n    print(x)\n    x += 1"
-    is_code_off, score, reasons = detect_code(
-        text, ["ArialMT"], require_mono=False
-    )
+    is_code_off, score, reasons = detect_code(text, ["ArialMT"], require_mono=False)
     if score >= CODE_THRESHOLD:
         assert is_code_off is True
         assert "monospace_font" not in reasons  # 无等宽，靠其余信号
@@ -93,10 +100,7 @@ def test_indent_plus_mono_crosses_threshold():
 
 # ── 检测 profile（strict / technical）────────────────────────
 _FAKE_CODE = (
-    "for x in range(10):\n"
-    "    if x % 2 == 0:\n"
-    "        print(x)\n"
-    "        x += 1"
+    "for x in range(10):\n" "    if x % 2 == 0:\n" "        print(x)\n" "        x += 1"
 )
 
 
@@ -120,11 +124,11 @@ def test_technical_profile_allows_proportional_code():
 
 
 def test_technical_profile_still_rejects_prose():
-    prose = ("This paper studies translation quality and reader "
-             "comprehension in a controlled experiment.")
-    is_code, _, _ = detect_code(
-        prose, ["TimesNewRoman"], profile=CodeProfile.TECHNICAL
+    prose = (
+        "This paper studies translation quality and reader "
+        "comprehension in a controlled experiment."
     )
+    is_code, _, _ = detect_code(prose, ["TimesNewRoman"], profile=CodeProfile.TECHNICAL)
     assert is_code is False
 
 

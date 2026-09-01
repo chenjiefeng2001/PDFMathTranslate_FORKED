@@ -855,7 +855,9 @@ def _apply_bookmarks(
                 translated = translator.translate(title)
             except Exception as e:
                 logger.warning(
-                    "bookmarks: title translate failed (%r): %s", title[:30], str(e)[:120]
+                    "bookmarks: title translate failed (%r): %s",
+                    title[:30],
+                    str(e)[:120],
                 )
                 translated = title
             t = (translated or "").strip() or title

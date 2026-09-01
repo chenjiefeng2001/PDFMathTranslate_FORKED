@@ -77,10 +77,16 @@ def _state_signature(plan) -> tuple:
     keys: list = []
     for p in placements_from_plan(plan):
         r = p.resolved_bbox
-        keys.append((
-            p.page, p.block_index,
-            round(r[0], 6), round(r[1], 6), round(r[2], 6), round(r[3], 6),
-        ))
+        keys.append(
+            (
+                p.page,
+                p.block_index,
+                round(r[0], 6),
+                round(r[1], 6),
+                round(r[2], 6),
+                round(r[3], 6),
+            )
+        )
     return tuple(sorted(keys))
 
 
@@ -109,13 +115,15 @@ def source_geometry_snapshot(plan) -> list:
                 for k in ("title_x", "page_x", "continuation_x"):
                     if k in te:
                         anchors[k] = float(te[k])
-        out.append({
-            "block_id": entry.get("block_id"),
-            "page": int(entry.get("page") or 0),
-            "kind": entry.get("kind"),
-            "src_box": list(src) if isinstance(src, (list, tuple)) else None,
-            "anchors": anchors,
-        })
+        out.append(
+            {
+                "block_id": entry.get("block_id"),
+                "page": int(entry.get("page") or 0),
+                "kind": entry.get("kind"),
+                "src_box": list(src) if isinstance(src, (list, tuple)) else None,
+                "anchors": anchors,
+            }
+        )
     return out
 
 
@@ -131,7 +139,7 @@ class GlobalRecoveryEvent:
     pass_no: int
     block_index: int | None
     page: int
-    action: str          # SHIFT_DOWN | BREAK_TO_NEXT_PAGE | CONTINUATION | PRESERVE_OVERFLOW
+    action: str  # SHIFT_DOWN | BREAK_TO_NEXT_PAGE | CONTINUATION | PRESERVE_OVERFLOW
     detail: str = ""
     kind: str = ""
 
@@ -157,9 +165,9 @@ class GlobalRecoveryReport:
     deferred: int = 0
     unresolved: int = 0
     stopped_early: bool = False
-    stopped_reason: str = ""         # "" | "no_progress" | "budget_expired"
-    events: list = field(default_factory=list)               # GlobalRecoveryEvent
-    pass_summaries: list = field(default_factory=list)       # per-round counts
+    stopped_reason: str = ""  # "" | "no_progress" | "budget_expired"
+    events: list = field(default_factory=list)  # GlobalRecoveryEvent
+    pass_summaries: list = field(default_factory=list)  # per-round counts
 
     def to_dict(self) -> dict:
         return {
@@ -220,16 +228,25 @@ def global_recovery(
         # ── 8d: same-page SHIFT_DOWN ─────────────────────────────────────
         shifted, shift_rep = apply_page_shifts(new_plan, page_sizes=sizes)
         for d in shift_rep.applied:
-            report.events.append(GlobalRecoveryEvent(
-                pass_no=pass_no, block_index=d.block_index, page=d.page,
-                action="SHIFT_DOWN", kind="",
-                detail=f"down {float(d.shift_y):.2f}pt"))
+            report.events.append(
+                GlobalRecoveryEvent(
+                    pass_no=pass_no,
+                    block_index=d.block_index,
+                    page=d.page,
+                    action="SHIFT_DOWN",
+                    kind="",
+                    detail=f"down {float(d.shift_y):.2f}pt",
+                )
+            )
             report.applied += 1
 
         # ── 8e: cross-page BREAK / continuation / preserve ───────────────
         broken, cont_rep = execute_continuation_breaks(
-            shifted, page_sizes=sizes,
-            page_start_y=page_start_y, page_bottom_y=page_bottom_y)
+            shifted,
+            page_sizes=sizes,
+            page_start_y=page_start_y,
+            page_bottom_y=page_bottom_y,
+        )
         for r in cont_rep.applied:
             if r.mode == "split":
                 action = "CONTINUATION"
@@ -237,17 +254,30 @@ def global_recovery(
                 action = "BREAK_TO_NEXT_PAGE"
             else:
                 action = r.mode
-            report.events.append(GlobalRecoveryEvent(
-                pass_no=pass_no, block_index=r.block_index, page=r.source_page,
-                action=action, kind=r.kind,
-                detail=f"{r.kind} -> page {r.target_page} (lines moved {r.moved_lines})"))
+            report.events.append(
+                GlobalRecoveryEvent(
+                    pass_no=pass_no,
+                    block_index=r.block_index,
+                    page=r.source_page,
+                    action=action,
+                    kind=r.kind,
+                    detail=f"{r.kind} -> page {r.target_page} (lines moved {r.moved_lines})",
+                )
+            )
             report.applied += 1
         for r in cont_rep.deferred:
             if r.mode != "preserve":
                 continue
-            report.events.append(GlobalRecoveryEvent(
-                pass_no=pass_no, block_index=r.block_index, page=r.source_page,
-                action="PRESERVE_OVERFLOW", kind=r.kind, detail="immovable"))
+            report.events.append(
+                GlobalRecoveryEvent(
+                    pass_no=pass_no,
+                    block_index=r.block_index,
+                    page=r.source_page,
+                    action="PRESERVE_OVERFLOW",
+                    kind=r.kind,
+                    detail="immovable",
+                )
+            )
             report.deferred += 1
 
         new_plan = broken
@@ -256,14 +286,16 @@ def global_recovery(
         collisions = detect_page_collisions(new_plan)
         overflows = detect_page_overflows(new_plan, page_sizes=sizes)
         total = len(collisions) + len(overflows)
-        report.pass_summaries.append({
-            "pass": pass_no,
-            "collision_count": total,
-            "collisions": len(collisions),
-            "page_overflow": len(overflows),
-            "shifts": len(shift_rep.applied),
-            "breaks": len(cont_rep.applied),
-        })
+        report.pass_summaries.append(
+            {
+                "pass": pass_no,
+                "collision_count": total,
+                "collisions": len(collisions),
+                "page_overflow": len(overflows),
+                "shifts": len(shift_rep.applied),
+                "breaks": len(cont_rep.applied),
+            }
+        )
         report.passes = pass_no
 
         if total == 0:
@@ -284,6 +316,7 @@ def global_recovery(
         if not report.stopped_reason:
             report.stopped_reason = "budget_expired"
         report.unresolved = len(detect_page_collisions(new_plan)) + len(
-            detect_page_overflows(new_plan, page_sizes=sizes))
+            detect_page_overflows(new_plan, page_sizes=sizes)
+        )
 
     return new_plan, report

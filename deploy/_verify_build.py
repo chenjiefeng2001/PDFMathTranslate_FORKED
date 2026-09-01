@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """验证新构建产物：排除项已消失、体积、onnxruntime/capi 构成。"""
+
 import os
 
 root = r"c:\Users\14977\source\repos\PDFMathTranslate_FORKED\deploy\_build_sidecar\dist\pdf2zh-api-sidecar"
@@ -22,8 +23,15 @@ internal = os.path.join(root, "_internal")
 
 print("== 应排除项检查（不应存在） ==")
 bad = [
-    "_polars_runtime_32", "transformers", "tokenizers", "hf_xet",
-    "botocore", "boto3", "s3transfer", "safetensors", "huggingface_hub",
+    "_polars_runtime_32",
+    "transformers",
+    "tokenizers",
+    "hf_xet",
+    "botocore",
+    "boto3",
+    "s3transfer",
+    "safetensors",
+    "huggingface_hub",
 ]
 for b in bad:
     hit = os.path.isdir(os.path.join(internal, b))

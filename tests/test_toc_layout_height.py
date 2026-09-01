@@ -91,8 +91,10 @@ def _layout(entry, translated=None, **kw):
 
 class TestSingleLineTitle(unittest.TestCase):
     def test_one_line_no_recovery(self):
-        r = _layout(_entry(title_only="Introduction", page_x=500.0),
-                    translated="译_Introduction")
+        r = _layout(
+            _entry(title_only="Introduction", page_x=500.0),
+            translated="译_Introduction",
+        )
         self.assertEqual(r.line_count, 1)
         self.assertEqual(r.total_height, 14.0)  # 1 * line_height
         self.assertEqual(r.original_lines, 1)
@@ -105,8 +107,10 @@ class TestSingleLineTitle(unittest.TestCase):
 
 class TestWrapWithinBudget(unittest.TestCase):
     def test_long_title_wraps_not_overflow(self):
-        r = _layout(_entry(title_only="A", page_x=300.0),
-                    translated="A much longer translated title that wraps over lines")
+        r = _layout(
+            _entry(title_only="A", page_x=300.0),
+            translated="A much longer translated title that wraps over lines",
+        )
         self.assertGreaterEqual(r.line_count, 2)
         self.assertFalse(r.overflow)
         self.assertIsNotNone(r.recovery)
@@ -117,8 +121,10 @@ class TestWrapWithinBudget(unittest.TestCase):
         self.assertEqual(ys, sorted(ys, reverse=True))
 
     def test_every_wrapped_line_emitted_as_command(self):
-        r = _layout(_entry(title_only="A", page_x=300.0),
-                    translated="A much longer translated title that wraps over lines")
+        r = _layout(
+            _entry(title_only="A", page_x=300.0),
+            translated="A much longer translated title that wraps over lines",
+        )
         title_cmds = [c for c in toc_layout_commands(r) if c["kind"] == "title"]
         self.assertEqual(len(title_cmds), r.line_count)
         # all title lines keep the title_x anchor column
@@ -148,8 +154,7 @@ class TestOriginalPlusExtraBudget(unittest.TestCase):
     def test_budget_is_original_plus_extra_not_absolute(self):
         """A 3-line original (title + 2 continuations) may grow to 5 lines."""
         r = _layout(
-            _entry(title_only="A", page_x=300.0,
-                   continuation=["c1", "c2"]),
+            _entry(title_only="A", page_x=300.0, continuation=["c1", "c2"]),
             translated=("word " * 25).strip(),
             translated_continuation=["c1", "c2"],
         )
@@ -192,11 +197,13 @@ class TestBudgetExhaustedRecovery(unittest.TestCase):
         self.assertIsNone(r.leader)
 
     def test_no_shrink_budget_preserve_directly(self):
-        b = LayoutBudget(allow_wrap=True, allow_shrink=False, allow_clip=False,
-                         max_extra_lines=2)
+        b = LayoutBudget(
+            allow_wrap=True, allow_shrink=False, allow_clip=False, max_extra_lines=2
+        )
         r = layout_toc_entry(
             _entry(title_only="A", page_x=100.0),
-            measure=_measure, size=10.0,
+            measure=_measure,
+            size=10.0,
             translated_title=("word " * 120).strip(),
             budget=b,
         )
@@ -211,38 +218,65 @@ class TestBudgetExhaustedRecovery(unittest.TestCase):
 class TestContinuationGeometry(unittest.TestCase):
     def test_continuation_x_verbatim_from_entry(self):
         r = _layout(
-            _entry(title_only="Title", page_x=500.0, continuation=["cont"],
-                   continuation_x=120.0),
-            translated="译_Title", translated_continuation=["cont"],
+            _entry(
+                title_only="Title",
+                page_x=500.0,
+                continuation=["cont"],
+                continuation_x=120.0,
+            ),
+            translated="译_Title",
+            translated_continuation=["cont"],
         )
         self.assertEqual(r.continuation_x, 120.0)
         self.assertEqual(r.continuation[0].bbox[0], 120.0)
 
     def test_continuation_x_fallback_is_title_x_plus_size(self):
         r = _layout(
-            _entry(title_only="Title", page_x=500.0, title_x=72.0,
-                   continuation=["cont"]),
-            translated="译_Title", translated_continuation=["cont"],
+            _entry(
+                title_only="Title", page_x=500.0, title_x=72.0, continuation=["cont"]
+            ),
+            translated="译_Title",
+            translated_continuation=["cont"],
         )
         # established fallback: title_x + size (not level-derived)
         self.assertEqual(r.continuation_x, 72.0 + 10.0)
 
     def test_continuation_x_not_function_of_level(self):
         """Same level with different entry continuation_x → different x."""
-        r1 = _layout(_entry(title_only="A", page_x=500.0, level=2,
-                            continuation=["c"], continuation_x=100.0),
-                     translated="A", translated_continuation=["c"])
-        r2 = _layout(_entry(title_only="B", page_x=500.0, level=2,
-                            continuation=["c"], continuation_x=140.0),
-                     translated="B", translated_continuation=["c"])
+        r1 = _layout(
+            _entry(
+                title_only="A",
+                page_x=500.0,
+                level=2,
+                continuation=["c"],
+                continuation_x=100.0,
+            ),
+            translated="A",
+            translated_continuation=["c"],
+        )
+        r2 = _layout(
+            _entry(
+                title_only="B",
+                page_x=500.0,
+                level=2,
+                continuation=["c"],
+                continuation_x=140.0,
+            ),
+            translated="B",
+            translated_continuation=["c"],
+        )
         self.assertNotEqual(r1.continuation_x, r2.continuation_x)
         # and the fallback is independent of level too
-        r3 = _layout(_entry(title_only="C", page_x=500.0, level=2,
-                            continuation=["c"]),
-                     translated="C", translated_continuation=["c"])
-        r4 = _layout(_entry(title_only="D", page_x=500.0, level=3,
-                            continuation=["c"]),
-                     translated="D", translated_continuation=["c"])
+        r3 = _layout(
+            _entry(title_only="C", page_x=500.0, level=2, continuation=["c"]),
+            translated="C",
+            translated_continuation=["c"],
+        )
+        r4 = _layout(
+            _entry(title_only="D", page_x=500.0, level=3, continuation=["c"]),
+            translated="D",
+            translated_continuation=["c"],
+        )
         self.assertEqual(r3.continuation_x, r4.continuation_x)
 
 
@@ -251,8 +285,10 @@ class TestContinuationGeometry(unittest.TestCase):
 
 class TestPageChannel(unittest.TestCase):
     def test_page_x_never_moves_when_title_wraps(self):
-        r = _layout(_entry(title_only="A", page_x=500.0, page_number="12"),
-                    translated=("A very long translated title that wraps " * 3).strip())
+        r = _layout(
+            _entry(title_only="A", page_x=500.0, page_number="12"),
+            translated=("A very long translated title that wraps " * 3).strip(),
+        )
         self.assertGreaterEqual(r.line_count, 2)
         self.assertEqual(r.page.bbox[0], 500.0)
         page_cmd = [c for c in toc_layout_commands(r) if c["kind"] == "page"]
@@ -260,16 +296,20 @@ class TestPageChannel(unittest.TestCase):
 
     def test_page_number_emitted_exactly_once(self):
         """Multi-line title still yields exactly ONE page command."""
-        r = _layout(_entry(title_only="A", page_x=500.0, page_number="12"),
-                    translated=("A very long translated title that wraps " * 3).strip())
+        r = _layout(
+            _entry(title_only="A", page_x=500.0, page_number="12"),
+            translated=("A very long translated title that wraps " * 3).strip(),
+        )
         page_cmds = [c for c in toc_layout_commands(r) if c["kind"] == "page"]
         self.assertEqual(len(page_cmds), 1)
         self.assertEqual(page_cmds[0]["text"], "12")
 
     def test_page_number_never_duplicated_per_wrapped_line(self):
         cmds = toc_layout_commands(
-            _layout(_entry(title_only="A", page_x=500.0, page_number="12"),
-                    translated=("A very long translated title that wraps " * 3).strip())
+            _layout(
+                _entry(title_only="A", page_x=500.0, page_number="12"),
+                translated=("A very long translated title that wraps " * 3).strip(),
+            )
         )
         texts = [c["text"] for c in cmds if c["kind"] == "page"]
         self.assertEqual(texts, ["12"])
@@ -281,16 +321,19 @@ class TestPageChannel(unittest.TestCase):
 class TestLeaderBehavior(unittest.TestCase):
     def test_leader_shrinks_but_page_x_unchanged(self):
         short = _layout(_entry(page_x=500.0), translated="Intro")
-        long = _layout(_entry(page_x=500.0),
-                       translated="A much longer translated title here")
+        long = _layout(
+            _entry(page_x=500.0), translated="A much longer translated title here"
+        )
         s_len = len(short.leader.lines[0]) if short.leader else 0
         l_len = len(long.leader.lines[0]) if long.leader else 0
         self.assertLess(l_len, s_len)
         self.assertEqual(short.page.bbox[0], long.page.bbox[0])
 
     def test_no_leader_never_forces_dots(self):
-        r = _layout(_entry(leader_present=False, dot_leader="", page_number="5"),
-                    translated=("A long translated title " * 5).strip())
+        r = _layout(
+            _entry(leader_present=False, dot_leader="", page_number="5"),
+            translated=("A long translated title " * 5).strip(),
+        )
         self.assertIsNone(r.leader)
         self.assertFalse([c for c in toc_layout_commands(r) if c["kind"] == "leader"])
 
@@ -300,8 +343,10 @@ class TestLeaderBehavior(unittest.TestCase):
 
 class TestCjkMultiline(unittest.TestCase):
     def test_cjk_title_wraps_correctly(self):
-        r = _layout(_entry(title_only="A", page_x=200.0, leader_present=False),
-                    translated="这是一个非常非常长的中文标题它需要换行成多行显示")
+        r = _layout(
+            _entry(title_only="A", page_x=200.0, leader_present=False),
+            translated="这是一个非常非常长的中文标题它需要换行成多行显示",
+        )
         self.assertGreaterEqual(r.line_count, 2)
         # measured by the unified measurer (CJK 1em), not char-count heuristic
         for c in toc_layout_commands(r):
@@ -315,14 +360,19 @@ class TestCjkMultiline(unittest.TestCase):
 
 class TestMisc(unittest.TestCase):
     def test_title_policy_is_wrap_under_7f5b(self):
-        r = _layout(_entry(title_only="A", page_x=300.0),
-                    translated="A much longer translated title that wraps over lines")
+        r = _layout(
+            _entry(title_only="A", page_x=300.0),
+            translated="A much longer translated title that wraps over lines",
+        )
         self.assertIs(r.title.policy, OverflowPolicy.WRAP)
 
     def test_result_json_safe(self):
         import json
-        r = _layout(_entry(title_only="A", page_x=300.0, page_number="12"),
-                    translated="A much longer translated title that wraps over lines")
+
+        r = _layout(
+            _entry(title_only="A", page_x=300.0, page_number="12"),
+            translated="A much longer translated title that wraps over lines",
+        )
         json.dumps(r.to_dict())
         json.dumps(toc_layout_commands(r))
         d = r.to_dict()
@@ -335,4 +385,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

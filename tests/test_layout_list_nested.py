@@ -75,12 +75,17 @@ def test_continuation_x_equals_content_x_at_every_level():
         ((40.0, 52.0, 700.0), (52.0, 64.0, 680.0), (64.0, 76.0, 660.0))
     ):
         item = _item(
-            f"level {level}", f"{marker_x}.",
-            marker_x, content_x, y,
+            f"level {level}",
+            f"{marker_x}.",
+            marker_x,
+            content_x,
+            y,
             continuation=[f"cont of level {level}"],
         )
         r = layout_list_item(
-            item, measure=_measure, font_size=10.0,
+            item,
+            measure=_measure,
+            font_size=10.0,
             continuation_texts=[f"cont of level {level}"],
         )
         assert r.continuation_x == content_x
@@ -100,10 +105,15 @@ def test_geometry_never_recomputed_or_fixed():
 def test_nested_wrap_keeps_own_content_column():
     item = _item(
         "a fairly long nested item that must wrap over lines",
-        "a.", marker_x=52.0, content_x=64.0, y=680.0,
+        "a.",
+        marker_x=52.0,
+        content_x=64.0,
+        y=680.0,
     )
     r = layout_list_item(
-        item, measure=_measure, font_size=10.0,
+        item,
+        measure=_measure,
+        font_size=10.0,
         content_text="a fairly long nested item that must wrap over lines",
     )
     assert len(r.content.lines) >= 2
@@ -112,7 +122,9 @@ def test_nested_wrap_keeps_own_content_column():
 
 
 def test_nested_baselines_step_down_in_y_up():
-    results = layout_list_node(_tree(), measure=_measure, font_size=10.0, line_step=-14.0)
+    results = layout_list_node(
+        _tree(), measure=_measure, font_size=10.0, line_step=-14.0
+    )
     ys = [r.y for r in results]
     assert ys == [700.0, 680.0, 660.0]
     assert ys[1] < ys[0] and ys[2] < ys[1]

@@ -30,14 +30,18 @@ import pdf2zh.semantic.layout.recovery as rec
 # draw-only / detection-free source (docstrings stripped via AST).
 def _code():
     import ast
+
     tree = ast.parse(inspect.getsource(rec))
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -52,14 +56,24 @@ _SRC = _code()
 
 
 def test_recovery_never_detects():
-    for banned in ("looks_like", "detect_", "parse_", "list_parser", "toc_parser",
-                   "code_detector", "list_detector", "style_detector"):
+    for banned in (
+        "looks_like",
+        "detect_",
+        "parse_",
+        "list_parser",
+        "toc_parser",
+        "code_detector",
+        "list_detector",
+        "style_detector",
+    ):
         assert banned not in _SRC, f"recovery must not reference detection ({banned})"
 
 
 def test_recovery_never_references_renderer():
     for banned in ("renderer", "magicpdf", "insert_text", "draw"):
-        assert banned not in _SRC, f"recovery must not draw/couple to a renderer ({banned})"
+        assert (
+            banned not in _SRC
+        ), f"recovery must not draw/couple to a renderer ({banned})"
 
 
 def test_recovery_never_translates():
@@ -70,7 +84,9 @@ def test_recovery_never_translates():
 def test_recovery_no_geometry_from_level_or_index():
     # no `level *` / `index *` and no use of those names period.
     for banned in ("level", "index", "level ", "index "):
-        assert banned not in _SRC, f"recovery must not derive geometry from {banned.strip()}"
+        assert (
+            banned not in _SRC
+        ), f"recovery must not derive geometry from {banned.strip()}"
 
 
 def test_recovery_is_decision_only_no_execution():
@@ -83,8 +99,14 @@ def test_recovery_is_decision_only_no_execution():
 def test_recovery_imports_only_layout_stack():
     # imports restricted to the layout layer (primitives / overflow / wrap);
     # must not drag in semantic detectors, renderers or translator modules.
-    for name in ("toc_sidechannel", "list_sidechannel", "style_translate",
-                 "document_model", "semantic.renderer", "semantic.models"):
+    for name in (
+        "toc_sidechannel",
+        "list_sidechannel",
+        "style_translate",
+        "document_model",
+        "semantic.renderer",
+        "semantic.models",
+    ):
         assert name not in _SRC, f"recovery imported {name}"
 
 
@@ -100,11 +122,18 @@ def test_recovery_exports_policy_vocabulary():
 
 def test_recovery_enums_have_expected_members():
     assert {r.value for r in rec.OverflowReason} == {
-        "width", "height", "unbreakable_token",
-        "fixed_column_collision", "preserved_region",
+        "width",
+        "height",
+        "unbreakable_token",
+        "fixed_column_collision",
+        "preserved_region",
     }
     assert {d.value for d in rec.RecoveryDecision} == {
-        "no_action", "wrap", "shrink", "clip", "preserve_overflow",
+        "no_action",
+        "wrap",
+        "shrink",
+        "clip",
+        "preserve_overflow",
     }
 
 
@@ -112,4 +141,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

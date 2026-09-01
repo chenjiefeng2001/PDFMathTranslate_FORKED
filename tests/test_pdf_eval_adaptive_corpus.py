@@ -26,7 +26,9 @@ from tests.pdf_eval_build import (
     build_toc_multiline,
 )
 
-BASELINE = os.path.join(os.path.dirname(__file__), "baselines", "toc_adaptive_7f5d.json")
+BASELINE = os.path.join(
+    os.path.dirname(__file__), "baselines", "toc_adaptive_7f5d.json"
+)
 
 ADAPTIVE_METRICS = [
     "toc_adaptive_wrap_integrity",
@@ -42,7 +44,11 @@ CASES = [
     ("toc_short", build_toc_adaptive_short, build_toc_adaptive_short),
     ("toc_long_wrap", build_toc_adaptive_short, build_toc_adaptive_wrap_output),
     ("toc_long_shrink", build_toc_adaptive_short, build_toc_adaptive_shrink_output),
-    ("toc_extreme_overflow", build_toc_adaptive_short, build_toc_adaptive_extreme_output),
+    (
+        "toc_extreme_overflow",
+        build_toc_adaptive_short,
+        build_toc_adaptive_extreme_output,
+    ),
     ("toc_cjk", build_toc_adaptive_cjk_source, build_toc_adaptive_cjk_output),
     ("toc_multiline_continuation", build_toc_multiline, build_toc_multiline),
 ]
@@ -84,4 +90,6 @@ def test_baseline_file_matches_current(tmp_path):
     cur = corpus_metrics(tmp_path)
     for key, val in base.items():
         assert key in cur, f"baseline metric {key} missing from current report"
-        assert abs(cur[key] - val) < 1e-6, f"{key}: baseline {val} != current {cur[key]}"
+        assert (
+            abs(cur[key] - val) < 1e-6
+        ), f"{key}: baseline {val} != current {cur[key]}"

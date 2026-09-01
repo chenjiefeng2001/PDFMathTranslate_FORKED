@@ -17,7 +17,7 @@ the box's bottom edge — exactly the translation-inflated collision that 8a's
 declared-box view could not see::
 
     source:  A ─────          resolved:  A ─────────────
-                  gap                              
+                  gap
              B ─────                      B ─────        ← A 的译文撑高
 
 ``BlockPlacement.resolved_bbox`` is therefore ``dst_box`` **extended downward**
@@ -92,8 +92,15 @@ __all__ = [
 #: flagged ``preserved_region`` so later recovery stages skip it.
 PRESERVE_KINDS = frozenset(
     {
-        "code", "formula", "figure", "image", "table", "header", "footer",
-        "formula_inline", "column",
+        "code",
+        "formula",
+        "figure",
+        "image",
+        "table",
+        "header",
+        "footer",
+        "formula_inline",
+        "column",
     }
 )
 _PRESERVE_KINDS = PRESERVE_KINDS  # back-compat alias
@@ -489,13 +496,15 @@ def detect_page_overflows(
             continue
         if p.bottom < -tolerance:
             out.append(
-                PageOverflow(page=p.page, block=p, direction="bottom",
-                             amount=round(-p.bottom, 2))
+                PageOverflow(
+                    page=p.page, block=p, direction="bottom", amount=round(-p.bottom, 2)
+                )
             )
         if p.top > ph + tolerance:
             out.append(
-                PageOverflow(page=p.page, block=p, direction="top",
-                             amount=round(p.top - ph, 2))
+                PageOverflow(
+                    page=p.page, block=p, direction="top", amount=round(p.top - ph, 2)
+                )
             )
     return out
 

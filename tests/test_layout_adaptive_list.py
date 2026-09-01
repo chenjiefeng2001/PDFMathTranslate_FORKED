@@ -31,21 +31,48 @@ def _measure(text, size):
     return w
 
 
-def _item(text="First item", marker="1.", marker_x=40.0, content_x=52.0,
-          content_width=200.0, y=700.0, continuation=None):
+def _item(
+    text="First item",
+    marker="1.",
+    marker_x=40.0,
+    content_x=52.0,
+    content_width=200.0,
+    y=700.0,
+    continuation=None,
+):
     return ListItemNode(
-        marker=marker, content=text, continuation=list(continuation or []),
-        marker_x=marker_x, marker_width=10.0, content_x=content_x,
-        content_width=content_width, y=y,
+        marker=marker,
+        content=text,
+        continuation=list(continuation or []),
+        marker_x=marker_x,
+        marker_width=10.0,
+        content_x=content_x,
+        content_width=content_width,
+        y=y,
     )
 
 
 def _layout(text, **kw):
     return layout_list_item(
-        _item(text=text, **{k: v for k, v in kw.items() if k in
-                             ("content_width", "content_x", "marker_x", "y",
-                              "marker", "continuation")}),
-        measure=_measure, font_size=10.0, content_text=text,
+        _item(
+            text=text,
+            **{
+                k: v
+                for k, v in kw.items()
+                if k
+                in (
+                    "content_width",
+                    "content_x",
+                    "marker_x",
+                    "y",
+                    "marker",
+                    "continuation",
+                )
+            },
+        ),
+        measure=_measure,
+        font_size=10.0,
+        content_text=text,
     )
 
 
@@ -55,7 +82,9 @@ def _layout(text, **kw):
 def test_marker_preserved_content_wraps():
     text = "This is a long translated list item that definitely wraps over lines"
     layout = layout_list_item(
-        _item(content_width=110.0), measure=_measure, font_size=10.0,
+        _item(content_width=110.0),
+        measure=_measure,
+        font_size=10.0,
         content_text=text,
     )
     assert isinstance(layout, ListLayoutResult)
@@ -69,7 +98,9 @@ def test_marker_preserved_content_wraps():
 
 def test_long_english_wraps_adaptive():
     layout = layout_list_item(
-        _item(content_width=100.0), measure=_measure, font_size=10.0,
+        _item(content_width=100.0),
+        measure=_measure,
+        font_size=10.0,
         content_text="This is a very long translated list item that cannot fit on one line",
     )
     assert len(layout.content.lines) >= 2
@@ -79,7 +110,9 @@ def test_long_english_wraps_adaptive():
 
 def test_cjk_content_wraps():
     layout = layout_list_item(
-        _item(content_width=60.0), measure=_measure, font_size=10.0,
+        _item(content_width=60.0),
+        measure=_measure,
+        font_size=10.0,
         content_text="这是一个非常长的列表项目后续内容需要换行显示",
     )
     assert len(layout.content.lines) >= 2
@@ -89,7 +122,9 @@ def test_cjk_content_wraps():
 def test_mixed_cjk_english_wraps():
     text = "这是中文 content 与 English 混合的列表项需要换行"
     layout = layout_list_item(
-        _item(content_width=90.0), measure=_measure, font_size=10.0,
+        _item(content_width=90.0),
+        measure=_measure,
+        font_size=10.0,
         content_text=text,
     )
     assert len(layout.content.lines) >= 2
@@ -101,8 +136,10 @@ def test_mixed_cjk_english_wraps():
 
 def test_continuation_preserved_and_pinned():
     layout = layout_list_item(
-        _item(content_x=52.0, content_width=200.0), measure=_measure,
-        font_size=10.0, content_text="First item",
+        _item(content_x=52.0, content_width=200.0),
+        measure=_measure,
+        font_size=10.0,
+        content_text="First item",
         continuation_texts=["continuation one", "continuation two"],
     )
     assert len(layout.continuation) == 2
@@ -113,8 +150,10 @@ def test_continuation_preserved_and_pinned():
 
 def test_continuation_wraps_and_keeps_x():
     layout = layout_list_item(
-        _item(content_x=52.0, content_width=60.0), measure=_measure,
-        font_size=10.0, content_text="First",
+        _item(content_x=52.0, content_width=60.0),
+        measure=_measure,
+        font_size=10.0,
+        content_text="First",
         continuation_texts=["a continuation line that itself wraps over more lines"],
     )
     assert len(layout.continuation[0].lines) >= 2
@@ -127,7 +166,8 @@ def test_continuation_wraps_and_keeps_x():
 def test_100x_translation_preserves_anchors():
     layout = layout_list_item(
         _item(marker_x=40.0, content_x=52.0, content_width=200.0, y=700.0),
-        measure=_measure, font_size=10.0,
+        measure=_measure,
+        font_size=10.0,
         content_text="A" * 1000,
     )
     # marker untouched
@@ -140,8 +180,10 @@ def test_100x_translation_preserves_anchors():
 
 def test_continuation_100x_preserves_anchors():
     layout = layout_list_item(
-        _item(content_x=52.0, content_width=200.0, y=700.0), measure=_measure,
-        font_size=10.0, content_text="item",
+        _item(content_x=52.0, content_width=200.0, y=700.0),
+        measure=_measure,
+        font_size=10.0,
+        content_text="item",
         continuation_texts=["B" * 1000],
     )
     assert layout.content_x == 52.0
@@ -154,7 +196,9 @@ def test_continuation_100x_preserves_anchors():
 
 def test_nested_geometry_unchanged():
     l2 = ListNode(level=2)
-    l2.items.append(_item(text="deep", marker="i.", marker_x=64.0, content_x=76.0, y=660.0))
+    l2.items.append(
+        _item(text="deep", marker="i.", marker_x=64.0, content_x=76.0, y=660.0)
+    )
     l1 = ListNode(level=1)
     it1 = _item(text="Background", marker="a.", marker_x=52.0, content_x=64.0, y=680.0)
     it1.children.append(l2)
@@ -181,7 +225,9 @@ def test_overlong_unbreakable_token_no_loop():
     geometry anchors are untouched."""
     token = "Supercalifragilisticexpialidocious"
     layout = layout_list_item(
-        _item(content_width=40.0), measure=_measure, font_size=10.0,
+        _item(content_width=40.0),
+        measure=_measure,
+        font_size=10.0,
         content_text=token,
     )
     assert layout.content.overflow is True
@@ -196,9 +242,13 @@ def test_overlong_unbreakable_token_no_loop():
 
 def test_list_layout_recovery_json_safe():
     import json
+
     layout = layout_list_item(
-        _item(content_width=60.0), measure=_measure, font_size=10.0,
-        content_text="很长很长的内容需要换行显示", continuation_texts=["又一延续行"],
+        _item(content_width=60.0),
+        measure=_measure,
+        font_size=10.0,
+        content_text="很长很长的内容需要换行显示",
+        continuation_texts=["又一延续行"],
     )
     json.dumps(layout.to_dict())
 
@@ -206,4 +256,5 @@ def test_list_layout_recovery_json_safe():
 if __name__ == "__main__":
     import sys
     import pytest
+
     sys.exit(pytest.main([__file__]))

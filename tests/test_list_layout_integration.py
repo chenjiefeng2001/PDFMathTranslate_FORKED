@@ -27,6 +27,7 @@ def _cmd_by_kind(cmds, kind):
 
 # ── 1. translator decoupling ─────────────────────────────────────────────
 
+
 def test_marker_never_translated_via_payload():
     seen: list[str] = []
 
@@ -51,12 +52,16 @@ def test_garbage_translator_never_swallows_marker():
     assert [c["text"] for c in texts] == ["TRANSLATED", "TRANSLATED"]
     # 严格顺序：marker 在对应 content 之前，绝不合并
     assert [c["text"] for c in plan["commands"]] == [
-        "1.", "TRANSLATED", "2.", "TRANSLATED",
+        "1.",
+        "TRANSLATED",
+        "2.",
+        "TRANSLATED",
     ]
     assert all(m["text"].strip() in ("1.", "2.") for m in markers)
 
 
 # ── 2. long content wraps through the layout engine ──────────────────────
+
 
 def test_long_translated_item_wraps_to_multiple_text_commands():
     long = "This is a very long translated list item that cannot fit on one line"
@@ -86,7 +91,11 @@ def test_long_translated_item_wraps_to_multiple_text_commands():
 
 def test_wrapped_continuation_x_equals_content_x():
     plan = build_page_list_plan(
-        ["1. very long item", "     continuation line one", "     continuation line two"],
+        [
+            "1. very long item",
+            "     continuation line one",
+            "     continuation line two",
+        ],
         geom=[
             {"x0": 40.0, "x1": 560.0, "y0": 700.0},
             {"x0": 60.0, "x1": 560.0, "y0": 685.0},
@@ -105,6 +114,7 @@ def test_wrapped_continuation_x_equals_content_x():
 
 # ── 3. nested payload geometry ───────────────────────────────────────────
 
+
 def test_nested_payload_content_x_strictly_increasing():
     paras = ["1. Intro", "   a. Background", "      i. deep"]
     geom = [
@@ -116,17 +126,19 @@ def test_nested_payload_content_x_strictly_increasing():
     cxs = [it["content_x"] for it in plan["items"]]
     assert cxs[2] > cxs[1] > cxs[0]
     # items 载荷同时带 continuation_x（== content_x）供下游消费
-    assert all(it["content_x"] == it.get("continuation_x", it["content_x"]) for it in plan["items"])
+    assert all(
+        it["content_x"] == it.get("continuation_x", it["content_x"])
+        for it in plan["items"]
+    )
 
 
 # ── 4. payload JSON-safe + backwards compatible ──────────────────────────
 
+
 def test_payload_json_safe():
     import json
 
-    plan = build_page_list_plan(
-        ["1. First item", "2. Second item"], translate=TR
-    )
+    plan = build_page_list_plan(["1. First item", "2. Second item"], translate=TR)
     json.dumps(plan)
     assert set(plan.keys()) == {"tree", "items", "commands", "translated_calls"}
     assert plan["items"][0]["marker"] == "1."
@@ -134,6 +146,7 @@ def test_payload_json_safe():
 
 
 # ── 5. renderer architecture: draw-only ──────────────────────────────────
+
 
 def test_list_renderer_forbidden_imports_absent():
     import pdf2zh.semantic.renderer.list as mod

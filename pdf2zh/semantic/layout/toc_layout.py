@@ -192,7 +192,9 @@ def layout_toc_entry(
     title_x = float(_entry_value(entry, "title_x", 0.0) or 0.0)
     page_x = float(_entry_value(entry, "page_x", 0.0) or 0.0)
     level = int(_entry_value(entry, "level", 0) or 0)
-    bbox = tuple(_entry_value(entry, "bbox", (0.0, 0.0, 0.0, 0.0)) or (0.0, 0.0, 0.0, 0.0))
+    bbox = tuple(
+        _entry_value(entry, "bbox", (0.0, 0.0, 0.0, 0.0)) or (0.0, 0.0, 0.0, 0.0)
+    )
     sz = float(size or _DEFAULT_SIZE)
     gap = float(leader_gap or _DEFAULT_LEADER_GAP)
     lh = float(line_height or _DEFAULT_LINE_HEIGHT)
@@ -218,7 +220,9 @@ def layout_toc_entry(
     num_result: LayoutResult | None = None
     cursor = title_x
     if number:
-        num_result = _lay(FixedAnchor(text=number, x=title_x, y=y, max_width=0.0, role="title_x"))
+        num_result = _lay(
+            FixedAnchor(text=number, x=title_x, y=y, max_width=0.0, role="title_x")
+        )
         cursor = title_x + num_result.line_widths[0] + gap
 
     # ── Channel 2: title —— adaptive_layout(target="title")：WRAP→SHRINK→
@@ -233,7 +237,9 @@ def layout_toc_entry(
         avail = max(0.0, page_x - cursor - gap)
         max_extra = int(b.max_extra_lines or 0)
         allowed_lines = 1 + max_extra  # title's own original is 1 line
-        anchor = FixedAnchor(text=translated_title, x=cursor, y=y, max_width=avail, role="title_x")
+        anchor = FixedAnchor(
+            text=translated_title, x=cursor, y=y, max_width=avail, role="title_x"
+        )
         title_result = adaptive_layout(
             anchor,
             measure=measure,
@@ -244,7 +250,9 @@ def layout_toc_entry(
             target="title",
         )
         title_lines = len(title_result.lines)
-        title_end = cursor + (title_result.line_widths[0] if title_result.line_widths else 0.0)
+        title_end = cursor + (
+            title_result.line_widths[0] if title_result.line_widths else 0.0
+        )
         overflow = bool(title_result.overflow) or title_lines > allowed_lines
         title_recovery = title_result.recovery
 
@@ -252,10 +260,16 @@ def layout_toc_entry(
     leader_result: LayoutResult | None = None
     if leader_present and not overflow and page_x > title_end + gap:
         available = page_x - title_end
-        unit = lay_out(FixedAnchor(text=".", x=title_end, y=y, max_width=0.0), measure=measure, font_size=sz).line_widths[0]
+        unit = lay_out(
+            FixedAnchor(text=".", x=title_end, y=y, max_width=0.0),
+            measure=measure,
+            font_size=sz,
+        ).line_widths[0]
         unit = float(unit or 1.0)
         n = max(1, int((available - gap) // unit))
-        leader_result = _lay(FixedAnchor(text="." * n, x=title_end, y=y, max_width=0.0, role="leader"))
+        leader_result = _lay(
+            FixedAnchor(text="." * n, x=title_end, y=y, max_width=0.0, role="leader")
+        )
 
     # ── Channel 4: page —— FixedColumn at page_x (PRESERVE, once) ───────
     page_result: LayoutResult | None = None
@@ -329,7 +343,9 @@ def toc_layout_commands(result: TocEntryLayoutResult) -> list[dict]:
                 "text": text,
                 "x": round(float(res.bbox[0]), 2),
                 "y": round(float(res.bbox[1]), 2),
-                "width": round(float(res.line_widths[0] if res.line_widths else 0.0), 2),
+                "width": round(
+                    float(res.line_widths[0] if res.line_widths else 0.0), 2
+                ),
                 "level": result.level,
                 "bbox": list(result.bbox),
             }

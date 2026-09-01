@@ -32,6 +32,7 @@ from typing import Dict, List, Optional, Sequence
 
 log = logging.getLogger(__name__)
 
+
 # ── 7I-1 termination / diagnostic checkpoint ────────────────────────────
 # 默认关闭：只有 logging DEBUG 级启用时才计时。纯诊断 instrument，不改任何
 # 行为/输出。用于定位 build_document_model 对复杂 PDF 的 First Non-\
@@ -64,6 +65,7 @@ class _TimerBox(dict):
         super().__init__()
         self["label"] = label
         self["t0"] = time.monotonic()
+
 
 # Relations（与 v3.graph.EdgeType 对齐的子集）
 REL_FOLLOWS = "follows"
@@ -583,22 +585,22 @@ def render_plan_from_model(model: DocumentModel) -> List[dict]:
                 _kind = "flow"
             unit = {
                 "kind": (
-                    "preserve"
-                    if block.metadata.get("translate") is False
-                    else _kind
+                    "preserve" if block.metadata.get("translate") is False else _kind
                 ),
                 "payload": (
                     block.metadata.get("list_items")
                     if block.kind == "list"
-                    else {
-                        "entries": block.metadata.get("toc_entries") or [],
-                        "commands": (block.metadata.get("toc_commands") or {}).get(
-                            "commands"
-                        )
-                        or [],
-                    }
-                    if block.kind == "toc"
-                    else (_build_flow_payload(block) if _kind == "flow" else None)
+                    else (
+                        {
+                            "entries": block.metadata.get("toc_entries") or [],
+                            "commands": (block.metadata.get("toc_commands") or {}).get(
+                                "commands"
+                            )
+                            or [],
+                        }
+                        if block.kind == "toc"
+                        else (_build_flow_payload(block) if _kind == "flow" else None)
+                    )
                 ),
             }
             plan.append(

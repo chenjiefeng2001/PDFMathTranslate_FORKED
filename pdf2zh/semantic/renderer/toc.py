@@ -115,7 +115,7 @@ class TocRenderer:
                 pre = (e.get("translated_title") or "").strip()
                 translated_title = pre if pre else tr(title_only)
             conts: list[str] = []
-            for c in (e.get("continuation") or []):
+            for c in e.get("continuation") or []:
                 if (c or "").strip():
                     conts.append(tr(c.strip()))
 
@@ -171,16 +171,16 @@ def _split_number_title(title: str):
     # dotted decimal / parenthesised letter / roman numbering prefixes
     import re
 
-    m = re.match(
-        r"^(\s*(?:\d+(?:\.\d+)*|[a-zA-Zа-яА-Я])[\s.、:：)）.．]*\s*)", t
-    )
+    m = re.match(r"^(\s*(?:\d+(?:\.\d+)*|[a-zA-Zа-яА-Я])[\s.、:：)）.．]*\s*)", t)
     roman = re.match(r"^\s*[ivxlcdmIVXLCDM]{1,4}[\s.、:：)）.．]+\s*", t)
-    if m and (m.group(1).strip()[-1:] in ".、:：)）.．" or len(m.group(1).split('.')) > 1):
+    if m and (
+        m.group(1).strip()[-1:] in ".、:：)）.．" or len(m.group(1).split(".")) > 1
+    ):
         lead = m.group(1)
-        rest = t[len(lead):]
+        rest = t[len(lead) :]
     elif roman:
         lead = roman.group(0)
-        rest = t[len(lead):]
+        rest = t[len(lead) :]
     return lead.strip(), rest.strip()
 
 

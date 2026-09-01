@@ -63,8 +63,12 @@ def _flow_budget():
 
 def test_short_text_no_recovery():
     out = render_flow_text(
-        "Hello", origin=(72.0, 722.0), max_width=468.0, max_height=22.0,
-        font_size=12.0, measure=_measure,
+        "Hello",
+        origin=(72.0, 722.0),
+        max_width=468.0,
+        max_height=22.0,
+        font_size=12.0,
+        measure=_measure,
     )
     assert out["overflow"] is False
     assert out["recovery"] is None
@@ -74,8 +78,12 @@ def test_short_text_no_recovery():
 
 def test_short_text_adaptive_no_recovery():
     r = adaptive_layout(
-        _flow("A short line"), measure=_measure, font_size=10.0,
-        avail_width=200.0, avail_height=400.0, budget=_flow_budget(),
+        _flow("A short line"),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=200.0,
+        avail_height=400.0,
+        budget=_flow_budget(),
     )
     assert isinstance(r, LayoutResult)
     assert r.overflow is False
@@ -91,8 +99,12 @@ def test_short_text_adaptive_no_recovery():
 def test_long_english_prefers_wrap():
     text = "This is a long translated paragraph that must wrap over several lines"
     out = render_flow_text(
-        text, origin=(72.0, 722.0), max_width=120.0, max_height=400.0,
-        font_size=10.0, measure=_measure,
+        text,
+        origin=(72.0, 722.0),
+        max_width=120.0,
+        max_height=400.0,
+        font_size=10.0,
+        measure=_measure,
     )
     assert len(out["lines"]) >= 2
     assert out["overflow"] is False
@@ -104,8 +116,12 @@ def test_long_english_prefers_wrap():
 def test_cjk_wraps():
     text = "这是一段很长的中文译文内容" * 3
     out = render_flow_text(
-        text, origin=(72.0, 722.0), max_width=120.0, max_height=400.0,
-        font_size=10.0, measure=_measure,
+        text,
+        origin=(72.0, 722.0),
+        max_width=120.0,
+        max_height=400.0,
+        font_size=10.0,
+        measure=_measure,
     )
     assert len(out["lines"]) >= 2
     assert out["overflow"] is False
@@ -114,8 +130,12 @@ def test_cjk_wraps():
 def test_mixed_cjk_english_wraps():
     text = "English 中文混合 mixed text 内容内容内容内容内容"
     out = render_flow_text(
-        text, origin=(72.0, 722.0), max_width=100.0, max_height=400.0,
-        font_size=10.0, measure=_measure,
+        text,
+        origin=(72.0, 722.0),
+        max_width=100.0,
+        max_height=400.0,
+        font_size=10.0,
+        measure=_measure,
     )
     assert len(out["lines"]) >= 2
     assert out["overflow"] is False
@@ -128,10 +148,14 @@ def test_mixed_cjk_english_wraps():
 
 def test_unbreakable_token_skips_wrap_goes_shrink():
     r = adaptive_layout(
-        _flow("A" * 40, w=100.0, h=400.0), measure=_measure, font_size=10.0,
-        avail_width=100.0, avail_height=400.0, budget=_flow_budget(),
+        _flow("A" * 40, w=100.0, h=400.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=100.0,
+        avail_height=400.0,
+        budget=_flow_budget(),
     )
-    assert r.overflow is False          # SHRINK fixed it (fits at min size)
+    assert r.overflow is False  # SHRINK fixed it (fits at min size)
     assert r.recovery_steps == ["SHRINK"]  # WRAP never ran for an unbreakable token
     assert r.recovery_decision == "shrink"
     assert r.font_size == 5.0
@@ -147,8 +171,12 @@ def test_wrap_then_shrink_stops_before_clip():
     fits width → stops, never proceeds to CLIP."""
     text = "word " * 13  # 64 chars; wraps into 2 lines (height overflow)
     r = adaptive_layout(
-        _flow(text, w=200.0, h=10.0), measure=_measure, font_size=10.0,
-        avail_width=200.0, avail_height=10.0, budget=_flow_budget(),
+        _flow(text, w=200.0, h=10.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=200.0,
+        avail_height=10.0,
+        budget=_flow_budget(),
     )
     assert r.recovery_steps[0] == "WRAP"
     assert r.recovery_steps == ["WRAP", "SHRINK"]
@@ -164,8 +192,12 @@ def test_wrap_then_shrink_stops_before_clip():
 
 def test_shrink_insufficient_goes_clip():
     r = adaptive_layout(
-        _flow("A" * 60, w=100.0, h=400.0), measure=_measure, font_size=10.0,
-        avail_width=100.0, avail_height=400.0, budget=_flow_budget(),
+        _flow("A" * 60, w=100.0, h=400.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=100.0,
+        avail_height=400.0,
+        budget=_flow_budget(),
     )
     assert r.recovery_steps == ["SHRINK", "CLIP"]
     assert r.overflow is True
@@ -179,8 +211,12 @@ def test_full_ladder_steps_order():
     # (A wider box that re-wrap can fit now stops at WRAP -> SHRINK.)
     text = "word " * 60
     r = adaptive_layout(
-        _flow(text, w=4.0, h=400.0), measure=_measure, font_size=10.0,
-        avail_width=4.0, avail_height=400.0, budget=_flow_budget(),
+        _flow(text, w=4.0, h=400.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=4.0,
+        avail_height=400.0,
+        budget=_flow_budget(),
     )
     assert r.recovery_steps == ["WRAP", "SHRINK", "CLIP"]
     assert r.overflow is True
@@ -193,8 +229,12 @@ def test_no_stale_decision_when_overflow():
     # token) so overflow must never carry a stale wrap/no_action decision.
     for text, w, h in [("word " * 60, 4.0, 400.0), ("A" * 80, 30.0, 300.0)]:
         out = render_flow_text(
-            text, origin=(0.0, 0.0), max_width=w, max_height=h,
-            font_size=10.0, measure=_measure,
+            text,
+            origin=(0.0, 0.0),
+            max_width=w,
+            max_height=h,
+            font_size=10.0,
+            measure=_measure,
         )
         assert out["overflow"] is True
         assert out["recovery"]["decision"] not in ("no_action", "wrap")
@@ -208,8 +248,12 @@ def test_no_stale_decision_when_overflow():
 def test_recovery_bounded_max_three_steps():
     text = "word " * 60
     r = adaptive_layout(
-        _flow(text, w=100.0, h=40.0), measure=_measure, font_size=10.0,
-        avail_width=100.0, avail_height=40.0, budget=_flow_budget(),
+        _flow(text, w=100.0, h=40.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=100.0,
+        avail_height=40.0,
+        budget=_flow_budget(),
     )
     assert len(r.recovery_steps) <= 3  # WRAP(1) → SHRINK(1) → CLIP(1)
 
@@ -218,15 +262,23 @@ def test_pathological_huge_token_terminates():
     """A 10000-char unbreakable token must terminate without a while-loop."""
     huge = "A" * 10000
     r = adaptive_layout(
-        _flow(huge, w=10.0, h=10.0), measure=_measure, font_size=10.0,
-        avail_width=10.0, avail_height=10.0, budget=_flow_budget(),
+        _flow(huge, w=10.0, h=10.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=10.0,
+        avail_height=10.0,
+        budget=_flow_budget(),
     )
     assert len(r.recovery_steps) <= 3
     assert r.overflow is True
     # and via the full render path too (never hangs)
     out = render_flow_text(
-        huge, origin=(0.0, 0.0), max_width=10.0, max_height=10.0,
-        font_size=10.0, measure=_measure,
+        huge,
+        origin=(0.0, 0.0),
+        max_width=10.0,
+        max_height=10.0,
+        font_size=10.0,
+        measure=_measure,
     )
     assert out["overflow"] is True
     assert len((out["recovery"] or {}).get("steps", [])) <= 3
@@ -238,11 +290,16 @@ def test_pathological_huge_token_terminates():
 
 
 def test_min_font_size_honored():
-    b = LayoutBudget(allow_wrap=True, allow_shrink=True, allow_clip=True,
-                     min_font_size=8.0)
+    b = LayoutBudget(
+        allow_wrap=True, allow_shrink=True, allow_clip=True, min_font_size=8.0
+    )
     r = adaptive_layout(
-        _flow("A" * 60, w=100.0, h=400.0), measure=_measure, font_size=10.0,
-        avail_width=100.0, avail_height=400.0, budget=b,
+        _flow("A" * 60, w=100.0, h=400.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=100.0,
+        avail_height=400.0,
+        budget=b,
     )
     assert r.font_size >= 8.0 - 1e-6
     assert r.recovery["final_font_size"] >= 8.0 - 1e-6
@@ -256,20 +313,30 @@ def test_final_font_never_exceeds_original():
         ("word " * 13, 200.0, 10.0),
     ]:
         r = adaptive_layout(
-            _flow(text, w=w, h=h), measure=_measure, font_size=10.0,
-            avail_width=w, avail_height=h, budget=_flow_budget(),
+            _flow(text, w=w, h=h),
+            measure=_measure,
+            font_size=10.0,
+            avail_width=w,
+            avail_height=h,
+            budget=_flow_budget(),
         )
         if r.recovery is not None:
-            assert r.recovery["final_font_size"] <= \
-                r.recovery["original_font_size"] + 1e-6
+            assert (
+                r.recovery["final_font_size"] <= r.recovery["original_font_size"] + 1e-6
+            )
 
 
 def test_allow_shrink_false_is_honest_preserve():
     """Explicit opt-out: WRAP only, then honest PRESERVE_OVERFLOW — never a
     silent shrink/clip, and the recovery record says so."""
     out = render_flow_text(
-        "A" * 80, origin=(0.0, 0.0), max_width=30.0, max_height=300.0,
-        font_size=10.0, measure=_measure, allow_shrink=False,
+        "A" * 80,
+        origin=(0.0, 0.0),
+        max_width=30.0,
+        max_height=300.0,
+        font_size=10.0,
+        measure=_measure,
+        allow_shrink=False,
     )
     assert out["overflow"] is True
     steps = (out["recovery"] or {}).get("steps", [])
@@ -284,19 +351,31 @@ def test_allow_shrink_false_is_honest_preserve():
 
 def test_recovery_json_safe():
     r = adaptive_layout(
-        _flow("word " * 60, w=100.0, h=40.0), measure=_measure, font_size=10.0,
-        avail_width=100.0, avail_height=40.0, budget=_flow_budget(),
+        _flow("word " * 60, w=100.0, h=40.0),
+        measure=_measure,
+        font_size=10.0,
+        avail_width=100.0,
+        avail_height=40.0,
+        budget=_flow_budget(),
     )
     d = r.to_dict()
     json.dumps(d)
     assert "recovery" in d
     assert set(d["recovery"]) >= {
-        "reason", "decision", "steps", "original_font_size", "final_font_size",
+        "reason",
+        "decision",
+        "steps",
+        "original_font_size",
+        "final_font_size",
     }
     # render_flow_text payload is JSON-safe too
     out = render_flow_text(
-        "A" * 60, origin=(0.0, 0.0), max_width=40.0, max_height=400.0,
-        font_size=10.0, measure=_measure,
+        "A" * 60,
+        origin=(0.0, 0.0),
+        max_width=40.0,
+        max_height=400.0,
+        font_size=10.0,
+        measure=_measure,
     )
     json.dumps(out)
     assert isinstance(out["recovery"], dict)
@@ -320,7 +399,7 @@ def test_magicpdf_renderer_never_imports_recovery_layer():
     import pdf2zh.v3.magicpdf_renderer as mod
 
     src = inspect.getsource(mod)
-    assert "semantic.layout" not in src      # no recovery/adaptive import
+    assert "semantic.layout" not in src  # no recovery/adaptive import
     for banned in ("wrap_lines(", "shrink_to_fit(", "clip_text("):
         assert banned not in src
 
@@ -335,10 +414,13 @@ def test_recovery_layer_never_imports_renderer_or_translator():
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -358,8 +440,12 @@ def test_recovery_layer_never_imports_renderer_or_translator():
 
 def test_geometry_not_recomputed_by_recovery():
     out = render_flow_text(
-        "A" * 200, origin=(72.0, 722.0), max_width=40.0, max_height=400.0,
-        font_size=10.0, measure=_measure,
+        "A" * 200,
+        origin=(72.0, 722.0),
+        max_width=40.0,
+        max_height=400.0,
+        font_size=10.0,
+        measure=_measure,
     )
     assert out["overflow"] is True
     assert out["recovery"] is not None
@@ -379,12 +465,16 @@ def _block(text, translated, x0=72.0, y0=700.0, x1=540.0, y1=722.0):
     from pdf2zh.v3.canonical_page import BlockModel, LineModel, SpanModel
 
     line = LineModel(text=text, baseline=0.0, x0=x0, y0=y0, x1=x1, y1=y1)
-    line.spans.append(
-        SpanModel(size=12.0, text=text, x0=x0, y0=y0, x1=x1, y1=y1)
-    )
+    line.spans.append(SpanModel(size=12.0, text=text, x0=x0, y0=y0, x1=x1, y1=y1))
     return BlockModel(
-        text=text, kind="paragraph", x0=x0, y0=y0, x1=x1, y1=y1,
-        lines=[line], metadata={"translated": translated},
+        text=text,
+        kind="paragraph",
+        x0=x0,
+        y0=y0,
+        x1=x1,
+        y1=y1,
+        lines=[line],
+        metadata={"translated": translated},
     )
 
 
@@ -393,7 +483,9 @@ def test_magicpdf_surfaces_flow_overflow():
     from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
 
     payload = build_block_flow_payload(
-        _block(text="Source", translated="A" * 500, x0=72.0, y0=700.0, x1=120.0, y1=722.0)
+        _block(
+            text="Source", translated="A" * 500, x0=72.0, y0=700.0, x1=120.0, y1=722.0
+        )
     )
     # the recovery happened at layout time — the evaluator can see it
     assert payload["overflow"] is True
@@ -401,8 +493,11 @@ def test_magicpdf_surfaces_flow_overflow():
     assert "CLIP" in payload["recovery"]["steps"]
 
     entry = {
-        "block_id": "p0_flow", "page": 0, "kind": "paragraph",
-        "text": "Source", "translated": "A" * 500,
+        "block_id": "p0_flow",
+        "page": 0,
+        "kind": "paragraph",
+        "text": "Source",
+        "translated": "A" * 500,
         "render_path": "translate_refit",
         "src_box": [72.0, 700.0, 120.0, 722.0],
         "dst_box": [72.0, 700.0, 120.0, 722.0],
@@ -413,7 +508,7 @@ def test_magicpdf_surfaces_flow_overflow():
         [entry], page_sizes={0: [612.0, 792.0]}, cjk_font=True
     )
     assert stats.get("flow_layout_used", 0) == 1  # settled commands drawn
-    assert stats.get("flow_overflow", 0) >= 1     # overflow observable downstream
+    assert stats.get("flow_overflow", 0) >= 1  # overflow observable downstream
     assert "flow_legacy_fallback" not in stats
 
 
@@ -421,4 +516,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

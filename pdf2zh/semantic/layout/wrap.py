@@ -29,9 +29,7 @@ __all__ = ["wrap_lines", "shrink_to_fit", "clip_text", "tokenize"]
 # “word” matches latin/digit runs but deliberately excludes CJK/full-width
 # glyphs so an adjacent CJK char is tokenised on its own (breakable on both
 # sides) instead of being swallowed by an over-eager ``\w+``/``\S+`` run.
-_CJK_CLASS = (
-    r"\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF"
-)
+_CJK_CLASS = r"\u2E80-\u9FFF\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFFEF"
 _TOKEN_RE = re.compile(
     r"(?P<space>\s+)"
     r"|(?P<cjk>[" + _CJK_CLASS + r"])"
@@ -120,9 +118,7 @@ def _wrap_one(
         lines.append((cur, _safe_width(measure, cur)))
 
 
-def _safe_width2(
-    measure: Callable[[str, float], float], s: str, size: float
-) -> float:
+def _safe_width2(measure: Callable[[str, float], float], s: str, size: float) -> float:
     try:
         w = float(measure(s, size))
     except Exception:  # noqa: BLE001 -- measurement failure is non-fatal

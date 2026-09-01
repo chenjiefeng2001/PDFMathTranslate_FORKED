@@ -40,7 +40,9 @@ def _measure(text, size):
 
 def _title(text, x=72.0, page_x=500.0, size=10.0):
     """A TOC title anchor: pinned at title_x, bounded by the page column."""
-    return FixedAnchor(text=text, x=x, y=700.0, max_width=max(0.0, page_x - x - 4.0), role="title_x")
+    return FixedAnchor(
+        text=text, x=x, y=700.0, max_width=max(0.0, page_x - x - 4.0), role="title_x"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -76,13 +78,15 @@ class TestTocTitleBudget(unittest.TestCase):
 
 class TestTocTitleDecisionLadder(unittest.TestCase):
     def test_width_overflow_wraps_first(self):
-        d = decide_recovery("toc_title", OverflowReason.WIDTH,
-                            budget=budget_for_kind("toc_title"))
+        d = decide_recovery(
+            "toc_title", OverflowReason.WIDTH, budget=budget_for_kind("toc_title")
+        )
         self.assertIs(d, RecoveryDecision.WRAP)
 
     def test_height_overflow_wraps_first(self):
-        d = decide_recovery("toc_title", OverflowReason.HEIGHT,
-                            budget=budget_for_kind("toc_title"))
+        d = decide_recovery(
+            "toc_title", OverflowReason.HEIGHT, budget=budget_for_kind("toc_title")
+        )
         self.assertIs(d, RecoveryDecision.WRAP)
 
     def test_wrap_disabled_then_shrink(self):
@@ -97,8 +101,11 @@ class TestTocTitleDecisionLadder(unittest.TestCase):
         self.assertIs(d, RecoveryDecision.PRESERVE_OVERFLOW)
 
     def test_unbreakable_token_skips_wrap_goes_shrink(self):
-        d = decide_recovery("toc_title", OverflowReason.UNBREAKABLE_TOKEN,
-                            budget=budget_for_kind("toc_title"))
+        d = decide_recovery(
+            "toc_title",
+            OverflowReason.UNBREAKABLE_TOKEN,
+            budget=budget_for_kind("toc_title"),
+        )
         self.assertIs(d, RecoveryDecision.SHRINK)
 
     def test_clip_never_returned_for_toc_title_any_reason(self):
@@ -111,8 +118,7 @@ class TestTocTitleDecisionLadder(unittest.TestCase):
                 self.assertIsNot(d, RecoveryDecision.CLIP, f"reason={reason}")
 
     def test_toc_alias_same_ladder(self):
-        d = decide_recovery("toc", OverflowReason.WIDTH,
-                            budget=budget_for_kind("toc"))
+        d = decide_recovery("toc", OverflowReason.WIDTH, budget=budget_for_kind("toc"))
         self.assertIs(d, RecoveryDecision.WRAP)
 
 
@@ -142,8 +148,12 @@ class TestAdaptiveTocTitleNeverClips(unittest.TestCase):
     def test_long_title_wraps_without_clip(self):
         r = adaptive_layout(
             _title("A moderately long translated title that still fits"),
-            measure=_measure, avail_width=424.0, avail_height=400.0,
-            font_size=10.0, budget=budget_for_kind("toc_title"), target="title",
+            measure=_measure,
+            avail_width=424.0,
+            avail_height=400.0,
+            font_size=10.0,
+            budget=budget_for_kind("toc_title"),
+            target="title",
         )
         self.assertIsInstance(r, LayoutResult)
         self.assertFalse(r.overflow)
@@ -154,8 +164,12 @@ class TestAdaptiveTocTitleNeverClips(unittest.TestCase):
         b = LayoutBudget(allow_wrap=True, allow_shrink=True, allow_clip=True)
         r = adaptive_layout(
             _title("VeryLong" * 60),
-            measure=_measure, avail_width=20.0, avail_height=10.0,
-            font_size=10.0, budget=b, target="title",
+            measure=_measure,
+            avail_width=20.0,
+            avail_height=10.0,
+            font_size=10.0,
+            budget=b,
+            target="title",
         )
         self.assertTrue(r.overflow)
         self.assertNotIn("CLIP", r.recovery_steps)
@@ -166,8 +180,11 @@ class TestAdaptiveTocTitleNeverClips(unittest.TestCase):
         b = budget_for_kind("toc_title")
         r = adaptive_layout(
             _title("VeryLong" * 60),
-            measure=_measure, avail_width=20.0, avail_height=10.0,
-            font_size=10.0, budget=b,
+            measure=_measure,
+            avail_width=20.0,
+            avail_height=10.0,
+            font_size=10.0,
+            budget=b,
         )
         self.assertTrue(r.overflow)
         self.assertNotIn("CLIP", r.recovery_steps)
@@ -177,8 +194,12 @@ class TestAdaptiveTocTitleNeverClips(unittest.TestCase):
         """FixedColumn at page_x stays put even when the title overflows."""
         page = FixedColumn(text="42", column_x=500.0, y=700.0)
         r = adaptive_layout(
-            page, measure=_measure, avail_width=20.0, avail_height=10.0,
-            font_size=10.0, budget=budget_for_kind("column"),
+            page,
+            measure=_measure,
+            avail_width=20.0,
+            avail_height=10.0,
+            font_size=10.0,
+            budget=budget_for_kind("column"),
         )
         # PRESERVE path keeps geometry, reports overflow explicitly
         self.assertEqual(r.bbox[0], 500.0)
@@ -188,4 +209,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

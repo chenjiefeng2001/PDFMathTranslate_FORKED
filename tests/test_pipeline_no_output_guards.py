@@ -41,7 +41,9 @@ class _FakeTaskStore:
 class TestMagicpdfEmptyResultsFail(unittest.TestCase):
     """空产物不得落 COMPLETED —— 必须显式 FAILED 并给出排查指引。"""
 
-    def test_empty_artifacts_mark_failed(self, ):
+    def test_empty_artifacts_mark_failed(
+        self,
+    ):
         from pdf2zh.services.runtime_service import RuntimeService
 
         svc = RuntimeService()
@@ -52,8 +54,10 @@ class TestMagicpdfEmptyResultsFail(unittest.TestCase):
         completed = []
         failed = []
 
-        with patch.object(svc, "_complete_file", lambda *a, **k: completed.append(a)), \
-             patch.object(svc, "_fail_file", lambda *a, **k: failed.append((a, k))):
+        with (
+            patch.object(svc, "_complete_file", lambda *a, **k: completed.append(a)),
+            patch.object(svc, "_fail_file", lambda *a, **k: failed.append((a, k))),
+        ):
             with patch.dict(os.environ, {"PDF2ZH_NO_WARMUP": "1"}):
                 svc._collect_magicpdf_results(tid, os.devnull, total=1)
 
@@ -61,8 +65,6 @@ class TestMagicpdfEmptyResultsFail(unittest.TestCase):
         self.assertEqual(completed, [])
         msg = str(failed[0][0][1])
         self.assertIn("no output artifacts", msg)
-
-
 
     def test_legacy_fallback_pdfs_collected_when_magicpdf_empty(self):
         """magicpdf 子目录无产物但父目录有 legacy 降级 PDF → 收集并 COMPLETED。"""
@@ -83,9 +85,13 @@ class TestMagicpdfEmptyResultsFail(unittest.TestCase):
 
             completed = []
             failed = []
-            with patch.object(svc, "_complete_file", lambda *a, **k: completed.append((a, k))), \
-                 patch.object(svc, "_fail_file", lambda *a, **k: failed.append((a, k))), \
-                 patch.dict(os.environ, {"PDF2ZH_NO_WARMUP": "1"}):
+            with (
+                patch.object(
+                    svc, "_complete_file", lambda *a, **k: completed.append((a, k))
+                ),
+                patch.object(svc, "_fail_file", lambda *a, **k: failed.append((a, k))),
+                patch.dict(os.environ, {"PDF2ZH_NO_WARMUP": "1"}),
+            ):
                 svc._collect_magicpdf_results(tid, str(out), total=1)
 
             self.assertEqual(failed, [])
@@ -119,9 +125,11 @@ class TestPseudoProtectPriority(unittest.TestCase):
             calls["mineru"] += 1
             raise AssertionError("MinerU branch must not run when PP is available")
 
-        with patch.object(pcp, "_load_base_layout_model", lambda: base), \
-             patch.object(pcp, "_try_build_algorithm_detector", lambda: det), \
-             patch.object(pcp, "MinerUAlgorithmDetector", _mineru):
+        with (
+            patch.object(pcp, "_load_base_layout_model", lambda: base),
+            patch.object(pcp, "_try_build_algorithm_detector", lambda: det),
+            patch.object(pcp, "MinerUAlgorithmDetector", _mineru),
+        ):
             model = pcp._build_with_mineru_or_paddle("fake.pdf")
         self.assertIsInstance(model, pcp.PseudoCodeProtectedLayoutModel)
         self.assertEqual(calls["mineru"], 0)
@@ -136,10 +144,12 @@ class TestPseudoProtectPriority(unittest.TestCase):
             _time.sleep(1.5)
 
         start = _time.monotonic()
-        with patch.object(pcp, "_load_base_layout_model", lambda: base), \
-             patch.object(pcp, "_try_build_algorithm_detector", lambda: None), \
-             patch.dict(os.environ, {"PDF2ZH_PSEUDO_MINERU_BUDGET": "1"}), \
-             patch.object(pcp, "MinerUAlgorithmDetector", _slow_detector):
+        with (
+            patch.object(pcp, "_load_base_layout_model", lambda: base),
+            patch.object(pcp, "_try_build_algorithm_detector", lambda: None),
+            patch.dict(os.environ, {"PDF2ZH_PSEUDO_MINERU_BUDGET": "1"}),
+            patch.object(pcp, "MinerUAlgorithmDetector", _slow_detector),
+        ):
             result = pcp._build_with_mineru_or_paddle("fake.pdf")
         elapsed = _time.monotonic() - start
         # 异步化后：绝不等待 MinerU（<0.2s 返回），detector 尚未注入
@@ -183,10 +193,12 @@ class TestMineruBudgetNonBlocking(unittest.TestCase):
 
         base = object()
         start = _time.monotonic()
-        with patch.object(pcp, "_load_base_layout_model", lambda: base), \
-             patch.object(pcp, "_try_build_algorithm_detector", lambda: None), \
-             patch.object(pcp, "MinerUAlgorithmDetector", _slow_mineru_detector), \
-             patch.object(pcp, "resolve_pseudo_mineru_budget", lambda *a, **k: 1):
+        with (
+            patch.object(pcp, "_load_base_layout_model", lambda: base),
+            patch.object(pcp, "_try_build_algorithm_detector", lambda: None),
+            patch.object(pcp, "MinerUAlgorithmDetector", _slow_mineru_detector),
+            patch.object(pcp, "resolve_pseudo_mineru_budget", lambda *a, **k: 1),
+        ):
             result = pcp._build_with_mineru_or_paddle("fake.pdf")
         elapsed = _time.monotonic() - start
         # 异步化后立即返回（不 join 后台线程）：绝不等待 3s 的 MinerU 解析。
@@ -224,9 +236,11 @@ class TestMineruBudgetNonBlocking(unittest.TestCase):
             assert gate.wait(5), "main thread never released the gate"
             return _ReadyDetector()
 
-        with patch.object(pcp, "_load_base_layout_model", lambda: base), \
-             patch.object(pcp, "_try_build_algorithm_detector", lambda: None), \
-             patch.object(pcp, "MinerUAlgorithmDetector", _gated_detector):
+        with (
+            patch.object(pcp, "_load_base_layout_model", lambda: base),
+            patch.object(pcp, "_try_build_algorithm_detector", lambda: None),
+            patch.object(pcp, "MinerUAlgorithmDetector", _gated_detector),
+        ):
             result = pcp._build_with_mineru_or_paddle("fake.pdf")
         self.assertIsInstance(result, pcp.PseudoCodeProtectedLayoutModel)
         # BabelDOC OnnxModel 全文档共享同一 names dict
@@ -235,9 +249,7 @@ class TestMineruBudgetNonBlocking(unittest.TestCase):
         def _protect_one(page_number):
             r = YoloResult(
                 names=names,
-                boxes_data=np.array(
-                    [[100, 100, 400, 300, 0.5, 0]], dtype=np.float32
-                ),
+                boxes_data=np.array([[100, 100, 400, 300, 0.5, 0]], dtype=np.float32),
             )
             result._protect_page(_Geo(), r, page_number=page_number)
             return names.get(int(r.boxes[0].cls))

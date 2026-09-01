@@ -186,11 +186,7 @@ class TestMineruV3ClassMappingAndPseudocode(unittest.TestCase):
         from pdf2zh.v3.magicpdf_bridge import _looks_like_pseudocode
 
         # 伪代码：多行 + 结构关键字命中过半 → 保护
-        code = (
-            "for i in range(n):\n"
-            "    result += a[i]\n"
-            "return result\n"
-        )
+        code = "for i in range(n):\n" "    result += a[i]\n" "return result\n"
         self.assertTrue(_looks_like_pseudocode(code))
         # 普通正文：不触发
         prose = (
@@ -214,25 +210,31 @@ class TestMineruV3ClassMappingAndPseudocode(unittest.TestCase):
                             {
                                 "bbox": [50, 300, 400, 320],
                                 "spans": [
-                                    {"bbox": [50, 300, 400, 320],
-                                     "content": "for i in range(n):",
-                                     "type": "text"}
+                                    {
+                                        "bbox": [50, 300, 400, 320],
+                                        "content": "for i in range(n):",
+                                        "type": "text",
+                                    }
                                 ],
                             },
                             {
                                 "bbox": [60, 320, 400, 340],
                                 "spans": [
-                                    {"bbox": [60, 320, 400, 340],
-                                     "content": "    result += a[i]",
-                                     "type": "text"}
+                                    {
+                                        "bbox": [60, 320, 400, 340],
+                                        "content": "    result += a[i]",
+                                        "type": "text",
+                                    }
                                 ],
                             },
                             {
                                 "bbox": [50, 340, 400, 360],
                                 "spans": [
-                                    {"bbox": [50, 340, 400, 360],
-                                     "content": "return result",
-                                     "type": "text"}
+                                    {
+                                        "bbox": [50, 340, 400, 360],
+                                        "content": "return result",
+                                        "type": "text",
+                                    }
                                 ],
                             },
                         ],
@@ -279,4 +281,3 @@ class TestDocumentModel(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

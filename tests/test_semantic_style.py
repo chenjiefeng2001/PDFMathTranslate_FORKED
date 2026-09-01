@@ -70,10 +70,13 @@ def test_roundtrip_nested_bold_italic():
 
 def test_roundtrip_mixed_runs():
     text = "A bold and italic."
-    styles = _styles_for(text, [
-        ((2, 6), SpanStyle(bold=True)),
-        ((10, 16), SpanStyle(italic=True)),
-    ])
+    styles = _styles_for(
+        text,
+        [
+            ((2, 6), SpanStyle(bold=True)),
+            ((10, 16), SpanStyle(italic=True)),
+        ],
+    )
     marked = inject_style_markers(text, styles)
     clean, got = extract_style_markers(marked)
     assert clean == text

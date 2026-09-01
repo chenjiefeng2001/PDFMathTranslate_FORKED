@@ -46,13 +46,20 @@ _PAGE = {1: 792.0}
 def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None):
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
-        "list_items": None, "toc_entries": None, "toc_commands": None,
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
+        "list_items": None,
+        "toc_entries": None,
+        "toc_commands": None,
     }
 
 
@@ -69,10 +76,20 @@ def _flow(block_id, page, x0, y0, x1, y1):
     box_h = float(y1) - float(y0)
     cmd_y = float(y1) - 9.0 if box_h >= 12.0 else (float(y0) + float(y1)) / 2.0
     payload = {
-        "kind": "flow", "font_size": 10.0,
-        "commands": [{"kind": "flow-text", "text": "t", "x": float(x0),
-                      "y": cmd_y, "width": 100.0, "line": 0,
-                      "is_last": True, "overflow": False}],
+        "kind": "flow",
+        "font_size": 10.0,
+        "commands": [
+            {
+                "kind": "flow-text",
+                "text": "t",
+                "x": float(x0),
+                "y": cmd_y,
+                "width": 100.0,
+                "line": 0,
+                "is_last": True,
+                "overflow": False,
+            }
+        ],
     }
     return _entry(block_id, page, "flow", x0, y0, x1, y1, payload=payload)
 
@@ -110,8 +127,7 @@ class TestCaseA_SubpixelOverlap(unittest.TestCase):
         self.assertEqual(collisions[0].overlap, 0.0)
 
     def test_global_recovery_sticks_on_first_pass_no_progress(self):
-        final, report = global_recovery(
-            _subpixel_stuck_plan(), page_sizes=_PAGE)
+        final, report = global_recovery(_subpixel_stuck_plan(), page_sizes=_PAGE)
         self.assertFalse(report.converged)
         self.assertTrue(report.stopped_early)
         self.assertEqual(report.stopped_reason, "no_progress")
@@ -131,13 +147,12 @@ class TestCaseB_ZeroShiftExecutor(unittest.TestCase):
     """SHIFT_DOWN = 0 → applied = 0, unresolved > 0 (8d zero-delta guard)."""
 
     def test_zero_shift_is_not_applicable(self):
-        final, report = resolve_page_shifts(
-            _subpixel_stuck_plan(), page_sizes=_PAGE)
+        final, report = resolve_page_shifts(_subpixel_stuck_plan(), page_sizes=_PAGE)
         self.assertTrue(report.stopped_early)
         self.assertEqual(report.stopped_reason, "no_progress")
         self.assertEqual(report.passes, 0)
-        self.assertEqual(report.applied, [])            # nothing applied
-        self.assertGreater(len(report.unresolved), 0)   # collision stays
+        self.assertEqual(report.applied, [])  # nothing applied
+        self.assertGreater(len(report.unresolved), 0)  # collision stays
         # geometry is unchanged — the decision was a no-op and was skipped
         self.assertEqual(final[1].resolved_bbox, (60.0, 660.0, 260.0, 700.004))
 
@@ -158,8 +173,8 @@ class TestCaseC_StableStateNeverBurnsBudget(unittest.TestCase):
         self.assertEqual(report.passes, 1)
         # leftover collisions are visible — the system stopped, it did not burn
         self.assertEqual(
-            report.unresolved,
-            len(detect_page_collisions(final)) + report.deferred)
+            report.unresolved, len(detect_page_collisions(final)) + report.deferred
+        )
 
     def test_budget_exhaustion_is_attributed_not_disguised(self):
         # 8d's own cascade needs 2 passes (A-B then B-C); cap it at 1.  The
@@ -171,7 +186,7 @@ class TestCaseC_StableStateNeverBurnsBudget(unittest.TestCase):
             _flow("p1_2", 1, 60.0, 650.0, 260.0, 665.0),
         ]
         final, report = resolve_page_shifts(plan, page_sizes=_PAGE, max_passes=1)
-        self.assertFalse(report.stopped_early)   # budget run out, not stuck
+        self.assertFalse(report.stopped_early)  # budget run out, not stuck
         self.assertEqual(report.stopped_reason, "budget_expired")
         self.assertEqual(report.passes, 1)
         self.assertEqual(len(report.applied), 1)

@@ -18,7 +18,9 @@ TR = lambda s: f"TR[{s}]"  # noqa: E731
 
 
 def _plan(paras, **kw):
-    return build_page_list_plan(paras, geom=kw.get("geom"), translate=kw.get("translate", TR))
+    return build_page_list_plan(
+        paras, geom=kw.get("geom"), translate=kw.get("translate", TR)
+    )
 
 
 def _cmd_by_kind(cmds, kind):
@@ -30,8 +32,11 @@ def test_decimal_list_chain():
     paras = ["1. First item", "2. Second item", "3. Third item"]
     plan = _plan(paras)
     assert [i["marker"] for i in plan["items"]] == ["1.", "2.", "3."]
-    assert [i["translated"] for i in plan["items"]] == \
-        ["TR[First item]", "TR[Second item]", "TR[Third item]"]
+    assert [i["translated"] for i in plan["items"]] == [
+        "TR[First item]",
+        "TR[Second item]",
+        "TR[Third item]",
+    ]
     # 几何：content_x == marker_x + marker_width（保持原始列的起点）
     for it in plan["items"]:
         assert abs(it["content_x"] - it["marker_x"]) > 0
@@ -39,7 +44,11 @@ def test_decimal_list_chain():
     markers = _cmd_by_kind(plan["commands"], "marker")
     texts = _cmd_by_kind(plan["commands"], "text")
     assert [c["text"] for c in markers] == ["1.", "2.", "3."]
-    assert [c["text"] for c in texts] == ["TR[First item]", "TR[Second item]", "TR[Third item]"]
+    assert [c["text"] for c in texts] == [
+        "TR[First item]",
+        "TR[Second item]",
+        "TR[Third item]",
+    ]
 
 
 def test_decimal_contents_at_content_x():
@@ -59,8 +68,11 @@ def test_alphabetic_parens_list():
     plan = _plan(paras)
     assert [i["marker"] for i in plan["items"]] == ["(a)", "(b)", "(c)"]
     assert [i["marker_type"] for i in plan["items"]] == ["lower_alpha"] * 3
-    assert [i["translated"] for i in plan["items"]] == \
-        ["TR[first]", "TR[second]", "TR[third]"]
+    assert [i["translated"] for i in plan["items"]] == [
+        "TR[first]",
+        "TR[second]",
+        "TR[third]",
+    ]
 
 
 # ── 3. bullet list ──────────────────────────────────────────────────
@@ -75,7 +87,11 @@ def test_bullet_list_preserves_marker_glyph():
 
 # ── 4. continuation lines alignment ─────────────────────────────────
 def test_continuation_at_content_x():
-    paras = ["1. very long item that wraps", "     continuation one", "     continuation two"]
+    paras = [
+        "1. very long item that wraps",
+        "     continuation one",
+        "     continuation two",
+    ]
     plan = _plan(paras)
     items = plan["items"]
     assert len(items) == 1
@@ -170,7 +186,10 @@ def test_translator_garbage_never_swallows_marker():
     assert [c["text"] for c in texts] == ["TRANSLATED", "TRANSLATED"]
     # 严格顺序：marker 必须在对应 content 之前（"1.", "TRANSLATED", "2.", "TRANSLATED"）
     assert [c["text"] for c in plan["commands"]] == [
-        "1.", "TRANSLATED", "2.", "TRANSLATED",
+        "1.",
+        "TRANSLATED",
+        "2.",
+        "TRANSLATED",
     ]
     # marker 是逐字保留的原文（"1."），不含任何翻译产物（绝不 "1.1"）
     assert all(m["text"].strip() in ("1.", "2.") for m in markers)

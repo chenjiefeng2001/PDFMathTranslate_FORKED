@@ -49,26 +49,46 @@ _HERE = Path(__file__).resolve().parent
 _BASELINE = _HERE / "baselines" / "page_break_continuation_7f8e4.json"
 
 PAGE_W, PAGE_H = 612.0, 792.0
-PAGE_START = 752.0   # v3 y-up content top edge (40pt margin below the top edge)
-BOTTOM = 10.0        # fitted margin: lines below y=10 are the continuation tail
+PAGE_START = 752.0  # v3 y-up content top edge (40pt margin below the top edge)
+BOTTOM = 10.0  # fitted margin: lines below y=10 are the continuation tail
 # 7G-2.1 P0: a break may only land on a page that exists (max page_sizes key).
 # The mixed corpus needs THREE target pages (1, 2, 3) — the document must
 # declare page 3 or the third break is correctly deferred as out-of-document.
 HEIGHTS = {0: PAGE_H, 1: PAGE_H, 2: PAGE_H, 3: PAGE_H}
-SIZES = {0: [PAGE_W, PAGE_H], 1: [PAGE_W, PAGE_H], 2: [PAGE_W, PAGE_H],
-         3: [PAGE_W, PAGE_H]}
+SIZES = {
+    0: [PAGE_W, PAGE_H],
+    1: [PAGE_W, PAGE_H],
+    2: [PAGE_W, PAGE_H],
+    3: [PAGE_W, PAGE_H],
+}
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,
-           list_items=None, toc_entries=None, toc_commands=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    list_items=None,
+    toc_entries=None,
+    toc_commands=None,
+):
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
         "list_items": list_items,
         "toc_entries": toc_entries,
         "toc_commands": toc_commands,
@@ -85,11 +105,26 @@ def _list_block(block_id="p0_list", page=0):
         {"kind": "text", "text": "E", "x": 76.0, "y": -8.0, "width": 40.0},
         {"kind": "text", "text": "F", "x": 76.0, "y": -20.0, "width": 40.0},
     ]
-    items = [{"marker": "1.", "marker_x": 60.0, "content_x": 76.0,
-              "continuation_x": 76.0, "continuation": ["B", "C", "D", "E", "F"]}]
-    return _entry(block_id, page, "list", 60.0, -30.0, 260.0, 50.0,
-                  list_items={"commands": commands, "items": items},
-                  payload={"kind": "list", "commands": commands})
+    items = [
+        {
+            "marker": "1.",
+            "marker_x": 60.0,
+            "content_x": 76.0,
+            "continuation_x": 76.0,
+            "continuation": ["B", "C", "D", "E", "F"],
+        }
+    ]
+    return _entry(
+        block_id,
+        page,
+        "list",
+        60.0,
+        -30.0,
+        260.0,
+        50.0,
+        list_items={"commands": commands, "items": items},
+        payload={"kind": "list", "commands": commands},
+    )
 
 
 def _toc_block(block_id="p0_toc", page=0):
@@ -104,24 +139,67 @@ def _toc_block(block_id="p0_toc", page=0):
         {"kind": "title", "text": "cont2", "x": 82.0, "y": -8.0, "width": 60.0},
         {"kind": "title", "text": "cont3", "x": 82.0, "y": -20.0, "width": 60.0},
     ]
-    entries = [{"title": "Intro", "title_x": 82.0, "page_x": 500.0,
-                "page_number": "42", "continuation": []}]
-    return _entry(block_id, page, "toc", 60.0, -30.0, 260.0, 50.0,
-                  toc_entries=entries, toc_commands={"commands": commands},
-                  payload={"kind": "toc", "commands": commands})
+    entries = [
+        {
+            "title": "Intro",
+            "title_x": 82.0,
+            "page_x": 500.0,
+            "page_number": "42",
+            "continuation": [],
+        }
+    ]
+    return _entry(
+        block_id,
+        page,
+        "toc",
+        60.0,
+        -30.0,
+        260.0,
+        50.0,
+        toc_entries=entries,
+        toc_commands={"commands": commands},
+        payload={"kind": "toc", "commands": commands},
+    )
 
 
 def _code(block_id="p0_code", page=0):
-    return _entry(block_id, page, "code", 60.0, -30.0, 260.0, 50.0,
-                  payload={"kind": "code", "commands": []})
+    return _entry(
+        block_id,
+        page,
+        "code",
+        60.0,
+        -30.0,
+        260.0,
+        50.0,
+        payload={"kind": "code", "commands": []},
+    )
 
 
 def _flow_tail(block_id="p0_flow", page=0):
-    return _entry(block_id, page, "flow", 60.0, -20.0, 260.0, 50.0,
-                  payload={"kind": "flow", "commands": [
-                      {"kind": "flow-text", "text": "FLOWTAIL", "x": 60.0,
-                       "y": -20.0, "width": 100.0, "line": 0, "is_last": True,
-                       "overflow": True}]})
+    return _entry(
+        block_id,
+        page,
+        "flow",
+        60.0,
+        -20.0,
+        260.0,
+        50.0,
+        payload={
+            "kind": "flow",
+            "commands": [
+                {
+                    "kind": "flow-text",
+                    "text": "FLOWTAIL",
+                    "x": 60.0,
+                    "y": -20.0,
+                    "width": 100.0,
+                    "line": 0,
+                    "is_last": True,
+                    "overflow": True,
+                }
+            ],
+        },
+    )
 
 
 def _split_render(plan):
@@ -130,7 +208,8 @@ def _split_render(plan):
     Returns ``(doc, words, execed_plan, report)``.
     """
     execed, report = execute_continuation_breaks(
-        plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+        plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM
+    )
     pdf, _ = render_plan_to_pdf(execed, page_sizes=SIZES, cjk_font=True)
     doc = pymupdf.open(stream=pdf, filetype="pdf")
     words = [extract_words(doc[i]) for i in range(doc.page_count)]
@@ -190,11 +269,14 @@ class TestListPdfGolden(unittest.TestCase):
     def test_before_after_overflow_gate(self):
         plan = [_list_block()]
         before = build_page_flow_report(plan, page_sizes=HEIGHTS).summary()[
-            "page_overflow_count"]
+            "page_overflow_count"
+        ]
         execed, _ = execute_continuation_breaks(
-            plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+            plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM
+        )
         after = build_page_flow_report(execed, page_sizes=HEIGHTS).summary()[
-            "page_overflow_count"]
+            "page_overflow_count"
+        ]
         self.assertEqual(before, 1)
         self.assertEqual(after, 0)
 
@@ -205,7 +287,8 @@ def _count_label(words, label):
 
 def execute_and_plan(plan):
     return execute_continuation_breaks(
-        plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+        plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -249,10 +332,12 @@ class TestTocPdfGolden(unittest.TestCase):
     def test_overflow_gate(self):
         plan = [_toc_block()]
         before = build_page_flow_report(plan, page_sizes=HEIGHTS).summary()[
-            "page_overflow_count"]
+            "page_overflow_count"
+        ]
         execed, _ = execute_and_plan(plan)
         after = build_page_flow_report(execed, page_sizes=HEIGHTS).summary()[
-            "page_overflow_count"]
+            "page_overflow_count"
+        ]
         self.assertEqual(before, 1)
         self.assertEqual(after, 0)
 
@@ -271,17 +356,34 @@ class TestMixedPdfGolden(unittest.TestCase):
             counts = _count_label(words, "42"), _count_label(words, "1.")
             self.assertEqual(counts, (1, 1))  # page number once, marker once
             allw = _all_words(words)
-            for t in ("Intro", "wrap1", "wrap2", "cont1", "cont2", "cont3",
-                      "A", "B", "C", "D", "E", "F", "FLOWTAIL", "42"):
+            for t in (
+                "Intro",
+                "wrap1",
+                "wrap2",
+                "cont1",
+                "cont2",
+                "cont3",
+                "A",
+                "B",
+                "C",
+                "D",
+                "E",
+                "F",
+                "FLOWTAIL",
+                "42",
+            ):
                 self.assertEqual(len(words_with_text(allw, t)), 1, f"{t} dup/lost")
             # code preserved on page 0 (no continuation, no move)
             code = [e for e in execed if e["kind"] == "code"]
             self.assertTrue(code)
             self.assertEqual(code[0]["page"], 0)
             # plan-layer marker exactly once (never regenerated)
-            markers = sum(1 for e in execed
-                          for c in e["render_payload"]["commands"]
-                          if c.get("kind") == "marker")
+            markers = sum(
+                1
+                for e in execed
+                for c in e["render_payload"]["commands"]
+                if c.get("kind") == "marker"
+            )
             self.assertEqual(markers, 1)
             # three breakable blocks recovered (toc/flow/list); code preserved
             self.assertEqual(len(report.applied), 3)
@@ -298,32 +400,57 @@ class TestBoundary(unittest.TestCase):
     def test_marker_at_page_bottom_not_split(self):
         # whole run below the fitted margin → whole-block move; marker once,
         # on the next page, never duplicated / never re-generated.
-        low = _entry("p0_list", 0, "list", 60.0, -30.0, 260.0, 50.0,
-                     list_items={"commands": [
-                         {"kind": "marker", "text": "1.", "x": 60.0, "y": 8.0,
-                          "width": 11.0},
-                         {"kind": "text", "text": "A", "x": 76.0, "y": 8.0,
-                          "width": 40.0},
-                         {"kind": "text", "text": "B", "x": 76.0, "y": -4.0,
-                          "width": 40.0}], "items": []},
-                     payload={"kind": "list", "commands": [
-                         {"kind": "marker", "text": "1.", "x": 60.0, "y": 8.0,
-                          "width": 11.0},
-                         {"kind": "text", "text": "A", "x": 76.0, "y": 8.0,
-                          "width": 40.0},
-                         {"kind": "text", "text": "B", "x": 76.0, "y": -4.0,
-                          "width": 40.0}]})
+        low = _entry(
+            "p0_list",
+            0,
+            "list",
+            60.0,
+            -30.0,
+            260.0,
+            50.0,
+            list_items={
+                "commands": [
+                    {
+                        "kind": "marker",
+                        "text": "1.",
+                        "x": 60.0,
+                        "y": 8.0,
+                        "width": 11.0,
+                    },
+                    {"kind": "text", "text": "A", "x": 76.0, "y": 8.0, "width": 40.0},
+                    {"kind": "text", "text": "B", "x": 76.0, "y": -4.0, "width": 40.0},
+                ],
+                "items": [],
+            },
+            payload={
+                "kind": "list",
+                "commands": [
+                    {
+                        "kind": "marker",
+                        "text": "1.",
+                        "x": 60.0,
+                        "y": 8.0,
+                        "width": 11.0,
+                    },
+                    {"kind": "text", "text": "A", "x": 76.0, "y": 8.0, "width": 40.0},
+                    {"kind": "text", "text": "B", "x": 76.0, "y": -4.0, "width": 40.0},
+                ],
+            },
+        )
         doc, words, execed, report = _split_render([low])
         try:
             self.assertEqual(report.applied[0].mode, "whole_block")
             self.assertEqual(report.applied[0].source_page, 0)
             self.assertEqual(report.applied[0].target_page, 1)
-            self.assertEqual(_count_label(words, "1."), 1)   # marker once
+            self.assertEqual(_count_label(words, "1."), 1)  # marker once
             self.assertEqual(len(words_with_text(_all_words(words), "B")), 1)
             # plan-layer: marker never duplicated
-            markers = sum(1 for e in execed
-                          for c in e["render_payload"]["commands"]
-                          if c.get("kind") == "marker")
+            markers = sum(
+                1
+                for e in execed
+                for c in e["render_payload"]["commands"]
+                if c.get("kind") == "marker"
+            )
             self.assertEqual(markers, 1)
         finally:
             doc.close()
@@ -338,8 +465,10 @@ class TestBoundary(unittest.TestCase):
         kept = [e for e in first if e["page"] == 0][0]
         second, r2 = execute_and_plan([kept])
         self.assertEqual(r2.applied, [])
-        self.assertEqual(len(second[0]["render_payload"]["commands"]),
-                         len(kept["render_payload"]["commands"]))
+        self.assertEqual(
+            len(second[0]["render_payload"]["commands"]),
+            len(kept["render_payload"]["commands"]),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -369,15 +498,18 @@ class TestBaselineMatches(unittest.TestCase):
         try:
             self.assertEqual(_count_label(wlist, "1."), split["list"]["marker_count"])
             self.assertLessEqual(
-                abs(page_word_x(wlist[1], "D") - split["list"]["content_x"]), 2.0)
+                abs(page_word_x(wlist[1], "D") - split["list"]["content_x"]), 2.0
+            )
         finally:
             doc.close()
         doc, wlist, _, _ = _split_render([_toc_block()])
         try:
-            self.assertEqual(_count_label(wlist, "42"),
-                             split["toc"]["page_number_count"])
+            self.assertEqual(
+                _count_label(wlist, "42"), split["toc"]["page_number_count"]
+            )
             self.assertLessEqual(
-                abs(page_word_x(wlist[0], "42") - split["toc"]["page_x"]), 2.0)
+                abs(page_word_x(wlist[0], "42") - split["toc"]["page_x"]), 2.0
+            )
         finally:
             doc.close()
 

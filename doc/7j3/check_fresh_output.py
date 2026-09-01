@@ -17,7 +17,11 @@ import pymupdf
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "doc" / "7j3"))
 
-from proof_case_a import build_cmap_text, fix_one_font, parse_tounicode_cmap  # noqa: E402
+from proof_case_a import (
+    build_cmap_text,
+    fix_one_font,
+    parse_tounicode_cmap,
+)  # noqa: E402
 
 OUT = ROOT / "doc" / "7j3" / "out_e2e"
 
@@ -72,7 +76,9 @@ def main() -> int:
             if f[1] == "ttf" and "Identity-H" in (f[5] or ""):
                 diag = fix_one_font(doc, f[0])
                 if "skipped" not in diag:
-                    doc.update_stream(diag["t_xref"], build_cmap_text(diag["fixed"]).encode())
+                    doc.update_stream(
+                        diag["t_xref"], build_cmap_text(diag["fixed"]).encode()
+                    )
                     changed += 1
     fixed_path = OUT / f"{pdf_path.stem}_cidspace.pdf"
     doc.save(str(fixed_path), garbage=3, deflate=True)

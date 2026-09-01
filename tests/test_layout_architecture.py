@@ -18,7 +18,7 @@ import inspect
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
-_LAYOUT_DIR = (_HERE.parent / "pdf2zh" / "semantic" / "layout")
+_LAYOUT_DIR = _HERE.parent / "pdf2zh" / "semantic" / "layout"
 
 
 def _layout_modules():
@@ -72,6 +72,7 @@ def _all_layout_code_lines():
 
 # -- 1/2. No semantic detection entry points -------------------------------
 
+
 def test_no_looks_like_heuristics_in_layout():
     src = "\n".join(_all_layout_code_lines())
     assert "looks_like" not in src
@@ -85,6 +86,7 @@ def test_no_detect_entry_points_in_layout():
 
 # -- 3. Geometry never re-derived from level/index -------------------------
 
+
 def test_no_level_times_constant_in_layout():
     src = "\n".join(_all_layout_code_lines())
     assert not any(pat in src for pat in ("level *", "* level", "level_level"))
@@ -96,6 +98,7 @@ def test_no_index_times_width_in_layout():
 
 
 # -- 4. No import of semantic detectors / parsers --------------------------
+
 
 def test_layout_does_not_import_semantic_parsers():
     import importlib
@@ -116,6 +119,7 @@ def test_layout_does_not_import_semantic_parsers():
 
 # -- 5. Renderers keep the 7A no-heuristics / no-isinstance guard ----------
 
+
 def test_toc_renderer_still_no_looks_like_no_isinstance():
     import pdf2zh.semantic.renderer.toc as toc_mod
 
@@ -126,10 +130,18 @@ def test_toc_renderer_still_no_looks_like_no_isinstance():
 
 def test_layout_package_has_expected_modules():
     names = {name for _py, name in _layout_modules()}
-    assert {"primitives", "constraints", "measure", "mapping", "wrap", "overflow"} <= names
+    assert {
+        "primitives",
+        "constraints",
+        "measure",
+        "mapping",
+        "wrap",
+        "overflow",
+    } <= names
 
 
 # -- 7C: Code is locked out of the wrapping path ---------------------------
+
 
 def test_code_primitive_is_always_preserve_never_wrapped():
     """Code (PreservedRegion) must never be fed into the generic wrapping
@@ -142,7 +154,7 @@ def test_code_primitive_is_always_preserve_never_wrapped():
     prim = PreservedRegion(text=text, bbox=(10.0, 10.0, 300.0, 26.0))
     result = lay_out(prim, measure=lambda s, sz: len(s) * sz)
     assert result.policy is OverflowPolicy.PRESERVE
-    assert result.lines == [text]          # verbatim, not split into fragments
+    assert result.lines == [text]  # verbatim, not split into fragments
     assert result.bbox == (10.0, 10.0, 300.0, 26.0)
 
 
@@ -157,5 +169,5 @@ def test_overflow_engine_does_not_auto_shrink_anchors():
     )
     r = lay_out(prim, measure=lambda s, sz: len(s) * sz, font_size=10.0)
     assert r.policy is OverflowPolicy.SHRINK
-    assert r.font_size == 10.0       # not shrunk by default
+    assert r.font_size == 10.0  # not shrunk by default
     assert r.overflow is True

@@ -106,9 +106,7 @@ class TestAutoSwitchGate:
         extra = {"mode_choice": mode_choice} if mode_choice else None
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(svc, "_apply_request_backend", lambda *a, **k: None)
-            mp.setattr(
-                svc, "_execute_legacy", lambda *a, **k: calls.append("legacy")
-            )
+            mp.setattr(svc, "_execute_legacy", lambda *a, **k: calls.append("legacy"))
             mp.setattr(
                 svc, "_execute_babeldoc", lambda *a, **k: calls.append("babeldoc")
             )
@@ -234,9 +232,7 @@ class TestAutoSwitchGate:
 
     def test_parse_engine_persisted_for_explicit_legacy(self):
         """显式 parse_engine 原样落库（修复 #4 可观测）。"""
-        calls, svc = self._run_with_switch(
-            "t_route_legacy_rec", parse_engine="legacy"
-        )
+        calls, svc = self._run_with_switch("t_route_legacy_rec", parse_engine="legacy")
         assert calls == ["legacy"]
         state = svc.get_task_state("t_route_legacy_rec")
         assert state is not None

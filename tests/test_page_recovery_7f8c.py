@@ -53,20 +53,37 @@ from pdf2zh.semantic.layout.page_recovery import (
 )
 
 _HERE = Path(__file__).resolve().parent
-_PAGE_RECOVERY_PATH = _HERE.parent / "pdf2zh" / "semantic" / "layout" / "page_recovery.py"
+_PAGE_RECOVERY_PATH = (
+    _HERE.parent / "pdf2zh" / "semantic" / "layout" / "page_recovery.py"
+)
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,
-           list_items=None, toc_entries=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    list_items=None,
+    toc_entries=None,
+):
     """One settled render-plan entry (v3 y-up boxes: y0 bottom, y1 top)."""
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
         "list_items": list_items,
         "toc_entries": toc_entries,
     }
@@ -77,15 +94,21 @@ def _flow(block_id, page, x0, y0, x1, y1):
 
 
 def _list(block_id, page, x0, y0, x1, y1, continuation=False):
-    items = [{"continuation": ["wrapped"]}] if continuation else \
-        [{"continuation": []}]
-    return _entry(block_id, page, "list", x0, y0, x1, y1,
-                  list_items={"items": items})
+    items = [{"continuation": ["wrapped"]}] if continuation else [{"continuation": []}]
+    return _entry(block_id, page, "list", x0, y0, x1, y1, list_items={"items": items})
 
 
 def _toc(block_id, page, x0, y0, x1, y1):
-    return _entry(block_id, page, "toc", x0, y0, x1, y1,
-                  toc_entries=[{"title": "T", "continuation": []}])
+    return _entry(
+        block_id,
+        page,
+        "toc",
+        x0,
+        y0,
+        x1,
+        y1,
+        toc_entries=[{"title": "T", "continuation": []}],
+    )
 
 
 def _overlap_pair(kind="flow", page=1, x0=60.0):
@@ -94,8 +117,7 @@ def _overlap_pair(kind="flow", page=1, x0=60.0):
     if kind == "list":
         lower = _list("p%d_1" % page, page, x0, 660.0, 300.0, 720.0)
     elif kind == "list_continuation":
-        lower = _list("p%d_1" % page, page, x0, 660.0, 300.0, 720.0,
-                      continuation=True)
+        lower = _list("p%d_1" % page, page, x0, 660.0, 300.0, 720.0, continuation=True)
     elif kind == "toc":
         lower = _toc("p%d_1" % page, page, x0, 660.0, 300.0, 720.0)
     elif kind == "code":
@@ -130,17 +152,18 @@ class TestDecisionContract(unittest.TestCase):
             set(out),
             {"page", "block_index", "target", "collision", "recovery"},
         )
-        self.assertEqual(set(out["collision"]),
-                         {"upper", "lower", "overlap", "required_shift",
-                          "bbox_mode"})
-        self.assertEqual(set(out["recovery"]),
-                         {"decision", "shift_y", "reason"})
+        self.assertEqual(
+            set(out["collision"]),
+            {"upper", "lower", "overlap", "required_shift", "bbox_mode"},
+        )
+        self.assertEqual(set(out["recovery"]), {"decision", "shift_y", "reason"})
         self.assertEqual(out["block_index"], 1)
         self.assertEqual(out["target"], "lower")
         json.dumps(out)  # serializable
 
     def test_keep_decision_shape(self):
         from pdf2zh.semantic.layout.page_flow import placements_from_plan
+
         p = placements_from_plan(_overlap_pair())[0]
         k = keep_decision(p)
         self.assertEqual(k.decision, PageRecoveryDecision.KEEP)
@@ -198,8 +221,7 @@ class TestRecoveryMatrix(unittest.TestCase):
     def test_code_preserve_overflow_never_shift(self):
         for ph in (None, 792.0, 18.0):  # page overflow irrelevant: immovable
             d = self._one(_overlap_pair("code"), page_height=ph)
-            self.assertEqual(d.decision,
-                             PageRecoveryDecision.PRESERVE_OVERFLOW)
+            self.assertEqual(d.decision, PageRecoveryDecision.PRESERVE_OVERFLOW)
             self.assertEqual(d.shift_y, 0.0)
             self.assertEqual(d.reason, "preserved_region")
 
@@ -242,10 +264,14 @@ class TestSingleAuthority(unittest.TestCase):
     def test_recovery_layer_never_recomputes_geometry(self):
         src = _code(_PAGE_RECOVERY_PATH)
         # no lower.top - upper.bottom style arithmetic in the recovery layer
-        for banned in ("required_shift =", "top - ", "bottom + ", "upper.bottom",
-                       "lower.top"):
-            self.assertNotIn(banned, src,
-                             f"page_recovery.py 不得重算几何: {banned}")
+        for banned in (
+            "required_shift =",
+            "top - ",
+            "bottom + ",
+            "upper.bottom",
+            "lower.top",
+        ):
+            self.assertNotIn(banned, src, f"page_recovery.py 不得重算几何: {banned}")
 
     def test_shift_y_is_zero_when_immovable(self):
         d = self._shift_for("code")
@@ -294,16 +320,19 @@ class TestNextPageBoundary(unittest.TestCase):
         # 8b resolved extent (translation-inflated) decides the boundary, not
         # the declared box: drawn bottom 669.5, shift 18.5 stays in a tall page
         from pdf2zh.semantic.layout.page_flow import placements_from_plan
+
         payload = {
-            "kind": "flow", "font_size": 10.0,
-            "commands": [{"kind": "flow-text", "y": 690.0},
-                         {"kind": "flow-text", "y": 676.0},
-                         {"kind": "flow-text", "y": 662.0},
-                         {"kind": "flow-text", "y": 648.0}],
+            "kind": "flow",
+            "font_size": 10.0,
+            "commands": [
+                {"kind": "flow-text", "y": 690.0},
+                {"kind": "flow-text", "y": 676.0},
+                {"kind": "flow-text", "y": 662.0},
+                {"kind": "flow-text", "y": 648.0},
+            ],
         }
         plan = [
-            _entry("p1_0", 1, "flow", 60.0, 700.0, 260.0, 728.0,
-                   payload=payload),
+            _entry("p1_0", 1, "flow", 60.0, 700.0, 260.0, 728.0, payload=payload),
             _flow("p1_1", 1, 60.0, 660.0, 260.0, 688.0),
         ]
         collision = detect_page_collisions(plan)[0]
@@ -330,8 +359,9 @@ class TestDecidePageRecovery(unittest.TestCase):
         ]
         decisions = decide_page_recovery(plan, page_sizes={1: 792.0})
         self.assertEqual(len(decisions), 2)
-        self.assertTrue(all(d.decision is PageRecoveryDecision.SHIFT_DOWN
-                            for d in decisions))
+        self.assertTrue(
+            all(d.decision is PageRecoveryDecision.SHIFT_DOWN for d in decisions)
+        )
         s = decision_summary(decisions)
         self.assertEqual(s["total"], 2)
         self.assertEqual(s["by_decision"], {"shift_down": 2})
@@ -349,16 +379,15 @@ class TestDecidePageRecovery(unittest.TestCase):
 
     def test_summary_by_decision_mixed(self):
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 750.0),     # shift_down
+            _flow("p1_0", 1, 60.0, 700.0, 260.0, 750.0),  # shift_down
             _flow("p1_1", 1, 60.0, 660.0, 260.0, 720.0),
-            _flow("p1_2", 1, 60.0, 500.0, 260.0, 550.0),     # preserve (code)
+            _flow("p1_2", 1, 60.0, 500.0, 260.0, 550.0),  # preserve (code)
             _entry("p1_3", 1, "code", 60.0, 460.0, 260.0, 520.0),
         ]
         decisions = decide_page_recovery(plan, page_sizes={1: 792.0})
         s = decision_summary(decisions)
         self.assertEqual(s["total"], 2)
-        self.assertEqual(s["by_decision"],
-                         {"preserve_overflow": 1, "shift_down": 1})
+        self.assertEqual(s["by_decision"], {"preserve_overflow": 1, "shift_down": 1})
 
 
 # ---------------------------------------------------------------------------
@@ -368,6 +397,7 @@ class TestDecidePageRecovery(unittest.TestCase):
 
 def _make_pdf(path: Path) -> None:
     import pymupdf
+
     doc = pymupdf.Document()
     p1 = doc.new_page(width=612, height=792)
     p1.insert_text((60, 100), "This is a translated paragraph that wraps")
@@ -380,6 +410,7 @@ def _make_pdf(path: Path) -> None:
 class TestDebugLayoutWiring(unittest.TestCase):
     def test_layout_json_gains_page_recovery_section(self):
         from pdf2zh.semantic.layout_debug import dump_layout_debug
+
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "src.pdf"
             _make_pdf(src)
@@ -391,21 +422,34 @@ class TestDebugLayoutWiring(unittest.TestCase):
             self.assertEqual(set(pr["summary"]), {"total", "by_decision"})
             self.assertEqual(pr["summary"]["total"], len(pr["decisions"]))
             for d in pr["decisions"]:
-                self.assertEqual(set(d),
-                                 {"page", "block_index", "target",
-                                  "collision", "recovery"})
+                self.assertEqual(
+                    set(d), {"page", "block_index", "target", "collision", "recovery"}
+                )
             # 7F-7 diagnostics schema untouched
             for d in data["diagnostics"]:
                 self.assertEqual(
                     set(d),
-                    {"page", "block_index", "kind", "primitive_kind",
-                     "target", "source_text", "translated_text", "bbox",
-                     "resolved_bbox", "overflow", "recovery", "trace",
-                     "anchors", "font_size"},
+                    {
+                        "page",
+                        "block_index",
+                        "kind",
+                        "primitive_kind",
+                        "target",
+                        "source_text",
+                        "translated_text",
+                        "bbox",
+                        "resolved_bbox",
+                        "overflow",
+                        "recovery",
+                        "trace",
+                        "anchors",
+                        "font_size",
+                    },
                 )
 
     def test_debug_layout_cli_flag_still_registered(self):
         from pdf2zh.pdf2zh import create_parser
+
         args = create_parser().parse_args(["--debug-layout", "x.pdf"])
         self.assertTrue(args.debug_layout)
 
@@ -421,10 +465,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -438,15 +485,27 @@ def _code(path: Path) -> str:
 class TestPageRecoveryArchitecture(unittest.TestCase):
     def test_page_recovery_is_decision_only(self):
         src = _code(_PAGE_RECOVERY_PATH)
-        for banned in ("lay_out(", "adaptive_layout(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text(", "dst_box[", "src_box["):
-            self.assertNotIn(banned, src,
-                             f"page_recovery.py 不得执行/修改: {banned}")
-        for banned in ("list_detector", "list_parser", "toc_parser",
-                       "code_detector", "style_detector",
-                       "semantic.renderer", "translator", "magicpdf"):
-            self.assertNotIn(banned, src,
-                             f"page_recovery.py 不得引用: {banned}")
+        for banned in (
+            "lay_out(",
+            "adaptive_layout(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+            "dst_box[",
+            "src_box[",
+        ):
+            self.assertNotIn(banned, src, f"page_recovery.py 不得执行/修改: {banned}")
+        for banned in (
+            "list_detector",
+            "list_parser",
+            "toc_parser",
+            "code_detector",
+            "style_detector",
+            "semantic.renderer",
+            "translator",
+            "magicpdf",
+        ):
+            self.assertNotIn(banned, src, f"page_recovery.py 不得引用: {banned}")
 
     def test_page_recovery_never_derives_geometry_from_level_index(self):
         tree = ast.parse(_code(_PAGE_RECOVERY_PATH))
@@ -469,8 +528,8 @@ class TestPageRecoveryArchitecture(unittest.TestCase):
 
     def test_page_recovery_consumes_8b_collision(self):
         src = _code(_PAGE_RECOVERY_PATH)
-        self.assertIn("required_shift", src)   # consumes the 8b field
-        self.assertIn("PageCollision", src)    # typed against the 8b diagnosis
+        self.assertIn("required_shift", src)  # consumes the 8b field
+        self.assertIn("PageCollision", src)  # typed against the 8b diagnosis
 
 
 if __name__ == "__main__":

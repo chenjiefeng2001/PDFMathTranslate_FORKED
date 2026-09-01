@@ -37,15 +37,15 @@ def _entry(payload, page=0, font_size=12.0):
 
 
 def _render(payload, font_size=12.0):
-        pdf, _stats = render_plan_to_pdf(
-            [_entry(payload, font_size=font_size)], page_sizes={0: [612.0, 792.0]}
-        )
-        doc = pymupdf.open(stream=pdf, filetype="pdf")
-        words = doc[0].get_text("words")
-        text = doc[0].get_text()
-        doc.close()
-        # list[(x, text)] — x 坐标在前，文本在后（断言按 x round、按文本过滤）
-        return [(float(w[0]), w[4]) for w in words], text
+    pdf, _stats = render_plan_to_pdf(
+        [_entry(payload, font_size=font_size)], page_sizes={0: [612.0, 792.0]}
+    )
+    doc = pymupdf.open(stream=pdf, filetype="pdf")
+    words = doc[0].get_text("words")
+    text = doc[0].get_text()
+    doc.close()
+    # list[(x, text)] — x 坐标在前，文本在后（断言按 x round、按文本过滤）
+    return [(float(w[0]), w[4]) for w in words], text
 
 
 class TestAdaptiveRealPdf(unittest.TestCase):
@@ -72,7 +72,8 @@ class TestAdaptiveRealPdf(unittest.TestCase):
             {"x0": 40.0, "x1": 560.0, "size": 12.0, "y0": 680.0},
         ]
         payload = build_page_list_plan(
-            paras, geom=geom,
+            paras,
+            geom=geom,
             translate=lambda s: "very " * 40 if "Original" in s else s,
         )
         words, text = _render(payload)

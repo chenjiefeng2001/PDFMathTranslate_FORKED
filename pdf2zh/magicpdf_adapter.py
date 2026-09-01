@@ -622,9 +622,7 @@ def _mineru_log_to_detail(
     if m is None:
         return None
     try:
-        batch_i, batch_n, pages_queued, pages_total = (
-            int(g) for g in m.groups()[:4]
-        )
+        batch_i, batch_n, pages_queued, pages_total = (int(g) for g in m.groups()[:4])
     except ValueError:  # pragma: no cover - 正则保证均为数字
         return None
     batch_pages = 0
@@ -633,9 +631,7 @@ def _mineru_log_to_detail(
             batch_pages = int(m.group(5))
         except ValueError:  # pragma: no cover - 正则保证为数字
             batch_pages = 0
-    current = (
-        max(0, pages_queued - batch_pages) if batch_pages > 0 else pages_queued
-    )
+    current = max(0, pages_queued - batch_pages) if batch_pages > 0 else pages_queued
     return {
         "engine": engine,
         "raw_stage": "pipeline",
@@ -843,9 +839,7 @@ def _run_mineru_process(
             )
         except Exception:  # noqa: BLE001 -- 兜底上报失败忽略
             pass
-    return _sp.CompletedProcess(
-        cmd, rc, "".join(out_lines), ""
-    )
+    return _sp.CompletedProcess(cmd, rc, "".join(out_lines), "")
 
 
 def _find_mineru_middle_json(root_dir: str) -> Optional[str]:
@@ -1418,7 +1412,11 @@ class MagicPdfAdapter:
                 _remap_magicpdf_result_pages(results, page_map)
                 return results
             return self._parse_by_backend(
-                backend, pdf_path, pages=pages, ocr=ocr, lang=mineru_lang,
+                backend,
+                pdf_path,
+                pages=pages,
+                ocr=ocr,
+                lang=mineru_lang,
                 progress_cb=progress_cb,
             )
         finally:
@@ -1439,7 +1437,10 @@ class MagicPdfAdapter:
     ) -> list[MagicPdfParseResult]:
         if backend == "mineru":
             return self._parse_mineru(
-                pdf_path, pages=pages, ocr=ocr, lang=lang,
+                pdf_path,
+                pages=pages,
+                ocr=ocr,
+                lang=lang,
                 progress_cb=progress_cb,
             )
         return self._parse_magicpdf(
@@ -1802,7 +1803,9 @@ class MagicPdfAdapter:
             # 降级 cpu 并给出可执行修复命令，绝不带病跑崩。
             device = str(self.device or "auto").strip().lower()
             effective_device = device
-            if device in ("cuda", "gpu") and not MagicPdfAdapter._venv_torch_cuda(python_exe):
+            if device in ("cuda", "gpu") and not MagicPdfAdapter._venv_torch_cuda(
+                python_exe
+            ):
                 logger.warning(
                     "[mineru] venv %s torch 无 CUDA，device=%s 回退 cpu；%s",
                     python_exe,

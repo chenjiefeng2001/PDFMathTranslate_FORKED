@@ -447,7 +447,9 @@ class TestRenderWithBackground(unittest.TestCase):
             sdoc = pymupdf.Document()
             sp = sdoc.new_page(width=612, height=792)
             # 黄色背景块：PDF 左上原点 (200,700)-(400,730) ⇔ v3 y 向上 [200,62,400,92]。
-            sp.draw_rect(pymupdf.Rect(200, 700, 400, 730), color=None, fill=(1, 0.85, 0.2))
+            sp.draw_rect(
+                pymupdf.Rect(200, 700, 400, 730), color=None, fill=(1, 0.85, 0.2)
+            )
             sp.insert_text((210, 712), "Original colored text")
             sdoc.save(src)
             sdoc.close()

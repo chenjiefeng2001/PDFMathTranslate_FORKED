@@ -149,10 +149,10 @@ class ShiftExecutionReport:
     passes: int = 0
     max_passes: int = 0
     stopped_early: bool = False
-    stopped_reason: str = ""         # "" | "no_progress" | "budget_expired"
-    applied: list = field(default_factory=list)       # executed nonzero SHIFT_DOWN decisions
-    deferred: list = field(default_factory=list)      # final decisions NOT executed
-    unresolved: list = field(default_factory=list)    # final PageCollision records
+    stopped_reason: str = ""  # "" | "no_progress" | "budget_expired"
+    applied: list = field(default_factory=list)  # executed nonzero SHIFT_DOWN decisions
+    deferred: list = field(default_factory=list)  # final decisions NOT executed
+    unresolved: list = field(default_factory=list)  # final PageCollision records
 
     def summary(self) -> dict:
         return {
@@ -297,6 +297,7 @@ def _ordered_cascade_plan(
         PageRecoveryDecision,
         decide_block_shift,
     )
+
     # Phase 1 — intent: the classic V1 cascade on THIS page (detect→decide→apply
     # required_shift, re-detect until no decided SHIFT_DOWN can apply).  Bounded
     # by the same no-progress rule, so it cannot run away on a congested page.
@@ -335,24 +336,25 @@ def _ordered_cascade_plan(
     # is never shoved onto a receiver that merely sits below; THAT is what
     # turned the recovery-widened gap into re-introduced overlap.
     by_top = sorted(placements, key=lambda p: p.top, reverse=True)  # top-first
-    processed: list = []                       # blocks below, bottom-up (finalized)
-    final: dict[int, float] = {}               # block_index -> capped shift
-    for p in reversed(by_top):                 # bottom block first
+    processed: list = []  # blocks below, bottom-up (finalized)
+    final: dict[int, float] = {}  # block_index -> capped shift
+    for p in reversed(by_top):  # bottom block first
         if p.preserved:
             final[p.block_index] = 0.0
             processed.append(p)
             continue
-        bound_top = 0.0                        # page bottom edge (drawn bottom >= 0)
+        bound_top = 0.0  # page bottom edge (drawn bottom >= 0)
         for q in processed:
             if not _boxes_h_overlap(p.resolved_bbox, q.resolved_bbox):
-                continue                       # different column is not a floor
+                continue  # different column is not a floor
             q_final_top = q.top - final.get(q.block_index, 0.0)
             # 7G-5: the floor is the receiver's REAL drawn glyph top, not its
             # resolved box top — a block whose settled lines rise above
             # ``dst_box`` must not be landed on (single-line fragment parity).
             if excess_by_key:
-                q_ex = max(0.0, float(excess_by_key.get(
-                    (q.page, q.block_index), 0.0) or 0.0))
+                q_ex = max(
+                    0.0, float(excess_by_key.get((q.page, q.block_index), 0.0) or 0.0)
+                )
                 q_final_top += q_ex
             bound_top = max(bound_top, q_final_top)
         # 7G-5: a command-less movable block's own wrapped glyphs may dip
@@ -360,8 +362,9 @@ def _ordered_cascade_plan(
         # (never double-counts a command block — 7F-8b already folded it in).
         occ_bottom = p.bottom
         if spill_by_key:
-            occ_bottom -= max(0.0, float(spill_by_key.get(
-                (p.page, p.block_index), 0.0) or 0.0))
+            occ_bottom -= max(
+                0.0, float(spill_by_key.get((p.page, p.block_index), 0.0) or 0.0)
+            )
         cap = max(0.0, occ_bottom - bound_top)
         final[p.block_index] = round(min(intended.get(p.block_index, 0.0), cap), 2)
         processed.append(p)
@@ -409,14 +412,11 @@ def resolve_page_shifts(
     excess_by_key, spill_by_key = _recovery_draw_extent_by_key(plan)
 
     for i in range(bound):
-        collisions = detect_collisions_from_placements(
-            list(current.values())
-        )
+        collisions = detect_collisions_from_placements(list(current.values()))
         if not collisions:
             break
         decisions = [
-            decide_block_shift(c, page_height=sizes.get(c.page))
-            for c in collisions
+            decide_block_shift(c, page_height=sizes.get(c.page)) for c in collisions
         ]
         # 7G-4: an ordered per-page plan -- every SHIFT_DOWN amount is computed
         # against the receiver's FINAL position in the same reading-order sweep.
@@ -432,30 +432,32 @@ def resolve_page_shifts(
             plan_by_page.setdefault(p.page, []).append(p)
         for pg, page_blocks in plan_by_page.items():
             by_page[pg] = _ordered_cascade_plan(
-                page_blocks, page_h.get(pg) or 0.0,
-                excess_by_key=excess_by_key, spill_by_key=spill_by_key)
+                page_blocks,
+                page_h.get(pg) or 0.0,
+                excess_by_key=excess_by_key,
+                spill_by_key=spill_by_key,
+            )
         # apply the ordered plan, but only for blocks that ARE a decided
         # SHIFT_DOWN (PRESERVE / NEXT_PAGE anchors stay put)
-        decided = {
-            (d.page, d.block_index): d.decision
-            for d in decisions
-        }
+        decided = {(d.page, d.block_index): d.decision for d in decisions}
         applicable: list = []
         for pg, page_plan in by_page.items():
             for blk_index, shift in page_plan.items():
                 key = (pg, blk_index)
-                if (
-                    decided.get(key) is PageRecoveryDecision.SHIFT_DOWN
-                    and shift > _TOL
-                ):
-                    applicable.append(BlockShiftDecision(
-                        block_index=blk_index, page=pg,
-                        decision=PageRecoveryDecision.SHIFT_DOWN,
-                        shift_y=shift, reason="overlap",
-                        source_bbox=current[key].bbox,
-                        resolved_bbox=current[key].resolved_bbox,
-                        target="lower", collision=None,
-                    ))
+                if decided.get(key) is PageRecoveryDecision.SHIFT_DOWN and shift > _TOL:
+                    applicable.append(
+                        BlockShiftDecision(
+                            block_index=blk_index,
+                            page=pg,
+                            decision=PageRecoveryDecision.SHIFT_DOWN,
+                            shift_y=shift,
+                            reason="overlap",
+                            source_bbox=current[key].bbox,
+                            resolved_bbox=current[key].resolved_bbox,
+                            target="lower",
+                            collision=None,
+                        )
+                    )
         if not applicable:
             report.stopped_early = True
             report.stopped_reason = "no_progress"
@@ -469,12 +471,9 @@ def resolve_page_shifts(
         report.stopped_reason = "budget_expired"
 
     final = [current[k] for k in order]
-    report.unresolved.extend(
-        detect_collisions_from_placements(list(current.values()))
-    )
+    report.unresolved.extend(detect_collisions_from_placements(list(current.values())))
     report.deferred.extend(
-        decide_block_shift(c, page_height=sizes.get(c.page))
-        for c in report.unresolved
+        decide_block_shift(c, page_height=sizes.get(c.page)) for c in report.unresolved
     )
     return final, report
 
@@ -523,8 +522,10 @@ def _shift_entry_down(entry: dict, delta: float) -> None:
     dst = entry.get("dst_box")
     if isinstance(dst, list) and len(dst) == 4:
         entry["dst_box"] = [
-            dst[0], round(float(dst[1]) - delta, 2),
-            dst[2], round(float(dst[3]) - delta, 2),
+            dst[0],
+            round(float(dst[1]) - delta, 2),
+            dst[2],
+            round(float(dst[3]) - delta, 2),
         ]
     shifted: set[int] = set()
     payload = entry.get("render_payload")

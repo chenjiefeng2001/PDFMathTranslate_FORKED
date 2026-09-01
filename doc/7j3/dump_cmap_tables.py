@@ -24,7 +24,9 @@ def gid_for(sub: bytes, fmt: int, c: int) -> int | None:
                 if start_code[i] <= c <= end_code[i]:
                     if id_range_offset[i] == 0:
                         return (c + id_delta[i]) & 0xFFFF
-                    abs_off = iro_pos + 2 * i + id_range_offset[i] + 2 * (c - start_code[i])
+                    abs_off = (
+                        iro_pos + 2 * i + id_range_offset[i] + 2 * (c - start_code[i])
+                    )
                     if abs_off + 2 > len(sub):
                         return None
                     g = struct.unpack_from(">H", sub, abs_off)[0]
@@ -66,21 +68,27 @@ def main() -> int:
     targets = {f[3]: f[0] for f in page.get_fonts() if "Arial" in f[3]}
     for base, xref in targets.items():
         ttf = get_ttf(doc, xref)
-        (_, num_tables) = struct.unpack_from(">HH", ttf, 4)
+        _, num_tables = struct.unpack_from(">HH", ttf, 4)
         cmap_off = None
         for i in range(num_tables):
             rec = 12 + 16 * i
             if ttf[rec : rec + 4] == b"cmap":
                 cmap_off, cmap_len = struct.unpack_from(">II", ttf, rec + 8)
         cmap = ttf[cmap_off : cmap_off + cmap_len]
-        (_, nrec) = struct.unpack_from(">HH", cmap, 0)
+        _, nrec = struct.unpack_from(">HH", cmap, 0)
         print(f"\n{base} (wrapper xref {xref}) ttf={len(ttf)}B")
         for i in range(nrec):
             platform, encoding, off = struct.unpack_from(">HHI", cmap, 4 + 8 * i)
             sub = cmap[off:]
             fmt = struct.unpack_from(">H", sub, 0)[0]
-            gids = {hex(c): gid_for(sub, fmt, c) for c in (0x54, 0x61, 0x74, 0x79, 0x6C, 0x26)}
-            print(f"  plat={platform} enc={encoding} fmt={fmt}: " + " ".join(f"{k}->{v}" for k, v in gids.items()))
+            gids = {
+                hex(c): gid_for(sub, fmt, c)
+                for c in (0x54, 0x61, 0x74, 0x79, 0x6C, 0x26)
+            }
+            print(
+                f"  plat={platform} enc={encoding} fmt={fmt}: "
+                + " ".join(f"{k}->{v}" for k, v in gids.items())
+            )
     return 0
 
 

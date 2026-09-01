@@ -30,10 +30,13 @@ def _code():
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -48,8 +51,16 @@ _SRC = _code()
 
 
 def test_adaptive_never_detects():
-    for banned in ("looks_like", "detect_", "parse_", "list_parser", "toc_parser",
-                   "list_detector", "code_detector", "style_detector"):
+    for banned in (
+        "looks_like",
+        "detect_",
+        "parse_",
+        "list_parser",
+        "toc_parser",
+        "list_detector",
+        "code_detector",
+        "style_detector",
+    ):
         assert banned not in _SRC, f"adaptive must not detect ({banned})"
 
 
@@ -60,7 +71,9 @@ def test_adaptive_never_translates():
 
 def test_adaptive_never_references_renderer():
     for banned in ("renderer", "magicpdf", "insert_text", "draw"):
-        assert banned not in _SRC, f"adaptive must not draw/couple to renderer ({banned})"
+        assert (
+            banned not in _SRC
+        ), f"adaptive must not draw/couple to renderer ({banned})"
 
 
 def test_adaptive_no_geometry_from_level_or_index():
@@ -72,7 +85,9 @@ def test_adaptive_executes_only_through_lay_out():
     # only fit engine used is lay_out; the 7C mechanics are never invoked here.
     assert "lay_out(" in _SRC
     for banned in ("wrap_lines(", "shrink_to_fit(", "clip_text("):
-        assert banned not in _SRC, f"adaptive must not call fit mechanic directly ({banned})"
+        assert (
+            banned not in _SRC
+        ), f"adaptive must not call fit mechanic directly ({banned})"
 
 
 def test_adaptive_is_finite_state_machine():
@@ -84,8 +99,14 @@ def test_adaptive_is_finite_state_machine():
 
 
 def test_adaptive_imports_only_layout_stack():
-    for name in ("toc_sidechannel", "list_sidechannel", "style_translate",
-                 "document_model", "semantic.renderer", "semantic.models"):
+    for name in (
+        "toc_sidechannel",
+        "list_sidechannel",
+        "style_translate",
+        "document_model",
+        "semantic.renderer",
+        "semantic.models",
+    ):
         assert name not in _SRC, f"adaptive imported {name}"
 
 
@@ -96,4 +117,5 @@ def test_adaptive_exposes_single_entry_point():
 if __name__ == "__main__":
     import sys
     import pytest
+
     sys.exit(pytest.main([__file__]))

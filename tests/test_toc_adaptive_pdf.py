@@ -109,8 +109,10 @@ def _render(entry, translate, ys=None, cjk=False):
         },
     }
     pdf_bytes, _stats = render_plan_to_pdf(
-        [plan_entry], page_sizes={0: [612.0, 792.0]},
-        cjk_font=True, source_pdf=None,
+        [plan_entry],
+        page_sizes={0: [612.0, 792.0]},
+        cjk_font=True,
+        source_pdf=None,
     )
     doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
     try:
@@ -151,8 +153,9 @@ class TestLongTitleWrap(unittest.TestCase):
         words, _ = _render(e, lambda s: translated)
         # every wrapped line's first word lands at the title anchor column
         line_starts = words_at_x(words, 72.0, eps=2.0)
-        self.assertGreaterEqual(len(line_starts), 2,
-                                "each wrapped line must start at title_x")
+        self.assertGreaterEqual(
+            len(line_starts), 2, "each wrapped line must start at title_x"
+        )
         # page number still exactly once at page_x
         assert_page_column_stable(r, words, page_x=500.0, page_number="12")
 
@@ -204,13 +207,23 @@ class TestCjkTitle(unittest.TestCase):
 
 class TestMultilineContinuation(unittest.TestCase):
     def test_continuation_word_lands_at_continuation_x(self):
-        e = _entry(title_only="Long title", page_x=500.0, page_number="42",
-                   continuation=["part two"], continuation_x=100.0)
-        r = _layout(e, translated="Long translated title",
-                    translated_continuation=["译_part two"])
+        e = _entry(
+            title_only="Long title",
+            page_x=500.0,
+            page_number="42",
+            continuation=["part two"],
+            continuation_x=100.0,
+        )
+        r = _layout(
+            e,
+            translated="Long translated title",
+            translated_continuation=["译_part two"],
+        )
         self.assertEqual(r.continuation_x, 100.0)
         self.assertEqual(r.continuation[0].bbox[0], 100.0)
-        words, _ = _render(e, lambda s: "Long translated title" if s == "Long title" else f"译_{s}")
+        words, _ = _render(
+            e, lambda s: "Long translated title" if s == "Long title" else f"译_{s}"
+        )
         # the continuation word lands at continuation_x in the real PDF
         cont = words_at_x(words, 100.0, eps=2.0)
         self.assertTrue(cont, "continuation should land at continuation_x")
@@ -230,8 +243,13 @@ class TestLeaderContract(unittest.TestCase):
         self.assertEqual(page_word_x(words, "5"), 500.0)
 
     def test_no_leader_never_creates_dots(self):
-        e = _entry(title_only="Intro", page_x=500.0, page_number="5",
-                   leader_present=False, dot_leader="")
+        e = _entry(
+            title_only="Intro",
+            page_x=500.0,
+            page_number="5",
+            leader_present=False,
+            dot_leader="",
+        )
         r = _layout(e, translated="Introduction")
         self.assertIsNone(r.leader)
         words, text = _render(e, lambda s: s)
@@ -243,4 +261,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

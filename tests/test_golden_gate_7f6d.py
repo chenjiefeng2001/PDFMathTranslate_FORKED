@@ -136,15 +136,24 @@ def test_unified_golden_gate_metrics_are_individual(tmp_path):
     from pdf2zh.semantic.eval.recovery_audit import audit_toc
 
     from pdf2zh.semantic.layout.toc_layout import layout_toc_entry
+
     agg = layout_toc_entry(
-        {"title_x": 72.0, "page_x": 500.0, "level": 0, "number": "",
-         "page_number": "12", "leader_present": True, "continuation": [],
-         "bbox": [72.0, 0.0, 500.0, 16.0]},
-        size=10.0, y=750.0,
+        {
+            "title_x": 72.0,
+            "page_x": 500.0,
+            "level": 0,
+            "number": "",
+            "page_number": "12",
+            "leader_present": True,
+            "continuation": [],
+            "bbox": [72.0, 0.0, 500.0, 16.0],
+        },
+        size=10.0,
+        y=750.0,
         translated_title=("word " * 60).strip(),
     )
     a = audit_toc(agg)
-    assert a["toc_recovery_steps"] >= 2       # WRAP + SHRINK executed
+    assert a["toc_recovery_steps"] >= 2  # WRAP + SHRINK executed
     assert a["toc_recovery_font_size"] < 1.0  # shrink 真实发生
     assert "toc_recovery_overflow" in a
     assert len(GATE_KEYS) == len(set(GATE_KEYS))

@@ -75,7 +75,7 @@ def _heading_pages(document_model: Mapping) -> Dict[str, int]:
             pno = int(page.get("page", 0) or 0)
             for i, block in enumerate(page.get("blocks", []) or []):
                 md = block.get("metadata") or {}
-                kind = (block.get("kind") or md.get("kind") or md.get("role") or "")
+                kind = block.get("kind") or md.get("kind") or md.get("role") or ""
                 if kind == "heading":
                     out[f"p{pno}_{i}"] = pno + 1
     except Exception:  # noqa: BLE001
@@ -106,7 +106,10 @@ def extract_outline_entries(document_model: Mapping) -> List[dict]:
                     continue
                 for e in toc_entries or []:
                     d = dict(e or {})
-                    d.setdefault("_heading_page", heading_pages.get(d.get("heading_ref") or "", None))
+                    d.setdefault(
+                        "_heading_page",
+                        heading_pages.get(d.get("heading_ref") or "", None),
+                    )
                     entries.append(d)
         return entries
     except Exception:  # noqa: BLE001 -- 提取失败返回空，绝不阻塞 outline
@@ -152,7 +155,9 @@ def build_outline_toc(
         return []
     items: List[Tuple[int, str, int]] = []
     for e in entries or []:
-        title = (e.get("translated_title") or e.get("title_only") or e.get("title") or "").strip()
+        title = (
+            e.get("translated_title") or e.get("title_only") or e.get("title") or ""
+        ).strip()
         if not title:
             continue
         raw_level = e.get("level")

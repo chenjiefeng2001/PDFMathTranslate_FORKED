@@ -9,7 +9,7 @@ for l in s.splitlines():
     clean = l.replace("\x00", "").replace("\u001b", "")
     if any(k in clean for k in ("POST ", "FINAL", "FILES")):
         out.append(clean[:170])
-io.open(
-    os.path.join(tmp, "bp_filtered.txt"), "w", encoding="utf-8"
-).write("\n".join(out[-16:]))
+io.open(os.path.join(tmp, "bp_filtered.txt"), "w", encoding="utf-8").write(
+    "\n".join(out[-16:])
+)
 print("filtered lines:", len(out))

@@ -86,8 +86,7 @@ def test_detect_flat_decimal_list():
 
 
 def test_plain_paragraphs_not_candidates():
-    paras = ["Some prose paragraph with no markers.",
-             "Another ordinary paragraph."]
+    paras = ["Some prose paragraph with no markers.", "Another ordinary paragraph."]
     cands = detect_list_candidates(paras)
     assert all(c is None for c in cands)
 
@@ -117,8 +116,10 @@ def test_bullet_list_with_private_use_glyph():
 
 def test_geometry_signals_boost_score():
     paras = ["1. one", "2. two"]
-    geom = [{"x0": 50.0, "x1": 500.0, "size": 10.0},
-            {"x0": 50.0, "x1": 502.0, "size": 10.0}]
+    geom = [
+        {"x0": 50.0, "x1": 500.0, "size": 10.0},
+        {"x0": 50.0, "x1": 502.0, "size": 10.0},
+    ]
     cands = detect_list_candidates(paras, geom=geom)
     assert cands[1] is not None
     assert "same_indent" in cands[1].reasons

@@ -60,6 +60,7 @@ class _StubLine:
     def __init__(self, size: float = 10.0):
         self.size = size
         self.words = [type("W", (), {"font": "Helvetica"})()]
+
     @property
     def text(self) -> str:
         return ""
@@ -305,16 +306,24 @@ class TestForensicF2Zero(unittest.TestCase):
 
         traces = [
             Trace(
-                node_id="p0_0", page=0, kind="code",
-                source_text="namespace xyza {", translated_text="namespace xyza {",
+                node_id="p0_0",
+                page=0,
+                kind="code",
+                source_text="namespace xyza {",
+                translated_text="namespace xyza {",
                 translation_status="preserved",
-                render_rows=[{"text": "namespace xyza {"}], matched_present=True,
+                render_rows=[{"text": "namespace xyza {"}],
+                matched_present=True,
             ),
             Trace(
-                node_id="p0_1", page=0, kind="paragraph",
-                source_text="prose here.", translated_text="prose here.",
+                node_id="p0_1",
+                page=0,
+                kind="paragraph",
+                source_text="prose here.",
+                translated_text="prose here.",
                 translation_status="translated",
-                render_rows=[{"text": "prose here."}], matched_present=True,
+                render_rows=[{"text": "prose here."}],
+                matched_present=True,
             ),
         ]
         # code 块 kind=code → F2 detector不应 flag（status preserved → model PASS,

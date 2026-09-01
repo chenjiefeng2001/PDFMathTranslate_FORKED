@@ -43,7 +43,7 @@ def _block_translated(block) -> str:
     translated = md.get("translated")
     if isinstance(translated, str) and translated.strip():
         return translated
-    return (getattr(block, "text", None) or "")
+    return getattr(block, "text", None) or ""
 
 
 def _block_font_size(block, default: float = 11.0) -> float:

@@ -63,8 +63,8 @@ _DEFAULT_MIN_FONT = 5.0
 
 # ── TOC-title ladder constants (7F-5a; housed here since 7F-6c so the title
 # path shares THE single executor — no second hand-rolled recovery loop) ──
-_TITLE_SHRINK_STEP = 0.85       # geometric font descent per SHRINK iteration
-_MAX_TITLE_SHRINK_STEPS = 8     # bounded: never a while-loop
+_TITLE_SHRINK_STEP = 0.85  # geometric font descent per SHRINK iteration
+_MAX_TITLE_SHRINK_STEPS = 8  # bounded: never a while-loop
 
 # ── body SHRINK re-wrap ladder (7I-5C).  SHRINK must re-lay-out from the
 # already-WRAPped state (shrink font, then re-WRAP under the same box) instead
@@ -76,13 +76,18 @@ _MAX_SHRINK_REWRAP_STEPS = 12
 
 
 def _stage_steps(stage: OverflowPolicy) -> str:
-    return {OverflowPolicy.WRAP: "WRAP", OverflowPolicy.SHRINK: "SHRINK",
-            OverflowPolicy.CLIP: "CLIP"}[stage]
+    return {
+        OverflowPolicy.WRAP: "WRAP",
+        OverflowPolicy.SHRINK: "SHRINK",
+        OverflowPolicy.CLIP: "CLIP",
+    }[stage]
 
 
 def _shrink_floor(budget: LayoutBudget, original_size: float) -> float:
     """Hard floor for SHRINK: respects ``min_font_size`` and ``max_font_reduction``."""
-    floor = budget.min_font_size if budget.min_font_size is not None else _DEFAULT_MIN_FONT
+    floor = (
+        budget.min_font_size if budget.min_font_size is not None else _DEFAULT_MIN_FONT
+    )
     if budget.max_font_reduction is not None and original_size > 0.0:
         floor = max(floor, original_size * (1.0 - budget.max_font_reduction))
     return float(floor)
@@ -153,9 +158,13 @@ def _adaptive_layout_title(
     allowed = 1 + int(budget.max_extra_lines or 0)
     original = float(font_size)
     r = lay_out(
-        primitive, measure=measure, avail_width=avail_width,
-        avail_height=avail_height, constraints=constraints,
-        font_size=font_size, policy=OverflowPolicy.WRAP,
+        primitive,
+        measure=measure,
+        avail_width=avail_width,
+        avail_height=avail_height,
+        constraints=constraints,
+        font_size=font_size,
+        policy=OverflowPolicy.WRAP,
     )
     n = len(r.lines)
 
@@ -163,8 +172,9 @@ def _adaptive_layout_title(
     if n <= allowed and not r.overflow:
         if n == 1:
             return r  # NO_ACTION — leave recovery fields empty (recovery None)
-        return _finalize(r, OverflowReason.WIDTH, RecoveryDecision.WRAP,
-                         ["WRAP"], original)
+        return _finalize(
+            r, OverflowReason.WIDTH, RecoveryDecision.WRAP, ["WRAP"], original
+        )
 
     steps: list[str] = ["WRAP"] if n > 1 else []
     trace: list[dict] = []
@@ -174,7 +184,9 @@ def _adaptive_layout_title(
         reason = OverflowReason.HEIGHT if n > allowed else OverflowReason.WIDTH
         if n > allowed:
             r.overflow = True  # line-budget overflow is explicit, never silent
-        return _finalize(r, reason, RecoveryDecision.PRESERVE_OVERFLOW, steps, original, trace)
+        return _finalize(
+            r, reason, RecoveryDecision.PRESERVE_OVERFLOW, steps, original, trace
+        )
 
     floor = _shrink_floor(budget, original)
     size = float(font_size)
@@ -182,29 +194,41 @@ def _adaptive_layout_title(
     for _ in range(_MAX_TITLE_SHRINK_STEPS):
         size = max(floor, size * _TITLE_SHRINK_STEP)
         r2 = lay_out(
-            primitive, measure=measure, avail_width=avail_width,
-            avail_height=avail_height, constraints=constraints,
-            font_size=size, policy=OverflowPolicy.WRAP,
+            primitive,
+            measure=measure,
+            avail_width=avail_width,
+            avail_height=avail_height,
+            constraints=constraints,
+            font_size=size,
+            policy=OverflowPolicy.WRAP,
         )
         best = r2
         steps.append("SHRINK")
         trace.append(
-            _trace_entry("SHRINK", len(r2.lines) > allowed or r2.overflow,
-                         len(r2.lines), size)
+            _trace_entry(
+                "SHRINK", len(r2.lines) > allowed or r2.overflow, len(r2.lines), size
+            )
         )
         if len(r2.lines) <= allowed and not r2.overflow:
             reason = (
-                OverflowReason.HEIGHT if len(r2.lines) > allowed
+                OverflowReason.HEIGHT
+                if len(r2.lines) > allowed
                 else OverflowReason.WIDTH
             )
-            return _finalize(r2, reason, RecoveryDecision.SHRINK, steps, original, trace)
+            return _finalize(
+                r2, reason, RecoveryDecision.SHRINK, steps, original, trace
+            )
         if size <= floor + 1e-6:
             break
     # budget exhausted: an over-budget line count is explicit, never silent.
-    reason = OverflowReason.HEIGHT if len(best.lines) > allowed else OverflowReason.WIDTH
+    reason = (
+        OverflowReason.HEIGHT if len(best.lines) > allowed else OverflowReason.WIDTH
+    )
     if len(best.lines) > allowed:
         best.overflow = True
-    return _finalize(best, reason, RecoveryDecision.PRESERVE_OVERFLOW, steps, original, trace)
+    return _finalize(
+        best, reason, RecoveryDecision.PRESERVE_OVERFLOW, steps, original, trace
+    )
 
 
 def adaptive_layout(
@@ -249,9 +273,13 @@ def adaptive_layout(
     # the ``target`` (7F-5a ladder: never CLIP, geometric re-wrap SHRINK).
     if target == "title":
         return _adaptive_layout_title(
-            primitive, measure=measure, avail_width=avail_width,
-            avail_height=avail_height, constraints=constraints,
-            font_size=fs, budget=b,
+            primitive,
+            measure=measure,
+            avail_width=avail_width,
+            avail_height=avail_height,
+            constraints=constraints,
+            font_size=fs,
+            budget=b,
         )
 
     # Stage 0: baseline fit (lay_out applies the primitive's default policy).
@@ -289,7 +317,9 @@ def adaptive_layout(
         steps.append(_stage_steps(OverflowPolicy.WRAP))
         trace.append(_trace_entry("WRAP", result.overflow, len(result.lines), fs))
         if not result.overflow:
-            return _finalize(result, reason, RecoveryDecision.WRAP, steps, original, trace)
+            return _finalize(
+                result, reason, RecoveryDecision.WRAP, steps, original, trace
+            )
         reason = classify_reason(
             result, avail_width=avail_width, avail_height=avail_height
         )
@@ -302,7 +332,11 @@ def adaptive_layout(
     # recorded as ONE stage: the re-wrap iterations are internal execution, and
     # the single trace entry reflects the stage's final state (fit, or at the
     # floor).  This keeps the 7F-7 stage-per-decision trace shape intact.
-    if b.allow_shrink and result.overflow and reason is not OverflowReason.PRESERVED_REGION:
+    if (
+        b.allow_shrink
+        and result.overflow
+        and reason is not OverflowReason.PRESERVED_REGION
+    ):
         floor = _shrink_floor(b, original)
         size = cur_fs
         steps.append(_stage_steps(OverflowPolicy.SHRINK))
@@ -325,11 +359,11 @@ def adaptive_layout(
             if size <= floor + 1e-6:
                 break
         result = candidate
-        trace.append(_trace_entry("SHRINK", result.overflow,
-                                  len(result.lines), cur_fs))
+        trace.append(_trace_entry("SHRINK", result.overflow, len(result.lines), cur_fs))
         if not result.overflow:
-            return _finalize(result, reason, RecoveryDecision.SHRINK,
-                             steps, original, trace)
+            return _finalize(
+                result, reason, RecoveryDecision.SHRINK, steps, original, trace
+            )
         reason = classify_reason(
             result, avail_width=avail_width, avail_height=avail_height
         )
@@ -368,7 +402,9 @@ def adaptive_layout(
     # of CLIP; diagnostics must say preserve_overflow, not wrap).
     decision = decide_recovery(kind, reason, budget=b, target=target)
     if result.overflow and decision in (
-        RecoveryDecision.NO_ACTION, RecoveryDecision.WRAP, RecoveryDecision.SHRINK
+        RecoveryDecision.NO_ACTION,
+        RecoveryDecision.WRAP,
+        RecoveryDecision.SHRINK,
     ):
         decision = RecoveryDecision.PRESERVE_OVERFLOW
 

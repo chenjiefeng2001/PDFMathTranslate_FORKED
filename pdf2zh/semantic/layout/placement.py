@@ -65,9 +65,9 @@ _TOL = 1e-6
 class PlacementTarget(Enum):
     """Where a block should land, decided before placement (7G-1)."""
 
-    CURRENT_PAGE = "current_page"   # keep on the page it is being placed on
-    NEXT_PAGE = "next_page"         # target the next page instead
-    UNDECIDED = "undecided"         # not enough settled context to judge
+    CURRENT_PAGE = "current_page"  # keep on the page it is being placed on
+    NEXT_PAGE = "next_page"  # target the next page instead
+    UNDECIDED = "undecided"  # not enough settled context to judge
 
 
 @dataclass(frozen=True)
@@ -122,9 +122,9 @@ class PlacementPolicy:
     the next page instead of spilling past the bottom edge.
     """
 
-    max_shortfall_pt: float = 24.0    # accept an overrun up to 24pt
-    max_overflow_ratio: float = 0.2   # ...or up to 20% of the remaining space
-    min_fill_ratio: float = 0.35      # page must be >= 35% full to tolerate one
+    max_shortfall_pt: float = 24.0  # accept an overrun up to 24pt
+    max_overflow_ratio: float = 0.2  # ...or up to 20% of the remaining space
+    min_fill_ratio: float = 0.35  # page must be >= 35% full to tolerate one
 
 
 @dataclass(frozen=True)
@@ -173,7 +173,7 @@ def remaining_space_for_page(report, page: int, page_height: float) -> float:
     if ph <= 0.0:
         return 0.0
     last = None
-    for p in (getattr(report, "placements", None) or []):
+    for p in getattr(report, "placements", None) or []:
         if getattr(p, "page", None) == page:
             last = p
     if last is None:
@@ -244,8 +244,7 @@ def decide_placement(
         )
     overrun = score.shortfall
     overrun_tolerable = overrun <= p.max_shortfall_pt or (
-        score.available > 0.0
-        and overrun <= score.available * p.max_overflow_ratio
+        score.available > 0.0 and overrun <= score.available * p.max_overflow_ratio
     )
     page_fill = 1.0 - score.available / ph if ph > 0.0 else 1.0
     if overrun_tolerable and page_fill >= p.min_fill_ratio:
@@ -275,6 +274,10 @@ def decide_from_settled(
     line_count, total = estimate_block_height(result)
     available = remaining_space_for_page(report, page, page_height)
     return decide_placement(
-        total, available, page_height,
-        kind=kind, policy=policy, line_count=line_count,
+        total,
+        available,
+        page_height,
+        kind=kind,
+        policy=policy,
+        line_count=line_count,
     )

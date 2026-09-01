@@ -627,7 +627,6 @@ def create_api_app(
 
         return {"removed": remove_cuda_provider()}
 
-
     @app.get("/api/selftest/magicpdf")
     def selftest_magicpdf() -> Dict[str, Any]:
         """magic-pdf/MinerU 解析链路可用性探测（frozen 包内默认不可用）。"""
@@ -726,9 +725,7 @@ def create_api_app(
             finally:
                 _mineru_cuda_setup_state["running"] = False
 
-        threading.Thread(
-            target=_run, name="mineru-cuda-setup", daemon=True
-        ).start()
+        threading.Thread(target=_run, name="mineru-cuda-setup", daemon=True).start()
         return {"started": True}
 
     @app.get("/api/setup/mineru/cuda")

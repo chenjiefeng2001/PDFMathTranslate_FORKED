@@ -70,7 +70,9 @@ def _entry(
 
 def _layout(entry, translated=None, **kw):
     return layout_toc_entry(
-        entry, measure=_measure, size=10.0,
+        entry,
+        measure=_measure,
+        size=10.0,
         translated_title=translated,
         **kw,
     )
@@ -78,9 +80,16 @@ def _layout(entry, translated=None, **kw):
 
 # ── 1. geometry passthrough ──────────────────────────────────────────────
 
+
 def test_geometry_passthrough_verbatim():
-    e = _entry(number="2.1", title_only="Dataset", title_x=96.0, page_x=500.0, level=2,
-               bbox=(96.0, 0.0, 500.0, 16.0))
+    e = _entry(
+        number="2.1",
+        title_only="Dataset",
+        title_x=96.0,
+        page_x=500.0,
+        level=2,
+        bbox=(96.0, 0.0, 500.0, 16.0),
+    )
     r = _layout(e, translated="译_Dataset")
     assert r.title_x == 96.0
     assert r.page_x == 500.0
@@ -90,9 +99,12 @@ def test_geometry_passthrough_verbatim():
 
 # ── 2. numbering PRESERVE ────────────────────────────────────────────────
 
+
 def test_number_verbatim_and_position():
-    r = _layout(_entry(number="3.1.2", title_only="Background", title_x=90.0),
-                translated="译_Background")
+    r = _layout(
+        _entry(number="3.1.2", title_only="Background", title_x=90.0),
+        translated="译_Background",
+    )
     assert r.number is not None
     assert r.number.lines == ["3.1.2"]
     assert r.number.bbox[0] == 90.0
@@ -100,8 +112,10 @@ def test_number_verbatim_and_position():
 
 
 def test_title_after_number_plus_gap():
-    r = _layout(_entry(number="2.1", title_only="Dataset", title_x=96.0),
-                translated="译_Dataset")
+    r = _layout(
+        _entry(number="2.1", title_only="Dataset", title_x=96.0),
+        translated="译_Dataset",
+    )
     # title 起点 = title_x + measure(number) + leader_gap
     expected = 96.0 + _measure("2.1") + 4.0
     assert r.title.bbox[0] == round(expected, 2)
@@ -109,9 +123,12 @@ def test_title_after_number_plus_gap():
 
 # ── 3. page number PRESERVE ──────────────────────────────────────────────
 
+
 def test_page_number_verbatim_at_page_x():
-    r = _layout(_entry(title_only="Intro", page_number="42", page_x=520.0),
-                translated="译_Intro")
+    r = _layout(
+        _entry(title_only="Intro", page_number="42", page_x=520.0),
+        translated="译_Intro",
+    )
     assert r.page is not None
     assert r.page.lines == ["42"]
     assert r.page.bbox[0] == 520.0
@@ -129,6 +146,7 @@ def test_page_x_unchanged_when_title_grows():
 
 # ── 4. dot leader ────────────────────────────────────────────────────────
 
+
 def test_leader_fills_to_page_x():
     r = _layout(_entry(title_x=72.0, page_x=540.0), translated="Introduction")
     assert r.leader is not None
@@ -140,15 +158,18 @@ def test_leader_fills_to_page_x():
 
 def test_long_title_shrinks_leader():
     short = _layout(_entry(page_x=500.0), translated="Intro")
-    long = _layout(_entry(page_x=500.0), translated="A much longer translated title here")
+    long = _layout(
+        _entry(page_x=500.0), translated="A much longer translated title here"
+    )
     s_len = len(short.leader.lines[0]) if short.leader else 0
     l_len = len(long.leader.lines[0]) if long.leader else 0
     assert l_len < s_len
 
 
 def test_no_leader_never_forces_dots():
-    r = _layout(_entry(leader_present=False, dot_leader="", page_number="5"),
-                translated="Intro")
+    r = _layout(
+        _entry(leader_present=False, dot_leader="", page_number="5"), translated="Intro"
+    )
     assert r.leader is None
 
 
@@ -157,7 +178,9 @@ def test_overlong_title_flags_overflow_no_leader():
     # 无法容纳的标题（SHRINK 到底仍超出行预算）才显式 overflow。
     r = _layout(
         _entry(title_x=72.0, page_x=200.0, page_number="5"),
-        translated=("This translated title is far too long for the available gap " * 4).strip(),
+        translated=(
+            "This translated title is far too long for the available gap " * 4
+        ).strip(),
     )
     assert r.overflow is True
     assert r.leader is None
@@ -169,7 +192,10 @@ def test_long_title_wraps_within_extra_line_budget():
     # 7F-5b：长标题在 extra-line 预算内 → WRAP 成多行，不是 overflow。
     r = _layout(
         _entry(title_x=72.0, page_x=500.0, page_number="5"),
-        translated=("This translated title wraps into several lines but stays inside the budget " * 2).strip(),
+        translated=(
+            "This translated title wraps into several lines but stays inside the budget "
+            * 2
+        ).strip(),
     )
     assert r.overflow is False
     assert r.line_count >= 2
@@ -179,15 +205,19 @@ def test_long_title_wraps_within_extra_line_budget():
 
 # ── 5. CJK ───────────────────────────────────────────────────────────────
 
+
 def test_cjk_title_measured_not_char_count():
-    r = _layout(_entry(title_only="引言", page_x=500.0, leader_present=False),
-                translated="第一章 引言")
+    r = _layout(
+        _entry(title_only="引言", page_x=500.0, leader_present=False),
+        translated="第一章 引言",
+    )
     assert r.title.bbox[0] == 72.0
     # 宽度来自统一 measure（CJK 1em）—— 不是 len * constant
     assert r.title.line_widths[0] == _measure("第一章 引言")
 
 
 # ── 6. multi-line continuation ───────────────────────────────────────────
+
 
 def test_continuation_pinned_under_title_stepping_down():
     r = _layout(
@@ -206,6 +236,7 @@ def test_continuation_pinned_under_title_stepping_down():
 
 # ── 7. nested title_x ────────────────────────────────────────────────────
 
+
 def test_nested_title_x_increasing_and_from_node():
     levels = [
         _entry(number="1", title_only="Intro", level=0, title_x=72.0),
@@ -217,14 +248,20 @@ def test_nested_title_x_increasing_and_from_node():
     assert xs[2] > xs[1] > xs[0]
     # title_x 就是节点值（不是 level * constant）：
     # 每个 title 起点 = 该层 title_x + measure(number) + leader_gap
-    assert xs == [tx + _measure(n) + 4.0 for tx, n in zip((72.0, 108.0, 138.0), ("1", "1.1", "1.1.1"))]
+    assert xs == [
+        tx + _measure(n) + 4.0
+        for tx, n in zip((72.0, 108.0, 138.0), ("1", "1.1", "1.1.1"))
+    ]
 
 
 # ── 8. commands + JSON-safety + degrade ──────────────────────────────────
 
+
 def test_commands_json_safe_and_ordered():
-    r = _layout(_entry(number="2.1", title_only="Dataset", page_number="12"),
-                translated="译_Dataset")
+    r = _layout(
+        _entry(number="2.1", title_only="Dataset", page_number="12"),
+        translated="译_Dataset",
+    )
     cmds = toc_layout_commands(r)
     json.dumps(cmds)
     assert [c["kind"] for c in cmds] == ["number", "title", "leader", "page"]
@@ -239,7 +276,9 @@ def test_measure_failure_degrades_never_raises():
         raise RuntimeError("boom")
 
     r = layout_toc_entry(
-        _entry(title_only="Intro", page_number="1"), measure=bad, size=10.0,
+        _entry(title_only="Intro", page_number="1"),
+        measure=bad,
+        size=10.0,
         translated_title="译_Intro",
     )
     assert r.title is not None

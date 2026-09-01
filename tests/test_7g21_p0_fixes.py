@@ -54,38 +54,57 @@ from pdf2zh.semantic.layout.packer import (
 def _blk(i, page, x0, bottom, x1, top, kind="flow"):
     box = (float(x0), float(bottom), float(x1), float(top))
     return BlockPlacement(
-        block_index=i, page=page, kind=kind, bbox=box, resolved_bbox=box,
-        height=top - bottom, preserved=False, has_continuation=False,
+        block_index=i,
+        page=page,
+        kind=kind,
+        bbox=box,
+        resolved_bbox=box,
+        height=top - bottom,
+        preserved=False,
+        has_continuation=False,
     )
 
 
 def _pres(i, page, x0, bottom, x1, top, kind="code"):
     b = _blk(i, page, x0, bottom, x1, top, kind=kind)
     return BlockPlacement(
-        block_index=i, page=page, kind=kind, bbox=b.bbox, resolved_bbox=b.bbox,
-        height=b.height, preserved=True, has_continuation=False,
+        block_index=i,
+        page=page,
+        kind=kind,
+        bbox=b.bbox,
+        resolved_bbox=b.bbox,
+        height=b.height,
+        preserved=True,
+        has_continuation=False,
     )
 
 
 def _plan(placements, page_height=792.0):
     entries = []
     for p in placements:
-        entries.append({
-            "block_id": f"p{p.page}_{p.block_index}",
-            "page": p.page,
-            "kind": p.kind,
-            "src_box": list(p.resolved_bbox),
-            "dst_box": list(p.resolved_bbox),
-            "text": "t", "translated": "t",
-            "font_size": 11.0,
-            "render_payload": {
+        entries.append(
+            {
+                "block_id": f"p{p.page}_{p.block_index}",
+                "page": p.page,
                 "kind": p.kind,
-                "commands": [
-                    {"text": "t", "x": p.left + 2.0, "y": p.top - 5.0,
-                     "font_size": 11.0}
-                ],
-            },
-        })
+                "src_box": list(p.resolved_bbox),
+                "dst_box": list(p.resolved_bbox),
+                "text": "t",
+                "translated": "t",
+                "font_size": 11.0,
+                "render_payload": {
+                    "kind": p.kind,
+                    "commands": [
+                        {
+                            "text": "t",
+                            "x": p.left + 2.0,
+                            "y": p.top - 5.0,
+                            "font_size": 11.0,
+                        }
+                    ],
+                },
+            }
+        )
     return entries
 
 
@@ -132,25 +151,39 @@ class TestContinuationNoPhantomPage(unittest.TestCase):
             {"kind": "text", "text": "B", "x": 76.0, "y": -8.0, "width": 40.0},
         ]
         entry = {
-            "block_id": "p2_0", "page": 2, "kind": "list",
-            "text": "t", "translated": "t",
+            "block_id": "p2_0",
+            "page": 2,
+            "kind": "list",
+            "text": "t",
+            "translated": "t",
             "src_box": [60.0, -30.0, 260.0, 50.0],
             "dst_box": [60.0, -30.0, 260.0, 50.0],
             "font_size": 11.0,
             "render_payload": {"kind": "list", "commands": list(cmds)},
-            "list_items": {"commands": list(cmds),
-                           "items": [{"marker": "1.", "marker_x": 60.0,
-                                      "content_x": 76.0, "continuation_x": 76.0,
-                                      "continuation": ["B"]}]},
+            "list_items": {
+                "commands": list(cmds),
+                "items": [
+                    {
+                        "marker": "1.",
+                        "marker_x": 60.0,
+                        "content_x": 76.0,
+                        "continuation_x": 76.0,
+                        "continuation": ["B"],
+                    }
+                ],
+            },
         }
         # document has exactly 3 pages (0,1,2) — page 2 IS the last page
         new_plan, report = execute_continuation_breaks(
-            [entry], page_sizes={0: 792.0, 1: 792.0, 2: 792.0},
-            page_start_y=792.0, page_bottom_y=10.0)
-        self.assertEqual(report.applied, [])           # nothing moved
-        self.assertEqual(len(report.unresolved), 1)    # surfaced, not dropped
+            [entry],
+            page_sizes={0: 792.0, 1: 792.0, 2: 792.0},
+            page_start_y=792.0,
+            page_bottom_y=10.0,
+        )
+        self.assertEqual(report.applied, [])  # nothing moved
+        self.assertEqual(len(report.unresolved), 1)  # surfaced, not dropped
         self.assertEqual(len(report.deferred), 1)
-        self.assertEqual(new_plan[0]["page"], 2)       # stays in-document
+        self.assertEqual(new_plan[0]["page"], 2)  # stays in-document
         self.assertEqual(new_plan[0]["dst_box"][1:4:2], [-30.0, 50.0])  # verbatim
         self.assertEqual(report.deferred[0].reason, "no_page")
 
@@ -158,21 +191,37 @@ class TestContinuationNoPhantomPage(unittest.TestCase):
 class TestExecutorNoPhantomPage(unittest.TestCase):
     def test_whole_block_on_last_page_is_deferred(self):
         entry = {
-            "block_id": "p1_0", "page": 1, "kind": "flow",
-            "text": "t", "translated": "t",
+            "block_id": "p1_0",
+            "page": 1,
+            "kind": "flow",
+            "text": "t",
+            "translated": "t",
             "src_box": [60.0, -20.0, 260.0, 50.0],
             "dst_box": [60.0, -20.0, 260.0, 50.0],
             "font_size": 11.0,
-            "render_payload": {"kind": "flow", "commands": [
-                {"kind": "flow-text", "text": "t", "x": 60.0, "y": -20.0,
-                 "width": 100.0, "line": 0, "is_last": True, "overflow": True}]},
+            "render_payload": {
+                "kind": "flow",
+                "commands": [
+                    {
+                        "kind": "flow-text",
+                        "text": "t",
+                        "x": 60.0,
+                        "y": -20.0,
+                        "width": 100.0,
+                        "line": 0,
+                        "is_last": True,
+                        "overflow": True,
+                    }
+                ],
+            },
         }
         new_plan, report = execute_page_breaks(
-            [entry], page_sizes={0: 792.0, 1: 792.0}, page_start_y=792.0)
+            [entry], page_sizes={0: 792.0, 1: 792.0}, page_start_y=792.0
+        )
         self.assertEqual(report.applied, [])
         self.assertEqual(len(report.unresolved), 1)
         self.assertEqual(len(report.deferred), 1)
-        self.assertEqual(new_plan[0]["page"], 1)       # never past last page
+        self.assertEqual(new_plan[0]["page"], 1)  # never past last page
         # the deferred record pins the block to its OWN page (the phantom
         # page+1 is never created)
         self.assertEqual(report.deferred[0].target_page, 1)
@@ -198,8 +247,12 @@ class TestReanchorNeighbourAware(unittest.TestCase):
         ]
         page_number = _blk(99, 1, 200.0, 100.0, 330.0, 130.0)  # movable para
         down = column_reanchor(
-            column, bottom_margin=36.0, preserved_gutter=6.0, gutter=2.0,
-            other_barriers=[page_number])
+            column,
+            bottom_margin=36.0,
+            preserved_gutter=6.0,
+            gutter=2.0,
+            other_barriers=[page_number],
+        )
         # column descends only until block[2].bottom == 130 + 2 = 132
         # (300 -> 132 = -168), never onto the page number
         self.assertAlmostEqual(down, -168.0, delta=0.1)
@@ -209,11 +262,12 @@ class TestReanchorNeighbourAware(unittest.TestCase):
         # behaviour unchanged)
         column = [
             _blk(0, 1, 60.0, 500.0, 260.0, 720.0),
-            _pres(1, 1, 60.0, 300.0, 260.0, 494.0),   # preserved (code)
+            _pres(1, 1, 60.0, 300.0, 260.0, 494.0),  # preserved (code)
             _blk(2, 1, 60.0, 200.0, 260.0, 290.0),
         ]
         down = column_reanchor(
-            column, bottom_margin=36.0, preserved_gutter=6.0, gutter=2.0)
+            column, bottom_margin=36.0, preserved_gutter=6.0, gutter=2.0
+        )
         # block[2] descends until 200 -> 494+6 = 500?  No: preserved top 494 is
         # ABOVE block[2] (y-up); the floor is bottom_margin 36 here.
         self.assertLessEqual(down, 0.0)
@@ -228,8 +282,12 @@ class TestReanchorNeighbourAware(unittest.TestCase):
         ]
         other_column = _blk(50, 1, 400.0, 200.0, 560.0, 210.0)  # far right
         down = column_reanchor(
-            column, bottom_margin=36.0, preserved_gutter=6.0, gutter=2.0,
-            other_barriers=[other_column])
+            column,
+            bottom_margin=36.0,
+            preserved_gutter=6.0,
+            gutter=2.0,
+            other_barriers=[other_column],
+        )
         # lowest block 300 -> 36 = -264; the disjoint neighbour does not bind
         self.assertAlmostEqual(down, -264.0, delta=0.1)
 
@@ -253,26 +311,30 @@ class TestGlyphExcessGuard(unittest.TestCase):
         # guard subtracts the excess so the real glyphs stop exactly at the
         # block above's resolved bottom (words never overlap).
         from pdf2zh.semantic.layout.packer import compact_column
+
         col = [
             _blk(0, 1, 60.0, 500.0, 260.0, 720.0),
             _blk(1, 1, 60.0, 394.0, 260.0, 494.0),
             _blk(2, 1, 60.0, 300.0, 260.0, 390.0),
         ]
-        deltas = compact_column(col, gutter=0.0, preserved_gutter=0.0,
-                                glyph_excess=[3.8, 3.8, 3.8])
+        deltas = compact_column(
+            col, gutter=0.0, preserved_gutter=0.0, glyph_excess=[3.8, 3.8, 3.8]
+        )
         self.assertAlmostEqual(deltas[1], 2.2, places=1)
         self.assertAlmostEqual(deltas[2], 2.4, places=1)
 
     def test_no_excess_keeps_bbox_pull(self):
         # well-formed blocks (excess 0) keep the exact 7G-2 bbox pulls
         from pdf2zh.semantic.layout.packer import compact_column
+
         col = [
             _blk(0, 1, 60.0, 500.0, 260.0, 720.0),
             _blk(1, 1, 60.0, 394.0, 260.0, 494.0),
             _blk(2, 1, 60.0, 300.0, 260.0, 390.0),
         ]
-        deltas = compact_column(col, gutter=0.0, preserved_gutter=0.0,
-                                glyph_excess=[0.0, 0.0, 0.0])
+        deltas = compact_column(
+            col, gutter=0.0, preserved_gutter=0.0, glyph_excess=[0.0, 0.0, 0.0]
+        )
         self.assertAlmostEqual(deltas[1], 6.0, places=1)
         self.assertAlmostEqual(deltas[2], 10.0, places=1)
 
@@ -285,8 +347,13 @@ class TestGlyphExcessGuard(unittest.TestCase):
         ]
         neighbour = _blk(9, 1, 200.0, 100.0, 330.0, 130.0)
         down = column_reanchor(
-            column, bottom_margin=36.0, preserved_gutter=6.0, gutter=2.0,
-            other_barriers=[neighbour], barrier_excess={id(neighbour): 10.0})
+            column,
+            bottom_margin=36.0,
+            preserved_gutter=6.0,
+            gutter=2.0,
+            other_barriers=[neighbour],
+            barrier_excess={id(neighbour): 10.0},
+        )
         # lowest block stops at 130 + 10 + 2 = 142 (300 -> 142 = -158)
         self.assertAlmostEqual(down, -158.0, delta=0.1)
 
@@ -301,15 +368,16 @@ class TestGlyphExcessGuard(unittest.TestCase):
         ]
         plan = _plan(col)
         new_plan, _ = apply_packing(
-            plan, {1: 792.0},
-            config=PackConfig(compact=True, gutter=0.0, preserved_gutter=0.0,
-                              re_anchor=False))
+            plan,
+            {1: 792.0},
+            config=PackConfig(
+                compact=True, gutter=0.0, preserved_gutter=0.0, re_anchor=False
+            ),
+        )
         placements = placements_from_plan(new_plan)
-        ordered = sorted(
-            enumerate(new_plan), key=lambda ie: -placements[ie[0]].top)
+        ordered = sorted(enumerate(new_plan), key=lambda ie: -placements[ie[0]].top)
         for (i, e), (j, f) in zip(ordered, ordered[1:]):
-            self.assertLessEqual(
-                _glyph_top_of(f) + 1e-6, placements[i].bottom + 1e-6)
+            self.assertLessEqual(_glyph_top_of(f) + 1e-6, placements[i].bottom + 1e-6)
 
 
 class TestApplyPackingNeighbourAware(unittest.TestCase):
@@ -325,9 +393,16 @@ class TestApplyPackingNeighbourAware(unittest.TestCase):
         page_number = _blk(3, 1, 200.0, 100.0, 330.0, 130.0)
         plan = _plan(column + [page_number])
         new_plan, _ = apply_packing(
-            plan, {1: 792.0},
-            config=PackConfig(compact=True, gutter=2.0, preserved_gutter=6.0,
-                              re_anchor=True, bottom_margin=36.0))
+            plan,
+            {1: 792.0},
+            config=PackConfig(
+                compact=True,
+                gutter=2.0,
+                preserved_gutter=6.0,
+                re_anchor=True,
+                bottom_margin=36.0,
+            ),
+        )
         placements = placements_from_plan(new_plan)
         col_blocks = [p for p in placements if p.block_index in (0, 1, 2)]
         neighbour = [p for p in placements if p.block_index == 3][0]

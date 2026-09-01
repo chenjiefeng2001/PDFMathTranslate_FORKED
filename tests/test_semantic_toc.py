@@ -48,15 +48,19 @@ def test_single_page_toc():
 
 # ── 2. 多页 TOC ─────────────────────────────────────────────
 def test_multipage_toc():
-    page5 = parse([
-        L("Contents"),
-        L("Chapter One ........... 1"),
-        L("Chapter Two ........... 23"),
-    ])
-    page6 = parse([
-        L("Chapter Two ........... 23"),
-        L("Chapter Three ......... 45"),
-    ])
+    page5 = parse(
+        [
+            L("Contents"),
+            L("Chapter One ........... 1"),
+            L("Chapter Two ........... 23"),
+        ]
+    )
+    page6 = parse(
+        [
+            L("Chapter Two ........... 23"),
+            L("Chapter Three ......... 45"),
+        ]
+    )
     assert page5 is not None and len(page5.entries) == 2
     assert page6 is not None and len(page6.entries) == 2
     # 第二页（续页）无需 header，仅靠 2+ 条目即为 TOC
@@ -74,20 +78,30 @@ def test_numbered_entries():
     ]
     node = parse(lines)
     assert node is not None
-    assert [e.title for e in node.entries] == ["1 Introduction", "2 Method", "3 Results"]
+    assert [e.title for e in node.entries] == [
+        "1 Introduction",
+        "2 Method",
+        "3 Results",
+    ]
     # 编号与页码都从原始文本提取，互不混淆
     assert [e.page_number for e in node.entries] == ["1", "5", "9"]
 
 
 # ── 4. 无编号条目 ───────────────────────────────────────────
 def test_unnumbered_entries():
-    node = parse([
-        L("Introduction .......... 1"),
-        L("Background ............ 3"),
-        L("Motivation ............ 4"),
-    ])
+    node = parse(
+        [
+            L("Introduction .......... 1"),
+            L("Background ............ 3"),
+            L("Motivation ............ 4"),
+        ]
+    )
     assert node is not None
-    assert [e.title for e in node.entries] == ["Introduction", "Background", "Motivation"]
+    assert [e.title for e in node.entries] == [
+        "Introduction",
+        "Background",
+        "Motivation",
+    ]
     assert all(e.leader_present for e in node.entries)
 
 
@@ -113,11 +127,13 @@ def test_nested_levels_from_indentation():
 
 def test_dotted_number_depth_when_indentation_uniform():
     # 缩进完全一致（单簇），仅靠编号 1 / 1.1 / 1.1.1 的深度作为 level（次级信号）
-    node = parse([
-        L("1 Introduction ......... 1"),
-        L("1.1 Background .......... 3"),
-        L("1.1.1 Motivation ........ 4"),
-    ])
+    node = parse(
+        [
+            L("1 Introduction ......... 1"),
+            L("1.1 Background .......... 3"),
+            L("1.1.1 Motivation ........ 4"),
+        ]
+    )
     assert node is not None
     assert [e.level for e in node.entries] == [0, 1, 2]
 
@@ -152,19 +168,24 @@ def test_multiline_entry_single_node():
     assert node is not None
     assert len(node.entries) == 1
     e = node.entries[0]
-    assert e.title == "1. A very long table of contents entry that continues on the next line"
+    assert (
+        e.title
+        == "1. A very long table of contents entry that continues on the next line"
+    )
     assert e.page_number == "12"
     assert e.title.endswith("continues on the next line")
 
 
 # ── 9. TOC 後普通段落不并入条目 ─────────────────────────────
 def test_paragraph_after_toc_not_absorbed():
-    node = parse([
-        L("Contents"),
-        L("Intro ......... 1"),
-        L("More .......... 2"),
-        L("This trailing plain paragraph is not part of the TOC."),
-    ])
+    node = parse(
+        [
+            L("Contents"),
+            L("Intro ......... 1"),
+            L("More .......... 2"),
+            L("This trailing plain paragraph is not part of the TOC."),
+        ]
+    )
     assert node is not None
     assert [e.title for e in node.entries] == ["Intro", "More"]
     assert "trailing plain paragraph" not in " ".join(e.title for e in node.entries)
@@ -229,7 +250,11 @@ def test_dump_toc_debug_schema(tmp_path):
     doc = pymupdf.Document()
     page = doc.new_page(width=612.0, height=792.0)
     y = 100.0
-    for t in ("Contents", "Introduction .............. 1", "Methods ................... 5"):
+    for t in (
+        "Contents",
+        "Introduction .............. 1",
+        "Methods ................... 5",
+    ):
         page.insert_text((72.0, y), t, fontsize=12.0)
         y += 20.0
     doc.save(str(pdf_path))
@@ -257,4 +282,5 @@ def test_dump_toc_debug_schema(tmp_path):
 if __name__ == "__main__":
     import sys
     import pytest
+
     sys.exit(pytest.main([__file__]))

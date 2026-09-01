@@ -361,7 +361,9 @@ def test_ensure_venv_cuda_upgrades_existing_cpu_venv(monkeypatch):
         # pip 报 "Requirement already satisfied" 跳过重装，升级不生效。
         assert "--upgrade" in cmd
         assert "torch" in cmd and "torchvision" in cmd
-        assert cmd[cmd.index("--index-url") + 1].startswith("https://download.pytorch.org/whl/")
+        assert cmd[cmd.index("--index-url") + 1].startswith(
+            "https://download.pytorch.org/whl/"
+        )
         calls.append("upgrade")
         return None
 
@@ -422,9 +424,7 @@ def test_venv_torch_cuda_probe(monkeypatch):
             return _OK()
         return _NG()
 
-    monkeypatch.setattr(
-        mineru_env, "subprocess", _FakeSubprocess(fake_run, text=True)
-    )
+    monkeypatch.setattr(mineru_env, "subprocess", _FakeSubprocess(fake_run, text=True))
     assert mineru_env._venv_torch_cuda("py") is True
     assert mineru_env._venv_torch_cuda("py") is True  # 第二次同样输出 1
     assert "import torch" in " ".join(seen["cmd"])
@@ -449,9 +449,7 @@ def test_venv_torch_cuda_tag_probe(monkeypatch):
             return _Cu()
         return _Cpu()
 
-    monkeypatch.setattr(
-        mineru_env, "subprocess", _FakeSubprocess(fake_run, text=True)
-    )
+    monkeypatch.setattr(mineru_env, "subprocess", _FakeSubprocess(fake_run, text=True))
     assert mineru_env._venv_torch_cuda_tag("py") == "12.6"
     assert "torch.version.cuda" in " ".join(seen["cmd"])
 
@@ -490,7 +488,7 @@ def test_worker_conservative_vram_budget(monkeypatch):
 
         def get_device_properties(self, idx):
             class _P:
-                total_memory = self._mem_gb * (1024 ** 3)
+                total_memory = self._mem_gb * (1024**3)
 
             return _P()
 
@@ -526,7 +524,9 @@ def test_worker_conservative_vram_budget(monkeypatch):
     assert os.environ.get("MINERU_VIRTUAL_VRAM_SIZE") in (None, "7")
 
 
-def test_parse_subprocess_forwards_mineru_config_env(_fake_backend_mineru, monkeypatch, tmp_path):
+def test_parse_subprocess_forwards_mineru_config_env(
+    _fake_backend_mineru, monkeypatch, tmp_path
+):
     """mineru_vram_size / window_size 经子进程 env 透传。"""
     seen = {}
 
@@ -561,7 +561,9 @@ def test_parse_subprocess_forwards_mineru_config_env(_fake_backend_mineru, monke
     assert env["MINERU_PROCESSING_WINDOW_SIZE"] == "8"
 
 
-def test_parse_subprocess_no_env_when_config_empty(_fake_backend_mineru, monkeypatch, tmp_path):
+def test_parse_subprocess_no_env_when_config_empty(
+    _fake_backend_mineru, monkeypatch, tmp_path
+):
     """配置为空（auto）时不透传 env（worker 自动保守估算）。"""
     seen = {}
 
@@ -588,7 +590,9 @@ def test_parse_subprocess_no_env_when_config_empty(_fake_backend_mineru, monkeyp
     assert seen["env"] is None
 
 
-def test_parse_subprocess_explicit_mode_and_backend(_fake_backend_mineru, monkeypatch, tmp_path):
+def test_parse_subprocess_explicit_mode_and_backend(
+    _fake_backend_mineru, monkeypatch, tmp_path
+):
     """mineru_parse_method=ocr + mineru_backend=hybrid 显式透传到 worker cmd。"""
     seen = {}
 

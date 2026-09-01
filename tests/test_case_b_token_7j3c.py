@@ -25,6 +25,7 @@ from babeldoc.translator.translator import BaseTranslator  # noqa: E402
 @pytest.fixture()
 def translator() -> BaseTranslator:
     """Minimal BaseTranslator subclass (all required methods stubbed)."""
+
     class _T(BaseTranslator):
         name = "token-latch"
 
@@ -58,7 +59,9 @@ def test_rich_text_right_placeholder_shape(translator: BaseTranslator) -> None:
 
 def test_formula_placeholder_reuses_left_shape(translator: BaseTranslator) -> None:
     """Formula placeholders use the same ``<b{n}>`` shape (7J-3C: ►/→ → <b1>/<b2>)."""
-    assert translator.get_formular_placeholder(2) == translator.get_rich_text_left_placeholder(2)
+    assert translator.get_formular_placeholder(
+        2
+    ) == translator.get_rich_text_left_placeholder(2)
 
 
 def test_token_shape_matches_restore_regex(translator: BaseTranslator) -> None:

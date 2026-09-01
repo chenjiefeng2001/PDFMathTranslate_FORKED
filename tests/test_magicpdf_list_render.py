@@ -35,9 +35,7 @@ def _list_entry(page=0):
 
 class TestMagicPdfListRender(unittest.TestCase):
     def test_list_block_marker_preserved_and_content_translated(self):
-        pdf, stats = render_plan_to_pdf(
-            [_list_entry()], page_sizes={0: [612.0, 792.0]}
-        )
+        pdf, stats = render_plan_to_pdf([_list_entry()], page_sizes={0: [612.0, 792.0]})
         doc = pymupdf.open(stream=pdf, filetype="pdf")
         text = doc[0].get_text()
         # marker 原样（未翻译、未改变文本）
@@ -67,9 +65,7 @@ class TestMagicPdfListRender(unittest.TestCase):
                 "font_size": 12.0,
             },
         ]
-        pdf, _stats = render_plan_to_pdf(
-            entries, page_sizes={0: [612.0, 792.0]}
-        )
+        pdf, _stats = render_plan_to_pdf(entries, page_sizes={0: [612.0, 792.0]})
         doc = pymupdf.open(stream=pdf, filetype="pdf")
         text = doc[0].get_text()
         self.assertIn("T[First item]", text)
@@ -91,7 +87,9 @@ class TestMagicPdfListRender(unittest.TestCase):
             {"x0": 64.0, "x1": 200.0, "size": 12.0, "y0": 660.0},
         ]
         payload = build_page_list_plan(
-            paras, geom=geom, translate=lambda s: f"C[{s}]",
+            paras,
+            geom=geom,
+            translate=lambda s: f"C[{s}]",
         )
         self.assertEqual([it["level"] for it in payload["items"]], [0, 1, 2])
         entry = {

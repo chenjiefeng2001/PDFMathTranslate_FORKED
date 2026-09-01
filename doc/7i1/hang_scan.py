@@ -2,15 +2,18 @@
 multiprocessor book. CHILD scans pages flushing per-page lines; a reader THREAD
 drains stdout and stamps the last-line time; the MAIN loop watches idle time and
 kills the trailing child on the first hang (tolerant of a slow-but-progressing page)."""
+
 import subprocess
 import sys
 import threading
 import time
 
 BOOK = "tests/file/The Art of Multiprocessor Programming, 2e.pdf"
-GUARD = float(sys.argv[sys.argv.index("--guard") + 1]) if "--guard" in sys.argv else 45.0
+GUARD = (
+    float(sys.argv[sys.argv.index("--guard") + 1]) if "--guard" in sys.argv else 45.0
+)
 
-WORKER = r'''
+WORKER = r"""
 import logging, sys, time
 from pdfminer.high_level import extract_pages
 from pdf2zh.v3.document_model import build_document_model
@@ -23,13 +26,14 @@ for i in range(len(lt)):
     nb = len(getattr(m.pages[0],'blocks',[]) or []) if m.pages else 0
     print("PAGE %d dt=%.2f blocks=%d" % (i, dt, nb), flush=True)
 print("CHILD_DONE", flush=True)
-'''.format(book=BOOK)
+""".format(book=BOOK)
 
 
 def main():
     proc = subprocess.Popen(
         [sys.executable, "-c", WORKER],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
     )
     state = {"last_line_at": time.time(), "last_page": -1, "done": False}
@@ -56,8 +60,10 @@ def main():
         th.join(2.0)
         idle = time.time() - state["last_line_at"]
         if idle > GUARD:
-            print(f"HANG-SUSPECT last_page={state['last_page']} idle>{GUARD:.0f}s -> kill "
-                  f"child, first-hang-page={state['last_page'] + 1}")
+            print(
+                f"HANG-SUSPECT last_page={state['last_page']} idle>{GUARD:.0f}s -> kill "
+                f"child, first-hang-page={state['last_page'] + 1}"
+            )
             proc.kill()
             proc.wait()
             return

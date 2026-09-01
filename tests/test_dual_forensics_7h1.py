@@ -173,8 +173,17 @@ def test_f4_font_anomaly_attrs_render():
     assert all(f.first_divergence == "render" for f in findings)
 
 
-ALLOWED_FDS = {"source", "parser", "model", "translation", "layout",
-               "packing", "render", "pdf", "unknown"}
+ALLOWED_FDS = {
+    "source",
+    "parser",
+    "model",
+    "translation",
+    "layout",
+    "packing",
+    "render",
+    "pdf",
+    "unknown",
+}
 
 
 def test_every_defect_has_allowed_first_divergence():
@@ -182,25 +191,54 @@ def test_every_defect_has_allowed_first_divergence():
     set — never a guessed/None divergence.  This is the invariant that turns
     diagnosis from "guess" into "evidence"."""
     findings = list(run_defect_detectors(_traces_fixture())) + [
-        DefectFinding(defect_id=F2, node_id="p0_0", page=0, first_divergence="model",
-                      stage_verdicts={"model": "FAIL"}),
+        DefectFinding(
+            defect_id=F2,
+            node_id="p0_0",
+            page=0,
+            first_divergence="model",
+            stage_verdicts={"model": "FAIL"},
+        ),
     ]
     for f in findings:
-        assert f.first_divergence in ALLOWED_FDS, \
-            f"defect {f.defect_id} on {f.node_id} has invalid/guessed FDS " \
+        assert f.first_divergence in ALLOWED_FDS, (
+            f"defect {f.defect_id} on {f.node_id} has invalid/guessed FDS "
             f"{f.first_divergence!r}"
+        )
         # every FAIL stage must be ordered before any PASS in walk-order is
         # NOT required (a node may legitimately pass later), but the FDS must
         # equal the earliest FAIL stage for walk-consistency.
         failed = [k for k, v in f.stage_verdicts.items() if v == "FAIL"]
         if failed:
-            earliest = min(failed, key=lambda s: [
-                "source", "parser", "model", "translation", "layout",
-                "packing", "render", "pdf"].index(s) if s in {
-                    "source", "parser", "model", "translation", "layout",
-                    "packing", "render", "pdf"} else 99)
-            assert f.first_divergence == earliest or f.first_divergence == "unknown", \
-                f"FDS {f.first_divergence!r} != earliest FAIL {earliest!r}"
+            earliest = min(
+                failed,
+                key=lambda s: (
+                    [
+                        "source",
+                        "parser",
+                        "model",
+                        "translation",
+                        "layout",
+                        "packing",
+                        "render",
+                        "pdf",
+                    ].index(s)
+                    if s
+                    in {
+                        "source",
+                        "parser",
+                        "model",
+                        "translation",
+                        "layout",
+                        "packing",
+                        "render",
+                        "pdf",
+                    }
+                    else 99
+                ),
+            )
+            assert (
+                f.first_divergence == earliest or f.first_divergence == "unknown"
+            ), f"FDS {f.first_divergence!r} != earliest FAIL {earliest!r}"
 
 
 def test_classify_findings_totals():
@@ -235,12 +273,26 @@ def test_renderer_provenance_id_direct():
     from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
 
     plan = [
-        {"block_id": "p0_0", "page": 0, "kind": "paragraph", "text": "Hello",
-         "translated": "\u4f60\u597d", "src_box": [50, 700, 550, 720],
-         "dst_box": [50, 700, 550, 720], "font_size": 12.0},
-        {"block_id": "p0_1", "page": 0, "kind": "formula", "text": "x = a + b",
-         "translated": "x = a + b", "src_box": [200, 600, 400, 620],
-         "dst_box": [200, 600, 400, 620], "font_size": 14.0},
+        {
+            "block_id": "p0_0",
+            "page": 0,
+            "kind": "paragraph",
+            "text": "Hello",
+            "translated": "\u4f60\u597d",
+            "src_box": [50, 700, 550, 720],
+            "dst_box": [50, 700, 550, 720],
+            "font_size": 12.0,
+        },
+        {
+            "block_id": "p0_1",
+            "page": 0,
+            "kind": "formula",
+            "text": "x = a + b",
+            "translated": "x = a + b",
+            "src_box": [200, 600, 400, 620],
+            "dst_box": [200, 600, 400, 620],
+            "font_size": 14.0,
+        },
     ]
     pdf, stats = render_plan_to_pdf(plan, page_sizes={0: [612, 792]}, provenance=True)
     prov = stats["provenance"]
@@ -250,17 +302,35 @@ def test_renderer_provenance_id_direct():
     assert all("render_object_ref" in r and "final_bbox_v3" in r for r in prov)
 
     rows = [
-        {"node_id": "p0_0", "kind": "paragraph",
-         "parser": {"bbox": [50, 700, 550, 720], "text": "Hello"},
-         "translation": {"translated_text": "你好", "translation_status": "translated"}},
-        {"node_id": "p0_1", "kind": "formula",
-         "parser": {"bbox": [200, 600, 400, 620], "text": "x = a + b"},
-         "translation": {"translated_text": "x = a + b", "translation_status": "preserved"}},
+        {
+            "node_id": "p0_0",
+            "kind": "paragraph",
+            "parser": {"bbox": [50, 700, 550, 720], "text": "Hello"},
+            "translation": {
+                "translated_text": "你好",
+                "translation_status": "translated",
+            },
+        },
+        {
+            "node_id": "p0_1",
+            "kind": "formula",
+            "parser": {"bbox": [200, 600, 400, 620], "text": "x = a + b"},
+            "translation": {
+                "translated_text": "x = a + b",
+                "translation_status": "preserved",
+            },
+        },
         # this block is NOT drawn → must be reported dangling (confirmed absent
         # by ID, not geometry-UNCERTAIN).
-        {"node_id": "p0_9", "kind": "paragraph",
-         "parser": {"bbox": [10, 10, 50, 20], "text": "absent block"},
-         "translation": {"translated_text": "absent block", "translation_status": "translated"}},
+        {
+            "node_id": "p0_9",
+            "kind": "paragraph",
+            "parser": {"bbox": [10, 10, 50, 20], "text": "absent block"},
+            "translation": {
+                "translated_text": "absent block",
+                "translation_status": "translated",
+            },
+        },
     ]
     aggr = aggregate_page_id_direct(0, rows, load_provenance(prov))
     assert aggr["id_direct"] is True

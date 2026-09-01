@@ -6,6 +6,7 @@ _RE_LEADER).  This script runs the same in-pipeline provenance measurement as
 7I-0 (identity translation + production renderer + ID-direct diff) on sample
 pages and writes doc/7i1-multiprocessor-provenance/{summary.json,report.json}.
 """
+
 import json
 import os
 import sys
@@ -22,9 +23,7 @@ import pymupdf
 
 BOOK = "tests/file/The Art of Multiprocessor Programming, 2e.pdf"
 # 7I-3C: 输出目录可用 PDF2ZH_REQUAL_OUT 覆盖，避免覆写 7I-1/7I-2 存档证据。
-OUT = os.environ.get(
-    "PDF2ZH_REQUAL_OUT", "doc/7i1-multiprocessor-provenance"
-)
+OUT = os.environ.get("PDF2ZH_REQUAL_OUT", "doc/7i1-multiprocessor-provenance")
 # Sample: front matter (TOC, roman numerals), body, code, index.
 PAGES = [0, 5, 8, 12, 20, 40, 80, 120, 200, 300, 400, 500, 550]
 
@@ -44,7 +43,9 @@ def main():
     prov = _render_plan_with_provenance(BOOK, PAGES, OUT)
     prov_by_page = {k: load_provenance(v) for k, v in prov.items()}
 
-    dual_doc = pymupdf.open(BOOK)  # no external dual: MuPDF content-stream check on source pages
+    dual_doc = pymupdf.open(
+        BOOK
+    )  # no external dual: MuPDF content-stream check on source pages
     findings = []
     pages_out = {}
     for pno in PAGES:
@@ -56,23 +57,28 @@ def main():
         finds = run_defect_detectors(traces, dual_evidence)
         cs = dual_evidence.get("content_stream") or {}
         if cs.get("anomaly"):
-            finds.append({
-                "defect_id": "F9",
-                "page": pno,
-                "first_divergence": "render",
-                "evidence": {"mupdf_syntax_error": cs.get("sample")},
-            })
+            finds.append(
+                {
+                    "defect_id": "F9",
+                    "page": pno,
+                    "first_divergence": "render",
+                    "evidence": {"mupdf_syntax_error": cs.get("sample")},
+                }
+            )
         for nid in aggr["dangling_blocks"]:
-            finds.append({
-                "defect_id": "F10",
-                "page": pno,
-                "node_id": nid,
-                "first_divergence": "render",
-                "evidence": {"dangling": True, "confidence": "uncertain"},
-            })
+            finds.append(
+                {
+                    "defect_id": "F10",
+                    "page": pno,
+                    "node_id": nid,
+                    "first_divergence": "render",
+                    "evidence": {"dangling": True, "confidence": "uncertain"},
+                }
+            )
         findings.extend(finds)
         preserved_violation = sum(
-            1 for t in traces
+            1
+            for t in traces
             if t.kind in ("code", "formula", "filename", "identifier")
             and (t.translation_status or "") not in ("preserved", "done", "")
         )
@@ -87,9 +93,13 @@ def main():
         }
         for t in traces:
             k = t.kind or "unknown"
-            pages_out[str(pno)]["by_kind"][k] = pages_out[str(pno)]["by_kind"].get(k, 0) + 1
-        print(f"page {pno:>3}: blocks={aggr['total_blocks']:>3} present={aggr['present_blocks']:>3} "
-              f"dangling={len(aggr['dangling_blocks'])} findings={len(finds)}")
+            pages_out[str(pno)]["by_kind"][k] = (
+                pages_out[str(pno)]["by_kind"].get(k, 0) + 1
+            )
+        print(
+            f"page {pno:>3}: blocks={aggr['total_blocks']:>3} present={aggr['present_blocks']:>3} "
+            f"dangling={len(aggr['dangling_blocks'])} findings={len(finds)}"
+        )
 
     by_fd = {}
     by_defect = {}
@@ -108,7 +118,11 @@ def main():
         "total_pages": total_pages,
         "sample_pages": PAGES,
         "model_blocks_total": snapshot.get("model_stats", {}).get("blocks"),
-        "defects": {"total": len(findings), "by_first_divergence": by_fd, "by_defect_id": by_defect},
+        "defects": {
+            "total": len(findings),
+            "by_first_divergence": by_fd,
+            "by_defect_id": by_defect,
+        },
         "pages": pages_out,
     }
     with open(os.path.join(OUT, "summary.json"), "w", encoding="utf-8") as fh:

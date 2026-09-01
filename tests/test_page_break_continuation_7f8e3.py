@@ -51,19 +51,37 @@ from pdf2zh.semantic.layout.page_flow import (
 )
 
 _HERE = Path(__file__).resolve().parent
-_MOD_PATH = _HERE.parent / "pdf2zh" / "semantic" / "layout" / "page_break_continuation.py"
+_MOD_PATH = (
+    _HERE.parent / "pdf2zh" / "semantic" / "layout" / "page_break_continuation.py"
+)
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,
-           list_items=None, toc_entries=None, toc_commands=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    list_items=None,
+    toc_entries=None,
+    toc_commands=None,
+):
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
         "list_items": list_items,
         "toc_entries": toc_entries,
         "toc_commands": toc_commands,
@@ -81,11 +99,26 @@ def _list_block(block_id, page=0):
         {"kind": "text", "text": "E", "x": 76.0, "y": -8.0, "width": 40.0},
         {"kind": "text", "text": "F", "x": 76.0, "y": -20.0, "width": 40.0},
     ]
-    items = [{"marker": "1.", "marker_x": 60.0, "content_x": 76.0,
-              "continuation_x": 76.0, "continuation": ["B", "C", "D", "E", "F"]}]
-    return _entry(block_id, page, "list", 60.0, -30.0, 260.0, 50.0,
-                  list_items={"commands": commands, "items": items},
-                  payload={"kind": "list", "commands": commands})
+    items = [
+        {
+            "marker": "1.",
+            "marker_x": 60.0,
+            "content_x": 76.0,
+            "continuation_x": 76.0,
+            "continuation": ["B", "C", "D", "E", "F"],
+        }
+    ]
+    return _entry(
+        block_id,
+        page,
+        "list",
+        60.0,
+        -30.0,
+        260.0,
+        50.0,
+        list_items={"commands": commands, "items": items},
+        payload={"kind": "list", "commands": commands},
+    )
 
 
 def _toc_block(block_id, page=0):
@@ -101,22 +134,47 @@ def _toc_block(block_id, page=0):
         {"kind": "title", "text": "cont2", "x": 82.0, "y": -8.0, "width": 60.0},
         {"kind": "title", "text": "cont3", "x": 82.0, "y": -20.0, "width": 60.0},
     ]
-    entries = [{"title": "Intro", "title_x": 82.0, "page_x": 500.0,
-                "page_number": "42", "continuation": []}]
-    return _entry(block_id, page, "toc", 60.0, -30.0, 260.0, 50.0,
-                  toc_entries=entries, toc_commands={"commands": commands},
-                  payload={"kind": "toc", "commands": commands})
+    entries = [
+        {
+            "title": "Intro",
+            "title_x": 82.0,
+            "page_x": 500.0,
+            "page_number": "42",
+            "continuation": [],
+        }
+    ]
+    return _entry(
+        block_id,
+        page,
+        "toc",
+        60.0,
+        -30.0,
+        260.0,
+        50.0,
+        toc_entries=entries,
+        toc_commands={"commands": commands},
+        payload={"kind": "toc", "commands": commands},
+    )
 
 
 def _code(block_id, page=0):
     box = [60.0, -30.0, 260.0, 50.0]
-    return _entry(block_id, page, "code", 60.0, -30.0, 260.0, 50.0,
-                  payload={"kind": "code", "commands": []})
+    return _entry(
+        block_id,
+        page,
+        "code",
+        60.0,
+        -30.0,
+        260.0,
+        50.0,
+        payload={"kind": "code", "commands": []},
+    )
 
 
 def _flow(block_id, page=0, x0=60.0, y0=-20.0, x1=260.0, y1=50.0):
-    return _entry(block_id, page, "flow", x0, y0, x1, y1,
-                  payload={"kind": "flow", "commands": []})
+    return _entry(
+        block_id, page, "flow", x0, y0, x1, y1, payload={"kind": "flow", "commands": []}
+    )
 
 
 # 7G-2.1 P0: a break may only land on a page that exists (max page_sizes key).
@@ -135,7 +193,8 @@ def _overflow(plan, pages=_PAGES):
 
 def _marker_count(plan):
     return sum(
-        1 for e in plan
+        1
+        for e in plan
         for c in (e.get("render_payload") or {}).get("commands") or []
         if c.get("kind") == "marker"
     )
@@ -143,7 +202,8 @@ def _marker_count(plan):
 
 def _page_cmd_count(plan):
     return sum(
-        1 for e in plan
+        1
+        for e in plan
         for c in (e.get("render_payload") or {}).get("commands") or []
         if c.get("kind") == "page"
     )
@@ -162,8 +222,8 @@ class TestListContinuation(unittest.TestCase):
     def _exec(self, plan=None):
         plan = plan if plan is not None else [_list_block("p0_0")]
         return execute_continuation_breaks(
-            plan, page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            plan, page_sizes=_PAGES, page_start_y=_PAGE_START, page_bottom_y=_BOTTOM
+        )
 
     def test_list_two_plus_lines_split(self):
         self.assertEqual(_overflow([_list_block("p0_0")]), 1)  # before 1
@@ -173,19 +233,23 @@ class TestListContinuation(unittest.TestCase):
         cont = [e for e in new_plan if e["page"] == 1][0]
         self.assertEqual(len(report.applied), 1)
         self.assertEqual(report.applied[0].mode, "split")
-        self.assertEqual(report.applied[0].fitted_lines, 4)   # marker+A+B+C
-        self.assertEqual(report.applied[0].moved_lines, 3)    # D+E+F
+        self.assertEqual(report.applied[0].fitted_lines, 4)  # marker+A+B+C
+        self.assertEqual(report.applied[0].moved_lines, 3)  # D+E+F
         # no dropped line: text union identical
-        origin = [c["text"] for c in
-                  (_list_block("p0_0")["render_payload"]["commands"])]
-        after = [c["text"] for c in kept["render_payload"]["commands"] + \
-                 cont["render_payload"]["commands"]]
+        origin = [
+            c["text"] for c in (_list_block("p0_0")["render_payload"]["commands"])
+        ]
+        after = [
+            c["text"]
+            for c in kept["render_payload"]["commands"]
+            + cont["render_payload"]["commands"]
+        ]
         self.assertEqual(sorted(after), sorted(origin))
         # cont top re-anchored at page start; marker stays once
         self.assertEqual(_marker_count(new_plan), 1)
         cont_ys = [c["y"] for c in cont["render_payload"]["commands"]]
         self.assertEqual(cont_ys, [792.0, 780.0, 768.0])
-        self.assertEqual(_overflow(new_plan), 0)               # after 0
+        self.assertEqual(_overflow(new_plan), 0)  # after 0
         self.assertEqual(report.applied[0].target_page, 1)
 
     def test_list_x_and_source_immutable(self):
@@ -194,9 +258,10 @@ class TestListContinuation(unittest.TestCase):
         new_plan, _ = self._exec()
         for e in new_plan:
             self.assertEqual(e["src_box"], src_before)
-            self.assertEqual(break_invariants(e),
-                             {"marker_x": 60.0, "content_x": 76.0,
-                              "continuation_x": 76.0})
+            self.assertEqual(
+                break_invariants(e),
+                {"marker_x": 60.0, "content_x": 76.0, "continuation_x": 76.0},
+            )
             for c in e["render_payload"]["commands"]:
                 self.assertIn(c["x"], (60.0, 76.0))
         # the whole command run's x / width unchanged (only y moved)
@@ -216,16 +281,32 @@ class TestListContinuation(unittest.TestCase):
         # a block whose ENTIRE run is below the fold can't split — it must not
         # be silently mis-handled. Build one and pass decisions; the tail is all
         # overflow → split returns None → whole-block move on a fresh plan.
-        low = _entry("p0_0", 0, "list", 60.0, -60.0, 260.0, -30.0,
-                     list_items={"commands": [
-                         {"kind": "marker", "text": "1.", "x": 60.0, "y": -20.0,
-                          "width": 11.0},
-                         {"kind": "text", "text": "a", "x": 76.0, "y": -30.0,
-                          "width": 40.0}], "items": []},
-                     payload={"kind": "list", "commands": []})
+        low = _entry(
+            "p0_0",
+            0,
+            "list",
+            60.0,
+            -60.0,
+            260.0,
+            -30.0,
+            list_items={
+                "commands": [
+                    {
+                        "kind": "marker",
+                        "text": "1.",
+                        "x": 60.0,
+                        "y": -20.0,
+                        "width": 11.0,
+                    },
+                    {"kind": "text", "text": "a", "x": 76.0, "y": -30.0, "width": 40.0},
+                ],
+                "items": [],
+            },
+            payload={"kind": "list", "commands": []},
+        )
         new_plan, report = execute_continuation_breaks(
-            [low], page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            [low], page_sizes=_PAGES, page_start_y=_PAGE_START, page_bottom_y=_BOTTOM
+        )
         self.assertEqual(report.applied[0].mode, "whole_block")
         self.assertEqual(new_plan[0]["page"], 1)
 
@@ -239,17 +320,22 @@ class TestNoResplit(unittest.TestCase):
     def test_kept_block_is_not_resplit(self):
         # run once → take the page-0 kept entry → re-decide → it fits (KEEP)
         first_plan, _ = execute_continuation_breaks(
-            [_list_block("p0_0")], page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            [_list_block("p0_0")],
+            page_sizes=_PAGES,
+            page_start_y=_PAGE_START,
+            page_bottom_y=_BOTTOM,
+        )
         kept = [e for e in first_plan if e["page"] == 0][0]
         new_plan, report = execute_continuation_breaks(
-            [kept], page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            [kept], page_sizes=_PAGES, page_start_y=_PAGE_START, page_bottom_y=_BOTTOM
+        )
         self.assertEqual(report.applied, [])
         self.assertEqual(_marker_count(new_plan), 1)
         # same command count — no duplicated continuation
-        self.assertEqual(len(new_plan[0]["render_payload"]["commands"]),
-                         len(kept["render_payload"]["commands"]))
+        self.assertEqual(
+            len(new_plan[0]["render_payload"]["commands"]),
+            len(kept["render_payload"]["commands"]),
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -260,8 +346,11 @@ class TestNoResplit(unittest.TestCase):
 class TestTocContinuation(unittest.TestCase):
     def _exec(self):
         return execute_continuation_breaks(
-            [_toc_block("p0_0")], page_sizes=_PAGES,
-            page_start_y=_PAGE_START, page_bottom_y=_BOTTOM)
+            [_toc_block("p0_0")],
+            page_sizes=_PAGES,
+            page_start_y=_PAGE_START,
+            page_bottom_y=_BOTTOM,
+        )
 
     def test_title_continuation_splits(self):
         self.assertEqual(_overflow([_toc_block("p0_0")]), 1)
@@ -270,7 +359,8 @@ class TestTocContinuation(unittest.TestCase):
         self.assertEqual(report.applied[0].mode, "split")
         self.assertEqual(
             [c["text"] for c in cont["render_payload"]["commands"]],
-            ["cont1", "cont2", "cont3"])
+            ["cont1", "cont2", "cont3"],
+        )
         self.assertEqual(_overflow(new_plan), 0)
 
     def test_page_number_once_and_page_x_verbatim(self):
@@ -280,9 +370,12 @@ class TestTocContinuation(unittest.TestCase):
             inv = break_invariants(e)
             self.assertEqual(inv.get("page_x"), 500.0)
             self.assertEqual(inv.get("title_x"), 82.0)
-        page_cmd = [c for e in new_plan
-                    for c in e["render_payload"]["commands"]
-                    if c.get("kind") == "page"][0]
+        page_cmd = [
+            c
+            for e in new_plan
+            for c in e["render_payload"]["commands"]
+            if c.get("kind") == "page"
+        ][0]
         self.assertEqual(page_cmd["x"], 500.0)
 
 
@@ -295,8 +388,8 @@ class TestPreserve(unittest.TestCase):
     def test_code_overflow_preserved(self):
         plan = [_code("p0_0"), _flow("p0_1")]
         new_plan, report = execute_continuation_breaks(
-            plan, page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            plan, page_sizes=_PAGES, page_start_y=_PAGE_START, page_bottom_y=_BOTTOM
+        )
         code = [e for e in new_plan if e["kind"] == "code"][0]
         self.assertEqual(code["page"], 0)
         self.assertEqual(code["dst_box"], _code("p0_0")["dst_box"])
@@ -304,11 +397,17 @@ class TestPreserve(unittest.TestCase):
 
     def test_break_decision_on_preserved_is_preserve(self):
         plan = [_code("p0_0")]
-        decisions = [(p, PageBreakDecision.BREAK_TO_NEXT_PAGE)
-                     for p in placements_from_plan(plan)]
+        decisions = [
+            (p, PageBreakDecision.BREAK_TO_NEXT_PAGE)
+            for p in placements_from_plan(plan)
+        ]
         new_plan, report = execute_continuation_breaks(
-            plan, page_sizes=_PAGES, decisions=decisions,
-            page_start_y=_PAGE_START, page_bottom_y=_BOTTOM)
+            plan,
+            page_sizes=_PAGES,
+            decisions=decisions,
+            page_start_y=_PAGE_START,
+            page_bottom_y=_BOTTOM,
+        )
         self.assertEqual(report.applied, [])
         self.assertEqual(report.deferred[0].mode, "preserve")
         self.assertEqual(new_plan[0]["dst_box"], plan[0]["dst_box"])
@@ -321,17 +420,20 @@ class TestPreserve(unittest.TestCase):
 
 class TestPageChain(unittest.TestCase):
     def test_three_splits_land_on_distinct_pages(self):
-        plan = [_flow("p0_keep", 0, 60.0, 700.0, 260.0, 720.0),
-                _list_block("p0_1"), _list_block("p0_2")]
+        plan = [
+            _flow("p0_keep", 0, 60.0, 700.0, 260.0, 720.0),
+            _list_block("p0_1"),
+            _list_block("p0_2"),
+        ]
         new_plan, report = execute_continuation_breaks(
-            plan, page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            plan, page_sizes=_PAGES, page_start_y=_PAGE_START, page_bottom_y=_BOTTOM
+        )
         kept_pages = sorted(e["page"] for e in new_plan if e["page"] == 0)
         cont_pages = sorted(e["page"] for e in new_plan if e["page"] != 0)
         self.assertEqual(report.applied[0].target_page, 1)
         self.assertEqual(report.applied[1].target_page, 2)
         self.assertEqual(cont_pages, [1, 2])
-        self.assertEqual(len(kept_pages), 3)   # keep + 2 fitted parts
+        self.assertEqual(len(kept_pages), 3)  # keep + 2 fitted parts
 
 
 # ---------------------------------------------------------------------------
@@ -342,19 +444,30 @@ class TestPageChain(unittest.TestCase):
 class TestBudget(unittest.TestCase):
     def test_budget_zero_touches_nothing(self):
         new_plan, report = execute_continuation_breaks(
-            [_list_block("p0_0")], page_sizes=_PAGES, max_splits=0,
-            page_start_y=_PAGE_START, page_bottom_y=_BOTTOM)
+            [_list_block("p0_0")],
+            page_sizes=_PAGES,
+            max_splits=0,
+            page_start_y=_PAGE_START,
+            page_bottom_y=_BOTTOM,
+        )
         self.assertEqual(report.applied, [])
         self.assertTrue(report.stopped_early)
         self.assertEqual(len(report.unresolved), 1)
         self.assertEqual(new_plan[0]["page"], 0)
 
     def test_budget_less_than_overflowing(self):
-        plan = [_flow("p0_keep", 0, 60.0, 700.0, 260.0, 720.0),
-                _list_block("p0_1"), _list_block("p0_2")]
+        plan = [
+            _flow("p0_keep", 0, 60.0, 700.0, 260.0, 720.0),
+            _list_block("p0_1"),
+            _list_block("p0_2"),
+        ]
         new_plan, report = execute_continuation_breaks(
-            plan, page_sizes=_PAGES, max_splits=1,
-            page_start_y=_PAGE_START, page_bottom_y=_BOTTOM)
+            plan,
+            page_sizes=_PAGES,
+            max_splits=1,
+            page_start_y=_PAGE_START,
+            page_bottom_y=_BOTTOM,
+        )
         self.assertEqual(len(report.applied), 1)
         self.assertEqual(len(report.deferred), 1)
         self.assertTrue(report.stopped_early)
@@ -371,18 +484,18 @@ class TestSourceInvariant(unittest.TestCase):
         before = build_page_flow_report(plan, page_sizes=_PAGES)
         src_before = before.source_collision_count
         new_plan, _ = execute_continuation_breaks(
-            plan, page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            plan, page_sizes=_PAGES, page_start_y=_PAGE_START, page_bottom_y=_BOTTOM
+        )
         after = build_page_flow_report(new_plan, page_sizes=_PAGES)
         self.assertEqual(after.source_collision_count, src_before)
         self.assertEqual(after.summary()["page_overflow_count"], 0)
         # every src_box is an original value (verbatim; cont duplicates the list
         # source box, never invents one)
         origin_srcs = {tuple(e["src_box"]) for e in plan}
-        self.assertTrue(
-            {tuple(e["src_box"]) for e in new_plan} <= origin_srcs)
-        self.assertIn(tuple(_flow("p0_1", 0, 60.0, 700.0, 260.0, 720.0)["src_box"]),
-                      origin_srcs)
+        self.assertTrue({tuple(e["src_box"]) for e in new_plan} <= origin_srcs)
+        self.assertIn(
+            tuple(_flow("p0_1", 0, 60.0, 700.0, 260.0, 720.0)["src_box"]), origin_srcs
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -392,13 +505,15 @@ class TestSourceInvariant(unittest.TestCase):
 
 class TestMixedPdf(unittest.TestCase):
     def test_all_kinds_once(self):
-        plan = [_toc_block("p0_toc"),
-                _flow("p0_flow"),
-                _list_block("p0_list"),
-                _code("p0_code")]
+        plan = [
+            _toc_block("p0_toc"),
+            _flow("p0_flow"),
+            _list_block("p0_list"),
+            _code("p0_code"),
+        ]
         new_plan, report = execute_continuation_breaks(
-            plan, page_sizes=_PAGES, page_start_y=_PAGE_START,
-            page_bottom_y=_BOTTOM)
+            plan, page_sizes=_PAGES, page_start_y=_PAGE_START, page_bottom_y=_BOTTOM
+        )
         # three breakable blocks recovered (toc/flow/list); code preserved
         self.assertEqual(len(report.applied), 3)
         self.assertEqual(report.deferred[0].mode, "preserve")
@@ -420,8 +535,11 @@ class TestMixedPdf(unittest.TestCase):
 class TestSplitUnit(unittest.TestCase):
     def test_split_returns_kept_and_cont(self):
         res = split_continuation_break(
-            _list_block("p0_0"), page_bottom_y=_BOTTOM,
-            page_start_y=_PAGE_START, target_page=1)
+            _list_block("p0_0"),
+            page_bottom_y=_BOTTOM,
+            page_start_y=_PAGE_START,
+            target_page=1,
+        )
         self.assertIsNotNone(res)
         kept, cont, info = res
         self.assertEqual(kept["page"], 0)
@@ -433,24 +551,56 @@ class TestSplitUnit(unittest.TestCase):
         self.assertEqual(kept["src_box"], _list_block("p0_0")["src_box"])
 
     def test_split_none_when_nothing_overflows(self):
-        fitting = _entry("p0_0", 0, "list", 60.0, 100.0, 260.0, 200.0,
-                         payload={"kind": "list", "commands": [
-                             {"kind": "marker", "text": "1.", "x": 60.0,
-                              "y": 180.0, "width": 11.0},
-                             {"kind": "text", "text": "a", "x": 76.0,
-                              "y": 168.0, "width": 40.0}]})
-        self.assertIsNone(split_continuation_break(
-            fitting, page_bottom_y=_BOTTOM, page_start_y=_PAGE_START))
+        fitting = _entry(
+            "p0_0",
+            0,
+            "list",
+            60.0,
+            100.0,
+            260.0,
+            200.0,
+            payload={
+                "kind": "list",
+                "commands": [
+                    {
+                        "kind": "marker",
+                        "text": "1.",
+                        "x": 60.0,
+                        "y": 180.0,
+                        "width": 11.0,
+                    },
+                    {"kind": "text", "text": "a", "x": 76.0, "y": 168.0, "width": 40.0},
+                ],
+            },
+        )
+        self.assertIsNone(
+            split_continuation_break(
+                fitting, page_bottom_y=_BOTTOM, page_start_y=_PAGE_START
+            )
+        )
 
     def test_report_shape(self):
         _, report = execute_continuation_breaks(
-            [_list_block("p0_0")], page_sizes=_PAGES,
-            page_start_y=_PAGE_START, page_bottom_y=_BOTTOM)
+            [_list_block("p0_0")],
+            page_sizes=_PAGES,
+            page_start_y=_PAGE_START,
+            page_bottom_y=_BOTTOM,
+        )
         d = report.to_dict()
-        self.assertEqual(set(d),
-                         {"passes", "max_splits", "stopped_early",
-                          "applied_count", "deferred_count", "unresolved_count",
-                          "applied", "deferred", "unresolved"})
+        self.assertEqual(
+            set(d),
+            {
+                "passes",
+                "max_splits",
+                "stopped_early",
+                "applied_count",
+                "deferred_count",
+                "unresolved_count",
+                "applied",
+                "deferred",
+                "unresolved",
+            },
+        )
 
 
 def _read_module(path: Path) -> str:
@@ -458,10 +608,13 @@ def _read_module(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -475,15 +628,26 @@ def _read_module(path: Path) -> str:
 class TestContinuationArchitecture(unittest.TestCase):
     def test_never_redecides_or_relays_out(self):
         src = _read_module(_MOD_PATH)
-        for banned in ("lay_out(", "adaptive_layout(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text(", "decide_page_recovery(",
-                       "build_page_flow_report(", "detect_page_collisions(",
-                       "detect_page_overflows(", "resolve_page_shifts(",
-                       "apply_page_shifts(", "toc_parser", "list_parser",
-                       "code_detector", "semantic.renderer", "translator",
-                       "magicpdf"):
-            self.assertNotIn(banned, src,
-                             f"page_break_continuation.py 不得:{banned}")
+        for banned in (
+            "lay_out(",
+            "adaptive_layout(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+            "decide_page_recovery(",
+            "build_page_flow_report(",
+            "detect_page_collisions(",
+            "detect_page_overflows(",
+            "resolve_page_shifts(",
+            "apply_page_shifts(",
+            "toc_parser",
+            "list_parser",
+            "code_detector",
+            "semantic.renderer",
+            "translator",
+            "magicpdf",
+        ):
+            self.assertNotIn(banned, src, f"page_break_continuation.py 不得:{banned}")
 
     def test_uses_the_landing_contract(self):
         src = _read_module(_MOD_PATH)

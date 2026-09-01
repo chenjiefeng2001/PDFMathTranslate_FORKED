@@ -1182,10 +1182,7 @@ class RuntimeService:
             # 「parse_engine=auto 且模式未显式指向 BabelDOC」时生效。
             explicit_babeldoc = resolve_pipeline(mode) == "babeldoc"
             if parse_engine == "auto" and not explicit_babeldoc:
-                if (
-                    self._try_auto_switch_magicpdf_for_api(request, files)
-                    == "magicpdf"
-                ):
+                if self._try_auto_switch_magicpdf_for_api(request, files) == "magicpdf":
                     parse_engine = "magicpdf"
                     # 显著提示：auto-switch 历史上是无声的——用户只看到任务
                     # 走了 MinerU 却不知为何。消息经事件流透传到 UI 日志面板。
@@ -2474,7 +2471,12 @@ class RuntimeService:
         # 多文件逐文件隔离：单文件失败不阻断其余文件（与 _execute_batch 一致）。
         if total > 1:
             self._execute_magicpdf_batch(
-                task_id, request, files, ns, config, total,
+                task_id,
+                request,
+                files,
+                ns,
+                config,
+                total,
                 _forward_magicpdf_progress,
             )
             return
@@ -2490,9 +2492,7 @@ class RuntimeService:
         except MagicPdfDegradeError as exc:
             # 尊重模式降级：MinerU 不可用/失败 → 按 BabelDOC 模式重路由，
             # 让用户选择的引擎真正兜底，而不是静默跑 legacy（无进度 → 假死）。
-            logger.warning(
-                "[task=%s] magicpdf degrade -> babeldoc: %s", task_id, exc
-            )
+            logger.warning("[task=%s] magicpdf degrade -> babeldoc: %s", task_id, exc)
             self._emit_smooth(
                 task_id,
                 TaskStage.PARSING.value,
@@ -2560,6 +2560,7 @@ class RuntimeService:
             )
             # 每个文件用独立 ns 副本（run_magicpdf_main 会修改 ns.files）
             import copy
+
             file_ns = copy.copy(ns)
             file_ns.files = [path]
             try:
@@ -2571,17 +2572,23 @@ class RuntimeService:
                 if rc != 0:
                     logger.warning(
                         "[task=%s] magicpdf returned %d for %s",
-                        task_id, rc, path,
+                        task_id,
+                        rc,
+                        path,
                     )
                     self._reset_shared_layout_model()
-                    self._fail_file(task_id, f"magicpdf returned {rc}", total_files=total)
+                    self._fail_file(
+                        task_id, f"magicpdf returned {rc}", total_files=total
+                    )
                     failed_count += 1
             except MagicPdfDegradeError as exc:
                 # 尊重模式降级：该文件 MinerU 不可用/失败 → 按 BabelDOC 模式
                 # 重路由（BabelDOC 执行器自行完成/失败并落终态）。
                 logger.warning(
                     "[task=%s] file %s degrade -> babeldoc: %s",
-                    task_id, path, exc,
+                    task_id,
+                    path,
+                    exc,
                 )
                 self._emit_smooth(
                     task_id,
@@ -2594,7 +2601,10 @@ class RuntimeService:
             except Exception as exc:  # noqa: BLE001
                 logger.error(
                     "[task=%s] file %s failed: %s",
-                    task_id, path, exc, exc_info=True,
+                    task_id,
+                    path,
+                    exc,
+                    exc_info=True,
                 )
                 self._reset_shared_layout_model()
                 self._fail_file(task_id, exc, total_files=total)
@@ -2609,9 +2619,7 @@ class RuntimeService:
 
         self._collect_magicpdf_results(task_id, ns.output, total)
 
-    def _collect_magicpdf_results(
-        self, task_id: str, out_dir: str, total: int
-    ) -> None:
+    def _collect_magicpdf_results(self, task_id: str, out_dir: str, total: int) -> None:
         """收集 magicpdf 产物（JSON 转储 + 译后 mono PDF）并落 COMPLETE 终态。"""
         result_files: List[Dict[str, str]] = []
         pdf_entry: Optional[Dict[str, str]] = None
@@ -2637,8 +2645,7 @@ class RuntimeService:
                 for name in sorted(os.listdir(out_dir)):
                     low = name.lower()
                     if not (
-                        name.endswith(".pdf")
-                        and ("-mono." in low or "-dual." in low)
+                        name.endswith(".pdf") and ("-mono." in low or "-dual." in low)
                     ):
                         continue
                     path = os.path.join(out_dir, name)
@@ -2666,9 +2673,7 @@ class RuntimeService:
             result_files,
             total_files=total,
             selected_file=(
-                pdf_entry["name"]
-                if pdf_entry is not None
-                else result_files[0]["name"]
+                pdf_entry["name"] if pdf_entry is not None else result_files[0]["name"]
             ),
             preview_path=(pdf_entry["path"] if pdf_entry is not None else None),
             message="Completed (MagicPDF)",
@@ -3508,7 +3513,6 @@ class RuntimeService:
                 self._sweep_stale(time.time())
             except Exception:  # noqa: BLE001 -- the sweeper must never die
                 logger.exception("task sweeper iteration failed")
-
 
     def _is_dedup_alive(self, task_id: str) -> bool:
         """指纹对应的任务是否仍在途（未终态且仍被 store 追踪）。"""

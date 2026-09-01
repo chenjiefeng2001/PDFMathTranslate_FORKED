@@ -226,4 +226,3 @@ def _install_cuda_provider() -> None:
         logger.info("cuda provider installed to %s", provider_dll_path())
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
-

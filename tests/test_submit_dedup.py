@@ -6,6 +6,7 @@
 - 已终态任务之后的重放 → 允许新建（不误吞用户刻意的新任务）；
 - 指纹对文件集顺序稳定（排序后同指纹）。
 """
+
 import unittest
 
 from pdf2zh.services.runtime_service import RuntimeService, TranslationRequest
@@ -70,8 +71,11 @@ class TestSubmitDedup(unittest.TestCase):
         # 模拟 sweeper 清理
         self.svc._sweep_stale(0.0)
         with self.svc._submit_dedup_lock:
-            pruned = [k for k, (_, tid) in self.svc._submit_dedup.items()
-                      if not self.svc._is_dedup_alive(tid)]
+            pruned = [
+                k
+                for k, (_, tid) in self.svc._submit_dedup.items()
+                if not self.svc._is_dedup_alive(tid)
+            ]
             for k in pruned:
                 self.svc._submit_dedup.pop(k, None)
         self.assertNotIn(key, self.svc._submit_dedup)

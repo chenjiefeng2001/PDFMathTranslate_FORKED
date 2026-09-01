@@ -21,9 +21,24 @@ sys.path.insert(0, str(ROOT / "doc" / "7j3"))
 from proof_case_a import parse_tounicode_cmap  # noqa: E402
 
 SITES = [
-    ("ai", r"pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf", 156, (302.93, 543.76)),
-    ("gp", r"pdf2zh_files/Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk-mono.pdf", 36, (234.53, 431.58)),
-    ("lsc", r"pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4-mono.pdf", 907, (274.69, 585.54)),
+    (
+        "ai",
+        r"pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf",
+        156,
+        (302.93, 543.76),
+    ),
+    (
+        "gp",
+        r"pdf2zh_files/Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk-mono.pdf",
+        36,
+        (234.53, 431.58),
+    ),
+    (
+        "lsc",
+        r"pdf2zh_files/Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4-mono.pdf",
+        907,
+        (274.69, 585.54),
+    ),
 ]
 
 
@@ -79,15 +94,19 @@ def main() -> int:
         for font, size, pos, codes in walk_text_runs(raw):
             # runs near the target origin (y tolerance ~1.0, x within run)
             if abs(pos[1] - y0) < 1.2:
-                print(f"[{label} p{pno + 1}] font={font} size={size:.1f} pos=({pos[0]:.1f},{pos[1]:.1f}) "
-                      f"ncodes={len(codes)} codes={[hex(c) for c in codes]}")
+                print(
+                    f"[{label} p{pno + 1}] font={font} size={size:.1f} pos=({pos[0]:.1f},{pos[1]:.1f}) "
+                    f"ncodes={len(codes)} codes={[hex(c) for c in codes]}"
+                )
                 tu = to_unicode_for_font(doc, font, page)
                 if not tu:
                     print(f"    no ToUnicode for font {font}")
                 else:
                     for c in codes[:40]:
                         v = tu.get(c)
-                        print(f"    CID {c:#04x} -> unicode {('U+%04X' % v) + ' ' + chr(v) if v is not None else 'ABSENT'}")
+                        print(
+                            f"    CID {c:#04x} -> unicode {('U+%04X' % v) + ' ' + chr(v) if v is not None else 'ABSENT'}"
+                        )
                 found = True
         if not found:
             print(f"[{label} p{pno + 1}] no run near ({x0:.1f},{y0:.1f})")

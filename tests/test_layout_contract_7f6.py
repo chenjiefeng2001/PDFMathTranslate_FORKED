@@ -72,8 +72,10 @@ def _check_contract(view, expected_kind):
 
 def test_flow_path_exposes_common_contract():
     prim = FlowText(
-        text="translated paragraph text", origin=(72.0, 700.0),
-        max_width=300.0, max_height=60.0,
+        text="translated paragraph text",
+        origin=(72.0, 700.0),
+        max_width=300.0,
+        max_height=60.0,
     )
     result = lay_out(prim, measure=_measure, font_size=11.0)
     assert isinstance(result, LayoutResult)
@@ -101,14 +103,19 @@ def test_list_path_exposes_common_contract_through_adapter():
     from pdf2zh.semantic.models import ListItemNode
 
     it = ListItemNode(
-        marker="1.", marker_x=40.0, content_x=60.0, content_width=200.0,
-        y=700.0, level=0, content="original content",
+        marker="1.",
+        marker_x=40.0,
+        content_x=60.0,
+        content_width=200.0,
+        y=700.0,
+        level=0,
+        content="original content",
     )
     agg = layout_list_item(it, font_size=11.0, content_text="translated content")
     view = as_layout_result(agg)
     _check_contract(view, "list")
     assert view.font_size == 11.0
-    assert "1." in view.lines        # marker channel is part of the view
+    assert "1." in view.lines  # marker channel is part of the view
     assert "translated content" in view.lines
 
 
@@ -116,16 +123,21 @@ def test_toc_path_exposes_common_contract_through_adapter():
     from pdf2zh.semantic.layout.toc_layout import layout_toc_entry
 
     entry = {
-        "title_x": 72.0, "page_x": 500.0, "level": 1,
+        "title_x": 72.0,
+        "page_x": 500.0,
+        "level": 1,
         "bbox": (72.0, 700.0, 500.0, 714.0),
-        "number": "2.3", "page_number": "42", "leader_present": True,
+        "number": "2.3",
+        "page_number": "42",
+        "leader_present": True,
     }
-    agg = layout_toc_entry(entry, size=10.0, y=700.0,
-                           translated_title="translated title")
+    agg = layout_toc_entry(
+        entry, size=10.0, y=700.0, translated_title="translated title"
+    )
     view = as_layout_result(agg)
     _check_contract(view, "toc")
-    assert view.font_size == 10.0    # toc uses ``size``; view maps it to font_size
-    assert "42" in view.lines        # page column run is in the view
+    assert view.font_size == 10.0  # toc uses ``size``; view maps it to font_size
+    assert "42" in view.lines  # page column run is in the view
     assert view.overflow is False
 
 
@@ -140,12 +152,22 @@ def test_all_four_paths_have_distinct_primitive_kinds():
     code = as_layout_result(
         lay_out(PreservedRegion(text="x", bbox=(0, 0, 10, 10)), measure=_measure)
     ).primitive_kind
-    it = ListItemNode(marker="1.", marker_x=40.0, content_x=60.0,
-                      content_width=200.0, y=700.0, content="c")
+    it = ListItemNode(
+        marker="1.",
+        marker_x=40.0,
+        content_x=60.0,
+        content_width=200.0,
+        y=700.0,
+        content="c",
+    )
     lst = as_layout_result(layout_list_item(it, font_size=11.0)).primitive_kind
     toc = as_layout_result(
-        layout_toc_entry({"title_x": 72.0, "page_x": 500.0, "level": 1},
-                         size=10.0, y=700.0, translated_title="t")
+        layout_toc_entry(
+            {"title_x": 72.0, "page_x": 500.0, "level": 1},
+            size=10.0,
+            y=700.0,
+            translated_title="t",
+        )
     ).primitive_kind
     assert {flow, code, lst, toc} == {"flow", "preserved", "list", "toc"}
 
@@ -161,7 +183,10 @@ def test_recovery_member_is_uniform_across_paths():
     # overflowed flow run -> recovery is a JSON-safe dict with steps
     r = adaptive_layout(
         FlowText(text="X" * 200, origin=(0.0, 0.0), max_width=20.0, max_height=10.0),
-        measure=_measure, avail_width=20.0, avail_height=10.0, font_size=11.0,
+        measure=_measure,
+        avail_width=20.0,
+        avail_height=10.0,
+        font_size=11.0,
     )
     assert r.overflow
     assert isinstance(r.recovery, dict)
@@ -171,7 +196,9 @@ def test_recovery_member_is_uniform_across_paths():
     # clean flow run -> None (NO_ACTION), and to_dict hides the key
     r2 = adaptive_layout(
         FlowText(text="hi", origin=(0.0, 0.0), max_width=200.0),
-        measure=_measure, avail_width=200.0, font_size=11.0,
+        measure=_measure,
+        avail_width=200.0,
+        font_size=11.0,
     )
     assert not r2.overflow
     assert r2.recovery is None
@@ -181,8 +208,14 @@ def test_recovery_member_is_uniform_across_paths():
     from pdf2zh.semantic.layout.list_layout import layout_list_item
     from pdf2zh.semantic.models import ListItemNode
 
-    it = ListItemNode(marker="1.", marker_x=40.0, content_x=60.0,
-                      content_width=200.0, y=700.0, content="c")
+    it = ListItemNode(
+        marker="1.",
+        marker_x=40.0,
+        content_x=60.0,
+        content_width=200.0,
+        y=700.0,
+        content="c",
+    )
     list_view = as_layout_result(layout_list_item(it, font_size=11.0))
     assert list_view.recovery is None or isinstance(list_view.recovery, dict)
 
@@ -190,16 +223,26 @@ def test_recovery_member_is_uniform_across_paths():
 def test_layout_result_to_dict_output_unchanged():
     """7F-6a refactor must not change the JSON shape a renderer sees."""
     r = LayoutResult(
-        text="t", lines=["t"], line_widths=[10.0], bbox=(1.0, 2.0, 3.0, 4.0),
-        overflow=True, policy=OverflowPolicy.CLIP, font_size=9.5,
+        text="t",
+        lines=["t"],
+        line_widths=[10.0],
+        bbox=(1.0, 2.0, 3.0, 4.0),
+        overflow=True,
+        policy=OverflowPolicy.CLIP,
+        font_size=9.5,
         primitive_kind="flow",
-        recovery_reason="width", recovery_decision="clip",
-        recovery_steps=["WRAP", "SHRINK", "CLIP"], original_font_size=11.0,
+        recovery_reason="width",
+        recovery_decision="clip",
+        recovery_steps=["WRAP", "SHRINK", "CLIP"],
+        original_font_size=11.0,
     )
     d = r.to_dict()
     assert d["recovery"] == {
-        "reason": "width", "decision": "clip", "steps": ["WRAP", "SHRINK", "CLIP"],
-        "original_font_size": 11.0, "final_font_size": 9.5,
+        "reason": "width",
+        "decision": "clip",
+        "steps": ["WRAP", "SHRINK", "CLIP"],
+        "original_font_size": 11.0,
+        "final_font_size": 9.5,
     }
     assert d["policy"] == "clip" and d["font_size"] == 9.5
     assert d["primitive_kind"] == "flow" and d["overflow"] is True
@@ -219,8 +262,13 @@ def test_geometry_ownership_stays_in_semantic_nodes():
     from pdf2zh.semantic.models import ListItemNode
 
     it = ListItemNode(
-        marker="1.", marker_x=40.0, content_x=60.0, content_width=200.0,
-        y=700.0, level=0, content="original",
+        marker="1.",
+        marker_x=40.0,
+        content_x=60.0,
+        content_width=200.0,
+        y=700.0,
+        level=0,
+        content="original",
     )
     before = (it.marker_x, it.content_x, it.content_width, it.y, it.level)
     agg = layout_list_item(it, font_size=11.0, content_text="translated 内容")
@@ -249,10 +297,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -291,8 +342,14 @@ def test_contract_source_never_derives_geometry():
 
 def test_contract_source_never_detects_parses_translates_or_draws():
     src = _code(_CONTRACT_PATH)
-    for banned in ("looks_like", "detect_", "parse_", "translate",
-                   "renderer", "magicpdf"):
+    for banned in (
+        "looks_like",
+        "detect_",
+        "parse_",
+        "translate",
+        "renderer",
+        "magicpdf",
+    ):
         assert banned not in src, f"contract.py 不得引用 {banned}"
 
 
@@ -308,4 +365,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

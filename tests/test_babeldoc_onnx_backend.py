@@ -245,9 +245,7 @@ class _FakeSession:
 
     def get_providers(self):
         # 兼容 tuple 格式 (name, opts) 和纯字符串格式
-        return [
-            p[0] if isinstance(p, tuple) else p for p in self.providers_arg
-        ]
+        return [p[0] if isinstance(p, tuple) else p for p in self.providers_arg]
 
 
 class _Dummy:

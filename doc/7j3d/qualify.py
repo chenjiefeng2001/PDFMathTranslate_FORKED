@@ -32,10 +32,23 @@ sys.path.insert(0, str(ROOT / "dual_forensics"))
 from pdf_inspector import text_layer_integrity  # noqa: E402
 
 WORK = ROOT / "doc" / "7j3c" / "work" / "out"
-SPECIALS = {"\u00ef": "U+00EF ï", "\u2014": "U+2014 —", "\u25ba": "U+25BA ►", "\u2192": "U+2192 →"}
+SPECIALS = {
+    "\u00ef": "U+00EF ï",
+    "\u2014": "U+2014 —",
+    "\u25ba": "U+25BA ►",
+    "\u2192": "U+2192 →",
+}
 HISTORICAL = [
-    ("AI mono p3  (Case A footer)", r"pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf", 2),
-    ("AI mono p157 (Case B ►)", r"pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf", 156),
+    (
+        "AI mono p3  (Case A footer)",
+        r"pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf",
+        2,
+    ),
+    (
+        "AI mono p157 (Case B ►)",
+        r"pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf",
+        156,
+    ),
 ]
 
 
@@ -74,7 +87,11 @@ def main() -> int:
 
     nul_mono = mono_text.count("\x00")
     nul_dual = sum(t.count("\x00") for t in dual_texts)
-    results["checks"]["nul_zero"] = {"mono": nul_mono, "dual": nul_dual, "ok": nul_mono == 0 and nul_dual == 0}
+    results["checks"]["nul_zero"] = {
+        "mono": nul_mono,
+        "dual": nul_dual,
+        "ok": nul_mono == 0 and nul_dual == 0,
+    }
     ok_all &= results["checks"]["nul_zero"]["ok"]
 
     token_leak = re.findall(r"<b\d+>|</b\d+>", mono_text + "".join(dual_texts))

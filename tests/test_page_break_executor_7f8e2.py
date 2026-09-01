@@ -54,17 +54,33 @@ _HERE = Path(__file__).resolve().parent
 _EXEC_PATH = _HERE.parent / "pdf2zh" / "semantic" / "layout" / "page_break_executor.py"
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,
-           list_items=None, toc_entries=None, toc_commands=None, src_box=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    list_items=None,
+    toc_entries=None,
+    toc_commands=None,
+    src_box=None,
+):
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
         "src_box": list(src_box) if src_box is not None else list(box),
         "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
         "list_items": list_items,
         "toc_entries": toc_entries,
         "toc_commands": toc_commands,
@@ -74,10 +90,20 @@ def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,
 def _flow(block_id, page, x0, y0, x1, y1):
     """Flow entry with one settled command line at its top (v3 y-up)."""
     payload = {
-        "kind": "flow", "font_size": 10.0,
-        "commands": [{"kind": "flow-text", "text": "t", "x": float(x0),
-                      "y": float(y1), "width": 100.0, "line": 0,
-                      "is_last": True, "overflow": False}],
+        "kind": "flow",
+        "font_size": 10.0,
+        "commands": [
+            {
+                "kind": "flow-text",
+                "text": "t",
+                "x": float(x0),
+                "y": float(y1),
+                "width": 100.0,
+                "line": 0,
+                "is_last": True,
+                "overflow": False,
+            }
+        ],
     }
     return _entry(block_id, page, "flow", x0, y0, x1, y1, payload=payload)
 
@@ -92,36 +118,69 @@ def _code_entry(block_id, page, x0, y0, x1, y1):
 
 
 def _list(block_id, page, x0, y0, x1, y1):
-    items = [{
-        "marker": "1.", "marker_x": 60.0, "content_x": 76.0,
-        "continuation_x": 76.0, "continuation": ["cont"],
-    }]
+    items = [
+        {
+            "marker": "1.",
+            "marker_x": 60.0,
+            "content_x": 76.0,
+            "continuation_x": 76.0,
+            "continuation": ["cont"],
+        }
+    ]
     cmds = [
         {"kind": "marker", "text": "1.", "x": 60.0, "y": float(y1), "width": 11.0},
         {"kind": "text", "text": "c", "x": 76.0, "y": float(y1), "width": 40.0},
-        {"kind": "text", "text": "cont", "x": 76.0, "y": float(y1) - 12.0,
-         "width": 40.0},
+        {
+            "kind": "text",
+            "text": "cont",
+            "x": 76.0,
+            "y": float(y1) - 12.0,
+            "width": 40.0,
+        },
     ]
-    return _entry(block_id, page, "list", x0, y0, x1, y1,
-                  list_items={"commands": cmds, "items": items},
-                  payload={"kind": "list", "commands": cmds})
+    return _entry(
+        block_id,
+        page,
+        "list",
+        x0,
+        y0,
+        x1,
+        y1,
+        list_items={"commands": cmds, "items": items},
+        payload={"kind": "list", "commands": cmds},
+    )
 
 
 def _toc(block_id, page, x0, y0, x1, y1):
-    entries = [{"title": "Intro", "title_x": 72.0, "page_x": 500.0,
-                "page_number": "42", "continuation": []}]
+    entries = [
+        {
+            "title": "Intro",
+            "title_x": 72.0,
+            "page_x": 500.0,
+            "page_number": "42",
+            "continuation": [],
+        }
+    ]
     cmds = [
-        {"kind": "title", "text": "Intro", "x": 72.0, "y": float(y1),
-         "width": 100.0},
+        {"kind": "title", "text": "Intro", "x": 72.0, "y": float(y1), "width": 100.0},
         {"kind": "page", "text": "42", "x": 500.0, "y": float(y1), "width": 20.0},
     ]
-    return _entry(block_id, page, "toc", x0, y0, x1, y1,
-                  toc_entries=entries, toc_commands={"commands": cmds},
-                  payload={"kind": "toc", "commands": cmds})
+    return _entry(
+        block_id,
+        page,
+        "toc",
+        x0,
+        y0,
+        x1,
+        y1,
+        toc_entries=entries,
+        toc_commands={"commands": cmds},
+        payload={"kind": "toc", "commands": cmds},
+    )
 
 
 def _overflow_counts(plan, page_sizes):
-    return build_page_flow_report(plan, page_sizes=page_sizes).summary()[ 
+    return build_page_flow_report(plan, page_sizes=page_sizes).summary()[
         "page_overflow_count"
     ]
 
@@ -139,16 +198,17 @@ class TestSingleFlowBreak(unittest.TestCase):
         plan = [_flow_simple("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]
         self.assertEqual(_overflow_counts(plan, self.PAGES), 1)  # before 1
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         entry = new_plan[0]
-        self.assertEqual(entry["page"], 1)              # N → N+1
+        self.assertEqual(entry["page"], 1)  # N → N+1
         self.assertEqual(len(report.applied), 1)
         self.assertEqual(report.applied[0].source_page, 0)
         self.assertEqual(report.applied[0].target_page, 1)
         # top re-anchored at next_page_start_y; height preserved
         dst = entry["dst_box"]
         self.assertEqual(dst[3], self.PAGE_START)
-        self.assertEqual(dst[3] - dst[1], 70.0)         # 50 - (-20)
+        self.assertEqual(dst[3] - dst[1], 70.0)  # 50 - (-20)
         self.assertEqual(_overflow_counts(new_plan, self.PAGES), 0)  # after 0
 
     def test_decision_unpacked_from_8e1_pairs(self):
@@ -156,15 +216,19 @@ class TestSingleFlowBreak(unittest.TestCase):
         p = placements_from_plan(plan)[0]
         decisions = [(p, PageBreakDecision.BREAK_TO_NEXT_PAGE)]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, decisions=decisions,
-            page_start_y=self.PAGE_START)
+            plan,
+            page_sizes=self.PAGES,
+            decisions=decisions,
+            page_start_y=self.PAGE_START,
+        )
         self.assertEqual(new_plan[0]["page"], 1)
         self.assertEqual(len(report.applied), 1)
 
     def test_block_with_command_geometry_moves_page_and_commands_y(self):
         plan = [_flow("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         new = new_plan[0]
         self.assertEqual(new["page"], 1)
         cmd = new["render_payload"]["commands"][0]
@@ -179,7 +243,8 @@ class TestSingleFlowBreak(unittest.TestCase):
         plan = [_flow("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]
         snapshot = copy.deepcopy(plan)
         new_plan, _ = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertIsNot(new_plan, plan)
         self.assertEqual(plan, snapshot)
 
@@ -217,7 +282,8 @@ class TestXImmutability(unittest.TestCase):
     def test_flow_x_verbatim_across_break(self):
         plan = [_flow("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]
         new_plan, _ = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertEqual(self._x_snapshot(new_plan), self._x_snapshot(plan))
         # y moved, source box untouched
         new = new_plan[0]
@@ -227,20 +293,24 @@ class TestXImmutability(unittest.TestCase):
     def test_list_x_anchors_verbatim(self):
         plan = [_list("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]  # overflows bottom
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES,  # page 0 height 792: bottom -20 < 0
-            page_start_y=self.PAGE_START)
+            plan,
+            page_sizes=self.PAGES,  # page 0 height 792: bottom -20 < 0
+            page_start_y=self.PAGE_START,
+        )
         new_list = new_plan[0]
         self.assertEqual(new_list["page"], 1)
         inv = break_invariants(new_list)
-        self.assertEqual(inv, {"marker_x": 60.0, "content_x": 76.0,
-                               "continuation_x": 76.0})
+        self.assertEqual(
+            inv, {"marker_x": 60.0, "content_x": 76.0, "continuation_x": 76.0}
+        )
         self.assertEqual(self._x_snapshot(new_plan), self._x_snapshot(plan))
         self.assertEqual(len(report.applied), 1)
 
     def test_toc_x_anchor_and_page_column_verbatim(self):
         plan = [_toc("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]  # overflows bottom
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         new_toc = new_plan[0]
         self.assertEqual(new_toc["page"], 1)
         inv = break_invariants(new_toc)
@@ -249,10 +319,13 @@ class TestXImmutability(unittest.TestCase):
         self.assertEqual(len(report.applied), 1)
 
     def test_only_y_moved_not_page_unmoved_block(self):
-        plan = [_flow("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
-                _flow_simple("p0_1", 0, 60.0, -30.0, 260.0, 40.0)]
+        plan = [
+            _flow("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
+            _flow_simple("p0_1", 0, 60.0, -30.0, 260.0, 40.0),
+        ]
         new_plan, _ = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertEqual(new_plan[0]["page"], 0)
         self.assertEqual(new_plan[0]["dst_box"], plan[0]["dst_box"])
         self.assertEqual(new_plan[0]["src_box"], plan[0]["src_box"])
@@ -270,16 +343,20 @@ class TestKeepAndPreserve(unittest.TestCase):
     def test_keep_block_untouched(self):
         plan = [_flow_simple("p0_0", 0, 60.0, 700.0, 260.0, 728.0)]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertEqual(report.applied, [])
         self.assertEqual(new_plan[0], plan[0])
         self.assertEqual(report.passes, 0)
 
     def test_code_overflow_never_breaks(self):
-        plan = [_code_entry("p0_0", 0, 60.0, -30.0, 260.0, 40.0),
-                _flow_simple("p0_1", 0, 60.0, 700.0, 260.0, 728.0)]
+        plan = [
+            _code_entry("p0_0", 0, 60.0, -30.0, 260.0, 40.0),
+            _flow_simple("p0_1", 0, 60.0, 700.0, 260.0, 728.0),
+        ]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertEqual(report.applied, [])
         # code stays on page 0, geometry unchanged
         self.assertEqual(new_plan[0]["page"], 0)
@@ -290,14 +367,21 @@ class TestKeepAndPreserve(unittest.TestCase):
 
     def test_break_decision_on_preserved_becomes_preserve(self):
         # feed a BREAK decision directly onto the code; code wins — never broken
-        plan = [_flow_simple("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
-                _code_entry("p0_1", 0, 60.0, 660.0, 260.0, 720.0)]
+        plan = [
+            _flow_simple("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
+            _code_entry("p0_1", 0, 60.0, 660.0, 260.0, 720.0),
+        ]
         flow_p, code_p = placements_from_plan(plan)
-        decisions = [(flow_p, PageBreakDecision.KEEP),
-                     (code_p, PageBreakDecision.BREAK_TO_NEXT_PAGE)]
+        decisions = [
+            (flow_p, PageBreakDecision.KEEP),
+            (code_p, PageBreakDecision.BREAK_TO_NEXT_PAGE),
+        ]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, decisions=decisions,
-            page_start_y=self.PAGE_START)
+            plan,
+            page_sizes=self.PAGES,
+            decisions=decisions,
+            page_start_y=self.PAGE_START,
+        )
         code = [e for e in new_plan if e["kind"] == "code"][0]
         self.assertEqual(code["page"], 0)
         self.assertEqual(code["dst_box"], plan[1]["dst_box"])
@@ -320,13 +404,14 @@ class TestPageChain(unittest.TestCase):
     def test_a_b_c_breaks_land_on_distinct_pages(self):
         plan = [
             _flow_simple("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
-            _flow_simple("p0_1", 0, 60.0, -30.0, 260.0, 30.0),   # overflow → 1
-            _flow_simple("p0_2", 0, 60.0, -60.0, 260.0, 0.0),    # overflow → 2
+            _flow_simple("p0_1", 0, 60.0, -30.0, 260.0, 30.0),  # overflow → 1
+            _flow_simple("p0_2", 0, 60.0, -60.0, 260.0, 0.0),  # overflow → 2
         ]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         pages = [e["page"] for e in new_plan]
-        self.assertEqual(pages, [0, 1, 2])   # A→0, B→1, C→2 monotonic
+        self.assertEqual(pages, [0, 1, 2])  # A→0, B→1, C→2 monotonic
         self.assertEqual(len(report.applied), 2)
         self.assertEqual(report.applied[0].target_page, 1)
         self.assertEqual(report.applied[1].target_page, 2)
@@ -338,13 +423,14 @@ class TestPageChain(unittest.TestCase):
         # reuse page 1 → it creates page 2
         plan = [
             _flow_simple("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
-            _flow_simple("p0_1", 0, 60.0, -30.0, 260.0, 30.0),   # overflow
+            _flow_simple("p0_1", 0, 60.0, -30.0, 260.0, 30.0),  # overflow
             _flow_simple("p1_0", 1, 60.0, 700.0, 260.0, 728.0),  # occupies 1
         ]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         mover = [e for e in new_plan if e["block_id"] == "p0_1"][0]
-        self.assertEqual(mover["page"], 2)   # skipped taken page 1
+        self.assertEqual(mover["page"], 2)  # skipped taken page 1
         self.assertEqual(report.applied[0].target_page, 2)
 
     def test_chain_bounded_no_unbounded_pages(self):
@@ -357,9 +443,10 @@ class TestPageChain(unittest.TestCase):
             _flow_simple("p0_3", 0, 60.0, -90.0, 260.0, -60.0),
         ]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         pages = [e["page"] for e in new_plan]
-        self.assertEqual(pages, [0, 1, 2, 3])   # keep on 0; three breaks
+        self.assertEqual(pages, [0, 1, 2, 3])  # keep on 0; three breaks
         self.assertEqual(len(report.applied), 3)
         self.assertEqual([e.target_page for e in report.applied], [1, 2, 3])
 
@@ -376,8 +463,8 @@ class TestBudget(unittest.TestCase):
     def test_budget_zero_applies_nothing(self):
         plan = [_flow_simple("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, max_page_breaks=0,
-            page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, max_page_breaks=0, page_start_y=self.PAGE_START
+        )
         self.assertEqual(report.applied, [])
         self.assertTrue(report.stopped_early)
         self.assertEqual(len(report.deferred), 1)
@@ -391,8 +478,8 @@ class TestBudget(unittest.TestCase):
             _flow_simple("p0_2", 0, 60.0, -60.0, 260.0, 0.0),
         ]
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, max_page_breaks=1,
-            page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, max_page_breaks=1, page_start_y=self.PAGE_START
+        )
         self.assertEqual(len(report.applied), 1)
         self.assertEqual(len(report.deferred), 1)
         self.assertEqual(len(report.unresolved), 1)
@@ -404,8 +491,9 @@ class TestBudget(unittest.TestCase):
 
     def test_budget_defaults_to_blocks(self):
         plan = [_flow_simple("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]
-        _, report = execute_page_breaks(plan, page_sizes=self.PAGES,
-                                        page_start_y=self.PAGE_START)
+        _, report = execute_page_breaks(
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertEqual(report.max_page_breaks, 1)
 
 
@@ -430,21 +518,22 @@ class TestSourceImmutability(unittest.TestCase):
         src_before = before.source_collision_count
         self.assertEqual(src_before, 0)  # no source overlap anywhere
         new_plan, report = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         after = build_page_flow_report(new_plan, page_sizes=self.PAGES)
         self.assertEqual(after.source_collision_count, src_before)  # invariant
         # resolved overflow on page 0 cleared
         self.assertEqual(after.summary()["page_overflow_count"], 0)
         self.assertEqual(len(report.applied), 1)
         # source boxes byte-identical across the whole plan
-        self.assertEqual([e["src_box"] for e in new_plan],
-                         [e["src_box"] for e in plan])
+        self.assertEqual([e["src_box"] for e in new_plan], [e["src_box"] for e in plan])
 
     def test_src_box_never_changes(self):
         plan = [_flow("p0_0", 0, 60.0, -20.0, 260.0, 50.0)]
         src_before = copy.deepcopy(plan[0]["src_box"])
         new_plan, _ = execute_page_breaks(
-            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START)
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertEqual(new_plan[0]["src_box"], src_before)
 
 
@@ -455,8 +544,10 @@ class TestSourceImmutability(unittest.TestCase):
 
 class TestCommandWriters(unittest.TestCase):
     def test_shift_command_fields_only_y_and_page(self):
-        cmds = [{"kind": "t", "x": 10.0, "y": 700.0, "width": 20.0},
-                {"kind": "p", "x": 500.0, "y": 700.0, "page": 0}]
+        cmds = [
+            {"kind": "t", "x": 10.0, "y": 700.0, "width": 20.0},
+            {"kind": "p", "x": 500.0, "y": 700.0, "page": 0},
+        ]
         shift_command_fields(cmds, -700.0, 3)
         self.assertEqual(cmds[0]["y"], 0.0)
         self.assertEqual(cmds[0]["x"], 10.0)
@@ -489,16 +580,29 @@ class TestReportShape(unittest.TestCase):
     PAGE_START = 792.0
 
     def test_report_to_dict_json(self):
-        plan = [_flow_simple("p0_0", 0, 60.0, -20.0, 260.0, 50.0),
-                _code_entry("p0_1", 0, 60.0, 700.0, 260.0, 728.0)]
-        _, report = execute_page_breaks(plan, page_sizes=self.PAGES,
-                                        page_start_y=self.PAGE_START)
+        plan = [
+            _flow_simple("p0_0", 0, 60.0, -20.0, 260.0, 50.0),
+            _code_entry("p0_1", 0, 60.0, 700.0, 260.0, 728.0),
+        ]
+        _, report = execute_page_breaks(
+            plan, page_sizes=self.PAGES, page_start_y=self.PAGE_START
+        )
         self.assertIsInstance(report, PageBreakExecutionReport)
         d = report.to_dict()
-        self.assertEqual(set(d),
-                         {"passes", "max_page_breaks", "stopped_early",
-                          "applied_count", "deferred_count", "unresolved_count",
-                          "applied", "deferred", "unresolved"})
+        self.assertEqual(
+            set(d),
+            {
+                "passes",
+                "max_page_breaks",
+                "stopped_early",
+                "applied_count",
+                "deferred_count",
+                "unresolved_count",
+                "applied",
+                "deferred",
+                "unresolved",
+            },
+        )
         json.dumps(d)
 
 
@@ -512,10 +616,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -529,18 +636,33 @@ def _code(path: Path) -> str:
 class TestExecutorArchitecture(unittest.TestCase):
     def test_executor_never_redecides_or_relays_out(self):
         src = _code(_EXEC_PATH)
-        for banned in ("lay_out(", "adaptive_layout(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text(", "decide_page_recovery(",
-                       "build_page_flow_report(", "detect_page_collisions(",
-                       "detect_page_overflows(", "resolve_page_shifts(",
-                       "apply_page_shifts("):
-            self.assertNotIn(banned, src,
-                             f"page_break_executor.py 不得决策/重排: {banned}")
-        for banned in ("list_detector", "list_parser", "toc_parser",
-                       "code_detector", "style_detector",
-                       "semantic.renderer", "translator", "magicpdf"):
-            self.assertNotIn(banned, src,
-                             f"page_break_executor.py 不得引用: {banned}")
+        for banned in (
+            "lay_out(",
+            "adaptive_layout(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+            "decide_page_recovery(",
+            "build_page_flow_report(",
+            "detect_page_collisions(",
+            "detect_page_overflows(",
+            "resolve_page_shifts(",
+            "apply_page_shifts(",
+        ):
+            self.assertNotIn(
+                banned, src, f"page_break_executor.py 不得决策/重排: {banned}"
+            )
+        for banned in (
+            "list_detector",
+            "list_parser",
+            "toc_parser",
+            "code_detector",
+            "style_detector",
+            "semantic.renderer",
+            "translator",
+            "magicpdf",
+        ):
+            self.assertNotIn(banned, src, f"page_break_executor.py 不得引用: {banned}")
 
     def test_executor_uses_the_8e1_landing_contract(self):
         src = _code(_EXEC_PATH)

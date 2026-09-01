@@ -130,9 +130,7 @@ def page_columns(
     for blk in sorted(placements or [], key=lambda b: (b.left, b.bottom)):
         placed = False
         for col in cols:
-            if (
-                min(col.right, blk.right) - max(col.left, blk.left)
-            ) > x_overlap:
+            if (min(col.right, blk.right) - max(col.left, blk.left)) > x_overlap:
                 col.placements.append(blk)
                 col.left = min(col.left, blk.left)
                 col.right = max(col.right, blk.right)
@@ -326,12 +324,17 @@ def document_packing_report(
     return {
         "pages": len(per_page),
         "columns": ncols,
-        "avg_fill_ratio": round(sum(total_fill) / len(total_fill), 3) if total_fill else 0.0,
+        "avg_fill_ratio": (
+            round(sum(total_fill) / len(total_fill), 3) if total_fill else 0.0
+        ),
         "avg_whitespace_ratio": round(
             1.0 - (sum(total_fill) / len(total_fill)) if total_fill else 0.0, 3
         ),
-        "avg_trailing_gap_pt": round(sum(total_trailing) / len(total_trailing), 2)
-        if total_trailing else 0.0,
+        "avg_trailing_gap_pt": (
+            round(sum(total_trailing) / len(total_trailing), 2)
+            if total_trailing
+            else 0.0
+        ),
         "total_internal_gap_pt": round(total_internal, 2),
         "per_page": per_page,
     }

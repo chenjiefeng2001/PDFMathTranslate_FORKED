@@ -73,7 +73,11 @@ def parse_list_tree(
 
     for i, para in enumerate(paragraphs):
         cand = cands[i] if i < len(cands) else None
-        indent = cand.indent if cand is not None else indent_of(para, (geom[i] if geom and i < len(geom) else None))
+        indent = (
+            cand.indent
+            if cand is not None
+            else indent_of(para, (geom[i] if geom and i < len(geom) else None))
+        )
 
         if cand is not None:
             # 弹出缩进更浅的层（同一层或更浅 → 回到对应层级）

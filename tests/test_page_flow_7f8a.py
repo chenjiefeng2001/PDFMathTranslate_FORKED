@@ -50,17 +50,32 @@ _HERE = Path(__file__).resolve().parent
 _PAGE_FLOW_PATH = _HERE.parent / "pdf2zh" / "semantic" / "layout" / "page_flow.py"
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1,
-           payload=None, list_items=None, toc_entries=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    list_items=None,
+    toc_entries=None,
+):
     """One settled render-plan entry (v3 y-up boxes: y0 bottom, y1 top)."""
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
         "list_items": list_items,
         "toc_entries": toc_entries,
     }
@@ -96,8 +111,16 @@ class TestBlockPlacement(unittest.TestCase):
         d = p.to_dict()
         self.assertEqual(
             set(d),
-            {"page", "block_index", "kind", "bbox", "resolved_bbox",
-             "height", "preserved", "has_continuation"},
+            {
+                "page",
+                "block_index",
+                "kind",
+                "bbox",
+                "resolved_bbox",
+                "height",
+                "preserved",
+                "has_continuation",
+            },
         )
         json.dumps(d)  # serializable
 
@@ -112,12 +135,36 @@ class TestBlockPlacement(unittest.TestCase):
 
     def test_continuation_flag_from_list_and_toc_payload(self):
         plan = [
-            _entry("p1_0", 1, "list", 60.0, 620.0, 300.0, 700.0,
-                   list_items={"items": [{"continuation": ["wrapped line"]}]}),
-            _entry("p1_1", 1, "toc", 60.0, 600.0, 300.0, 616.0,
-                   toc_entries=[{"title": "T", "continuation": ["cont"]}]),
-            _entry("p1_2", 1, "list", 60.0, 580.0, 300.0, 596.0,
-                   list_items={"items": [{"continuation": []}]}),
+            _entry(
+                "p1_0",
+                1,
+                "list",
+                60.0,
+                620.0,
+                300.0,
+                700.0,
+                list_items={"items": [{"continuation": ["wrapped line"]}]},
+            ),
+            _entry(
+                "p1_1",
+                1,
+                "toc",
+                60.0,
+                600.0,
+                300.0,
+                616.0,
+                toc_entries=[{"title": "T", "continuation": ["cont"]}],
+            ),
+            _entry(
+                "p1_2",
+                1,
+                "list",
+                60.0,
+                580.0,
+                300.0,
+                596.0,
+                list_items={"items": [{"continuation": []}]},
+            ),
         ]
         flags = [p.has_continuation for p in placements_from_plan(plan)]
         self.assertEqual(flags, [True, True, False])
@@ -183,9 +230,18 @@ class TestCollisionDetection(unittest.TestCase):
         self.assertEqual(c.required_shift, 20.0)
         self.assertEqual(c.reason, "overlap")
         d = c.to_dict()
-        self.assertEqual(set(d),
-                         {"page", "upper", "lower", "overlap",
-                          "required_shift", "reason", "bbox_mode"})
+        self.assertEqual(
+            set(d),
+            {
+                "page",
+                "upper",
+                "lower",
+                "overlap",
+                "required_shift",
+                "reason",
+                "bbox_mode",
+            },
+        )
         json.dumps(d)
 
     def test_required_shift_is_full_clearance_distance(self):
@@ -248,8 +304,16 @@ class TestCollisionDetection(unittest.TestCase):
         # a list block whose payload draws continuation lines (drawn extent
         # extends below its declared bbox) colliding with the next block
         plan = [
-            _entry("p1_0", 1, "list", 60.0, 700.0, 300.0, 750.0,
-                   list_items={"items": [{"continuation": ["wrapped"]}]}),
+            _entry(
+                "p1_0",
+                1,
+                "list",
+                60.0,
+                700.0,
+                300.0,
+                750.0,
+                list_items={"items": [{"continuation": ["wrapped"]}]},
+            ),
             _flow("p1_1", 1, 60.0, 660.0, 300.0, 720.0),
         ]
         c = detect_page_collisions(plan)[0]
@@ -257,8 +321,16 @@ class TestCollisionDetection(unittest.TestCase):
 
     def test_reason_prefers_preserved_over_continuation(self):
         plan = [
-            _entry("p1_0", 1, "list", 60.0, 700.0, 300.0, 750.0,
-                   list_items={"items": [{"continuation": ["wrapped"]}]}),
+            _entry(
+                "p1_0",
+                1,
+                "list",
+                60.0,
+                700.0,
+                300.0,
+                750.0,
+                list_items={"items": [{"continuation": ["wrapped"]}]},
+            ),
             _entry("p1_1", 1, "formula", 60.0, 660.0, 300.0, 720.0),
         ]
         c = detect_page_collisions(plan)[0]
@@ -311,14 +383,22 @@ class TestPageOverflow(unittest.TestCase):
 class TestPageFlowReport(unittest.TestCase):
     def test_report_summary_counts_and_by_reason(self):
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 300.0, 750.0),          # overlap
+            _flow("p1_0", 1, 60.0, 700.0, 300.0, 750.0),  # overlap
             _flow("p1_1", 1, 60.0, 660.0, 300.0, 720.0),
-            _flow("p1_2", 1, 60.0, 500.0, 300.0, 550.0),          # preserved
+            _flow("p1_2", 1, 60.0, 500.0, 300.0, 550.0),  # preserved
             _entry("p1_3", 1, "code", 60.0, 460.0, 300.0, 520.0),
-            _flow("p1_4", 1, 60.0, 300.0, 300.0, 350.0),          # continuation
-            _entry("p1_5", 1, "list", 60.0, 260.0, 300.0, 320.0,
-                   list_items={"items": [{"continuation": ["x"]}]}),
-            _flow("p1_6", 1, 60.0, -10.0, 300.0, 40.0),           # bottom overflow
+            _flow("p1_4", 1, 60.0, 300.0, 300.0, 350.0),  # continuation
+            _entry(
+                "p1_5",
+                1,
+                "list",
+                60.0,
+                260.0,
+                300.0,
+                320.0,
+                list_items={"items": [{"continuation": ["x"]}]},
+            ),
+            _flow("p1_6", 1, 60.0, -10.0, 300.0, 40.0),  # bottom overflow
         ]
         report = build_page_flow_report(plan, page_sizes={1: 792.0})
         self.assertIsInstance(report, PageFlowReport)
@@ -326,13 +406,11 @@ class TestPageFlowReport(unittest.TestCase):
         self.assertEqual(s["blocks"], 7)
         self.assertEqual(s["collision_count"], 3)
         self.assertEqual(s["page_overflow_count"], 1)
-        self.assertEqual(s["by_reason"],
-                         {"continuation": 1, "overlap": 1,
-                          "preserved_region": 1})
-        d = report.to_dict()
         self.assertEqual(
-            set(d), {"placements", "collisions", "overflows", "summary"}
+            s["by_reason"], {"continuation": 1, "overlap": 1, "preserved_region": 1}
         )
+        d = report.to_dict()
+        self.assertEqual(set(d), {"placements", "collisions", "overflows", "summary"})
         json.dumps(d)  # serializable
 
     def test_detection_is_read_only(self):
@@ -356,10 +434,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -373,25 +454,32 @@ def _code(path: Path) -> str:
 class TestPageFlowArchitecture(unittest.TestCase):
     def test_page_flow_is_pure_read_no_execution(self):
         src = _code(_PAGE_FLOW_PATH)
-        for banned in ("lay_out(", "adaptive_layout(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text("):
-            self.assertNotIn(banned, src,
-                             f"page_flow.py 不得执行 {banned}")
-        for banned in ("list_detector", "list_parser", "toc_parser",
-                       "code_detector", "style_detector",
-                       "semantic.renderer", "translator", "magicpdf"):
-            self.assertNotIn(banned, src,
-                             f"page_flow.py 不得引用 {banned}")
+        for banned in (
+            "lay_out(",
+            "adaptive_layout(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+        ):
+            self.assertNotIn(banned, src, f"page_flow.py 不得执行 {banned}")
+        for banned in (
+            "list_detector",
+            "list_parser",
+            "toc_parser",
+            "code_detector",
+            "style_detector",
+            "semantic.renderer",
+            "translator",
+            "magicpdf",
+        ):
+            self.assertNotIn(banned, src, f"page_flow.py 不得引用 {banned}")
 
     def test_page_flow_never_derives_geometry_from_level_index(self):
         tree = ast.parse(_code(_PAGE_FLOW_PATH))
         for node in ast.walk(tree):
             if not isinstance(node, ast.BinOp):
                 continue
-            names = {
-                n.id for n in ast.walk(node)
-                if isinstance(n, ast.Name)
-            }
+            names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
             if names & {"level", "index"}:
                 raise AssertionError(
                     f"page_flow.py 用 {type(node.op).__name__} 重建几何"
@@ -416,8 +504,7 @@ def _make_pdf(path: Path) -> None:
     p1.insert_text((60, 100), "This is a translated paragraph that wraps")
     p1.insert_text((60, 130), "1. Alpha", fontsize=11)
     p1.insert_text((76, 150), "a. Beta", fontsize=11)
-    p1.insert_text((60, 180), "def f(): return 42", fontsize=9,
-                   fontname="cour")
+    p1.insert_text((60, 180), "def f(): return 42", fontsize=9, fontname="cour")
     doc.save(str(path))
     doc.close()
 
@@ -425,6 +512,7 @@ def _make_pdf(path: Path) -> None:
 class TestDebugLayoutWiring(unittest.TestCase):
     def test_layout_json_gains_page_flow_section(self):
         from pdf2zh.semantic.layout_debug import dump_layout_debug
+
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "src.pdf"
             _make_pdf(src)
@@ -436,29 +524,49 @@ class TestDebugLayoutWiring(unittest.TestCase):
             for d in data["diagnostics"]:
                 self.assertEqual(
                     set(d),
-                    {"page", "block_index", "kind", "primitive_kind",
-                     "target", "source_text", "translated_text", "bbox",
-                     "resolved_bbox", "overflow", "recovery", "trace",
-                     "anchors", "font_size"},
+                    {
+                        "page",
+                        "block_index",
+                        "kind",
+                        "primitive_kind",
+                        "target",
+                        "source_text",
+                        "translated_text",
+                        "bbox",
+                        "resolved_bbox",
+                        "overflow",
+                        "recovery",
+                        "trace",
+                        "anchors",
+                        "font_size",
+                    },
                 )
             # 7F-8a page_flow section present with the full report shape
             pf = data["page_flow"]
-            self.assertEqual(set(pf),
-                             {"placements", "collisions", "overflows",
-                              "summary"})
-            self.assertEqual(pf["summary"]["blocks"],
-                             payload["summary"]["blocks"])
+            self.assertEqual(
+                set(pf), {"placements", "collisions", "overflows", "summary"}
+            )
+            self.assertEqual(pf["summary"]["blocks"], payload["summary"]["blocks"])
             self.assertIn("collision_count", pf["summary"])
             self.assertIn("page_overflow_count", pf["summary"])
             for p in pf["placements"]:
                 self.assertEqual(
                     set(p),
-                    {"page", "block_index", "kind", "bbox", "resolved_bbox",
-                     "height", "preserved", "has_continuation"},
+                    {
+                        "page",
+                        "block_index",
+                        "kind",
+                        "bbox",
+                        "resolved_bbox",
+                        "height",
+                        "preserved",
+                        "has_continuation",
+                    },
                 )
 
     def test_debug_layout_cli_flag_still_registered(self):
         from pdf2zh.pdf2zh import create_parser
+
         args = create_parser().parse_args(["--debug-layout", "x.pdf"])
         self.assertTrue(args.debug_layout)
 

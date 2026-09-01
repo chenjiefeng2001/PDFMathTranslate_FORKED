@@ -81,9 +81,20 @@ class LayoutDiagnostic:
     """
 
     __slots__ = (
-        "page", "block_index", "kind", "primitive_kind", "target",
-        "source_text", "translated_text", "bbox", "resolved_bbox",
-        "overflow", "recovery", "trace", "anchors", "font_size",
+        "page",
+        "block_index",
+        "kind",
+        "primitive_kind",
+        "target",
+        "source_text",
+        "translated_text",
+        "bbox",
+        "resolved_bbox",
+        "overflow",
+        "recovery",
+        "trace",
+        "anchors",
+        "font_size",
     )
 
     def __init__(
@@ -166,10 +177,9 @@ def diagnostic_from_plan_entry(entry: dict) -> LayoutDiagnostic:
     resolved = tuple(entry.get("dst_box") or bbox)
     # primitive kind: settled payload wins (flow carries it explicitly);
     # otherwise map from the semantic block kind.
-    primitive_kind = (
-        str(payload.get("primitive_kind") or "")
-        or _PRIMITIVE_KIND_BY_KIND.get(kind, kind)
-    )
+    primitive_kind = str(
+        payload.get("primitive_kind") or ""
+    ) or _PRIMITIVE_KIND_BY_KIND.get(kind, kind)
     # List / TOC channel geometry comes from the settled structured payloads.
     anchors: dict[str, float] = {}
     list_items = entry.get("list_items") or {}
@@ -247,9 +257,7 @@ def stable_fields(diag: LayoutDiagnostic) -> dict:
         "overflow": diag.overflow,
         "recovery_decision": (diag.recovery or {}).get("decision"),
         "recovery_steps": (diag.recovery or {}).get("steps") or [],
-        "anchors": {
-            k: round(float(v), 2) for k, v in sorted(diag.anchors.items())
-        },
+        "anchors": {k: round(float(v), 2) for k, v in sorted(diag.anchors.items())},
     }
 
 

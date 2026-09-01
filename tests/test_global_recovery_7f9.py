@@ -54,23 +54,41 @@ _BASELINE = _HERE / "baselines" / "global_recovery_7f9.json"
 
 PAGE_H = 792.0
 PAGE_W = 612.0
-PAGE_START = 752.0   # v3 content-top margin
-BOTTOM = 10.0        # fitted margin for continuation splits
+PAGE_START = 752.0  # v3 content-top margin
+BOTTOM = 10.0  # fitted margin for continuation splits
 HEIGHTS = {0: PAGE_H, 1: PAGE_H, 2: PAGE_H, 3: PAGE_H}
 SIZES = {i: [PAGE_W, PAGE_H] for i in range(4)}
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None, text="t",
-           list_items=None, toc_entries=None, toc_commands=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    text="t",
+    list_items=None,
+    toc_entries=None,
+    toc_commands=None,
+):
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": text, "translated": text,
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": text,
+        "translated": text,
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
-        "list_items": list_items, "toc_entries": toc_entries,
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
+        "list_items": list_items,
+        "toc_entries": toc_entries,
         "toc_commands": toc_commands,
     }
 
@@ -80,8 +98,7 @@ def _flow(block_id, page, x0, y0, x1, y1, text="flow"):
 
 
 def _code(block_id="p0_code", page=0):
-    return _entry(block_id, page, "code", 570.0, 760.0, 600.0, 782.0,
-                  text="def f()")
+    return _entry(block_id, page, "code", 570.0, 760.0, 600.0, 782.0, text="def f()")
 
 
 def _list_tail(block_id="p0_list", page=0, x_off=0.0):
@@ -98,12 +115,26 @@ def _list_tail(block_id="p0_list", page=0, x_off=0.0):
         {"kind": "text", "text": "LG", "x": content_x, "y": 8.0, "width": 40.0},
         {"kind": "text", "text": "LH", "x": content_x, "y": -8.0, "width": 40.0},
     ]
-    items = [{"marker": "1.", "marker_x": marker_x, "content_x": content_x,
-              "continuation_x": content_x, "continuation": ["LB", "LC", "LD",
-              "LE", "LF", "LG", "LH"]}]
-    return _entry(block_id, page, "list", x_off, 10.0, 260.0 + x_off, 90.0,
-                  list_items=dict(list([("commands", commands), ("items", items)])),
-                  payload={"kind": "list", "commands": commands})
+    items = [
+        {
+            "marker": "1.",
+            "marker_x": marker_x,
+            "content_x": content_x,
+            "continuation_x": content_x,
+            "continuation": ["LB", "LC", "LD", "LE", "LF", "LG", "LH"],
+        }
+    ]
+    return _entry(
+        block_id,
+        page,
+        "list",
+        x_off,
+        10.0,
+        260.0 + x_off,
+        90.0,
+        list_items=dict(list([("commands", commands), ("items", items)])),
+        payload={"kind": "list", "commands": commands},
+    )
 
 
 def _toc_tail(block_id="p0_toc", page=0):
@@ -120,12 +151,27 @@ def _toc_tail(block_id="p0_toc", page=0):
         {"kind": "title", "text": "contB", "x": title_x, "y": 8.0, "width": 60.0},
         {"kind": "title", "text": "contC", "x": title_x, "y": -8.0, "width": 60.0},
     ]
-    entries = [{"title": "Intro", "title_x": title_x, "page_x": page_x,
-                "page_number": "42", "continuation": []}]
-    return _entry(block_id, page, "toc", 300.0, 10.0, 560.0, 90.0,
-                  toc_entries=entries,
-                  toc_commands={"commands": commands},
-                  payload={"kind": "toc", "commands": commands})
+    entries = [
+        {
+            "title": "Intro",
+            "title_x": title_x,
+            "page_x": page_x,
+            "page_number": "42",
+            "continuation": [],
+        }
+    ]
+    return _entry(
+        block_id,
+        page,
+        "toc",
+        300.0,
+        10.0,
+        560.0,
+        90.0,
+        toc_entries=entries,
+        toc_commands={"commands": commands},
+        payload={"kind": "toc", "commands": commands},
+    )
 
 
 def _cascade_corpus():
@@ -140,7 +186,7 @@ def _cascade_corpus():
         _flow("p0_0", 0, 60.0, 700.0, 260.0, 728.0, text="KEEPFLOW"),
         _flow("p0_1", 0, 60.0, 670.0, 260.0, 715.0, text="SHIFTFLOW"),
         _list_tail("p0_2", x_off=0.0),
-        _toc_tail("p0_3"),                        # its own column; page_x=500
+        _toc_tail("p0_3"),  # its own column; page_x=500
         _flow("p0_4", 0, 300.0, -30.0, 540.0, 40.0, text="MOVEDFLOW"),
         _code("p0_5"),
     ]
@@ -154,8 +200,12 @@ def _cascade_corpus():
 class TestOrchestratorConvergence(unittest.TestCase):
     def _run(self, **kw):
         return global_recovery(
-            _cascade_corpus(), page_sizes=HEIGHTS,
-            page_start_y=PAGE_START, page_bottom_y=BOTTOM, **kw)
+            _cascade_corpus(),
+            page_sizes=HEIGHTS,
+            page_start_y=PAGE_START,
+            page_bottom_y=BOTTOM,
+            **kw,
+        )
 
     def test_converges_with_event_chain(self):
         final, report = self._run()
@@ -168,8 +218,12 @@ class TestOrchestratorConvergence(unittest.TestCase):
         self.assertEqual(report.deferred, 1)
         # the event chain answers "round / block / action"
         actions = {e.action for e in report.events}
-        for want in ("SHIFT_DOWN", "CONTINUATION",
-                     "BREAK_TO_NEXT_PAGE", "PRESERVE_OVERFLOW"):
+        for want in (
+            "SHIFT_DOWN",
+            "CONTINUATION",
+            "BREAK_TO_NEXT_PAGE",
+            "PRESERVE_OVERFLOW",
+        ):
             self.assertIn(want, actions, f"missing action {want}")
         for e in report.events:
             self.assertIsInstance(e.pass_no, int)
@@ -188,9 +242,21 @@ class TestOrchestratorConvergence(unittest.TestCase):
     def test_json_round_trip(self):
         _, report = self._run()
         d = report.to_dict()
-        self.assertEqual(set(d), {"passes", "max_passes", "converged", "applied",
-                                  "deferred", "unresolved", "stopped_early",
-                                  "stopped_reason", "events", "pass_summaries"})
+        self.assertEqual(
+            set(d),
+            {
+                "passes",
+                "max_passes",
+                "converged",
+                "applied",
+                "deferred",
+                "unresolved",
+                "stopped_early",
+                "stopped_reason",
+                "events",
+                "pass_summaries",
+            },
+        )
         self.assertIsInstance(d["events"], list)
         json.dumps(d)
 
@@ -212,7 +278,8 @@ class TestNoFightAndBudget(unittest.TestCase):
         plan[1]["dst_box"] = [60.0, 700.0, 260.0, 728.0]
         plan[1]["src_box"] = [60.0, 700.0, 260.0, 728.0]
         final, report = global_recovery(
-            plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+            plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM
+        )
         self.assertFalse(report.converged)
         self.assertTrue(report.stopped_early)
         self.assertGreater(report.unresolved, 0)
@@ -221,7 +288,8 @@ class TestNoFightAndBudget(unittest.TestCase):
     def test_never_unsilently_moves_preserved(self):
         plan = [_code("p0_0")]
         final, _ = global_recovery(
-            plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+            plan, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM
+        )
         code = [e for e in final if e["kind"] == "code"][0]
         self.assertEqual(code["page"], 0)
         self.assertEqual(code["dst_box"], _code("p0_0")["dst_box"])
@@ -238,12 +306,14 @@ class TestSourceAnchor(unittest.TestCase):
         orig_snap = source_geometry_snapshot(orig)
         origin_srcs = {tuple(e["src_box"]) for e in orig}
         final, _ = global_recovery(
-            orig, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+            orig, page_sizes=HEIGHTS, page_start_y=PAGE_START, page_bottom_y=BOTTOM
+        )
         # every final entry's source box is one of the originals (cont entries
         # copy the source verbatim — never invent new geometry)
         for e in final:
-            self.assertIn(tuple(e["src_box"]), origin_srcs,
-                          f"{e['block_id']} src drifted")
+            self.assertIn(
+                tuple(e["src_box"]), origin_srcs, f"{e['block_id']} src drifted"
+            )
         # X geometry verbatim: dst_box edges copied from src; the multiset of
         # every command (x, width) is byte-identical to the source corpus — a
         # recovery may split lines onto other pages but never re-derive X.
@@ -269,14 +339,23 @@ class TestSourceAnchor(unittest.TestCase):
 
     def test_marker_and_page_number_once(self):
         final, _ = global_recovery(
-            _cascade_corpus(), page_sizes=HEIGHTS,
-            page_start_y=PAGE_START, page_bottom_y=BOTTOM)
-        marker = sum(1 for e in final
-                     for c in e["render_payload"]["commands"]
-                     if c.get("kind") == "marker")
-        page_num = sum(1 for e in final
-                       for c in e["render_payload"]["commands"]
-                       if c.get("kind") == "page")
+            _cascade_corpus(),
+            page_sizes=HEIGHTS,
+            page_start_y=PAGE_START,
+            page_bottom_y=BOTTOM,
+        )
+        marker = sum(
+            1
+            for e in final
+            for c in e["render_payload"]["commands"]
+            if c.get("kind") == "marker"
+        )
+        page_num = sum(
+            1
+            for e in final
+            for c in e["render_payload"]["commands"]
+            if c.get("kind") == "page"
+        )
         self.assertEqual(marker, 1)
         self.assertEqual(page_num, 1)
 
@@ -291,18 +370,23 @@ class TestBaselineMatches(unittest.TestCase):
         baseline = json.loads(_BASELINE.read_text(encoding="utf-8"))
         conv = baseline["convergence"]
         final, report = global_recovery(
-            _cascade_corpus(), page_sizes=HEIGHTS,
-            page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+            _cascade_corpus(),
+            page_sizes=HEIGHTS,
+            page_start_y=PAGE_START,
+            page_bottom_y=BOTTOM,
+        )
         self.assertEqual(report.converged, conv["converged"])
         self.assertEqual(report.applied, conv["applied"])
         self.assertEqual(report.deferred, conv["deferred"])
         self.assertEqual(report.unresolved, conv["unresolved"])
         self.assertEqual(
-            {e.action for e in report.events}, set(baseline["events_actions"]))
+            {e.action for e in report.events}, set(baseline["events_actions"])
+        )
         self.assertEqual(
-            len(detect_page_collisions(final)) +
-            len(detect_page_overflows(final, page_sizes=HEIGHTS)),
-            conv["final_collision_count"])
+            len(detect_page_collisions(final))
+            + len(detect_page_overflows(final, page_sizes=HEIGHTS)),
+            conv["final_collision_count"],
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -313,8 +397,11 @@ class TestBaselineMatches(unittest.TestCase):
 class TestGlobalRecoveryGoldenPdf(unittest.TestCase):
     def test_converged_plan_renders_with_DoD_at_words_layer(self):
         final, report = global_recovery(
-            _cascade_corpus(), page_sizes=HEIGHTS,
-            page_start_y=PAGE_START, page_bottom_y=BOTTOM)
+            _cascade_corpus(),
+            page_sizes=HEIGHTS,
+            page_start_y=PAGE_START,
+            page_bottom_y=BOTTOM,
+        )
         self.assertTrue(report.converged)
         pdf, _ = render_plan_to_pdf(final, page_sizes=SIZES, cjk_font=True)
         doc = pymupdf.open(stream=pdf, filetype="pdf")
@@ -326,16 +413,19 @@ class TestGlobalRecoveryGoldenPdf(unittest.TestCase):
             self.assertEqual(len(words_with_text(allw, "1.")), 1)
             self.assertEqual(len(words_with_text(allw, "42")), 1)
             # code preserved text drawn (it renders its own text layer)
-            self.assertTrue(any("def" in w["text"] or w["text"] == "def"
-                                for w in allw), "code text must be present")
+            self.assertTrue(
+                any("def" in w["text"] or w["text"] == "def" for w in allw),
+                "code text must be present",
+            )
             # shifted flow present
             self.assertTrue(words_with_text(allw, "SHIFTFLOW"))
             # moved flow present
             self.assertTrue(words_with_text(allw, "MOVEDFLOW"))
             # continuation leaves survive: list LG/LH and toc contA/B/C
             for t in ("LG", "LH", "contA", "contB", "contC"):
-                self.assertEqual(len(words_with_text(allw, t)), 1,
-                                 f"continuation {t} dup/lost")
+                self.assertEqual(
+                    len(words_with_text(allw, t)), 1, f"continuation {t} dup/lost"
+                )
             # words exist on distinct pages (cross-page did happen)
             self.assertGreaterEqual(doc.page_count, 4)
         finally:
@@ -352,38 +442,60 @@ class TestGlobalRecoveryArchitecture(unittest.TestCase):
 
     def _src(self):
         import ast
+
         tree = ast.parse(self._MOD.read_text(encoding="utf-8"))
-        body = [n for n in tree.body
-                if not (isinstance(n, ast.Expr)
-                        and isinstance(n.value, ast.Constant)
-                        and isinstance(n.value.value, str))]
+        body = [
+            n
+            for n in tree.body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
+        ]
         tree.body = body
         ast.fix_missing_locations(tree)
         return ast.unparse(tree)
 
     def test_never_reimplements_layout_or_new_policy(self):
         src = self._src()
-        for banned in ("adaptive_layout(", "lay_out(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text(", "decide_page_recovery(",
-                       "page_break_from_shift(", "build_page_flow_report(",
-                       "semantic.renderer", "list_detector", "toc_parser",
-                       "code_detector", "translator", "magicpdf"):
-            self.assertNotIn(banned, src,
-                             f"global_recovery.py 不得实现/复用: {banned}")
+        for banned in (
+            "adaptive_layout(",
+            "lay_out(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+            "decide_page_recovery(",
+            "page_break_from_shift(",
+            "build_page_flow_report(",
+            "semantic.renderer",
+            "list_detector",
+            "toc_parser",
+            "code_detector",
+            "translator",
+            "magicpdf",
+        ):
+            self.assertNotIn(banned, src, f"global_recovery.py 不得实现/复用: {banned}")
 
     def test_only_orchestrates_existing_executors(self):
         src = self._src()
-        for needed in ("apply_page_shifts", "execute_continuation_breaks",
-                       "detect_page_collisions", "detect_page_overflows"):
+        for needed in (
+            "apply_page_shifts",
+            "execute_continuation_breaks",
+            "detect_page_collisions",
+            "detect_page_overflows",
+        ):
             self.assertIn(needed, src, f"must orchestrate {needed}")
 
     def test_no_adaptive_entrypoint(self):
         import ast
+
         tree = ast.parse(self._MOD.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name.startswith("adaptive"):
                 raise AssertionError(
-                    f"global_recovery.py 定义了第二个 executor: {node.name}")
+                    f"global_recovery.py 定义了第二个 executor: {node.name}"
+                )
 
 
 if __name__ == "__main__":

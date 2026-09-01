@@ -57,8 +57,13 @@ _HOST_RENDERERS = [
 
 #: Geometry fields owned by Semantic — never derived downstream.
 _GEOM_FIELDS = {
-    "marker_x", "content_x", "continuation_x", "title_x", "page_x",
-    "bbox", "destination_page",
+    "marker_x",
+    "content_x",
+    "continuation_x",
+    "title_x",
+    "page_x",
+    "bbox",
+    "destination_page",
 }
 
 
@@ -68,10 +73,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -114,9 +122,7 @@ def _geometry_assignments_from_level_index(source: str, path_name: str) -> None:
                 continue
             names = {n.id for n in ast.walk(node.value) if isinstance(n, ast.Name)}
             if names & {"level", "index"}:
-                raise AssertionError(
-                    f"{path_name} 从 level/index 推导几何字段 {t.id}"
-                )
+                raise AssertionError(f"{path_name} 从 level/index 推导几何字段 {t.id}")
 
 
 def _class_code(mod, cls_name: str) -> str:
@@ -128,10 +134,13 @@ def _code_ast(source: str) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -164,14 +173,17 @@ def test_primitive_matrix_engines_and_ladders():
     assert (b.allow_wrap, b.allow_shrink, b.allow_clip) == (True, True, True)
     # List marker: PRESERVE — never wrap / shrink / clip, for ANY reason
     for reason in OverflowReason:
-        assert decide_recovery("anchor", reason, target="marker") is \
-            RecoveryDecision.PRESERVE_OVERFLOW, reason
+        assert (
+            decide_recovery("anchor", reason, target="marker")
+            is RecoveryDecision.PRESERVE_OVERFLOW
+        ), reason
     # TOC title: adaptive, WRAP→SHRINK→PRESERVE — CLIP always forbidden
     b = budget_for_kind("toc_title")
     assert b.allow_wrap and b.allow_shrink and not b.allow_clip
     for reason in OverflowReason:
-        assert decide_recovery("toc_title", reason, budget=b) is not \
-            RecoveryDecision.CLIP, reason
+        assert (
+            decide_recovery("toc_title", reason, budget=b) is not RecoveryDecision.CLIP
+        ), reason
     # TOC page / Code: PRESERVE
     assert policy_for("column") is OverflowPolicy.PRESERVE
     assert policy_for("preserved") is OverflowPolicy.PRESERVE
@@ -198,20 +210,32 @@ def test_draw_only_renderers_never_call_executor_or_mechanics():
     import pdf2zh.semantic.renderer.list as list_mod
     import pdf2zh.semantic.renderer.toc as toc_mod
 
-    for mod, cls in ((flow_mod, "FlowTextRenderer"),
-                     (list_mod, "ListRenderer"),
-                     (toc_mod, "TocRenderer")):
+    for mod, cls in (
+        (flow_mod, "FlowTextRenderer"),
+        (list_mod, "ListRenderer"),
+        (toc_mod, "TocRenderer"),
+    ):
         src = _class_code(mod, cls)
-        for banned in ("adaptive_layout(", "lay_out(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text("):
+        for banned in (
+            "adaptive_layout(",
+            "lay_out(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+        ):
             assert banned not in src, f"{cls} 调用了 {banned}"
 
 
 def test_host_renderers_never_call_executor_or_mechanics():
     for py in _HOST_RENDERERS:
         src = _code(py)
-        for banned in ("adaptive_layout(", "lay_out(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text("):
+        for banned in (
+            "adaptive_layout(",
+            "lay_out(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+        ):
             assert banned not in src, f"{py.name} 调用了 {banned}"
         assert "semantic.layout" not in src, f"{py.name} import 了 layout"
 
@@ -234,9 +258,15 @@ def test_renderers_never_import_translator_module():
 def test_layout_never_imports_detector_parser_or_renderer():
     for py in _iter_layout_py():
         src = _code(py)
-        for banned in ("list_detector", "list_parser", "toc_parser",
-                       "code_detector", "style_detector",
-                       "semantic.renderer", "translator"):
+        for banned in (
+            "list_detector",
+            "list_parser",
+            "toc_parser",
+            "code_detector",
+            "style_detector",
+            "semantic.renderer",
+            "translator",
+        ):
             assert banned not in src, f"layout/{py.name} 引用了 {banned}"
 
 
@@ -254,9 +284,12 @@ def test_recovery_never_imports_renderer_translator_or_detector():
 def test_no_geometry_math_from_level_or_index_pipeline_wide():
     """AST binop scan over the whole pipeline: ``level *`` / ``index +`` etc.
     must never appear (extends 7E-Audit to flow_sidechannel + host renderers)."""
-    files = list(_iter_layout_py()) + \
-        list(_RENDERER_DIR.glob("*.py")) + \
-        [_FLOW_SIDECHANNEL] + _HOST_RENDERERS
+    files = (
+        list(_iter_layout_py())
+        + list(_RENDERER_DIR.glob("*.py"))
+        + [_FLOW_SIDECHANNEL]
+        + _HOST_RENDERERS
+    )
     for py in files:
         if py.name == "__init__.py":
             continue
@@ -273,9 +306,12 @@ def test_geometry_fields_never_assigned_from_derived_math():
     """The Semantic-owned fields are only ever *copied* from nodes / entries —
     never recomputed (the assignment scan above already rejects level/index
     RHS; this test pins the invariant for the whole pipeline)."""
-    files = list(_iter_layout_py()) + \
-        list(_RENDERER_DIR.glob("*.py")) + \
-        [_FLOW_SIDECHANNEL] + _HOST_RENDERERS
+    files = (
+        list(_iter_layout_py())
+        + list(_RENDERER_DIR.glob("*.py"))
+        + [_FLOW_SIDECHANNEL]
+        + _HOST_RENDERERS
+    )
     for py in files:
         if py.name == "__init__.py":
             continue
@@ -321,10 +357,22 @@ def test_evil_translators_cannot_break_toc_page_column():
     from pdf2zh.semantic.renderer.toc import build_page_toc_plan
 
     lines = [
-        {"text": "Introduction ........ 42", "x0": 72, "y0": 700, "x1": 540,
-         "y1": 712, "size": 12},
-        {"text": "Background .......... 3", "x0": 96, "y0": 680,
-         "x1": 540, "y1": 692, "size": 12},
+        {
+            "text": "Introduction ........ 42",
+            "x0": 72,
+            "y0": 700,
+            "x1": 540,
+            "y1": 712,
+            "size": 12,
+        },
+        {
+            "text": "Background .......... 3",
+            "x0": 96,
+            "y0": 680,
+            "x1": 540,
+            "y1": 692,
+            "size": 12,
+        },
     ]
     for name, evil in _evil_translators().items():
         plan = build_page_toc_plan(lines, 612.0, translate=evil)
@@ -332,8 +380,9 @@ def test_evil_translators_cannot_break_toc_page_column():
         assert [e["page_number"] for e in entries] == ["42", "3"], name
         # number / leader / page never enter translation
         calls = plan["translated_calls"]
-        assert all("..." not in c and c.strip() != "Introduction ........ 42"
-                   for c in calls), name
+        assert all(
+            "..." not in c and c.strip() != "Introduction ........ 42" for c in calls
+        ), name
 
 
 def test_evil_translators_never_touch_code():
@@ -342,11 +391,12 @@ def test_evil_translators_never_touch_code():
     from pdf2zh.v3.render_payload import block_translation_unit
 
     for name, evil in _evil_translators().items():
-        b = BlockModel(text="def f():\n    return 1", kind="code",
-                       x0=10, y0=10, x1=300, y1=60)
+        b = BlockModel(
+            text="def f():\n    return 1", kind="code", x0=10, y0=10, x1=300, y1=60
+        )
         calls = []
         unit = block_translation_unit(b, lambda s: (calls.append(s), evil(s))[1])
-        assert calls == [], name          # translator called 0 times
+        assert calls == [], name  # translator called 0 times
         assert unit["kind"] == "preserve"
         assert unit["translated"] == b.text
 
@@ -381,4 +431,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

@@ -236,8 +236,16 @@ def build_render_payload(unit: Mapping, block=None) -> dict:
     }
     if kind == "flow" and isinstance(payload, dict):
         for k in (
-            "overflow", "policy", "font_size", "recovery", "trace",
-            "lines", "line_widths", "primitive_kind", "layout_ok", "bbox",
+            "overflow",
+            "policy",
+            "font_size",
+            "recovery",
+            "trace",
+            "lines",
+            "line_widths",
+            "primitive_kind",
+            "layout_ok",
+            "bbox",
         ):
             if k in payload:
                 out[k] = payload[k]

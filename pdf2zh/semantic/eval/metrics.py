@@ -19,15 +19,17 @@ import re
 # distance/numeric tolerances (points) — kept generous because real layouts
 # reflow; these catch true regressions (a column moved by a full indent) but
 # ignore sub-point float noise.
-_X_TOL = 10.0          # horizontal column tolerance
-_OVERFLOW_TOL = 1.0    # a line may sit off-page by at most this before it counts
-_MATCH_TOL2 = 250.0 ** 2  # squared Euclidean centre distance for line matching
-_TOC_CONT_TOL = 30.0   # continuation line may drift from title_x by this (title_x+size anchor)
+_X_TOL = 10.0  # horizontal column tolerance
+_OVERFLOW_TOL = 1.0  # a line may sit off-page by at most this before it counts
+_MATCH_TOL2 = 250.0**2  # squared Euclidean centre distance for line matching
+_TOC_CONT_TOL = (
+    30.0  # continuation line may drift from title_x by this (title_x+size anchor)
+)
 # ── 7F-5d adaptive-TOC constants ────────────────────────────────────────────
-_PAGE_COL_EPS = 2.0    # strict page-column stability epsilon (page_x must not move)
-_FONT_SIZE_TOL = 2.0   # font size may not drift without reason (points)
+_PAGE_COL_EPS = 2.0  # strict page-column stability epsilon (page_x must not move)
+_FONT_SIZE_TOL = 2.0  # font size may not drift without reason (points)
 _SHRINK_EVIDENCE_TOL = 0.5  # shrink must reduce the size by at least this
-_WORD_GAP_EM = 0.25    # inter-word gap estimate used for re-wrap simulation
+_WORD_GAP_EM = 0.25  # inter-word gap estimate used for re-wrap simulation
 
 _MARKER_RE = re.compile(r"^(?:[•·▪‣●○◦‣]|(?:[0-9]+|[a-z]|[ivxlcdmIVXLCDM]{1,4})[.)])$")
 _DOT_LEADER_RE = re.compile(r"\.{2,}")
@@ -37,6 +39,7 @@ _MONO_FONTS = {"cour", "consolas", "menlo", "monaco"}
 
 
 # -- low-level helpers ------------------------------------------------------
+
 
 def _cx(bbox):
     return (bbox[0] + bbox[2]) / 2.0
@@ -203,6 +206,7 @@ def _level_ranks(x0s):
 
 # -- metric families --------------------------------------------------------
 
+
 def _text_exactness(src_doc, out_doc):
     """Fraction of source words (per page) also present in the output page.
 
@@ -243,8 +247,13 @@ def _geometry_and_style(src_doc, out_doc):
         "bbox_mean_delta": round(mean, 2),
         "bbox_max_delta": round(_max, 2),
         "font_match_rate": round((sum(font_ok) / len(font_ok)) if font_ok else 1.0, 4),
-        "bold_accuracy": round((bold_pairs["hit"] / bold_pairs["den"]) if bold_pairs["den"] else 1.0, 4),
-        "italic_accuracy": round((italic_pairs["hit"] / italic_pairs["den"]) if italic_pairs["den"] else 1.0, 4),
+        "bold_accuracy": round(
+            (bold_pairs["hit"] / bold_pairs["den"]) if bold_pairs["den"] else 1.0, 4
+        ),
+        "italic_accuracy": round(
+            (italic_pairs["hit"] / italic_pairs["den"]) if italic_pairs["den"] else 1.0,
+            4,
+        ),
         "_matched_lines": len(all_deltas),
     }
 
@@ -334,8 +343,12 @@ def _toc_continuation_page(sf, of):
     (``toc_cont_x``) — a continuation dragged to a new column, or lost
     entirely, drops it.  ``1.0`` when neither side has continuations.
     """
-    s_cont = [f["toc_cont_x"] for f in sf if f["is_toc_cont"] and f["toc_cont_x"] is not None]
-    o_cont = [f["toc_cont_x"] for f in of if f["is_toc_cont"] and f["toc_cont_x"] is not None]
+    s_cont = [
+        f["toc_cont_x"] for f in sf if f["is_toc_cont"] and f["toc_cont_x"] is not None
+    ]
+    o_cont = [
+        f["toc_cont_x"] for f in of if f["is_toc_cont"] and f["toc_cont_x"] is not None
+    ]
     if not s_cont:
         return 1.0  # source had no continuation lines to preserve
     if not o_cont:
@@ -590,7 +603,11 @@ def _list_toc_metrics(src_doc, out_doc):
     wrap_ok, nested_ok = [], []
     toc_leader_ok, toc_cont_acc = [], []
     toc_title_pairs, toc_page_pairs, toc_num_equal, toc_level_eq, toc_level_den = (
-        [], [], 0, 0, 0
+        [],
+        [],
+        0,
+        0,
+        0,
     )
     toc_page_strict, toc_wrap_ok, toc_font_ok, toc_overflow_ok = [], [], [], []
     for sp, op in zip(src_doc["pages"], out_doc["pages"]):
@@ -598,12 +615,20 @@ def _list_toc_metrics(src_doc, out_doc):
         of = _line_word_features(op["words"], op["width"])
 
         # list marker_x / content_x / continuation_x, matched by index
-        smarkers = [f["marker_x"] for f in sf if f["is_item"] and f["marker_x"] is not None]
-        omarkers = [f["marker_x"] for f in of if f["is_item"] and f["marker_x"] is not None]
+        smarkers = [
+            f["marker_x"] for f in sf if f["is_item"] and f["marker_x"] is not None
+        ]
+        omarkers = [
+            f["marker_x"] for f in of if f["is_item"] and f["marker_x"] is not None
+        ]
         marker_pairs.extend(zip(smarkers, omarkers))
 
-        sitems = [f["content_x"] for f in sf if f["is_item"] and f["content_x"] is not None]
-        oitems = [f["content_x"] for f in of if f["is_item"] and f["content_x"] is not None]
+        sitems = [
+            f["content_x"] for f in sf if f["is_item"] and f["content_x"] is not None
+        ]
+        oitems = [
+            f["content_x"] for f in of if f["is_item"] and f["content_x"] is not None
+        ]
         content_pairs.extend(zip(sitems, oitems))
 
         sconts = [f["cont_x"] for f in sf if f["is_cont"] and f["cont_x"] is not None]
@@ -632,7 +657,9 @@ def _list_toc_metrics(src_doc, out_doc):
             for k in range(min(len(sentries), len(oentries))):
                 toc_title_pairs.append((sentries[k]["title_x"], oentries[k]["title_x"]))
                 toc_page_pairs.append((sentries[k]["page_x"], oentries[k]["page_x"]))
-                toc_num_equal += int(sentries[k]["page_number"] == oentries[k]["page_number"])
+                toc_num_equal += int(
+                    sentries[k]["page_number"] == oentries[k]["page_number"]
+                )
                 if k < len(s_levels) and k < len(o_levels):
                     toc_level_eq += int(s_levels[k] == o_levels[k])
                     toc_level_den += 1
@@ -641,19 +668,39 @@ def _list_toc_metrics(src_doc, out_doc):
         "list_marker_x_accuracy": round(_col_acc(marker_pairs), 4),
         "list_content_x_accuracy": round(_col_acc(content_pairs), 4),
         "list_continuation_x_accuracy": round(_col_acc(cont_pairs), 4),
-        "list_wrap_integrity": round(sum(wrap_ok) / len(wrap_ok) if wrap_ok else 1.0, 4),
-        "list_nested_geometry_accuracy": round(sum(nested_ok) / len(nested_ok) if nested_ok else 1.0, 4),
+        "list_wrap_integrity": round(
+            sum(wrap_ok) / len(wrap_ok) if wrap_ok else 1.0, 4
+        ),
+        "list_nested_geometry_accuracy": round(
+            sum(nested_ok) / len(nested_ok) if nested_ok else 1.0, 4
+        ),
         "toc_title_x_accuracy": round(_col_acc(toc_title_pairs), 4),
         "toc_page_x_accuracy": round(_col_acc(toc_page_pairs), 4),
-        "toc_page_number_accuracy": round((toc_num_equal / len(toc_title_pairs)) if toc_title_pairs else 1.0, 4),
-        "toc_level_accuracy": round((toc_level_eq / toc_level_den) if toc_level_den else 1.0, 4),
-        "toc_leader_integrity": round(sum(toc_leader_ok) / len(toc_leader_ok) if toc_leader_ok else 1.0, 4),
-        "toc_continuation_x_accuracy": round(sum(toc_cont_acc) / len(toc_cont_acc) if toc_cont_acc else 1.0, 4),
+        "toc_page_number_accuracy": round(
+            (toc_num_equal / len(toc_title_pairs)) if toc_title_pairs else 1.0, 4
+        ),
+        "toc_level_accuracy": round(
+            (toc_level_eq / toc_level_den) if toc_level_den else 1.0, 4
+        ),
+        "toc_leader_integrity": round(
+            sum(toc_leader_ok) / len(toc_leader_ok) if toc_leader_ok else 1.0, 4
+        ),
+        "toc_continuation_x_accuracy": round(
+            sum(toc_cont_acc) / len(toc_cont_acc) if toc_cont_acc else 1.0, 4
+        ),
         # 7F-5d adaptive-TOC metrics
-        "toc_page_column_stability": round(sum(toc_page_strict) / len(toc_page_strict) if toc_page_strict else 1.0, 4),
-        "toc_adaptive_wrap_integrity": round(sum(toc_wrap_ok) / len(toc_wrap_ok) if toc_wrap_ok else 1.0, 4),
-        "toc_adaptive_font_size": round(sum(toc_font_ok) / len(toc_font_ok) if toc_font_ok else 1.0, 4),
-        "toc_adaptive_overflow": round(sum(toc_overflow_ok) / len(toc_overflow_ok) if toc_overflow_ok else 1.0, 4),
+        "toc_page_column_stability": round(
+            sum(toc_page_strict) / len(toc_page_strict) if toc_page_strict else 1.0, 4
+        ),
+        "toc_adaptive_wrap_integrity": round(
+            sum(toc_wrap_ok) / len(toc_wrap_ok) if toc_wrap_ok else 1.0, 4
+        ),
+        "toc_adaptive_font_size": round(
+            sum(toc_font_ok) / len(toc_font_ok) if toc_font_ok else 1.0, 4
+        ),
+        "toc_adaptive_overflow": round(
+            sum(toc_overflow_ok) / len(toc_overflow_ok) if toc_overflow_ok else 1.0, 4
+        ),
     }
 
 

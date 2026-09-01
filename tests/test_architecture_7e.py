@@ -119,8 +119,14 @@ def test_no_detection_in_layout_package():
         if py.name == "__init__.py":
             continue
         src = _code(py)
-        for banned in ("looks_like", "detect_code", "detect_list",
-                       "detect_toc", "parse_list", "parse_toc"):
+        for banned in (
+            "looks_like",
+            "detect_code",
+            "detect_list",
+            "detect_toc",
+            "parse_list",
+            "parse_toc",
+        ):
             assert banned not in src, f"layout/{py.name} 不得出现 {banned}"
 
 
@@ -136,8 +142,14 @@ def test_no_detection_in_renderer_draw_only_classes():
 
     for mod, cls in ((list_mod, "ListRenderer"), (toc_mod, "TocRenderer")):
         src = _strip_docstrings(inspect.getsource(getattr(mod, cls)))
-        for banned in ("looks_like", "detect_code", "detect_list",
-                       "detect_toc", "parse_list", "parse_toc"):
+        for banned in (
+            "looks_like",
+            "detect_code",
+            "detect_list",
+            "detect_toc",
+            "parse_list",
+            "parse_toc",
+        ):
             assert banned not in src, f"{cls} 不得做语义检测（{banned}）"
 
 
@@ -151,8 +163,15 @@ def test_renderer_modules_no_looks_like_anywhere():
 
 def test_no_detection_in_magicpdf_renderer():
     src = _code(_MAGICPDF)
-    for banned in ("looks_like", "detect_code", "detect_list",
-                   "detect_toc", "detect_span", "parse_list", "parse_toc"):
+    for banned in (
+        "looks_like",
+        "detect_code",
+        "detect_list",
+        "detect_toc",
+        "detect_span",
+        "parse_list",
+        "parse_toc",
+    ):
         assert banned not in src, f"magicpdf_renderer 不得出现 {banned}"
 
 
@@ -170,9 +189,7 @@ def test_no_level_index_geometry_math_in_layout():
         for op, l, r in _ast_binops(src):
             names = {l, r}
             if {"level", "index"} & names:
-                raise AssertionError(
-                    f"{py.name} 用 {op}({l},{r}) 由语义量重建几何"
-                )
+                raise AssertionError(f"{py.name} 用 {op}({l},{r}) 由语义量重建几何")
 
 
 def test_no_level_index_geometry_math_in_renderer_draw_paths():
@@ -186,9 +203,7 @@ def test_no_level_index_geometry_math_in_renderer_draw_paths():
         for op, l, r in _ast_binops(src):
             names = {l, r}
             if {"level", "index"} & names:
-                raise AssertionError(
-                    f"{cls} 用 {op}({l},{r}) 重建几何"
-                )
+                raise AssertionError(f"{cls} 用 {op}({l},{r}) 重建几何")
 
 
 def test_no_level_index_geometry_math_in_magicpdf_renderer():
@@ -286,7 +301,9 @@ def test_layout_result_bbox_passthrough_not_mutated():
         content="orig text",
     )
     result = layout_list_item(
-        it, font_size=11.0, content_text="非常长的译文文本内容内容",
+        it,
+        font_size=11.0,
+        content_text="非常长的译文文本内容内容",
     )
     # 原始锚点保留
     assert result.marker_x == 45.0
@@ -312,8 +329,12 @@ def test_translation_does_not_mutate_geometry_anchors():
     from pdf2zh.semantic.models import ListItemNode
 
     it = ListItemNode(
-        marker="1.", marker_x=40.0, content_x=60.0,
-        content_width=50.0, y=700.0, content="A short item",
+        marker="1.",
+        marker_x=40.0,
+        content_x=60.0,
+        content_width=50.0,
+        y=700.0,
+        content="A short item",
     )
     before = (it.marker_x, it.content_x, it.content_width, it.y)
 
@@ -357,8 +378,10 @@ def test_overflow_policy_table_owned_by_who():
     r = lay_out(code, measure=m, font_size=10.0)
     assert r.policy is OverflowPolicy.PRESERVE
     assert r.lines == [code.text]
-    assert not any(p in (OverflowPolicy.WRAP, OverflowPolicy.SHRINK,
-                         OverflowPolicy.CLIP) for p in [r.policy])
+    assert not any(
+        p in (OverflowPolicy.WRAP, OverflowPolicy.SHRINK, OverflowPolicy.CLIP)
+        for p in [r.policy]
+    )
 
     # list content
     flow = FlowText(text="很长很长", origin=(60, 30), max_width=20)
@@ -447,11 +470,17 @@ def test_golden_corpus_all_7d_metrics_present(tmp_path):
     build_list(out)
     m = evaluate(src, out)["metrics"]
     required = {
-        "code_preserved_bbox", "list_content_x_accuracy",
-        "list_continuation_x_accuracy", "list_nested_geometry_accuracy",
-        "toc_title_x_accuracy", "toc_page_x_accuracy", "toc_leader_integrity",
-        "toc_continuation_x_accuracy", "outline_destination_accuracy",
-        "bold_accuracy", "italic_accuracy",
+        "code_preserved_bbox",
+        "list_content_x_accuracy",
+        "list_continuation_x_accuracy",
+        "list_nested_geometry_accuracy",
+        "toc_title_x_accuracy",
+        "toc_page_x_accuracy",
+        "toc_leader_integrity",
+        "toc_continuation_x_accuracy",
+        "outline_destination_accuracy",
+        "bold_accuracy",
+        "italic_accuracy",
     }
     for k in required:
         assert k in m, f"缺 7D 指标 {k}"

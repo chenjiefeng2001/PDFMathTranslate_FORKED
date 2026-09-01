@@ -113,17 +113,25 @@ def main() -> int:
             "bad_alignment_pages": [r["src_page"] for r in bad_align][:20],
             "cjk_delta_nonzero": len(cjk_delta_nonzero),
             "cjk_delta_samples": [
-                {k_: r[k_] for k_ in ("src_page", "dual_tr_cjk", "mono_cjk", "cjk_delta")}
+                {
+                    k_: r[k_]
+                    for k_ in ("src_page", "dual_tr_cjk", "mono_cjk", "cjk_delta")
+                }
                 for r in cjk_delta_nonzero[:12]
             ],
             "char_delta_large": len(char_delta_large),
             "char_delta_samples": [
-                {k_: r[k_] for k_ in ("src_page", "dual_tr_chars", "mono_chars", "char_delta")}
+                {
+                    k_: r[k_]
+                    for k_ in ("src_page", "dual_tr_chars", "mono_chars", "char_delta")
+                }
                 for r in char_delta_large[:12]
             ],
         }
-        print(f"[{name[:44]}] aligned={len(rows)} bad_align={len(bad_align)} "
-              f"cjk_delta>0={len(cjk_delta_nonzero)} char_delta_large={len(char_delta_large)}")
+        print(
+            f"[{name[:44]}] aligned={len(rows)} bad_align={len(bad_align)} "
+            f"cjk_delta>0={len(cjk_delta_nonzero)} char_delta_large={len(char_delta_large)}"
+        )
         src.close()
         dual.close()
         mono.close()

@@ -5,6 +5,7 @@
 抛 ImportError 的假模块文件。这等价于 PyInstaller 的 excludes（导入即失败），
 比 monkeypatch sys.modules 更接近真实冻结环境。
 """
+
 import os
 import shutil
 import subprocess
@@ -32,12 +33,8 @@ SMOKE_SNIPPETS = {
         "X = np.array([[0,0],[1,1],[9,9]]);"
         "print('DBSCAN labels:', DBSCAN(eps=2).fit_predict(X).tolist())"
     ),
-    "pandas_io": (
-        "import pandas as pd; print('pandas', pd.__version__)"
-    ),
-    "babeldoc_import": (
-        "import babeldoc; print('babeldoc', babeldoc.__version__)"
-    ),
+    "pandas_io": ("import pandas as pd; print('pandas', pd.__version__)"),
+    "babeldoc_import": ("import babeldoc; print('babeldoc', babeldoc.__version__)"),
     "babeldoc_highlevel": (
         "from babeldoc.format.pdf.high_level import async_translate, translate;"
         "print('babeldoc high_level OK')"
@@ -53,9 +50,7 @@ SMOKE_SNIPPETS = {
     "pdf2zh_high_level": (
         "from pdf2zh.high_level import translate; print('pdf2zh.high_level OK')"
     ),
-    "pdf2zh_translator": (
-        "import pdf2zh.translator; print('pdf2zh.translator OK')"
-    ),
+    "pdf2zh_translator": ("import pdf2zh.translator; print('pdf2zh.translator OK')"),
     "pdf2zh_sidecar_modules": (
         "import pdf2zh.services.api, pdf2zh.services.runtime_service, "
         "pdf2zh.services.runtime_singleton; print('sidecar services OK')"
@@ -105,7 +100,10 @@ def main():
                 for ln in tail[-8:]:
                     print("   | %s" % ln)
         print("=" * 40)
-        print("summary: %d/%d passed" % (len(SMOKE_SNIPPETS) - failed, len(SMOKE_SNIPPETS)))
+        print(
+            "summary: %d/%d passed"
+            % (len(SMOKE_SNIPPETS) - failed, len(SMOKE_SNIPPETS))
+        )
         return 1 if failed else 0
     finally:
         shutil.rmtree(shim_dir, ignore_errors=True)

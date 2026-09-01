@@ -82,20 +82,22 @@ _TOL = 1e-6
 class OverflowReason(Enum):
     """*Why* a translated run does not fit its constraint."""
 
-    WIDTH = "width"                              # breaks, but exceeds available width
-    HEIGHT = "height"                            # fits width but more lines than height
-    UNBREAKABLE_TOKEN = "unbreakable_token"      # a single wide token cannot wrap
-    FIXED_COLUMN_COLLISION = "fixed_column_collision"  # hits an immovable column (page_x)
-    PRESERVED_REGION = "preserved_region"        # a preserve region (code) itself overflows
+    WIDTH = "width"  # breaks, but exceeds available width
+    HEIGHT = "height"  # fits width but more lines than height
+    UNBREAKABLE_TOKEN = "unbreakable_token"  # a single wide token cannot wrap
+    FIXED_COLUMN_COLLISION = (
+        "fixed_column_collision"  # hits an immovable column (page_x)
+    )
+    PRESERVED_REGION = "preserved_region"  # a preserve region (code) itself overflows
 
 
 class RecoveryDecision(Enum):
     """*What* recovery action to take.  NEVER silently succeeds."""
 
-    NO_ACTION = "no_action"              # not actually overflowing
-    WRAP = "wrap"                        # reflow into more lines
-    SHRINK = "shrink"                    # reduce font_size (budgeted)
-    CLIP = "clip"                        # truncate — always explicit overflow
+    NO_ACTION = "no_action"  # not actually overflowing
+    WRAP = "wrap"  # reflow into more lines
+    SHRINK = "shrink"  # reduce font_size (budgeted)
+    CLIP = "clip"  # truncate — always explicit overflow
     PRESERVE_OVERFLOW = "preserve_overflow"  # keep geometry, report overflow
 
 
@@ -103,10 +105,10 @@ class RecoveryDecision(Enum):
 class LayoutBudget:
     """Per-primitive recovery budget (7F-6).  ``None`` means unbounded."""
 
-    max_extra_lines: int | None = None          # extra wrapped lines allowed
-    max_height_expansion: float | None = None    # points the box may grow
-    min_font_size: float | None = None           # hard floor for SHRINK
-    max_font_reduction: float | None = None      # max drop in points below original
+    max_extra_lines: int | None = None  # extra wrapped lines allowed
+    max_height_expansion: float | None = None  # points the box may grow
+    min_font_size: float | None = None  # hard floor for SHRINK
+    max_font_reduction: float | None = None  # max drop in points below original
     allow_wrap: bool = True
     allow_shrink: bool = False
     allow_clip: bool = False
@@ -119,7 +121,7 @@ class OverflowDiagnosis:
     reason: OverflowReason
     decision: RecoveryDecision
     primitive_kind: str = "flow"
-    measure_ratio: float | None = None       # required_width / available_width
+    measure_ratio: float | None = None  # required_width / available_width
     effective_font_size: float | None = None
     extra_lines: int = 0
     message: str = ""
@@ -130,8 +132,11 @@ class OverflowDiagnosis:
             "decision": self.decision.value,
             "primitive_kind": self.primitive_kind,
             "measure_ratio": self.measure_ratio,
-            "effective_font_size": round(self.effective_font_size, 2)
-            if self.effective_font_size is not None else None,
+            "effective_font_size": (
+                round(self.effective_font_size, 2)
+                if self.effective_font_size is not None
+                else None
+            ),
             "extra_lines": self.extra_lines,
             "message": self.message,
         }
@@ -177,13 +182,9 @@ def budget_for_kind(kind: str) -> LayoutBudget:
             allow_wrap=True, allow_shrink=True, allow_clip=False, max_extra_lines=2
         )
     if kind == "column":
-        return LayoutBudget(
-            allow_wrap=False, allow_shrink=False, allow_clip=False
-        )
+        return LayoutBudget(allow_wrap=False, allow_shrink=False, allow_clip=False)
     if kind == "preserved":
-        return LayoutBudget(
-            allow_wrap=False, allow_shrink=False, allow_clip=False
-        )
+        return LayoutBudget(allow_wrap=False, allow_shrink=False, allow_clip=False)
     return LayoutBudget(allow_wrap=True, allow_shrink=True, allow_clip=True)
 
 
@@ -312,7 +313,11 @@ def decide_recovery(
     # (page_x / page_number / title_x are immovable; the leader only shrinks).
     if kind in ("toc_title", "toc"):
         if reason == OverflowReason.UNBREAKABLE_TOKEN:
-            return RecoveryDecision.SHRINK if b.allow_shrink else RecoveryDecision.PRESERVE_OVERFLOW
+            return (
+                RecoveryDecision.SHRINK
+                if b.allow_shrink
+                else RecoveryDecision.PRESERVE_OVERFLOW
+            )
         if b.allow_wrap and reason in (OverflowReason.WIDTH, OverflowReason.HEIGHT):
             return RecoveryDecision.WRAP
         if b.allow_shrink:
@@ -359,9 +364,7 @@ def diagnose_overflow(
         :class:`OverflowDiagnosis`.  Never raises.
     """
     kind = getattr(result, "primitive_kind", "flow")
-    reason = classify_reason(
-        result, avail_width=avail_width, avail_height=avail_height
-    )
+    reason = classify_reason(result, avail_width=avail_width, avail_height=avail_height)
     decision = decide_recovery(kind, reason, budget=budget, target=target)
 
     widths = getattr(result, "line_widths", None) or []

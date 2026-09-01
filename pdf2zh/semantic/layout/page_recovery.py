@@ -79,10 +79,12 @@ class PageRecoveryDecision(Enum):
     (7F-8d) is the only place a decision becomes geometry.
     """
 
-    KEEP = "keep"                              # no collision — nothing to do
-    SHIFT_DOWN = "shift_down"                  # move the lower block down by shift_y
-    NEXT_PAGE = "next_page"                    # shift would overflow the page — continue on the next page
-    PRESERVE_OVERFLOW = "preserve_overflow"    # immovable geometry involved — keep, report overflow
+    KEEP = "keep"  # no collision — nothing to do
+    SHIFT_DOWN = "shift_down"  # move the lower block down by shift_y
+    NEXT_PAGE = "next_page"  # shift would overflow the page — continue on the next page
+    PRESERVE_OVERFLOW = (
+        "preserve_overflow"  # immovable geometry involved — keep, report overflow
+    )
 
 
 def _collision_snapshot(collision: PageCollision) -> dict:
@@ -208,8 +210,7 @@ def decide_page_recovery(
     sizes = dict(page_sizes or {})
     report = build_page_flow_report(plan, page_sizes=sizes)
     return [
-        decide_block_shift(c, page_height=sizes.get(c.page))
-        for c in report.collisions
+        decide_block_shift(c, page_height=sizes.get(c.page)) for c in report.collisions
     ]
 
 

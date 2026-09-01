@@ -25,9 +25,7 @@ def test_extract_prose_pages_lines_words(tmp_path):
         for ln in page["lines"]
     )
     assert all(len(ln["bbox"]) == 4 for ln in page["lines"])
-    assert page["words"] and all(
-        set(w) >= {"text", "bbox"} for w in page["words"]
-    )
+    assert page["words"] and all(set(w) >= {"text", "bbox"} for w in page["words"])
     # outline captured
     assert doc["outline"] and doc["outline"][0]["title"] == "Introduction"
     assert doc["outline"][0]["page"] == 1

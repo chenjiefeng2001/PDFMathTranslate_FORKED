@@ -91,12 +91,12 @@ def _resolve_concurrency(scope: str) -> int:
             )
             return _DEFAULT_CONCURRENCY
         if val < 1:
-            logger.warning(
-                "Ignoring %s=%r (must be >= 1; keeping 1)", env_name, raw
-            )
+            logger.warning("Ignoring %s=%r (must be >= 1; keeping 1)", env_name, raw)
             return _DEFAULT_CONCURRENCY
         return val
     return _DEFAULT_CONCURRENCY
+
+
 class GPUConcurrencyGovernor:
     """有界并发调控器：限制同一作用域内并发的 GPU 推理数量，而非串行化。
 
@@ -107,9 +107,7 @@ class GPUConcurrencyGovernor:
       让 ORT / CUDA 自身在可承受并发内并行，而不是把所有推理钉死。
     """
 
-    def __init__(
-        self, scope: str, max_concurrent: Optional[int] = None
-    ) -> None:
+    def __init__(self, scope: str, max_concurrent: Optional[int] = None) -> None:
         self.scope = scope
         self.max_concurrent = (
             _resolve_concurrency(scope) if max_concurrent is None else max_concurrent
@@ -324,9 +322,7 @@ def resolve_process_thread_budget() -> int:
     return budget
 
 
-def apply_process_local_thread_budget(
-    scope: str, budget: Optional[int] = None
-) -> None:
+def apply_process_local_thread_budget(scope: str, budget: Optional[int] = None) -> None:
     """在每个**独立进程**入口设定进程本地线程预算（有界并发，而非串行）。
 
     - 用 ``setdefault``：调用进程内已显式设置的值优先，不粗暴覆盖；

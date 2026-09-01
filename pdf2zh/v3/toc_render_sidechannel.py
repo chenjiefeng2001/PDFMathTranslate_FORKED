@@ -40,7 +40,10 @@ def _entry_baselines(entries: Sequence[Mapping], block) -> list[float]:
         if i < len(lines):
             ln = lines[i]
             try:
-                base = (float(getattr(ln, "y0", 0.0) or 0.0) + float(getattr(ln, "y1", 0.0) or 0.0)) / 2.0
+                base = (
+                    float(getattr(ln, "y0", 0.0) or 0.0)
+                    + float(getattr(ln, "y1", 0.0) or 0.0)
+                ) / 2.0
             except (TypeError, ValueError):
                 base = 0.0
             ys.append(base)

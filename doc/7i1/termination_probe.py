@@ -10,8 +10,8 @@ Hypothesis audit for First Non-Terminating Stage candidates:
 Use a subprocess with a hard timeout so a genuine non-termination surfaces as
 a TIMEOUT instead of hanging this process.
 """
-import subprocess, sys, textwrap, time
 
+import subprocess, sys, textwrap, time
 
 PROBE = r"""
 import sys, time
@@ -58,7 +58,9 @@ print("PROBE_DONE")
 """
 out = subprocess.run(
     [sys.executable, "-c", PROBE],
-    capture_output=True, text=True, timeout=240,
+    capture_output=True,
+    text=True,
+    timeout=240,
 )
 print(out.stdout)
 print(out.stderr[-4000:] if out.stderr else "")

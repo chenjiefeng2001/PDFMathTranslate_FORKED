@@ -68,8 +68,13 @@ def _blk(i, top, bottom, kind="flow", x0=_X0, x1=_X1):
     top edge is the larger y; ``top >= bottom``)."""
     box = (float(x0), float(bottom), float(x1), float(top))
     return BlockPlacement(
-        block_index=i, page=1, kind=kind, bbox=box, resolved_bbox=box,
-        height=top - bottom, preserved=kind in {"code", "formula", "figure"},
+        block_index=i,
+        page=1,
+        kind=kind,
+        bbox=box,
+        resolved_bbox=box,
+        height=top - bottom,
+        preserved=kind in {"code", "formula", "figure"},
         has_continuation=False,
     )
 
@@ -78,12 +83,19 @@ def _plan(placements):
     """Render-plan entries for an integration run (dst == src, simple flow cmd)."""
     entries = []
     for p in placements:
-        entries.append({
-            "block_id": f"p1_{p.block_index}", "page": 1, "kind": p.kind,
-            "src_box": list(p.resolved_bbox), "dst_box": list(p.resolved_bbox),
-            "text": "t", "translated": "t", "font_size": 11.0,
-            "render_payload": {"kind": p.kind, "commands": []},
-        })
+        entries.append(
+            {
+                "block_id": f"p1_{p.block_index}",
+                "page": 1,
+                "kind": p.kind,
+                "src_box": list(p.resolved_bbox),
+                "dst_box": list(p.resolved_bbox),
+                "text": "t",
+                "translated": "t",
+                "font_size": 11.0,
+                "render_payload": {"kind": p.kind, "commands": []},
+            }
+        )
     return entries
 
 
@@ -108,7 +120,7 @@ class TestOrderedCascadePlan(unittest.TestCase):
         # let L descend 50pt INTO the preserved region — the exact old-bug
         # signature.  The floor is the drawn bottom, never the box top.
         u = _blk(0, top=720, bottom=560)
-        l = _blk(1, top=700, bottom=650)       # required = 700-560 = 140
+        l = _blk(1, top=700, bottom=650)  # required = 700-560 = 140
         f = _blk(2, top=640, bottom=600, kind="code")  # preserved
         self.assertEqual(_ordered_cascade_plan([u, l, f], 792.0), {1: 10.0})
 
@@ -126,10 +138,9 @@ class TestOrderedCascadePlan(unittest.TestCase):
         # receiver's FINAL position, so L descends 15 fully while b2 absorbs
         # its 25.  All three end touching — nothing left unresolved.
         b0 = _blk(0, top=700, bottom=600)
-        b1 = _blk(1, top=615, bottom=550)   # overlaps b0
-        b2 = _blk(2, top=560, bottom=500)   # overlaps b1
-        self.assertEqual(_ordered_cascade_plan([b0, b1, b2], 792.0),
-                         {1: 15.0, 2: 25.0})
+        b1 = _blk(1, top=615, bottom=550)  # overlaps b0
+        b2 = _blk(2, top=560, bottom=500)  # overlaps b1
+        self.assertEqual(_ordered_cascade_plan([b0, b1, b2], 792.0), {1: 15.0, 2: 25.0})
 
     def test_side_by_side_receiver_is_not_a_floor(self):
         # L in the left column is forced down; a block in a fully x-disjoint
@@ -138,8 +149,7 @@ class TestOrderedCascadePlan(unittest.TestCase):
         u = _blk(0, top=700, bottom=560)
         l = _blk(1, top=680, bottom=600)
         other = _blk(2, top=590, bottom=500, x0=400.0, x1=560.0)
-        self.assertEqual(_ordered_cascade_plan([u, l, other], 792.0),
-                         {1: 120.0})
+        self.assertEqual(_ordered_cascade_plan([u, l, other], 792.0), {1: 120.0})
 
     def test_page_bottom_shifts_that_fit_stay_and_bottom_breaks_stay_out(self):
         # the page-bottom edge is the last-resort floor.  A required shift that
@@ -147,7 +157,7 @@ class TestOrderedCascadePlan(unittest.TestCase):
         # bottom is NOT a SHIFT_DOWN at all (8c decides NEXT_PAGE → 8e's job),
         # so it must never enter the 8d move map.
         u = _blk(0, top=700, bottom=620)
-        fits = _blk(1, top=680, bottom=70)   # req 60, bottom 70-60=10 >= 0
+        fits = _blk(1, top=680, bottom=70)  # req 60, bottom 70-60=10 >= 0
         self.assertEqual(_ordered_cascade_plan([u, fits], 792.0), {1: 60.0})
         crosses = _blk(1, top=680, bottom=20)  # req 60, bottom 20-60<0 → NEXT_PAGE
         self.assertEqual(_ordered_cascade_plan([u, crosses], 792.0), {})
@@ -190,10 +200,19 @@ class TestApplyShifts7g4(unittest.TestCase):
             BlockShiftDecision,
             PageRecoveryDecision,
         )
-        shifted = apply_block_shift(l, BlockShiftDecision(
-            block_index=1, page=1, decision=PageRecoveryDecision.SHIFT_DOWN,
-            shift_y=80.0, reason="overlap",
-            source_bbox=l.bbox, resolved_bbox=l.resolved_bbox))
+
+        shifted = apply_block_shift(
+            l,
+            BlockShiftDecision(
+                block_index=1,
+                page=1,
+                decision=PageRecoveryDecision.SHIFT_DOWN,
+                shift_y=80.0,
+                reason="overlap",
+                source_bbox=l.bbox,
+                resolved_bbox=l.resolved_bbox,
+            ),
+        )
         self.assertEqual(shifted.resolved_bbox, (60.0, 560.0, 260.0, 600.0))
         self.assertEqual(shifted.bbox, l.bbox)  # source never changes
 
@@ -202,8 +221,8 @@ class TestApplyShifts7g4(unittest.TestCase):
         # receiver-at-FINAL lets the whole chain slide to a touching, overlap-
         # free final state — nothing unresolved, nothing shoved onto a receiver.
         b0 = _blk(0, top=700, bottom=600)
-        b1 = _blk(1, top=615, bottom=550)   # overlaps b0 (req 15)
-        b2 = _blk(2, top=560, bottom=500)   # overlaps b1
+        b1 = _blk(1, top=615, bottom=550)  # overlaps b0 (req 15)
+        b2 = _blk(2, top=560, bottom=500)  # overlaps b1
         plan = _plan([b0, b1, b2])
         final, report = resolve_page_shifts(plan, page_sizes={1: 792.0})
         self.assertEqual(report.unresolved, [])
@@ -212,6 +231,7 @@ class TestApplyShifts7g4(unittest.TestCase):
         self.assertEqual(final[2].resolved_bbox, (60.0, 475.0, 260.0, 535.0))
         # the final placements carry no resolved collisions
         from pdf2zh.semantic.layout.page_flow import detect_collisions_from_placements
+
         self.assertEqual(detect_collisions_from_placements(final), [])
 
 

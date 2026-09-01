@@ -74,9 +74,13 @@ def main() -> int:
         s = states["source"]
         row["source_present"] = bool(s and s["per_page"].get(page, {}).get("annots", 0))
         p = states["preprocess"]
-        row["preprocess_present"] = bool(p and p["per_page"].get(page, {}).get("annots", 0))
-        row["first_divergence"] = "source" if not row["source_present"] else (
-            "preprocess" if not row["preprocess_present"] else "output"
+        row["preprocess_present"] = bool(
+            p and p["per_page"].get(page, {}).get("annots", 0)
+        )
+        row["first_divergence"] = (
+            "source"
+            if not row["source_present"]
+            else ("preprocess" if not row["preprocess_present"] else "output")
         )
         cases.append(row)
 

@@ -22,7 +22,9 @@ from pdf2zh.v3.toc_render_sidechannel import (
 )
 
 
-def _entry(number="1.", title_only="Introduction", title_x=72.0, page_x=540.0, page_number="1"):
+def _entry(
+    number="1.", title_only="Introduction", title_x=72.0, page_x=540.0, page_number="1"
+):
     return {
         "title": f"{number} {title_only}".strip(),
         "number": number,
@@ -60,7 +62,9 @@ def _toc_block(entries):
 class TestBuildBlockTocPayload(unittest.TestCase):
     def test_payload_json_safe_with_commands(self):
         payload = build_block_toc_payload(
-            _toc_block([_entry(), _entry("2.", "Method", title_x=96.0, page_number="5")]),
+            _toc_block(
+                [_entry(), _entry("2.", "Method", title_x=96.0, page_number="5")]
+            ),
             size=10.0,
         )
         json.dumps(payload)
@@ -94,7 +98,14 @@ class TestBuildBlockTocPayload(unittest.TestCase):
 class TestBuildPageTocPayload(unittest.TestCase):
     def test_non_toc_page_returns_empty_commands(self):
         payload = build_page_toc_payload(
-            [{"text": "Just a normal paragraph", "x0": 72.0, "x1": 400.0, "size": 10.0}],
+            [
+                {
+                    "text": "Just a normal paragraph",
+                    "x0": 72.0,
+                    "x1": 400.0,
+                    "size": 10.0,
+                }
+            ],
             page_width=612.0,
             translate=lambda s: s,
         )
@@ -102,8 +113,18 @@ class TestBuildPageTocPayload(unittest.TestCase):
 
     def test_translate_only_receives_title_only(self):
         lines = [
-            {"text": "1. Introduction ............ 3", "x0": 72.0, "x1": 540.0, "size": 10.0},
-            {"text": "2. Method ................. 15", "x0": 72.0, "x1": 540.0, "size": 10.0},
+            {
+                "text": "1. Introduction ............ 3",
+                "x0": 72.0,
+                "x1": 540.0,
+                "size": 10.0,
+            },
+            {
+                "text": "2. Method ................. 15",
+                "x0": 72.0,
+                "x1": 540.0,
+                "size": 10.0,
+            },
         ]
         calls: list = []
 

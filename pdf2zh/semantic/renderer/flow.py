@@ -103,9 +103,7 @@ class FlowTextRenderer:
         """
         fs = float(result.font_size or 11.0)
         step = (
-            float(line_step)
-            if line_step is not None
-            else fs * float(self.line_height)
+            float(line_step) if line_step is not None else fs * float(self.line_height)
         )
         ox, oy = origin or (float(result.bbox[0]), float(result.bbox[1]))
         n = len(result.lines)

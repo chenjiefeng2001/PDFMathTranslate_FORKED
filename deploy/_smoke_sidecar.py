@@ -4,6 +4,7 @@
 启动 exe → 轮询 health → 验证 gpu/provider、selftest/babeldoc、engines →
 退出并汇报。验证 excludes 瘦身后运行链路完好、GPU provider 按需下载端点就绪。
 """
+
 import json
 import subprocess
 import sys
@@ -22,7 +23,9 @@ def http_get(path, timeout=30):
 
 def http_post(path, timeout=30):
     req = urllib.request.Request(
-        BASE + path, data=b"", method="POST",
+        BASE + path,
+        data=b"",
+        method="POST",
         headers={"Content-Type": "application/json"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -32,8 +35,11 @@ def http_post(path, timeout=30):
 def main():
     proc = subprocess.Popen(
         [EXE, "--port", str(PORT)],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-        encoding="utf-8", errors="replace",
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     try:
         # 轮询 health（sidecar 启动会预热 worker 池）
@@ -67,6 +73,7 @@ def main():
 
         # 验证 sklearn DBSCAN（babeldoc 版面聚类的依赖）在 frozen 下可用
         import importlib.util
+
         # 通过 selftest/babeldoc 已覆盖 babeldoc import；再显式验证 sklearn
         code = (
             "from sklearn.cluster import DBSCAN;"

@@ -112,8 +112,10 @@ def move_entry_to_page(entry: dict, delta: float, target_page: int) -> None:
     dst = entry.get("dst_box")
     if isinstance(dst, list) and len(dst) == 4:
         entry["dst_box"] = [
-            dst[0], round(float(dst[1]) + delta, 2),
-            dst[2], round(float(dst[3]) + delta, 2),
+            dst[0],
+            round(float(dst[1]) + delta, 2),
+            dst[2],
+            round(float(dst[3]) + delta, 2),
         ]
     moved: set[int] = set()
     payload = entry.get("render_payload")
@@ -172,8 +174,11 @@ class PageBreakExecutionReport:
             "applied": [e.to_dict() for e in self.applied],
             "deferred": [e.to_dict() for e in self.deferred],
             "unresolved": [
-                p.to_dict() if isinstance(p, BlockPlacement)
-                else (p.to_dict() if hasattr(p, "to_dict") else str(p))
+                (
+                    p.to_dict()
+                    if isinstance(p, BlockPlacement)
+                    else (p.to_dict() if hasattr(p, "to_dict") else str(p))
+                )
                 for p in self.unresolved
             ],
         }
@@ -284,9 +289,7 @@ def execute_page_breaks(
             report.deferred.append(record)
             report.unresolved.append(p)
             continue
-        mapped = break_placement_to_page(
-            p, target_page=target, page_start_y=next_y
-        )
+        mapped = break_placement_to_page(p, target_page=target, page_start_y=next_y)
         # only page + y: the whole block re-anchors its top at the start of the
         # target page; X / height / source geometry are copied verbatim.
         delta = round(float(mapped.resolved_bbox[3]) - float(p.resolved_bbox[3]), 2)

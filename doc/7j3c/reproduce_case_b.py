@@ -37,7 +37,9 @@ def make_source_pdf(path: Path) -> None:
     page = doc.new_page(width=360, height=140)
     page.insert_font(fontname="seg", fontfile=FONTFILE)
     page.insert_text((40, 55), SPECIALS, fontname="seg", fontsize=14)
-    page.insert_text((40, 85), "plain ascii line one two three", fontname="seg", fontsize=14)
+    page.insert_text(
+        (40, 85), "plain ascii line one two three", fontname="seg", fontsize=14
+    )
     doc.save(str(path))
     doc.close()
 
@@ -58,7 +60,9 @@ def make_stub_preserve_translator():
     class _Stub(YadtBaseTranslator):
         name = "stub7j3c"
 
-        def __init__(self, lang_in: str, lang_out: str, log_path: Path | None = None) -> None:
+        def __init__(
+            self, lang_in: str, lang_out: str, log_path: Path | None = None
+        ) -> None:
             self.lang_in = lang_in
             self.lang_out = lang_out
             self.ignore_cache = True
@@ -118,7 +122,9 @@ async def run_translate(work: Path, out_dir: Path) -> None:
 
     apply_babeldoc_xobj_shim()
     yadt_init()
-    translator = make_stub_preserve_translator()("en", "zh", log_path=out_dir / "translator.log")
+    translator = make_stub_preserve_translator()(
+        "en", "zh", log_path=out_dir / "translator.log"
+    )
     cfg = YadtConfig(
         translator=translator,
         input_file=str(work),

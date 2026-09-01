@@ -31,8 +31,8 @@ from pdf2zh.semantic.layout.primitives import (
     PreservedRegion,
 )
 
-
 # -- 1. FixedAnchor preserves x -------------------------------------------
+
 
 def test_fixed_anchor_preserves_x():
     a = FixedAnchor(text="content", x=123.4, y=50.0)
@@ -57,6 +57,7 @@ def test_toc_title_anchor_title_x_passthrough():
 
 # -- 2. FixedColumn preserves x -------------------------------------------
 
+
 def test_fixed_column_preserves_x():
     col = FixedColumn(text="42", column_x=540.5, y=30.0)
     assert col.column_x == 540.5
@@ -72,6 +73,7 @@ def test_toc_page_column_keeps_original_page_x():
 
 
 # -- 3. PreservedRegion preserves bbox ------------------------------------
+
 
 def test_preserved_region_preserves_bbox():
     r = PreservedRegion(text="x = a + b", bbox=(30.0, 40.0, 220.0, 66.0))
@@ -89,10 +91,14 @@ def test_mapped_preserved_region():
 
 # -- 4. FlowText exposes max width ----------------------------------------
 
+
 def test_flow_text_exposes_max_width_height():
     f = FlowText(
-        text="A paragraph", origin=(50.0, 60.0), max_width=400.0,
-        max_height=120.0, line_height=14.0,
+        text="A paragraph",
+        origin=(50.0, 60.0),
+        max_width=400.0,
+        max_height=120.0,
+        line_height=14.0,
     )
     assert f.max_width == 400.0
     assert f.max_height == 120.0
@@ -110,6 +116,7 @@ def test_flow_text_mapping():
 
 # -- 5. Continuation preserves parent anchor ------------------------------
 
+
 def test_continuation_preserves_parent_anchor():
     parent = FixedAnchor(text="first", x=96.0, y=40.0, role="content_x")
     cont = list_continuation(text="wrapped", x=96.0, y=55.0, parent=parent)
@@ -125,6 +132,7 @@ def test_continuation_default_parent_none():
 
 
 # -- 6/8. Payload mapping (Paragraph / List / TOC / Code) ------------------
+
 
 def test_mapping_paragraph_to_flow():
     f = flow_text("normal text", origin=(70.0, 80.0))
@@ -156,6 +164,7 @@ def test_mapping_code_to_preserved():
 
 # -- 9/10. Geometry never derived from index / level -----------------------
 
+
 def test_geometry_not_derived_from_index():
     """Two FixedColumns with different column_x must keep their own values (no
     ``index * width`` propagation) — the primitive holds whatever the parser
@@ -181,6 +190,7 @@ def test_geometry_not_derived_from_level():
 
 
 # -- 12/13/14. List / Code / Style behavior unchanged ----------------------
+
 
 def test_list_renderer_contract_unchanged():
     """ListRenderer still emits marker PRESERVE + content at original content_x
@@ -220,7 +230,10 @@ def test_style_contract_unchanged():
     """The layout layer carries geometry only; style markers are translated by
     the existing style pipeline untouched (no regression here)."""
     from pdf2zh.semantic.models import SpanStyle
-    from pdf2zh.semantic.style_detector import extract_style_markers, inject_style_markers
+    from pdf2zh.semantic.style_detector import (
+        extract_style_markers,
+        inject_style_markers,
+    )
     from pdf2zh.semantic.style_translate import translate_styled_paragraph
 
     bold = [SpanStyle(bold=True)] * 3
@@ -233,6 +246,7 @@ def test_style_contract_unchanged():
 
 
 # -- Constraints interact with primitives (integration) --------------------
+
 
 def test_flow_geometry_combined_with_constraint():
     f = FlowText(text="x", origin=(10.0, 20.0), max_width=500.0, max_height=100.0)

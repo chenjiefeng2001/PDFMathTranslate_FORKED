@@ -59,7 +59,9 @@ def code_flags_for(sstk, pfkstk, pageid) -> list[bool]:
         if node is not None:
             log.debug(
                 "code-protect page=%s block=%d lines=%d",
-                pageid, i, len(node.lines),
+                pageid,
+                i,
+                len(node.lines),
             )
         flags.append(node is not None)
     return flags
@@ -118,7 +120,10 @@ def prepare_protection(sstk, pfkstk, cstyles, toc_specs, pageid):
             if is_code:
                 log.debug(
                     "code-protect page=%s block=%d score=%.1f reasons=%s",
-                    pageid, i, score, reasons,
+                    pageid,
+                    i,
+                    score,
+                    reasons,
                 )
         code_flags.append(is_code)
         if not (_style and not is_code and (toc_specs[i] is None)):

@@ -67,10 +67,12 @@ class ProtectionPolicy(Enum):
     without touching the converter:
     """
 
-    TRANSLATE = "translate"                       # normal paragraph
-    PRESERVE = "preserve"                         # never translated (code/formula/figure)
-    TRANSLATE_KEEP_STYLE = "translate_keep_style"     # translate + restore bold/italic
-    TRANSLATE_KEEP_GEOMETRY = "translate_keep_geometry"  # translate + keep markers/alignment
+    TRANSLATE = "translate"  # normal paragraph
+    PRESERVE = "preserve"  # never translated (code/formula/figure)
+    TRANSLATE_KEEP_STYLE = "translate_keep_style"  # translate + restore bold/italic
+    TRANSLATE_KEEP_GEOMETRY = (
+        "translate_keep_geometry"  # translate + keep markers/alignment
+    )
 
 
 #: Default policy per region (the plan's policy table).

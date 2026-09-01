@@ -102,11 +102,7 @@ def dump_list_debug(pdf_path: str, out_dir: str | None = None) -> dict:
             ys0 = [it.bbox[1] for it in items_nodes if it.bbox]
             xs1 = [it.bbox[2] for it in items_nodes if it.bbox]
             ys1 = [it.bbox[3] for it in items_nodes if it.bbox]
-            bbox = (
-                [min(xs0), min(ys0), max(xs1), max(ys1)]
-                if xs0
-                else [0, 0, 0, 0]
-            )
+            bbox = [min(xs0), min(ys0), max(xs1), max(ys1)] if xs0 else [0, 0, 0, 0]
             pages[str(pno + 1)] = [
                 {
                     "type": "list",

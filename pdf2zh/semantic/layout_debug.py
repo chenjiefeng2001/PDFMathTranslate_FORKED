@@ -59,9 +59,16 @@ def dump_layout_debug(pdf_path: str, out_dir: str | None = None) -> dict:
     Returns the payload dict (also written to disk).  Any failure is recorded
     as an empty diagnostics payload — observability never raises.
     """
-    payload = {"schema_version": 1, "diagnostics": [], "summary": {
-        "blocks": 0, "overflow": 0, "recovered": 0, "preserved_overflow": 0,
-    }}
+    payload = {
+        "schema_version": 1,
+        "diagnostics": [],
+        "summary": {
+            "blocks": 0,
+            "overflow": 0,
+            "recovered": 0,
+            "preserved_overflow": 0,
+        },
+    }
     try:
         from pdfminer.high_level import extract_pages
 

@@ -18,8 +18,8 @@ import inspect
 
 from pdf2zh.semantic.renderer.toc import TocRenderer, build_page_toc_plan
 
-
 # ── fixtures ──────────────────────────────────────────────────────────────
+
 
 def _entry(
     number="",
@@ -52,9 +52,10 @@ def _entry(
 
 def _fixed_measure(size=10.0):
     """Fake width measurer: 1pt per Latin char, 2pt per CJK, 0pt for space/dot."""
+
     def m(text, sz=size):
         w = 0.0
-        for ch in (text or ""):
+        for ch in text or "":
             if ch.isspace() or ch == ".":
                 w += sz * 0.3
             elif ord(ch) >= 0x2E80:
@@ -62,10 +63,12 @@ def _fixed_measure(size=10.0):
             else:
                 w += sz * 0.5
         return w
+
     return m
 
 
 # ── marker numbering preserved ────────────────────────────────────────────
+
 
 def test_numbering_never_translated():
     """Numbering prefix never enters translate callback."""
@@ -95,12 +98,15 @@ def test_numbering_position_at_title_x():
 
 # ── page number preserved ────────────────────────────────────────────────
 
+
 def test_page_number_never_translated():
     calls = []
     renderer = TocRenderer(measure_width=_fixed_measure())
+
     def _spy(s):
         calls.append(s)
         return f"译_{s}"
+
     entries = [_entry(page_number="42")]
     cmds = renderer.render(entries, ys=[0.0], size=10.0, translate=_spy)
     pages = [c for c in cmds if c.kind == "page"]
@@ -116,7 +122,13 @@ def test_page_number_x_unchanged_when_title_grows():
     cmds_short = renderer.render(entries_short, ys=[0.0], size=10.0)
     x_before = [c.x for c in cmds_short if c.kind == "page"][0]
 
-    entries_long = [_entry(title_only="A much longer title that will push the leader", page_x=500.0, title_x=72.0)]
+    entries_long = [
+        _entry(
+            title_only="A much longer title that will push the leader",
+            page_x=500.0,
+            title_x=72.0,
+        )
+    ]
     cmds_long = renderer.render(entries_long, ys=[0.0], size=10.0)
     x_after = [c.x for c in cmds_long if c.kind == "page"][0]
 
@@ -130,6 +142,7 @@ def test_page_number_x_unchanged_when_title_grows():
 
 
 # ── dot leader regeneration ──────────────────────────────────────────────
+
 
 def test_leader_fills_to_page_x():
     renderer = TocRenderer(measure_width=_fixed_measure())
@@ -162,6 +175,7 @@ def test_leader_uses_original_dot_leader_char():
 
 # ── title_x / page_x / indent preserved from node ────────────────────────
 
+
 def test_title_x_from_node_not_recomputed():
     renderer = TocRenderer(measure_width=_fixed_measure())
     entries = [_entry(number="2.1", title_only="Dataset", title_x=96.0, level=2)]
@@ -177,8 +191,12 @@ def test_nested_level_preserves_independent_title_x():
     renderer = TocRenderer(measure_width=_fixed_measure())
     entries = [
         _entry(number="1", title_only="Intro", level=0, title_x=72.0, indent=72.0),
-        _entry(number="1.1", title_only="Background", level=1, title_x=108.0, indent=108.0),
-        _entry(number="1.1.1", title_only="Dataset", level=2, title_x=138.0, indent=138.0),
+        _entry(
+            number="1.1", title_only="Background", level=1, title_x=108.0, indent=108.0
+        ),
+        _entry(
+            number="1.1.1", title_only="Dataset", level=2, title_x=138.0, indent=138.0
+        ),
     ]
     cmds = renderer.render(entries, ys=[0.0, 14.0, 28.0], size=10.0)
     nums = [c for c in cmds if c.kind == "number"]
@@ -188,6 +206,7 @@ def test_nested_level_preserves_independent_title_x():
 
 
 # ── multi-line entry ─────────────────────────────────────────────────────
+
 
 def test_continuation_vertical_progression():
     renderer = TocRenderer(measure_width=_fixed_measure(), line_height=14.0)
@@ -220,6 +239,7 @@ def test_long_title_does_not_move_page_number():
 
 # ── CJK width handling ───────────────────────────────────────────────────
 
+
 def test_cjk_title_x_unchanged():
     renderer = TocRenderer(measure_width=_fixed_measure())
     entries = [_entry(title_only="引言", number="", title_x=80.0, leader_present=False)]
@@ -232,7 +252,11 @@ def test_cjk_title_x_unchanged():
 def test_cjk_longer_title_leader_shorter():
     renderer = TocRenderer(measure_width=_fixed_measure())
     short_e = [_entry(title_only="简介", page_x=500.0)]
-    long_e = [_entry(title_only="一个非常非常长的中文标题说明这是一个很长的条目", page_x=500.0)]
+    long_e = [
+        _entry(
+            title_only="一个非常非常长的中文标题说明这是一个很长的条目", page_x=500.0
+        )
+    ]
     cmds_s = renderer.render(short_e, ys=[0.0], size=10.0)
     cmds_l = renderer.render(long_e, ys=[0.0], size=10.0)
     s_len = sum(len(c.text) for c in cmds_s if c.kind == "leader")
@@ -250,8 +274,10 @@ def test_cjk_page_number_x_unchanged():
 
 # ── render_plan JSON serializable ─────────────────────────────────────────
 
+
 def test_render_plan_json_serializable():
     import json
+
     renderer = TocRenderer(measure_width=_fixed_measure())
     entries = [_entry(), _entry(title_only="Method")]
     plan = renderer.render_plan(entries, ys=[0.0, 14.0])
@@ -262,8 +288,10 @@ def test_render_plan_json_serializable():
 
 # ── no translator inside renderer ─────────────────────────────────────────
 
+
 def test_renderer_has_no_translator_import():
     import pdf2zh.semantic.renderer.toc as mod
+
     src = inspect.getsource(mod)
     assert "from pdf2zh.translator" not in src
     assert "import pdf2zh.translator" not in src
@@ -271,6 +299,7 @@ def test_renderer_has_no_translator_import():
 
 
 # ── build_page_toc_plan integration ───────────────────────────────────────
+
 
 def test_build_page_toc_plan_detects_toc_and_renders():
     lines = [

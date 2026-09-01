@@ -55,7 +55,9 @@ def test_bold_survives_translation():
 def test_italic_survives_translation():
     src = "Italics are used here"
     styles = _styles_for(src, [((0, 7), SpanStyle(italic=True))])  # "Italics"
-    para = translate_styled_paragraph(src, styles, lambda m: m.replace("Italics", "斜体"))
+    para = translate_styled_paragraph(
+        src, styles, lambda m: m.replace("Italics", "斜体")
+    )
     assert not para.recovered
     assert "斜体" in para.text
     ital = "".join(sp.text for sp in para.spans if sp.style.italic)
@@ -93,10 +95,12 @@ def test_chinese_bold_translation_boundary():
 def test_cross_span_reorder_preserves_style():
     src = "A bold then plain"
     styles = _styles_for(src, [((2, 6), SpanStyle(bold=True))])  # "bold"
+
     def tr(marked):
         # 翻译器把实际内容重排：加粗部分移到句首，marker 随文本移动
         assert "<b0>bold</b0>" in marked
         return "<b0>加粗</b0> 然后是普通"
+
     para = translate_styled_paragraph(src, styles, tr)
     assert not para.recovered
     assert para.text == "加粗 然后是普通"
@@ -120,9 +124,11 @@ def test_cross_span_split_text_boundaries_kept():
 def test_dropped_closing_tag_falls_back_unstyled():
     src = "A very bold tail"
     styles = _styles_for(src, [((7, 12), SpanStyle(bold=True))])
+
     def tr(marked):
         assert "<b0>" in marked
         return marked.replace("</b0>", "")  # 模型吞掉关闭标记 → 不平衡
+
     para = translate_styled_paragraph(src, styles, tr)
     assert para.recovered
     assert para.text == "A very bold tail"  # 残余 <b0> 被剥离，译文完整
@@ -176,7 +182,9 @@ def test_empty_input_returns_empty():
 
 # ── collapse 与 styled_text 辅助 ─────────────────────────────
 def test_collapse_merges_adjacent_same_style():
-    spans = collapse_styled_spans("aXb", [SpanStyle(), SpanStyle(bold=True), SpanStyle()])
+    spans = collapse_styled_spans(
+        "aXb", [SpanStyle(), SpanStyle(bold=True), SpanStyle()]
+    )
     assert [s.style for s in spans] == [SpanStyle(), SpanStyle(bold=True), SpanStyle()]
     assert "".join(s.text for s in spans) == "aXb"
     merged = collapse_styled_spans("abb", [SpanStyle(bold=True)] * 3)
@@ -198,4 +206,5 @@ def test_styled_text_extracts_style_payload():
 if __name__ == "__main__":
     import sys
     import pytest
+
     sys.exit(pytest.main([__file__]))

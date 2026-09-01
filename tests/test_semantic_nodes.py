@@ -53,23 +53,30 @@ def test_nested_list_structure_walk():
     item1 = ListItemNode(marker="1.", marker_type="decimal", content="Intro", level=0)
     child_list = ListNode(level=1)
     child_list.items.append(
-        ListItemNode(marker="a.", marker_type="lower_alpha", content="Background", level=1)
+        ListItemNode(
+            marker="a.", marker_type="lower_alpha", content="Background", level=1
+        )
     )
     item1.children.append(child_list)
     root.items.append(item1)
 
     kinds = [n.region_type for n in root.walk()]
     assert kinds == [
-        RegionType.LIST,   # root
-        RegionType.LIST,   # item1 本身
-        RegionType.LIST,   # 嵌套 child_list
-        RegionType.LIST,   # child item
+        RegionType.LIST,  # root
+        RegionType.LIST,  # item1 本身
+        RegionType.LIST,  # 嵌套 child_list
+        RegionType.LIST,  # child item
     ]
 
 
 def test_list_item_to_dict():
-    it = ListItemNode(marker="1.", marker_type="decimal", content="Data",
-                      continuation=["continuation line"], level=0)
+    it = ListItemNode(
+        marker="1.",
+        marker_type="decimal",
+        content="Data",
+        continuation=["continuation line"],
+        level=0,
+    )
     d = it.to_dict()
     assert d["marker"] == "1."
     assert d["continuation"] == ["continuation line"]

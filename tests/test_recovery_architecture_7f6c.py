@@ -36,10 +36,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -79,10 +82,13 @@ def _code_ast(source: str) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -108,7 +114,10 @@ def test_adaptive_layout_is_the_only_public_executor():
             src = _code(py)
             for stmt in ast.walk(ast.parse(src)):
                 if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    if stmt.name.startswith("adaptive") and stmt.name != "adaptive_layout":
+                    if (
+                        stmt.name.startswith("adaptive")
+                        and stmt.name != "adaptive_layout"
+                    ):
                         raise AssertionError(
                             f"{py.relative_to(_ROOT)} 定义了第二个 executor: {stmt.name}"
                         )
@@ -128,7 +137,9 @@ def test_adaptive_layout_still_exported():
 def test_list_layout_calls_adaptive_layout():
     src = _code(_LAYOUT_DIR / "list_layout.py")
     assert "adaptive_layout(" in src
-    assert "budget_for_kind(" in src and "list_content" in src  # 共享 list_content budget
+    assert (
+        "budget_for_kind(" in src and "list_content" in src
+    )  # 共享 list_content budget
 
 
 def test_toc_layout_calls_adaptive_layout_no_own_ladder():
@@ -221,4 +232,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

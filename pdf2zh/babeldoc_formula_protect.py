@@ -70,9 +70,7 @@ def _looks_like_misclassified_text(formula) -> bool:
     chars = list(getattr(formula, "pdf_character", None) or [])
     if not chars:
         return False
-    text = "".join(
-        c.char_unicode for c in chars if getattr(c, "char_unicode", None)
-    )
+    text = "".join(c.char_unicode for c in chars if getattr(c, "char_unicode", None))
     if not text.strip():
         return False
     if _CJK_RE.search(text):
@@ -115,9 +113,7 @@ def apply_babeldoc_formula_protect() -> None:
                 StylesAndFormulas,
             )
         except Exception:  # noqa: BLE001 -- babeldoc 缺失/导入失败静默跳过
-            logger.debug(
-                "babeldoc formula protect: StylesAndFormulas unavailable"
-            )
+            logger.debug("babeldoc formula protect: StylesAndFormulas unavailable")
             return
         original = getattr(StylesAndFormulas, "is_translatable_formula", None)
         if original is None:

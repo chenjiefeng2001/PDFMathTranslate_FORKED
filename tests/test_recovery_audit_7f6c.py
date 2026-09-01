@@ -47,8 +47,11 @@ def _measure(text, size):
 def test_flow_short_audit_no_recovery():
     r = adaptive_layout(
         FlowText(text="Hello", origin=(0.0, 0.0), max_width=200.0),
-        measure=_measure, avail_width=200.0, avail_height=400.0,
-        font_size=10.0, budget=budget_for_kind("flow"),
+        measure=_measure,
+        avail_width=200.0,
+        avail_height=400.0,
+        font_size=10.0,
+        budget=budget_for_kind("flow"),
     )
     a = audit_recovery(r)
     assert a["recovery_policy_integrity"] == 1.0
@@ -62,8 +65,11 @@ def test_flow_short_audit_no_recovery():
 def test_flow_clip_audit_policy_consistent():
     r = adaptive_layout(
         FlowText(text="A" * 60, origin=(0.0, 0.0), max_width=40.0, max_height=400.0),
-        measure=_measure, avail_width=40.0, avail_height=400.0,
-        font_size=10.0, budget=budget_for_kind("flow"),
+        measure=_measure,
+        avail_width=40.0,
+        avail_height=400.0,
+        font_size=10.0,
+        budget=budget_for_kind("flow"),
     )
     assert r.overflow is True
     a = audit_recovery(r)
@@ -91,15 +97,21 @@ def test_code_audit_never_recovers():
 
 def _list_item(content, content_width=200.0):
     return ListItemNode(
-        marker="1.", marker_x=40.0, content_x=52.0,
-        content_width=content_width, y=700.0, content=content,
+        marker="1.",
+        marker_x=40.0,
+        content_x=52.0,
+        content_width=content_width,
+        y=700.0,
+        content=content,
     )
 
 
 def test_list_audit_marker_never_recovered():
     agg = layout_list_item(
         _list_item("A" * 1000, content_width=60.0),
-        measure=_measure, font_size=10.0, content_text="A" * 1000,
+        measure=_measure,
+        font_size=10.0,
+        content_text="A" * 1000,
     )
     assert agg.marker.lines == ["1."]
     assert not agg.marker.recovery_steps and not agg.marker.recovery_decision
@@ -112,7 +124,9 @@ def test_list_audit_marker_never_recovered():
 def test_list_audit_clean_item():
     agg = layout_list_item(
         _list_item("First item"),
-        measure=_measure, font_size=10.0, content_text="First item",
+        measure=_measure,
+        font_size=10.0,
+        content_text="First item",
     )
     a = audit_list(agg)
     assert a["list_recovery_integrity"] == 1.0
@@ -125,8 +139,9 @@ def test_list_audit_clean_item():
 # ---------------------------------------------------------------------------
 
 
-def _entry(page_x=500.0, title_x=72.0, number="", page_number="12",
-           leader_present=True):
+def _entry(
+    page_x=500.0, title_x=72.0, number="", page_number="12", leader_present=True
+):
     return {
         "title": (f"{number} Introduction").strip(),
         "number": number,
@@ -145,7 +160,10 @@ def _entry(page_x=500.0, title_x=72.0, number="", page_number="12",
 
 def test_toc_audit_wrap_no_clip():
     agg = layout_toc_entry(
-        _entry(), measure=_measure, size=10.0, y=750.0,
+        _entry(),
+        measure=_measure,
+        size=10.0,
+        y=750.0,
         translated_title=("word " * 30).strip(),
     )
     assert agg.recovery["decision"] == "wrap"
@@ -160,7 +178,10 @@ def test_toc_audit_wrap_no_clip():
 
 def test_toc_audit_shrink_font_ratio():
     agg = layout_toc_entry(
-        _entry(), measure=_measure, size=10.0, y=750.0,
+        _entry(),
+        measure=_measure,
+        size=10.0,
+        y=750.0,
         translated_title=("word " * 60).strip(),
     )
     assert agg.recovery["decision"] == "shrink"
@@ -173,7 +194,10 @@ def test_toc_audit_shrink_font_ratio():
 
 def test_toc_audit_preserve_overflow_honest():
     agg = layout_toc_entry(
-        _entry(page_x=100.0), measure=_measure, size=10.0, y=750.0,
+        _entry(page_x=100.0),
+        measure=_measure,
+        size=10.0,
+        y=750.0,
         translated_title=("word " * 120).strip(),
     )
     assert agg.overflow is True
@@ -191,13 +215,26 @@ def test_toc_audit_silent_overflow_is_dishonest():
     from pdf2zh.semantic.layout.overflow import LayoutResult, OverflowPolicy
 
     fake_title = LayoutResult(
-        text="x", lines=["x"], line_widths=[5.0], overflow=False,
-        policy=OverflowPolicy.WRAP, font_size=10.0, primitive_kind="anchor",
+        text="x",
+        lines=["x"],
+        line_widths=[5.0],
+        overflow=False,
+        policy=OverflowPolicy.WRAP,
+        font_size=10.0,
+        primitive_kind="anchor",
     )
-    fake_agg = type("FakeToc", (), {
-        "title": fake_title, "page": None, "number": None, "leader": None,
-        "continuation": [], "overflow": True,  # claims overflow…
-    })()
+    fake_agg = type(
+        "FakeToc",
+        (),
+        {
+            "title": fake_title,
+            "page": None,
+            "number": None,
+            "leader": None,
+            "continuation": [],
+            "overflow": True,  # claims overflow…
+        },
+    )()
     a = audit_toc(fake_agg)
     # …but no channel actually overflowed and no recovery ran → dishonest
     assert a["toc_recovery_overflow"] == 0.0

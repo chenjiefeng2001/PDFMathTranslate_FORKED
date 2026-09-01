@@ -686,18 +686,17 @@ class PackingReport:
         return {
             **self.summary(),
             "per_column": [
-                {"page": pc[0], "col": pc[1], **sm.to_dict()}
-                for pc, sm in self.pages
+                {"page": pc[0], "col": pc[1], **sm.to_dict()} for pc, sm in self.pages
             ],
         }
 
 
 def _metrics(placements, page_height: float):
     cols = page_columns(placements)
-    total_gap = sum(c.internal_gap for c in (column_packing_metrics(c, page_height) for c in cols))
-    trail = [
-        column_packing_metrics(c, page_height).trailing_gap for c in cols
-    ]
+    total_gap = sum(
+        c.internal_gap for c in (column_packing_metrics(c, page_height) for c in cols)
+    )
+    trail = [column_packing_metrics(c, page_height).trailing_gap for c in cols]
     return _round2(total_gap), _round2(sum(trail) / len(trail)) if trail else 0.0
 
 
@@ -744,26 +743,32 @@ def resolve_packing(
         page_ph = float(sizes.get(pg, 0.0) or 0.0) or 792.0
         cols = page_columns(pages[pg])
         page_blocks = pages[pg]
-        occ_by_id = {id(p): spill_by_key.get((pg, p.block_index), 0.0)
-                     for p in page_blocks}
+        occ_by_id = {
+            id(p): spill_by_key.get((pg, p.block_index), 0.0) for p in page_blocks
+        }
 
         # phase 1 — compaction for every column; the cross-floor uses other
         # columns' ORIGINAL bottoms (conservative: compaction only moves up)
         col_up: dict[int, list] = {}
         col_compacted: dict[int, list] = {}
         for col in cols:
-            col_ex = [excess_by_key.get((pg, p.block_index), 0.0)
-                      for p in col.placements]
+            col_ex = [
+                excess_by_key.get((pg, p.block_index), 0.0) for p in col.placements
+            ]
             own_ids = {id(x) for x in col.placements}
             others = [b for b in page_blocks if id(b) not in own_ids]
-            deltas_up = compact_column(
-                col.placements,
-                gutter=cfg.gutter,
-                preserved_gutter=cfg.preserved_gutter,
-                glyph_excess=col_ex,
-                other_barriers=others,
-                occ_by_id=occ_by_id,
-            ) if cfg.compact else [0.0] * len(col.placements)
+            deltas_up = (
+                compact_column(
+                    col.placements,
+                    gutter=cfg.gutter,
+                    preserved_gutter=cfg.preserved_gutter,
+                    glyph_excess=col_ex,
+                    other_barriers=others,
+                    occ_by_id=occ_by_id,
+                )
+                if cfg.compact
+                else [0.0] * len(col.placements)
+            )
             col_up[id(col)] = deltas_up
             col_compacted[id(col)] = _applied(col.placements, deltas_up)
 
@@ -777,7 +782,8 @@ def resolve_packing(
             page_compacted.extend(compacted)
             for i, c in enumerate(compacted):
                 page_excess[id(c)] = excess_by_key.get(
-                    (pg, col.placements[i].block_index), 0.0)
+                    (pg, col.placements[i].block_index), 0.0
+                )
         for col in cols:
             compacted = col_compacted[id(col)]
             deltas_up = col_up[id(col)]
@@ -786,9 +792,10 @@ def resolve_packing(
             # the re-anchor floor belongs to the column's OWN compacted blocks
             # (new objects from `_moved`); key the occ map to those ids so the
             # lowest wrapped block's real bottom governs the descent floor
-            occ_own = {id(c): spill_by_key.get(
-                (pg, col.placements[i].block_index), 0.0)
-                for i, c in enumerate(compacted)}
+            occ_own = {
+                id(c): spill_by_key.get((pg, col.placements[i].block_index), 0.0)
+                for i, c in enumerate(compacted)
+            }
             down = (
                 column_reanchor(
                     compacted,
@@ -799,29 +806,40 @@ def resolve_packing(
                     other_barriers=barriers,
                     barrier_excess=page_excess,
                     occ_by_id=occ_own,
-                ) if cfg.re_anchor else 0.0
+                )
+                if cfg.re_anchor
+                else 0.0
             )
             for i, p in enumerate(col.placements):
                 dy = deltas_up[i] + down if not p.preserved else 0.0
                 per_key[(p.page, p.block_index)] = dy
             # per-column observability
-            moved = sum(1 for i, p in enumerate(col.placements)
-                        if not p.preserved and abs(deltas_up[i]) > _TOL)
+            moved = sum(
+                1
+                for i, p in enumerate(col.placements)
+                if not p.preserved and abs(deltas_up[i]) > _TOL
+            )
             before_gap, before_trail = _metrics(col.placements, page_ph)
             after_gap, after_trail = _metrics(
-                _applied(col.placements, [deltas_up[i] + down for i in range(len(col.placements))]),
+                _applied(
+                    col.placements,
+                    [deltas_up[i] + down for i in range(len(col.placements))],
+                ),
                 page_ph,
             )
             report.pages.append(
-                (pg, len(report.pages),
-                 PackSummary(
-                     before_internal_gap=before_gap,
-                     after_internal_gap=after_gap,
-                     before_trailing_gap=before_trail,
-                     after_trailing_gap=after_trail,
-                     moved_blocks=moved,
-                     reclaimed_gap_pt=_round2(before_gap - after_gap),
-                 ))
+                (
+                    pg,
+                    len(report.pages),
+                    PackSummary(
+                        before_internal_gap=before_gap,
+                        after_internal_gap=after_gap,
+                        before_trailing_gap=before_trail,
+                        after_trailing_gap=after_trail,
+                        moved_blocks=moved,
+                        reclaimed_gap_pt=_round2(before_gap - after_gap),
+                    ),
+                )
             )
             report.moves += moved
             report.reclaimed_internal_pt += max(0.0, before_gap - after_gap)
@@ -862,8 +880,10 @@ def _shift_entry_v(entry: dict, delta: float) -> None:
     dst = entry.get("dst_box")
     if isinstance(dst, list) and len(dst) == 4:
         entry["dst_box"] = [
-            dst[0], _round2(float(dst[1]) + delta),
-            dst[2], _round2(float(dst[3]) + delta),
+            dst[0],
+            _round2(float(dst[1]) + delta),
+            dst[2],
+            _round2(float(dst[3]) + delta),
         ]
     shifted: set[int] = set()
     payload = entry.get("render_payload")

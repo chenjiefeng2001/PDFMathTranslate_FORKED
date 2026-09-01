@@ -22,6 +22,7 @@ from pdf2zh.semantic.layout.wrap import (
 
 _SIZE = 8.0  # latin 4pt, CJK 8pt
 
+
 def _measure(text, size=_SIZE):
     w = 0.0
     for ch in text or "":
@@ -46,6 +47,7 @@ def _all_lines_within(lines, max_width):
 
 # -- short text ------------------------------------------------------------
 
+
 def test_short_text_single_line():
     lines = wrap_lines("Hello", _bound("Hello"), 200.0)
     assert len(lines) == 1
@@ -61,6 +63,7 @@ def test_short_cjk_single_line():
 
 # -- long English ----------------------------------------------------------
 
+
 def test_long_english_wraps():
     text = "The quick brown fox jumps over the lazy dog"
     lines = wrap_lines(text, _bound(text), 60.0)
@@ -71,6 +74,7 @@ def test_long_english_wraps():
 
 
 # -- CJK -------------------------------------------------------------------
+
 
 def test_cjk_wraps_at_glyph_boundaries():
     text = "中文测试换行"
@@ -92,6 +96,7 @@ def test_long_cjk_no_infinite_break():
 
 # -- mixed CJK + English ---------------------------------------------------
 
+
 def test_mixed_cjk_english_wraps():
     text = "This 是一个 test 测试 混合句子"
     lines = wrap_lines(text, _bound(text), 40.0)
@@ -101,6 +106,7 @@ def test_mixed_cjk_english_wraps():
 
 
 # -- overlong single token (no infinite loop) ------------------------------
+
 
 def test_overlong_token_kept_whole():
     """A single token wider than max_width stays intact on one line — it must
@@ -142,6 +148,7 @@ def test_no_max_width_returns_single_line():
 
 # -- tokenize --------------------------------------------------------------
 
+
 def test_tokenize_cjk_splits_each_glyph():
     toks = tokenize("a中文 b")
     kinds = [k for k, _ in toks]
@@ -151,6 +158,7 @@ def test_tokenize_cjk_splits_each_glyph():
 
 
 # -- shrink_to_fit (mechanism) ---------------------------------------------
+
 
 def test_shrink_when_fits_stays_same():
     size, over = shrink_to_fit("Hi", _measure, 20.0, _SIZE)
@@ -176,6 +184,7 @@ def test_shrink_clamps_to_min_font():
 
 # -- clip_text (last resort) -----------------------------------------------
 
+
 def test_clip_fitting_text_untouched():
     out, over = clip_text("Hello", _bound("Hello"), 200.0)
     assert out == "Hello"
@@ -185,7 +194,7 @@ def test_clip_fitting_text_untouched():
 def test_clip_truncates_and_reports_overflow():
     text = "这是一个非常长的需要被截断的中文标题文字内容"
     out, over = clip_text(text, _bound(text), 50.0)
-    assert over is True               # never silent
-    assert len(out) < len(text)       # actually truncated
+    assert over is True  # never silent
+    assert len(out) < len(text)  # actually truncated
     # the clip (with ellipsis) fits the width
     assert _bound(text)(out) <= 50.0 + 1e-6

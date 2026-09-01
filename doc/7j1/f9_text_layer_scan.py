@@ -95,8 +95,10 @@ def main() -> int:
             "pages_with_cjk_delta": len(cjk_delta_pages),
             "cjk_delta_samples": cjk_delta_pages[:6],
         }
-        print(f"[{name[:44]}] pages={n} NUL={len(nul_pages)} "
-              f"moji={len(gbk_ascii_pages)} cjk_delta={len(cjk_delta_pages)}")
+        print(
+            f"[{name[:44]}] pages={n} NUL={len(nul_pages)} "
+            f"moji={len(gbk_ascii_pages)} cjk_delta={len(cjk_delta_pages)}"
+        )
         src.close()
         dual.close()
         mono.close()

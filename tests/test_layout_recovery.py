@@ -82,18 +82,31 @@ def test_classify_height_overflow():
         primitive_kind="flow",
         overflow=True,
     )
-    assert classify_reason(r, avail_width=200.0, avail_height=22.0) is OverflowReason.HEIGHT
+    assert (
+        classify_reason(r, avail_width=200.0, avail_height=22.0)
+        is OverflowReason.HEIGHT
+    )
 
 
 def test_classify_preserved_region():
-    r = LayoutResult(text="def f():", lines=["def f():"], line_widths=[30.0],
-                     primitive_kind="preserved", overflow=True)
+    r = LayoutResult(
+        text="def f():",
+        lines=["def f():"],
+        line_widths=[30.0],
+        primitive_kind="preserved",
+        overflow=True,
+    )
     assert classify_reason(r, avail_width=20.0) is OverflowReason.PRESERVED_REGION
 
 
 def test_classify_fixed_column():
-    r = LayoutResult(text="42", lines=["42"], line_widths=[16.0],
-                     primitive_kind="column", overflow=False)
+    r = LayoutResult(
+        text="42",
+        lines=["42"],
+        line_widths=[16.0],
+        primitive_kind="column",
+        overflow=False,
+    )
     assert classify_reason(r, avail_width=10.0) is OverflowReason.FIXED_COLUMN_COLLISION
 
 
@@ -127,13 +140,22 @@ def test_flow_wrap_then_shrink_then_clip():
     assert decide_recovery("flow", OverflowReason.WIDTH) is RecoveryDecision.WRAP
     # with budget without wrap -> SHRINK
     b = LayoutBudget(allow_wrap=False, allow_shrink=True, allow_clip=True)
-    assert decide_recovery("flow", OverflowReason.WIDTH, budget=b) is RecoveryDecision.SHRINK
+    assert (
+        decide_recovery("flow", OverflowReason.WIDTH, budget=b)
+        is RecoveryDecision.SHRINK
+    )
     # with budget without wrap/shrink -> CLIP
     b2 = LayoutBudget(allow_wrap=False, allow_shrink=False, allow_clip=True)
-    assert decide_recovery("flow", OverflowReason.WIDTH, budget=b2) is RecoveryDecision.CLIP
+    assert (
+        decide_recovery("flow", OverflowReason.WIDTH, budget=b2)
+        is RecoveryDecision.CLIP
+    )
     # with no recovery allowed -> PRESERVE_OVERFLOW
     b3 = LayoutBudget(allow_wrap=False, allow_shrink=False, allow_clip=False)
-    assert decide_recovery("flow", OverflowReason.WIDTH, budget=b3) is RecoveryDecision.PRESERVE_OVERFLOW
+    assert (
+        decide_recovery("flow", OverflowReason.WIDTH, budget=b3)
+        is RecoveryDecision.PRESERVE_OVERFLOW
+    )
 
 
 def test_unbreakable_token_skips_wrap():
@@ -195,9 +217,7 @@ def test_diagnose_long_toc_title_wraps_first_or_shrinks():
         primitive_kind="anchor",
         overflow=True,
     )
-    d = diagnose_overflow(
-        r, avail_width=160.0, target="title", original_font_size=10.5
-    )
+    d = diagnose_overflow(r, avail_width=160.0, target="title", original_font_size=10.5)
     assert isinstance(d, OverflowDiagnosis)
     assert d.reason is OverflowReason.WIDTH
     assert d.decision is RecoveryDecision.WRAP  # WRAP first per 7F ladder
@@ -205,8 +225,9 @@ def test_diagnose_long_toc_title_wraps_first_or_shrinks():
 
     # wrap disabled -> SHRINK (not CLIP, not PRESERVE_OVERFLOW)
     b = LayoutBudget(allow_wrap=False, allow_shrink=True, allow_clip=False)
-    d2 = diagnose_overflow(r, avail_width=160.0, target="title", budget=b,
-                           original_font_size=10.5)
+    d2 = diagnose_overflow(
+        r, avail_width=160.0, target="title", budget=b, original_font_size=10.5
+    )
     assert d2.decision is RecoveryDecision.SHRINK
     assert "shrink" in d2.message
 
@@ -234,8 +255,12 @@ def test_diagnose_flow_wrap_message_counts_extra_lines():
 def test_diagnose_unbreakable_flow_goes_to_shrink():
     url = "m" * 60
     r = LayoutResult(
-        text=url, lines=[url], line_widths=[330.0], font_size=11.0,
-        primitive_kind="flow", overflow=True,
+        text=url,
+        lines=[url],
+        line_widths=[330.0],
+        font_size=11.0,
+        primitive_kind="flow",
+        overflow=True,
     )
     d = diagnose_overflow(r, avail_width=200.0)
     assert d.reason is OverflowReason.UNBREAKABLE_TOKEN
@@ -273,8 +298,11 @@ def test_lay_out_then_diagnose_code_is_preserve():
 
 
 def test_lay_out_then_diagnose_flow_wrap_decision():
-    flow = FlowText(text="a relatively long translated sentence fits awkwardly",
-                    origin=(72, 30), max_width=60.0)
+    flow = FlowText(
+        text="a relatively long translated sentence fits awkwardly",
+        origin=(72, 30),
+        max_width=60.0,
+    )
     r = lay_out(flow, measure=_m, font_size=11.0)
     d = diagnose_overflow(r, avail_width=60.0)
     assert d.decision is RecoveryDecision.WRAP
@@ -282,8 +310,13 @@ def test_lay_out_then_diagnose_flow_wrap_decision():
 
 
 def test_lay_out_then_diagnose_anchor_shrink_decision():
-    anchor = FixedAnchor(text="An overlong TOC title that is too wide",
-                         x=72, y=30, max_width=80.0, role="title_x")
+    anchor = FixedAnchor(
+        text="An overlong TOC title that is too wide",
+        x=72,
+        y=30,
+        max_width=80.0,
+        role="title_x",
+    )
     r = lay_out(anchor, measure=_m, font_size=10.0)
     d = diagnose_overflow(r, avail_width=80.0, target="title")
     assert d.reason in (OverflowReason.WIDTH, OverflowReason.UNBREAKABLE_TOKEN)
@@ -308,13 +341,22 @@ def test_diagnosis_keeps_page_column_separate():
     title = LayoutResult(
         text="这是一个非常非常长的章节介绍标题",
         lines=["这是一个非常非常长的章节介绍标题"],
-        line_widths=[260.0], font_size=10.5, primitive_kind="anchor", overflow=True,
+        line_widths=[260.0],
+        font_size=10.5,
+        primitive_kind="anchor",
+        overflow=True,
     )
     page = LayoutResult(
-        text="12", lines=["12"], line_widths=[14.0],
-        font_size=10.5, primitive_kind="column", overflow=False,
+        text="12",
+        lines=["12"],
+        line_widths=[14.0],
+        font_size=10.5,
+        primitive_kind="column",
+        overflow=False,
     )
-    td = diagnose_overflow(title, avail_width=160.0, target="title", original_font_size=10.5)
+    td = diagnose_overflow(
+        title, avail_width=160.0, target="title", original_font_size=10.5
+    )
     pd = diagnose_overflow(page, avail_width=12.0)
     assert td.decision in (RecoveryDecision.WRAP, RecoveryDecision.SHRINK)
     # page number channel is independent & immovable
@@ -325,4 +367,5 @@ if __name__ == "__main__":
     import sys
 
     import pytest
+
     sys.exit(pytest.main([__file__]))

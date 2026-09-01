@@ -88,16 +88,18 @@ class TestClassifier:
 
     def test_leader_regex_linear_non_backtracking(self):
         r"""7I-1 regression: long dot-leader TOC text without a trailing digit must
-        terminate linearly. Previously ``(?:[.·…‥][\s.·…‥]*){2,}\s*\d{1,4}\s*$"
-        had nested-greedy quantifiers -> catastrophic backtracking (an
-exponential-time artificial string would hang build_document_model).
+                terminate linearly. Previously ``(?:[.·…‥][\s.·…‥]*){2,}\s*\d{1,4}\s*$"
+                had nested-greedy quantifiers -> catastrophic backtracking (an
+        exponential-time artificial string would hang build_document_model).
         """
         import time
 
         from pdf2zh.v3.structure import _RE_LEADER
 
         # failure case (dot run followed by non-digit page number) -> must be fast
-        text = "Acknowledgments " + "." * 300 + " xix\nSuggestedways " + "." * 300 + "end"
+        text = (
+            "Acknowledgments " + "." * 300 + " xix\nSuggestedways " + "." * 300 + "end"
+        )
         t0 = time.perf_counter()
         m = _RE_LEADER.search(text)
         assert m is None

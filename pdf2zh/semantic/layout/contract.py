@@ -60,8 +60,7 @@ class LayoutResultLike(Protocol):
     font_size: float
     recovery: dict | None
 
-    def to_dict(self) -> dict:
-        ...
+    def to_dict(self) -> dict: ...
 
 
 # ---------------------------------------------------------------------------

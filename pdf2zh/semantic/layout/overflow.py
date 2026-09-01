@@ -49,9 +49,9 @@ class OverflowPolicy(Enum):
     """How translated text adapts to an overflowing geometry constraint."""
 
     PRESERVE = "preserve"  # never change geometry; report overflow if any
-    WRAP = "wrap"          # reflow into multiple lines within max_width
-    SHRINK = "shrink"      # reduce font_size to fit (mechanism; opt-in)
-    CLIP = "clip"          # truncate — always recorded, never silent
+    WRAP = "wrap"  # reflow into multiple lines within max_width
+    SHRINK = "shrink"  # reduce font_size to fit (mechanism; opt-in)
+    CLIP = "clip"  # truncate — always recorded, never silent
 
 
 _POLICY_BY_KIND = {
@@ -111,8 +111,11 @@ class LayoutResult:
             "reason": self.recovery_reason,
             "decision": self.recovery_decision,
             "steps": list(self.recovery_steps),
-            "original_font_size": round(self.original_font_size, 2)
-            if self.original_font_size is not None else None,
+            "original_font_size": (
+                round(self.original_font_size, 2)
+                if self.original_font_size is not None
+                else None
+            ),
             "final_font_size": round(self.font_size, 2),
         }
 
@@ -145,7 +148,12 @@ def _primitive_geometry(prim) -> tuple[float, float, float, float]:
         return (float(prim.x), y, float(prim.x) + w, y)
     if isinstance(prim, FlowText):
         x, y = prim.origin
-        return (x, y, x + float(prim.max_width or 0.0), y + float(prim.max_height or 0.0))
+        return (
+            x,
+            y,
+            x + float(prim.max_width or 0.0),
+            y + float(prim.max_height or 0.0),
+        )
     return (0.0, 0.0, 0.0, 0.0)
 
 
@@ -161,9 +169,15 @@ def _available_sizes(prim, constraints: tuple = ()) -> tuple[float, float]:
         if isinstance(c, FixedWidth):
             width = float(c.width)
         elif isinstance(c, MaxWidth):
-            width = float(c.max_width) if width <= 0.0 else min(width, float(c.max_width))
+            width = (
+                float(c.max_width) if width <= 0.0 else min(width, float(c.max_width))
+            )
         elif isinstance(c, MaxHeight):
-            height = float(c.max_height) if height <= 0.0 else min(height, float(c.max_height))
+            height = (
+                float(c.max_height)
+                if height <= 0.0
+                else min(height, float(c.max_height))
+            )
     return width, height
 
 

@@ -25,10 +25,16 @@ sys.path.insert(0, str(ROOT / "doc" / "7j3"))
 
 from proof_case_a import build_cmap_text, fix_one_font  # noqa: E402
 
-SRC = ROOT / "pdf2zh_files" / "AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5.pdf"
+SRC = (
+    ROOT
+    / "pdf2zh_files"
+    / "AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5.pdf"
+)
 PAGE = 2  # 0-based: source p3
 
-from babeldoc.format.pdf.document_il.backend.pdf_creater import reproduce_cmap  # noqa: E402
+from babeldoc.format.pdf.document_il.backend.pdf_creater import (
+    reproduce_cmap,
+)  # noqa: E402
 
 
 def run(variant: str, work: Path) -> dict:
@@ -48,7 +54,9 @@ def run(variant: str, work: Path) -> dict:
                 if f[1] == "ttf" and "Identity-H" in (f[5] or ""):
                     diag = fix_one_font(pdf, f[0])
                     if "skipped" not in diag:
-                        pdf.update_stream(diag["t_xref"], build_cmap_text(diag["fixed"]).encode())
+                        pdf.update_stream(
+                            diag["t_xref"], build_cmap_text(diag["fixed"]).encode()
+                        )
     out = work / f"out_{variant}.pdf"
     pdf.save(str(out), garbage=3, deflate=True)
     pdf.close()
@@ -63,7 +71,11 @@ def run(variant: str, work: Path) -> dict:
             sample = line
             break
     check.close()
-    return {"nul": nul, "taylor": taylor, "sample": repr(sample[:90]) if sample else None}
+    return {
+        "nul": nul,
+        "taylor": taylor,
+        "sample": repr(sample[:90]) if sample else None,
+    }
 
 
 def main() -> int:
@@ -71,7 +83,9 @@ def main() -> int:
         work = Path(td)
         for variant in ("native", "fixed"):
             res = run(variant, work)
-            print(f"variant={variant:7s} NUL={res['nul']:3d} taylor={res['taylor']!s:5s} line={res['sample']}")
+            print(
+                f"variant={variant:7s} NUL={res['nul']:3d} taylor={res['taylor']!s:5s} line={res['sample']}"
+            )
     return 0
 
 

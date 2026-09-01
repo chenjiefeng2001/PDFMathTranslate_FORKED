@@ -116,9 +116,7 @@ def extract(path: str) -> dict:
             lvl, title, page_no = entry[0], entry[1], entry[2]
         except (IndexError, ValueError):  # pragma: no cover - malformed outline
             continue
-        outline.append(
-            {"level": int(lvl), "title": str(title), "page": int(page_no)}
-        )
+        outline.append({"level": int(lvl), "title": str(title), "page": int(page_no)})
 
     meta = {"page_count": doc.page_count}
     result = {"meta": meta, "pages": pages, "outline": outline}

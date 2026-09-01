@@ -56,12 +56,17 @@ def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None):
     """One settled render-plan entry (v3 y-up boxes: y0 bottom, y1 top)."""
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
     }
 
 
@@ -84,20 +89,32 @@ class TestSettledInputs(unittest.TestCase):
         self.assertEqual(estimate_block_height(r), (3, 30.0))  # 3 lines * 10pt
 
     def test_estimate_block_height_empty(self):
-        self.assertEqual(estimate_block_height(LayoutResult(text="", lines=[])),
-                         (0, 0.0))
+        self.assertEqual(
+            estimate_block_height(LayoutResult(text="", lines=[])), (0, 0.0)
+        )
         # text present but no wrapped lines -> single line
-        self.assertEqual(estimate_block_height(LayoutResult(text="x", lines=[],
-                                                            font_size=12.0)),
-                         (1, 12.0))
+        self.assertEqual(
+            estimate_block_height(LayoutResult(text="x", lines=[], font_size=12.0)),
+            (1, 12.0),
+        )
 
     def test_estimate_matches_lay_out_overflow_check(self):
         # the canonical estimate lay_out uses: len(lines) * fs > avail_height
-        r = lay_out(type("P", (), {"kind": "flow", "text": "aaa bbb ccc",
-                                   "max_width": 20.0, "max_height": 10.0,
-                                   "origin": (0.0, 0.0)})(),
-                    measure=lambda s, fs: float(len(s)) * 3.0,
-                    font_size=10.0)
+        r = lay_out(
+            type(
+                "P",
+                (),
+                {
+                    "kind": "flow",
+                    "text": "aaa bbb ccc",
+                    "max_width": 20.0,
+                    "max_height": 10.0,
+                    "origin": (0.0, 0.0),
+                },
+            )(),
+            measure=lambda s, fs: float(len(s)) * 3.0,
+            font_size=10.0,
+        )
         lines, total = estimate_block_height(r)
         self.assertGreater(total, 10.0)
         self.assertTrue(r.overflow or total > 10.0)
@@ -145,9 +162,10 @@ class TestPlacementScore(unittest.TestCase):
 
     def test_score_json_safe(self):
         d = score_fit(140.0, 120.0, 792.0).to_dict()
-        self.assertEqual(set(d),
-                         {"needed", "available", "fits", "shortfall",
-                          "fill_ratio", "line_count"})
+        self.assertEqual(
+            set(d),
+            {"needed", "available", "fits", "shortfall", "fill_ratio", "line_count"},
+        )
         json.dumps(d)
 
 
@@ -232,8 +250,9 @@ class TestDecideFromSettled(unittest.TestCase):
         # a settled 7-line @ 20pt block needs 140 -> minor overflow, current
         plan = [_flow("p1_0", 1, 60.0, 120.0, 260.0, 160.0)]
         report = _report(plan, page_sizes={1: 792.0})
-        result = LayoutResult(text="t", lines=["l%d" % i for i in range(7)],
-                              font_size=20.0)
+        result = LayoutResult(
+            text="t", lines=["l%d" % i for i in range(7)], font_size=20.0
+        )
         d = decide_from_settled(result, report, 1, 792.0)
         self.assertEqual(d.target, PlacementTarget.CURRENT_PAGE)
         self.assertEqual(d.reason, "minor_overflow")
@@ -272,10 +291,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -289,21 +311,34 @@ def _code(path: Path) -> str:
 class TestPlacementArchitecture(unittest.TestCase):
     def test_placement_never_re_lays_out(self):
         src = _code(_PLACEMENT_PATH)
-        for banned in ("lay_out(", "adaptive_layout(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text(", "detect_page_collisions(",
-                       "detect_page_overflows(", "build_page_flow_report(",
-                       "resolve_page_shifts(", "apply_page_shifts(",
-                       "decide_page_recovery("):
-            self.assertNotIn(banned, src,
-                             f"placement.py 不得执行/复用: {banned}")
+        for banned in (
+            "lay_out(",
+            "adaptive_layout(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+            "detect_page_collisions(",
+            "detect_page_overflows(",
+            "build_page_flow_report(",
+            "resolve_page_shifts(",
+            "apply_page_shifts(",
+            "decide_page_recovery(",
+        ):
+            self.assertNotIn(banned, src, f"placement.py 不得执行/复用: {banned}")
 
     def test_placement_never_references_detector_or_renderer(self):
         src = _code(_PLACEMENT_PATH)
-        for banned in ("list_detector", "list_parser", "toc_parser",
-                       "code_detector", "style_detector",
-                       "semantic.renderer", "translator", "magicpdf"):
-            self.assertNotIn(banned, src,
-                             f"placement.py 不得引用: {banned}")
+        for banned in (
+            "list_detector",
+            "list_parser",
+            "toc_parser",
+            "code_detector",
+            "style_detector",
+            "semantic.renderer",
+            "translator",
+            "magicpdf",
+        ):
+            self.assertNotIn(banned, src, f"placement.py 不得引用: {banned}")
 
     def test_placement_never_derives_geometry_from_level_index(self):
         tree = ast.parse(_code(_PLACEMENT_PATH))
@@ -320,16 +355,20 @@ class TestPlacementArchitecture(unittest.TestCase):
         tree = ast.parse(_PLACEMENT_PATH.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name.startswith("adaptive"):
-                raise AssertionError(
-                    f"placement.py 定义了第二个 executor: {node.name}"
-                )
+                raise AssertionError(f"placement.py 定义了第二个 executor: {node.name}")
 
     def test_placement_never_writes_geometry(self):
         src = _code(_PLACEMENT_PATH)
-        for banned in ('"dst_box"] =', '"src_box"] =', '"page"] =',
-                       'entry["', 'placement.'):
-            self.assertNotIn(banned, src,
-                             f"placement.py 不得写 plan/geometry: {banned}")
+        for banned in (
+            '"dst_box"] =',
+            '"src_box"] =',
+            '"page"] =',
+            'entry["',
+            "placement.",
+        ):
+            self.assertNotIn(
+                banned, src, f"placement.py 不得写 plan/geometry: {banned}"
+            )
 
     def test_placement_consumes_settled_geometry_only(self):
         src = _code(_PLACEMENT_PATH)
@@ -337,8 +376,8 @@ class TestPlacementArchitecture(unittest.TestCase):
         # (``BlockPlacement.bottom`` == ``resolved_bbox[1]``) and the settled
         # LayoutResult's own line/font fields
         self.assertIn("last.bottom", src)
-        self.assertIn("LayoutResult", src)       # settled height source
-        self.assertIn("PRESERVE_KINDS", src)     # immovable kinds, read-only
+        self.assertIn("LayoutResult", src)  # settled height source
+        self.assertIn("PRESERVE_KINDS", src)  # immovable kinds, read-only
 
 
 if __name__ == "__main__":

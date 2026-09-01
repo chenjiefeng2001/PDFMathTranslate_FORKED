@@ -82,14 +82,24 @@ FROZEN_MATRIX = {
 }
 
 HISTORICAL_ARTIFACTS = [
-    ("AI mono p3 (Case A footer)", "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf", 2),
-    ("AI mono p157 (Case B ►)", "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf", 156),
+    (
+        "AI mono p3 (Case A footer)",
+        "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf",
+        2,
+    ),
+    (
+        "AI mono p157 (Case B ►)",
+        "pdf2zh_files/AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5-mono.pdf",
+        156,
+    ),
 ]
 
 
 def run_tests() -> dict:
     cmd = [sys.executable, "-m", "pytest", *LATCH_TESTS, "-q"]
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    proc = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace"
+    )
     summary = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else ""
     return {
         "command": " ".join(cmd),
@@ -110,13 +120,19 @@ def run_corpus_baseline() -> dict:
     )
     summary_path = ROOT / "doc" / "7i4-corpus-baseline" / "summary.json"
     if not summary_path.exists():
-        return {"ok": False, "error": "corpus baseline summary missing", "returncode": proc.returncode}
+        return {
+            "ok": False,
+            "error": "corpus baseline summary missing",
+            "returncode": proc.returncode,
+        }
     data = json.loads(summary_path.read_text(encoding="utf-8"))
     matrix = data["global_coverage_matrix"]
     checks = {}
     checks["total_residual"] = data["total_residual"] == FROZEN_MATRIX["total_residual"]
     checks["by_defect"] = data["by_defect"] == FROZEN_MATRIX["by_defect"]
-    checks["by_first_divergence"] = data["by_first_divergence"] == FROZEN_MATRIX["by_first_divergence"]
+    checks["by_first_divergence"] = (
+        data["by_first_divergence"] == FROZEN_MATRIX["by_first_divergence"]
+    )
     for defect, expect in FROZEN_MATRIX["coverage"].items():
         for status, value in expect.items():
             actual = matrix.get(defect, {}).get(status)
@@ -135,7 +151,11 @@ def run_corpus_baseline() -> dict:
 def check_historical_capture() -> dict:
     found = [p for _, p, _ in HISTORICAL_ARTIFACTS if (ROOT / p).exists()]
     if not found:
-        return {"ok": True, "skipped": "pdf2zh_files corpus absent (gitignored)", "checks": {}}
+        return {
+            "ok": True,
+            "skipped": "pdf2zh_files corpus absent (gitignored)",
+            "checks": {},
+        }
     checks = {}
     for label, rel, pno in HISTORICAL_ARTIFACTS:
         path = ROOT / rel
@@ -190,8 +210,12 @@ def run_fresh_smoke() -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--smoke", action="store_true", help="run fresh-engine smoke (real babeldoc)")
-    ap.add_argument("--no-tests", action="store_true", help="skip the pytest latch subset")
+    ap.add_argument(
+        "--smoke", action="store_true", help="run fresh-engine smoke (real babeldoc)"
+    )
+    ap.add_argument(
+        "--no-tests", action="store_true", help="skip the pytest latch subset"
+    )
     args = ap.parse_args()
 
     report: dict = {"gate": "7j4-release-gate", "checks": {}}

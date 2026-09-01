@@ -538,7 +538,7 @@ def main(args: list[str] | None = None) -> int:
         from pdf2zh.semantic.list_debug import dump_list_debug
 
         out_dir = parsed_args.output or "debug"
-        for f in (parsed_args.files or []):
+        for f in parsed_args.files or []:
             payload = dump_list_debug(f, out_dir)
             logger.info(
                 "--debug-list %s: %d page(s) with lists -> %s/list.json",
@@ -553,7 +553,7 @@ def main(args: list[str] | None = None) -> int:
         from pdf2zh.semantic.toc_debug import dump_toc_debug
 
         out_dir = parsed_args.output or "debug"
-        for f in (parsed_args.files or []):
+        for f in parsed_args.files or []:
             payload = dump_toc_debug(f, out_dir)
             logger.info(
                 "--debug-toc %s: %d page(s) with TOC -> %s/toc.json",
@@ -569,7 +569,7 @@ def main(args: list[str] | None = None) -> int:
         from pdf2zh.semantic.layout_debug import dump_layout_debug
 
         out_dir = parsed_args.output or "debug"
-        for f in (parsed_args.files or []):
+        for f in parsed_args.files or []:
             payload = dump_layout_debug(f, out_dir)
             # 7F-8a: page_flow section carries cross-block collision detection;
             # 7F-8c: page_recovery carries the decision contract.
@@ -579,9 +579,7 @@ def main(args: list[str] | None = None) -> int:
                 .get("collision_count", 0)
             )
             decisions = (
-                payload.get("page_recovery", {})
-                .get("summary", {})
-                .get("total", 0)
+                payload.get("page_recovery", {}).get("summary", {}).get("total", 0)
             )
             logger.info(
                 "--debug-layout %s: %d block(s), %d overflow, %d collision(s), "

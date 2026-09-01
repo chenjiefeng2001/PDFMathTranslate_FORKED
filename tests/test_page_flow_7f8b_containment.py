@@ -27,12 +27,18 @@ from pdf2zh.semantic.layout.page_flow import detect_page_collisions
 def _entry(block_id, page, kind, x0, y0, x1, y1):
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
         "render_payload": {"kind": kind, "commands": []},
-        "list_items": None, "toc_entries": None, "toc_commands": None,
+        "list_items": None,
+        "toc_entries": None,
+        "toc_commands": None,
     }
 
 
@@ -46,7 +52,7 @@ class TestContainmentAware(unittest.TestCase):
         # and overlaps vertically — the inline-membership signature the scan
         # flagged 88% of.  Contained box -> NOT a stacked collision.
         plan = [
-            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0),          # paragraph
+            _flow("p1_0", 1, 60.0, 700.0, 260.0, 728.0),  # paragraph
             _entry("p1_1", 1, "formula", 90.0, 660.0, 120.0, 720.0),  # inline inside
         ]
         self.assertEqual(detect_page_collisions(plan), [])

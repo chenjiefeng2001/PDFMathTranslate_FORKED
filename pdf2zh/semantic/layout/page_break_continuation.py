@@ -148,9 +148,7 @@ def split_continuation_break(
         return None  # never regenerate / duplicate a marker
 
     target = (
-        int(target_page)
-        if target_page is not None
-        else int(entry.get("page") or 0) + 1
+        int(target_page) if target_page is not None else int(entry.get("page") or 0) + 1
     )
     fs = 0.0
     for v in (entry.get("font_size"),):
@@ -166,7 +164,9 @@ def split_continuation_break(
     min_fitted = min(_cmd_y(c) for c in fitted)
     fitted_bottom = round(max(min_fitted - desc, 0.0), 2)
     kept["dst_box"] = [
-        float(dst[0]), fitted_bottom, float(dst[2]),
+        float(dst[0]),
+        fitted_bottom,
+        float(dst[2]),
         round(float(dst[3]), 2),
     ]
 
@@ -230,7 +230,7 @@ class ContinuationBreakRecord:
     source_page: int
     target_page: int
     kind: str
-    mode: str            # "split" | "whole_block" | "preserve"
+    mode: str  # "split" | "whole_block" | "preserve"
     reason: str
     fitted_lines: int = 0
     moved_lines: int = 0
@@ -255,9 +255,9 @@ class ContinuationBreakReport:
     passes: int = 0
     max_splits: int = 0
     stopped_early: bool = False
-    applied: list = field(default_factory=list)       # ContinuationBreakRecord
-    deferred: list = field(default_factory=list)      # decisions not executed
-    unresolved: list = field(default_factory=list)    # placements left on a full page
+    applied: list = field(default_factory=list)  # ContinuationBreakRecord
+    deferred: list = field(default_factory=list)  # decisions not executed
+    unresolved: list = field(default_factory=list)  # placements left on a full page
 
     def summary(self) -> dict:
         return {
@@ -273,8 +273,9 @@ class ContinuationBreakReport:
         return {
             **self.summary(),
             "applied": [r.to_dict() for r in self.applied],
-            "deferred": [r.to_dict() if hasattr(r, "to_dict") else dict(r)
-                         for r in self.deferred],
+            "deferred": [
+                r.to_dict() if hasattr(r, "to_dict") else dict(r) for r in self.deferred
+            ],
             "unresolved": [p.to_dict() for p in self.unresolved],
         }
 
@@ -348,18 +349,26 @@ def execute_continuation_breaks(
         if dec is PageBreakDecision.KEEP or p.preserved:
             if p.preserved and dec is not PageBreakDecision.KEEP:
                 record = ContinuationBreakRecord(
-                    block_index=p.block_index, source_page=p.page,
-                    target_page=p.page, kind=p.kind, mode="preserve",
-                    reason="preserved_region")
+                    block_index=p.block_index,
+                    source_page=p.page,
+                    target_page=p.page,
+                    kind=p.kind,
+                    mode="preserve",
+                    reason="preserved_region",
+                )
                 report.deferred.append(record)
                 report.unresolved.append(p)
             out.append(e)
             continue
         if dec is PageBreakDecision.PRESERVE_OVERFLOW:
             record = ContinuationBreakRecord(
-                block_index=p.block_index, source_page=p.page,
-                target_page=p.page, kind=p.kind, mode="preserve",
-                reason="preserve_overflow")
+                block_index=p.block_index,
+                source_page=p.page,
+                target_page=p.page,
+                kind=p.kind,
+                mode="preserve",
+                reason="preserve_overflow",
+            )
             report.deferred.append(record)
             report.unresolved.append(p)
             out.append(e)
@@ -368,8 +377,13 @@ def execute_continuation_breaks(
         start_y = next_page_start_y(float(page_start_y))
         if budget <= 0:
             record = ContinuationBreakRecord(
-                block_index=p.block_index, source_page=p.page, target_page=p.page + 1,
-                kind=p.kind, mode="whole_block", reason="budget_exhausted")
+                block_index=p.block_index,
+                source_page=p.page,
+                target_page=p.page + 1,
+                kind=p.kind,
+                mode="whole_block",
+                reason="budget_exhausted",
+            )
             report.deferred.append(record)
             report.unresolved.append(p)
             report.stopped_early = True
@@ -383,9 +397,13 @@ def execute_continuation_breaks(
             # no real page below this one exists — out-of-document overflow
             # (7G-2.1 P0): leave the block in place, surface as unresolved.
             record = ContinuationBreakRecord(
-                block_index=p.block_index, source_page=p.page,
-                target_page=p.page, kind=p.kind, mode="whole_block",
-                reason="no_page")
+                block_index=p.block_index,
+                source_page=p.page,
+                target_page=p.page,
+                kind=p.kind,
+                mode="whole_block",
+                reason="no_page",
+            )
             report.deferred.append(record)
             report.unresolved.append(p)
             out.append(e)
@@ -393,19 +411,25 @@ def execute_continuation_breaks(
         split = None
         if e.get("kind") in _SPLIT_KINDS:
             split = split_continuation_break(
-                e, page_bottom_y=page_bottom_y, page_start_y=start_y,
-                target_page=target)
+                e, page_bottom_y=page_bottom_y, page_start_y=start_y, target_page=target
+            )
         if split is not None:
             kept, cont, info = split
             out.append(kept)
             out.append(cont)
             taken.add(info["target_page"])
-            report.applied.append(ContinuationBreakRecord(
-                block_index=p.block_index, source_page=p.page,
-                target_page=info["target_page"], kind=p.kind, mode="split",
-                reason="continuation",
-                fitted_lines=info["fitted_lines"],
-                moved_lines=info["moved_lines"]))
+            report.applied.append(
+                ContinuationBreakRecord(
+                    block_index=p.block_index,
+                    source_page=p.page,
+                    target_page=info["target_page"],
+                    kind=p.kind,
+                    mode="split",
+                    reason="continuation",
+                    fitted_lines=info["fitted_lines"],
+                    moved_lines=info["moved_lines"],
+                )
+            )
             budget -= 1
             continue
 
@@ -413,9 +437,13 @@ def execute_continuation_breaks(
         target = next_free_page(p.page, taken, max_page=max_page)
         if target is None:
             record = ContinuationBreakRecord(
-                block_index=p.block_index, source_page=p.page,
-                target_page=p.page, kind=p.kind, mode="whole_block",
-                reason="no_page")
+                block_index=p.block_index,
+                source_page=p.page,
+                target_page=p.page,
+                kind=p.kind,
+                mode="whole_block",
+                reason="no_page",
+            )
             report.deferred.append(record)
             report.unresolved.append(p)
             out.append(e)
@@ -425,9 +453,16 @@ def execute_continuation_breaks(
         _move_entry_page(e, delta, target)
         out.append(e)
         taken.add(target)
-        report.applied.append(ContinuationBreakRecord(
-            block_index=p.block_index, source_page=p.page, target_page=target,
-            kind=p.kind, mode="whole_block", reason="page_capacity"))
+        report.applied.append(
+            ContinuationBreakRecord(
+                block_index=p.block_index,
+                source_page=p.page,
+                target_page=target,
+                kind=p.kind,
+                mode="whole_block",
+                reason="page_capacity",
+            )
+        )
         budget -= 1
 
     report.passes = 1 if report.applied else 0
@@ -451,8 +486,10 @@ def _move_entry_page(entry: dict, delta: float, target_page: int) -> None:
     dst = entry.get("dst_box")
     if isinstance(dst, list) and len(dst) == 4:
         entry["dst_box"] = [
-            dst[0], round(float(dst[1]) + delta, 2),
-            dst[2], round(float(dst[3]) + delta, 2),
+            dst[0],
+            round(float(dst[1]) + delta, 2),
+            dst[2],
+            round(float(dst[3]) + delta, 2),
         ]
     moved: set[int] = set()
     payload = entry.get("render_payload")

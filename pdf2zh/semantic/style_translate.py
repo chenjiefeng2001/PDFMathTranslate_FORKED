@@ -151,7 +151,9 @@ def translate_styled_paragraph(
         or not any(s.styled for s in source_styles)
     ):
         plain = translate(source)
-        return StyledParagraph(text=plain, spans=collapse_styled_spans(plain, [SpanStyle()] * len(plain)))
+        return StyledParagraph(
+            text=plain, spans=collapse_styled_spans(plain, [SpanStyle()] * len(plain))
+        )
 
     marked = inject_style_markers(source, source_styles)
     out = translate(marked)

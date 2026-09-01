@@ -43,7 +43,10 @@ _MARKER_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("decimal", re.compile(r"^\s*(\(?\d{1,3}[\.\)、])(?!\d)\s*(\S.*)$")),
     ("lower_alpha", re.compile(r"^\s*(\(?[a-z]\)|[a-z][\.\)、])(?!\d)\s*(\S.*)$")),
     ("upper_alpha", re.compile(r"^\s*(\(?[A-Z]\)|[A-Z][\.\)、])(?!\d)\s*(\S.*)$")),
-    ("lower_roman", re.compile(r"^\s*(\(?[ivxlcdm]{1,4}\)|[ivxlcdm]{1,4}[\.\)、])(?!\d)\s*(\S.*)$")),
+    (
+        "lower_roman",
+        re.compile(r"^\s*(\(?[ivxlcdm]{1,4}\)|[ivxlcdm]{1,4}[\.\)、])(?!\d)\s*(\S.*)$"),
+    ),
     ("bullet", re.compile(rf"^\s*([{_BULLET_CLASS}])\s*(.*)$")),
 ]
 
@@ -131,11 +134,7 @@ def markers_are_sequential(
         except ValueError:
             return False
     if mtype in ("lower_alpha", "upper_alpha"):
-        return (
-            len(cur_v) == 1
-            and len(prev_v) == 1
-            and ord(cur_v) == ord(prev_v) + 1
-        )
+        return len(cur_v) == 1 and len(prev_v) == 1 and ord(cur_v) == ord(prev_v) + 1
     if mtype == "lower_roman":
         a, b = _roman_to_int(prev_v), _roman_to_int(cur_v)
         return a is not None and b is not None and b == a + 1
@@ -173,8 +172,9 @@ def score_list_item(
     if (
         ctx.prev_candidate
         and marker
-        and markers_are_sequential(ctx.prev_marker or "", ctx.prev_type or "",
-                                   marker, marker_type or "")
+        and markers_are_sequential(
+            ctx.prev_marker or "", ctx.prev_type or "", marker, marker_type or ""
+        )
     ):
         score += 4.0
         reasons.append("next_marker_sequential")
@@ -302,10 +302,16 @@ def detect_list_candidates(
         ctx = _Context()
         if prev_idx[i] >= 0:
             ctx.prev_candidate = True
-            ctx.prev_marker, ctx.prev_type = infos[prev_idx[i]][0], infos[prev_idx[i]][1]
+            ctx.prev_marker, ctx.prev_type = (
+                infos[prev_idx[i]][0],
+                infos[prev_idx[i]][1],
+            )
         if next_idx[i] >= 0:
             ctx.next_candidate = True
-            ctx.next_marker, ctx.next_type = infos[next_idx[i]][0], infos[next_idx[i]][1]
+            ctx.next_marker, ctx.next_type = (
+                infos[next_idx[i]][0],
+                infos[next_idx[i]][1],
+            )
         # 延续行证据：紧随的非空段缩进对齐到本项 content_x（单条目 + 延续行也是
         # 列表）；仍停在 marker 列的段（如后面的编号章节）不算延续。
         if marker is not None:
@@ -331,8 +337,8 @@ def detect_list_candidates(
             if sizes[i] is not None and sizes[i - 1] is not None:
                 ctx.same_line_height = abs(sizes[i] - sizes[i - 1]) < 0.5
             if widths[i] is not None and widths[i - 1] is not None:
-                ctx.width_consistent = (
-                    abs(widths[i] - widths[i - 1]) <= max(4.0, 0.15 * (widths[i - 1] or 1.0))
+                ctx.width_consistent = abs(widths[i] - widths[i - 1]) <= max(
+                    4.0, 0.15 * (widths[i - 1] or 1.0)
                 )
         # 单条有序 marker 且无任何上下文（前后无列表项、无几何证据）→ 疑似
         # 章节标题（"1. Introduction" / "2. Related Work"），不判为列表项。
@@ -394,7 +400,9 @@ def list_debug_dict(
         {
             "index": i,
             "text": p,
-            "indent": round(indent_of(p, (geom[i] if geom and i < len(geom) else None)), 1),
+            "indent": round(
+                indent_of(p, (geom[i] if geom and i < len(geom) else None)), 1
+            ),
         }
         for i, p in enumerate(paragraphs)
     ]

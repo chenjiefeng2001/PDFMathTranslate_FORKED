@@ -121,9 +121,7 @@ class TestPatchInstall(unittest.TestCase):
 
         apply_babeldoc_formula_protect()
         apply_babeldoc_formula_protect()  # 幂等
-        patched = getattr(
-            StylesAndFormulas, "is_translatable_formula", None
-        )
+        patched = getattr(StylesAndFormulas, "is_translatable_formula", None)
         # 原始方法名已被替换为补丁实现（模块级函数）。
         self.assertTrue(
             callable(patched)
@@ -136,9 +134,7 @@ class TestPatchInstall(unittest.TestCase):
         inst.font_mapper = None
 
         # 含英文句子的「公式块」→ 补丁判定可翻译（转回普通文本）。
-        self.assertTrue(
-            patched(inst, _make_formula("Let E = mc^2 denote energy."))
-        )
+        self.assertTrue(patched(inst, _make_formula("Let E = mc^2 denote energy.")))
         # 纯数学符号公式（无完整单词）→ 保持公式。
         self.assertFalse(patched(inst, _make_formula("x_i + y_j")))
 

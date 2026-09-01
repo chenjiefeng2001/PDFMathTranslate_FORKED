@@ -47,16 +47,28 @@ _PACKER_PATH = _HERE.parent / "pdf2zh" / "semantic" / "layout" / "packer.py"
 def _blk(i, page, x0, bottom, x1, top, kind="flow"):
     box = (float(x0), float(bottom), float(x1), float(top))
     return BlockPlacement(
-        block_index=i, page=page, kind=kind, bbox=box, resolved_bbox=box,
-        height=top - bottom, preserved=False, has_continuation=False,
+        block_index=i,
+        page=page,
+        kind=kind,
+        bbox=box,
+        resolved_bbox=box,
+        height=top - bottom,
+        preserved=False,
+        has_continuation=False,
     )
 
 
 def _pres(i, page, x0, bottom, x1, top, kind="code"):
     b = _blk(i, page, x0, bottom, x1, top, kind=kind)
     return BlockPlacement(
-        block_index=i, page=page, kind=kind, bbox=b.bbox, resolved_bbox=b.bbox,
-        height=b.height, preserved=True, has_continuation=False,
+        block_index=i,
+        page=page,
+        kind=kind,
+        bbox=b.bbox,
+        resolved_bbox=b.bbox,
+        height=b.height,
+        preserved=True,
+        has_continuation=False,
     )
 
 
@@ -76,26 +88,34 @@ def _column_with_gaps():
 def _plan(placements, page_height=792.0):
     entries = []
     for p in placements:
-        entries.append({
-            "block_id": f"p{p.page}_{p.block_index}",
-            "page": p.page,
-            "kind": p.kind,
-            "src_box": list(p.resolved_bbox),
-            "dst_box": list(p.resolved_bbox),
-            "text": "t", "translated": "t",
-            "font_size": 11.0,
-            "render_payload": {
+        entries.append(
+            {
+                "block_id": f"p{p.page}_{p.block_index}",
+                "page": p.page,
                 "kind": p.kind,
-                "commands": [
-                    # 7G-2.1: a well-formed block's single baseline sits INSIDE
-                    # its dst box (ascent 0.8*11 = 8.8 -> baseline at top-9 has
-                    # glyph excess 0).  Blocks whose lines poke ABOVE dst_box
-                    # are the P0 word-overlap case, tested separately in
-                    # tests/test_7g21_p0_fixes.py.
-                    {"text": "t", "x": p.left + 2.0, "y": p.top - 9.0, "font_size": 11.0}
-                ],
-            },
-        })
+                "src_box": list(p.resolved_bbox),
+                "dst_box": list(p.resolved_bbox),
+                "text": "t",
+                "translated": "t",
+                "font_size": 11.0,
+                "render_payload": {
+                    "kind": p.kind,
+                    "commands": [
+                        # 7G-2.1: a well-formed block's single baseline sits INSIDE
+                        # its dst box (ascent 0.8*11 = 8.8 -> baseline at top-9 has
+                        # glyph excess 0).  Blocks whose lines poke ABOVE dst_box
+                        # are the P0 word-overlap case, tested separately in
+                        # tests/test_7g21_p0_fixes.py.
+                        {
+                            "text": "t",
+                            "x": p.left + 2.0,
+                            "y": p.top - 9.0,
+                            "font_size": 11.0,
+                        }
+                    ],
+                },
+            }
+        )
     return entries
 
 
@@ -106,12 +126,14 @@ def _plan(placements, page_height=792.0):
 
 class TestShiftBoxV(unittest.TestCase):
     def test_positive_is_up(self):
-        self.assertEqual(shift_box_v((60.0, 300.0, 260.0, 390.0), 10.0),
-                         (60.0, 310.0, 260.0, 400.0))
+        self.assertEqual(
+            shift_box_v((60.0, 300.0, 260.0, 390.0), 10.0), (60.0, 310.0, 260.0, 400.0)
+        )
 
     def test_negative_is_down(self):
-        self.assertEqual(shift_box_v((60.0, 300.0, 260.0, 390.0), -5.0),
-                         (60.0, 295.0, 260.0, 385.0))
+        self.assertEqual(
+            shift_box_v((60.0, 300.0, 260.0, 390.0), -5.0), (60.0, 295.0, 260.0, 385.0)
+        )
 
     def test_x_never_changes(self):
         up = shift_box_v((10.0, 20.0, 300.0, 90.0), 7.0)
@@ -126,10 +148,11 @@ class TestShiftBoxV(unittest.TestCase):
 class TestCompactColumn(unittest.TestCase):
     def test_closes_internal_gaps_up(self):
         # gutter=0 -> compaction collapses every movable gap to exactly 0.
-        cols = resolve_packing(_plan(_column_with_gaps()),
-                               {1: 792.0},
-                               config=PackConfig(gutter=0.0, preserved_gutter=0.0,
-                                                 re_anchor=False))[0]
+        cols = resolve_packing(
+            _plan(_column_with_gaps()),
+            {1: 792.0},
+            config=PackConfig(gutter=0.0, preserved_gutter=0.0, re_anchor=False),
+        )[0]
         # topmost anchor stays put
         self.assertEqual(cols[0].bottom, 500.0)
         self.assertEqual(cols[0].top, 720.0)
@@ -153,21 +176,23 @@ class TestCompactColumn(unittest.TestCase):
         # packed placements keep the input reading order; every pair retains
         # top-below ordering (a above b: a's bottom edge >= b's top edge) and
         # no block rises above the block above it.
-        packed = resolve_packing(_plan(_column_with_gaps()),
-                                 {1: 792.0}, config=PackConfig(re_anchor=False))[0]
+        packed = resolve_packing(
+            _plan(_column_with_gaps()), {1: 792.0}, config=PackConfig(re_anchor=False)
+        )[0]
         self.assertEqual([p.block_index for p in packed], [0, 1, 2])
         for a, b in zip(packed, packed[1:]):
             self.assertGreaterEqual(a.bottom + 1e-6, b.top)  # no overlap across
-            self.assertGreaterEqual(a.bottom, b.bottom)      # a still above b
+            self.assertGreaterEqual(a.bottom, b.bottom)  # a still above b
 
     def test_preserved_blocks_not_moved(self):
         placements = [
             _blk(0, 1, 60.0, 500.0, 260.0, 720.0),
-            _pres(1, 1, 60.0, 300.0, 260.0, 494.0),   # preserved (code)
+            _pres(1, 1, 60.0, 300.0, 260.0, 494.0),  # preserved (code)
             _blk(2, 1, 60.0, 200.0, 260.0, 290.0),
         ]
-        packed = resolve_packing(_plan(placements), {1: 792.0},
-                                 config=PackConfig(re_anchor=False))[0]
+        packed = resolve_packing(
+            _plan(placements), {1: 792.0}, config=PackConfig(re_anchor=False)
+        )[0]
         self.assertEqual(packed[1].resolved_bbox, placements[1].resolved_bbox)
         self.assertEqual(packed[1].bottom, 300.0)
 
@@ -182,10 +207,8 @@ class TestReanchor(unittest.TestCase):
         # topmost anchor at bottom 500 (bottom edge 0 -> trailing 500 on 792
         # page).  Re-anchor (no bottom margin) slides the whole column down so
         # the lowest block settles at the page-bottom floor.
-        cfg = PackConfig(bottom_margin=0.0, preserved_gutter=0.0,
-                         max_reclaim=None)
-        packed = resolve_packing(_plan(_column_with_gaps()), {1: 792.0},
-                                 config=cfg)[0]
+        cfg = PackConfig(bottom_margin=0.0, preserved_gutter=0.0, max_reclaim=None)
+        packed = resolve_packing(_plan(_column_with_gaps()), {1: 792.0}, config=cfg)[0]
         # bottom-most block moved down from 300 to ~0 (fully reclaiming the
         # trailing gap below the original lowest content).
         self.assertAlmostEqual(packed[2].bottom, 0.0, delta=0.1)
@@ -193,8 +216,11 @@ class TestReanchor(unittest.TestCase):
         self.assertLess(packed[0].bottom, 500.0)
 
     def test_bottom_margin_bounds_shift(self):
-        packed = resolve_packing(_plan(_column_with_gaps()), {1: 792.0},
-                                 config=PackConfig(bottom_margin=100.0))[0]
+        packed = resolve_packing(
+            _plan(_column_with_gaps()),
+            {1: 792.0},
+            config=PackConfig(bottom_margin=100.0),
+        )[0]
         # no movable block's bottom below the 100 pt floor
         for p in packed:
             if not p.preserved:
@@ -209,11 +235,13 @@ class TestReanchor(unittest.TestCase):
 class TestApplyFlow(unittest.TestCase):
     def test_src_box_verbatim_and_only_y_moves(self):
         from pdf2zh.semantic.layout.packer import apply_packing
+
         plan = _plan(_column_with_gaps())
         src_before = [list(e["src_box"]) for e in plan]
         dst_before = [list(e["dst_box"]) for e in plan]
-        new_plan, report = apply_packing(plan, {1: 792.0},
-                                         config=PackConfig(re_anchor=False))
+        new_plan, report = apply_packing(
+            plan, {1: 792.0}, config=PackConfig(re_anchor=False)
+        )
         self.assertEqual([list(e["src_box"]) for e in new_plan], src_before)
         for e, db in zip(new_plan, dst_before):
             # x edges identical; only y may change
@@ -223,15 +251,18 @@ class TestApplyFlow(unittest.TestCase):
 
     def test_commands_y_move_with_dst_box(self):
         from pdf2zh.semantic.layout.packer import apply_packing
+
         plan = _plan(_column_with_gaps())
-        new_plan, _ = apply_packing(plan, {1: 792.0},
-                                    config=PackConfig(re_anchor=False))
+        new_plan, _ = apply_packing(
+            plan, {1: 792.0}, config=PackConfig(re_anchor=False)
+        )
         e, db = new_plan[1], plan[1]
         cmd_y = e["render_payload"]["commands"][0]["y"]
         self.assertNotEqual(cmd_y, db["render_payload"]["commands"][0]["y"])
 
     def test_input_plan_never_mutated(self):
         from pdf2zh.semantic.layout.packer import apply_packing
+
         plan = _plan(_column_with_gaps())
         snap = json.dumps(plan)
         apply_packing(plan, {1: 792.0})
@@ -248,10 +279,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -265,15 +299,27 @@ def _code(path: Path) -> str:
 class TestPackerArchitecture(unittest.TestCase):
     def test_never_re_lays_out(self):
         src = _code(_PACKER_PATH)
-        for banned in ("lay_out(", "adaptive_layout(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text("):
+        for banned in (
+            "lay_out(",
+            "adaptive_layout(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+        ):
             self.assertNotIn(banned, src, f"packer.py 不得: {banned}")
 
     def test_never_references_detector_renderer_translator(self):
         src = _code(_PACKER_PATH)
-        for banned in ("list_detector", "list_parser", "toc_parser",
-                       "code_detector", "style_detector",
-                       "semantic.renderer", "magicpdf", "translator"):
+        for banned in (
+            "list_detector",
+            "list_parser",
+            "toc_parser",
+            "code_detector",
+            "style_detector",
+            "semantic.renderer",
+            "magicpdf",
+            "translator",
+        ):
             self.assertNotIn(banned, src, f"packer.py 不得引用: {banned}")
 
     def test_never_derives_geometry_from_level_index(self):
@@ -283,9 +329,7 @@ class TestPackerArchitecture(unittest.TestCase):
                 continue
             names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
             if names & {"level", "index"}:
-                raise AssertionError(
-                    f"packer.py 用 {type(node.op).__name__} 重建几何"
-                )
+                raise AssertionError(f"packer.py 用 {type(node.op).__name__} 重建几何")
 
     def test_reads_settled_geometry_through_placements(self):
         src = _code(_PACKER_PATH)

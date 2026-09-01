@@ -103,6 +103,7 @@ def batch_translate_paragraphs(
         packable.append(i)
 
     if len(packable) < 2:
+
         def _fn_short(i: int) -> str:
             if keep[i]:
                 return texts[i]

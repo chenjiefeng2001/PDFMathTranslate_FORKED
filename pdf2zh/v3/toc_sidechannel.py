@@ -37,7 +37,7 @@ __all__ = [
 def entry_to_dict(e) -> dict:
     """TOCEntryNode → JSON-safe dict（几何不重新计算，直接抄节点）。"""
     return {
-        "title": e.title,            # 原始标题（含开头编号/结构词）
+        "title": e.title,  # 原始标题（含开头编号/结构词）
         "number": "",
         "title_only": entry_clean_title(e.title),
         "level": int(e.level or 0),
@@ -49,7 +49,9 @@ def entry_to_dict(e) -> dict:
         "dot_leader": e.dot_leader,
         "leader_present": bool(e.leader_present),
         "continuation": list(e.continuation or []),
-        "bbox": [round(float(v), 1) for v in (getattr(e, "bbox", None) or (0, 0, 0, 0))],
+        "bbox": [
+            round(float(v), 1) for v in (getattr(e, "bbox", None) or (0, 0, 0, 0))
+        ],
         "heading_ref": None,
         "translated_title": "",
     }
@@ -195,8 +197,8 @@ def attach_toc_entries(page, toc_entries: Sequence[dict]) -> bool:
     if not entries or not getattr(page, "blocks", None):
         return False
     # 用条目 bbox 的中位中心点找最重叠的目标块；否则回退已 kind=="toc" 的块。
-    xs = [ (e.get("bbox") or (0, 0, 0, 0))[0] for e in entries ]
-    ys = [ (e.get("bbox") or (0, 0, 0, 0))[1] for e in entries ]
+    xs = [(e.get("bbox") or (0, 0, 0, 0))[0] for e in entries]
+    ys = [(e.get("bbox") or (0, 0, 0, 0))[1] for e in entries]
     tx = sum(xs) / len(xs) if xs else 0.0
     ty = sum(ys) / len(ys) if ys else 0.0
     toc_candidates = [b for b in page.blocks if b.kind == "toc"]

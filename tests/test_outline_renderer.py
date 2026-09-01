@@ -63,9 +63,7 @@ def _toc_block(entries, page_num=0):
 
 def _document_model(entries, page_nums=(0,)):
     return {
-        "pages": [
-            {"page": p, "blocks": [_toc_block(entries, p)]} for p in page_nums
-        ],
+        "pages": [{"page": p, "blocks": [_toc_block(entries, p)]} for p in page_nums],
         "relations": [],
         "metadata": {},
     }
@@ -276,8 +274,14 @@ class TestApplyBookmarksPdf(unittest.TestCase):
         doc_zh, doc_en, native = self._build_docs(with_native_toc=False)
         a = [_entry(title="X", translated_title="译X", destination_page=2)]
         b = [_entry(title="X", translated_title="译X2", destination_page=2)]
-        da = pymupdf.open(); da.new_page(); db = pymupdf.open(); db.new_page()
-        ea = pymupdf.open(); ea.new_page(); eb = pymupdf.open(); eb.new_page()
+        da = pymupdf.open()
+        da.new_page()
+        db = pymupdf.open()
+        db.new_page()
+        ea = pymupdf.open()
+        ea.new_page()
+        eb = pymupdf.open()
+        eb.new_page()
         self._apply(da, ea, semantic_entries=a)
         self._apply(db, eb, semantic_entries=b)
         self.assertEqual(da.get_toc()[0][2], db.get_toc()[0][2])

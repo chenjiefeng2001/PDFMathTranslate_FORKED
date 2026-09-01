@@ -61,7 +61,9 @@ class RenderCommand:
         }
 
 
-def _layout_lines(result, x: float, y: float, line_step: float, kind: str, level: int, bbox) -> list[RenderCommand]:
+def _layout_lines(
+    result, x: float, y: float, line_step: float, kind: str, level: int, bbox
+) -> list[RenderCommand]:
     """One LayoutResult → positioned RenderCommands (no re-layout)."""
     cmds: list[RenderCommand] = []
     for i, (ln, w) in enumerate(zip(result.lines, result.line_widths)):
@@ -156,12 +158,20 @@ class ListRenderer:
         # ── 通道 2：content —— FlowText 已定版行（y 递减向下）──────
         step = layout.line_step
         y = item.y
-        cmds.extend(_layout_lines(layout.content, item.content_x, y, step, "text", item.level, item.bbox))
+        cmds.extend(
+            _layout_lines(
+                layout.content, item.content_x, y, step, "text", item.level, item.bbox
+            )
+        )
         y += len(layout.content.lines) * step
 
         # ── 通道 3：continuation —— 钉在 content_x，逐条换行后下移 ──
         for cl in layout.continuation:
-            cmds.extend(_layout_lines(cl, item.content_x, y, step, "text", item.level, item.bbox))
+            cmds.extend(
+                _layout_lines(
+                    cl, item.content_x, y, step, "text", item.level, item.bbox
+                )
+            )
             y += len(cl.lines) * step
 
         # ── 嵌套列表：递归（层级/缩进来自节点，不重新计算）────────

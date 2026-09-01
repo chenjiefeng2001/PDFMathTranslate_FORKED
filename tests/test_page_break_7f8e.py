@@ -58,16 +58,32 @@ _HERE = Path(__file__).resolve().parent
 _PAGE_BREAK_PATH = _HERE.parent / "pdf2zh" / "semantic" / "layout" / "page_break.py"
 
 
-def _entry(block_id, page, kind, x0, y0, x1, y1, payload=None,
-           list_items=None, toc_entries=None, toc_commands=None):
+def _entry(
+    block_id,
+    page,
+    kind,
+    x0,
+    y0,
+    x1,
+    y1,
+    payload=None,
+    list_items=None,
+    toc_entries=None,
+    toc_commands=None,
+):
     box = [float(x0), float(y0), float(x1), float(y1)]
     return {
-        "block_id": block_id, "page": page, "kind": kind,
-        "text": "t", "translated": "t",
-        "src_box": list(box), "dst_box": list(box),
+        "block_id": block_id,
+        "page": page,
+        "kind": kind,
+        "text": "t",
+        "translated": "t",
+        "src_box": list(box),
+        "dst_box": list(box),
         "font_size": 11.0,
-        "render_payload": payload if payload is not None
-        else {"kind": kind, "commands": []},
+        "render_payload": (
+            payload if payload is not None else {"kind": kind, "commands": []}
+        ),
         "list_items": list_items,
         "toc_entries": toc_entries,
         "toc_commands": toc_commands,
@@ -79,28 +95,54 @@ def _flow(block_id, page, x0, y0, x1, y1):
 
 
 def _list(block_id, page, x0, y0, x1, y1):
-    items = [{
-        "marker": "1.", "marker_x": 60.0, "content_x": 76.0,
-        "continuation_x": 76.0, "continuation": ["wrapped line"],
-    }]
-    return _entry(block_id, page, "list", x0, y0, x1, y1,
-                  list_items={"items": items},
-                  payload={"kind": "list", "commands": []})
+    items = [
+        {
+            "marker": "1.",
+            "marker_x": 60.0,
+            "content_x": 76.0,
+            "continuation_x": 76.0,
+            "continuation": ["wrapped line"],
+        }
+    ]
+    return _entry(
+        block_id,
+        page,
+        "list",
+        x0,
+        y0,
+        x1,
+        y1,
+        list_items={"items": items},
+        payload={"kind": "list", "commands": []},
+    )
 
 
 def _toc(block_id, page, x0, y0, x1, y1):
-    entries = [{
-        "title": "Intro", "title_x": 72.0, "page_x": 500.0,
-        "page_number": "42", "continuation": [],
-    }]
+    entries = [
+        {
+            "title": "Intro",
+            "title_x": 72.0,
+            "page_x": 500.0,
+            "page_number": "42",
+            "continuation": [],
+        }
+    ]
     cmds = [
-        {"kind": "title", "text": "Intro", "x": 72.0, "y": 700.0,
-         "width": 100.0},
+        {"kind": "title", "text": "Intro", "x": 72.0, "y": 700.0, "width": 100.0},
         {"kind": "page", "text": "42", "x": 500.0, "y": 700.0, "width": 20.0},
     ]
-    return _entry(block_id, page, "toc", x0, y0, x1, y1,
-                  toc_entries=entries, toc_commands={"commands": cmds},
-                  payload={"kind": "toc", "commands": cmds})
+    return _entry(
+        block_id,
+        page,
+        "toc",
+        x0,
+        y0,
+        x1,
+        y1,
+        toc_entries=entries,
+        toc_commands={"commands": cmds},
+        payload={"kind": "toc", "commands": cmds},
+    )
 
 
 def _code_entry(block_id, page, x0, y0, x1, y1):
@@ -114,8 +156,12 @@ def _moved_entry(source, target_page=1, page_start_y=10.0):
     target["page"] = target_page
     dst = list(target["dst_box"])
     h = dst[3] - dst[1]
-    target["dst_box"] = [dst[0], round(page_start_y - h, 2), dst[2],
-                         round(page_start_y, 2)]
+    target["dst_box"] = [
+        dst[0],
+        round(page_start_y - h, 2),
+        dst[2],
+        round(page_start_y, 2),
+    ]
     return target
 
 
@@ -133,24 +179,30 @@ class TestDecidePageBreak(unittest.TestCase):
 
     def test_block_that_fits_is_keep(self):
         p = placements_from_plan([_flow("p0_0", 0, 60.0, 500.0, 260.0, 700.0)])[0]
-        self.assertEqual(decide_page_break(p, page_height=792.0),
-                         PageBreakDecision.KEEP)
+        self.assertEqual(
+            decide_page_break(p, page_height=792.0), PageBreakDecision.KEEP
+        )
 
     def test_block_below_page_bottom_breaks(self):
         p = placements_from_plan([_flow("p0_0", 0, 60.0, -20.0, 260.0, 50.0)])[0]
-        self.assertEqual(decide_page_break(p, page_height=792.0),
-                         PageBreakDecision.BREAK_TO_NEXT_PAGE)
+        self.assertEqual(
+            decide_page_break(p, page_height=792.0),
+            PageBreakDecision.BREAK_TO_NEXT_PAGE,
+        )
 
     def test_block_above_page_top_breaks(self):
         p = placements_from_plan([_flow("p0_0", 0, 60.0, 700.0, 260.0, 810.0)])[0]
-        self.assertEqual(decide_page_break(p, page_height=792.0),
-                         PageBreakDecision.BREAK_TO_NEXT_PAGE)
+        self.assertEqual(
+            decide_page_break(p, page_height=792.0),
+            PageBreakDecision.BREAK_TO_NEXT_PAGE,
+        )
 
     def test_code_overflow_is_preserve_not_break(self):
         # code below the page bottom must NOT break — immovable geometry
         p = placements_from_plan([_code_entry("p0_0", 0, 60.0, -20.0, 260.0, 50.0)])[0]
-        self.assertEqual(decide_page_break(p, page_height=792.0),
-                         PageBreakDecision.PRESERVE_OVERFLOW)
+        self.assertEqual(
+            decide_page_break(p, page_height=792.0), PageBreakDecision.PRESERVE_OVERFLOW
+        )
 
     def test_decide_page_breaks_over_plan(self):
         plan = [
@@ -158,17 +210,23 @@ class TestDecidePageBreak(unittest.TestCase):
             _flow("p0_1", 0, 60.0, -20.0, 260.0, 50.0),
             _code_entry("p0_2", 0, 60.0, -30.0, 260.0, 10.0),
         ]
-        decisions = decide_page_breaks(placements_from_plan(plan),
-                                       page_sizes={0: 792.0})
-        self.assertEqual([d for _, d in decisions],
-                         [PageBreakDecision.KEEP,
-                          PageBreakDecision.BREAK_TO_NEXT_PAGE,
-                          PageBreakDecision.PRESERVE_OVERFLOW])
+        decisions = decide_page_breaks(
+            placements_from_plan(plan), page_sizes={0: 792.0}
+        )
+        self.assertEqual(
+            [d for _, d in decisions],
+            [
+                PageBreakDecision.KEEP,
+                PageBreakDecision.BREAK_TO_NEXT_PAGE,
+                PageBreakDecision.PRESERVE_OVERFLOW,
+            ],
+        )
 
     def test_missing_page_height_defaults_keep(self):
         p = placements_from_plan([_flow("p0_0", 0, 60.0, -20.0, 260.0, 50.0)])[0]
-        self.assertEqual(decide_page_breaks([p], page_sizes={})[0][1],
-                         PageBreakDecision.KEEP)
+        self.assertEqual(
+            decide_page_breaks([p], page_sizes={})[0][1], PageBreakDecision.KEEP
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -178,38 +236,44 @@ class TestDecidePageBreak(unittest.TestCase):
 
 class TestPageBreakFromShift(unittest.TestCase):
     def _collision_plan(self, page=0):
-        return [_flow("p%d_0" % page, page, 60.0, 700.0, 260.0, 728.0),
-                _flow("p%d_1" % page, page, 60.0, 660.0, 260.0, 720.0)]
+        return [
+            _flow("p%d_0" % page, page, 60.0, 700.0, 260.0, 728.0),
+            _flow("p%d_1" % page, page, 60.0, 660.0, 260.0, 720.0),
+        ]
 
     def test_8c_next_page_becomes_break(self):
-        plan = [_flow("p0_0", 0, 60.0, 8.0, 260.0, 18.0),
-                _flow("p0_1", 0, 60.0, 0.0, 260.0, 10.0)]
+        plan = [
+            _flow("p0_0", 0, 60.0, 8.0, 260.0, 18.0),
+            _flow("p0_1", 0, 60.0, 0.0, 260.0, 10.0),
+        ]
         d = decide_block_shift(
-            __import__("pdf2zh.semantic.layout.page_flow",
-                       fromlist=["detect_page_collisions"])
-            .detect_page_collisions(plan)[0],
+            __import__(
+                "pdf2zh.semantic.layout.page_flow", fromlist=["detect_page_collisions"]
+            ).detect_page_collisions(plan)[0],
             page_height=18.0,
         )
         self.assertEqual(d.decision, PageRecoveryDecision.NEXT_PAGE)
-        self.assertEqual(page_break_from_shift(d),
-                         PageBreakDecision.BREAK_TO_NEXT_PAGE)
+        self.assertEqual(page_break_from_shift(d), PageBreakDecision.BREAK_TO_NEXT_PAGE)
 
     def test_8c_shift_down_is_not_a_break(self):
         from pdf2zh.semantic.layout.page_flow import detect_page_collisions
-        d = decide_block_shift(detect_page_collisions(self._collision_plan())[0],
-                               page_height=792.0)
+
+        d = decide_block_shift(
+            detect_page_collisions(self._collision_plan())[0], page_height=792.0
+        )
         self.assertEqual(d.decision, PageRecoveryDecision.SHIFT_DOWN)
         self.assertEqual(page_break_from_shift(d), PageBreakDecision.KEEP)
 
     def test_8c_preserve_is_preserve(self):
         from pdf2zh.semantic.layout.page_flow import detect_page_collisions
-        plan = [_flow("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
-                _code_entry("p0_1", 0, 60.0, 660.0, 260.0, 720.0)]
-        d = decide_block_shift(detect_page_collisions(plan)[0],
-                               page_height=792.0)
+
+        plan = [
+            _flow("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
+            _code_entry("p0_1", 0, 60.0, 660.0, 260.0, 720.0),
+        ]
+        d = decide_block_shift(detect_page_collisions(plan)[0], page_height=792.0)
         self.assertEqual(d.decision, PageRecoveryDecision.PRESERVE_OVERFLOW)
-        self.assertEqual(page_break_from_shift(d),
-                         PageBreakDecision.PRESERVE_OVERFLOW)
+        self.assertEqual(page_break_from_shift(d), PageBreakDecision.PRESERVE_OVERFLOW)
 
     def test_8c_next_page_on_preserved_placement_is_preserve(self):
         # code wins over ANY NEXT_PAGE decision — never broken.  (Through the
@@ -217,10 +281,13 @@ class TestPageBreakFromShift(unittest.TestCase):
         # before NEXT_PAGE is even considered; this unit directly feeds a
         # NEXT_PAGE decision to page_break_from_shift to prove the guard.)
         from pdf2zh.semantic.layout.page_recovery import BlockShiftDecision
+
         d = BlockShiftDecision(
-            block_index=1, page=0,
+            block_index=1,
+            page=0,
             decision=PageRecoveryDecision.NEXT_PAGE,
-            shift_y=2.0, reason="overlap",
+            shift_y=2.0,
+            reason="overlap",
             source_bbox=(60.0, 0.0, 260.0, 10.0),
             resolved_bbox=(60.0, 0.0, 260.0, 10.0),
         )
@@ -228,13 +295,16 @@ class TestPageBreakFromShift(unittest.TestCase):
             [_code_entry("p0_1", 0, 60.0, 0.0, 260.0, 10.0)]
         )[0]
         self.assertTrue(placement.preserved)
-        self.assertEqual(page_break_from_shift(d, placement=placement),
-                         PageBreakDecision.PRESERVE_OVERFLOW)
+        self.assertEqual(
+            page_break_from_shift(d, placement=placement),
+            PageBreakDecision.PRESERVE_OVERFLOW,
+        )
 
     def test_keep_decision_maps_to_keep(self):
         p = placements_from_plan([_flow("p0_0", 0, 60.0, 500.0, 260.0, 700.0)])[0]
-        self.assertEqual(page_break_from_shift(keep_decision(p)),
-                         PageBreakDecision.KEEP)
+        self.assertEqual(
+            page_break_from_shift(keep_decision(p)), PageBreakDecision.KEEP
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -248,8 +318,10 @@ class TestNextPagePosition(unittest.TestCase):
         self.assertEqual(next_page_start_y(20.0), 20.0)
 
     def test_break_maps_page_plus_one_and_y_only(self):
-        plan = [_flow("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
-                _flow("p0_1", 0, 60.0, 660.0, 260.0, 720.0)]
+        plan = [
+            _flow("p0_0", 0, 60.0, 700.0, 260.0, 728.0),
+            _flow("p0_1", 0, 60.0, 660.0, 260.0, 720.0),
+        ]
         p = placements_from_plan(plan)[1]  # [660,720], height 60
         mapped = break_placement_to_page(p, target_page=1, page_start_y=10.0)
         self.assertEqual(mapped.page, 1)
@@ -282,23 +354,35 @@ class TestNextPagePosition(unittest.TestCase):
         d = record.to_dict()
         self.assertEqual(
             set(d),
-            {"block_index", "source_page", "target_page", "kind", "decision",
-             "reason", "next_start_y", "source_bbox", "resolved_bbox",
-             "target"},
+            {
+                "block_index",
+                "source_page",
+                "target_page",
+                "kind",
+                "decision",
+                "reason",
+                "next_start_y",
+                "source_bbox",
+                "resolved_bbox",
+                "target",
+            },
         )
         json.dumps(d)
 
     def test_page_break_report_summary(self):
-        plan = [_flow("p0_1", 0, 60.0, 660.0, 260.0, 720.0),
-                _code_entry("p0_2", 0, 60.0, 500.0, 260.0, 600.0)]
+        plan = [
+            _flow("p0_1", 0, 60.0, 660.0, 260.0, 720.0),
+            _code_entry("p0_2", 0, 60.0, 500.0, 260.0, 600.0),
+        ]
         report = PageBreakReport()
         for p in placements_from_plan(plan):
             record, _ = page_break_execution(p)
             report.executions.append(record)
         s = report.summary()
         self.assertEqual(s["total"], 2)
-        self.assertEqual(s["by_decision"],
-                         {"break_to_next_page": 1, "preserve_overflow": 1})
+        self.assertEqual(
+            s["by_decision"], {"break_to_next_page": 1, "preserve_overflow": 1}
+        )
         d = report.to_dict()
         self.assertEqual(set(d), {"executions", "summary"})
         json.dumps(d)
@@ -334,16 +418,18 @@ class TestContinuationInvariants(unittest.TestCase):
     def test_break_invariants_read_list_anchors(self):
         entry = _list("p0_0", 0, 60.0, 660.0, 260.0, 720.0)
         inv = break_invariants(entry)
-        self.assertEqual(inv,
-                         {"marker_x": 60.0, "content_x": 76.0,
-                          "continuation_x": 76.0})
+        self.assertEqual(
+            inv, {"marker_x": 60.0, "content_x": 76.0, "continuation_x": 76.0}
+        )
 
     def test_break_invariants_read_toc_anchors(self):
         inv = break_invariants(_toc("p0_0", 0, 60.0, 660.0, 260.0, 720.0))
         self.assertEqual(inv, {"title_x": 72.0, "page_x": 500.0})
 
     def test_break_invariants_flow_empty(self):
-        self.assertEqual(break_invariants(_flow("p0_0", 0, 60.0, 500.0, 260.0, 700.0)), {})
+        self.assertEqual(
+            break_invariants(_flow("p0_0", 0, 60.0, 500.0, 260.0, 700.0)), {}
+        )
 
     def test_good_list_break_passes(self):
         src = _list("p0_0", 0, 60.0, 660.0, 260.0, 720.0)
@@ -408,8 +494,7 @@ class TestContinuationInvariants(unittest.TestCase):
         src = _toc("p0_0", 0, 60.0, 660.0, 260.0, 720.0)
         target = _moved_entry(src)
         target["render_payload"]["commands"].append(
-            {"kind": "page", "text": "42", "x": 500.0, "y": 680.0,
-             "width": 20.0}
+            {"kind": "page", "text": "42", "x": 500.0, "y": 680.0, "width": 20.0}
         )
         v = assert_break_invariants(src, target)
         self.assertTrue(any("page-number run count changed" in x for x in v))
@@ -425,10 +510,13 @@ def _code(path: Path) -> str:
 
     def _clean(body):
         return [
-            n for n in body
-            if not (isinstance(n, ast.Expr)
-                    and isinstance(n.value, ast.Constant)
-                    and isinstance(n.value.value, str))
+            n
+            for n in body
+            if not (
+                isinstance(n, ast.Expr)
+                and isinstance(n.value, ast.Constant)
+                and isinstance(n.value.value, str)
+            )
         ]
 
     tree.body = _clean(tree.body)
@@ -442,17 +530,31 @@ def _code(path: Path) -> str:
 class TestPageBreakArchitecture(unittest.TestCase):
     def test_page_break_is_contract_only(self):
         src = _code(_PAGE_BREAK_PATH)
-        for banned in ("lay_out(", "adaptive_layout(", "wrap_lines(",
-                       "shrink_to_fit(", "clip_text(", "detect_page_collisions(",
-                       "detect_page_overflows(", "build_page_flow_report(",
-                       "resolve_page_shifts(", "apply_page_shifts("):
-            self.assertNotIn(banned, src,
-                             f"page_break.py 不得执行/复用: {banned}")
-        for banned in ("list_detector", "list_parser", "toc_parser",
-                       "code_detector", "style_detector", "looks_like_",
-                       "semantic.renderer", "translator", "magicpdf"):
-            self.assertNotIn(banned, src,
-                             f"page_break.py 不得引用: {banned}")
+        for banned in (
+            "lay_out(",
+            "adaptive_layout(",
+            "wrap_lines(",
+            "shrink_to_fit(",
+            "clip_text(",
+            "detect_page_collisions(",
+            "detect_page_overflows(",
+            "build_page_flow_report(",
+            "resolve_page_shifts(",
+            "apply_page_shifts(",
+        ):
+            self.assertNotIn(banned, src, f"page_break.py 不得执行/复用: {banned}")
+        for banned in (
+            "list_detector",
+            "list_parser",
+            "toc_parser",
+            "code_detector",
+            "style_detector",
+            "looks_like_",
+            "semantic.renderer",
+            "translator",
+            "magicpdf",
+        ):
+            self.assertNotIn(banned, src, f"page_break.py 不得引用: {banned}")
 
     def test_page_break_never_derives_geometry_from_level_index(self):
         tree = ast.parse(_code(_PAGE_BREAK_PATH))
@@ -476,14 +578,12 @@ class TestPageBreakArchitecture(unittest.TestCase):
     def test_page_break_never_mutates_a_plan(self):
         # no plan write: the module never assigns entry geometry fields
         src = _code(_PAGE_BREAK_PATH)
-        for banned in ('"dst_box"] =', '"src_box"] =', '"page"] =',
-                       "entry["):
-            self.assertNotIn(banned, src,
-                             f"page_break.py 不得写 plan: {banned}")
+        for banned in ('"dst_box"] =', '"src_box"] =', '"page"] =', "entry["):
+            self.assertNotIn(banned, src, f"page_break.py 不得写 plan: {banned}")
 
     def test_page_break_consumes_settled_geometry_only(self):
         src = _code(_PAGE_BREAK_PATH)
-        self.assertIn("resolved_bbox", src)   # consumes settled extents
+        self.assertIn("resolved_bbox", src)  # consumes settled extents
         self.assertIn("BlockShiftDecision", src)  # consumes 8c decisions
 
 

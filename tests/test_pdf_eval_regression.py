@@ -25,11 +25,14 @@ def _report(tmp_path, broken=False):
     build_toc(src)
     if broken:
         doc = new_doc()
-        add_page(doc, [
-            (72, 80, "Contents", "bold", 14),
-            (72, 110, "Introduction .................... 1", "body", 12),
-            (96, 135, "Background ........................ 3", "body", 12),
-        ])
+        add_page(
+            doc,
+            [
+                (72, 80, "Contents", "bold", 14),
+                (72, 110, "Introduction .................... 1", "body", 12),
+                (96, 135, "Background ........................ 3", "body", 12),
+            ],
+        )
         write(doc, out)
     else:
         build_toc(out)

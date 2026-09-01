@@ -47,7 +47,9 @@ def test_marker_and_content_positions_from_geometry():
     # 几何全部来自节点（列单位）：marker_x == indent，content_x == indent + marker 宽
     assert markers[0].x == tree.items[0].marker_x == tree.items[0].indent
     assert texts[0].x == tree.items[0].content_x
-    assert tree.items[0].content_x == tree.items[0].marker_x + tree.items[0].marker_width
+    assert (
+        tree.items[0].content_x == tree.items[0].marker_x + tree.items[0].marker_width
+    )
 
 
 def test_continuation_renders_at_content_x():
