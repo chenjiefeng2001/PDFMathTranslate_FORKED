@@ -1,0 +1,51 @@
+{
+  "AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5": {
+    "pages_aligned": 237,
+    "bad_alignment": 6,
+    "bad_alignment_pages": [
+      1,
+      3,
+      7,
+      11,
+      165,
+      181
+    ],
+    "cjk_delta_nonzero": 0,
+    "cjk_delta_samples": [],
+    "char_delta_large": 0,
+    "char_delta_samples": []
+  },
+  "Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk": {
+    "pages_aligned": 959,
+    "bad_alignment": 1,
+    "bad_alignment_pages": [
+      1
+    ],
+    "cjk_delta_nonzero": 0,
+    "cjk_delta_samples": [],
+    "char_delta_large": 0,
+    "char_delta_samples": []
+  },
+  "Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4": {
+    "pages_aligned": 1023,
+    "bad_alignment": 1,
+    "bad_alignment_pages": [
+      1
+    ],
+    "cjk_delta_nonzero": 0,
+    "cjk_delta_samples": [],
+    "char_delta_large": 0,
+    "char_delta_samples": []
+  },
+  "Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6": {
+    "pages_aligned": 223,
+    "bad_alignment": 1,
+    "bad_alignment_pages": [
+      1
+    ],
+    "cjk_delta_nonzero": 0,
+    "cjk_delta_samples": [],
+    "char_delta_large": 0,
+    "char_delta_samples": []
+  }
+}

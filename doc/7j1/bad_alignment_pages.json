@@ -1,0 +1,91 @@
+{
+  "AI": [
+    {
+      "page": 1,
+      "ratio": 0.0,
+      "src_chars": 0,
+      "dual_src_chars": 0,
+      "src_head": "",
+      "dual_src_head": "",
+      "mono_cjk": 0
+    },
+    {
+      "page": 3,
+      "ratio": 0.563,
+      "src_chars": 71,
+      "dual_src_chars": 40,
+      "src_head": "Q~ Taylor & Francis Taylor & Francis Group http://taylorandf",
+      "dual_src_head": "Q~ 呡祬潲\u0000 䙲慮捩\u0000呡祬潲\u0000 䙲慮捩\u0000䝲潵\u0000桴瑰㨯⽴慹汯牡 湤晲\u0000湣楳⹣潭 ",
+      "mono_cjk": 0
+    },
+    {
+      "page": 7,
+      "ratio": 0.563,
+      "src_chars": 71,
+      "dual_src_chars": 40,
+      "src_head": "Q~ Taylor & Francis Taylor & Francis Group http://taylorandf",
+      "dual_src_head": "Q~ 呡祬潲\u0000 䙲慮捩\u0000呡祬潲\u0000 䙲慮捩\u0000䝲潵\u0000桴瑰㨯⽴慹汯牡 湤晲\u0000湣楳⹣潭 ",
+      "mono_cjk": 0
+    },
+    {
+      "page": 11,
+      "ratio": 0.563,
+      "src_chars": 71,
+      "dual_src_chars": 40,
+      "src_head": "Q~ Taylor & Francis Taylor & Francis Group http://taylorandf",
+      "dual_src_head": "Q~ 呡祬潲\u0000 䙲慮捩\u0000呡祬潲\u0000 䙲慮捩\u0000䝲潵\u0000桴瑰㨯⽴慹汯牡 湤晲\u0000湣楳⹣潭 ",
+      "mono_cjk": 0
+    },
+    {
+      "page": 165,
+      "ratio": 0.563,
+      "src_chars": 71,
+      "dual_src_chars": 40,
+      "src_head": "Q~ Taylor & Francis Taylor & Francis Group http://taylorandf",
+      "dual_src_head": "Q~ 呡祬潲\u0000 䙲慮捩\u0000呡祬潲\u0000 䙲慮捩\u0000䝲潵\u0000桴瑰㨯⽴慹汯牡 湤晲\u0000湣楳⹣潭 ",
+      "mono_cjk": 0
+    },
+    {
+      "page": 181,
+      "ratio": 0.563,
+      "src_chars": 71,
+      "dual_src_chars": 40,
+      "src_head": "Q~ Taylor & Francis Taylor & Francis Group http://taylorandf",
+      "dual_src_head": "Q~ 呡祬潲\u0000 䙲慮捩\u0000呡祬潲\u0000 䙲慮捩\u0000䝲潵\u0000桴瑰㨯⽴慹汯牡 湤晲\u0000湣楳⹣潭 ",
+      "mono_cjk": 0
+    }
+  ],
+  "GP": [
+    {
+      "page": 1,
+      "ratio": 0.0,
+      "src_chars": 0,
+      "dual_src_chars": 0,
+      "src_head": "",
+      "dual_src_head": "",
+      "mono_cjk": 0
+    }
+  ],
+  "C": [
+    {
+      "page": 1,
+      "ratio": 0.0,
+      "src_chars": 0,
+      "dual_src_chars": 0,
+      "src_head": "",
+      "dual_src_head": "",
+      "mono_cjk": 0
+    }
+  ],
+  "Net": [
+    {
+      "page": 1,
+      "ratio": 0.0,
+      "src_chars": 0,
+      "dual_src_chars": 0,
+      "src_head": "",
+      "dual_src_head": "",
+      "mono_cjk": 0
+    }
+  ]
+}

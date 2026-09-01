@@ -1,0 +1,77 @@
+{
+  "AI for Games and Animation A Cognitive Modeling Approach John David Fun_4ca3f7b5": {
+    "pages": 237,
+    "pages_with_nul": 6,
+    "total_nul_chars": 301,
+    "nul_samples": [
+      {
+        "page": 3,
+        "nul": 60
+      },
+      {
+        "page": 7,
+        "nul": 60
+      },
+      {
+        "page": 11,
+        "nul": 60
+      },
+      {
+        "page": 157,
+        "nul": 1
+      },
+      {
+        "page": 165,
+        "nul": 60
+      },
+      {
+        "page": 181,
+        "nul": 60
+      }
+    ],
+    "pages_with_mojibake": 0,
+    "mojibake_samples": [],
+    "pages_with_cjk_delta": 0,
+    "cjk_delta_samples": []
+  },
+  "Game Physics David H. Eberly z-library.sk 1lib.sk z-lib.sk": {
+    "pages": 959,
+    "pages_with_nul": 1,
+    "total_nul_chars": 1,
+    "nul_samples": [
+      {
+        "page": 37,
+        "nul": 1
+      }
+    ],
+    "pages_with_mojibake": 0,
+    "mojibake_samples": [],
+    "pages_with_cjk_delta": 0,
+    "cjk_delta_samples": []
+  },
+  "Large-Scale C Volume I_ Process and Architecture -- јohn Lakos -- 2020 _2c3bdba4": {
+    "pages": 1023,
+    "pages_with_nul": 1,
+    "total_nul_chars": 1,
+    "nul_samples": [
+      {
+        "page": 908,
+        "nul": 1
+      }
+    ],
+    "pages_with_mojibake": 0,
+    "mojibake_samples": [],
+    "pages_with_cjk_delta": 0,
+    "cjk_delta_samples": []
+  },
+  "Networking and Online Games Understanding and Engineering Multiplayer I_1eed56a6": {
+    "pages": 223,
+    "pages_with_nul": 0,
+    "total_nul_chars": 0,
+    "nul_samples": [],
+    "pages_with_mojibake": 0,
+    "mojibake_samples": [],
+    "pages_with_cjk_delta": 0,
+    "cjk_delta_samples": []
+  }
+}
