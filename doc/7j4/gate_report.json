@@ -1,0 +1,62 @@
+{
+ "gate": "7j4-release-gate",
+ "checks": {
+  "latch_tests": {
+   "command": "C:\\Python313\\python.exe -m pytest tests/test_xobj_unicode_7i7.py tests/test_text_layer_integrity_7j3a.py tests/test_detector_coverage_7i4.py tests/test_evidence_inventory_7i6a.py tests/test_evidence_wiring_7i6b.py tests/test_cid_recovery.py tests/test_layout_policy_contract_7i5b.py tests/test_eligibility_7i6c.py tests/test_case_b_token_7j3c.py -q",
+   "returncode": 0,
+   "summary": "95 passed in 5.88s",
+   "ok": true
+  },
+  "corpus_baseline": {
+   "ok": true,
+   "returncode": 0,
+   "checks": {
+    "total_residual": true,
+    "by_defect": true,
+    "by_first_divergence": true,
+    "F1.FAIL": true,
+    "F2.FAIL": true,
+    "F3.FAIL": true,
+    "F4.FAIL": true,
+    "F5.SKIP": true,
+    "F6.FAIL": true,
+    "F7.NOT_MEASURED": true,
+    "F8.FAIL": true,
+    "F8.PASS": true,
+    "F9.FAIL": true,
+    "F9.PASS": true,
+    "F10.FAIL": true,
+    "F10.PASS": true
+   },
+   "total_residual": 1,
+   "by_defect": {
+    "F4": 1
+   }
+  },
+  "historical_capture": {
+   "ok": true,
+   "checks": {
+    "AI mono p3 (Case A footer)": {
+     "nul_chars": 60,
+     "detected": true
+    },
+    "AI mono p157 (Case B ►)": {
+     "nul_chars": 1,
+     "detected": true
+    }
+   }
+  },
+  "fresh_smoke": {
+   "ok": true,
+   "specials_present": [
+    "0x2014",
+    "0x2192",
+    "0x25ba",
+    "0xef"
+   ],
+   "nul_count": 0,
+   "token_leaks": []
+  }
+ },
+ "all_ok": true
+}
