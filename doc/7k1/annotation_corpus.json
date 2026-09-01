@@ -1,0 +1,380 @@
+{
+  "corpus": "7k1-annotation-evidence",
+  "source_pdf": "C:\\Users\\14977\\source\\repos\\PDFMathTranslate_FORKED\\doc\\7k1\\annotation_corpus.pdf",
+  "pages": 6,
+  "cases": [
+    {
+      "annotation_id": "A01",
+      "type": "highlight",
+      "page": 1,
+      "target": "The quick brown fox",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 1,
+        "target": "The quick brown fox",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "A02",
+      "type": "underline",
+      "page": 1,
+      "target": "Annotation preservation",
+      "expected": {
+        "present": true,
+        "type": "underline",
+        "page": 1,
+        "target": "Annotation preservation",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "A03",
+      "type": "link",
+      "page": 1,
+      "target": "Visit the documentation page",
+      "expected": {
+        "present": true,
+        "type": "link",
+        "page": 1,
+        "target": "Visit the documentation page",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "A04",
+      "type": "text",
+      "page": 1,
+      "target": "Reader note: check section 3.",
+      "expected": {
+        "present": true,
+        "type": "text",
+        "page": 1,
+        "target": "Reader note: check section 3.",
+        "bbox_tolerance": 4.0
+      }
+    },
+    {
+      "annotation_id": "A05",
+      "type": "underline",
+      "page": 1,
+      "target": "Annotation preservation is",
+      "expected": {
+        "present": true,
+        "type": "underline",
+        "page": 1,
+        "target": "Annotation preservation is",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "B01",
+      "type": "highlight",
+      "page": 2,
+      "target": "这是一个用于验证标注保真度的",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 2,
+        "target": "这是一个用于验证标注保真度的",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "B02",
+      "type": "underline",
+      "page": 2,
+      "target": "标注内容应当",
+      "expected": {
+        "present": true,
+        "type": "underline",
+        "page": 2,
+        "target": "标注内容应当",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "B03",
+      "type": "link",
+      "page": 2,
+      "target": "第二行中文",
+      "expected": {
+        "present": true,
+        "type": "link",
+        "page": 2,
+        "target": "第二行中文",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "B04",
+      "type": "text",
+      "page": 2,
+      "target": "中文注释：请核对翻译",
+      "expected": {
+        "present": true,
+        "type": "text",
+        "page": 2,
+        "target": "中文注释：请核对翻译",
+        "bbox_tolerance": 4.0
+      }
+    },
+    {
+      "annotation_id": "B05",
+      "type": "highlight",
+      "page": 2,
+      "target": "标注内容应当",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 2,
+        "target": "标注内容应当",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "B06",
+      "type": "highlight",
+      "page": 2,
+      "target": "Mixed line: alpha 中文与Latin共存",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 2,
+        "target": "Mixed line: alpha 中文与Latin共存",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "C01",
+      "type": "highlight",
+      "page": 3,
+      "target": "Line one ... across multiple lines",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 3,
+        "target": "Line one ... across multiple lines",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "C02",
+      "type": "highlight",
+      "page": 3,
+      "target": "This line holds two separate",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 3,
+        "target": "This line holds two separate",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "C03",
+      "type": "underline",
+      "page": 3,
+      "target": "This line holds two separate",
+      "expected": {
+        "present": true,
+        "type": "underline",
+        "page": 3,
+        "target": "This line holds two separate",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "C04",
+      "type": "link_goto",
+      "page": 3,
+      "target": "internal goto to page 1",
+      "expected": {
+        "present": true,
+        "type": "link_goto",
+        "page": 3,
+        "target": "internal goto to page 1",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "D01",
+      "type": "highlight",
+      "page": 4,
+      "target": "figure overlap",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 4,
+        "target": "figure overlap",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "D02",
+      "type": "underline",
+      "page": 4,
+      "target": "Figure 1: sample chart caption.",
+      "expected": {
+        "present": true,
+        "type": "underline",
+        "page": 4,
+        "target": "Figure 1: sample chart caption.",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "D03",
+      "type": "highlight",
+      "page": 4,
+      "target": "Text that overlaps the figure region",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 4,
+        "target": "Text that overlaps the figure region",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "D04",
+      "type": "text",
+      "page": 4,
+      "target": "Annotation beside a figure",
+      "expected": {
+        "present": true,
+        "type": "text",
+        "page": 4,
+        "target": "Annotation beside a figure",
+        "bbox_tolerance": 4.0
+      }
+    },
+    {
+      "annotation_id": "E01",
+      "type": "highlight",
+      "page": 5,
+      "target": "Formula symbols: alpha beta",
+      "expected": {
+        "present": true,
+        "type": "highlight",
+        "page": 5,
+        "target": "Formula symbols: alpha beta",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "E02",
+      "type": "link",
+      "page": 5,
+      "target": "See page 3 for the cross-line",
+      "expected": {
+        "present": true,
+        "type": "link",
+        "page": 5,
+        "target": "See page 3 for the cross-line",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "E03",
+      "type": "underline",
+      "page": 5,
+      "target": "Formula symbols",
+      "expected": {
+        "present": true,
+        "type": "underline",
+        "page": 5,
+        "target": "Formula symbols",
+        "bbox_tolerance": 2.0
+      }
+    },
+    {
+      "annotation_id": "E04",
+      "type": "text",
+      "page": 5,
+      "target": "Symbol line annotation",
+      "expected": {
+        "present": true,
+        "type": "text",
+        "page": 5,
+        "target": "Symbol line annotation",
+        "bbox_tolerance": 4.0
+      }
+    },
+    {
+      "annotation_id": "F00",
+      "type": "none",
+      "page": 6,
+      "target": "negative control",
+      "expected": {
+        "present": true,
+        "type": "none",
+        "page": 6,
+        "target": "negative control",
+        "bbox_tolerance": 0.0
+      }
+    }
+  ],
+  "source_inventory": {
+    "1": {
+      "annots": [
+        "Highlight",
+        "Underline",
+        "Text",
+        "Underline"
+      ],
+      "links": [
+        2
+      ]
+    },
+    "2": {
+      "annots": [
+        "Highlight",
+        "Underline",
+        "Text",
+        "Highlight",
+        "Highlight"
+      ],
+      "links": [
+        2
+      ]
+    },
+    "3": {
+      "annots": [
+        "Highlight",
+        "Highlight",
+        "Highlight",
+        "Underline"
+      ],
+      "links": [
+        1
+      ]
+    },
+    "4": {
+      "annots": [
+        "Highlight",
+        "Underline",
+        "Highlight",
+        "Text"
+      ],
+      "links": []
+    },
+    "5": {
+      "annots": [
+        "Highlight",
+        "Underline",
+        "Text"
+      ],
+      "links": [
+        2
+      ]
+    },
+    "6": {
+      "annots": [],
+      "links": []
+    }
+  },
+  "source_annotation_count": 24,
+  "note": "expected.present=True records the SOURCE contract. The current pipeline is expected to fail it (deliberate /Annots stripping in babeldoc fix_null_xref); that divergence is the 7K-1 finding."
+}

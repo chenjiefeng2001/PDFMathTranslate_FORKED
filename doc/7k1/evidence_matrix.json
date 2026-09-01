@@ -1,0 +1,228 @@
+{
+  "corpus": "7k1-annotation-evidence",
+  "stages": [
+    "source",
+    "preprocess",
+    "output"
+  ],
+  "stage_totals": {
+    "source": 24,
+    "preprocess": 0,
+    "output": null
+  },
+  "recorded_e2e_output": {
+    "mono": {
+      "pages": 6,
+      "annots": 0,
+      "links": 0
+    },
+    "dual": {
+      "pages": 12,
+      "annots": 0,
+      "links": 0
+    },
+    "note": "observed 7K-1 offline E2E (babeldoc 0.6.4, stub-CJK translator); reproduce with e2e_corpus.py"
+  },
+  "cases": [
+    {
+      "annotation_id": "A01",
+      "type": "highlight",
+      "page": 1,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "A02",
+      "type": "underline",
+      "page": 1,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "A03",
+      "type": "link",
+      "page": 1,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "A04",
+      "type": "text",
+      "page": 1,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "A05",
+      "type": "underline",
+      "page": 1,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "B01",
+      "type": "highlight",
+      "page": 2,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "B02",
+      "type": "underline",
+      "page": 2,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "B03",
+      "type": "link",
+      "page": 2,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "B04",
+      "type": "text",
+      "page": 2,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "B05",
+      "type": "highlight",
+      "page": 2,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "B06",
+      "type": "highlight",
+      "page": 2,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "C01",
+      "type": "highlight",
+      "page": 3,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "C02",
+      "type": "highlight",
+      "page": 3,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "C03",
+      "type": "underline",
+      "page": 3,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "C04",
+      "type": "link_goto",
+      "page": 3,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "D01",
+      "type": "highlight",
+      "page": 4,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "D02",
+      "type": "underline",
+      "page": 4,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "D03",
+      "type": "highlight",
+      "page": 4,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "D04",
+      "type": "text",
+      "page": 4,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "E01",
+      "type": "highlight",
+      "page": 5,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "E02",
+      "type": "link",
+      "page": 5,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "E03",
+      "type": "underline",
+      "page": 5,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "E04",
+      "type": "text",
+      "page": 5,
+      "source_present": true,
+      "preprocess_present": false,
+      "first_divergence": "preprocess"
+    },
+    {
+      "annotation_id": "F00",
+      "type": "none",
+      "page": 6,
+      "source_present": false,
+      "preprocess_present": false,
+      "first_divergence": "source"
+    }
+  ],
+  "summary": {
+    "cases_total": 24,
+    "first_divergence_counts": {
+      "source": 1,
+      "preprocess": 23,
+      "output": 0
+    }
+  }
+}
