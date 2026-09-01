@@ -207,7 +207,13 @@ class TestRuntimeService:
         assert task_id.startswith("task_")
         state = svc.get_task_state(task_id)
         assert state is not None
-        assert state.status in (TaskStage.PENDING.value, TaskStage.FAILED.value)
+        # 后台线程可能已抢先进入 RUNNING（_execute_task 开头立即落 RUNNING
+        # 以改进可观测性）；PENDING/RUNNING/FAILED 均为 submit 后的合法状态。
+        assert state.status in (
+            TaskStage.PENDING.value,
+            TaskStage.RUNNING.value,
+            TaskStage.FAILED.value,
+        )
 
     def test_submit_batch_sets_file_list(self):
         svc = RuntimeService()
