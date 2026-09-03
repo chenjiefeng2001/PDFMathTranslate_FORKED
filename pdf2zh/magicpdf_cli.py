@@ -240,11 +240,24 @@ def _write_ingest_dump(pdf_path: str, ingest_doc: Any, magic_dir: str) -> str:
 
 
 def _marker_live_available() -> bool:
-    """Whether the vendored Marker package can run live (presence probe).
+    """Whether Marker can run live (presence probe).
 
     ``--marker-json`` 离线摄入不依赖它；live 摄入（MarkerBackend.ingest）
-    需要 ``vendor/marker`` 已安装。探测只做 ``import marker`` 判断。
+    在两条形态下可用：
+
+    1. 隔离 venv（``pdf2zh-setup-marker`` 构建，自动探测或
+       ``PDF2ZH_MARKER_PYTHON`` 指定）——生产路径，marker 不进主依赖树
+       （pydantic 冲突不可共存）；
+    2. 主进程可 ``import marker``（开发态 ``pip install -e vendor/marker``）。
     """
+    try:
+        from pdf2zh.kernel.marker_env import marker_python_override
+
+        python = marker_python_override()
+        if python and os.path.exists(python):
+            return True
+    except Exception:  # noqa: BLE001 -- env 模块缺失按不可用处理
+        pass
     try:
         import marker  # noqa: F401 -- presence check only
 

@@ -78,7 +78,8 @@ magicpdf = [
     "six",
 ]
 
-precise = []  # marker — run `pdf2zh-setup-precise` after install to provision the isolated venv
+precise = []  # marker 不进入本依赖树（gradio×google-genai 的 pydantic 冲突不可共存）——
+# 由 `pdf2zh-setup-marker` 在用户数据目录构建隔离 venv（见 pdf2zh/kernel/marker_env.py）
 
 [dependency-groups]
 dev = [
@@ -154,14 +155,27 @@ packages = ["pdf2zh"]
 pdf2zh = "pdf2zh.pdf2zh:main"
 pdf2zh-setup-precise = "pdf2zh.kernel.precise:setup_precise_cli"
 pdf2zh-setup-mineru = "pdf2zh.kernel.mineru_env:setup_mineru_cli"
+pdf2zh-setup-marker = "pdf2zh.kernel.marker_env:setup_marker_cli"
 
 [tool.uv]
 # magic-pdf 1.x 的 PyMuPDF<1.25.0 pin 属历史遗留（1.3.12 在 pymupdf 1.28 下实测正常），
 # 而 babeldoc>=0.6.4 依赖 pymupdf>=1.26.7，二者严格解析必冲突。
 # 用依赖覆写强制 pymupdf 高版本，保证 `uv sync`（CI 解析全部 extras）可解析
 # `pdf2zh[magicpdf]`；pip 安装若报 pymupdf 冲突，见 docs/ADVANCED.md。
+#
+# Marker（marker-pdf 2.x，isolated venv 方案，见 pdf2zh/kernel/marker_env.py）：
+# marker 的依赖树与 pdf2zh 核心环境存在硬性冲突——gradio 锁 pydantic<2.12 而
+# marker 的 google-genai 依赖要求 >=2.12.5；surya-ocr 精确锁 opencv-python-headless
+# ==4.11.0.86 与 pillow<11；transformers 5.x 要求 huggingface-hub>=1。
+# 这些覆写把基座环境钉在 marker 可共存的版本上（均在项目声明的无版本约束范围
+# 内，gradio 5.x 的 pillow<12 范围亦兼容），使 `uv sync` 后 `uv pip install
+# marker-pdf` 可以直接落地、且后续 uv run/sync 不会回滚到冲突版本。
 override-dependencies = [
     "pymupdf>=1.26.7",
+    "pillow>=10.1,<11",
+    "opencv-python-headless==4.11.0.86",
+    "pydantic>=2.0,<2.12",
+    "huggingface-hub>=1,<2",
 ]
 
 
