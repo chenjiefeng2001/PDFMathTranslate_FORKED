@@ -71,6 +71,15 @@ def batch_translate_paragraphs(
     Returns:
         与 ``texts`` 同序的译文列表。
     """
+    # 防御性对齐：侧通道钩子改写 texts 后 font_sigs 必须同步（历史 bug：
+    # toc_split 重切 sstk 漏改 pfkstk → font_sigs[i] IndexError 崩页）。
+    # 失同步时兜底补齐/截断，保证任何 hook 失步不再炸翻译。
+    if len(font_sigs) != len(texts):
+        font_sigs = (
+            list(font_sigs) + [""] * (len(texts) - len(font_sigs))
+            if len(font_sigs) < len(texts)
+            else font_sigs[: len(texts)]
+        )
     workers = max(1, thread or _translate_threads())
     if keep is None:
         keep = [False] * len(texts)

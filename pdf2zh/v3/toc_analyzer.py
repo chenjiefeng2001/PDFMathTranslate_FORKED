@@ -315,7 +315,7 @@ def split_toc_blocks(page) -> int:
 
 
 def split_merged_toc_paragraphs(
-    conv, ltpage, sstk, pstk, toc_track, page_width: float = 0.0
+    conv, ltpage, sstk, pstk, toc_track, page_width: float = 0.0, pfkstk=None
 ) -> dict:
     """V1.17-3：legacy 渲染路径 —— 把合并目录段按物理行重切（side-channel）。
 
@@ -337,6 +337,8 @@ def split_merged_toc_paragraphs(
         ltpage:     正在处理的 pdfminer LTPage
         sstk/pstk/toc_track: legacy 段落三件套，**就地改写**
         page_width: 页面宽度（页码列几何检测；缺省用 ltpage.width）
+        pfkstk: 每段字体指纹（可缺省）。**与 sstk 同步重切** —— 漏改会导致
+            翻译期 ``font_sigs[i]`` IndexError（sstk 比 pfkstk 长）。
     返回：
         dict 报告（page / split / reason）；异常或无条件返回 reason（不拆）。
     """
@@ -411,6 +413,11 @@ def split_merged_toc_paragraphs(
         sstk[i : i + 1] = texts
         pstk[i : i + 1] = paras
         toc_track[i : i + 1] = tracks
+        if pfkstk is not None and 0 <= i < len(pfkstk):
+            # pfkstk 与 sstk 同步重切：每行继承合并段的字体指纹并集
+            # （仅作缓存 variant 键，宽松无碍；不同步则翻译期 IndexError）
+            parent_fonts = set(pfkstk[i] or set())
+            pfkstk[i : i + 1] = [set(parent_fonts) for _ in texts]
         split_count += 1
     return {
         "page": pageid,

@@ -206,6 +206,29 @@ class TestSplitMergedTocParagraphs(unittest.TestCase):
         self.assertIn("32", digits_seq)
         self.assertNotIn("34", digits_seq)
 
+    def test_split_syncs_pfkstk(self):
+        """回归：V1.17-3 重切只改 sstk/pstk/toc_track，漏改 pfkstk →
+        翻译期 ``font_sigs[i]`` IndexError（真实书籍 TOC 页 21 崩溃）。"""
+        sstk, pstk, toc_track = merged_sstk(self.page)
+        pfkstk = [{"Helvetica", "Times-Roman"}]
+        report = split_merged_toc_paragraphs(
+            Mock(),
+            self.page,
+            sstk,
+            pstk,
+            toc_track,
+            page_width=600.0,
+            pfkstk=pfkstk,
+        )
+        self.assertEqual(report["split"], 1)
+        self.assertEqual(len(pfkstk), len(sstk))
+        # 每行继承合并段字体指纹并集
+        for sig in pfkstk:
+            self.assertEqual(sig, {"Helvetica", "Times-Roman"})
+        # 指纹集合按行独立（互不共享引用）
+        pfkstk[0].add("Courier")
+        self.assertNotIn("Courier", pfkstk[1])
+
     def test_no_split_when_brk_false(self):
         sstk = ["2.3 Continuous Random Variables 31"]
         pstk = [Paragraph(745, 50, 50, 539, 725, 745, 10.0, False)]

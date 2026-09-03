@@ -519,7 +519,7 @@ class TranslateConverter(PDFConverterEx):
             self.reconstruction_adoptions = {**getattr(self, "reconstruction_adoptions", {}), ltpage.pageid: adopt_reconstruction_cluster(self, ltpage, sstk, pstk, var, varl, varf, vlen, toc_track, pfkstk=pfkstk)}
         if getattr(self, "toc_split", False):  # V1.17-3：合并目录段按物理行重切（side-channel，渲染路径）
             from pdf2zh.v3.toc_analyzer import split_merged_toc_paragraphs
-            self.toc_split_reports = {**getattr(self, "toc_split_reports", {}), ltpage.pageid: split_merged_toc_paragraphs(self, ltpage, sstk, pstk, toc_track, page_width=float(getattr(ltpage, "width", 0.0) or 0.0))}
+            self.toc_split_reports = {**getattr(self, "toc_split_reports", {}), ltpage.pageid: split_merged_toc_paragraphs(self, ltpage, sstk, pstk, toc_track, page_width=float(getattr(ltpage, "width", 0.0) or 0.0), pfkstk=pfkstk)}
 
         # B. 段落翻译
         log.debug("\n==========[SSTACK]==========\n")
