@@ -84,8 +84,11 @@ def main(argv: list[str]) -> int:
         llm_service=config_parser.get_llm_service(),
     )
     rendered = converter(pdf_path)
-    save_output(rendered, config_parser.get_output_folder(pdf_path),
-                config_parser.get_base_filename(pdf_path))
+    save_output(
+        rendered,
+        config_parser.get_output_folder(pdf_path),
+        config_parser.get_base_filename(pdf_path),
+    )
 
     # save_output 落在 output_dir/<stem>/ 子目录（get_output_folder 追加
     # stem），与 MinerU do_parse 的 `{stem}/{parse_method}/` 子目录惯例一致；

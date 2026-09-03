@@ -116,9 +116,7 @@ class MarkerBackend:
         import shutil
         import tempfile
 
-        worker = (
-            Path(__file__).resolve().parents[2] / "kernel" / "marker_worker.py"
-        )
+        worker = Path(__file__).resolve().parents[2] / "kernel" / "marker_worker.py"
         if not worker.exists():
             raise IngestionBackendUnavailable(
                 f"marker worker missing: {worker} (broken install?)"
@@ -129,9 +127,7 @@ class MarkerBackend:
             cmd = [python_exe, str(worker), pdf_path, work_dir]
             if mode:
                 cmd.append(mode)
-            timeout = int(
-                os.environ.get("PDF2ZH_MARKER_TIMEOUT", "").strip() or 3600
-            )
+            timeout = int(os.environ.get("PDF2ZH_MARKER_TIMEOUT", "").strip() or 3600)
             try:
                 completed = subprocess.run(
                     cmd,

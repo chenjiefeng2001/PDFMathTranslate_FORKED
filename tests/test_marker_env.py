@@ -55,9 +55,7 @@ def test_default_venv_python_none_when_unconfigured(monkeypatch, tmp_path):
     monkeypatch.delenv(marker_env.PYTHON_OVERRIDE_ENV, raising=False)
     monkeypatch.delenv(marker_env.VENV_DIR_ENV, raising=False)
     monkeypatch.setattr(marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv")
-    monkeypatch.setattr(
-        marker_env, "_user_data_dir", lambda: tmp_path / "nohome"
-    )
+    monkeypatch.setattr(marker_env, "_user_data_dir", lambda: tmp_path / "nohome")
     assert marker_env.default_venv_python() is None
 
 
@@ -84,12 +82,8 @@ def test_default_venv_python_env_var_precedence(tmp_path, monkeypatch):
 def test_marker_python_override(monkeypatch, tmp_path):
     monkeypatch.delenv(marker_env.PYTHON_OVERRIDE_ENV, raising=False)
     monkeypatch.delenv(marker_env.VENV_DIR_ENV, raising=False)
-    monkeypatch.setattr(
-        marker_env, "_user_data_dir", lambda: tmp_path / "nohome"
-    )
-    monkeypatch.setattr(
-        marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv"
-    )
+    monkeypatch.setattr(marker_env, "_user_data_dir", lambda: tmp_path / "nohome")
+    monkeypatch.setattr(marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv")
     assert marker_env.marker_python_override() is None
 
     exe = tmp_path / "py.exe"
@@ -182,9 +176,7 @@ def fake_worker_payload(tmp_path, monkeypatch):
                 }
             ],
         }
-        (work / stem / f"{stem}.json").write_text(
-            json.dumps(payload), encoding="utf-8"
-        )
+        (work / stem / f"{stem}.json").write_text(json.dumps(payload), encoding="utf-8")
         (work / stem / f"{stem}_meta.json").write_text(
             json.dumps({"pdf_path": pdf_path}), encoding="utf-8"
         )
@@ -289,9 +281,7 @@ def test_ingest_subprocess_timeout(tmp_path, monkeypatch):
         raise _subprocess.TimeoutExpired(cmd="marker_worker", timeout=1)
 
     monkeypatch.setenv("PDF2ZH_MARKER_TIMEOUT", "1")
-    monkeypatch.setattr(
-        "pdf2zh.v3.ingestion.marker_backend.subprocess.run", _timeout
-    )
+    monkeypatch.setattr("pdf2zh.v3.ingestion.marker_backend.subprocess.run", _timeout)
     with pytest.raises(IngestionBackendUnavailable, match="timed out"):
         MarkerBackend()._ingest_subprocess("C:/fake/python.exe", str(pdf))
 
@@ -301,12 +291,8 @@ def test_isolated_python_none_without_venv(monkeypatch, tmp_path):
 
     monkeypatch.delenv(marker_env.PYTHON_OVERRIDE_ENV, raising=False)
     monkeypatch.delenv(marker_env.VENV_DIR_ENV, raising=False)
-    monkeypatch.setattr(
-        marker_env, "_user_data_dir", lambda: tmp_path / "nohome"
-    )
-    monkeypatch.setattr(
-        marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv"
-    )
+    monkeypatch.setattr(marker_env, "_user_data_dir", lambda: tmp_path / "nohome")
+    monkeypatch.setattr(marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv")
     assert MarkerBackend()._isolated_python() is None
 
 
@@ -318,12 +304,8 @@ def test_marker_live_available_via_venv(monkeypatch, tmp_path):
 
     monkeypatch.delenv(marker_env.PYTHON_OVERRIDE_ENV, raising=False)
     monkeypatch.delenv(marker_env.VENV_DIR_ENV, raising=False)
-    monkeypatch.setattr(
-        marker_env, "_user_data_dir", lambda: tmp_path / "nohome"
-    )
-    monkeypatch.setattr(
-        marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv"
-    )
+    monkeypatch.setattr(marker_env, "_user_data_dir", lambda: tmp_path / "nohome")
+    monkeypatch.setattr(marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv")
     # 主进程未装 marker（本仓库约束）：venv 缺失 → 不可用
     try:
         import marker  # noqa: F401

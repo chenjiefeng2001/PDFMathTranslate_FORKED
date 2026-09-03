@@ -39,9 +39,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="marker_live_") as tmp:
         trace_jsonl = Path(tmp) / "trace" / "translate.cli.plain.text_events.jsonl"
         ns = make_ns(PDF, tmp, "marker")
-        with patch(
-            "pdf2zh.translator.build_translator", return_value=EchoTranslator()
-        ):
+        with patch("pdf2zh.translator.build_translator", return_value=EchoTranslator()):
             code = run_magicpdf_main(ns)
 
         problems: list[str] = []
@@ -55,23 +53,27 @@ def main() -> int:
             if not cond:
                 problems.append(msg)
 
-        check(names and names[0] == "run.begin" and names[-1] == "run.end",
-              "run begin/end")
+        check(
+            names and names[0] == "run.begin" and names[-1] == "run.end",
+            "run begin/end",
+        )
         check("ingest.raw.begin" in names, "raw begin")
         sel = [e for e in events if e["event"] == "ingest.select"]
         check(len(sel) == 1, f"exactly one ingest.select (got {len(sel)})")
         if sel:
             d = sel[0]["payload"]["decision"]
             print("select:", json.dumps(d, ensure_ascii=False)[:400])
-            check(d["selected_backend"] == "marker",
-                  f"selected={d['selected_backend']}")
+            check(
+                d["selected_backend"] == "marker", f"selected={d['selected_backend']}"
+            )
             check(d["reason"] == "forced_backend", f"reason={d['reason']}")
             check(d["fallback_attempted"] is False, "no fallback attempted")
             # 摄入门（canonical invariants）必须全绿——渲染层 MEDIUM 证据
             # （echo 桩译文触发 CLIP_READABILITY 等）不进门，见契约 §2.3。
             check(d["quality"] == "PASS", f"ingest gate quality={d['quality']}")
-            check(d["failed_rules"] == [],
-                  f"ingest gate failed_rules={d['failed_rules']}")
+            check(
+                d["failed_rules"] == [], f"ingest gate failed_rules={d['failed_rules']}"
+            )
         check(any(n.startswith("plan.") for n in names), "plan events present")
 
         summary = Path(tmp) / "audit" / "summary.json"
@@ -79,12 +81,18 @@ def main() -> int:
         if summary.exists():
             s = json.loads(summary.read_text(encoding="utf-8"))
             sev = s.get("by_severity", {})
-            print("audit:", {k: s.get(k) for k in
-                             ("qualification", "by_severity", "by_rule",
-                              "total_events")})
+            print(
+                "audit:",
+                {
+                    k: s.get(k)
+                    for k in ("qualification", "by_severity", "by_rule", "total_events")
+                },
+            )
             # 渲染层允许 MEDIUM（echo 桩真机常态），但绝不许 HIGH（FAIL）。
-            check(s.get("qualification") in ("PASS", "PASS_WITH_MEDIUM"),
-                  f"qualification={s.get('qualification')}")
+            check(
+                s.get("qualification") in ("PASS", "PASS_WITH_MEDIUM"),
+                f"qualification={s.get('qualification')}",
+            )
             check(sev.get("HIGH", 0) == 0, f"HIGH severity fails: {sev}")
 
         blocks = sum(1 for n in names if n == "ingest.block")

@@ -152,9 +152,10 @@ def _find_system_python() -> str:
     for candidate in candidates:
         try:
             probe = subprocess.run(
-                [candidate, "-c",
-                 "import sys; print('%d.%d' % sys.version_info[:2])"],
-                capture_output=True, text=True, timeout=10,
+                [candidate, "-c", "import sys; print('%d.%d' % sys.version_info[:2])"],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
         except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
             continue
@@ -164,25 +165,24 @@ def _find_system_python() -> str:
         if resolved in seen:
             continue
         seen.add(resolved)
-        version = tuple(
-            int(x) for x in probe.stdout.strip().split(".")[:2]
-        ) or (0, 0)
+        version = tuple(int(x) for x in probe.stdout.strip().split(".")[:2]) or (0, 0)
         if version < (3, 10):
             logger.info(
                 "Skip interpreter %s (version %s below marker's required 3.10)",
-                resolved, probe.stdout.strip(),
+                resolved,
+                probe.stdout.strip(),
             )
             continue
         try:
             venv_ok = subprocess.run(
                 [resolved, "-m", "venv", "--help"],
-                capture_output=True, timeout=10,
+                capture_output=True,
+                timeout=10,
             )
         except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
             continue
         if venv_ok.returncode == 0:
-            logger.info("Discovered host Python %s: %s",
-                        probe.stdout.strip(), resolved)
+            logger.info("Discovered host Python %s: %s", probe.stdout.strip(), resolved)
             return resolved
 
     raise RuntimeError(
@@ -242,20 +242,24 @@ def ensure_venv(force_recreate: bool = False) -> str:
         logger.info("Creating isolated Marker venv at %s ...", target_dir)
         subprocess.run(
             [_find_system_python(), "-m", "venv", str(target_dir)],
-            check=True, timeout=120,
+            check=True,
+            timeout=120,
         )
         subprocess.run(
             [target, "-m", "pip", "install", "-U", "pip"],
-            check=True, timeout=300,
+            check=True,
+            timeout=300,
         )
 
     logger.info(
         "Installing %s into %s (large download: torch etc.) ...",
-        source_spec, target_dir,
+        source_spec,
+        target_dir,
     )
     subprocess.run(
         [target, "-m", "pip", "install", source_spec],
-        check=True, timeout=_INSTALL_TIMEOUT,
+        check=True,
+        timeout=_INSTALL_TIMEOUT,
         cwd=install_cwd,
     )
     logger.info("Isolated Marker environment ready: %s", target)
@@ -273,11 +277,13 @@ def _package_importable(interpreter: str) -> bool:
     try:
         result = subprocess.run(
             [
-                interpreter, "-c",
+                interpreter,
+                "-c",
                 "from marker.config.parser import ConfigParser; "
                 "from marker.models import create_model_dict",
             ],
-            capture_output=True, timeout=120,
+            capture_output=True,
+            timeout=120,
             cwd=cwd,
         )
         return result.returncode == 0

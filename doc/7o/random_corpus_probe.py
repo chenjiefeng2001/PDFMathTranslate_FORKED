@@ -71,7 +71,9 @@ def run_one(pdf: Path, backend: str, out: Path) -> tuple[bool, list[str]]:
 
     check(names and names[0] == "run.begin" and names[-1] == "run.end", "run begin/end")
     check("ingest.raw.begin" in names, "raw begin")
-    check("ingest.begin" in names and "ingest.block" in names, "canonical ingest events")
+    check(
+        "ingest.begin" in names and "ingest.block" in names, "canonical ingest events"
+    )
     sel_list = [e for e in events if e["event"] == "ingest.select"]
     check(len(sel_list) == 1, f"exactly one ingest.select (got {len(sel_list)})")
     if sel_list:
@@ -120,7 +122,9 @@ def main() -> int:
         backend = rng.choice(["auto", "mineru"])
         runs.append((p, backend))
     seed_tag = args.seed if args.seed is not None else "random"
-    print(f"randomized corpus probe | seed={seed_tag} pool={len(pool)} sample={len(runs)}")
+    print(
+        f"randomized corpus probe | seed={seed_tag} pool={len(pool)} sample={len(runs)}"
+    )
     for p, b in runs:
         print(f"  picked: {p.name} -> {b}")
 
