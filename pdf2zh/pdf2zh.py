@@ -279,6 +279,66 @@ def create_parser() -> argparse.ArgumentParser:
         "(default: on). Use --no-magicpdf-render to keep JSON dumps only.",
     )
 
+    # v3/ingestion：摄入后端选择（Marker 作为第二套 PDF understanding，
+    # vendor/marker 子模块）。Marker 只进 ingestion，不参与排版渲染；其
+    # canonical IR 经 v3/ingestion/bridge 进同一 DocumentModel 主链路。
+    parse_params.add_argument(
+        "--ingest-backend",
+        type=str,
+        choices=["auto", "mineru", "marker"],
+        default="auto",
+        help="Ingestion backend for the magicpdf parse engine: auto "
+        "(default; MinerU/magic-pdf primary, Marker fallback when the "
+        "canonical ingest gate fails and Marker is available), mineru "
+        "(MinerU/magic-pdf pipeline only) or marker (datalab-to/marker, "
+        "vendored at vendor/marker). Marker runs live via its PdfConverter, "
+        "or offline when --marker-json points at an existing marker.json "
+        "(produced by `marker_single file.pdf --output_format json`).",
+    )
+    parse_params.add_argument(
+        "--marker-json",
+        type=str,
+        default=None,
+        metavar="JSON",
+        help="Pre-produced Marker JSON (--ingest-backend marker) to ingest "
+        "offline instead of running Marker live.",
+    )
+    parse_params.add_argument(
+        "--marker-version",
+        type=str,
+        default=None,
+        metavar="TAG",
+        help="Marker revision recorded in the ingest provenance/"
+        "flight-recorder metadata (e.g. v2.0.0).",
+    )
+    # v1.1 trace 控制：默认关闭；开启后在 magicpdf 引擎链路产出 flight-
+    # recorder trace（JSONL）+ 自动 trace_audit（summary/ledger/qualification）。
+    parse_params.add_argument(
+        "--trace",
+        action="store_true",
+        default=False,
+        help="Record a v3 flight-recorder trace for the magicpdf engine and "
+        "run the automatic trace audit (default: off; trace costs disk + "
+        "time on large books).",
+    )
+    parse_params.add_argument(
+        "--trace-dir",
+        type=str,
+        default="",
+        metavar="DIR",
+        help="Root directory for trace outputs when --trace is on: "
+        "trace JSONL goes to DIR/trace/, audit outputs to DIR/audit/ "
+        "(default: the output directory).",
+    )
+    parse_params.add_argument(
+        "--log-file",
+        type=str,
+        default="",
+        metavar="PATH",
+        help="Mirror server/CLI runtime logs into a rotating file "
+        "(fallback: PDF2ZH_LOG_FILE env var).",
+    )
+
     parse_params.add_argument(
         "--babeldoc-ocr",
         type=str,
@@ -426,6 +486,16 @@ def main(args: list[str] | None = None) -> int:
     logging.getLogger("httpcore").propagate = False
     logging.getLogger("http11").setLevel("CRITICAL")
     logging.getLogger("http11").propagate = False
+
+    # 服务端/CLI 运行日志落盘（可选）：--log-file 优先，缺省读 PDF2ZH_LOG_FILE。
+    try:
+        from pdf2zh.logging_setup import install_log_file, resolve_log_file
+
+        install_log_file(
+            resolve_log_file(getattr(parsed_args, "log_file", "") or "") or ""
+        )
+    except Exception:  # noqa: BLE001 -- 日志落盘失败不影响主流程
+        pass
 
     if parsed_args.config:
         from pdf2zh.config import ConfigManager

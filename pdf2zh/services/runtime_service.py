@@ -469,6 +469,40 @@ class RuntimeNoticeEvent:
 
 
 @dataclass
+class TaskLogEvent:
+    """Task-scoped log line with metadata — the fine-grained log channel.
+
+    Orthogonal to progress events: never throttled by the monotonic progress
+    semantics and never remapped through stage weights.  Carries enough
+    metadata (ts / level / engine / kind) for the frontend log panel to tag
+    and colour lines and to filter by engine.
+
+    - ``kind=engine``: a MinerU/BabelDOC pipeline log line forwarded from the
+      engine's own loggers or subprocess output;
+    - ``kind=detail``: structured fine-grained counts (page/paragraph level)
+      surfaced as readable log lines;
+    - ``kind=system``: service-authored log lines.
+    """
+
+    task_id: str
+    level: str = "info"
+    engine: str = ""
+    kind: str = "system"
+    message: str = ""
+    timestamp: float = field(default_factory=time.time)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "task_id": self.task_id,
+            "level": self.level,
+            "engine": self.engine,
+            "kind": self.kind,
+            "message": self.message,
+            "timestamp": self.timestamp,
+        }
+
+
+@dataclass
 class _BatchContext:
     """Per-task aggregation state for multi-file (batch) translation.
 
@@ -614,6 +648,12 @@ class ServiceConfig:
     # P1: 评测 <90 分自动留存的报告目录（report_dir/<basename>/）
     evaluation_report_dir: str = ""
     output_dir: str = ""
+    #: 服务端运行日志落盘文件（默认随 PDF2ZH_LOG_FILE env，可被覆盖）。
+    log_file: str = ""
+    #: magicpdf 引擎的 v3 flight-recorder trace 默认开关（任务可经
+    #: extra_config trace_enabled/trace_dir 覆盖；默认关闭不产出 trace/audit）。
+    trace_enabled: bool = False
+    trace_dir: str = ""
 
 
 # ── Thread-Safe Task Store ───────────────────────────────────────────────────
@@ -796,6 +836,29 @@ class RuntimeService:
         #: 不经过聚合器，保持历史行为。
         self._aggregators: Dict[str, Any] = {}
         self._aggregator_lock = threading.Lock()
+        #: 任务日志通道（TaskLogEvent）：逐任务行数上限 + 连续去重。
+        self._log_lines: Dict[str, int] = {}
+        self._log_last: Dict[str, tuple] = {}
+        self._log_lock = threading.Lock()
+        #: 引擎日志桥：把 MinerU/BabelDOC 的 logger 输出按任务转发为日志行。
+        #: 仅在 API 服务内安装；CLI 直接跑 magicpdf 时保持原 console 行为。
+        try:
+            from pdf2zh.services.engine_log_bridge import install_engine_log_bridge
+
+            install_engine_log_bridge(self._forward_engine_log)
+        except Exception:  # noqa: BLE001 -- 日志桥失败不影响服务
+            pass
+        #: 服务端运行日志落盘（可选）：PDF2ZH_LOG_FILE / config.log_file。
+        try:
+            from pdf2zh.logging_setup import install_log_file, resolve_log_file
+
+            log_file = (self.config.log_file or "").strip() or (
+                resolve_log_file() or ""
+            )
+            if log_file:
+                install_log_file(log_file)
+        except Exception:  # noqa: BLE001 -- 日志落盘失败不影响服务
+            pass
         #: 每个任务当前的阶段权重表（文档页数已知后重排 translating 等）。
         self._task_stage_weights: Dict[str, Dict[str, float]] = {}
         self._stage_weights_lock = threading.Lock()
@@ -2424,6 +2487,14 @@ class RuntimeService:
         )
         ns.magicpdf_ocr_mode = ocr_mode_raw
         ns.magicpdf_ocr = ocr_mode_raw == "on" or bool(request.magicpdf_ocr)
+        # v1.1 trace 开关与目录：extra_config（前端高级选项）优先，回落到
+        # ServiceConfig 默认（默认关闭 —— 开启才产出 flight-recorder trace）。
+        ns.trace = bool(
+            extra.get("trace_enabled", bool(getattr(config, "trace_enabled", False)))
+        )
+        ns.trace_dir = str(
+            extra.get("trace_dir") or (getattr(config, "trace_dir", "") or "")
+        ).strip()
         ns.service = request.engine or "google"
         ns.lang_in = request.source_lang or "auto"
         ns.lang_out = request.target_lang or "zh-CN"
@@ -2467,6 +2538,11 @@ class RuntimeService:
             if self._pause_guard(task_id):
                 return
             self._emit_smooth(task_id, stage, pct, msg, detail=detail)
+            if detail:
+                try:
+                    self._maybe_detail_log(task_id, detail, stage, engine="mineru")
+                except Exception:  # noqa: BLE001 -- 日志失败不影响解析
+                    pass
 
         # 多文件逐文件隔离：单文件失败不阻断其余文件（与 _execute_batch 一致）。
         if total > 1:
@@ -2483,12 +2559,15 @@ class RuntimeService:
 
         # 单文件直跑
         ns.files = files
+        from pdf2zh.services.engine_log_bridge import engine_task
+
         try:
-            rc = run_magicpdf_main(
-                ns,
-                progress_cb=_forward_magicpdf_progress,
-                degrade_to="babeldoc" if mode_babeldoc else None,
-            )
+            with engine_task(task_id, "mineru"):
+                rc = run_magicpdf_main(
+                    ns,
+                    progress_cb=_forward_magicpdf_progress,
+                    degrade_to="babeldoc" if mode_babeldoc else None,
+                )
         except MagicPdfDegradeError as exc:
             # 尊重模式降级：MinerU 不可用/失败 → 按 BabelDOC 模式重路由，
             # 让用户选择的引擎真正兜底，而不是静默跑 legacy（无进度 → 假死）。
@@ -2561,14 +2640,17 @@ class RuntimeService:
             # 每个文件用独立 ns 副本（run_magicpdf_main 会修改 ns.files）
             import copy
 
+            from pdf2zh.services.engine_log_bridge import engine_task
+
             file_ns = copy.copy(ns)
             file_ns.files = [path]
             try:
-                rc = run_magicpdf_main(
-                    file_ns,
-                    progress_cb=progress_cb,
-                    degrade_to="babeldoc" if mode_babeldoc else None,
-                )
+                with engine_task(task_id, "mineru"):
+                    rc = run_magicpdf_main(
+                        file_ns,
+                        progress_cb=progress_cb,
+                        degrade_to="babeldoc" if mode_babeldoc else None,
+                    )
                 if rc != 0:
                     logger.warning(
                         "[task=%s] magicpdf returned %d for %s",
@@ -2871,13 +2953,50 @@ class RuntimeService:
             # monotone progress steps while still forwarding stage msgs;
             # detail（页级/段落级计数）随事件搭车透传到前端。
             self._emit_smooth(task_id, stage, pct, msg, detail=detail)
+            if detail:
+                try:
+                    self._maybe_detail_log(task_id, detail, stage, engine="babeldoc")
+                except Exception:  # noqa: BLE001 -- 日志失败不影响翻译
+                    pass
+
+        from pdf2zh.services.engine_log_bridge import engine_task
 
         try:
             result_files = None
             engine_label = "BabelDOC (pdf2zh_next kernel)"
             if _next_runner is not None:
                 try:
-                    result_files = _next_runner(
+                    with engine_task(task_id, "babeldoc"):
+                        result_files = _next_runner(
+                            source_path=request.source_path,
+                            lang_in=request.source_lang,
+                            lang_out=request.target_lang,
+                            service=request.engine,
+                            pages=request.page_range or None,
+                            envs=envs,
+                            prompt=prompt,
+                            ignore_cache=request.ignore_cache,
+                            qps=request.threads or 4,
+                            output_dir=out_dir,
+                            progress_cb=_forward_progress,
+                            cancelled_check=lambda: self._store.is_cancelled(task_id),
+                            debug=bool(getattr(config, "debug", False)),
+                            ocr_mode=ocr_mode,
+                            glossary_files=glossary_files,
+                        )
+                except BabeldocNextUnavailableError as exc:
+                    logger.info(
+                        "[task=%s] pdf2zh_next kernel unavailable for engine "
+                        "%r (%s); falling back to the legacy BabelDOC pipeline",
+                        task_id,
+                        request.engine,
+                        exc,
+                    )
+                    result_files = None
+            if result_files is None:
+                engine_label = "BabelDOC (legacy layout engine)"
+                with engine_task(task_id, "babeldoc"):
+                    result_files = run_babeldoc_translation(
                         source_path=request.source_path,
                         lang_in=request.source_lang,
                         lang_out=request.target_lang,
@@ -2894,34 +3013,6 @@ class RuntimeService:
                         ocr_mode=ocr_mode,
                         glossary_files=glossary_files,
                     )
-                except BabeldocNextUnavailableError as exc:
-                    logger.info(
-                        "[task=%s] pdf2zh_next kernel unavailable for engine "
-                        "%r (%s); falling back to the legacy BabelDOC pipeline",
-                        task_id,
-                        request.engine,
-                        exc,
-                    )
-                    result_files = None
-            if result_files is None:
-                engine_label = "BabelDOC (legacy layout engine)"
-                result_files = run_babeldoc_translation(
-                    source_path=request.source_path,
-                    lang_in=request.source_lang,
-                    lang_out=request.target_lang,
-                    service=request.engine,
-                    pages=request.page_range or None,
-                    envs=envs,
-                    prompt=prompt,
-                    ignore_cache=request.ignore_cache,
-                    qps=request.threads or 4,
-                    output_dir=out_dir,
-                    progress_cb=_forward_progress,
-                    cancelled_check=lambda: self._store.is_cancelled(task_id),
-                    debug=bool(getattr(config, "debug", False)),
-                    ocr_mode=ocr_mode,
-                    glossary_files=glossary_files,
-                )
         except BabeldocNotInstalledError as exc:
             self._fail_file(task_id, exc, total_files=total_files)
             return
@@ -3378,6 +3469,100 @@ class RuntimeService:
         self._store.add_event(task_id, event)
         self._store.update_task(task_id, message=message)
         self._notify_event_listeners(event)
+
+    def _emit_log(
+        self,
+        task_id: str,
+        message: str,
+        *,
+        level: str = "info",
+        engine: str = "",
+        kind: str = "system",
+    ) -> None:
+        """Task log line (``TaskLogEvent``) — non-progress channel.
+
+        Not throttled by progress semantics and never mapped through stage
+        weights; fed by engine-log forwarding (kind=engine), structured
+        fine-grained counts (kind=detail) and service messages (kind=system).
+        Guards: consecutive identical lines collapse; per-task cap drops
+        further info/debug lines once the buffer is full.
+        """
+        message = (message or "").strip()
+        if not message:
+            return
+        level = (level or "info").lower()
+        if level not in ("debug", "info", "warning", "error"):
+            level = "info"
+        key = (task_id, engine, kind, message)
+        with self._log_lock:
+            if self._log_last.get(task_id) == key:
+                return
+            self._log_last[task_id] = key
+            count = self._log_lines.get(task_id, 0)
+            if count >= 1500 and level in ("debug", "info"):
+                return
+            self._log_lines[task_id] = count + 1
+        event = TaskLogEvent(
+            task_id=task_id,
+            level=level,
+            engine=engine,
+            kind=kind,
+            message=message,
+        )
+        self._store.add_event(task_id, event)
+        self._notify_event_listeners(event)
+
+    def _forward_engine_log(
+        self, task_id: str, level: str, engine: str, message: str
+    ) -> None:
+        """Engine-log bridge sink: engine logger lines → task log stream."""
+        state = self._store.get_task(task_id)
+        if state is None:
+            return
+        if state.status in (
+            TaskStage.COMPLETED.value,
+            TaskStage.FAILED.value,
+            TaskStage.CANCELLED.value,
+        ):
+            return
+        self._emit_log(task_id, message, level=level, engine=engine, kind="engine")
+
+    def _maybe_detail_log(
+        self,
+        task_id: str,
+        detail: Optional[Dict[str, Any]],
+        stage: str = "",
+        engine: str = "",
+    ) -> None:
+        """Surface structured fine-grained counts as readable log lines.
+
+        Samples ~100 evenly spaced milestones (start included) so a 1,200-page
+        document produces readable progress without flooding the log panel.
+        """
+        if not detail:
+            return
+        try:
+            total = int(detail.get("total") or 0)
+            current = int(detail.get("current") or 0)
+        except (TypeError, ValueError):
+            return
+        if total <= 0 or current <= 0:
+            return
+        step = max(
+            1, (total + 99) // 100
+        )  # ceil(total/100): ~100 evenly spaced milestones
+        if current < total and current % step != 0 and current > 3:
+            return
+        unit = str(detail.get("unit") or "item")
+        raw_stage = str(detail.get("raw_stage") or stage or "progress")
+        engine = engine or str(detail.get("engine") or "")
+        self._emit_log(
+            task_id,
+            f"{raw_stage}: {current}/{total} {unit}",
+            level="info",
+            engine=engine,
+            kind="detail",
+        )
 
     def _emit_event(
         self,

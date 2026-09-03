@@ -4,3 +4,6 @@
 [submodule "vendor/MinerU"]
 	path = vendor/MinerU
 	url = https://github.com/opendatalab/MinerU.git
+[submodule "vendor/marker"]
+	path = vendor/marker
+	url = https://github.com/datalab-to/marker

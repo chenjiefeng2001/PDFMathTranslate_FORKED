@@ -42,8 +42,8 @@ import os
 from typing import Any, Dict, List, Optional, Sequence
 
 from pdf2zh.v3.flight_recorder import build_trace_index, read_events, write_trace_index
+from pdf2zh.v3.ingestion.rules import run_ingest_rules
 from pdf2zh.v3.trace_rules import (
-    ALL_RULES,
     PIPELINE_STAGES,
     RuleResult,
     annotate_first_divergence,
@@ -55,6 +55,20 @@ from pdf2zh.v3.trace_rules import (
 _SEVERITY_ORDER = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
 
 
+def _rule_results(events: Sequence[Dict[str, Any]]) -> List[RuleResult]:
+    """plan/render/raster rules **and** ingestion invariants, one FAIL stream.
+
+    Ingest rules (``INGEST_GEOMETRY_DECLARED`` / ``MARKER_GEOMETRY_NORMALIZED``
+    in ``ingestion/rules``) consume the ``ingest.*`` events a backend emits
+    when it runs; merging them here means a parser that lost coordinates is
+    qualified at the ingest layer (``first_divergence = ingest``) instead of
+    silently poisoning later stages.  Both sets emit the shared
+    :class:`RuleResult`, so the merged list feeds
+    ``annotate_first_divergence`` / ``grade_pages`` / reports unchanged.
+    """
+    return list(run_rules(events)) + list(run_ingest_rules(events))
+
+
 def _cjk(s: str) -> bool:
     return any("\u4e00" <= c <= "\u9fff" for c in s)
 
@@ -64,8 +78,10 @@ def _area(bb) -> float:
 
 
 def _inter(a, b) -> float:
-    x0 = max(a[0], b[0]); x1 = min(a[2], b[2])
-    y0 = max(a[1], b[1]); y1 = min(a[3], b[3])
+    x0 = max(a[0], b[0])
+    x1 = min(a[2], b[2])
+    y0 = max(a[1], b[1])
+    y1 = min(a[3], b[3])
     return max(0.0, x1 - x0) * max(0.0, y1 - y0)
 
 
@@ -110,7 +126,11 @@ def _block_stage_lines(
             continue
         fails.setdefault(r.stage, []).append(r.rule)
     first = next(
-        (r.first_divergence for r in results if r.trace_id == tid and r.first_divergence),
+        (
+            r.first_divergence
+            for r in results
+            if r.trace_id == tid and r.first_divergence
+        ),
         None,
     )
     lines = [tid]
@@ -134,6 +154,9 @@ def _block_stage_lines(
 
 #: pipeline 阶段 → 负责模块（first divergence 直接指向该模块）。
 _STAGE_MODULE = {
+    "ingest": "pdf2zh/v3/ingestion/",
+    "normalize": "pdf2zh/v3/document_model.py",
+    "translate": "pdf2zh/v3/translator.py",
     "plan": "pdf2zh/v3/document_model.py",
     "fixup": "pdf2zh/v3/render_takeover.py",
     "layout": "pdf2zh/v3/flow_sidechannel.py",
@@ -163,7 +186,9 @@ def _explain_details(
         None,
     )
     rnd = next((e for e in block_events if e.get("event") == "render.flow"), None)
-    wrapped = next((e for e in block_events if e.get("event") == "render.wrapped"), None)
+    wrapped = next(
+        (e for e in block_events if e.get("event") == "render.wrapped"), None
+    )
     rast = next((e for e in block_events if e.get("event") == "raster.ink"), None)
     out: List[tuple] = []
 
@@ -259,7 +284,7 @@ def explain_block(
         n_blocks = len({ev.get("trace_id") for ev in events if ev.get("trace_id")})
         return f"trace_id {trace_id!r} not found (trace has {n_blocks} blocks)"
 
-    results = run_rules(block_events)
+    results = _rule_results(block_events)
     annotate_first_divergence(results)
     fails = [r for r in results if r.status == "FAIL"]
 
@@ -280,7 +305,8 @@ def explain_block(
     )
     worst = first_rules[0]
     downstream = sorted(
-        [r for r in fails if r.downstream], key=lambda r: (_SEVERITY_ORDER.get(r.severity, 9), r.stage)
+        [r for r in fails if r.downstream],
+        key=lambda r: (_SEVERITY_ORDER.get(r.severity, 9), r.stage),
     )
 
     lines.append("Status:      FAIL")
@@ -291,8 +317,7 @@ def explain_block(
     lines.append(f"Fix:         {worst.action or '-'}")
     if downstream:
         lines.append(
-            "Downstream:  "
-            + ", ".join(f"{r.rule} ({r.stage})" for r in downstream)
+            "Downstream:  " + ", ".join(f"{r.rule} ({r.stage})" for r in downstream)
         )
     lines.append("")
     lines.extend(_block_stage_lines(events, results, trace_id))
@@ -310,8 +335,12 @@ def explain_block(
     crops: List[str] = []
     if pdf and os.path.exists(pdf) and fails:
         raster_evidence_for_blocks(
-            fails, block_events, pdf, source_path=source,
-            crop_max=crop_max, crop_dir=crop_dir,
+            fails,
+            block_events,
+            pdf,
+            source_path=source,
+            crop_max=crop_max,
+            crop_dir=crop_dir,
         )
     if os.path.isdir(crop_dir):
         crops = sorted(
@@ -369,7 +398,11 @@ def raster_evidence_for_blocks(
         if not cmds:
             continue
         tid = ev.get("trace_id") or f"{ev.get('page')}/{ev.get('block_id')}"
-        cmd_facts[tid] = {"page": int(ev.get("page") or -1), "commands": cmds, "payload": p}
+        cmd_facts[tid] = {
+            "page": int(ev.get("page") or -1),
+            "commands": cmds,
+            "payload": p,
+        }
 
     os.makedirs(crop_dir or "", exist_ok=True) if crop_dir else None
     seen = 0
@@ -408,8 +441,11 @@ def raster_evidence_for_blocks(
         if ink is None:
             facts.append(
                 {
-                    "trace_id": tid, "page": pno, "ink_bbox": None,
-                    "foreign_overlap_pct": None, "found": False,
+                    "trace_id": tid,
+                    "page": pno,
+                    "ink_bbox": None,
+                    "foreign_overlap_pct": None,
+                    "found": False,
                 }
             )
             continue
@@ -426,17 +462,23 @@ def raster_evidence_for_blocks(
         pct = round(100 * overlap / max(1e-6, _area(ink)), 1)
         facts.append(
             {
-                "trace_id": tid, "page": pno, "ink_bbox": [round(v, 1) for v in ink],
-                "ink_area": round(_area(ink), 1), "foreign_overlap_pct": pct,
-                "collides_with": collides, "found": True,
+                "trace_id": tid,
+                "page": pno,
+                "ink_bbox": [round(v, 1) for v in ink],
+                "ink_area": round(_area(ink), 1),
+                "foreign_overlap_pct": pct,
+                "collides_with": collides,
+                "found": True,
             }
         )
 
         if crop_dir:
             pad = 6.0
             clip = pymupdf.Rect(
-                max(0, ink[0] - pad), max(0, ink[1] - pad - 4 * fs),
-                min(pg.rect.width, ink[2] + pad), min(pg.rect.height, ink[3] + pad + 2 * fs),
+                max(0, ink[0] - pad),
+                max(0, ink[1] - pad - 4 * fs),
+                min(pg.rect.width, ink[2] + pad),
+                min(pg.rect.height, ink[3] + pad + 2 * fs),
             )
             try:
                 pm = pg.get_pixmap(clip=clip, dpi=150)
@@ -498,7 +540,9 @@ def write_outputs(
     # 其后阶段的 FAIL 是下游症状。
     first_map = annotate_first_divergence(final)
 
-    pages_seen = sorted({int(ev.get("page") or -1) for ev in events if ev.get("page") is not None})
+    pages_seen = sorted(
+        {int(ev.get("page") or -1) for ev in events if ev.get("page") is not None}
+    )
     grades = grade_pages(final, pages=pages_seen)
     by_sev: Dict[str, int] = {}
     by_rule: Dict[str, int] = {}
@@ -507,10 +551,16 @@ def write_outputs(
         by_rule[r.rule] = by_rule.get(r.rule, 0) + 1
 
     has_high = by_sev.get("HIGH", 0) > 0
-    qualification = "FAIL" if has_high else ("PASS_WITH_MEDIUM" if by_sev.get("MEDIUM", 0) else "PASS")
+    qualification = (
+        "FAIL"
+        if has_high
+        else ("PASS_WITH_MEDIUM" if by_sev.get("MEDIUM", 0) else "PASS")
+    )
     grade_hist = {g: sum(1 for v in grades.values() if v == g) for g in "ABCD"}
 
-    idx = write_trace_index(list(events) + raster_events, os.path.join(out_dir, "trace-index.json"))
+    idx = write_trace_index(
+        list(events) + raster_events, os.path.join(out_dir, "trace-index.json")
+    )
 
     summary = {
         "schema": "trace-audit-v1",
@@ -558,23 +608,40 @@ def write_outputs(
     with open(os.path.join(out_dir, "pages.json"), "w", encoding="utf-8") as fh:
         json.dump(
             [{"page": p, "grade": grades.get(p, "A")} for p in pages_seen],
-            fh, ensure_ascii=False, indent=1,
+            fh,
+            ensure_ascii=False,
+            indent=1,
         )
 
     ledger_path = os.path.join(out_dir, "defect-ledger.csv")
     with open(ledger_path, "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(
-            ["page", "block", "defect", "stage", "severity", "action",
-             "first_divergence", "downstream", "evidence"]
+            [
+                "page",
+                "block",
+                "defect",
+                "stage",
+                "severity",
+                "action",
+                "first_divergence",
+                "downstream",
+                "evidence",
+            ]
         )
         for r in sorted(
             final, key=lambda x: (_SEVERITY_ORDER.get(x.severity, 9), x.trace_id)
         ):
             w.writerow(
                 [
-                    r.page, r.block_id, r.rule, r.stage, r.severity, r.action,
-                    r.first_divergence, "1" if r.downstream else "0",
+                    r.page,
+                    r.block_id,
+                    r.rule,
+                    r.stage,
+                    r.severity,
+                    r.action,
+                    r.first_divergence,
+                    "1" if r.downstream else "0",
                     json.dumps(r.evidence, ensure_ascii=False),
                 ]
             )
@@ -592,12 +659,20 @@ def _write_qualification_md(
     lines = ["# Qualification (trace audit)\n"]
     lines.append(f"- qualification: **{summary['qualification']}**")
     lines.append(f"- pages: {summary['pages']}  grades: {summary['page_grades']}")
-    lines.append(f"- events: {summary['total_events']}  rule FAILs: {summary['rule_results']}")
-    lines.append(f"- by severity: {summary['by_severity']}  by rule: {summary['by_rule']}")
-    lines.append(f"- first divergence: {summary.get('first_divergence_by_stage')}"
-                 f"  downstream symptoms: {summary.get('downstream_symptoms')}\n")
+    lines.append(
+        f"- events: {summary['total_events']}  rule FAILs: {summary['rule_results']}"
+    )
+    lines.append(
+        f"- by severity: {summary['by_severity']}  by rule: {summary['by_rule']}"
+    )
+    lines.append(
+        f"- first divergence: {summary.get('first_divergence_by_stage')}"
+        f"  downstream symptoms: {summary.get('downstream_symptoms')}\n"
+    )
     lines.append("## Defects\n")
-    lines.append("| Severity | Rule | Page | Block | Stage | First divergence | Action |")
+    lines.append(
+        "| Severity | Rule | Page | Block | Stage | First divergence | Action |"
+    )
     lines.append("|---|---|---|---|---|---|---|")
     for r in summary["rules"]:
         lines.append(
@@ -648,7 +723,11 @@ def _run_explain(
     if not events:
         print(f"[trace-audit] empty or unreadable trace: {trace_path}")
         return 2
-    print(explain_block(events, trace_id, pdf=pdf, source=source, out=out, crop_max=crop_max))
+    print(
+        explain_block(
+            events, trace_id, pdf=pdf, source=source, out=out, crop_max=crop_max
+        )
+    )
     return 0
 
 
@@ -664,7 +743,7 @@ def _run_audit(
     if not events:
         print(f"[trace-audit] empty or unreadable trace: {trace_path}")
         return 2
-    results = run_rules(events)
+    results = _rule_results(events)
     print(
         f"[trace-audit] events={len(events)} blocks={len(group_by_block(events))} "
         f"rule_fails={len(results)}"
@@ -674,14 +753,23 @@ def _run_audit(
     if pdf:
         crop_dir = os.path.join(out or "audit", "crops")
         facts = raster_evidence_for_blocks(
-            results, events, pdf, source_path=source, crop_max=crop_max, crop_dir=crop_dir
+            results,
+            events,
+            pdf,
+            source_path=source,
+            crop_max=crop_max,
+            crop_dir=crop_dir,
         )
         print(f"[trace-audit] raster evidence: {len(facts)}")
 
     out_dir = out or "audit"
-    summary = write_outputs(out_dir, events, results, facts, mono_path=pdf, trace_path=trace_path)
-    print(f"[trace-audit] qualification={summary['qualification']} "
-          f"grades={summary['page_grades']} by_severity={summary['by_severity']}")
+    summary = write_outputs(
+        out_dir, events, results, facts, mono_path=pdf, trace_path=trace_path
+    )
+    print(
+        f"[trace-audit] qualification={summary['qualification']} "
+        f"grades={summary['page_grades']} by_severity={summary['by_severity']}"
+    )
     print(f"[trace-audit] wrote {out_dir}/")
     return 0
 
@@ -709,7 +797,9 @@ def main(argv=None) -> int:
     x = sub.add_parser("explain", help="explain one block's failure from a trace")
     x.add_argument("trace", help="path to events.jsonl")
     x.add_argument("trace_id", help="block identity, e.g. 442/p442_4")
-    x.add_argument("--pdf", default=None, help="rendered mono PDF (Level-2 raster evidence)")
+    x.add_argument(
+        "--pdf", default=None, help="rendered mono PDF (Level-2 raster evidence)"
+    )
     x.add_argument("--source", default=None)
     x.add_argument("--out", default="audit", help="audit directory (crops evidence)")
     x.add_argument("--crop-max", type=int, default=1)
@@ -718,12 +808,20 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.cmd == "run":
         return _run_audit(
-            args.trace, pdf=args.pdf, source=args.source, out=args.out, crop_max=args.crop_max
+            args.trace,
+            pdf=args.pdf,
+            source=args.source,
+            out=args.out,
+            crop_max=args.crop_max,
         )
     if args.cmd == "explain":
         return _run_explain(
-            args.trace, args.trace_id, pdf=args.pdf, source=args.source,
-            out=args.out, crop_max=args.crop_max,
+            args.trace,
+            args.trace_id,
+            pdf=args.pdf,
+            source=args.source,
+            out=args.out,
+            crop_max=args.crop_max,
         )
     return args.func(
         args.trace,

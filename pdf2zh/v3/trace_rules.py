@@ -40,7 +40,22 @@ GRADE_BY_SEVERITY = {SEVERITY_DEFECT: "D", SEVERITY_SUSPICIOUS: "C", SEVERITY_IN
 #: 生产链路阶段顺序 —— first_divergence 的判定依据：同一块多个 FAIL 中，
 #: pipeline 顺序最靠前的阶段是根因（first divergence），其后阶段的 FAIL
 #: 是同一根因的连锁症状（downstream），避免把一处缺陷在多个阶段重复计数。
-PIPELINE_STAGES = ["plan", "fixup", "layout", "render", "erase", "raster"]
+#:
+#: 已扩展到全生命周期（ingestion 计划 v1.1）：ingest 是新的第一站 —— 解析后端
+#: （pdfminer / Marker / MinerU）产出的块若在 ingest 即 FAIL，
+#: ``annotate_first_divergence`` 会把它标成 ``first_divergence = ingest`` 而不是
+#: 让问题一直落回 render。规则见 pdf2zh/v3/ingestion/rules.py。
+PIPELINE_STAGES = [
+    "ingest",
+    "normalize",
+    "translate",
+    "plan",
+    "fixup",
+    "layout",
+    "render",
+    "erase",
+    "raster",
+]
 
 
 @dataclass
@@ -114,7 +129,9 @@ def _num(v, default: float = 0.0) -> float:
 def _block_record(events: List[Dict[str, Any]]) -> Dict[str, Any]:
     """One block's assembled facts (plan + render + raster views)."""
     plan = _first(events, "plan.flow", "plan.block")
-    fix = _first(events, "plan.shift_down", "plan.keep", "plan.preserve", "plan.overflowed")
+    fix = _first(
+        events, "plan.shift_down", "plan.keep", "plan.preserve", "plan.overflowed"
+    )
     rnd = _first(events, "render.flow", "render.block", "render.wrapped")
     er = _first(events, "render.erase")
     rast = _first(events, "raster.ink")
@@ -139,7 +156,8 @@ def _block_record(events: List[Dict[str, Any]]) -> Dict[str, Any]:
         "commands": pp.get("commands") or [],
         "first_cmd_y": fp.get("first_cmd_y"),
         "render": rp,
-        "erase": _payload(er) or ({"erase_rect": rp["erase_rect"]} if rp.get("erase_rect") else {}),
+        "erase": _payload(er)
+        or ({"erase_rect": rp["erase_rect"]} if rp.get("erase_rect") else {}),
         "raster": _payload(rast),
     }
 
@@ -227,7 +245,10 @@ def rule_one_line_collapse(rec) -> Optional[RuleResult]:
 
 
 def rule_residual_overflow(rec) -> Optional[RuleResult]:
-    if rec["rp_overflow"] is True and (rec["recovery"] or {}).get("decision") in ("clip", None):
+    if rec["rp_overflow"] is True and (rec["recovery"] or {}).get("decision") in (
+        "clip",
+        None,
+    ):
         return _fail(
             "RESIDUAL_OVERFLOW",
             SEVERITY_SUSPICIOUS,
@@ -254,7 +275,12 @@ def rule_shift_direction(rec) -> Optional[RuleResult]:
             "SHIFT_DIRECTION",
             SEVERITY_DEFECT,
             rec,
-            {"src_y1": src[3], "dst_y1": dst[3], "delta_y": round(dy, 2), "space": "v3"},
+            {
+                "src_y1": src[3],
+                "dst_y1": dst[3],
+                "delta_y": round(dy, 2),
+                "space": "v3",
+            },
             action="FIX-3",
             stage="plan",
         )
@@ -294,7 +320,10 @@ def rule_decoupled(rec) -> Optional[RuleResult]:
             "DECOUPLED",
             SEVERITY_DEFECT,
             rec,
-            {"first_cmd_y": round(_num(first_y), 2), "dst_box_y1": round(_num(dst[3]), 2)},
+            {
+                "first_cmd_y": round(_num(first_y), 2),
+                "dst_box_y1": round(_num(dst[3]), 2),
+            },
             action="FIX-2",
             stage="plan",
         )
@@ -367,9 +396,11 @@ def rule_flow_baseline_semantics(rec) -> Optional[RuleResult]:
                 "FLOW_BASELINE_MISMATCH",
                 SEVERITY_DEFECT,
                 rec,
-                {"baseline": round(_num(baseline), 2),
-                 "expected_baseline": round(_num(expected), 2),
-                 "delta": round(diff, 2)},
+                {
+                    "baseline": round(_num(baseline), 2),
+                    "expected_baseline": round(_num(expected), 2),
+                    "delta": round(diff, 2),
+                },
                 action="FIX-3",
                 stage="render",
             )
@@ -399,8 +430,7 @@ def rule_erase_geometry(rec) -> Optional[RuleResult]:
             "ERASE_GEOMETRY",
             SEVERITY_DEFECT,
             rec,
-            {"erase_rect": erase, "src_box": src, "dst_box": dst,
-             "shifted": True},
+            {"erase_rect": erase, "src_box": src, "dst_box": dst, "shifted": True},
             action="FIX-3",
             stage="render",
         )
@@ -421,7 +451,10 @@ def rule_ink_overlap(rec) -> Optional[RuleResult]:
             "INK_OVERLAP",
             SEVERITY_DEFECT,
             rec,
-            {"foreign_overlap_pct": round(_num(ov), 1), "ink_bbox": rast.get("ink_bbox")},
+            {
+                "foreign_overlap_pct": round(_num(ov), 1),
+                "ink_bbox": rast.get("ink_bbox"),
+            },
             action="FIX-3/FIX-1",
             stage="raster",
         )
@@ -430,7 +463,11 @@ def rule_ink_overlap(rec) -> Optional[RuleResult]:
 
 def _stage_order(stage: str) -> int:
     """Pipeline 顺序下标；未知阶段排在已知之后（防御：规则 stage 漂移）。"""
-    return PIPELINE_STAGES.index(stage) if stage in PIPELINE_STAGES else len(PIPELINE_STAGES)
+    return (
+        PIPELINE_STAGES.index(stage)
+        if stage in PIPELINE_STAGES
+        else len(PIPELINE_STAGES)
+    )
 
 
 def annotate_first_divergence(results: Sequence[RuleResult]) -> Dict[str, str]:
@@ -490,7 +527,9 @@ def run_rules(events: Sequence[Dict[str, Any]]) -> List[RuleResult]:
     return results
 
 
-def grade_pages(results: Sequence[RuleResult], pages: Optional[Sequence[int]] = None) -> Dict[int, str]:
+def grade_pages(
+    results: Sequence[RuleResult], pages: Optional[Sequence[int]] = None
+) -> Dict[int, str]:
     """Page A/B/C/D: any HIGH → D, else any MEDIUM → C, else any LOW → B."""
     worst: Dict[int, str] = {}
     for r in results:

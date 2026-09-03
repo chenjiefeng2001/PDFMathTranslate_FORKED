@@ -1068,7 +1068,7 @@ async def _event_stream(
                     name = (
                         "progress"
                         if type(evt).__name__ == "TaskProgressEvent"
-                        else "notice"
+                        else "log" if type(evt).__name__ == "TaskLogEvent" else "notice"
                     )
                     frame = _sse_frame(name, payload)
                     # 注入 SSE id 行（_sse_frame 只产出 event/data）
@@ -1130,7 +1130,21 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run the pdf2zh REST/SSE API server")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=11009)
+    parser.add_argument(
+        "--log-file",
+        default="",
+        help="Server runtime log file (rotating). Falls back to the "
+        "PDF2ZH_LOG_FILE env var when omitted.",
+    )
     args = parser.parse_args()
+
+    # 服务端运行日志落盘（进程级，幂等；缺省走 PDF2ZH_LOG_FILE env）。
+    try:
+        from pdf2zh.logging_setup import install_log_file, resolve_log_file
+
+        install_log_file(resolve_log_file(args.log_file) or "")
+    except Exception:  # noqa: BLE001 -- 日志落盘失败不影响服务启动
+        pass
 
     app = create_api_app()
     uvicorn.run(app, host=args.host, port=args.port)
