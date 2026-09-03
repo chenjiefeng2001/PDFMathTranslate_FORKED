@@ -15,6 +15,7 @@
 - [Fonts Subseting](#fonts-subset)
 - [Translation cache](#cache)
 - [Parse engine (MinerU / magic-pdf)](#parse-engine)
+- [Marker ingestion backend (isolated venv)](#marker-ingestion)
 - [GPU backend](#gpu-backend)
 
 ---
@@ -413,6 +414,23 @@ pdf2zh auto-detects `vendor/MinerU/.venv` (and any interpreter named by `PDF2ZH_
 >
 
 **Models.** MinerU 3.x downloads its pipeline model weights automatically on first use from HuggingFace (default) or ModelScope — set `MINERU_MODEL_SOURCE=modelscope` when HuggingFace is unreachable.
+
+<h3 id="marker-ingestion">Marker ingestion backend (isolated venv)</h3>
+
+pdf2zh's adaptive ingestion (`--ingest-backend auto|mineru|marker`, default `auto`) can run **datalab-to/marker** (vendored at `vendor/marker`, v2) as the PDF-understanding backend: MinerU stays primary, and Marker serves as the quality-gate fallback (or a forced `--ingest-backend marker`). Marker only does PDF understanding — its canonical IR flows into the same v3 translate → plan → render pipeline (see `doc/7o/adaptive_ingestion_v1_1_contract.md`).
+
+Marker **cannot be installed into the main pdf2zh environment** — its dependency tree hard-conflicts with pdf2zh's (gradio locks `pydantic<2.12` while marker's `google-genai` requires `>=2.12.5`; `surya-ocr` pins `opencv-python-headless` and `pillow<11`). It therefore runs in an **isolated venv**, exactly like MinerU:
+
+```bash
+git submodule update --init vendor/marker
+pdf2zh-setup-marker                                  # builds the isolated venv (torch etc. stay out of your main env)
+# optional — pdf2zh auto-detects the venv on every run; only set this to point
+# at a *different* interpreter:
+set PDF2ZH_MARKER_PYTHON=<path>\marker-venv\Scripts\python.exe   # Windows
+export PDF2ZH_MARKER_PYTHON=~/.../marker-venv/bin/python          # Linux/macOS
+```
+
+Without the submodule (desktop/frozen distributions), `pdf2zh-setup-marker` falls back to PyPI (`marker-pdf>=2,<3`). The venv lives in your user data directory (`%APPDATA%\pdf2zh\marker-venv` on Windows) by default; `PDF2ZH_MARKER_VENV_DIR` overrides the location. Once built, `pdf2zh --ingest-backend marker` (or `auto`'s fallback path) works with **no environment variable required**: conversion runs through a stdlib-only subprocess worker (`pdf2zh/kernel/marker_worker.py`) inside that interpreter, and the resulting `{stem}.json` flows through the same `MarkerBackend.ingest_json` canonicalization used by offline `--marker-json` ingestion. `PDF2ZH_MARKER_MODE=fast|balanced` selects marker's conversion mode (default: marker's own per-device default), `PDF2ZH_MARKER_TIMEOUT` the subprocess timeout (default 3600s). Upgrades = bump the `vendor/marker` submodule pin, re-run setup, and rerun `tests/test_marker_env.py`.
 
 Legacy magic-pdf does not auto-download its PDF-Extract-Kit weights. Download them once to `~/.cache/magic-pdf/models`:
 

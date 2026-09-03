@@ -143,9 +143,37 @@ raw ingest → canonical ingest → quality decision → fallback attempt
   block count per page; `ingest.select` semantics correct; audit
   qualification PASS with 0 rule fails on every run (including 980-event /
   184-block / 534-plan-event 17-page book).
-- **Scenarios 2–5** require Marker (vendored at `vendor/marker`, not pip-
-  installed in this environment) and are covered by unit tests
-  (`test_cli_auto_quality_fail_falls_back_to_marker`,
+- **Scenarios 2–5** require Marker (vendored at `vendor/marker`; the main
+  env cannot install it — pydantic gradio×google-genai conflict). Live
+  conversion runs through the **isolated venv** built by `pdf2zh-setup-marker`
+  (`pdf2zh/kernel/marker_env.py`, auto-detected or `PDF2ZH_MARKER_PYTHON`)
+  via the stdlib-only `pdf2zh/kernel/marker_worker.py` subprocess — the same
+  pattern as MinerU's `PDF2ZH_MINERU_PYTHON` path. Unit coverage:
+  `test_cli_auto_quality_fail_falls_back_to_marker`,
   `test_cli_parse_crash_falls_back_to_marker`,
   `test_cli_parse_crash_marker_fails_degrades_with_trace`,
-  `test_cli_auto_fallback_failure_keeps_mineru`).
+  `test_cli_auto_fallback_failure_keeps_mineru`) + the marker_env/worker
+  regression suite (`tests/test_marker_env.py`).
+- **Live venv evidence (2026-09-03, venv built from the vendored submodule,
+  marker-pdf 2.0.0 at `vendor/marker/.venv`)**:
+  - scenario 5 live (`doc/7o/marker_live_probe.py`, 1-page corpus PDF):
+    `selected=marker, reason=forced_backend, fallback=false`, ingest gate
+    `quality=PASS / failed_rules=[]`; run audit `PASS_WITH_MEDIUM` from
+    render-level `CLIP_READABILITY`/`RESIDUAL_OVERFLOW` only (echo-stub
+    translation artifacts — not ingest invariants, per §2.3).
+  - scenario 3 live (broken `PDF2ZH_MINERU_PYTHON`): mineru
+    `ingest.end FAIL` → marker subprocess PASS →
+    `selected=marker, reason=primary_ingest_parse_fail,
+    fallback_succeeded=true, quality=PASS`.
+  - scenario 4 live (both interpreters broken): **0 `ingest.select`**,
+    both `ingest.end FAIL` retained, engine degraded to legacy kernel,
+    `rc=0`. (Found + documented: a nonexistent `PDF2ZH_MARKER_PYTHON`
+    degrades to the in-process dev path — same "unavailable → fallback"
+    semantics as MinerU's `probe_mineru_override`.)
+  - scenario 2 (primary quality FAIL) remains unit-only: staging live
+    requires a PDF MinerU parses into gate-failing geometry while Marker
+    succeeds; none identified in the corpus yet.
+- **Randomized corpus probe** (`doc/7o/random_corpus_probe.py`, seeds 42 & 7
+  × samples 3–4): 11/11 runs OK across scenarios 1 & 6; audit verdict logic
+  hardened to hard-fail only on HIGH severity (render-level MEDIUMs are
+  expected under the echo-stub translator).
