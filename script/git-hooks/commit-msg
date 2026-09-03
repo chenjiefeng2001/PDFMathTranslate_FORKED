@@ -15,11 +15,18 @@ msg_file="$1"
 [ -f "$msg_file" ] || exit 0
 
 tmp="$(mktemp 2>/dev/null)" || exit 0
-trap 'rm -f "$tmp"' EXIT INT TERM
+tmp2="$(mktemp 2>/dev/null)" || exit 0
+trap 'rm -f "$tmp" "$tmp2"' EXIT INT TERM
 
 # 1) Delete CodeBuff co-author trailer lines.
 #    Trailer form: Co-authored-by: CodeBuff <bot@codebuff.ai>
-sed -E '/^[[:space:]]*[Cc]o-[Aa]uthored-by:.*[Cc]ode[[:space:]]*[Bb]uff/d' "$msg_file" > "$tmp"
+#    `/I` = case-insensitive: also catches title-case "Co-Authored-By:"
+#    (as emitted by some toolchains), not just the all-lowercase form.
+sed -E '/^co-authored-by:.*code[[:space:]]*buff/Id' "$msg_file" > "$tmp"
+
+# 1b) Delete the companion "Generated with Codebuff" banner line (same
+#     casing tolerance); it is part of the same injected trailer block.
+sed -E '/^generated with codebuff/Id' "$tmp" > "$tmp2"
 
 # 2) Strip trailing blank lines left behind by the deletion (commit messages
 #    are small), keeping the subject, body and any remaining trailers intact
@@ -31,6 +38,6 @@ awk '
         while (last > 0 && lines[last] == "") last--
         for (i = 1; i <= last; i++) print lines[i]
     }
-' "$tmp" > "$msg_file"
+' "$tmp2" > "$msg_file"
 
 exit 0
