@@ -197,8 +197,13 @@ def _build_plan():
         },
     }
     # page 1: flow + CJK + nested list + code
+    # 7N-FIX-3A：flow 译文按 box-top + 0.85em 落基线（不再整体上浮 1em）。
+    # 旧几何 [640, 690]（fitz 102–152）与下方 list 块 [620, 700]（fitz
+    # 92–172）重叠 —— 旧实现的上浮恰好躲开第二行 marker "a."，新正确基线
+    # 会让 flow 墨水压进 marker 行（evaluator 行聚类合并 → list_wrap_integrity
+    # 0.83）。布局层真实产物绝不产生重叠 dst_box，fixture 移出重叠区即可。
     flow = _flow_entry(
-        "p1_flow", 1, FLOW_SOURCE, FLOW_TRANSLATED, FLOW_X0, 640.0, FLOW_X1, 690.0
+        "p1_flow", 1, FLOW_SOURCE, FLOW_TRANSLATED, FLOW_X0, 720.0, FLOW_X1, 770.0
     )
     cjk = _flow_entry(
         "p1_cjk", 1, CJK_SOURCE, CJK_TRANSLATED, CJK_X0, 560.0, CJK_X1, 610.0

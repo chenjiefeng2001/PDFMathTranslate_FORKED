@@ -370,60 +370,91 @@ def run_magicpdf_main(
         )
         from pdf2zh.v3.render_takeover import fixup_render_plan
 
-        channel = collect_formula_latex(doc)
-        formula_applied = apply_formula_latex(doc, channel)
-        plan = render_plan_from_model(doc)
-        fixed_plan, fixup_stats = fixup_render_plan(plan)
-        _write_dumps(
-            path,
-            results,
-            doc,
-            magic_dir,
-            channel=channel,
-            fixed_plan=fixed_plan,
-        )
-        # §12.3 渲染接管：fixup 后的渲染计划 → 译后 mono PDF（默认开启，
-        # --no-magicpdf-render 关闭；渲染失败仅告警，保留 JSON 转储）。
-        if getattr(parsed_args, "magicpdf_render", True) and fixed_plan:
-            from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
+        # FlightRecorder：真实翻译 → plan → fixup → render 全程结构化 trace
+        # （JSONL 流式落盘，崩溃不毁整 trace；坐标一律带语义声明）。
+        from pdf2zh.v3.flight_recorder import FlightRecorder
 
-            if progress_cb is not None:
-                progress_cb(
-                    "rendering",
-                    _PCT_RENDER,
-                    f"{os.path.basename(path)}: rendering mono PDF...",
-                )
-            page_sizes = {
-                p.page_num: [p.width, p.height]
-                for p in doc.pages
-                if getattr(p, "width", 0) and getattr(p, "height", 0)
-            }
-            stem = os.path.splitext(os.path.basename(path))[0]
-            mono_pdf = os.path.join(magic_dir, f"{stem}_mono.pdf")
+        stem = os.path.splitext(os.path.basename(path))[0]
+        rec = FlightRecorder(
+            os.path.join(parsed_args.output or ".", "trace", f"{stem}_events.jsonl"),
+            book_id=stem,
+        )
+        try:
+            channel = collect_formula_latex(doc)
+            formula_applied = apply_formula_latex(doc, channel)
+            plan = render_plan_from_model(doc, trace=rec)
+            fixed_plan, fixup_stats = fixup_render_plan(plan, trace=rec)
+            _write_dumps(
+                path,
+                results,
+                doc,
+                magic_dir,
+                channel=channel,
+                fixed_plan=fixed_plan,
+            )
+            # §12.3 渲染接管：fixup 后的渲染计划 → 译后 mono PDF（默认开启，
+            # --no-magicpdf-render 关闭；渲染失败仅告警，保留 JSON 转储）。
+            if getattr(parsed_args, "magicpdf_render", True) and fixed_plan:
+                from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
+
+                if progress_cb is not None:
+                    progress_cb(
+                        "rendering",
+                        _PCT_RENDER,
+                        f"{os.path.basename(path)}: rendering mono PDF...",
+                    )
+                page_sizes = {
+                    p.page_num: [p.width, p.height]
+                    for p in doc.pages
+                    if getattr(p, "width", 0) and getattr(p, "height", 0)
+                }
+                mono_pdf = os.path.join(magic_dir, f"{stem}_mono.pdf")
+                try:
+                    _, render_stats = render_plan_to_pdf(
+                        fixed_plan,
+                        page_sizes=page_sizes,
+                        output_path=mono_pdf,
+                        # 保留原 PDF 为背景层：图形/颜色块/图片以及公式、代码等
+                        # 保留块的原文由背景显示，只重画真正翻译的块 —— 否则
+                        # 有色方块被整页白底吞噬、公式 LaTeX 原文叠影。
+                        source_pdf=path,
+                        trace=rec,
+                    )
+                    logger.info(
+                        "[magicpdf] %s: mono PDF 已渲染（%d 页, %d 块, %d 字形）→ %s",
+                        path,
+                        render_stats["pages"],
+                        render_stats["blocks"],
+                        render_stats["glyphs"],
+                        mono_pdf,
+                    )
+                except Exception as exc:  # noqa: BLE001 -- 渲染失败不阻断转储
+                    logger.warning(
+                        "[magicpdf] %s mono PDF 渲染失败（保留 JSON 转储）: %s",
+                        path,
+                        exc,
+                    )
+        finally:
+            rec.close()
+        # Trace 自动审计：invariant rules → summary / defect-ledger / pages /
+        # trace-index / qualification.md（Level-2 光栅证据只针对 FAIL 块）。
+        if rec.path and os.path.exists(rec.path):
             try:
-                _, render_stats = render_plan_to_pdf(
-                    fixed_plan,
-                    page_sizes=page_sizes,
-                    output_path=mono_pdf,
-                    # 保留原 PDF 为背景层：图形/颜色块/图片以及公式、代码等
-                    # 保留块的原文由背景显示，只重画真正翻译的块 —— 否则有色
-                    # 方块被整页白底吞噬、公式 LaTeX 原文叠影。
-                    source_pdf=path,
+                from pdf2zh.v3.trace_audit import _run_audit
+
+                mono_pdf = (
+                    os.path.join(magic_dir, f"{stem}_mono.pdf")
+                    if getattr(parsed_args, "magicpdf_render", True)
+                    else None
                 )
-                logger.info(
-                    "[magicpdf] %s: mono PDF 已渲染（%d 页, %d 块, %d 字形）→ %s",
-                    path,
-                    render_stats["pages"],
-                    render_stats["blocks"],
-                    render_stats["glyphs"],
-                    mono_pdf,
+                _run_audit(
+                    rec.path,
+                    pdf=mono_pdf if mono_pdf and os.path.exists(mono_pdf) else None,
+                    source=path,
+                    out=os.path.join(parsed_args.output or ".", "audit"),
                 )
-            except Exception as exc:  # noqa: BLE001 -- 渲染失败不阻断转储
-                logger.warning(
-                    "[magicpdf] %s mono PDF 渲染失败（保留 JSON 转储）: %s",
-                    path,
-                    exc,
-                )
+            except Exception as exc:  # noqa: BLE001 -- trace 审计失败不阻断翻译产物
+                logger.warning("[magicpdf] trace audit failed (kept dumps): %s", exc)
         glyphs = (
             sum(
                 len(s.glyphs)

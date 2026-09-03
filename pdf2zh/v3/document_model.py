@@ -563,12 +563,18 @@ def translate_document(
     return stats
 
 
-def render_plan_from_model(model: DocumentModel) -> List[dict]:
+def render_plan_from_model(
+    model: DocumentModel, trace=None
+) -> List[dict]:
     """Render Plan：为每个 Block 给出渲染决策（Renderer 只读 Document）。
 
     每块输出 {block_id, page, kind, text, translated, render_path,
     src_box, dst_box, font_size}。dst_box 初始等于源 bbox（后续由
     RenderTakeover 的 shift/block 决策修正）。纯数据，无 I/O。
+
+    ``trace``（可选）：FlightRecorder —— 每块发射 ``plan.flow`` 事件，携带
+    语义化坐标（v3 y-up，y1=box_top）与已定版布局载荷（recovery / lines /
+    overflow），供 trace_rules 消费（MECH-4 教训：数值必须声明 meaning）。
     """
     plan: List[dict] = []
     for page in model.pages:
@@ -603,23 +609,57 @@ def render_plan_from_model(model: DocumentModel) -> List[dict]:
                     )
                 ),
             }
-            plan.append(
-                {
-                    "block_id": block_id(pno, i),
-                    "page": pno,
-                    "kind": block.kind,
-                    "text": block.text,
-                    "translated": block.metadata.get("translated", block.text),
-                    "render_path": block.metadata.get("render_path", "translate_refit"),
-                    "src_box": [round(v, 2) for v in block.bbox],
-                    "dst_box": [round(v, 2) for v in block.bbox],
-                    "font_size": _node_font_size(block),
-                    "render_payload": build_render_payload(unit),
-                    "list_items": block.metadata.get("list_items"),
-                    "toc_entries": block.metadata.get("toc_entries"),
-                    "toc_commands": block.metadata.get("toc_commands"),
-                }
-            )
+            bid = block_id(pno, i)
+            entry = {
+                "block_id": bid,
+                "page": pno,
+                "kind": block.kind,
+                "text": block.text,
+                "translated": block.metadata.get("translated", block.text),
+                "render_path": block.metadata.get("render_path", "translate_refit"),
+                "src_box": [round(v, 2) for v in block.bbox],
+                "dst_box": [round(v, 2) for v in block.bbox],
+                "font_size": _node_font_size(block),
+                "render_payload": build_render_payload(unit),
+                "list_items": block.metadata.get("list_items"),
+                "toc_entries": block.metadata.get("toc_entries"),
+                "toc_commands": block.metadata.get("toc_commands"),
+            }
+            plan.append(entry)
+            if trace is not None and getattr(trace, "enabled", False):
+                # FlightRecorder：plan 层事件。y 语义显式声明 —— v3 y-up 的
+                # dst_box.y1 是 box_top（MECH-4 的运行时不变量输入）。
+                rp = entry.get("render_payload") or {}
+                trace.emit(
+                    "plan.flow",
+                    trace.ctx(pno, bid, "plan"),
+                    {
+                        "kind": entry["kind"],
+                        "text": (entry.get("text") or "")[:200],
+                        "translated": (entry.get("translated") or "")[:200],
+                        "render_path": entry.get("render_path"),
+                        "src_box": entry.get("src_box"),
+                        "dst_box": entry.get("dst_box"),
+                        "font_size": entry.get("font_size"),
+                        "overflow": rp.get("overflow"),
+                        "layout_ok": rp.get("layout_ok"),
+                        "policy": rp.get("policy"),
+                        "lines": list(rp.get("lines") or [])[:20],
+                        "recovery": rp.get("recovery") or {},
+                        "commands": [
+                            {
+                                "x": c.get("x"),
+                                "y": c.get("y"),
+                                "y_meaning": "box_top",
+                                "font_size": c.get("font_size"),
+                                "text": (c.get("text") or "")[:80],
+                                "is_last": c.get("is_last"),
+                                "overflow": c.get("overflow"),
+                            }
+                            for c in (rp.get("commands") or [])[:20]
+                        ],
+                    },
+                )
     return plan
 
 

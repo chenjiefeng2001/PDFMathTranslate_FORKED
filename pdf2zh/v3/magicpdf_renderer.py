@@ -82,6 +82,110 @@ def _flip_v3_box(box: Sequence[float], page_height: float) -> list[float]:
     return [x0, page_height - y1, x1, page_height - y0]
 
 
+def _emit_render_trace(
+    trace,
+    entry: dict,
+    page_no: int,
+    page_height: float,
+    event: str,
+    *,
+    commands: Optional[Sequence[dict]] = None,
+    baseline: Optional[float] = None,
+    expected_baseline: Optional[float] = None,
+    erase_rect=None,
+    font_size: Optional[float] = None,
+    used_baselines: Optional[Sequence[tuple]] = None,
+) -> None:
+    """FlightRecorder：render 层事件（坐标语义显式声明）。
+
+    ``render.flow`` 记录每条命令的 v3 box_top 锚 → fitz baseline 的完整
+    因果链；``render.erase`` 记录擦除矩形与 src/dst，供 ERASE_GEOMETRY
+    规则判定白矩形是否覆盖源几何。
+    """
+    if trace is None or not getattr(trace, "enabled", False):
+        return
+    src = list(entry.get("src_box") or [0, 0, 0, 0])
+    dst = list(entry.get("dst_box") or src)
+    payload: Dict[str, Any] = {
+        "kind": entry.get("kind"),
+        "text": (entry.get("text") or "")[:200],
+        "translated": (entry.get("translated") or "")[:200],
+        "src_box": src,
+        "dst_box": dst,
+        "page_height": round(float(page_height), 2),
+        "font_size": round(float(font_size), 2) if font_size else None,
+    }
+    if erase_rect is not None:
+        # erase_rect 是 fitz 空间（翻转后直接 draw_rect）。与 src_box /
+        # dst_box（v3 y-up）同帧比较前必须先翻回 v3 —— 否则语义标注永远
+        # 是 "other"，ERASE_GEOMETRY 规则也永远无法命中（跨帧比较是静默
+        # no-op，正是 trace 体系要消灭的那类缺陷）。
+        er_fitz = list(erase_rect)
+        er_v3 = _flip_v3_box(er_fitz, page_height)
+        payload["erase_rect_fitz"] = [round(float(v), 2) for v in er_fitz]
+        payload["erase_rect"] = [round(float(v), 2) for v in er_v3]
+        payload["erase_semantics"] = (
+            "src_box" if _same_box(er_v3, src) else ("dst_box" if _same_box(er_v3, dst) else "other")
+        )
+    if commands is not None:
+        used = list(used_baselines or [])
+        cmds_out = []
+        for i, c in enumerate((commands or [])[:20]):
+            entry_cmd: Dict[str, Any] = {
+                "x": round(float(c.get("x") or 0.0), 2),
+                # v3 y-up：命令 y 是 box 顶沿锚（plan.flow 已声明 y_meaning=box_top）
+                "y": round(float(c.get("y") or 0.0), 2),
+                "y_space": "v3",
+                "y_meaning": "box_top",
+                "font_size": round(float(c.get("font_size") or 0.0), 2),
+                "text": (c.get("text") or "")[:80],
+            }
+            if i < len(used):
+                y_v3, draw_fs, actual = used[i]
+                entry_cmd["actual_baseline"] = round(float(actual), 2)
+                entry_cmd["expected_baseline"] = round(
+                    (float(page_height) - float(y_v3)) + float(draw_fs) * 0.85, 2
+                )
+                entry_cmd["baseline_delta"] = round(
+                    float(actual) - ((float(page_height) - float(y_v3)) + float(draw_fs) * 0.85), 2
+                )
+            cmds_out.append(entry_cmd)
+        payload["commands"] = cmds_out
+    if baseline is not None:
+        payload["baseline"] = round(float(baseline), 2)
+        payload["baseline_space"] = "fitz"
+        payload["baseline_meaning"] = "baseline"
+    if expected_baseline is not None:
+        payload["expected_baseline"] = round(float(expected_baseline), 2)
+    trace.emit(
+        event,
+        trace.ctx(page_no, entry.get("block_id") or "?", "render"),
+        payload,
+    )
+
+
+def _same_box(a, b, tol: float = 1.0) -> bool:
+    if len(a) != 4 or len(b) != 4:
+        return False
+    return all(abs(float(x) - float(y)) <= tol for x, y in zip(a, b))
+
+
+def _erase_rect_for(entry: dict, dst_box: Sequence[float], page_height: float):
+    """白矩形几何（7N-FIX-3B）：只覆盖需要替换的**源文本几何**。
+
+    ``src_box`` 与 ``dst_box`` 解耦：非 shift 块两者相等（行为不变）；
+    shift_down 块 dst 已整体平移，若按 dst 擦除会把相邻行一并抹掉（MECH-4
+    实测 28/30 例），因此这里恒取 src_box 作为擦除区域，译文落点仍由
+    dst_box / commands 决定。
+    """
+    import pymupdf
+
+    src = list(entry.get("src_box") or dst_box)
+    if len(src) != 4:
+        src = list(dst_box)
+    return pymupdf.Rect(_flip_v3_box(src, page_height))
+
+
 def _entry_text(entry: dict) -> str:
     """取块渲染文本：译文优先（保留块 translated 已由 translate_document
     回填为原文），缺失时回退原文。"""
@@ -159,14 +263,18 @@ def _render_list_commands(
     page_height: float,
     font_size: float,
     fontname: Optional[str],
-    block_rect: Any,
+    erase_rect: Any,
     stats: Dict[str, Any],
     src_doc: Optional[Any],
 ) -> None:
-    """把列表渲染计划中的 marker/text 命令逐条落到 PDF（几何来自节点，y 翻转）。"""
+    """把列表渲染计划中的 marker/text 命令逐条落到 PDF（几何来自节点，y 翻转）。
+
+    7N-FIX-3：``erase_rect`` 是**源文本几何**（src_box 翻转），与命令落点
+    （dst）解耦 —— shift 块的白矩形只覆盖真正需要替换的原文，绝不盖相邻行。
+    """
     if src_doc is not None:
         # 覆盖原文区域（白色矩形），保证译文不与原文混排。
-        page.draw_rect(block_rect, color=None, fill=(1, 1, 1))
+        page.draw_rect(erase_rect, color=None, fill=(1, 1, 1))
     for c in commands or []:
         t = c.get("text") or ""
         if not t:
@@ -185,23 +293,36 @@ def _render_flow_commands(
     page_height: float,
     font_size: float,
     fontname: Optional[str],
-    block_rect: Any,
+    erase_rect: Any,
     stats: Dict[str, Any],
     src_doc: Optional[Any],
     entry: Optional[dict] = None,
 ) -> None:
     """Draw settled FlowText LayoutResult lines (already wrapped/positioned).
 
-    Each command is a pre-laid-out line (x/y baseline in v3 y-up).  This
-    renderer applies no re-wrap / re-fit — it only flips y and inserts the
-    glyphs at the **settled** font size carried by the command (7F-6b: a
-    SHRINK recovery reduces it; falling back to the block font when absent).
-    Overflow carried by a command is surfaced via a debug log +
-    ``stats["flow_overflow"]`` so it stays observable.
+    Each command is a pre-laid-out line whose ``y`` is the **box-top anchor**
+    in v3 y-up (``first_cmd_y == dst_box.y1``, see 7N-FIX-3 / MECH-4).  This
+    renderer applies no re-wrap / re-fit — it only flips y, converts the
+    box-top anchor into a real baseline (7N-FIX-3A: ``baseline =
+    (page_height - y) + draw_fs * 0.85``, the same anchoring as
+    ``_insert_text_wrapped`` — otherwise the ink floats a full em above the
+    box), and inserts the glyphs at the **settled** font size carried by the
+    command (7F-6b: a SHRINK recovery reduces it; falling back to the block
+    font when absent).  Overflow carried by a command is surfaced via a debug
+    log + ``stats["flow_overflow"]`` so it stays observable.
+
+    ``erase_rect`` is the **source** geometry (flipped src_box, 7N-FIX-3B):
+    the white erase rectangle only ever covers the text region that is being
+    replaced — never the shifted dst_box — so shifted blocks cannot wipe out
+    neighbouring lines.
     """
     if src_doc is not None:
-        page.draw_rect(block_rect, color=None, fill=(1, 1, 1))
+        page.draw_rect(erase_rect, color=None, fill=(1, 1, 1))
     overflow_hit = False
+    # FlightRecorder：记录每条命令**实际使用**的 fitz baseline（供
+    # FLOW_BASELINE_MISMATCH 规则与实际基线比对 —— 若未来回归去掉 0.85
+    # 偏移，trace 会立即暴露 actual != expected）。
+    used_baselines: List[float] = []
     for c in commands or []:
         t = c.get("text") or ""
         if not t:
@@ -216,7 +337,13 @@ def _render_flow_commands(
         if draw_fs <= 0:
             draw_fs = float(font_size)
         eff = _resolve_effect_font(t, fontname)
-        page.insert_text((x, page_height - y), t, fontsize=draw_fs, fontname=eff)
+        # 7N-FIX-3A：命令 y 是 v3 y-up 的 box 顶沿，不是基线 —— 翻转后落在
+        # fitz 矩形顶边；基线必须再下移 ~0.85em（与 _insert_text_wrapped 的
+        # 锚定一致），否则译文墨水整体上浮 ≈1em 顶进上一行。多行命令的
+        # 相对步进（line_step）保持不变，整列只平移这个锚定偏移。
+        baseline = (page_height - y) + draw_fs * 0.85
+        page.insert_text((x, baseline), t, fontsize=draw_fs, fontname=eff)
+        used_baselines.append((float(y), float(draw_fs), float(baseline)))
         stats["blocks"] += 1
         stats["glyphs"] += len(t)
         overflow_hit = overflow_hit or bool(c.get("overflow"))
@@ -227,6 +354,8 @@ def _render_flow_commands(
             len(commands or []),
         )
         stats["flow_overflow"] = stats.get("flow_overflow", 0) + 1
+    # FlightRecorder 回传：每行 (y_v3, draw_fs, actual_baseline_fitz)
+    return used_baselines
 
 
 def _render_toc_commands(
@@ -235,7 +364,7 @@ def _render_toc_commands(
     page_height: float,
     font_size: float,
     fontname: Optional[str],
-    block_rect: Any,
+    erase_rect: Any,
     stats: Dict[str, Any],
     src_doc: Optional[Any],
 ) -> None:
@@ -252,7 +381,7 @@ def _render_toc_commands(
         page_height,
         font_size,
         fontname,
-        block_rect,
+        erase_rect,
         stats,
         src_doc,
     )
@@ -266,6 +395,7 @@ def render_plan_to_pdf(
     cjk_font: bool = True,
     source_pdf: Optional[str] = None,
     provenance: bool = False,
+    trace=None,
 ) -> Tuple[bytes, dict]:
     """把（fixup 后的）render_plan 渲染为 PDF。
 
@@ -286,6 +416,10 @@ def render_plan_to_pdf(
             ``render_object_ref`` + 对象类型 + 最终 v3 bbox）采集到
             ``stats["provenance"]``，供 7H-2A 的 ID-direct 差分诊断使用。
             缺省 False：完全保持既有行为，stats 不含该键。
+        trace: 可选 FlightRecorder —— 逐块发射 ``render.flow`` /
+            ``render.erase`` / ``render.wrapped`` / ``render.block`` 事件，
+            声明坐标语义（v3 box_top → fitz baseline 的完整因果链），
+            供 trace_rules / trace_audit 消费。
 
     Returns:
         ``(pdf_bytes, stats)``，``stats`` 含 ``pages``/``blocks``/``glyphs``；
@@ -365,7 +499,7 @@ def render_plan_to_pdf(
                 box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
                 if len(box) != 4:
                     box = [0, 0, 0, 0]
-                rect = pymupdf.Rect(_flip_v3_box(box, h))
+                erase_rect = _erase_rect_for(entry, box, h)
                 font_size = entry.get("font_size")
                 try:
                     font_size = float(font_size) if font_size else 0.0
@@ -374,7 +508,11 @@ def render_plan_to_pdf(
                 if font_size <= 0:
                     font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
                 _render_list_commands(
-                    page, list_cmds, h, font_size, fontname, rect, stats, src_doc
+                    page, list_cmds, h, font_size, fontname, erase_rect, stats, src_doc
+                )
+                _emit_render_trace(
+                    trace, entry, pno, h, "render.block",
+                    commands=list_cmds, erase_rect=list(erase_rect), font_size=font_size,
                 )
                 if prov is not None:
                     prov.record(
@@ -396,7 +534,7 @@ def render_plan_to_pdf(
                 box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
                 if len(box) != 4:
                     box = [0, 0, 0, 0]
-                rect = pymupdf.Rect(_flip_v3_box(box, h))
+                erase_rect = _erase_rect_for(entry, box, h)
                 font_size = entry.get("font_size")
                 try:
                     font_size = float(font_size) if font_size else 0.0
@@ -405,7 +543,11 @@ def render_plan_to_pdf(
                 if font_size <= 0:
                     font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
                 _render_toc_commands(
-                    page, toc_cmds, h, font_size, fontname, rect, stats, src_doc
+                    page, toc_cmds, h, font_size, fontname, erase_rect, stats, src_doc
+                )
+                _emit_render_trace(
+                    trace, entry, pno, h, "render.block",
+                    commands=toc_cmds, erase_rect=list(erase_rect), font_size=font_size,
                 )
                 if prov is not None:
                     prov.record(
@@ -424,7 +566,9 @@ def render_plan_to_pdf(
                 box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
                 if len(box) != 4:
                     box = [0, 0, 0, 0]
-                rect = pymupdf.Rect(_flip_v3_box(box, h))
+                # 7N-FIX-3B：白矩形只覆盖源文本几何（src_box），与译文落点
+                # （dst_box / commands）解耦 —— shift 块不再误抹相邻行。
+                erase_rect = _erase_rect_for(entry, box, h)
                 font_size = entry.get("font_size")
                 try:
                     font_size = float(font_size) if font_size else 0.0
@@ -432,8 +576,31 @@ def render_plan_to_pdf(
                     font_size = 0.0
                 if font_size <= 0:
                     font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
-                _render_flow_commands(
-                    page, flow_cmds, h, font_size, fontname, rect, stats, src_doc, entry
+                used_baselines = _render_flow_commands(
+                    page,
+                    flow_cmds,
+                    h,
+                    font_size,
+                    fontname,
+                    erase_rect,
+                    stats,
+                    src_doc,
+                    entry,
+                )
+                # 7N-FIX-3A：命令 y（v3 box_top）→ fitz baseline 的因果链。
+                # baseline 由 _render_flow_commands 实际使用值回传（SHRINK 后
+                # 的定版字号），expected 独立推导 —— 二者不等即 FLOW_BASELINE
+                # 类规则 FAIL。
+                _emit_render_trace(
+                    trace,
+                    entry,
+                    pno,
+                    h,
+                    "render.flow",
+                    commands=flow_cmds,
+                    erase_rect=list(erase_rect),
+                    font_size=font_size,
+                    used_baselines=used_baselines,
                 )
                 if prov is not None:
                     prov.record(
@@ -467,10 +634,14 @@ def render_plan_to_pdf(
             if font_size <= 0:
                 font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
             if src_doc is not None:
-                # 覆盖原文区域（白色矩形），保证译文不与原文混排。仅覆盖本块
-                # dst_box，背景图形在未覆盖区域原样保留（修复有色方块被整页
-                # 白底吞噬 —— 旧版从零建白页丢弃全部背景）。
-                page.draw_rect(rect, color=None, fill=(1, 1, 1))
+                # 7N-FIX-3B：白矩形只覆盖源文本几何（src_box），译文仍画进
+                # dst_box（rect）—— 擦除与渲染几何解耦，shift 块不误抹相邻行。
+                erase_rect = _erase_rect_for(entry, box, h)
+                page.draw_rect(erase_rect, color=None, fill=(1, 1, 1))
+                _emit_render_trace(
+                    trace, entry, pno, h, "render.erase",
+                    erase_rect=list(erase_rect), font_size=font_size,
+                )
             if src_doc is None and not _is_translated_block(entry):
                 # 纯文本层：保留块（formula/code/table，translated == text）
                 # 用等宽字体绘制，保持与源等宽文本一致的几何（否则 bbox 中心
@@ -481,9 +652,22 @@ def render_plan_to_pdf(
                 block_font = "cour"
             else:
                 block_font = fontname
+            # 7N-FIX-3A：wrapped 路径与 _insert_text_wrapped 同一锚定 ——
+            # baseline = box top (fitz rect.y0) + 0.85*fs。
+            baseline = float(rect.y0) + font_size * 0.85
             _insert_text_wrapped(page, rect, text, font_size, block_font)
             stats["blocks"] += 1
             stats["glyphs"] += len(text)
+            _emit_render_trace(
+                trace,
+                entry,
+                pno,
+                h,
+                "render.wrapped",
+                baseline=baseline,
+                expected_baseline=baseline,
+                font_size=font_size,
+            )
             if prov is not None:
                 prov.record(
                     entry.get("block_id", "?"),
