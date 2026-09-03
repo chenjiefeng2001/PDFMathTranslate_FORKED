@@ -233,3 +233,17 @@ dist/
 
 # WinRAR archive produced by script/build-win64.ps1 -DownloadVCRedist
 *.rar
+
+# ── 7N 取证全书 dump（可再生，由 doc/7n*_*.py 复现脚本重建）──────────
+# 全书 *_document.json 达 430MB+（子集页也 8MB），trace JSONL 6.9MB；
+# 审计产物（summary/pages/qualification/ledger/trace-index）仍入库。
+doc/7n*/**/*_document.json
+doc/7n*/**/trace/*.jsonl
+# 全书级 *_magicpdf.json（10MB）/ *_render_plan.json（6-8MB）同为可再生转储；
+# 子集页（7n-real / 7n-real-fix2，≤264K）保留作为真实运行证据。
+doc/7n-full-mp2e/**/*_magicpdf.json
+doc/7n-full-mp2e/**/*_render_plan.json
+doc/7n8-mp2e/**/*_magicpdf.json
+doc/7n8-mp2e/**/*_render_plan.json
+doc/7n9-mp2e-fix3/**/*_magicpdf.json
+doc/7n9-mp2e-fix3/**/*_render_plan.json

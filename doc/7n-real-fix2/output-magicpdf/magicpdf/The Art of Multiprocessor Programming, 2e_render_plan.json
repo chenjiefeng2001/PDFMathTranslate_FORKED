@@ -1,0 +1,7855 @@
+[
+  {
+    "block_id": "p5_0",
+    "page": 5,
+    "kind": "paragraph",
+    "text": "For my parents, David and Patricia Herlihy, and for Liuba, David,\nand Anna.",
+    "translated": "为了我的父母，大卫和帕特里夏·赫利希，以及柳巴，大卫，和安娜。",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      428.0,
+      437.0,
+      453.0
+    ],
+    "dst_box": [
+      118.0,
+      428.0,
+      437.0,
+      453.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "为了我的父母，大卫和帕特里夏·赫利希，以及柳巴，大卫，和安娜。",
+          "x": 118.0,
+          "y": 453.0,
+          "width": 285.18,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 9.35
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 9.3,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "为了我的父母，大卫和帕特里夏·赫利希，以及柳巴，大卫，和安娜。"
+      ],
+      "line_widths": [
+        285.2
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        118.0,
+        453.0,
+        437.0,
+        478.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p5_1",
+    "page": 5,
+    "kind": "paragraph",
+    "text": "- M.H.",
+    "translated": "- M.H.",
+    "render_path": "shift_down",
+    "src_box": [
+      418.0,
+      412.0,
+      457.0,
+      426.0
+    ],
+    "dst_box": [
+      418.0,
+      429.85,
+      457.0,
+      443.85
+    ],
+    "font_size": 12.75,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "- M.H.",
+          "x": 418.0,
+          "y": 443.85,
+          "width": 29.84,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 12.75
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 12.8,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "- M.H."
+      ],
+      "line_widths": [
+        29.8
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        418.0,
+        426.0,
+        457.0,
+        440.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "shift_down"
+  },
+  {
+    "block_id": "p5_2",
+    "page": 5,
+    "kind": "paragraph",
+    "text": "For Noun and Aliza, Shafi, Yonadav, and Lior, and for Luisa.",
+    "translated": "为了诺恩和艾丽莎、沙菲、尤纳达夫和利奥尔，以及路易莎。",
+    "render_path": "translate_refit",
+    "src_box": [
+      116.0,
+      366.0,
+      411.0,
+      381.0
+    ],
+    "dst_box": [
+      116.0,
+      366.0,
+      411.0,
+      381.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "为了诺恩和艾丽莎、沙菲、尤纳达夫和利奥尔，以及路易莎。",
+          "x": 116.0,
+          "y": 381.0,
+          "width": 275.4,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 10.2
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 10.2,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "为了诺恩和艾丽莎、沙菲、尤纳达夫和利奥尔，以及路易莎。"
+      ],
+      "line_widths": [
+        275.4
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        116.0,
+        381.0,
+        411.0,
+        396.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p5_3",
+    "page": 5,
+    "kind": "paragraph",
+    "text": "- N.S.",
+    "translated": "- N.S.",
+    "render_path": "shift_down",
+    "src_box": [
+      422.0,
+      353.0,
+      457.0,
+      366.0
+    ],
+    "dst_box": [
+      422.0,
+      380.46,
+      457.0,
+      393.46
+    ],
+    "font_size": 14.45,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "- N.S.",
+          "x": 422.0,
+          "y": 393.46,
+          "width": 28.74,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 12.28
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 12.3,
+      "recovery": {
+        "reason": "height",
+        "decision": "shrink",
+        "steps": [
+          "WRAP",
+          "SHRINK"
+        ],
+        "original_font_size": 14.45,
+        "final_font_size": 12.28
+      },
+      "trace": [
+        {
+          "decision": "WRAP",
+          "overflow": true,
+          "line_count": 1,
+          "font_size": 14.45
+        },
+        {
+          "decision": "SHRINK",
+          "overflow": false,
+          "line_count": 1,
+          "font_size": 12.28
+        }
+      ],
+      "lines": [
+        "- N.S."
+      ],
+      "line_widths": [
+        28.7
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        422.0,
+        366.0,
+        457.0,
+        379.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "shift_down"
+  },
+  {
+    "block_id": "p5_4",
+    "page": 5,
+    "kind": "paragraph",
+    "text": "For my family, especially my parents, Guilly and Maloy Luchangco,\nand for God, who makes all things possible.",
+    "translated": "对于我的家人，尤其是我的父母 Guilly 和 Maloy Luchangco，也为了上帝，他使一切成为可能。",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      294.0,
+      443.0,
+      320.0
+    ],
+    "dst_box": [
+      119.0,
+      294.0,
+      443.0,
+      320.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "对于我的家人，尤其是我的父母 Guilly 和 Maloy Luchangco，也为了上",
+          "x": 119.0,
+          "y": 320.0,
+          "width": 317.42,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 10.2
+        },
+        {
+          "kind": "flow-text",
+          "text": "帝，他使一切成为可能。",
+          "x": 119.0,
+          "y": 305.72,
+          "width": 112.2,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 10.2
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 10.2,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "对于我的家人，尤其是我的父母 Guilly 和 Maloy Luchangco，也为了上",
+        "帝，他使一切成为可能。"
+      ],
+      "line_widths": [
+        317.4,
+        112.2
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        320.0,
+        443.0,
+        346.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p5_5",
+    "page": 5,
+    "kind": "heading",
+    "text": "- V.L.",
+    "translated": "-V.L.",
+    "render_path": "shift_down",
+    "src_box": [
+      423.0,
+      279.0,
+      457.0,
+      293.0
+    ],
+    "dst_box": [
+      423.0,
+      310.22,
+      457.0,
+      324.22
+    ],
+    "font_size": 16.15,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "shift_down"
+  },
+  {
+    "block_id": "p5_6",
+    "page": 5,
+    "kind": "paragraph",
+    "text": "For Emily, Theodore, Bernadette, Adelaide, Teresa, Veronica, Phoebe,\nLeo, and Rosemary.",
+    "translated": "献给艾米丽、西奥多、伯纳黛特、阿德莱德、特蕾莎、维罗妮卡、菲比、利奥和迷迭香。",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      220.0,
+      453.0,
+      246.0
+    ],
+    "dst_box": [
+      119.0,
+      220.0,
+      453.0,
+      246.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "献给艾米丽、西奥多、伯纳黛特、阿德莱德、特蕾莎、维罗妮卡、菲比、利奥和",
+          "x": 119.0,
+          "y": 246.0,
+          "width": 327.25,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 9.35
+        },
+        {
+          "kind": "flow-text",
+          "text": "迷迭香。",
+          "x": 119.0,
+          "y": 232.91,
+          "width": 37.4,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 9.35
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 9.3,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "献给艾米丽、西奥多、伯纳黛特、阿德莱德、特蕾莎、维罗妮卡、菲比、利奥和",
+        "迷迭香。"
+      ],
+      "line_widths": [
+        327.3,
+        37.4
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        246.0,
+        453.0,
+        272.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p5_7",
+    "page": 5,
+    "kind": "paragraph",
+    "text": "- M.S.",
+    "translated": "- 多发性硬化症。",
+    "render_path": "shift_down",
+    "src_box": [
+      420.0,
+      204.0,
+      457.0,
+      219.0
+    ],
+    "dst_box": [
+      420.0,
+      246.12,
+      457.0,
+      261.12
+    ],
+    "font_size": 13.6,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "- 多发性硬",
+          "x": 420.0,
+          "y": 261.12,
+          "width": 33.93,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.1
+        },
+        {
+          "kind": "flow-text",
+          "text": "化症。",
+          "x": 420.0,
+          "y": 242.08,
+          "width": 21.3,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.1
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.1,
+      "recovery": {
+        "reason": "height",
+        "decision": "shrink",
+        "steps": [
+          "WRAP",
+          "SHRINK"
+        ],
+        "original_font_size": 13.6,
+        "final_font_size": 7.1
+      },
+      "trace": [
+        {
+          "decision": "WRAP",
+          "overflow": true,
+          "line_count": 4,
+          "font_size": 13.6
+        },
+        {
+          "decision": "SHRINK",
+          "overflow": false,
+          "line_count": 2,
+          "font_size": 7.1
+        }
+      ],
+      "lines": [
+        "- 多发性硬",
+        "化症。"
+      ],
+      "line_widths": [
+        33.9,
+        21.3
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        420.0,
+        219.0,
+        457.0,
+        234.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "shift_down"
+  },
+  {
+    "block_id": "p8_0",
+    "page": 8,
+    "kind": "references",
+    "text": "5.5Multiple assignment objects .113",
+    "translated": "5.5多重赋值对象.113",
+    "render_path": "translate_refit",
+    "src_box": [
+      160.0,
+      574.0,
+      457.0,
+      585.0
+    ],
+    "dst_box": [
+      160.0,
+      574.0,
+      457.0,
+      585.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_1",
+    "page": 8,
+    "kind": "references",
+    "text": "5.6Read-modify-write operations116",
+    "translated": "5.6 读-修改-写操作116",
+    "render_path": "translate_refit",
+    "src_box": [
+      160.0,
+      561.0,
+      458.0,
+      573.0
+    ],
+    "dst_box": [
+      160.0,
+      561.0,
+      458.0,
+      573.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_2",
+    "page": 8,
+    "kind": "toc",
+    "text": "5.7Common2 RMW operations117",
+    "translated": "5.7常见2 RMW操作117",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      549.0,
+      457.0,
+      561.0
+    ],
+    "dst_box": [
+      160.0,
+      549.0,
+      457.0,
+      561.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_3",
+    "page": 8,
+    "kind": "toc",
+    "text": "5.8The compareAndSet operation119",
+    "translated": "5.8比较和设置操作119",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      537.0,
+      457.0,
+      549.0
+    ],
+    "dst_box": [
+      160.0,
+      537.0,
+      457.0,
+      549.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_4",
+    "page": 8,
+    "kind": "toc",
+    "text": "5.9Chapter notes120",
+    "translated": "5.9章节注释120",
+    "render_path": "overlay",
+    "src_box": [
+      159.0,
+      526.0,
+      457.0,
+      537.0
+    ],
+    "dst_box": [
+      159.0,
+      526.0,
+      457.0,
+      537.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_5",
+    "page": 8,
+    "kind": "toc",
+    "text": "5.10Exercises121",
+    "translated": "5.10练习121",
+    "render_path": "overlay",
+    "src_box": [
+      154.0,
+      513.0,
+      457.0,
+      524.0
+    ],
+    "dst_box": [
+      154.0,
+      513.0,
+      457.0,
+      524.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_6",
+    "page": 8,
+    "kind": "toc",
+    "text": "6.1Introduction129",
+    "translated": "6.1简介129",
+    "render_path": "overlay",
+    "src_box": [
+      159.0,
+      483.0,
+      457.0,
+      494.0
+    ],
+    "dst_box": [
+      159.0,
+      483.0,
+      457.0,
+      494.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_7",
+    "page": 8,
+    "kind": "toc",
+    "text": "6.2Universality130",
+    "translated": "6.2 通用性130",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      471.0,
+      457.0,
+      482.0
+    ],
+    "dst_box": [
+      160.0,
+      471.0,
+      457.0,
+      482.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_8",
+    "page": 8,
+    "kind": "toc",
+    "text": "6.3A lock-free universal construction130",
+    "translated": "6.3A无锁通用结构130",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      458.0,
+      458.0,
+      470.0
+    ],
+    "dst_box": [
+      160.0,
+      458.0,
+      458.0,
+      470.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_9",
+    "page": 8,
+    "kind": "toc",
+    "text": "6.4A wait-free universal construction134",
+    "translated": "6.4免等待通用结构134",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      447.0,
+      458.0,
+      458.0
+    ],
+    "dst_box": [
+      160.0,
+      447.0,
+      458.0,
+      458.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_10",
+    "page": 8,
+    "kind": "toc",
+    "text": "6.5Chapter notes140",
+    "translated": "6.5章节注释140",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      435.0,
+      457.0,
+      446.0
+    ],
+    "dst_box": [
+      160.0,
+      435.0,
+      457.0,
+      446.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_11",
+    "page": 8,
+    "kind": "toc",
+    "text": "6.6Exercises141",
+    "translated": "6.6练习141",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      422.0,
+      457.0,
+      434.0
+    ],
+    "dst_box": [
+      160.0,
+      422.0,
+      457.0,
+      434.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_12",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.1Welcome to the real world147",
+    "translated": "7.1欢迎来到现实世界147",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      366.0,
+      457.0,
+      377.0
+    ],
+    "dst_box": [
+      160.0,
+      366.0,
+      457.0,
+      377.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_13",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.2Volatile fields and atomic objects150",
+    "translated": "7.2 易失性字段和原子对象150",
+    "render_path": "overlay",
+    "src_box": [
+      159.0,
+      354.0,
+      458.0,
+      366.0
+    ],
+    "dst_box": [
+      159.0,
+      354.0,
+      458.0,
+      366.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_14",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.3Test-and-set locks150",
+    "translated": "7.3测试和设置锁150",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      342.0,
+      457.0,
+      353.0
+    ],
+    "dst_box": [
+      160.0,
+      342.0,
+      457.0,
+      353.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_15",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.4Exponential back-off154",
+    "translated": "7.4 指数退避154",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      330.0,
+      457.0,
+      340.0
+    ],
+    "dst_box": [
+      160.0,
+      330.0,
+      457.0,
+      340.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_16",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.5Queue locks .156",
+    "translated": "7.5队列锁.156",
+    "render_path": "overlay",
+    "src_box": [
+      159.0,
+      317.0,
+      457.0,
+      329.0
+    ],
+    "dst_box": [
+      159.0,
+      317.0,
+      457.0,
+      329.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_17",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.5.1 Array-based locks .156",
+    "translated": "7.5.1 基于数组的锁.156",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      305.0,
+      458.0,
+      317.0
+    ],
+    "dst_box": [
+      184.0,
+      305.0,
+      458.0,
+      317.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_18",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.5.2 The CLH queue lock159",
+    "translated": "7.5.2 CLH 队列锁159",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      293.0,
+      457.0,
+      304.0
+    ],
+    "dst_box": [
+      184.0,
+      293.0,
+      457.0,
+      304.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_19",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.5.3 The MCS queue lock161",
+    "translated": "7.5.3 MCS 队列锁161",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      281.0,
+      457.0,
+      293.0
+    ],
+    "dst_box": [
+      184.0,
+      281.0,
+      457.0,
+      293.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_20",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.6A queue lock with timeouts163",
+    "translated": "7.6 带有超时的队列锁163",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      269.0,
+      457.0,
+      281.0
+    ],
+    "dst_box": [
+      160.0,
+      269.0,
+      457.0,
+      281.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_21",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.7Hierarchical locks166",
+    "translated": "7.7 分层锁166",
+    "render_path": "overlay",
+    "src_box": [
+      159.0,
+      257.0,
+      458.0,
+      269.0
+    ],
+    "dst_box": [
+      159.0,
+      257.0,
+      458.0,
+      269.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_22",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.7.1 A hierarchical back-off lock167",
+    "translated": "7.7.1 分层退避锁167",
+    "render_path": "overlay",
+    "src_box": [
+      183.0,
+      245.0,
+      457.0,
+      256.0
+    ],
+    "dst_box": [
+      183.0,
+      245.0,
+      457.0,
+      256.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_23",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.7.2 Cohort locks167",
+    "translated": "7.7.2 队列锁167",
+    "render_path": "overlay",
+    "src_box": [
+      183.0,
+      232.0,
+      457.0,
+      244.0
+    ],
+    "dst_box": [
+      183.0,
+      232.0,
+      457.0,
+      244.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_24",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.7.3 A cohort lock implementation170",
+    "translated": "7.7.3 队列锁实现170",
+    "render_path": "overlay",
+    "src_box": [
+      183.0,
+      221.0,
+      457.0,
+      231.0
+    ],
+    "dst_box": [
+      183.0,
+      221.0,
+      457.0,
+      231.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_25",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.8A composite lock .171",
+    "translated": "7.8A复合锁.171",
+    "render_path": "overlay",
+    "src_box": [
+      159.0,
+      208.0,
+      457.0,
+      220.0
+    ],
+    "dst_box": [
+      159.0,
+      208.0,
+      457.0,
+      220.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_26",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.9A fast path for threads running alone178",
+    "translated": "7.9 单独运行线程的快速路径178",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      196.0,
+      457.0,
+      208.0
+    ],
+    "dst_box": [
+      160.0,
+      196.0,
+      457.0,
+      208.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_27",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.10One lock to rule them all180",
+    "translated": "7.10一把锁就能统治一切180",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      185.0,
+      457.0,
+      196.0
+    ],
+    "dst_box": [
+      155.0,
+      185.0,
+      457.0,
+      196.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_28",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.11Chapter notes180",
+    "translated": "7.11章节注释180",
+    "render_path": "overlay",
+    "src_box": [
+      154.0,
+      172.0,
+      457.0,
+      183.0
+    ],
+    "dst_box": [
+      154.0,
+      172.0,
+      457.0,
+      183.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_29",
+    "page": 8,
+    "kind": "toc",
+    "text": "7.12Exercises181",
+    "translated": "7.12练习181",
+    "render_path": "overlay",
+    "src_box": [
+      154.0,
+      160.0,
+      457.0,
+      172.0
+    ],
+    "dst_box": [
+      154.0,
+      160.0,
+      457.0,
+      172.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_30",
+    "page": 8,
+    "kind": "toc",
+    "text": "8.1Introduction183",
+    "translated": "8.1简介183",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      130.0,
+      457.0,
+      142.0
+    ],
+    "dst_box": [
+      160.0,
+      130.0,
+      457.0,
+      142.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_31",
+    "page": 8,
+    "kind": "toc",
+    "text": "8.2Monitor locks and conditions183",
+    "translated": "8.2 监控锁和条件183",
+    "render_path": "overlay",
+    "src_box": [
+      160.0,
+      118.0,
+      457.0,
+      129.0
+    ],
+    "dst_box": [
+      160.0,
+      118.0,
+      457.0,
+      129.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_32",
+    "page": 8,
+    "kind": "toc",
+    "text": "8.2.1 Conditions185",
+    "translated": "8.2.1 条件185",
+    "render_path": "overlay",
+    "src_box": [
+      183.0,
+      106.0,
+      457.0,
+      117.0
+    ],
+    "dst_box": [
+      183.0,
+      106.0,
+      457.0,
+      117.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_33",
+    "page": 8,
+    "kind": "toc",
+    "text": "8.2.2 The lost-wakeup problem187",
+    "translated": "8.2.2 丢失唤醒问题187",
+    "render_path": "overlay",
+    "src_box": [
+      182.0,
+      92.0,
+      457.0,
+      106.0
+    ],
+    "dst_box": [
+      182.0,
+      92.0,
+      457.0,
+      106.0
+    ],
+    "font_size": 11.9,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_34",
+    "page": 8,
+    "kind": "references",
+    "text": "8.3Readers-writers locks189",
+    "translated": "8.3读写锁189",
+    "render_path": "translate_refit",
+    "src_box": [
+      160.0,
+      82.0,
+      457.0,
+      92.0
+    ],
+    "dst_box": [
+      160.0,
+      82.0,
+      457.0,
+      92.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_35",
+    "page": 8,
+    "kind": "toc",
+    "text": "8.3.1 Simple readers-writers lock190",
+    "translated": "8.3.1 简单的读写锁190",
+    "render_path": "overlay",
+    "src_box": [
+      183.0,
+      69.0,
+      458.0,
+      81.0
+    ],
+    "dst_box": [
+      183.0,
+      69.0,
+      458.0,
+      81.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_36",
+    "page": 8,
+    "kind": "toc",
+    "text": "8.3.2 Fair readers-writers lock .192",
+    "translated": "8.3.2 公平读写锁.192",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      57.0,
+      458.0,
+      69.0
+    ],
+    "dst_box": [
+      184.0,
+      57.0,
+      458.0,
+      69.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_37",
+    "page": 8,
+    "kind": "toc",
+    "text": "18.5 Static tree barrier436",
+    "translated": "18.5 静态树屏障436",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      574.0,
+      457.0,
+      585.0
+    ],
+    "dst_box": [
+      155.0,
+      574.0,
+      457.0,
+      585.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_38",
+    "page": 8,
+    "kind": "toc",
+    "text": "18.6Termination detection barriers438",
+    "translated": "18.6 终止检测障碍438",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      562.0,
+      457.0,
+      573.0
+    ],
+    "dst_box": [
+      155.0,
+      562.0,
+      457.0,
+      573.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_39",
+    "page": 8,
+    "kind": "toc",
+    "text": "18.7Chapter notes442",
+    "translated": "18.7章节注释442",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      550.0,
+      457.0,
+      561.0
+    ],
+    "dst_box": [
+      155.0,
+      550.0,
+      457.0,
+      561.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_40",
+    "page": 8,
+    "kind": "toc",
+    "text": "18.8Exercises443",
+    "translated": "18.8练习443",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      537.0,
+      457.0,
+      550.0
+    ],
+    "dst_box": [
+      155.0,
+      537.0,
+      457.0,
+      550.0
+    ],
+    "font_size": 11.05,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_41",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.1Transitioning from Java to C++451",
+    "translated": "19.1从Java过渡到C++451",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      508.0,
+      457.0,
+      519.0
+    ],
+    "dst_box": [
+      155.0,
+      508.0,
+      457.0,
+      519.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_42",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.2Optimism and explicit reclamation451",
+    "translated": "19.2乐观和明确的回收451",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      497.0,
+      457.0,
+      508.0
+    ],
+    "dst_box": [
+      155.0,
+      497.0,
+      457.0,
+      508.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_43",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.3Protecting pending operations454",
+    "translated": "19.3保护未决操作454",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      484.0,
+      457.0,
+      496.0
+    ],
+    "dst_box": [
+      155.0,
+      484.0,
+      457.0,
+      496.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_44",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.4An object for managing memory455",
+    "translated": "19.4管理内存的对象455",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      472.0,
+      457.0,
+      484.0
+    ],
+    "dst_box": [
+      155.0,
+      472.0,
+      457.0,
+      484.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_45",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.5Traversing a list456",
+    "translated": "19.5遍历列表456",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      461.0,
+      458.0,
+      472.0
+    ],
+    "dst_box": [
+      155.0,
+      461.0,
+      458.0,
+      472.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_46",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.6Hazard pointers458",
+    "translated": "19.6 危险提示458",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      448.0,
+      457.0,
+      461.0
+    ],
+    "dst_box": [
+      155.0,
+      448.0,
+      457.0,
+      461.0
+    ],
+    "font_size": 11.05,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_47",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.7Epoch-based reclamation462",
+    "translated": "19.7基于纪元的回收462",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      437.0,
+      457.0,
+      449.0
+    ],
+    "dst_box": [
+      155.0,
+      437.0,
+      457.0,
+      449.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_48",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.8Chapter notes465",
+    "translated": "19.8章节注释465",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      424.0,
+      457.0,
+      438.0
+    ],
+    "dst_box": [
+      155.0,
+      424.0,
+      457.0,
+      438.0
+    ],
+    "font_size": 11.05,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_49",
+    "page": 8,
+    "kind": "toc",
+    "text": "19.9Exercises466",
+    "translated": "19.9练习466",
+    "render_path": "overlay",
+    "src_box": [
+      155.0,
+      413.0,
+      457.0,
+      424.0
+    ],
+    "dst_box": [
+      155.0,
+      413.0,
+      457.0,
+      424.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_50",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.1Challenges in concurrent programming467",
+    "translated": "20.1并发编程中的挑战467",
+    "render_path": "overlay",
+    "src_box": [
+      154.0,
+      383.0,
+      457.0,
+      395.0
+    ],
+    "dst_box": [
+      154.0,
+      383.0,
+      457.0,
+      395.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_51",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.1.1 Problems with locking467",
+    "translated": "20.1.1 锁定问题467",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      371.0,
+      457.0,
+      383.0
+    ],
+    "dst_box": [
+      184.0,
+      371.0,
+      457.0,
+      383.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_52",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.1.2 Problems with explicit speculation468",
+    "translated": "20.1.2 显式推测的问题468",
+    "render_path": "overlay",
+    "src_box": [
+      183.0,
+      359.0,
+      457.0,
+      372.0
+    ],
+    "dst_box": [
+      183.0,
+      359.0,
+      457.0,
+      372.0
+    ],
+    "font_size": 11.05,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_53",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.1.3 Problems with nonblocking algorithms470",
+    "translated": "20.1.3 非阻塞算法的问题470",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      348.0,
+      457.0,
+      359.0
+    ],
+    "dst_box": [
+      184.0,
+      348.0,
+      457.0,
+      359.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_54",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.1.4 Problems with compositionality471",
+    "translated": "20.1.4 组合性问题471",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      335.0,
+      457.0,
+      347.0
+    ],
+    "dst_box": [
+      184.0,
+      335.0,
+      457.0,
+      347.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_55",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.1.5 Summary472",
+    "translated": "20.1.5 总结472",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      323.0,
+      457.0,
+      335.0
+    ],
+    "dst_box": [
+      184.0,
+      323.0,
+      457.0,
+      335.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_56",
+    "page": 8,
+    "kind": "references",
+    "text": "20.2Transactional programming472",
+    "translated": "20.2事务性编程472",
+    "render_path": "translate_refit",
+    "src_box": [
+      154.0,
+      312.0,
+      457.0,
+      324.0
+    ],
+    "dst_box": [
+      154.0,
+      312.0,
+      457.0,
+      324.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_57",
+    "page": 8,
+    "kind": "references",
+    "text": "20.2.1 An example of transactional programming473",
+    "translated": "20.2.1 事务性编程的示例473",
+    "render_path": "translate_refit",
+    "src_box": [
+      184.0,
+      300.0,
+      457.0,
+      312.0
+    ],
+    "dst_box": [
+      184.0,
+      300.0,
+      457.0,
+      312.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_58",
+    "page": 8,
+    "kind": "references",
+    "text": "20.3Hardware support for transactional programming475",
+    "translated": "20.3事务性编程的硬件支持475",
+    "render_path": "translate_refit",
+    "src_box": [
+      154.0,
+      288.0,
+      457.0,
+      302.0
+    ],
+    "dst_box": [
+      154.0,
+      288.0,
+      457.0,
+      302.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_59",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.3.1 Hardware speculation475",
+    "translated": "20.3.1 硬件推测475",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      277.0,
+      457.0,
+      288.0
+    ],
+    "dst_box": [
+      184.0,
+      277.0,
+      457.0,
+      288.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_60",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.3.2 Basic cache coherence475",
+    "translated": "20.3.2 基本缓存一致性475",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      265.0,
+      457.0,
+      276.0
+    ],
+    "dst_box": [
+      184.0,
+      265.0,
+      457.0,
+      276.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_61",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.3.3 Transactional cache coherence476",
+    "translated": "20.3.3 事务缓存一致性476",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      253.0,
+      458.0,
+      264.0
+    ],
+    "dst_box": [
+      184.0,
+      253.0,
+      458.0,
+      264.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_62",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.3.4 Limitations of hardware support477",
+    "translated": "20.3.4 硬件支持的限制477",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      241.0,
+      457.0,
+      253.0
+    ],
+    "dst_box": [
+      184.0,
+      241.0,
+      457.0,
+      253.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_63",
+    "page": 8,
+    "kind": "references",
+    "text": "20.4Transactional lock elision478",
+    "translated": "20.4事务锁省略478",
+    "render_path": "translate_refit",
+    "src_box": [
+      154.0,
+      230.0,
+      457.0,
+      241.0
+    ],
+    "dst_box": [
+      154.0,
+      230.0,
+      457.0,
+      241.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_64",
+    "page": 8,
+    "kind": "references",
+    "text": "20.4.1 Discussion480",
+    "translated": "20.4.1 讨论480",
+    "render_path": "translate_refit",
+    "src_box": [
+      183.0,
+      218.0,
+      457.0,
+      229.0
+    ],
+    "dst_box": [
+      183.0,
+      218.0,
+      457.0,
+      229.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_65",
+    "page": 8,
+    "kind": "references",
+    "text": "20.5Transactional memory481",
+    "translated": "20.5事务内存481",
+    "render_path": "translate_refit",
+    "src_box": [
+      154.0,
+      206.0,
+      457.0,
+      217.0
+    ],
+    "dst_box": [
+      154.0,
+      206.0,
+      457.0,
+      217.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_66",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.5.1 Run-time scheduling482",
+    "translated": "20.5.1 运行时调度482",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      194.0,
+      457.0,
+      205.0
+    ],
+    "dst_box": [
+      184.0,
+      194.0,
+      457.0,
+      205.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_67",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.5.2 Explicit self-abort483",
+    "translated": "20.5.2 显式自我中止483",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      182.0,
+      457.0,
+      193.0
+    ],
+    "dst_box": [
+      184.0,
+      182.0,
+      457.0,
+      193.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_68",
+    "page": 8,
+    "kind": "references",
+    "text": "20.6Software transactions .483",
+    "translated": "20.6软件交易.483",
+    "render_path": "translate_refit",
+    "src_box": [
+      154.0,
+      170.0,
+      457.0,
+      181.0
+    ],
+    "dst_box": [
+      154.0,
+      170.0,
+      457.0,
+      181.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_69",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.6.1 Transactions with ownership records485",
+    "translated": "20.6.1 具有所有权记录的交易485",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      158.0,
+      457.0,
+      169.0
+    ],
+    "dst_box": [
+      184.0,
+      158.0,
+      457.0,
+      169.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_70",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.6.2 Transactions with value-based validation490",
+    "translated": "20.6.2 具有基于价值的验证的交易490",
+    "render_path": "overlay",
+    "src_box": [
+      184.0,
+      146.0,
+      457.0,
+      158.0
+    ],
+    "dst_box": [
+      184.0,
+      146.0,
+      457.0,
+      158.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_71",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.7Combining hardware and software transactions492",
+    "translated": "20.7结合硬件和软件事务492",
+    "render_path": "overlay",
+    "src_box": [
+      154.0,
+      134.0,
+      458.0,
+      146.0
+    ],
+    "dst_box": [
+      154.0,
+      134.0,
+      458.0,
+      146.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_72",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.8Transactional data structure design .493",
+    "translated": "20.8事务数据结构设计.493",
+    "render_path": "overlay",
+    "src_box": [
+      154.0,
+      122.0,
+      457.0,
+      134.0
+    ],
+    "dst_box": [
+      154.0,
+      122.0,
+      457.0,
+      134.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_73",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.9Chapter notes494",
+    "translated": "20.9章节注释494",
+    "render_path": "overlay",
+    "src_box": [
+      154.0,
+      111.0,
+      457.0,
+      122.0
+    ],
+    "dst_box": [
+      154.0,
+      111.0,
+      457.0,
+      122.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p8_74",
+    "page": 8,
+    "kind": "toc",
+    "text": "20.10Exercises494",
+    "translated": "20.10练习494",
+    "render_path": "overlay",
+    "src_box": [
+      149.0,
+      98.0,
+      457.0,
+      110.0
+    ],
+    "dst_box": [
+      149.0,
+      98.0,
+      457.0,
+      110.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "toc",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p12_0",
+    "page": 12,
+    "kind": "references",
+    "text": "",
+    "translated": "",
+    "render_path": "translate_refit",
+    "src_box": [
+      117.0,
+      54.0,
+      459.0,
+      587.0
+    ],
+    "dst_box": [
+      117.0,
+      54.0,
+      459.0,
+      587.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_0",
+    "page": 20,
+    "kind": "heading",
+    "text": "Introduction",
+    "translated": "介绍",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      549.0,
+      233.0,
+      572.0
+    ],
+    "dst_box": [
+      118.0,
+      549.0,
+      233.0,
+      572.0
+    ],
+    "font_size": 20.4,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_1",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "",
+    "translated": "",
+    "render_path": "translate_refit",
+    "src_box": [
+      420.0,
+      515.0,
+      450.0,
+      577.0
+    ],
+    "dst_box": [
+      420.0,
+      515.0,
+      450.0,
+      577.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "",
+          "x": 420.0,
+          "y": 577.0,
+          "width": 0.0,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 11.0
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 11.0,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        ""
+      ],
+      "line_widths": [
+        0.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        420.0,
+        577.0,
+        450.0,
+        639.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_2",
+    "page": 20,
+    "kind": "formula",
+    "text": "At the dawn of the twenty-first century, the computer industry underwent yet an-",
+    "translated": "At the dawn of the twenty-first century, the computer industry underwent yet an-",
+    "render_path": "preserve_float",
+    "src_box": [
+      119.0,
+      465.0,
+      456.0,
+      476.0
+    ],
+    "dst_box": [
+      119.0,
+      465.0,
+      456.0,
+      476.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p20_3",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "other revolution. The major chip manufacturers had increasingly been unable to make",
+    "translated": "其他革命。主要芯片制造商越来越无法制造",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      453.0,
+      456.0,
+      464.0
+    ],
+    "dst_box": [
+      118.0,
+      453.0,
+      456.0,
+      464.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "其他革命。主要芯片制造商越来越无法制造",
+          "x": 118.0,
+          "y": 464.0,
+          "width": 177.65,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 9.35
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 9.3,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "其他革命。主要芯片制造商越来越无法制造"
+      ],
+      "line_widths": [
+        177.6
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        118.0,
+        464.0,
+        456.0,
+        475.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_4",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "processor chips both smaller and faster. As Moore's law approached the end of its",
+    "translated": "处理器芯片更小、更快。当摩尔定律接近尾声时",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      442.0,
+      456.0,
+      451.0
+    ],
+    "dst_box": [
+      119.0,
+      442.0,
+      456.0,
+      451.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "处理器芯片更小、更快。当摩尔定律接近尾声时",
+          "x": 119.0,
+          "y": 451.0,
+          "width": 160.65,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "处理器芯片更小、更快。当摩尔定律接近尾声时"
+      ],
+      "line_widths": [
+        160.7
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        451.0,
+        456.0,
+        460.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_5",
+    "page": 20,
+    "kind": "formula",
+    "text": "50-year reign, manufacturers turned to “multicore\" architectures, in which multiple\nprocessors (cores) on a single chip communicate directly through shared hardware",
+    "translated": "50-year reign, manufacturers turned to “multicore\" architectures, in which multiple\nprocessors (cores) on a single chip communicate directly through shared hardware",
+    "render_path": "preserve_float",
+    "src_box": [
+      118.0,
+      417.0,
+      456.0,
+      440.0
+    ],
+    "dst_box": [
+      118.0,
+      417.0,
+      456.0,
+      440.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p20_6",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "caches. Multicore chips make computing more effective by exploiting parallelism:",
+    "translated": "缓存。多核芯片通过利用并行性使计算更加有效：",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      406.0,
+      455.0,
+      415.0
+    ],
+    "dst_box": [
+      119.0,
+      406.0,
+      455.0,
+      415.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "缓存。多核芯片通过利用并行性使计算更加有效：",
+          "x": 119.0,
+          "y": 415.0,
+          "width": 168.3,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "缓存。多核芯片通过利用并行性使计算更加有效："
+      ],
+      "line_widths": [
+        168.3
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        415.0,
+        455.0,
+        424.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_7",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "harnessing multiple circuits to work on a single task.",
+    "translated": "利用多个电路来完成一项任务。",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      394.0,
+      329.0,
+      402.0
+    ],
+    "dst_box": [
+      119.0,
+      394.0,
+      329.0,
+      402.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "利用多个电路来完成一项任务。",
+          "x": 119.0,
+          "y": 402.0,
+          "width": 95.2,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 6.8
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 6.8,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "利用多个电路来完成一项任务。"
+      ],
+      "line_widths": [
+        95.2
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        402.0,
+        329.0,
+        410.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_8",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "The spread of multiprocessor architectures has had a pervasive effect on how we\ndevelop software. During the twentieth century, advances in technology brought reg-\nular increases in clock speed, so software would effectively “speed up\" by itself over\ntime. In this century, however, that “free ride\" has come to an end. Today, advances in",
+    "translated": "多处理器架构的普及对我们的工作方式产生了普遍影响开发软件。二十世纪，技术的进步带来了监管时钟速度的增加，因此软件可以有效地自行“加速”时间。然而，到了本世纪，这种“搭便车”的局面已经结束。今天，进步",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      345.0,
+      456.0,
+      390.0
+    ],
+    "dst_box": [
+      119.0,
+      345.0,
+      456.0,
+      390.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "多处理器架构的普及对我们的工作方式产生了普遍影响开发软件。二十世纪，技术的进步",
+          "x": 119.0,
+          "y": 390.0,
+          "width": 331.5,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "带来了监管时钟速度的增加，因此软件可以有效地自行“加速”时间。然而，到了本世纪，",
+          "x": 119.0,
+          "y": 378.1,
+          "width": 331.5,
+          "line": 1,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "这种“搭便车”的局面已经结束。今天，进步",
+          "x": 119.0,
+          "y": 366.2,
+          "width": 161.5,
+          "line": 2,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "多处理器架构的普及对我们的工作方式产生了普遍影响开发软件。二十世纪，技术的进步",
+        "带来了监管时钟速度的增加，因此软件可以有效地自行“加速”时间。然而，到了本世纪，",
+        "这种“搭便车”的局面已经结束。今天，进步"
+      ],
+      "line_widths": [
+        331.5,
+        331.5,
+        161.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        390.0,
+        456.0,
+        435.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_9",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "technology bring regular increases in parallelism, but only minor increases in clock",
+    "translated": "技术带来了并行性的定期增加，但时钟仅略有增加",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      333.0,
+      457.0,
+      343.0
+    ],
+    "dst_box": [
+      119.0,
+      333.0,
+      457.0,
+      343.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "技术带来了并行性的定期增加，但时钟仅略有增加",
+          "x": 119.0,
+          "y": 343.0,
+          "width": 187.0,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "技术带来了并行性的定期增加，但时钟仅略有增加"
+      ],
+      "line_widths": [
+        187.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        343.0,
+        457.0,
+        353.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_10",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "speed. Exploiting that parallelism is one of the outstanding challenges of modern",
+    "translated": "速度。利用并行性是现代计算机技术面临的突出挑战之一",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      321.0,
+      456.0,
+      331.0
+    ],
+    "dst_box": [
+      119.0,
+      321.0,
+      456.0,
+      331.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "速度。利用并行性是现代计算机技术面临的突出挑战之一",
+          "x": 119.0,
+          "y": 331.0,
+          "width": 212.5,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "速度。利用并行性是现代计算机技术面临的突出挑战之一"
+      ],
+      "line_widths": [
+        212.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        331.0,
+        456.0,
+        341.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_11",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "computer science.",
+    "translated": "计算机科学。",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      309.0,
+      191.0,
+      318.0
+    ],
+    "dst_box": [
+      119.0,
+      309.0,
+      191.0,
+      318.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "计算机科学。",
+          "x": 119.0,
+          "y": 318.0,
+          "width": 45.9,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "计算机科学。"
+      ],
+      "line_widths": [
+        45.9
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        318.0,
+        191.0,
+        327.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_12",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "This book focuses on how to program multiprocessors that communicate via",
+    "translated": "本书重点介绍如何对通过以下方式进行通信的多处理器进行编程",
+    "render_path": "translate_refit",
+    "src_box": [
+      133.0,
+      297.0,
+      456.0,
+      307.0
+    ],
+    "dst_box": [
+      133.0,
+      297.0,
+      456.0,
+      307.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "本书重点介绍如何对通过以下方式进行通信的多处理器进行编程",
+          "x": 133.0,
+          "y": 307.0,
+          "width": 238.0,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "本书重点介绍如何对通过以下方式进行通信的多处理器进行编程"
+      ],
+      "line_widths": [
+        238.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        133.0,
+        307.0,
+        456.0,
+        317.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_13",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "a shared memory. Such systems are often called shared-memory multiprocessors",
+    "translated": "共同的记忆。此类系统通常称为共享内存多处理器",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      285.0,
+      456.0,
+      295.0
+    ],
+    "dst_box": [
+      118.0,
+      285.0,
+      456.0,
+      295.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "共同的记忆。此类系统通常称为共享内存多处理器",
+          "x": 118.0,
+          "y": 295.0,
+          "width": 187.0,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "共同的记忆。此类系统通常称为共享内存多处理器"
+      ],
+      "line_widths": [
+        187.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        118.0,
+        295.0,
+        456.0,
+        305.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_14",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "or, more recently, multicores. Programming challenges arise at all scales of multi-\nprocessor systems—at a very small scale, processors within a single chip need to\ncoordinate access to a shared memory location, and on a large scale, processors in a\nsupercomputer need to coordinate the routing of data. Multiprocessor programming",
+    "translated": "或者，最近，多核。编程挑战出现在各个规模的多领域处理器系统——在非常小的规模下，单个芯片内的处理器需要协调对共享内存位置的访问，并且在大规模上，协调处理器超级计算机需要协调数据的路由。多处理器编程",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      237.0,
+      456.0,
+      282.0
+    ],
+    "dst_box": [
+      119.0,
+      237.0,
+      456.0,
+      282.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "或者，最近，多核。编程挑战出现在各个规模的多领域处理器系统——在非常小的规模下，",
+          "x": 119.0,
+          "y": 282.0,
+          "width": 331.5,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "单个芯片内的处理器需要协调对共享内存位置的访问，并且在大规模上，协调处理器超级",
+          "x": 119.0,
+          "y": 270.1,
+          "width": 331.5,
+          "line": 1,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "计算机需要协调数据的路由。多处理器编程",
+          "x": 119.0,
+          "y": 258.2,
+          "width": 161.5,
+          "line": 2,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "或者，最近，多核。编程挑战出现在各个规模的多领域处理器系统——在非常小的规模下，",
+        "单个芯片内的处理器需要协调对共享内存位置的访问，并且在大规模上，协调处理器超级",
+        "计算机需要协调数据的路由。多处理器编程"
+      ],
+      "line_widths": [
+        331.5,
+        331.5,
+        161.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        282.0,
+        456.0,
+        327.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_15",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "is challenging because modern computer systems are inherently asynchronous: ac-\ntivities can be halted or delayed without warning by interrupts, preemption, cache",
+    "translated": "具有挑战性，因为现代计算机系统本质上是异步的：ac-活动可以通过中断、抢占、缓存在没有警告的情况下停止或延迟",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      213.0,
+      456.0,
+      235.0
+    ],
+    "dst_box": [
+      118.0,
+      213.0,
+      456.0,
+      235.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "具有挑战性，因为现代计算机系统本质上是异步的：ac-活动可以通过中断、抢占、缓存在",
+          "x": 118.0,
+          "y": 235.0,
+          "width": 335.75,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "没有警告的情况下停止或延迟",
+          "x": 118.0,
+          "y": 223.1,
+          "width": 110.5,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "具有挑战性，因为现代计算机系统本质上是异步的：ac-活动可以通过中断、抢占、缓存在",
+        "没有警告的情况下停止或延迟"
+      ],
+      "line_widths": [
+        335.8,
+        110.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        118.0,
+        235.0,
+        456.0,
+        257.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_16",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "misses, failures, and other events. These delays are inherently unpredictable, and can\nvary enormously in scale: a cache miss might delay a processor for fewer than ten\ninstructions, a page fault for a few million instructions, and operating system pre-",
+    "translated": "错过、失败和其他事件。这些延迟本质上是不可预测的，并且可以规模差异很大：高速缓存未命中可能会延迟处理器不到十次指令、几百万条指令的页面错误以及操作系统预",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      177.0,
+      456.0,
+      210.0
+    ],
+    "dst_box": [
+      119.0,
+      177.0,
+      456.0,
+      210.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "错过、失败和其他事件。这些延迟本质上是不可预测的，并且可以规模差异很大：高速缓存未命中可",
+          "x": 119.0,
+          "y": 210.0,
+          "width": 336.6,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "能会延迟处理器不到十次指令、几百万条指令的页面错误以及操作系统预",
+          "x": 119.0,
+          "y": 199.29,
+          "width": 244.8,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "错过、失败和其他事件。这些延迟本质上是不可预测的，并且可以规模差异很大：高速缓存未命中可",
+        "能会延迟处理器不到十次指令、几百万条指令的页面错误以及操作系统预"
+      ],
+      "line_widths": [
+        336.6,
+        244.8
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        210.0,
+        456.0,
+        243.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_17",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "emption for hundreds of millions of instructions.",
+    "translated": "空出数亿条指令。",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      165.0,
+      313.0,
+      174.0
+    ],
+    "dst_box": [
+      119.0,
+      165.0,
+      313.0,
+      174.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "空出数亿条指令。",
+          "x": 119.0,
+          "y": 174.0,
+          "width": 61.2,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "空出数亿条指令。"
+      ],
+      "line_widths": [
+        61.2
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        174.0,
+        313.0,
+        183.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_18",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "We approach multiprocessor programming from two complementary directions:\nprinciples and practice. In the principles part of this book, we focus on computability:",
+    "translated": "我们从两个互补的方向进行多处理器编程：原则和实践。在本书的原理部分，我们关注可计算性：",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      142.0,
+      456.0,
+      163.0
+    ],
+    "dst_box": [
+      119.0,
+      142.0,
+      456.0,
+      163.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "我们从两个互补的方向进行多处理器编程：原则和实践。在本书的原理部分，我们关注可计算性：",
+          "x": 119.0,
+          "y": 163.0,
+          "width": 328.95,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "我们从两个互补的方向进行多处理器编程：原则和实践。在本书的原理部分，我们关注可计算性："
+      ],
+      "line_widths": [
+        328.9
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        163.0,
+        456.0,
+        184.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_19",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "figuring out what can be computed in an asynchronous concurrent environment. We\nuse an idealized model of computation in which multiple concurrent threads manip-",
+    "translated": "弄清楚在异步并发环境中可以计算什么。我们使用理想化的计算模型，其中多个并发线程操纵",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      117.0,
+      456.0,
+      139.0
+    ],
+    "dst_box": [
+      118.0,
+      117.0,
+      456.0,
+      139.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "弄清楚在异步并发环境中可以计算什么。我们使用理想化的计算模型，其中多个并发线程",
+          "x": 118.0,
+          "y": 139.0,
+          "width": 331.5,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "操纵",
+          "x": 118.0,
+          "y": 127.1,
+          "width": 17.0,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "弄清楚在异步并发环境中可以计算什么。我们使用理想化的计算模型，其中多个并发线程",
+        "操纵"
+      ],
+      "line_widths": [
+        331.5,
+        17.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        118.0,
+        139.0,
+        456.0,
+        161.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_20",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "ulate a set of shared objects. The sequence of the thread operations on the objects is\ncalled the concurrent program or concurrent algorithm. This model is essentially the",
+    "translated": "建立一组共享对象。线程对对象的操作顺序是称为并发程序或并发算法。这个模型本质上是",
+    "render_path": "translate_refit",
+    "src_box": [
+      119.0,
+      93.0,
+      456.0,
+      114.0
+    ],
+    "dst_box": [
+      119.0,
+      93.0,
+      456.0,
+      114.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "建立一组共享对象。线程对对象的操作顺序是称为并发程序或并发算法。这个模型本质上是",
+          "x": 119.0,
+          "y": 114.0,
+          "width": 306.0,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "建立一组共享对象。线程对对象的操作顺序是称为并发程序或并发算法。这个模型本质上是"
+      ],
+      "line_widths": [
+        306.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        119.0,
+        114.0,
+        456.0,
+        135.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_21",
+    "page": 20,
+    "kind": "formula",
+    "text": "model presented by threads in Java, C#, and C++.",
+    "translated": "model presented by threads in Java, C#, and C++.",
+    "render_path": "preserve_float",
+    "src_box": [
+      119.0,
+      82.0,
+      317.0,
+      91.0
+    ],
+    "dst_box": [
+      119.0,
+      82.0,
+      317.0,
+      91.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p20_22",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "Surprisingly, there are easy-to-specify shared objects that cannot be implemented",
+    "translated": "令人惊讶的是，有一些很容易指定的共享对象却无法实现",
+    "render_path": "translate_refit",
+    "src_box": [
+      132.0,
+      69.0,
+      456.0,
+      79.0
+    ],
+    "dst_box": [
+      132.0,
+      69.0,
+      456.0,
+      79.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "令人惊讶的是，有一些很容易指定的共享对象却无法实现",
+          "x": 132.0,
+          "y": 79.0,
+          "width": 212.5,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "令人惊讶的是，有一些很容易指定的共享对象却无法实现"
+      ],
+      "line_widths": [
+        212.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        132.0,
+        79.0,
+        456.0,
+        89.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p20_23",
+    "page": 20,
+    "kind": "paragraph",
+    "text": "by any concurrent algorithm. It is therefore important to understand what not to try,",
+    "translated": "通过任何并发算法。因此，重要的是要了解什么是不应该尝试的，",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      57.0,
+      456.0,
+      67.0
+    ],
+    "dst_box": [
+      118.0,
+      57.0,
+      456.0,
+      67.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "通过任何并发算法。因此，重要的是要了解什么是不应该尝试的，",
+          "x": 118.0,
+          "y": 67.0,
+          "width": 246.5,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "通过任何并发算法。因此，重要的是要了解什么是不应该尝试的，"
+      ],
+      "line_widths": [
+        246.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        118.0,
+        67.0,
+        456.0,
+        77.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p40_0",
+    "page": 40,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      103.0,
+      415.0,
+      371.0,
+      581.0
+    ],
+    "dst_box": [
+      103.0,
+      415.0,
+      371.0,
+      581.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p40_1",
+    "page": 40,
+    "kind": "heading",
+    "text": "FIGURE 2.3",
+    "translated": "图2.3",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      396.0,
+      162.0,
+      408.0
+    ],
+    "dst_box": [
+      118.0,
+      396.0,
+      162.0,
+      408.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p40_2",
+    "page": 40,
+    "kind": "paragraph",
+    "text": "Using a lock object.",
+    "translated": "使用锁对象。",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      380.0,
+      193.0,
+      393.0
+    ],
+    "dst_box": [
+      118.0,
+      380.0,
+      193.0,
+      393.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "使用锁对象。",
+          "x": 118.0,
+          "y": 393.0,
+          "width": 51.0,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "使用锁对象。"
+      ],
+      "line_widths": [
+        51.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        118.0,
+        393.0,
+        193.0,
+        406.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p40_3",
+    "page": 40,
+    "kind": "formula",
+    "text": "Fig. 2.3 shows how to use a Lock object to add mutual exclusion to a shared\ncounter implementation. Threads using the lock() and unlock() methods must follow\na specific format. A thread is well formed if:",
+    "translated": "Fig. 2.3 shows how to use a Lock object to add mutual exclusion to a shared\ncounter implementation. Threads using the lock() and unlock() methods must follow\na specific format. A thread is well formed if:",
+    "render_path": "preserve_float",
+    "src_box": [
+      119.0,
+      325.0,
+      456.0,
+      358.0
+    ],
+    "dst_box": [
+      119.0,
+      325.0,
+      456.0,
+      358.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p40_4",
+    "page": 40,
+    "kind": "heading",
+    "text": "1. each critical section is associated with a Lock object,",
+    "translated": "1. 每个临界区都关联一个Lock对象，",
+    "render_path": "translate_refit",
+    "src_box": [
+      118.0,
+      304.0,
+      343.0,
+      316.0
+    ],
+    "dst_box": [
+      118.0,
+      304.0,
+      343.0,
+      316.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p40_5",
+    "page": 40,
+    "kind": "formula",
+    "text": "2. the thread calls that object's lock() method when it wants to enter the critical\nsection, and",
+    "translated": "2. the thread calls that object's lock() method when it wants to enter the critical\nsection, and",
+    "render_path": "preserve_float",
+    "src_box": [
+      118.0,
+      281.0,
+      456.0,
+      303.0
+    ],
+    "dst_box": [
+      118.0,
+      281.0,
+      456.0,
+      303.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p40_6",
+    "page": 40,
+    "kind": "formula",
+    "text": "3. the thread calls the unlock() method when it leaves the critical section.",
+    "translated": "3. the thread calls the unlock() method when it leaves the critical section.",
+    "render_path": "preserve_float",
+    "src_box": [
+      117.0,
+      267.0,
+      415.0,
+      280.0
+    ],
+    "dst_box": [
+      117.0,
+      267.0,
+      415.0,
+      280.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p40_7",
+    "page": 40,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      113.0,
+      70.0,
+      453.0,
+      250.0
+    ],
+    "dst_box": [
+      113.0,
+      70.0,
+      453.0,
+      250.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p80_0",
+    "page": 80,
+    "kind": "paragraph",
+    "text": "The nonblocking property does not rule out blocking in situations where it is\nexplicitly intended. For example, it may be sensible for a thread attempting to de-",
+    "translated": "非阻塞属性并不排除在以下情况下发生阻塞的情况明确的意图。例如，对于尝试 de- 的线程来说可能是明智的",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      561.0,
+      420.0,
+      583.0
+    ],
+    "dst_box": [
+      83.0,
+      561.0,
+      420.0,
+      583.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "非阻塞属性并不排除在以下情况下发生阻塞的情况明确的意图。例如，对于尝试 de- 的线",
+          "x": 83.0,
+          "y": 583.0,
+          "width": 332.01,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "程来说可能是明智的",
+          "x": 83.0,
+          "y": 571.1,
+          "width": 76.5,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "非阻塞属性并不排除在以下情况下发生阻塞的情况明确的意图。例如，对于尝试 de- 的线",
+        "程来说可能是明智的"
+      ],
+      "line_widths": [
+        332.0,
+        76.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        583.0,
+        420.0,
+        605.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_1",
+    "page": 80,
+    "kind": "paragraph",
+    "text": "queue from an empty queue to block, waiting until another thread enqueues an item.",
+    "translated": "队列从空队列到阻塞，等待另一个线程将项目放入队列。",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      550.0,
+      419.0,
+      559.0
+    ],
+    "dst_box": [
+      83.0,
+      550.0,
+      419.0,
+      559.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "队列从空队列到阻塞，等待另一个线程将项目放入队列。",
+          "x": 83.0,
+          "y": 559.0,
+          "width": 191.25,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "队列从空队列到阻塞，等待另一个线程将项目放入队列。"
+      ],
+      "line_widths": [
+        191.3
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        559.0,
+        419.0,
+        568.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_2",
+    "page": 80,
+    "kind": "formula",
+    "text": "A queue specification would capture this intention by making the deq() method's\nspecification partial, leaving its effect undefined when applied to an empty queue.\nThe most natural concurrent interpretation of a partial sequential specification is sim-\nply to wait until the object reaches a state in which that method call's response is\ndefined.",
+    "translated": "A queue specification would capture this intention by making the deq() method's\nspecification partial, leaving its effect undefined when applied to an empty queue.\nThe most natural concurrent interpretation of a partial sequential specification is sim-\nply to wait until the object reaches a state in which that method call's response is\ndefined.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      490.0,
+      420.0,
+      547.0
+    ],
+    "dst_box": [
+      82.0,
+      490.0,
+      420.0,
+      547.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p80_3",
+    "page": 80,
+    "kind": "heading",
+    "text": "3.7 Memory consistency models",
+    "translated": "3.7 内存一致性模型",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      445.0,
+      267.0,
+      461.0
+    ],
+    "dst_box": [
+      81.0,
+      445.0,
+      267.0,
+      461.0
+    ],
+    "font_size": 11.9,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_4",
+    "page": 80,
+    "kind": "formula",
+    "text": "We can consider the memory read and written by a program as a single object—the\ncomposition of many registers—shared by all threads of the program. This shared\nmemory is often the only means of communication among threads (i.e., the only way\nthat threads can observe the effects of other threads). Its correctness property is called\nthe memory consistency model, or memory model for short.",
+    "translated": "We can consider the memory read and written by a program as a single object—the\ncomposition of many registers—shared by all threads of the program. This shared\nmemory is often the only means of communication among threads (i.e., the only way\nthat threads can observe the effects of other threads). Its correctness property is called\nthe memory consistency model, or memory model for short.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      384.0,
+      420.0,
+      442.0
+    ],
+    "dst_box": [
+      82.0,
+      384.0,
+      420.0,
+      442.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p80_5",
+    "page": 80,
+    "kind": "paragraph",
+    "text": "Early concurrent programs assumed sequentially consistent memory. Indeed, the\nnotion of sequential consistency was introduced to capture the assumptions implicit\nin those programs. However, the memory of most modern multiprocessor systems is\nnot sequentially consistent: Compilers and hardware may reorder memory reads and",
+    "translated": "早期的并发程序假定内存顺序一致。确实，引入顺序一致性的概念来捕获隐含的假设在那些节目中。然而，大多数现代多处理器系统的内存是顺序不一致：编译器和硬件可能会重新排序内存读取和",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      336.0,
+      420.0,
+      381.0
+    ],
+    "dst_box": [
+      82.0,
+      336.0,
+      420.0,
+      381.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "早期的并发程序假定内存顺序一致。确实，引入顺序一致性的概念来捕获隐含的假设在那",
+          "x": 82.0,
+          "y": 381.0,
+          "width": 331.5,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "些节目中。然而，大多数现代多处理器系统的内存是顺序不一致：编译器和硬件可能会重",
+          "x": 82.0,
+          "y": 369.1,
+          "width": 331.5,
+          "line": 1,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "新排序内存读取和",
+          "x": 82.0,
+          "y": 357.2,
+          "width": 68.0,
+          "line": 2,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "早期的并发程序假定内存顺序一致。确实，引入顺序一致性的概念来捕获隐含的假设在那",
+        "些节目中。然而，大多数现代多处理器系统的内存是顺序不一致：编译器和硬件可能会重",
+        "新排序内存读取和"
+      ],
+      "line_widths": [
+        331.5,
+        331.5,
+        68.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        381.0,
+        420.0,
+        426.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_6",
+    "page": 80,
+    "kind": "paragraph",
+    "text": "writes in complex ways. Most of the time no one can tell, because the vast majority\nof reads and writes are not used for synchronization. These systems also provide",
+    "translated": "以复杂的方式写作。大多数时候没有人能说清楚，因为绝大多数的读取和写入不用于同步。这些系统还提供",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      312.0,
+      419.0,
+      333.0
+    ],
+    "dst_box": [
+      83.0,
+      312.0,
+      419.0,
+      333.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "以复杂的方式写作。大多数时候没有人能说清楚，因为绝大多数的读取和写入不用于同步。这些系",
+          "x": 83.0,
+          "y": 333.0,
+          "width": 328.95,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "统还提供",
+          "x": 83.0,
+          "y": 322.29,
+          "width": 30.6,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "以复杂的方式写作。大多数时候没有人能说清楚，因为绝大多数的读取和写入不用于同步。这些系",
+        "统还提供"
+      ],
+      "line_widths": [
+        328.9,
+        30.6
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        333.0,
+        419.0,
+        354.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_7",
+    "page": 80,
+    "kind": "paragraph",
+    "text": "synchronization primitives that inhibit reordering.",
+    "translated": "禁止重新排序的同步原语。",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      300.0,
+      281.0,
+      309.0
+    ],
+    "dst_box": [
+      83.0,
+      300.0,
+      281.0,
+      309.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "禁止重新排序的同步原语。",
+          "x": 83.0,
+          "y": 309.0,
+          "width": 91.8,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "禁止重新排序的同步原语。"
+      ],
+      "line_widths": [
+        91.8
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        309.0,
+        281.0,
+        318.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_8",
+    "page": 80,
+    "kind": "paragraph",
+    "text": "We follow this approach in the first part of this book, where we focus on the prin-\nciples of multiprocessor programming. For example, the pseudocode for the various\nlock algorithms in Chapter 2 assumes that if a thread writes two locations, one after\nthe other, then the two writes are made visible to other threads in the same order,\nso that any thread that sees the later write will also see the earlier write. However,\nJava does not guarantee this ordering for ordinary reads and writes. As mentioned\nin Pragma 2.3.1, these locations would need to be declared volati1e to work in real\nsystems. We omit these declarations because these algorithms are not practical in",
+    "translated": "我们在本书的第一部分中遵循这种方法，重点关注原理多处理器编程原则。例如，各种伪代码第 2 章中的锁定算法假设，如果一个线程写入两个位置，一个位于另一个，然后这两个写入对其他线程以相同的顺序可见，这样任何看到较晚写入的线程也将看到较早写入。然而，Java 不保证普通读取和写入的这种顺序。如前所述在 Pragma 2.3.1 中，这些位置需要声明为 volati1e 才能真正工作系统。我们省略这些声明，因为这些算法在以下情况下不实用",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      204.0,
+      420.0,
+      298.0
+    ],
+    "dst_box": [
+      82.0,
+      204.0,
+      420.0,
+      298.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "我们在本书的第一部分中遵循这种方法，重点关注原理多处理器编程原则。例如，各种伪",
+          "x": 82.0,
+          "y": 298.0,
+          "width": 331.5,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "代码第 2 章中的锁定算法假设，如果一个线程写入两个位置，一个位于另一个，然后这两",
+          "x": 82.0,
+          "y": 286.1,
+          "width": 332.01,
+          "line": 1,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "个写入对其他线程以相同的顺序可见，这样任何看到较晚写入的线程也将看到较早写入。",
+          "x": 82.0,
+          "y": 274.2,
+          "width": 331.5,
+          "line": 2,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "然而，Java 不保证普通读取和写入的这种顺序。如前所述在 Pragma 2.3.1 中，这些位置需",
+          "x": 82.0,
+          "y": 262.3,
+          "width": 333.03,
+          "line": 3,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "要声明为 volati1e 才能真正工作系统。我们省略这些声明，因为这些算法在以下情况下不",
+          "x": 82.0,
+          "y": 250.4,
+          "width": 336.26,
+          "line": 4,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "实用",
+          "x": 82.0,
+          "y": 238.5,
+          "width": 17.0,
+          "line": 5,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "我们在本书的第一部分中遵循这种方法，重点关注原理多处理器编程原则。例如，各种伪",
+        "代码第 2 章中的锁定算法假设，如果一个线程写入两个位置，一个位于另一个，然后这两",
+        "个写入对其他线程以相同的顺序可见，这样任何看到较晚写入的线程也将看到较早写入。",
+        "然而，Java 不保证普通读取和写入的这种顺序。如前所述在 Pragma 2.3.1 中，这些位置需",
+        "要声明为 volati1e 才能真正工作系统。我们省略这些声明，因为这些算法在以下情况下不",
+        "实用"
+      ],
+      "line_widths": [
+        331.5,
+        332.0,
+        331.5,
+        333.0,
+        336.3,
+        17.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        298.0,
+        420.0,
+        392.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_9",
+    "page": 80,
+    "kind": "paragraph",
+    "text": "any case, and the declarations would clutter the code and obscure the ideas embod-",
+    "translated": "无论如何，声明都会使代码混乱并模糊所体现的思想",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      192.0,
+      419.0,
+      201.0
+    ],
+    "dst_box": [
+      83.0,
+      192.0,
+      419.0,
+      201.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "无论如何，声明都会使代码混乱并模糊所体现的思想",
+          "x": 83.0,
+          "y": 201.0,
+          "width": 175.95,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "无论如何，声明都会使代码混乱并模糊所体现的思想"
+      ],
+      "line_widths": [
+        176.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        201.0,
+        419.0,
+        210.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_10",
+    "page": 80,
+    "kind": "formula",
+    "text": "ied in those algorithms. In the second part of the book, where we discuss practical\nalgorithms, we include these declarations. (We describe the Java memory model in\nAppendix A.3.)",
+    "translated": "ied in those algorithms. In the second part of the book, where we discuss practical\nalgorithms, we include these declarations. (We describe the Java memory model in\nAppendix A.3.)",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      156.0,
+      420.0,
+      190.0
+    ],
+    "dst_box": [
+      82.0,
+      156.0,
+      420.0,
+      190.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p80_11",
+    "page": 80,
+    "kind": "heading",
+    "text": "3.8 Progress conditions",
+    "translated": "3.8 进展条件",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      107.0,
+      220.0,
+      122.0
+    ],
+    "dst_box": [
+      81.0,
+      107.0,
+      220.0,
+      122.0
+    ],
+    "font_size": 10.2,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p80_12",
+    "page": 80,
+    "kind": "formula",
+    "text": "The nonblocking property of linearizability (and sequential consistency and quies-\ncent consistency) ensures that any pending invocation has a correct response. But\nlinearizability does not tell us how to compute such a response, nor even require an\nimplementation to produce a response at all. Consider, for example, the lock-based",
+    "translated": "The nonblocking property of linearizability (and sequential consistency and quies-\ncent consistency) ensures that any pending invocation has a correct response. But\nlinearizability does not tell us how to compute such a response, nor even require an\nimplementation to produce a response at all. Consider, for example, the lock-based",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      57.0,
+      420.0,
+      102.0
+    ],
+    "dst_box": [
+      82.0,
+      57.0,
+      420.0,
+      102.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p120_0",
+    "page": 120,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      68.0,
+      527.0,
+      210.0,
+      581.0
+    ],
+    "dst_box": [
+      68.0,
+      527.0,
+      210.0,
+      581.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p120_1",
+    "page": 120,
+    "kind": "paragraph",
+    "text": "Consensus object interface.",
+    "translated": "共识对象接口。",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      512.0,
+      186.0,
+      524.0
+    ],
+    "dst_box": [
+      81.0,
+      512.0,
+      186.0,
+      524.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "共识对象接口。",
+          "x": 81.0,
+          "y": 524.0,
+          "width": 53.55,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "共识对象接口。"
+      ],
+      "line_widths": [
+        53.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        81.0,
+        524.0,
+        186.0,
+        536.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p120_2",
+    "page": 120,
+    "kind": "heading",
+    "text": "5.1 Consensus numbers",
+    "translated": "5.1 共识数",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      476.0,
+      221.0,
+      491.0
+    ],
+    "dst_box": [
+      81.0,
+      476.0,
+      221.0,
+      491.0
+    ],
+    "font_size": 11.9,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p120_3",
+    "page": 120,
+    "kind": "formula",
+    "text": "Consensus is an innocuous-looking, somewhat abstract problem that has enormous\nconsequences for everything from algorithm design to hardware architecture. A con-\nsensus object provides a single method decide(), as shown in Fig. 5.1. Each thread\ncalls the decide() method with its input v at most once. The object's decide() method\nreturns a value meeting the following conditions:",
+    "translated": "Consensus is an innocuous-looking, somewhat abstract problem that has enormous\nconsequences for everything from algorithm design to hardware architecture. A con-\nsensus object provides a single method decide(), as shown in Fig. 5.1. Each thread\ncalls the decide() method with its input v at most once. The object's decide() method\nreturns a value meeting the following conditions:",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      416.0,
+      420.0,
+      473.0
+    ],
+    "dst_box": [
+      82.0,
+      416.0,
+      420.0,
+      473.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p120_4",
+    "page": 120,
+    "kind": "footnote",
+    "text": "• consistent: all threads decide the same value,",
+    "translated": "• 一致：所有线程决定相同的值，",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      395.0,
+      276.0,
+      407.0
+    ],
+    "dst_box": [
+      81.0,
+      395.0,
+      276.0,
+      407.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "footnote",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p120_5",
+    "page": 120,
+    "kind": "paragraph",
+    "text": "• valid: the common decision value is some thread's input",
+    "translated": "• valid：公共决策值是某个线程的输入",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      383.0,
+      324.0,
+      395.0
+    ],
+    "dst_box": [
+      81.0,
+      383.0,
+      324.0,
+      395.0
+    ],
+    "font_size": 9.35,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "• valid：公共决策值是某个线程的输入",
+          "x": 81.0,
+          "y": 395.0,
+          "width": 161.57,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 9.35
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 9.3,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "• valid：公共决策值是某个线程的输入"
+      ],
+      "line_widths": [
+        161.6
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        81.0,
+        395.0,
+        324.0,
+        407.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p120_6",
+    "page": 120,
+    "kind": "formula",
+    "text": "In other words, a concurrent consensus object is linearizable to a sequential consensus\nobject in which the thread whose value was chosen completes its decide() first. To\nsimplify the presentation, we focus on binary consensus, in which all inputs are either\n0 or 1 but our claims apply to consensus in general.",
+    "translated": "In other words, a concurrent consensus object is linearizable to a sequential consensus\nobject in which the thread whose value was chosen completes its decide() first. To\nsimplify the presentation, we focus on binary consensus, in which all inputs are either\n0 or 1 but our claims apply to consensus in general.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      329.0,
+      420.0,
+      375.0
+    ],
+    "dst_box": [
+      82.0,
+      329.0,
+      420.0,
+      375.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p120_7",
+    "page": 120,
+    "kind": "formula",
+    "text": "We are interested in wait-free solutions to the consensus problem, that is, wait-free\nconcurrent implementations of consensus objects. The reader will notice that since\nthe decide() method of a given consensus object is executed only once by each thread,\nand there are a finite number of threads, a lock-free implementation would also be\nwait-free and vice versa. Henceforth, we mention only wait-free implementations,\nand for historical reasons, call any class that implements consensus in a wait-free\nmanner a consensus protocol.",
+    "translated": "We are interested in wait-free solutions to the consensus problem, that is, wait-free\nconcurrent implementations of consensus objects. The reader will notice that since\nthe decide() method of a given consensus object is executed only once by each thread,\nand there are a finite number of threads, a lock-free implementation would also be\nwait-free and vice versa. Henceforth, we mention only wait-free implementations,\nand for historical reasons, call any class that implements consensus in a wait-free\nmanner a consensus protocol.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      247.0,
+      420.0,
+      328.0
+    ],
+    "dst_box": [
+      82.0,
+      247.0,
+      420.0,
+      328.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p120_8",
+    "page": 120,
+    "kind": "paragraph",
+    "text": "We want to understand whether a particular class of objects is powerful enough",
+    "translated": "我们想要了解特定类别的对象是否足够强大",
+    "render_path": "translate_refit",
+    "src_box": [
+      96.0,
+      235.0,
+      420.0,
+      245.0
+    ],
+    "dst_box": [
+      96.0,
+      235.0,
+      420.0,
+      245.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "我们想要了解特定类别的对象是否足够强大",
+          "x": 96.0,
+          "y": 245.0,
+          "width": 161.5,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "我们想要了解特定类别的对象是否足够强大"
+      ],
+      "line_widths": [
+        161.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        96.0,
+        245.0,
+        420.0,
+        255.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p120_9",
+    "page": 120,
+    "kind": "paragraph",
+    "text": "to solve the consensus problem.2 How can we make this notion more precise? If",
+    "translated": "解决共识问题。2 我们怎样才能使这个概念更加精确？如果",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      223.0,
+      420.0,
+      233.0
+    ],
+    "dst_box": [
+      82.0,
+      223.0,
+      420.0,
+      233.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "解决共识问题。2 我们怎样才能使这个概念更加精确？如果",
+          "x": 82.0,
+          "y": 233.0,
+          "width": 219.13,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "解决共识问题。2 我们怎样才能使这个概念更加精确？如果"
+      ],
+      "line_widths": [
+        219.1
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        233.0,
+        420.0,
+        243.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p120_10",
+    "page": 120,
+    "kind": "paragraph",
+    "text": "we think of such objects as supported by a lower level of the system, perhaps the\noperating system or even the hardware, then we care about the properties of the class,",
+    "translated": "我们认为这些对象是由系统的较低级别支持的，也许是操作系统甚至硬件，那么我们关心类的属性，",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      199.0,
+      420.0,
+      221.0
+    ],
+    "dst_box": [
+      83.0,
+      199.0,
+      420.0,
+      221.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "我们认为这些对象是由系统的较低级别支持的，也许是操作系统甚至硬件，那么我们关心",
+          "x": 83.0,
+          "y": 221.0,
+          "width": 331.5,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 8.5
+        },
+        {
+          "kind": "flow-text",
+          "text": "类的属性，",
+          "x": 83.0,
+          "y": 209.1,
+          "width": 42.5,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "我们认为这些对象是由系统的较低级别支持的，也许是操作系统甚至硬件，那么我们关心",
+        "类的属性，"
+      ],
+      "line_widths": [
+        331.5,
+        42.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        221.0,
+        420.0,
+        243.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p120_11",
+    "page": 120,
+    "kind": "formula",
+    "text": "not about the number of objects. (If the system can provide one object of this class,\nit can probably provide more.) Second, it is reasonable to suppose that any modern\nsystem can provide a generous amount of read–write memory for bookkeeping. These\ntwo observations suggest the following definitions.",
+    "translated": "not about the number of objects. (If the system can provide one object of this class,\nit can probably provide more.) Second, it is reasonable to suppose that any modern\nsystem can provide a generous amount of read–write memory for bookkeeping. These\ntwo observations suggest the following definitions.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      152.0,
+      420.0,
+      196.0
+    ],
+    "dst_box": [
+      82.0,
+      152.0,
+      420.0,
+      196.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p120_12",
+    "page": 120,
+    "kind": "paragraph",
+    "text": "Definition 5.1.1. A class C solves n-thread consensus if there exists a consensus\nprotocol for n threads using any number of objects of class C and any number of\natomic registers.",
+    "translated": "定义 5.1.1。如果存在共识，C 类解决 n 线程共识使用任意数量的 C 类对象和任意数量的 n 个线程的协议原子寄存器。",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      110.0,
+      420.0,
+      143.0
+    ],
+    "dst_box": [
+      82.0,
+      110.0,
+      420.0,
+      143.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "定义 5.1.1。如果存在共识，C 类解决 n 线程共识使用任意数量的 C 类对象和任意数量的 n 个线程的",
+          "x": 82.0,
+          "y": 143.0,
+          "width": 331.24,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "协议原子寄存器。",
+          "x": 82.0,
+          "y": 132.29,
+          "width": 61.2,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "定义 5.1.1。如果存在共识，C 类解决 n 线程共识使用任意数量的 C 类对象和任意数量的 n 个线程的",
+        "协议原子寄存器。"
+      ],
+      "line_widths": [
+        331.2,
+        61.2
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        143.0,
+        420.0,
+        176.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p200_0",
+    "page": 200,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      64.0,
+      131.0,
+      304.0,
+      561.0
+    ],
+    "dst_box": [
+      64.0,
+      131.0,
+      304.0,
+      561.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p200_1",
+    "page": 200,
+    "kind": "heading",
+    "text": "FIGURE 8.5",
+    "translated": "图8.5",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      112.0,
+      125.0,
+      124.0
+    ],
+    "dst_box": [
+      81.0,
+      112.0,
+      125.0,
+      124.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p200_2",
+    "page": 200,
+    "kind": "paragraph",
+    "text": "The LockedQueue class: a FiFO queue using locks and conditions. There are two condition\nfields, one to detect when the queue becomes nonempty, and one to detect when it\nbecomes nonfull.",
+    "translated": "LockedQueue 类：使用锁和条件的 FiFO 队列。有两个条件字段，一个用于检测队列何时变为非空，另一个用于检测队列何时变为非空变得不完整。",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      79.0,
+      411.0,
+      107.0
+    ],
+    "dst_box": [
+      82.0,
+      79.0,
+      411.0,
+      107.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "LockedQueue 类：使用锁和条件的 FiFO 队列。有两个条件字段，一个用于检测队列何时变为非空",
+          "x": 82.0,
+          "y": 107.0,
+          "width": 323.9,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "，另一个用于检测队列何时变为非空变得不完整。",
+          "x": 82.0,
+          "y": 96.29,
+          "width": 168.3,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "LockedQueue 类：使用锁和条件的 FiFO 队列。有两个条件字段，一个用于检测队列何时变为非空",
+        "，另一个用于检测队列何时变为非空变得不完整。"
+      ],
+      "line_widths": [
+        323.9,
+        168.3
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        107.0,
+        411.0,
+        135.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p300_0",
+    "page": 300,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      81.0,
+      622.0,
+      372.0,
+      636.0
+    ],
+    "dst_box": [
+      81.0,
+      622.0,
+      372.0,
+      636.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p300_1",
+    "page": 300,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      66.0,
+      337.0,
+      240.0,
+      581.0
+    ],
+    "dst_box": [
+      66.0,
+      337.0,
+      240.0,
+      581.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p300_2",
+    "page": 300,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      81.0,
+      304.0,
+      165.0,
+      316.0
+    ],
+    "dst_box": [
+      81.0,
+      304.0,
+      165.0,
+      316.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p300_3",
+    "page": 300,
+    "kind": "paragraph",
+    "text": "• If the number of concurrent tokens is greater than the number of balancers, then\nthe pipeline becomes clogged because too many tokens arrive at each balancer at\nthe same time, resulting in per-balancer contention.",
+    "translated": "• 如果并发令牌数量大于平衡器数量，则由于太多令牌到达每个平衡器，管道被堵塞同时，导致每个平衡器的争用。",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      250.0,
+      420.0,
+      284.0
+    ],
+    "dst_box": [
+      83.0,
+      250.0,
+      420.0,
+      284.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "• 如果并发令牌数量大于平衡器数量，则由于太多令牌到达每个平衡器，管道被堵塞同时，导致每个",
+          "x": 83.0,
+          "y": 284.0,
+          "width": 334.92,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "平衡器的争用。",
+          "x": 83.0,
+          "y": 273.29,
+          "width": 53.55,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "• 如果并发令牌数量大于平衡器数量，则由于太多令牌到达每个平衡器，管道被堵塞同时，导致每个",
+        "平衡器的争用。"
+      ],
+      "line_widths": [
+        334.9,
+        53.5
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        284.0,
+        420.0,
+        318.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p300_4",
+    "page": 300,
+    "kind": "paragraph",
+    "text": "• Throughput is maximized when the number of tokens is roughly equal to the num-\nber of balancers.",
+    "translated": "• 当令牌数量大致等于数量时，吞吐量最大化。平衡器的误码率。",
+    "render_path": "translate_refit",
+    "src_box": [
+      84.0,
+      227.0,
+      420.0,
+      248.0
+    ],
+    "dst_box": [
+      84.0,
+      227.0,
+      420.0,
+      248.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "• 当令牌数量大致等于数量时，吞吐量最大化。平衡器的误码率。",
+          "x": 84.0,
+          "y": 248.0,
+          "width": 244.63,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "• 当令牌数量大致等于数量时，吞吐量最大化。平衡器的误码率。"
+      ],
+      "line_widths": [
+        244.6
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        84.0,
+        248.0,
+        420.0,
+        269.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p300_5",
+    "page": 300,
+    "kind": "paragraph",
+    "text": "If an application needs a counting network, then the best network size to choose is one\nthat ensures that the number of tokens traversing the balancer at any time is roughly\nequal to the number of balancers.",
+    "translated": "如果应用程序需要计数网络，那么选择的最佳网络大小是确保任何时候穿过平衡器的代币数量大致为等于平衡器的数量。",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      181.0,
+      420.0,
+      214.0
+    ],
+    "dst_box": [
+      82.0,
+      181.0,
+      420.0,
+      214.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "如果应用程序需要计数网络，那么选择的最佳网络大小是确保任何时候穿过平衡器的代币数量大致为",
+          "x": 82.0,
+          "y": 214.0,
+          "width": 336.6,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "等于平衡器的数量。",
+          "x": 82.0,
+          "y": 203.29,
+          "width": 68.85,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "如果应用程序需要计数网络，那么选择的最佳网络大小是确保任何时候穿过平衡器的代币数量大致为",
+        "等于平衡器的数量。"
+      ],
+      "line_widths": [
+        336.6,
+        68.8
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        214.0,
+        420.0,
+        247.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p300_6",
+    "page": 300,
+    "kind": "heading",
+    "text": "12.6 Diffracting trees",
+    "translated": "12.6 衍射树",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      131.0,
+      207.0,
+      147.0
+    ],
+    "dst_box": [
+      82.0,
+      131.0,
+      207.0,
+      147.0
+    ],
+    "font_size": 13.6,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p300_7",
+    "page": 300,
+    "kind": "paragraph",
+    "text": "Counting networks provide a high degree of pipelining, so throughput is largely in-",
+    "translated": "计数网络提供高度的流水线，因此吞吐量很大程度上取决于",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      118.0,
+      419.0,
+      127.0
+    ],
+    "dst_box": [
+      83.0,
+      118.0,
+      419.0,
+      127.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "计数网络提供高度的流水线，因此吞吐量很大程度上取决于",
+          "x": 83.0,
+          "y": 127.0,
+          "width": 198.9,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "计数网络提供高度的流水线，因此吞吐量很大程度上取决于"
+      ],
+      "line_widths": [
+        198.9
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        127.0,
+        419.0,
+        136.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p300_8",
+    "page": 300,
+    "kind": "formula",
+    "text": "dependent of network depth. Latency, however, does depend on network depth. Of\nthe counting networks we have seen, the most shallow has depth\\Theta ( \\log ^ { 2 } { w } ). Can\nwe design a logarithmic-depth counting network? The good news is yes, such net-\nworks exist, but the bad news is that for all known constructions, the constant factors\ninvolved render these constructions impractical.",
+    "translated": "dependent of network depth. Latency, however, does depend on network depth. Of\nthe counting networks we have seen, the most shallow has depth\\Theta ( \\log ^ { 2 } { w } ). Can\nwe design a logarithmic-depth counting network? The good news is yes, such net-\nworks exist, but the bad news is that for all known constructions, the constant factors\ninvolved render these constructions impractical.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      57.0,
+      420.0,
+      115.0
+    ],
+    "dst_box": [
+      82.0,
+      57.0,
+      420.0,
+      115.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p400_0",
+    "page": 400,
+    "kind": "code",
+    "text": "",
+    "translated": "",
+    "render_path": "preserve_float",
+    "src_box": [
+      66.0,
+      308.0,
+      368.0,
+      581.0
+    ],
+    "dst_box": [
+      66.0,
+      308.0,
+      368.0,
+      581.0
+    ],
+    "font_size": 12.0,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p400_1",
+    "page": 400,
+    "kind": "heading",
+    "text": "16.4.2 Yielding and multiprogramming",
+    "translated": "16.4.2 屈服和多道程序设计",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      260.0,
+      279.0,
+      275.0
+    ],
+    "dst_box": [
+      82.0,
+      260.0,
+      279.0,
+      275.0
+    ],
+    "font_size": 11.05,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p400_2",
+    "page": 400,
+    "kind": "formula",
+    "text": "As noted earlier, multiprocessors provide a three-level model of computation: Short-",
+    "translated": "As noted earlier, multiprocessors provide a three-level model of computation: Short-",
+    "render_path": "preserve_float",
+    "src_box": [
+      83.0,
+      248.0,
+      419.0,
+      257.0
+    ],
+    "dst_box": [
+      83.0,
+      248.0,
+      419.0,
+      257.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p400_3",
+    "page": 400,
+    "kind": "formula",
+    "text": "lived tasks are executed by system-level threads, which are scheduled by the oper-\nating system on a fixed number of processors. A multiprogrammed environment is\none in which there are more threads than processors, implying that not all threads",
+    "translated": "lived tasks are executed by system-level threads, which are scheduled by the oper-\nating system on a fixed number of processors. A multiprogrammed environment is\none in which there are more threads than processors, implying that not all threads",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      211.0,
+      420.0,
+      245.0
+    ],
+    "dst_box": [
+      82.0,
+      211.0,
+      420.0,
+      245.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p400_4",
+    "page": 400,
+    "kind": "paragraph",
+    "text": "can run at the same time, and that any thread can be preemptively suspended at any\ntime. To guarantee progress, we must ensure that threads that have work to do are",
+    "translated": "可以同时运行，并且任何线程都可以在任意时刻抢先挂起时间。为了保证进度，我们必须确保有工作要做的线程",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      187.0,
+      419.0,
+      208.0
+    ],
+    "dst_box": [
+      83.0,
+      187.0,
+      419.0,
+      208.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "可以同时运行，并且任何线程都可以在任意时刻抢先挂起时间。为了保证进度，我们必须确保有工",
+          "x": 83.0,
+          "y": 208.0,
+          "width": 328.95,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "作要做的线程",
+          "x": 83.0,
+          "y": 197.29,
+          "width": 45.9,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "可以同时运行，并且任何线程都可以在任意时刻抢先挂起时间。为了保证进度，我们必须确保有工",
+        "作要做的线程"
+      ],
+      "line_widths": [
+        328.9,
+        45.9
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        208.0,
+        419.0,
+        229.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p400_5",
+    "page": 400,
+    "kind": "formula",
+    "text": "not unreasonably delayed by (thief) threads that are idle except for task stealing. To\nprevent this situation, we have each thief call Thread.yield() immediately before\ntrying to steal a task (line 15 in Fig. 16.9). This call yields the thief's processor to an-\nother thread, allowing descheduled threads to regain a processor and make progress.",
+    "translated": "not unreasonably delayed by (thief) threads that are idle except for task stealing. To\nprevent this situation, we have each thief call Thread.yield() immediately before\ntrying to steal a task (line 15 in Fig. 16.9). This call yields the thief's processor to an-\nother thread, allowing descheduled threads to regain a processor and make progress.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      138.0,
+      420.0,
+      184.0
+    ],
+    "dst_box": [
+      82.0,
+      138.0,
+      420.0,
+      184.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p400_6",
+    "page": 400,
+    "kind": "formula",
+    "text": "(Calling yield() has no effect if there are no descheduled threads capable of running.)",
+    "translated": "(Calling yield() has no effect if there are no descheduled threads capable of running.)",
+    "render_path": "preserve_float",
+    "src_box": [
+      83.0,
+      127.0,
+      419.0,
+      136.0
+    ],
+    "dst_box": [
+      83.0,
+      127.0,
+      419.0,
+      136.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p400_7",
+    "page": 400,
+    "kind": "heading",
+    "text": "16.5 Work-stealing deques",
+    "translated": "16.5 工作窃取双端队列",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      83.0,
+      239.0,
+      99.0
+    ],
+    "dst_box": [
+      82.0,
+      83.0,
+      239.0,
+      99.0
+    ],
+    "font_size": 12.75,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p400_8",
+    "page": 400,
+    "kind": "formula",
+    "text": "Here is how to implement a work-stealing deque: Ideally, a work-stealing algorithm\nshould provide a linearizable implementation whose pop methods always return a task",
+    "translated": "Here is how to implement a work-stealing deque: Ideally, a work-stealing algorithm\nshould provide a linearizable implementation whose pop methods always return a task",
+    "render_path": "preserve_float",
+    "src_box": [
+      83.0,
+      57.0,
+      420.0,
+      78.0
+    ],
+    "dst_box": [
+      83.0,
+      57.0,
+      420.0,
+      78.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p500_0",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "This algorithm resembles our orec algorithm in that it delays transactional writes",
+    "translated": "该算法类似于我们的 orec 算法，因为它会延迟事务写入",
+    "render_path": "translate_refit",
+    "src_box": [
+      97.0,
+      574.0,
+      419.0,
+      583.0
+    ],
+    "dst_box": [
+      97.0,
+      574.0,
+      419.0,
+      583.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "该算法类似于我们的 orec 算法，因为它会延迟事务写入",
+          "x": 97.0,
+          "y": 583.0,
+          "width": 187.88,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "该算法类似于我们的 orec 算法，因为它会延迟事务写入"
+      ],
+      "line_widths": [
+        187.9
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        97.0,
+        583.0,
+        419.0,
+        592.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_1",
+    "page": 500,
+    "kind": "formula",
+    "text": "until commit time (redo logging). The main differences are that it uses a single se-\nquence lock to coordinate when transactions commit, and it does not use the sequence\nlock to decide when transactions abort. Instead, changes to the sequence lock cause\ntransactions to validate.",
+    "translated": "until commit time (redo logging). The main differences are that it uses a single se-\nquence lock to coordinate when transactions commit, and it does not use the sequence\nlock to decide when transactions abort. Instead, changes to the sequence lock cause\ntransactions to validate.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      527.0,
+      420.0,
+      571.0
+    ],
+    "dst_box": [
+      82.0,
+      527.0,
+      420.0,
+      571.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p500_2",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "The intuition behind this algorithm is that transactions can log the addresses they",
+    "translated": "该算法背后的直觉是交易可以记录它们的地址",
+    "render_path": "translate_refit",
+    "src_box": [
+      96.0,
+      514.0,
+      419.0,
+      524.0
+    ],
+    "dst_box": [
+      96.0,
+      514.0,
+      419.0,
+      524.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "该算法背后的直觉是交易可以记录它们的地址",
+          "x": 96.0,
+          "y": 524.0,
+          "width": 170.0,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 8.5
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 8.5,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "该算法背后的直觉是交易可以记录它们的地址"
+      ],
+      "line_widths": [
+        170.0
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        96.0,
+        524.0,
+        419.0,
+        534.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_3",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "read, and the values they observed when they performed those reads. When a transac-\ntion commits, it increments the sequence lock to an odd value, writes back its entire\nwrite set, and then increments the sequence lock to a new even value. A transaction\ncan trivially determine that it is valid if it sees that the sequence lock has the same\neven value as the last time at which the transaction was valid.",
+    "translated": "读取，以及他们在执行这些读取时观察到的值。当交易提交后，它将序列锁增加到一个奇数，写回其整个序列写入集，然后将序列锁增加到新的偶数值。一笔交易如果看到序列锁具有相同的值，则可以简单地确定它是有效的甚至是交易最后一次有效的时间值。",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      455.0,
+      420.0,
+      511.0
+    ],
+    "dst_box": [
+      82.0,
+      455.0,
+      420.0,
+      511.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "读取，以及他们在执行这些读取时观察到的值。当交易提交后，它将序列锁增加到一个奇数，写回其整个序列写",
+          "x": 82.0,
+          "y": 511.0,
+          "width": 333.2,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 6.8
+        },
+        {
+          "kind": "flow-text",
+          "text": "入集，然后将序列锁增加到新的偶数值。一笔交易如果看到序列锁具有相同的值，则可以简单地确定它是有效的",
+          "x": 82.0,
+          "y": 501.48,
+          "width": 333.2,
+          "line": 1,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 6.8
+        },
+        {
+          "kind": "flow-text",
+          "text": "甚至是交易最后一次有效的时间值。",
+          "x": 82.0,
+          "y": 491.96,
+          "width": 108.8,
+          "line": 2,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 6.8
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 6.8,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "读取，以及他们在执行这些读取时观察到的值。当交易提交后，它将序列锁增加到一个奇数，写回其整个序列写",
+        "入集，然后将序列锁增加到新的偶数值。一笔交易如果看到序列锁具有相同的值，则可以简单地确定它是有效的",
+        "甚至是交易最后一次有效的时间值。"
+      ],
+      "line_widths": [
+        333.2,
+        333.2,
+        108.8
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        511.0,
+        420.0,
+        567.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_4",
+    "page": 500,
+    "kind": "code",
+    "text": "If the sequence lock has changed since the last check, the transaction must wait\nuntil the sequence lock is even (unheld). Then it can reread every location in its read\nset, to ensure that the value is the same as it was when the transaction read it. The only\ncatch is that the transaction must check its entire read set, without any intervening",
+    "translated": "If the sequence lock has changed since the last check, the transaction must wait\nuntil the sequence lock is even (unheld). Then it can reread every location in its read\nset, to ensure that the value is the same as it was when the transaction read it. The only\ncatch is that the transaction must check its entire read set, without any intervening",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      406.0,
+      420.0,
+      452.0
+    ],
+    "dst_box": [
+      82.0,
+      406.0,
+      420.0,
+      452.0
+    ],
+    "font_size": 8.5,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p500_5",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "writer transaction commits. This manifests in the while loop of the val idate function.",
+    "translated": "作者事务提交。这体现在 val idate 函数的 while 循环中。",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      395.0,
+      419.0,
+      403.0
+    ],
+    "dst_box": [
+      83.0,
+      395.0,
+      419.0,
+      403.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "作者事务提交。这体现在 val idate 函数的 while 循环中。",
+          "x": 83.0,
+          "y": 403.0,
+          "width": 176.12,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 6.8
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 6.8,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "作者事务提交。这体现在 val idate 函数的 while 循环中。"
+      ],
+      "line_widths": [
+        176.1
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        403.0,
+        419.0,
+        411.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_6",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "Note that after a successful validation, a transaction is equivalent to one that started\nat the time of the validation, and hence can update its start time.",
+    "translated": "请注意，验证成功后，一笔交易等同于已启动的一笔交易在验证时，因此可以更新其开始时间。",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      371.0,
+      420.0,
+      392.0
+    ],
+    "dst_box": [
+      82.0,
+      371.0,
+      420.0,
+      392.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "请注意，验证成功后，一笔交易等同于已启动的一笔交易在验证时，因此可以更新其开始时间。",
+          "x": 82.0,
+          "y": 392.0,
+          "width": 321.3,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "请注意，验证成功后，一笔交易等同于已启动的一笔交易在验证时，因此可以更新其开始时间。"
+      ],
+      "line_widths": [
+        321.3
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        392.0,
+        420.0,
+        413.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_7",
+    "page": 500,
+    "kind": "formula",
+    "text": "One question that arises is whether a transaction can start while the lock is held.\nRather than introduce waiting in the beginTx() function, we subtract one from the\nstart time if it would otherwise be odd. This means that a transaction might validate\non its first load, instead of waiting to start.",
+    "translated": "One question that arises is whether a transaction can start while the lock is held.\nRather than introduce waiting in the beginTx() function, we subtract one from the\nstart time if it would otherwise be odd. This means that a transaction might validate\non its first load, instead of waiting to start.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      323.0,
+      420.0,
+      368.0
+    ],
+    "dst_box": [
+      82.0,
+      323.0,
+      420.0,
+      368.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p500_8",
+    "page": 500,
+    "kind": "formula",
+    "text": "Like the orec algorithm, this approach to transactions is deadlock-free: It only\nhas one lock, and thus there is no potential for deadlock! In addition, note that\na transaction's progress is only impeded when it must validate, and every valida-\ntion corresponds to the completion of a writer transaction. Hence, the algorithm is\nlivelock-free. Unfortunately, starvation is possible, especially for long-running trans-\nactions concurrent with a stream of small writers: The long-running transaction might\nneed to validate once per writer.",
+    "translated": "Like the orec algorithm, this approach to transactions is deadlock-free: It only\nhas one lock, and thus there is no potential for deadlock! In addition, note that\na transaction's progress is only impeded when it must validate, and every valida-\ntion corresponds to the completion of a writer transaction. Hence, the algorithm is\nlivelock-free. Unfortunately, starvation is possible, especially for long-running trans-\nactions concurrent with a stream of small writers: The long-running transaction might\nneed to validate once per writer.",
+    "render_path": "preserve_float",
+    "src_box": [
+      82.0,
+      240.0,
+      420.0,
+      322.0
+    ],
+    "dst_box": [
+      82.0,
+      240.0,
+      420.0,
+      322.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p500_9",
+    "page": 500,
+    "kind": "heading",
+    "text": "20.7 Combining hardware and software transactions",
+    "translated": "20.7 结合硬件和软件事务",
+    "render_path": "translate_refit",
+    "src_box": [
+      81.0,
+      190.0,
+      378.0,
+      205.0
+    ],
+    "dst_box": [
+      81.0,
+      190.0,
+      378.0,
+      205.0
+    ],
+    "font_size": 11.05,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_10",
+    "page": 500,
+    "kind": "formula",
+    "text": "Part of the appeal of value-based validation is that it enables hybrid transactional\nsystems, which use hardware transactional execution when possible, and fall back to\nsoftware execution when a transaction cannot complete in hardware (e.g., because\nit is too big). One of the simplest approaches is to introduce a mechanism for dy-\nnamically switching between two phases: one in which all transactions use hardware\nsupport, and one in which none do.",
+    "translated": "Part of the appeal of value-based validation is that it enables hybrid transactional\nsystems, which use hardware transactional execution when possible, and fall back to\nsoftware execution when a transaction cannot complete in hardware (e.g., because\nit is too big). One of the simplest approaches is to introduce a mechanism for dy-\nnamically switching between two phases: one in which all transactions use hardware\nsupport, and one in which none do.",
+    "render_path": "preserve_float",
+    "src_box": [
+      81.0,
+      117.0,
+      420.0,
+      186.0
+    ],
+    "dst_box": [
+      81.0,
+      117.0,
+      420.0,
+      186.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "preserve",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "preserve"
+  },
+  {
+    "block_id": "p500_11",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "The phase change from hardware mode to software mode is relatively simple to",
+    "translated": "从硬件模式到软件模式的阶段转换相对简单",
+    "render_path": "translate_refit",
+    "src_box": [
+      97.0,
+      105.0,
+      420.0,
+      114.0
+    ],
+    "dst_box": [
+      97.0,
+      105.0,
+      420.0,
+      114.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "从硬件模式到软件模式的阶段转换相对简单",
+          "x": 97.0,
+          "y": 114.0,
+          "width": 145.35,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "从硬件模式到软件模式的阶段转换相对简单"
+      ],
+      "line_widths": [
+        145.4
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        97.0,
+        114.0,
+        420.0,
+        123.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_12",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "achieve, using a mechanism similar to the fallback in hardware lock elision: The\ntransaction system includes a global flag to indicate if the current mode is “hard-",
+    "translated": "实现，使用类似于硬件锁省略中的后备机制：交易系统包括一个全局标志来指示当前模式是否为“硬模式”",
+    "render_path": "translate_refit",
+    "src_box": [
+      83.0,
+      81.0,
+      419.0,
+      102.0
+    ],
+    "dst_box": [
+      83.0,
+      81.0,
+      419.0,
+      102.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "实现，使用类似于硬件锁省略中的后备机制：交易系统包括一个全局标志来指示当前模式是否为“硬",
+          "x": 83.0,
+          "y": 102.0,
+          "width": 332.77,
+          "line": 0,
+          "is_last": false,
+          "overflow": false,
+          "font_size": 7.65
+        },
+        {
+          "kind": "flow-text",
+          "text": "模式”",
+          "x": 83.0,
+          "y": 91.29,
+          "width": 19.12,
+          "line": 1,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "实现，使用类似于硬件锁省略中的后备机制：交易系统包括一个全局标志来指示当前模式是否为“硬",
+        "模式”"
+      ],
+      "line_widths": [
+        332.8,
+        19.1
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        83.0,
+        102.0,
+        419.0,
+        123.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p500_13",
+    "page": 500,
+    "kind": "paragraph",
+    "text": "ware\" or “software.\" Every hardware-mode transaction begins by checking the flag.\nIf the flag changes during the transaction's execution, it will abort, at which point it",
+    "translated": "每个硬件模式事务都从检查标志开始。如果该标志在事务执行期间发生变化，它将中止，此时它",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      57.0,
+      420.0,
+      79.0
+    ],
+    "dst_box": [
+      82.0,
+      57.0,
+      420.0,
+      79.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "flow",
+      "commands": [
+        {
+          "kind": "flow-text",
+          "text": "每个硬件模式事务都从检查标志开始。如果该标志在事务执行期间发生变化，它将中止，此时它",
+          "x": 82.0,
+          "y": 79.0,
+          "width": 321.3,
+          "line": 0,
+          "is_last": true,
+          "overflow": false,
+          "font_size": 7.65
+        }
+      ],
+      "entries": [],
+      "overflow": false,
+      "policy": "wrap",
+      "font_size": 7.7,
+      "recovery": null,
+      "trace": [],
+      "lines": [
+        "每个硬件模式事务都从检查标志开始。如果该标志在事务执行期间发生变化，它将中止，此时它"
+      ],
+      "line_widths": [
+        321.3
+      ],
+      "primitive_kind": "flow",
+      "layout_ok": true,
+      "bbox": [
+        82.0,
+        79.0,
+        420.0,
+        101.0
+      ]
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_0",
+    "page": 550,
+    "kind": "list",
+    "text": "Blocking lock implementation, 56, 147, 184\nBlocking operation, 56\ndequeue, 64\nBlocking progress condition, see Progress condition\nBlocking synchronization, 184\nBoolean register, see Register\nBottleneck\nsequential, 254, 265\nsynchronization, 298\nBouncer, 44, 45\nBounded pool, see Pool\nBounded queue, see Queue\nBounded timestamp, see Timestamp\nBounded wait-free property, see Wait-freedom\nBounded work stealing deque, see Work stealing\ndeque\nBounded-range priority queue, see Priority queue\nBoundedDEQue, 391–394\nBoundedQueue, 231-234\nBucket (of hash table), see Hash set\nBucketList, 318, 319\nBuffer, 229\nwrite, see Write buffer\nBus, 152, 475, 522\ncontroller, 522\nsnooping, 153, 476, 522\nBusy (for lock), see Lock\nBusy-waiting, see Spinning",
+    "translated": "Blocking lock implementation, 56, 147, 184\nBlocking operation, 56\ndequeue, 64\nBlocking progress condition, see Progress condition\nBlocking synchronization, 184\nBoolean register, see Register\nBottleneck\nsequential, 254, 265\nsynchronization, 298\nBouncer, 44, 45\nBounded pool, see Pool\nBounded queue, see Queue\nBounded timestamp, see Timestamp\nBounded wait-free property, see Wait-freedom\nBounded work stealing deque, see Work stealing\ndeque\nBounded-range priority queue, see Priority queue\nBoundedDEQue, 391–394\nBoundedQueue, 231-234\nBucket (of hash table), see Hash set\nBucketList, 318, 319\nBuffer, 229\nwrite, see Write buffer\nBus, 152, 475, 522\ncontroller, 522\nsnooping, 153, 476, 522\nBusy (for lock), see Lock\nBusy-waiting, see Spinning",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      318.0,
+      246.0,
+      582.0
+    ],
+    "dst_box": [
+      82.0,
+      318.0,
+      246.0,
+      582.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "list",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": {
+      "tree": null,
+      "items": [],
+      "commands": [],
+      "translated_calls": []
+    },
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_1",
+    "page": 550,
+    "kind": "heading",
+    "text": "C",
+    "translated": "C",
+    "render_path": "shift_down",
+    "src_box": [
+      82.0,
+      295.0,
+      91.0,
+      307.0
+    ],
+    "dst_box": [
+      82.0,
+      312.85,
+      91.0,
+      324.85
+    ],
+    "font_size": 12.75,
+    "render_payload": {
+      "kind": "heading",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "shift_down"
+  },
+  {
+    "block_id": "p550_2",
+    "page": 550,
+    "kind": "list",
+    "text": "C++\nnotify all(),512\nnotify one(),512\nstd::atomic, see std::atomic\nstd::condition variable,511\nstd::lock_guard, 510\nstd::mutex, 509\nstd::recursive mutex, 509\nstd::shared mutex, 509\nstd::unique_lock_wrapper,510\nthread, 508\nvs. Java, 451\nwait(),511\nC++ memory model, 512\nCache, 152, 475, 521, 523\ndirect-mapped, 477, 524\ndirty, 528\neviction, 476\nfully associative, 524\nhit ratio, 523\nreplacement policy, 524\nset associative, 524\nCache coherence, transactional, 476\nCache coherence protocol, 152, 475, 476, 524\nMESI, 476, 524, 525",
+    "translated": "C++\nnotify all(),512\nnotify one(),512\nstd::atomic, see std::atomic\nstd::condition variable,511\nstd::lock_guard, 510\nstd::mutex, 509\nstd::recursive mutex, 509\nstd::shared mutex, 509\nstd::unique_lock_wrapper,510\nthread, 508\nvs. Java, 451\nwait(),511\nC++ memory model, 512\nCache, 152, 475, 521, 523\ndirect-mapped, 477, 524\ndirty, 528\neviction, 476\nfully associative, 524\nhit ratio, 523\nreplacement policy, 524\nset associative, 524\nCache coherence, transactional, 476\nCache coherence protocol, 152, 475, 476, 524\nMESI, 476, 524, 525",
+    "render_path": "translate_refit",
+    "src_box": [
+      82.0,
+      58.0,
+      226.0,
+      293.0
+    ],
+    "dst_box": [
+      82.0,
+      58.0,
+      226.0,
+      293.0
+    ],
+    "font_size": 5.95,
+    "render_payload": {
+      "kind": "list",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": {
+      "tree": null,
+      "items": [],
+      "commands": [],
+      "translated_calls": []
+    },
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_3",
+    "page": 550,
+    "kind": "references",
+    "text": "Cache granularity, 524\nCache hit, 153, 523\nCache line, 475, 524\nCache miss, 153, 523\nCache state\nexclusive, 152, 476, 525\ninvalid, 153, 476, 525\nmodified, 476, 525\nshared, 152, 476, 525",
+    "translated": "缓存粒度，524缓存命中, 153, 523缓存行，475、524缓存未命中、153、523缓存状态独家、152、476、525无效、153、476、525修改, 476, 525共享, 152, 476, 525",
+    "render_path": "translate_refit",
+    "src_box": [
+      257.0,
+      498.0,
+      344.0,
+      582.0
+    ],
+    "dst_box": [
+      257.0,
+      498.0,
+      344.0,
+      582.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_4",
+    "page": 550,
+    "kind": "references",
+    "text": "Cache-coherent NUMA (cc-NUMA) system, 524",
+    "translated": "缓存一致性 NUMA (cc-NUMA) 系统，524",
+    "render_path": "translate_refit",
+    "src_box": [
+      257.0,
+      489.0,
+      411.0,
+      496.0
+    ],
+    "dst_box": [
+      257.0,
+      489.0,
+      411.0,
+      496.0
+    ],
+    "font_size": 5.95,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_5",
+    "page": 550,
+    "kind": "references",
+    "text": "Call, method, see Method call\nCapacity (of hash table), see Hash set\nCAS, 530\nCheckpoint, 477\nChicken sexing, 75\nCircularArray, 395–398\nClass, 52\nuniversal, 129\nClean double collect, 92\nClosed addressing, see Hashing\nCluster ID, 167\nCluster (in NUMA system), 166\nCluster lock, 168\nClustering algorithm, 406\nClusterLocal, 167\nCMPXCHG instruction, 119, 530",
+    "translated": "调用、方法，参见方法调用（哈希表的）容量，参见哈希集中国科学院，530检查站，477鸡性别鉴定，75圆形阵列，395–39852 级通用，129清洁双收集，92封闭寻址，请参阅散列簇ID，167集群（NUMA系统中），166集群锁，168聚类算法，406集群本地，167CMPXCHG 指令, 119, 530",
+    "render_path": "translate_refit",
+    "src_box": [
+      255.0,
+      335.0,
+      376.0,
+      486.0
+    ],
+    "dst_box": [
+      255.0,
+      335.0,
+      376.0,
+      486.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_6",
+    "page": 550,
+    "kind": "references",
+    "text": "Coarse-grained synchronization, 201, 206, 308",
+    "translated": "粗粒度同步、201、206、308",
+    "render_path": "translate_refit",
+    "src_box": [
+      257.0,
+      325.0,
+      403.0,
+      334.0
+    ],
+    "dst_box": [
+      257.0,
+      325.0,
+      403.0,
+      334.0
+    ],
+    "font_size": 7.65,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_7",
+    "page": 550,
+    "kind": "references",
+    "text": "CoarseHashSet, 308, 309\nCoarseList, 206, 207\nCoherence protocol, see Cache coherence protocol\nCohort, 168\nCohort detection, lock supports, 169\nCohort lock, 168\nCohortDetectionLock, 169\nCollect operation, 92\nCollisions, see Hashing",
+    "translated": "粗哈希集、308、309粗略列表, 206, 207一致性协议，请参阅缓存一致性协议队列，168群组检测，锁定支持，169队列锁定，168群组检测锁定，169收集操作，92冲突，参见散列",
+    "render_path": "translate_refit",
+    "src_box": [
+      256.0,
+      239.0,
+      415.0,
+      324.0
+    ],
+    "dst_box": [
+      256.0,
+      239.0,
+      415.0,
+      324.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_8",
+    "page": 550,
+    "kind": "references",
+    "text": "Combining, software, see Software combining",
+    "translated": "组合，软件，参见软件组合",
+    "render_path": "translate_refit",
+    "src_box": [
+      257.0,
+      231.0,
+      403.0,
+      238.0
+    ],
+    "dst_box": [
+      257.0,
+      231.0,
+      403.0,
+      238.0
+    ],
+    "font_size": 5.95,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_9",
+    "page": 550,
+    "kind": "references",
+    "text": "Combining status, 267\nCombining tree barrier, see Barrier\nCombiningTree, 266–268, 275\nCommon2 register, see Register\nCommunication, transient vs. persistent, 9\nComparator, 293",
+    "translated": "合并状态，267结合树木屏障，请参阅屏障组合树，266–268, 275Common2寄存器，参见寄存器通信，瞬时与持久，9比较器，293",
+    "render_path": "translate_refit",
+    "src_box": [
+      256.0,
+      172.0,
+      388.0,
+      228.0
+    ],
+    "dst_box": [
+      256.0,
+      172.0,
+      388.0,
+      228.0
+    ],
+    "font_size": 5.95,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_10",
+    "page": 550,
+    "kind": "references",
+    "text": "lambda expression, see Lambda expression",
+    "translated": "lambda 表达式，请参阅 Lambda 表达式",
+    "render_path": "translate_refit",
+    "src_box": [
+      268.0,
+      163.0,
+      404.0,
+      171.0
+    ],
+    "dst_box": [
+      268.0,
+      163.0,
+      404.0,
+      171.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_11",
+    "page": 550,
+    "kind": "references",
+    "text": "synchronous, 293\nCompare-and-swap (CAS), 116, 119, 529\nCompareAndSet(), 116, 119, 120, 506\nComparison network, 293",
+    "translated": "同步，293比较和交换 (CAS)、116、119、529比较并设置(), 116, 119, 120, 506比较网，293",
+    "render_path": "translate_refit",
+    "src_box": [
+      255.0,
+      125.0,
+      387.0,
+      161.0
+    ],
+    "dst_box": [
+      255.0,
+      125.0,
+      387.0,
+      161.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_12",
+    "page": 550,
+    "kind": "references",
+    "text": "isomorphic to balancing network, 294",
+    "translated": "同构于平衡网络，294",
+    "render_path": "translate_refit",
+    "src_box": [
+      267.0,
+      115.0,
+      386.0,
+      123.0
+    ],
+    "dst_box": [
+      267.0,
+      115.0,
+      386.0,
+      123.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  },
+  {
+    "block_id": "p550_13",
+    "page": 550,
+    "kind": "references",
+    "text": "synchronous, 293\ncomplete(H), 61\nComplete method call, see Method call\nCompositionality, 57, 63\nproblems, 471\nComputability, 1",
+    "translated": "同步，293完成(H), 61完整的方法调用，参见方法调用组合性, 57, 63问题, 471可计算性，1",
+    "render_path": "translate_refit",
+    "src_box": [
+      256.0,
+      57.0,
+      381.0,
+      113.0
+    ],
+    "dst_box": [
+      256.0,
+      57.0,
+      381.0,
+      113.0
+    ],
+    "font_size": 6.8,
+    "render_payload": {
+      "kind": "references",
+      "commands": [],
+      "entries": []
+    },
+    "list_items": null,
+    "toc_entries": null,
+    "toc_commands": null,
+    "render_fixup": "keep"
+  }
+]

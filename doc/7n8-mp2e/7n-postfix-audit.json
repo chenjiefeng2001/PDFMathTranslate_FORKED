@@ -1,0 +1,727 @@
+{
+ "schema": "7n-postfix-audit-v1",
+ "run_dir": "C:\\Users\\14977\\source\\repos\\PDFMathTranslate_FORKED\\doc\\7n8-mp2e",
+ "total_pages": 562,
+ "total_blocks": 6690,
+ "translated_blocks": 6046,
+ "render_paths": {
+  "translate_refit": 3576,
+  "preserve_float": 2826,
+  "shift_down": 153,
+  "overlay": 135
+ },
+ "fixup_counts": {
+  "keep_overflow": 22,
+  "preserve": 2826,
+  "keep": 3689,
+  "shift_down": 153
+ },
+ "recovery_decisions": {
+  "shrink": 25,
+  "clip": 1
+ },
+ "recovery_steps": {
+  "WRAP->SHRINK": 24,
+  "SHRINK": 1,
+  "WRAP->SHRINK->CLIP": 1
+ },
+ "page_grades": {
+  "A": 456,
+  "B": 105,
+  "D": 1
+ },
+ "grade_D_pages": [
+  442
+ ],
+ "grade_C_pages": [],
+ "suspicious_queue": [
+  {
+   "page": 442,
+   "severity": "HIGH",
+   "flags": {
+    "clip": 1,
+    "residual_overflow": 1
+   },
+   "reason": "clipx1; residual_overflowx1"
+  }
+ ],
+ "flag_counts": {
+  "clip": 1,
+  "residual_overflow": 1
+ },
+ "doc_pages": 562,
+ "doc_blocks": 6690,
+ "doc_blocks_with_translated": 6046,
+ "fix2": {
+  "shift_down_total": 153,
+  "shifted_with_commands": 37,
+  "decoupled": 0,
+  "double_shift_suspect": 0,
+  "x_changed": 0,
+  "font_changed": 0,
+  "alias_value_mismatch": 0
+ },
+ "fix2_detail": [
+  {
+   "block_id": "p3_4",
+   "page": 3,
+   "dst_box_y1": 399.84,
+   "first_cmd_y": 399.84,
+   "decoupled": false
+  },
+  {
+   "block_id": "p3_6",
+   "page": 3,
+   "dst_box_y1": 354.22,
+   "first_cmd_y": 354.22,
+   "decoupled": false
+  },
+  {
+   "block_id": "p4_2",
+   "page": 4,
+   "dst_box_y1": 570.42,
+   "first_cmd_y": 570.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p5_1",
+   "page": 5,
+   "dst_box_y1": 443.85,
+   "first_cmd_y": 443.85,
+   "decoupled": false
+  },
+  {
+   "block_id": "p5_3",
+   "page": 5,
+   "dst_box_y1": 393.46,
+   "first_cmd_y": 393.46,
+   "decoupled": false
+  },
+  {
+   "block_id": "p5_7",
+   "page": 5,
+   "dst_box_y1": 261.12,
+   "first_cmd_y": 261.12,
+   "decoupled": false
+  },
+  {
+   "block_id": "p26_10",
+   "page": 26,
+   "dst_box_y1": 270.28,
+   "first_cmd_y": 270.28,
+   "decoupled": false
+  },
+  {
+   "block_id": "p30_13",
+   "page": 30,
+   "dst_box_y1": 82.28,
+   "first_cmd_y": 82.28,
+   "decoupled": false
+  },
+  {
+   "block_id": "p51_4",
+   "page": 51,
+   "dst_box_y1": 249.42,
+   "first_cmd_y": 249.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p52_8",
+   "page": 52,
+   "dst_box_y1": 378.18,
+   "first_cmd_y": 378.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p52_18",
+   "page": 52,
+   "dst_box_y1": 104.7,
+   "first_cmd_y": 104.7,
+   "decoupled": false
+  },
+  {
+   "block_id": "p55_5",
+   "page": 55,
+   "dst_box_y1": 329.47,
+   "first_cmd_y": 329.47,
+   "decoupled": false
+  },
+  {
+   "block_id": "p56_10",
+   "page": 56,
+   "dst_box_y1": 239.9,
+   "first_cmd_y": 239.9,
+   "decoupled": false
+  },
+  {
+   "block_id": "p85_12",
+   "page": 85,
+   "dst_box_y1": 181.18,
+   "first_cmd_y": 181.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p94_8",
+   "page": 94,
+   "dst_box_y1": 252.18,
+   "first_cmd_y": 252.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p98_10",
+   "page": 98,
+   "dst_box_y1": 80.9,
+   "first_cmd_y": 80.9,
+   "decoupled": false
+  },
+  {
+   "block_id": "p122_15",
+   "page": 122,
+   "dst_box_y1": 573.8,
+   "first_cmd_y": 573.8,
+   "decoupled": false
+  },
+  {
+   "block_id": "p127_5",
+   "page": 127,
+   "dst_box_y1": 440.18,
+   "first_cmd_y": 440.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p137_11",
+   "page": 137,
+   "dst_box_y1": 276.18,
+   "first_cmd_y": 276.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p165_2",
+   "page": 165,
+   "dst_box_y1": 545.8,
+   "first_cmd_y": 545.8,
+   "decoupled": false
+  },
+  {
+   "block_id": "p165_7",
+   "page": 165,
+   "dst_box_y1": 429.8,
+   "first_cmd_y": 429.8,
+   "decoupled": false
+  },
+  {
+   "block_id": "p166_7",
+   "page": 166,
+   "dst_box_y1": 354.18,
+   "first_cmd_y": 354.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p230_11",
+   "page": 230,
+   "dst_box_y1": 150.42,
+   "first_cmd_y": 150.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p234_5",
+   "page": 234,
+   "dst_box_y1": 455.18,
+   "first_cmd_y": 455.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p294_5",
+   "page": 294,
+   "dst_box_y1": 219.18,
+   "first_cmd_y": 219.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p302_8",
+   "page": 302,
+   "dst_box_y1": 335.42,
+   "first_cmd_y": 335.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p310_2",
+   "page": 310,
+   "dst_box_y1": 475.42,
+   "first_cmd_y": 475.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p313_20",
+   "page": 313,
+   "dst_box_y1": 78.42,
+   "first_cmd_y": 78.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p353_4",
+   "page": 353,
+   "dst_box_y1": 561.8,
+   "first_cmd_y": 561.8,
+   "decoupled": false
+  },
+  {
+   "block_id": "p411_1",
+   "page": 411,
+   "dst_box_y1": 546.42,
+   "first_cmd_y": 546.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p415_5",
+   "page": 415,
+   "dst_box_y1": 404.8,
+   "first_cmd_y": 404.8,
+   "decoupled": false
+  },
+  {
+   "block_id": "p419_9",
+   "page": 419,
+   "dst_box_y1": 133.18,
+   "first_cmd_y": 133.18,
+   "decoupled": false
+  },
+  {
+   "block_id": "p425_1",
+   "page": 425,
+   "dst_box_y1": 545.8,
+   "first_cmd_y": 545.8,
+   "decoupled": false
+  },
+  {
+   "block_id": "p442_4",
+   "page": 442,
+   "dst_box_y1": 298.42,
+   "first_cmd_y": 298.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p452_3",
+   "page": 452,
+   "dst_box_y1": 525.8,
+   "first_cmd_y": 525.8,
+   "decoupled": false
+  },
+  {
+   "block_id": "p487_8",
+   "page": 487,
+   "dst_box_y1": 103.42,
+   "first_cmd_y": 103.42,
+   "decoupled": false
+  },
+  {
+   "block_id": "p489_15",
+   "page": 489,
+   "dst_box_y1": 80.8,
+   "first_cmd_y": 80.8,
+   "decoupled": false
+  }
+ ],
+ "visual_check": {
+  "available": true,
+  "checked_blocks": 1
+ },
+ "visual_missing": [],
+ "visual_overlap": [
+  {
+   "block_id": "p442_4",
+   "page": 442,
+   "translation": "系统蒸发⋯",
+   "collides_with": "using one for even-numbered ph",
+   "overlap_pct": 43.6
+  }
+ ],
+ "mech3": {
+  "plan_overlap_hits": 36,
+  "ink_verified": 13,
+  "real_collisions": 0
+ },
+ "mech3_detail": [
+  {
+   "block_id": "p51_4",
+   "page": 51,
+   "plan_overlap_pct": 100.0,
+   "into": "p51_3",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p52_8",
+   "page": 52,
+   "plan_overlap_pct": 40.6,
+   "into": "p52_7",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p58_11",
+   "page": 58,
+   "plan_overlap_pct": 100.0,
+   "into": "p58_12",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p68_11",
+   "page": 68,
+   "plan_overlap_pct": 100.0,
+   "into": "p68_0",
+   "into_kind": "code",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p68_11",
+   "page": 68,
+   "plan_overlap_pct": 96.7,
+   "into": "p68_10",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p94_8",
+   "page": 94,
+   "plan_overlap_pct": 100.0,
+   "into": "p94_7",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p116_3",
+   "page": 116,
+   "plan_overlap_pct": 53.1,
+   "into": "p116_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p122_15",
+   "page": 122,
+   "plan_overlap_pct": 100.0,
+   "into": "p122_0",
+   "into_kind": "figure",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p127_5",
+   "page": 127,
+   "plan_overlap_pct": 51.1,
+   "into": "p127_4",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p127_5",
+   "page": 127,
+   "plan_overlap_pct": 100.0,
+   "into": "p127_8",
+   "into_kind": "code",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p194_8",
+   "page": 194,
+   "plan_overlap_pct": 75.2,
+   "into": "p194_7",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p230_11",
+   "page": 230,
+   "plan_overlap_pct": 100.0,
+   "into": "p230_6",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p230_11",
+   "page": 230,
+   "plan_overlap_pct": 100.0,
+   "into": "p230_10",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p234_5",
+   "page": 234,
+   "plan_overlap_pct": 58.7,
+   "into": "p234_4",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p237_5",
+   "page": 237,
+   "plan_overlap_pct": 100.0,
+   "into": "p237_12",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p283_5",
+   "page": 283,
+   "plan_overlap_pct": 30.3,
+   "into": "p283_4",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p294_5",
+   "page": 294,
+   "plan_overlap_pct": 51.2,
+   "into": "p294_4",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p304_8",
+   "page": 304,
+   "plan_overlap_pct": 100.0,
+   "into": "p304_0",
+   "into_kind": "code",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p310_2",
+   "page": 310,
+   "plan_overlap_pct": 100.0,
+   "into": "p310_1",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p313_20",
+   "page": 313,
+   "plan_overlap_pct": 96.2,
+   "into": "p313_19",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p353_4",
+   "page": 353,
+   "plan_overlap_pct": 100.0,
+   "into": "p353_0",
+   "into_kind": "code",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p353_4",
+   "page": 353,
+   "plan_overlap_pct": 100.0,
+   "into": "p353_3",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p411_1",
+   "page": 411,
+   "plan_overlap_pct": 93.6,
+   "into": "p411_0",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p419_9",
+   "page": 419,
+   "plan_overlap_pct": 62.9,
+   "into": "p419_8",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p442_4",
+   "page": 442,
+   "plan_overlap_pct": 95.8,
+   "into": "p442_3",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p511_3",
+   "page": 511,
+   "plan_overlap_pct": 100.0,
+   "into": "p511_11",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p553_10",
+   "page": 553,
+   "plan_overlap_pct": 52.7,
+   "into": "p553_9",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_3",
+   "page": 558,
+   "plan_overlap_pct": 40.6,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_8",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_10",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_11",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_12",
+   "page": 558,
+   "plan_overlap_pct": 99.1,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_15",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_18",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_20",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_23",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  }
+ ],
+ "forensics": {
+  "p442_4": {
+   "block_id": "p442_4",
+   "found": true,
+   "page": 442,
+   "kind": "paragraph",
+   "source_text": "tions.",
+   "translated_text": "系统蒸发散。",
+   "src_box": [
+    118.0,
+    277.0,
+    142.0,
+    286.0
+   ],
+   "dst_box": [
+    118.0,
+    289.42,
+    142.0,
+    298.42
+   ],
+   "font_size": 7.65,
+   "recovery": {
+    "reason": "height",
+    "decision": "clip",
+    "steps": [
+     "WRAP",
+     "SHRINK",
+     "CLIP"
+    ],
+    "original_font_size": 7.65,
+    "final_font_size": 5.0
+   },
+   "trace": [
+    {
+     "decision": "WRAP",
+     "overflow": true,
+     "line_count": 2,
+     "font_size": 7.65
+    },
+    {
+     "decision": "SHRINK",
+     "overflow": true,
+     "line_count": 2,
+     "font_size": 5.0
+    },
+    {
+     "decision": "CLIP",
+     "overflow": true,
+     "line_count": 1,
+     "font_size": 5.0
+    }
+   ],
+   "src_line_count": 1,
+   "final_line_count": 1,
+   "final_lines": [
+    "系统蒸发…"
+   ],
+   "commands": [
+    {
+     "kind": "flow-text",
+     "text": "系统蒸发…",
+     "x": 118.0,
+     "y": 298.42,
+     "width": 22.5,
+     "line": 0,
+     "is_last": true,
+     "overflow": true,
+     "font_size": 5.0
+    }
+   ],
+   "rp_overflow": true,
+   "layout_ok": false,
+   "doc_block_found": true,
+   "doc_block_text": "tions.",
+   "doc_block_n_lines": 1,
+   "q1_visual_defect": null,
+   "first_divergence": "Stage-3 (SHRINK line-collapse, no CLIP)"
+  }
+ },
+ "mono_pdf": "doc/7n8-mp2e\\output-magicpdf\\magicpdf\\The Art of Multiprocessor Programming, 2e_mono.pdf"
+}

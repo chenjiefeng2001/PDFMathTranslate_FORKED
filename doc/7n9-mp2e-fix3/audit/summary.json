@@ -1,0 +1,29 @@
+{
+ "schema": "trace-audit-v1",
+ "trace": "C:\\Users\\14977\\source\\repos\\PDFMathTranslate_FORKED\\doc\\7n9-mp2e-fix3\\trace\\mp2e_events.jsonl",
+ "mono_pdf": "C:\\Users\\14977\\source\\repos\\PDFMathTranslate_FORKED\\doc\\7n9-mp2e-fix3\\output-magicpdf\\magicpdf\\The Art of Multiprocessor Programming, 2e_mono_trace.pdf",
+ "run_ids": [
+  "mp2e-20260902-07ea5f"
+ ],
+ "books": [
+  "mp2e"
+ ],
+ "total_events": 11467,
+ "pages": 562,
+ "page_grades": {
+  "A": 0,
+  "B": 0,
+  "C": 0,
+  "D": 0
+ },
+ "grade_D_pages": [],
+ "grade_C_pages": [],
+ "rule_results": 0,
+ "by_severity": {},
+ "by_rule": {},
+ "qualification": "PASS",
+ "first_divergence_by_stage": {},
+ "first_divergence_blocks": 0,
+ "downstream_symptoms": 0,
+ "rules": []
+}

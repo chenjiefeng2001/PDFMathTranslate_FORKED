@@ -1,0 +1,58 @@
+{
+ "schema": "7n-real-align-v1",
+ "engine": "magicpdf",
+ "plan_entries": 191,
+ "recovery_decisions": {
+  "shrink": 2
+ },
+ "recovery_steps": {
+  "WRAP->SHRINK": 2
+ },
+ "mech1_clip_blocks": 0,
+ "mech1_detail": [],
+ "fixup_counts": {
+  "keep": 153,
+  "shift_down": 5,
+  "preserve": 33
+ },
+ "mech2_shifted_with_commands": 3,
+ "mech2_decoupled": 0,
+ "mech2_detail": [
+  {
+   "block_id": "p5_1",
+   "page": 5,
+   "shift": "shift_down",
+   "dst_box_y0_y1": [
+    429.85,
+    443.85
+   ],
+   "first_cmd_y": 443.9,
+   "decoupled": false
+  },
+  {
+   "block_id": "p5_3",
+   "page": 5,
+   "shift": "shift_down",
+   "dst_box_y0_y1": [
+    380.46,
+    393.46
+   ],
+   "first_cmd_y": 393.5,
+   "decoupled": false
+  },
+  {
+   "block_id": "p5_7",
+   "page": 5,
+   "shift": "shift_down",
+   "dst_box_y0_y1": [
+    246.12,
+    261.12
+   ],
+   "first_cmd_y": 261.1,
+   "decoupled": false
+  }
+ ],
+ "mono_pdf": "doc/7n-real-fix2\\output-magicpdf\\magicpdf\\The Art of Multiprocessor Programming, 2e_mono.pdf",
+ "doc_blocks": 191,
+ "doc_blocks_with_translated": 181
+}

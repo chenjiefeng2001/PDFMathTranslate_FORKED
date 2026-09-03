@@ -1,0 +1,412 @@
+{
+ "schema": "7n-postfix-audit-v1",
+ "run_dir": "C:\\Users\\14977\\source\\repos\\PDFMathTranslate_FORKED\\doc\\7n9-mp2e-fix3",
+ "total_pages": 562,
+ "total_blocks": 6690,
+ "translated_blocks": 6046,
+ "render_paths": {
+  "translate_refit": 3573,
+  "preserve_float": 2826,
+  "null": 97,
+  "shift_down": 59,
+  "overlay": 135
+ },
+ "fixup_counts": {
+  "keep": 3805,
+  "preserve": 2826,
+  "shift_down": 59
+ },
+ "recovery_decisions": {
+  "shrink": 25,
+  "clip": 1
+ },
+ "recovery_steps": {
+  "WRAP->SHRINK": 24,
+  "SHRINK": 1,
+  "WRAP->SHRINK->CLIP": 1
+ },
+ "page_grades": {
+  "A": 506,
+  "B": 55,
+  "D": 1
+ },
+ "grade_D_pages": [
+  442
+ ],
+ "grade_C_pages": [],
+ "suspicious_queue": [
+  {
+   "page": 442,
+   "severity": "HIGH",
+   "flags": {
+    "clip": 1,
+    "residual_overflow": 1
+   },
+   "reason": "clipx1; residual_overflowx1"
+  }
+ ],
+ "flag_counts": {
+  "clip": 1,
+  "residual_overflow": 1
+ },
+ "doc_pages": 562,
+ "doc_blocks": 6690,
+ "doc_blocks_with_translated": 6046,
+ "fix2": {
+  "shift_down_total": 59,
+  "shifted_with_commands": 1,
+  "decoupled": 0,
+  "double_shift_suspect": 0,
+  "x_changed": 0,
+  "font_changed": 0,
+  "alias_value_mismatch": 0
+ },
+ "fix2_detail": [
+  {
+   "block_id": "p442_4",
+   "page": 442,
+   "dst_box_y1": 275.29,
+   "first_cmd_y": 275.29,
+   "decoupled": false
+  }
+ ],
+ "visual_check": {
+  "available": true,
+  "checked_blocks": 1
+ },
+ "visual_missing": [],
+ "visual_overlap": [],
+ "mech3": {
+  "plan_overlap_hits": 30,
+  "ink_verified": 6,
+  "real_collisions": 1
+ },
+ "mech3_detail": [
+  {
+   "block_id": "p25_3",
+   "page": 25,
+   "plan_overlap_pct": 86.9,
+   "into": "p25_4",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p68_11",
+   "page": 68,
+   "plan_overlap_pct": 100.0,
+   "into": "p68_0",
+   "into_kind": "code",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p117_8",
+   "page": 117,
+   "plan_overlap_pct": 40.8,
+   "into": "p117_9",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p126_2",
+   "page": 126,
+   "plan_overlap_pct": 65.3,
+   "into": "p126_3",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p164_12",
+   "page": 164,
+   "plan_overlap_pct": 44.1,
+   "into": "p164_0",
+   "into_kind": "figure",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p171_5",
+   "page": 171,
+   "plan_overlap_pct": 89.8,
+   "into": "p171_6",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p198_16",
+   "page": 198,
+   "plan_overlap_pct": 85.7,
+   "into": "p198_17",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p214_9",
+   "page": 214,
+   "plan_overlap_pct": 84.9,
+   "into": "p214_10",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p233_4",
+   "page": 233,
+   "plan_overlap_pct": 95.6,
+   "into": "p233_5",
+   "into_kind": "formula",
+   "ink_overlap_pct": 56.1,
+   "verdict": "REAL_COLLISION"
+  },
+  {
+   "block_id": "p254_9",
+   "page": 254,
+   "plan_overlap_pct": 100.0,
+   "into": "p254_10",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p304_8",
+   "page": 304,
+   "plan_overlap_pct": 100.0,
+   "into": "p304_0",
+   "into_kind": "code",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p307_1",
+   "page": 307,
+   "plan_overlap_pct": 88.2,
+   "into": "p307_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p317_8",
+   "page": 317,
+   "plan_overlap_pct": 95.6,
+   "into": "p317_9",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p374_1",
+   "page": 374,
+   "plan_overlap_pct": 47.9,
+   "into": "p374_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p374_1",
+   "page": 374,
+   "plan_overlap_pct": 89.6,
+   "into": "p374_4",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p419_5",
+   "page": 419,
+   "plan_overlap_pct": 100.0,
+   "into": "p419_6",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p443_4",
+   "page": 443,
+   "plan_overlap_pct": 90.4,
+   "into": "p443_5",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p444_9",
+   "page": 444,
+   "plan_overlap_pct": 97.6,
+   "into": "p444_10",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p474_10",
+   "page": 474,
+   "plan_overlap_pct": 74.3,
+   "into": "p474_11",
+   "into_kind": "formula",
+   "ink_overlap_pct": 0.0,
+   "verdict": "plan_only"
+  },
+  {
+   "block_id": "p505_7",
+   "page": 505,
+   "plan_overlap_pct": 98.1,
+   "into": "p505_8",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p511_3",
+   "page": 511,
+   "plan_overlap_pct": 100.0,
+   "into": "p511_4",
+   "into_kind": "code",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p511_3",
+   "page": 511,
+   "plan_overlap_pct": 100.0,
+   "into": "p511_11",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_8",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_10",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_11",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_12",
+   "page": 558,
+   "plan_overlap_pct": 99.1,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_15",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_18",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_20",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  },
+  {
+   "block_id": "p558_23",
+   "page": 558,
+   "plan_overlap_pct": 100.0,
+   "into": "p558_2",
+   "into_kind": "formula",
+   "ink_overlap_pct": null
+  }
+ ],
+ "forensics": {
+  "p442_4": {
+   "block_id": "p442_4",
+   "found": true,
+   "page": 442,
+   "kind": "paragraph",
+   "source_text": "tions.",
+   "translated_text": "系统蒸发散。",
+   "src_box": [
+    118.0,
+    277.0,
+    142.0,
+    286.0
+   ],
+   "dst_box": [
+    118.0,
+    266.29,
+    142.0,
+    275.29
+   ],
+   "font_size": 7.65,
+   "recovery": {
+    "reason": "height",
+    "decision": "clip",
+    "steps": [
+     "WRAP",
+     "SHRINK",
+     "CLIP"
+    ],
+    "original_font_size": 7.65,
+    "final_font_size": 5.0
+   },
+   "trace": [
+    {
+     "decision": "WRAP",
+     "overflow": true,
+     "line_count": 2,
+     "font_size": 7.65
+    },
+    {
+     "decision": "SHRINK",
+     "overflow": true,
+     "line_count": 2,
+     "font_size": 5.0
+    },
+    {
+     "decision": "CLIP",
+     "overflow": true,
+     "line_count": 1,
+     "font_size": 5.0
+    }
+   ],
+   "src_line_count": 1,
+   "final_line_count": 1,
+   "final_lines": [
+    "系统蒸发…"
+   ],
+   "commands": [
+    {
+     "kind": "flow-text",
+     "text": "系统蒸发…",
+     "x": 118.0,
+     "y": 275.29,
+     "width": 22.5,
+     "line": 0,
+     "is_last": true,
+     "overflow": true,
+     "font_size": 5.0
+    }
+   ],
+   "rp_overflow": true,
+   "layout_ok": false,
+   "doc_block_found": true,
+   "doc_block_text": "tions.",
+   "doc_block_n_lines": 1,
+   "q1_visual_defect": null,
+   "first_divergence": "Stage-3 (SHRINK line-collapse, no CLIP)"
+  }
+ },
+ "mono_pdf": "doc/7n9-mp2e-fix3\\output-magicpdf\\magicpdf\\The Art of Multiprocessor Programming, 2e_mono.pdf"
+}

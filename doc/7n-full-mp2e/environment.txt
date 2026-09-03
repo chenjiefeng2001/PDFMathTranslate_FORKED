@@ -1,0 +1,9 @@
+{
+ "python": "3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]",
+ "platform": "Windows-11-10.0.29648-SP0",
+ "pdf2zh_version": "1.9.12",
+ "git_head": "4eccfa6",
+ "PDF2ZH_AUTO_SWITCH_MAGICPDF": "0",
+ "PDF2ZH_PARALLEL_WORKERS": "",
+ "PDF2ZH_NO_PARALLEL": "1"
+}

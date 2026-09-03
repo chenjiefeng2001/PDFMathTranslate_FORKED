@@ -1,0 +1,17 @@
+{
+ "argv": [
+  "tests/file/The Art of Multiprocessor Programming, 2e.pdf",
+  "--lang-in",
+  "en",
+  "--lang-out",
+  "zh",
+  "--service",
+  "google",
+  "--output",
+  "C:\\Users\\14977\\source\\repos\\PDFMathTranslate_FORKED\\doc\\7n8-mp2e\\output-legacy",
+  "--no-parallel",
+  "--thread",
+  "1"
+ ],
+ "pages": "ALL"
+}
