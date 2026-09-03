@@ -1,0 +1,36 @@
+#!/bin/sh
+# commit-msg guard · script/git-hooks/commit-msg
+#
+# Runs under the repo's configured `core.hooksPath` (script/git-hooks).
+# Strips any "Co-authored-by:" trailer that references CodeBuff / Config Buff
+# (any common casing) so commits here can never be polluted by an injected
+# co-author trailer — whether it comes from an IDE/Cursor extension, a global
+# hook, or a commit template.
+#
+# All other content is preserved verbatim: subject line, body, blank lines, and
+# unrelated trailers such as "Signed-off-by:" or non-CodeBuff co-authors.
+
+msg_file="$1"
+[ -n "$msg_file" ] || exit 0
+[ -f "$msg_file" ] || exit 0
+
+tmp="$(mktemp 2>/dev/null)" || exit 0
+trap 'rm -f "$tmp"' EXIT INT TERM
+
+# 1) Delete CodeBuff co-author trailer lines.
+#    Trailer form: Co-authored-by: CodeBuff <bot@codebuff.ai>
+sed -E '/^[[:space:]]*[Cc]o-[Aa]uthored-by:.*[Cc]ode[[:space:]]*[Bb]uff/d' "$msg_file" > "$tmp"
+
+# 2) Strip trailing blank lines left behind by the deletion (commit messages
+#    are small), keeping the subject, body and any remaining trailers intact
+#    (e.g. an unrelated "Signed-off-by:" or a real co-author).
+awk '
+    { lines[NR] = $0 }
+    END {
+        last = NR
+        while (last > 0 && lines[last] == "") last--
+        for (i = 1; i <= last; i++) print lines[i]
+    }
+' "$tmp" > "$msg_file"
+
+exit 0
