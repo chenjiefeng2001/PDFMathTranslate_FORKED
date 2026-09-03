@@ -299,7 +299,11 @@ def _emit_fixup_trace(trace, item: dict, fixup: str) -> None:
         return
     src = list(item.get("src_box") or [0, 0, 0, 0])
     dst = list(item.get("dst_box") or src)
-    delta_y = round(float(dst[3]) - float(src[3]), 2) if len(src) == 4 and len(dst) == 4 else None
+    delta_y = (
+        round(float(dst[3]) - float(src[3]), 2)
+        if len(src) == 4 and len(dst) == 4
+        else None
+    )
     # fixup 在此刻已 co-shift 过 commands（shift_down 分支在调用前执行了
     # _shift_payload_commands_y），因此这里读出的是**平移后**的首命令 y ——
     # DECOUPLED 规则用它与 dst_box.y1 比对，验证 FIX-2 锚定不变量。
@@ -312,9 +316,7 @@ def _emit_fixup_trace(trace, item: dict, fixup: str) -> None:
             break
     trace.emit(
         f"plan.{fixup}",
-        trace.ctx(
-            int(item.get("page") or 0), item.get("block_id") or "?", "plan"
-        ),
+        trace.ctx(int(item.get("page") or 0), item.get("block_id") or "?", "plan"),
         {
             "kind": item.get("kind"),
             "fixup": fixup,
@@ -323,8 +325,17 @@ def _emit_fixup_trace(trace, item: dict, fixup: str) -> None:
             "delta_y": delta_y,
             "delta_y_meaning": "v3_y_up_shift",
             "first_cmd_y": first_cmd_y,
-            "cmd_count": None if first_cmd_y is None else (
-                len(rp.get("commands") or rp.get("list_items") or rp.get("toc_commands") or [])
+            "cmd_count": (
+                None
+                if first_cmd_y is None
+                else (
+                    len(
+                        rp.get("commands")
+                        or rp.get("list_items")
+                        or rp.get("toc_commands")
+                        or []
+                    )
+                )
             ),
             "overflowed": bool(item.get("overflowed")),
         },

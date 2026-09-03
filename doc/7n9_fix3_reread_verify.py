@@ -21,7 +21,12 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from doc.seven_n_helpers import STEM, load, page_sizes_from_document, undo_old_shift  # noqa: E402
+from doc.seven_n_helpers import (
+    STEM,
+    load,
+    page_sizes_from_document,
+    undo_old_shift,
+)  # noqa: E402
 
 
 def main(argv=None) -> int:

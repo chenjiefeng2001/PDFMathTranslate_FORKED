@@ -84,8 +84,13 @@ def main(argv=None) -> int:
 
     by_rule = Counter(r.rule for r in results)
     print(f"[TRACE] rule FAILs: {dict(by_rule) or 'none'}")
-    for want in ("FLOW_BASELINE_SEMANTICS", "FLOW_BASELINE_MISMATCH",
-                 "SHIFT_DIRECTION", "DECOUPLED", "ERASE_GEOMETRY"):
+    for want in (
+        "FLOW_BASELINE_SEMANTICS",
+        "FLOW_BASELINE_MISMATCH",
+        "SHIFT_DIRECTION",
+        "DECOUPLED",
+        "ERASE_GEOMETRY",
+    ):
         if by_rule.get(want):
             print(f"[TRACE] !! {want} fired on a real run: {by_rule[want]}")
 

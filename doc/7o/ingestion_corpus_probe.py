@@ -77,9 +77,7 @@ def story(pdf_path, out_dir, ingest_backend, label):
 
     stem = Path(pdf_path).stem
     trace_jsonl = Path(out_dir) / "trace" / f"{stem}_events.jsonl"
-    with patch(
-        "pdf2zh.translator.build_translator", return_value=EchoTranslator()
-    ):
+    with patch("pdf2zh.translator.build_translator", return_value=EchoTranslator()):
         code = run_magicpdf_main(make_ns(pdf_path, out_dir, ingest_backend))
 
     events = list(read_events(str(trace_jsonl)))
@@ -122,10 +120,17 @@ def story(pdf_path, out_dir, ingest_backend, label):
     # select decision
     sel = next(e for e in events if e["event"] == "ingest.select")
     d = sel["payload"]["decision"]
-    check(d["selected_backend"] == "mineru", f"selected=mineru (got {d['selected_backend']})")
+    check(
+        d["selected_backend"] == "mineru",
+        f"selected=mineru (got {d['selected_backend']})",
+    )
     check(d["fallback"] is False, "no fallback")
-    expected_reason = "forced_backend" if ingest_backend == "mineru" else "primary_ingest_pass"
-    check(d["reason"] == expected_reason, f"reason={expected_reason} (got {d['reason']})")
+    expected_reason = (
+        "forced_backend" if ingest_backend == "mineru" else "primary_ingest_pass"
+    )
+    check(
+        d["reason"] == expected_reason, f"reason={expected_reason} (got {d['reason']})"
+    )
     check(d["fallback_attempted"] is False, "no fallback attempted")
 
     # pipeline continued into plan
@@ -137,10 +142,15 @@ def story(pdf_path, out_dir, ingest_backend, label):
     check(summary.exists(), "audit summary.json written")
     if summary.exists():
         s = json.loads(summary.read_text(encoding="utf-8"))
-        check(s.get("qualification") == "PASS", f"qualification PASS (got {s.get('qualification')})")
+        check(
+            s.get("qualification") == "PASS",
+            f"qualification PASS (got {s.get('qualification')})",
+        )
         check(s.get("rule_fails", 0) == 0, "no rule fails")
 
-    print(f"\n=== {label}: {Path(pdf_path).name} | backend={ingest_backend} | rc={code}")
+    print(
+        f"\n=== {label}: {Path(pdf_path).name} | backend={ingest_backend} | rc={code}"
+    )
     print(
         f"    events={len(events)} raw_blocks={len(raw_idx)} canonical_blocks={len(can_idx)} "
         f"plan_events={sum(1 for n in names if n.startswith('plan.'))}"
@@ -173,7 +183,9 @@ def main():
                     _, ok = story(pdf, out, backend, label)
                     all_ok = all_ok and ok
                 except Exception as exc:  # noqa: BLE001 -- probe must not die
-                    print(f"\n=== {label}: {Path(pdf).name} | backend={backend} | EXCEPTION: {exc!r}")
+                    print(
+                        f"\n=== {label}: {Path(pdf).name} | backend={backend} | EXCEPTION: {exc!r}"
+                    )
                     all_ok = False
     print(f"\nCORPUS RESULT: {'ALL OK' if all_ok else 'FAILURES PRESENT'}")
     return 0 if all_ok else 1

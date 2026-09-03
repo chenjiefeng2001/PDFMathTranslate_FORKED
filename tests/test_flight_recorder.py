@@ -54,8 +54,15 @@ def _plan_event(page, block, **over):
         "lines": ["译文文本内容"],
         "recovery": None,
         "commands": [
-            {"x": 50.0, "y": 600.0, "y_meaning": "box_top", "font_size": 12.0,
-             "text": "译文文本内容", "is_last": True, "overflow": False}
+            {
+                "x": 50.0,
+                "y": 600.0,
+                "y_meaning": "box_top",
+                "font_size": 12.0,
+                "text": "译文文本内容",
+                "is_last": True,
+                "overflow": False,
+            }
         ],
     }
     p.update(over)
@@ -100,8 +107,12 @@ class TestRecorder(unittest.TestCase):
                     "commands": [
                         {
                             "x": 10.0,
-                            "y": Coord(366.58, space="v3", origin="lower-left",
-                                       meaning="box_top"),
+                            "y": Coord(
+                                366.58,
+                                space="v3",
+                                origin="lower-left",
+                                meaning="box_top",
+                            ),
                             "actual_baseline": 370.83,
                             "expected_baseline": 370.83,
                         }
@@ -133,21 +144,36 @@ class TestRecorder(unittest.TestCase):
         self.assertIn("render", t["stages"])
 
 
-def _fix_render_event(page, block, baseline=370.83, expected=370.83, y_meaning="box_top",
-                      erase_rect=None, src=None, dst=None, shifted=False):
+def _fix_render_event(
+    page,
+    block,
+    baseline=370.83,
+    expected=370.83,
+    y_meaning="box_top",
+    erase_rect=None,
+    src=None,
+    dst=None,
+    shifted=False,
+):
     p = {
         "kind": "paragraph",
         "text": "source",
         "translated": "译文",
         "src_box": src or [50.0, 586.0, 400.0, 600.0],
-        "dst_box": dst or ([50.0, 546.0, 400.0, 560.0] if shifted else [50.0, 586.0, 400.0, 600.0]),
+        "dst_box": dst
+        or ([50.0, 546.0, 400.0, 560.0] if shifted else [50.0, 586.0, 400.0, 600.0]),
         "page_height": 792.0,
         "font_size": 12.0,
         "commands": [
             {
-                "x": 50.0, "y": 600.0, "y_space": "v3", "y_meaning": y_meaning,
-                "font_size": 12.0, "text": "译文",
-                "actual_baseline": baseline, "expected_baseline": expected,
+                "x": 50.0,
+                "y": 600.0,
+                "y_space": "v3",
+                "y_meaning": y_meaning,
+                "font_size": 12.0,
+                "text": "译文",
+                "actual_baseline": baseline,
+                "expected_baseline": expected,
                 "baseline_delta": round(baseline - expected, 2),
             }
         ],
@@ -193,7 +219,9 @@ class TestRules(unittest.TestCase):
         evs = [
             _plan_event(1, "p1_0", src_box=src, dst_box=src),
             _shift_event(1, "p1_0", src, dst),
-            _fix_render_event(1, "p1_0", src=src, dst=dst, erase_rect=list(src), shifted=True),
+            _fix_render_event(
+                1, "p1_0", src=src, dst=dst, erase_rect=list(src), shifted=True
+            ),
         ]
         res = run_rules(evs)
         self.assertFalse([r for r in res if r.rule == "ERASE_GEOMETRY"])
@@ -205,7 +233,9 @@ class TestRules(unittest.TestCase):
         evs = [
             _plan_event(1, "p1_0", src_box=src, dst_box=src),
             _shift_event(1, "p1_0", src, dst),
-            _fix_render_event(1, "p1_0", src=src, dst=dst, erase_rect=list(dst), shifted=True),
+            _fix_render_event(
+                1, "p1_0", src=src, dst=dst, erase_rect=list(dst), shifted=True
+            ),
         ]
         res = run_rules(evs)
         hit = next(r for r in res if r.rule == "ERASE_GEOMETRY")
@@ -216,7 +246,9 @@ class TestRules(unittest.TestCase):
         src = [50.0, 586.0, 400.0, 600.0]
         # +Δy (old bug): box moved UP in v3
         bad = run_rules([_shift_event(1, "p1_0", src, [50.0, 608.0, 400.0, 622.0])])
-        self.assertTrue(any(r.rule == "SHIFT_DIRECTION" and r.severity == "HIGH" for r in bad))
+        self.assertTrue(
+            any(r.rule == "SHIFT_DIRECTION" and r.severity == "HIGH" for r in bad)
+        )
         # −Δy (FIX-3): down
         good = run_rules([_shift_event(1, "p1_0", src, [50.0, 564.0, 400.0, 578.0])])
         self.assertFalse([r for r in good if r.rule == "SHIFT_DIRECTION"])
@@ -234,10 +266,23 @@ class TestRules(unittest.TestCase):
         self.assertFalse([r for r in ok if r.rule == "DECOUPLED"])
         # stale command y → FAIL
         evs2 = [
-            _plan_event(1, "p1_0", src_box=src, dst_box=src,
-                        commands=[{"x": 50.0, "y": 600.0, "y_meaning": "box_top",
-                                   "font_size": 12.0, "text": "t", "is_last": True,
-                                   "overflow": False}]),
+            _plan_event(
+                1,
+                "p1_0",
+                src_box=src,
+                dst_box=src,
+                commands=[
+                    {
+                        "x": 50.0,
+                        "y": 600.0,
+                        "y_meaning": "box_top",
+                        "font_size": 12.0,
+                        "text": "t",
+                        "is_last": True,
+                        "overflow": False,
+                    }
+                ],
+            ),
             _shift_event(1, "p1_0", src, dst),
         ]
         res = run_rules(evs2)
@@ -247,9 +292,17 @@ class TestRules(unittest.TestCase):
 
     def test_clip_rule(self):
         evs = [
-            _plan_event(1, "p1_0", overflow=True, layout_ok=False,
-                        recovery={"decision": "clip", "steps": ["WRAP", "SHRINK", "CLIP"],
-                                  "final_font_size": 5.0}),
+            _plan_event(
+                1,
+                "p1_0",
+                overflow=True,
+                layout_ok=False,
+                recovery={
+                    "decision": "clip",
+                    "steps": ["WRAP", "SHRINK", "CLIP"],
+                    "final_font_size": 5.0,
+                },
+            ),
         ]
         res = run_rules(evs)
         hit = next(r for r in res if r.rule == "CLIP_READABILITY")
@@ -260,7 +313,9 @@ class TestRules(unittest.TestCase):
         evs = [
             _plan_event(1, "p1_0"),
             _fix_render_event(1, "p1_0", y_meaning="baseline"),  # HIGH → D
-            _plan_event(2, "p2_0", recovery={"decision": "clip", "steps": ["CLIP"]}),  # MEDIUM → C
+            _plan_event(
+                2, "p2_0", recovery={"decision": "clip", "steps": ["CLIP"]}
+            ),  # MEDIUM → C
         ]
         res = run_rules(evs)
         grades = grade_pages(res)
@@ -278,9 +333,15 @@ class TestFirstDivergence(unittest.TestCase):
             _plan_event(page, block),
             _fix_render_event(page, block, y_meaning="baseline"),  # render FAIL
             _event(
-                "raster.ink", page, block, "raster",
-                {"foreign_overlap_pct": 55.0, "ink_bbox": [10.0, 10.0, 50.0, 20.0],
-                 "found": True},
+                "raster.ink",
+                page,
+                block,
+                "raster",
+                {
+                    "foreign_overlap_pct": 55.0,
+                    "ink_bbox": [10.0, 10.0, 50.0, 20.0],
+                    "found": True,
+                },
             ),
         ]
 
@@ -304,13 +365,24 @@ class TestFirstDivergence(unittest.TestCase):
         src = [50.0, 586.0, 400.0, 600.0]
         dst = [50.0, 564.0, 400.0, 578.0]
         evs = [
-            _plan_event(1, "p1_0", translated="", text="needs translation",
-                        render_path="shift_down"),
+            _plan_event(
+                1,
+                "p1_0",
+                translated="",
+                text="needs translation",
+                render_path="shift_down",
+            ),
             _shift_event(1, "p1_0", src, dst),
             _event(
-                "raster.ink", 1, "p1_0", "raster",
-                {"foreign_overlap_pct": 55.0, "ink_bbox": [10.0, 10.0, 50.0, 20.0],
-                 "found": True},
+                "raster.ink",
+                1,
+                "p1_0",
+                "raster",
+                {
+                    "foreign_overlap_pct": 55.0,
+                    "ink_bbox": [10.0, 10.0, 50.0, 20.0],
+                    "found": True,
+                },
             ),
         ]
         res = run_rules(evs)
@@ -332,12 +404,16 @@ class TestFirstDivergence(unittest.TestCase):
             rc = _run_audit(trace_path, out=out)
             self.assertEqual(rc, 0)
 
-            summary = json.load(open(os.path.join(out, "summary.json"), encoding="utf-8"))
+            summary = json.load(
+                open(os.path.join(out, "summary.json"), encoding="utf-8")
+            )
             self.assertEqual(summary["qualification"], "FAIL")
             self.assertEqual(summary["first_divergence_by_stage"], {"render": 1})
             self.assertEqual(summary["first_divergence_blocks"], 1)
             self.assertEqual(summary["downstream_symptoms"], 1)
-            base = next(r for r in summary["rules"] if r["rule"] == "FLOW_BASELINE_SEMANTICS")
+            base = next(
+                r for r in summary["rules"] if r["rule"] == "FLOW_BASELINE_SEMANTICS"
+            )
             self.assertEqual(base["first_divergence"], "render")
             self.assertFalse(base["downstream"])
             ink = next(r for r in summary["rules"] if r["rule"] == "INK_OVERLAP")
@@ -365,9 +441,15 @@ class TestExplain(unittest.TestCase):
             _plan_event(1, "p1_0"),
             _fix_render_event(1, "p1_0", y_meaning="baseline"),
             _event(
-                "raster.ink", 1, "p1_0", "raster",
-                {"foreign_overlap_pct": 55.0, "ink_bbox": [10.0, 10.0, 50.0, 20.0],
-                 "found": True},
+                "raster.ink",
+                1,
+                "p1_0",
+                "raster",
+                {
+                    "foreign_overlap_pct": 55.0,
+                    "ink_bbox": [10.0, 10.0, 50.0, 20.0],
+                    "found": True,
+                },
             ),
         ]
 
@@ -457,20 +539,33 @@ class TestEndToEndAudit(unittest.TestCase):
             ln = LineModel(text=text, baseline=0.0, x0=x0, y0=y0, x1=x1, y1=y1)
             ln.spans.append(SpanModel(size=size, text=text, x0=x0, y0=y0, x1=x1, y1=y1))
             return BlockModel(
-                text=text, kind=kind, x0=x0, y0=y0, x1=x1, y1=y1,
-                lines=[ln], metadata={"translated": translated},
+                text=text,
+                kind=kind,
+                x0=x0,
+                y0=y0,
+                x1=x1,
+                y1=y1,
+                lines=[ln],
+                metadata={"translated": translated},
             )
 
         page = PageModel(page_num=0)
-        page.blocks.append(blk("A short paragraph.", "一个简短的段落。", 72, 700, 540, 722))
+        page.blocks.append(
+            blk("A short paragraph.", "一个简短的段落。", 72, 700, 540, 722)
+        )
         model = DocumentModel()
         model.pages = [page]
 
         rec = FlightRecorder(trace_path, book_id="tiny")
         plan = render_plan_from_model(model, trace=rec)
         fixed, _ = fixup_render_plan(plan, trace=rec)
-        render_plan_to_pdf(fixed, page_sizes={0: [612, 792]}, output_path=pdf_path,
-                           cjk_font=True, trace=rec)
+        render_plan_to_pdf(
+            fixed,
+            page_sizes={0: [612, 792]},
+            output_path=pdf_path,
+            cjk_font=True,
+            trace=rec,
+        )
         rec.close()
 
     def test_audit_outputs(self):
@@ -489,17 +584,26 @@ class TestEndToEndAudit(unittest.TestCase):
             flow = next(e for e in evs if e["event"] == "render.flow")
             cmd = flow["payload"]["commands"][0]
             self.assertEqual(cmd["y_meaning"], "box_top")
-            self.assertAlmostEqual(cmd["actual_baseline"], cmd["expected_baseline"], places=1)
+            self.assertAlmostEqual(
+                cmd["actual_baseline"], cmd["expected_baseline"], places=1
+            )
 
             from pdf2zh.v3.trace_audit import _run_audit
 
             out = os.path.join(d, "audit")
             rc = _run_audit(trace_path, pdf=pdf_path, out=out)
             self.assertEqual(rc, 0)
-            for name in ("summary.json", "pages.json", "trace-index.json",
-                         "defect-ledger.csv", "qualification.md"):
+            for name in (
+                "summary.json",
+                "pages.json",
+                "trace-index.json",
+                "defect-ledger.csv",
+                "qualification.md",
+            ):
                 self.assertTrue(os.path.exists(os.path.join(out, name)), name)
-            summary = json.load(open(os.path.join(out, "summary.json"), encoding="utf-8"))
+            summary = json.load(
+                open(os.path.join(out, "summary.json"), encoding="utf-8")
+            )
             self.assertEqual(summary["qualification"], "PASS")
             # ledger header present
             with open(os.path.join(out, "defect-ledger.csv"), encoding="utf-8") as fh:

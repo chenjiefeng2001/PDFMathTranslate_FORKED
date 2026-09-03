@@ -180,7 +180,10 @@ class FlightRecorder:
             self.emit(
                 "run.end",
                 TraceContext(self.run_id, self.book_id, -1, "*", "run"),
-                {"events": self._count, "duration": round(time.time() - self._started, 3)},
+                {
+                    "events": self._count,
+                    "duration": round(time.time() - self._started, 3),
+                },
             )
             self._fh.flush()
             self._fh.close()
@@ -248,7 +251,9 @@ def build_trace_index(events: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def write_trace_index(events: Sequence[Dict[str, Any]], out_path: str) -> Dict[str, Any]:
+def write_trace_index(
+    events: Sequence[Dict[str, Any]], out_path: str
+) -> Dict[str, Any]:
     idx = build_trace_index(events)
     os.makedirs(os.path.dirname(os.path.abspath(out_path)) or ".", exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as fh:

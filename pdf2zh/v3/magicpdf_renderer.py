@@ -125,7 +125,9 @@ def _emit_render_trace(
         payload["erase_rect_fitz"] = [round(float(v), 2) for v in er_fitz]
         payload["erase_rect"] = [round(float(v), 2) for v in er_v3]
         payload["erase_semantics"] = (
-            "src_box" if _same_box(er_v3, src) else ("dst_box" if _same_box(er_v3, dst) else "other")
+            "src_box"
+            if _same_box(er_v3, src)
+            else ("dst_box" if _same_box(er_v3, dst) else "other")
         )
     if commands is not None:
         used = list(used_baselines or [])
@@ -147,7 +149,9 @@ def _emit_render_trace(
                     (float(page_height) - float(y_v3)) + float(draw_fs) * 0.85, 2
                 )
                 entry_cmd["baseline_delta"] = round(
-                    float(actual) - ((float(page_height) - float(y_v3)) + float(draw_fs) * 0.85), 2
+                    float(actual)
+                    - ((float(page_height) - float(y_v3)) + float(draw_fs) * 0.85),
+                    2,
                 )
             cmds_out.append(entry_cmd)
         payload["commands"] = cmds_out
@@ -511,8 +515,14 @@ def render_plan_to_pdf(
                     page, list_cmds, h, font_size, fontname, erase_rect, stats, src_doc
                 )
                 _emit_render_trace(
-                    trace, entry, pno, h, "render.block",
-                    commands=list_cmds, erase_rect=list(erase_rect), font_size=font_size,
+                    trace,
+                    entry,
+                    pno,
+                    h,
+                    "render.block",
+                    commands=list_cmds,
+                    erase_rect=list(erase_rect),
+                    font_size=font_size,
                 )
                 if prov is not None:
                     prov.record(
@@ -546,8 +556,14 @@ def render_plan_to_pdf(
                     page, toc_cmds, h, font_size, fontname, erase_rect, stats, src_doc
                 )
                 _emit_render_trace(
-                    trace, entry, pno, h, "render.block",
-                    commands=toc_cmds, erase_rect=list(erase_rect), font_size=font_size,
+                    trace,
+                    entry,
+                    pno,
+                    h,
+                    "render.block",
+                    commands=toc_cmds,
+                    erase_rect=list(erase_rect),
+                    font_size=font_size,
                 )
                 if prov is not None:
                     prov.record(
@@ -639,8 +655,13 @@ def render_plan_to_pdf(
                 erase_rect = _erase_rect_for(entry, box, h)
                 page.draw_rect(erase_rect, color=None, fill=(1, 1, 1))
                 _emit_render_trace(
-                    trace, entry, pno, h, "render.erase",
-                    erase_rect=list(erase_rect), font_size=font_size,
+                    trace,
+                    entry,
+                    pno,
+                    h,
+                    "render.erase",
+                    erase_rect=list(erase_rect),
+                    font_size=font_size,
                 )
             if src_doc is None and not _is_translated_block(entry):
                 # 纯文本层：保留块（formula/code/table，translated == text）

@@ -563,9 +563,7 @@ def translate_document(
     return stats
 
 
-def render_plan_from_model(
-    model: DocumentModel, trace=None
-) -> List[dict]:
+def render_plan_from_model(model: DocumentModel, trace=None) -> List[dict]:
     """Render Plan：为每个 Block 给出渲染决策（Renderer 只读 Document）。
 
     每块输出 {block_id, page, kind, text, translated, render_path,
