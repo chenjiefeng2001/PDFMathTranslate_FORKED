@@ -128,6 +128,18 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: frontend/src-tauri
+      # tauri-build validates bundle.resources paths inside the build script, and a
+      # missing file fails the build outright (resource path
+      # `binaries/pdf2zh-api-sidecar.zip' doesn't exist). The real sidecar is produced
+      # by script/build-tauri.ps1 at package time and is ~180MB, which exceeds GitHub's
+      # 100MB per-file push limit, so it is intentionally not committed. fmt/clippy/test
+      # only compile and run unit tests; they never package or read the sidecar, so a
+      # placeholder file is enough to satisfy the resource path check.
+      - name: Stub sidecar resource for cargo builds
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "binaries" | Out-Null
+          Set-Content -Path "binaries/pdf2zh-api-sidecar.zip" -Value "stub" -NoNewline
       - name: cargo fmt --check
         run: cargo fmt --check
       - name: cargo clippy
