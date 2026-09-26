@@ -37,6 +37,9 @@ import {
   getMineruSetupStatus,
   setupMineruCuda,
   getMineruCudaSetupStatus,
+  selftestJina,
+  setupJina,
+  getJinaSetupStatus,
   updateEngineEnvs,
   type DoclayoutModelStatus,
   type GpuProviderStatus,
@@ -682,6 +685,104 @@ function MineruSection() {
   );
 }
 
+function JinaSection() {
+  const { t } = useTranslation();
+  const [state, setState] = useState<{
+    ok: boolean;
+    interpreter: string;
+    hint: string;
+  } | null>(null);
+  const [installing, setInstalling] = useState(false);
+  const [installError, setInstallError] = useState<string | null>(null);
+
+  async function refresh() {
+    try {
+      const result = await selftestJina();
+      setState(result);
+    } catch {
+      setState(null);
+    }
+  }
+
+  useEffect(() => {
+    void refresh();
+  }, []);
+
+  useEffect(() => {
+    if (!installing) return;
+    const timer = window.setInterval(async () => {
+      try {
+        const status = await getJinaSetupStatus();
+        if (!status.running) {
+          setInstalling(false);
+          window.clearInterval(timer);
+          setInstallError(status.error);
+          void refresh();
+        }
+      } catch {
+        setInstalling(false);
+      }
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [installing]);
+
+  async function startInstall() {
+    setInstallError(null);
+    setInstalling(true);
+    try {
+      const result = await setupJina();
+      if (!result.started) {
+        setInstalling(false);
+        setInstallError(result.reason || t("ui.label_error"));
+      }
+    } catch (error) {
+      setInstalling(false);
+      setInstallError(String(error));
+    }
+  }
+
+  return (
+    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+        {t("ui.settings_jina_hint")}
+      </Typography.Paragraph>
+      {state?.ok ? (
+        <Space direction="vertical" size={4} style={{ width: "100%" }}>
+          <Tag color="green">{t("ui.settings_jina_ready")}</Tag>
+          {state.interpreter && (
+            <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+              {state.interpreter}
+            </Typography.Text>
+          )}
+        </Space>
+      ) : (
+        <Space direction="vertical" size={6} style={{ width: "100%" }}>
+          <Button
+            type="primary"
+            size="small"
+            loading={installing}
+            onClick={() => void startInstall()}
+          >
+            {installing
+              ? t("ui.settings_jina_installing")
+              : t("ui.settings_jina_install")}
+          </Button>
+          {state?.hint && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {state.hint}
+            </Typography.Text>
+          )}
+        </Space>
+      )}
+      {installError && (
+        <Typography.Text type="danger" style={{ fontSize: 12 }}>
+          {installError}
+        </Typography.Text>
+      )}
+    </Space>
+  );
+}
+
 function ConnectionSection() {
   const { t } = useTranslation();
   const [value, setValue] = useState("");
@@ -758,6 +859,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
       )}
       {section(t("ui.settings_gpu_provider"), <GpuProviderSection active={open} />)}
       {section(t("ui.settings_mineru"), <MineruSection />)}
+      {section(t("ui.settings_jina"), <JinaSection />)}
       {section(
         t("ui.settings_glossaries"),
         <Space direction="vertical" size={6} style={{ width: "100%" }}>

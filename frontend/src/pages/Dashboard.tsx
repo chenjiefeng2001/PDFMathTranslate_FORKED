@@ -27,10 +27,12 @@ import { useTranslation } from "react-i18next";
 import {
   artifactUrl,
   getTask,
+  INGEST_BACKENDS,
   listGlossaries,
   listTasks,
   selftestMagicpdf,
 } from "../api/endpoints";
+import type { IngestBackend } from "../api/endpoints";
 import type { ResultFile, TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
 import { isTauri, pickExistingDirectory } from "../api/nativeSave";
@@ -193,9 +195,21 @@ export default function Dashboard() {
       threads: values.threads as number,
       pageRange: (values.page_range as string) || undefined,
       parseEngine: (values.parse_engine as string) || "auto",
+      ingestBackend: (values.ingest_backend as IngestBackend) || "auto",
       modeChoice: (values.mode_choice as string) || "auto",
       ocrMode: (values.ocr_mode as string) || "auto",
       backend: (values.backend as string) || "auto",
+      jinaModel: ((values.jina_model as string) || "").trim(),
+      jinaRevision: ((values.jina_revision as string) || "").trim(),
+      jinaPrompt: ((values.jina_prompt as string) || "").trim(),
+      jinaDevice: ((values.jina_device as string) || "auto").trim(),
+      jinaDpi: values.jina_dpi as number | undefined,
+      jinaMaxPixels: values.jina_max_pixels as number | undefined,
+      jinaMaxNewTokens: values.jina_max_new_tokens as number | undefined,
+      jinaTimeout: values.jina_timeout as number | undefined,
+      jinaCacheDir: ((values.jina_cache_dir as string) || "").trim(),
+      jinaMinCoverage: values.jina_min_coverage as number | undefined,
+      jinaOffline: !!values.jina_offline,
       outputDir: ((values.output_dir as string) || "").trim(),
       ignoreCache: !!values.ignore_cache,
       glossaryNames: (values.glossary_names as string[]) || [],
@@ -203,6 +217,8 @@ export default function Dashboard() {
       mineruWindowSize: ((values.mineru_window_size as string) || "").trim(),
       mineruParseMethod: ((values.mineru_parse_method as string) || "").trim(),
       mineruBackend: ((values.mineru_backend as string) || "").trim(),
+      traceEnabled: !!values.trace_enabled,
+      traceDir: ((values.trace_dir as string) || "").trim(),
     });
     if (taskId) {
       // 任务已入列：清空待提交队列，避免同一文件被重复提交；
@@ -240,14 +256,28 @@ export default function Dashboard() {
           engine: "google",
           threads: 4,
           parse_engine: "auto",
+          ingest_backend: "auto",
           mode_choice: "auto",
           ocr_mode: "auto",
           backend: "auto",
+          jina_model: "",
+          jina_revision: "",
+          jina_prompt: "",
+          jina_device: "auto",
+          jina_dpi: undefined,
+          jina_max_pixels: undefined,
+          jina_max_new_tokens: undefined,
+          jina_timeout: undefined,
+          jina_cache_dir: "",
+          jina_min_coverage: undefined,
+          jina_offline: false,
           output_dir: initialOutputDir,
           mineru_vram_size: "",
           mineru_window_size: "",
           mineru_parse_method: "",
           mineru_backend: "",
+          trace_enabled: false,
+          trace_dir: "",
         }}
       >
         {/* 文件上传（支持多选/拖入多个，批量翻译） */}
@@ -334,6 +364,130 @@ export default function Dashboard() {
                           ]}
                         />
                       </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_ingest_backend")}
+                        name="ingest_backend"
+                        tooltip={t("ui.config_ingest_backend_info")}
+                      >
+                        <Select
+                          style={{ width: 200 }}
+                          options={INGEST_BACKENDS.map((value) => ({
+                            value,
+                            label: t(`ui.config_ingest_${value}`),
+                          }))}
+                        />
+                      </Form.Item>
+                    </Space>
+                    <Space wrap size={12}>
+                      <Form.Item
+                        label={t("ui.config_jina_model")}
+                        name="jina_model"
+                        tooltip={t("ui.config_jina_model_info")}
+                      >
+                        <Input placeholder={t("ui.config_jina_default")} allowClear />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_revision")}
+                        name="jina_revision"
+                        tooltip={t("ui.config_jina_revision_info")}
+                      >
+                        <Input placeholder={t("ui.config_jina_default")} allowClear />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_prompt")}
+                        name="jina_prompt"
+                        tooltip={t("ui.config_jina_prompt_info")}
+                      >
+                        <Input placeholder={t("ui.config_jina_default")} allowClear />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_device")}
+                        name="jina_device"
+                        tooltip={t("ui.config_jina_device_info")}
+                      >
+                        <Select
+                          style={{ width: 140 }}
+                          options={[
+                            { value: "auto", label: t("ui.config_jina_device_auto") },
+                            { value: "cpu", label: t("ui.config_jina_device_cpu") },
+                            { value: "cuda", label: t("ui.config_jina_device_cuda") },
+                          ]}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_dpi")}
+                        name="jina_dpi"
+                        tooltip={t("ui.config_jina_dpi_info")}
+                      >
+                        <InputNumber min={72} max={600} step={10} precision={0} style={{ width: 120 }} />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_max_pixels")}
+                        name="jina_max_pixels"
+                        tooltip={t("ui.config_jina_max_pixels_info")}
+                      >
+                        <InputNumber
+                          min={1_000_000}
+                          max={64_000_000}
+                          step={100_000}
+                          precision={0}
+                          style={{ width: 150 }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_max_new_tokens")}
+                        name="jina_max_new_tokens"
+                        tooltip={t("ui.config_jina_max_new_tokens_info")}
+                      >
+                        <InputNumber
+                          min={1}
+                          max={32768}
+                          step={256}
+                          precision={0}
+                          style={{ width: 150 }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_timeout")}
+                        name="jina_timeout"
+                        tooltip={t("ui.config_jina_timeout_info")}
+                      >
+                        <InputNumber
+                          min={1}
+                          max={86400}
+                          step={10}
+                          precision={1}
+                          style={{ width: 140 }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_cache_dir")}
+                        name="jina_cache_dir"
+                        tooltip={t("ui.config_jina_cache_dir_info")}
+                      >
+                        <Input placeholder={t("ui.config_jina_default")} allowClear style={{ width: 260 }} />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_min_coverage")}
+                        name="jina_min_coverage"
+                        tooltip={t("ui.config_jina_min_coverage_info")}
+                      >
+                        <InputNumber
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          precision={2}
+                          style={{ width: 130 }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_jina_offline")}
+                        name="jina_offline"
+                        valuePropName="checked"
+                        tooltip={t("ui.config_jina_offline_info")}
+                      >
+                        <Switch />
+                      </Form.Item>
                     </Space>
                     <Space wrap size={12}>
                       <Form.Item label={t("ui.config_mode")} name="mode_choice" tooltip={t("ui.config_mode_info")}>
@@ -418,6 +572,24 @@ export default function Dashboard() {
                             { value: "hybrid", label: "Hybrid" },
                             { value: "vlm", label: "VLM" },
                           ]}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_trace_enabled")}
+                        name="trace_enabled"
+                        valuePropName="checked"
+                        tooltip={t("ui.config_trace_enabled_info")}
+                      >
+                        <Switch />
+                      </Form.Item>
+                      <Form.Item
+                        label={t("ui.config_trace_dir")}
+                        name="trace_dir"
+                        tooltip={t("ui.config_trace_dir_info")}
+                      >
+                        <Input
+                          placeholder={t("ui.label_n_a")}
+                          allowClear
                         />
                       </Form.Item>
                       <Form.Item
@@ -587,7 +759,10 @@ export default function Dashboard() {
           {artifacts.length > 0 ? (
             <Space direction="vertical" size={12} style={{ width: "100%" }}>
               <Space wrap size={8}>
-                <ZipDownload taskId={activeId} />
+                <ZipDownload
+                  taskId={activeId}
+                  zipName={active?.result_zip_name ?? null}
+                />
                 {isTauri() && artifacts.length > 1 && (
                   <BatchSaveToFolder
                     items={artifacts.map((f, i) => ({

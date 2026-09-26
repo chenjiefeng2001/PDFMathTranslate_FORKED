@@ -1,7 +1,7 @@
 {
   "name": "pdf2zh-frontend",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.9.16",
   "type": "module",
   "scripts": {
     "dev": "vite",

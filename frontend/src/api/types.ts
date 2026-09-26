@@ -49,6 +49,8 @@ export interface TaskState {
   file_failures?: { file: string; error: string }[] | null;
   result_files: ResultFile[];
   result_zip: string | null;
+  /** 「全部下载」ZIP 的下载文件名（{stem}-translated-{时间戳}.zip），打包时确定 */
+  result_zip_name?: string | null;
   preview_path: string | null;
   diagnostic_summary: string | null;
   quality_scores: Record<string, number> | null;
