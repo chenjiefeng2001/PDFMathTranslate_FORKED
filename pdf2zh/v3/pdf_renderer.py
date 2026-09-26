@@ -36,7 +36,7 @@ class V4PDFRenderer:
 
     def __init__(self):
         self._stats = RenderStats()
-        # Default page dimensions (US Letter)
+        # Default page dimensions (US Letter; see pdf2zh.page_standard)
         self._page_width = 612.0
         self._page_height = 792.0
 

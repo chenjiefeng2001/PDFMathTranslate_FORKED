@@ -245,9 +245,20 @@ def test_parse_mineru_page_range_to_slice_ids(fake_pdf, monkeypatch):
         _write_middle(kwargs["output_dir"], kwargs["pdf_file_names"][0])
 
     calls = _install_fake_mineru(monkeypatch, do_parse)
-    MagicPdfAdapter()._parse_mineru(fake_pdf, pages=[3, 1, 7])
-    assert calls[0]["start_page_id"] == 1
-    assert calls[0]["end_page_id"] == 7
+    MagicPdfAdapter()._parse_mineru(fake_pdf, pages=[1, 0])
+    assert calls[0]["start_page_id"] == 0
+    assert calls[0]["end_page_id"] == 1
+
+
+def test_parse_mineru_page_range_out_of_range_raises(fake_pdf, monkeypatch):
+    """越界页码必须显式报错，不得 fail-open 退化为整本解析。"""
+
+    def do_parse(**kwargs):
+        _write_middle(kwargs["output_dir"], kwargs["pdf_file_names"][0])
+
+    _install_fake_mineru(monkeypatch, do_parse)
+    with pytest.raises(ValueError, match="out of range"):
+        MagicPdfAdapter()._parse_mineru(fake_pdf, pages=[3, 1, 7])
 
 
 def test_parse_mineru_reports_start_progress_event(fake_pdf, monkeypatch):
@@ -379,7 +390,7 @@ def _service(tid: str):
     from pdf2zh.services.runtime_service import RuntimeService
 
     svc = RuntimeService()
-    svc._sweeper = None
+    svc.shutdown()
     svc._store.create_task(tid)
     return svc
 

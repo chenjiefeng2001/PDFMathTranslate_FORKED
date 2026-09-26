@@ -21,19 +21,20 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
 
+from pdf2zh.v3.ingestion.config import (
+    BACKEND_EXISTING,
+    BACKEND_IDS,
+    BACKEND_JINA,
+    BACKEND_MARKER,
+    BACKEND_MINERU,
+    INGEST_REQUEST_CHOICES,
+)
 from pdf2zh.v3.ingestion.ir import IngestDocument
 
 #: pipeline 阶段名（ingest 是新的第一站）。
 STAGE_INGEST = "ingest"
 STAGE_NORMALIZE = "normalize"
 STAGE_TRANSLATE = "translate"
-
-#: backend 标识（写进每个 block 的 source_backend / provenance）。
-BACKEND_EXISTING = "existing_v3"
-BACKEND_MARKER = "marker"
-#: MinerU/magic-pdf 主链路（生产 magicpdf 引擎的 canonical 页模型同样能
-#: 经 ``existing_pages_to_document`` 适配成 IR —— 见 magicpdf_cli 的摄入阶段）。
-BACKEND_MINERU = "mineru"
 
 #: ingest 事件名。
 EVENT_INGEST_BLOCK = "ingest.block"
@@ -60,6 +61,42 @@ class IngestionError(RuntimeError):
 
 class IngestionBackendUnavailable(IngestionError):
     """The backend could not run (missing dependency / model / file)."""
+
+
+class JinaOcrError(IngestionError):
+    pass
+
+
+class JinaOcrBackendUnavailable(IngestionBackendUnavailable):
+    pass
+
+
+class JinaOcrModelUnavailable(JinaOcrBackendUnavailable):
+    pass
+
+
+class JinaOcrTimeoutError(JinaOcrError):
+    pass
+
+
+class JinaOcrSchemaError(JinaOcrError):
+    pass
+
+
+class JinaOcrOfflineError(JinaOcrError):
+    pass
+
+
+class JinaOcrDeviceError(JinaOcrError):
+    pass
+
+
+class JinaOcrWorkerError(JinaOcrError):
+    pass
+
+
+class JinaOcrCoverageError(JinaOcrError):
+    pass
 
 
 @runtime_checkable
@@ -303,6 +340,9 @@ __all__ = [
     "BACKEND_EXISTING",
     "BACKEND_MARKER",
     "BACKEND_MINERU",
+    "BACKEND_JINA",
+    "BACKEND_IDS",
+    "INGEST_REQUEST_CHOICES",
     "EVENT_INGEST_BLOCK",
     "EVENT_INGEST_BEGIN",
     "EVENT_INGEST_END",
@@ -316,6 +356,15 @@ __all__ = [
     "emit_raw_ingest_events",
     "IngestionError",
     "IngestionBackendUnavailable",
+    "JinaOcrError",
+    "JinaOcrBackendUnavailable",
+    "JinaOcrModelUnavailable",
+    "JinaOcrTimeoutError",
+    "JinaOcrSchemaError",
+    "JinaOcrOfflineError",
+    "JinaOcrDeviceError",
+    "JinaOcrWorkerError",
+    "JinaOcrCoverageError",
     "IngestionBackend",
     "ingest_block_events",
     "emit_ingest_events",

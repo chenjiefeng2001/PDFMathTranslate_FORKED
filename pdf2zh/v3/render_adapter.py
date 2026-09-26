@@ -166,7 +166,7 @@ class RenderAdapter:
     def _text_to_pdf(text: str) -> bytes:
         """Minimal dependency-free PDF writer for headless tests."""
         lines = text.splitlines()
-        width, height = 612, 792
+        width, height = 612, 792  # US Letter; see pdf2zh.page_standard
         content = []
         y = height - 72
         for line in lines:

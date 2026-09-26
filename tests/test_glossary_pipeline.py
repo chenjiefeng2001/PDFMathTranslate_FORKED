@@ -57,7 +57,7 @@ class TestExecuteBabeldocPassthrough:
 
     def _run(self, glossary_files):
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         tid = "t_glossary"
         svc._store.create_task(tid)
         captured = {}

@@ -1283,3 +1283,254 @@ def test_cli_parse_crash_forced_mineru_degrades_with_trace(tmp_path):
     ends = [e["payload"] for e in events if e["event"] == EVENT_INGEST_END]
     assert len(begins) == 1 and begins[0]["backend"] == BACKEND_MINERU
     assert ends[0]["status"] == "FAIL"
+
+
+# ── v1.2: Marker 独立路由（不依赖 MinerU 安装 / 不双重解析）──────────────────
+
+
+def test_cli_forced_marker_never_touches_mineru(tmp_path):
+    """强制 marker：MinerU 的 is_available / parse 都不得被触碰（独立可用）。"""
+    from pdf2zh.v3.ingestion import BACKEND_MARKER
+    from pdf2zh.v3.ingestion.base import (
+        EVENT_INGEST_BEGIN,
+        EVENT_INGEST_BLOCK,
+        EVENT_INGEST_RAW_BLOCK,
+        EVENT_INGEST_SELECT,
+    )
+    from pdf2zh.v3.ingestion.selector import REASON_FORCED
+
+    def _never(*a, **k):
+        raise AssertionError("forced marker must never touch MinerU")
+
+    code, tmp = _run_cli(
+        tmp_path,
+        ingest_backend="marker",
+        **{
+            "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available": _never,
+            "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse": _never,
+            "pdf2zh.magicpdf_cli._marker_live_available": lambda: True,
+            "pdf2zh.v3.ingestion.marker_backend.MarkerBackend.ingest": (
+                lambda self, pdf, trace=None, **kw: _cli_marker_doc()
+            ),
+        },
+    )
+    assert code == 0
+    assert (tmp / "magicpdf" / "paper_ingest.json").exists()  # Marker 服务
+    assert (tmp / "magicpdf" / "paper_document.json").exists()  # 主链路走通
+    events = _trace_events(tmp)
+    begins = [e["payload"] for e in events if e["event"] == EVENT_INGEST_BEGIN]
+    assert [b["backend"] for b in begins] == [BACKEND_MARKER]  # 无 mineru 故事
+    assert not [e for e in events if e["event"] == EVENT_INGEST_RAW_BLOCK]
+    assert not [
+        e
+        for e in events
+        if e["event"] == EVENT_INGEST_BLOCK
+        and e["payload"]["backend"] != BACKEND_MARKER
+    ]
+    select = next(e for e in events if e["event"] == EVENT_INGEST_SELECT)
+    decision = select["payload"]["decision"]
+    assert decision["selected_backend"] == BACKEND_MARKER
+    assert decision["reason"] == REASON_FORCED
+    assert decision["fallback"] is False
+    assert decision["fallback_attempted"] is False
+
+
+def test_cli_auto_mineru_missing_falls_back_to_marker(tmp_path):
+    """auto + MinerU 未安装 → Marker 独立兜底（不再直接降级 legacy）。"""
+    from pdf2zh.v3.ingestion import BACKEND_MINERU
+    from pdf2zh.v3.ingestion.base import (
+        EVENT_INGEST_BEGIN,
+        EVENT_INGEST_END,
+        EVENT_INGEST_SELECT,
+    )
+    from pdf2zh.v3.ingestion.selector import REASON_PRIMARY_PARSE_FAIL
+
+    def _never(*a, **k):
+        raise AssertionError("MinerU 未安装时绝不能被调用")
+
+    code, tmp = _run_cli(
+        tmp_path,
+        ingest_backend="auto",
+        **{
+            "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available": lambda self: False,
+            "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse": _never,
+            "pdf2zh.magicpdf_cli._marker_live_available": lambda: True,
+            "pdf2zh.v3.ingestion.marker_backend.MarkerBackend.ingest": (
+                lambda self, pdf, trace=None, **kw: _cli_marker_doc()
+            ),
+        },
+    )
+    assert code == 0
+    assert (tmp / "magicpdf" / "paper_ingest.json").exists()
+    events = _trace_events(tmp)
+    begins = [e["payload"] for e in events if e["event"] == EVENT_INGEST_BEGIN]
+    ends = [e["payload"] for e in events if e["event"] == EVENT_INGEST_END]
+    assert begins[0]["backend"] == BACKEND_MINERU
+    assert ends[0]["status"] == "FAIL"
+    assert begins[1]["backend"] == "marker"
+    assert begins[1]["fallback_from"] == BACKEND_MINERU
+    assert ends[1]["status"] == "PASS"
+    select = next(e for e in events if e["event"] == EVENT_INGEST_SELECT)
+    decision = select["payload"]["decision"]
+    assert decision["selected_backend"] == "marker"
+    assert decision["reason"] == REASON_PRIMARY_PARSE_FAIL
+    assert decision["fallback_succeeded"] is True
+
+
+def test_cli_forced_jina_uses_mineru_geometry_and_full_chain(tmp_path):
+    from pdf2zh.v3.ingestion import BACKEND_JINA
+    from pdf2zh.v3.ingestion.base import (
+        EVENT_INGEST_BEGIN,
+        EVENT_INGEST_BLOCK,
+        EVENT_INGEST_RAW_BLOCK,
+        EVENT_INGEST_SELECT,
+    )
+    from pdf2zh.v3.ingestion.jina_adapter import jina_result_to_document
+    from pdf2zh.v3.ingestion.selector import REASON_FORCED
+
+    captured = {}
+
+    def _parse(adapter, path, pages, ocr, progress_cb, lang=None):
+        captured["ocr"] = ocr
+        return _cli_parse_results()
+
+    def _jina_ingest(self, pdf, trace=None, *, pages=None, base_pages=None, **kwargs):
+        result = {
+            "schema": "pdf2zh.jina-ocr.result",
+            "version": 1,
+            "backend": BACKEND_JINA,
+            "model": self.options.model,
+            "revision": self.options.revision,
+            "prompt": self.options.prompt,
+            "device": self.options.device,
+            "offline": self.options.offline,
+            "max_new_tokens": self.options.max_new_tokens,
+            "pages": [
+                {
+                    "page": 0,
+                    "image_sha256": "a" * 64,
+                    "markdown": "# Hello Jina\n\nA bridge test sentence.\n",
+                    "render_policy": {},
+                }
+            ],
+        }
+        return jina_result_to_document(result, base_pages, self.options)
+
+    def _never_marker(*args, **kwargs):
+        raise AssertionError("forced jina must not run Marker")
+
+    code, out = _run_cli(
+        tmp_path,
+        ingest_backend="jina",
+        **{
+            "pdf2zh.magicpdf_cli._adapter_parse": _parse,
+            "pdf2zh.v3.ingestion.jina_backend.JinaOcrBackend.ingest": _jina_ingest,
+            "pdf2zh.v3.ingestion.marker_backend.MarkerBackend.ingest": _never_marker,
+        },
+    )
+    assert code == 0
+    assert captured["ocr"] is True
+    assert (out / "magicpdf" / "paper_ingest.json").exists()
+    assert (out / "magicpdf" / "paper_document.json").exists()
+    assert (out / "magicpdf" / "paper_magicpdf.json").exists()
+    events = _trace_events(out)
+    begins = [
+        e["payload"]["backend"] for e in events if e["event"] == EVENT_INGEST_BEGIN
+    ]
+    assert begins == [BACKEND_JINA]
+    assert [
+        e["payload"]["source_backend"]
+        for e in events
+        if e["event"] == EVENT_INGEST_RAW_BLOCK
+    ]
+    blocks = [e for e in events if e["event"] == EVENT_INGEST_BLOCK]
+    assert blocks and all(e["payload"]["backend"] == BACKEND_JINA for e in blocks)
+    decision = next(e for e in events if e["event"] == EVENT_INGEST_SELECT)["payload"][
+        "decision"
+    ]
+    assert decision["selected_backend"] == BACKEND_JINA
+    assert decision["reason"] == REASON_FORCED
+
+
+def test_ingest_rules_preserve_page_zero():
+    from pdf2zh.v3.ingestion.base import EVENT_INGEST_BLOCK
+    from pdf2zh.v3.ingestion.rules import run_ingest_rules
+
+    event = _ingest_event(
+        0,
+        "p0_0",
+        {
+            "backend": BACKEND_EXISTING,
+            "kind": KIND_PARAGRAPH,
+            "text": "hello",
+        },
+    )
+    assert event["event"] == EVENT_INGEST_BLOCK and event["page"] == 0
+    failures = run_ingest_rules([event])
+    assert failures and all(failure.page == 0 for failure in failures)
+
+
+def test_compare_aligns_sparse_pages_by_page_number():
+    from pdf2zh.v3.ingestion import compare
+
+    left = IngestDocument(source_backend="left")
+    left.add_page(1, 100, 100)
+    left.add_page(3, 100, 100)
+    left.add_leaf(
+        block_id="left-1",
+        page_no=1,
+        block_type=KIND_PARAGRAPH,
+        text="paragraph",
+    )
+    left.add_leaf(
+        block_id="left-3",
+        page_no=3,
+        block_type=KIND_TABLE,
+        text="cell",
+    )
+    right = IngestDocument(source_backend="right")
+    right.add_page(3, 100, 100)
+    right.add_page(1, 100, 100)
+    right.add_leaf(
+        block_id="right-3",
+        page_no=3,
+        block_type=KIND_TABLE,
+        text="cell",
+    )
+    right.add_leaf(
+        block_id="right-1",
+        page_no=1,
+        block_type=KIND_PARAGRAPH,
+        text="paragraph",
+    )
+    diff = compare(left, right)
+    assert diff.items == []
+
+
+def test_bridge_preserves_container_own_text():
+    from pdf2zh.v3.ingestion.bridge import ingest_document_to_pages
+
+    doc = IngestDocument(source_backend=BACKEND_MARKER)
+    doc.add_page(0, 100, 100)
+    box = IngestBox(0, 0, 100, 100)
+    doc.add_leaf(
+        block_id="table",
+        page_no=0,
+        block_type=KIND_TABLE,
+        text="table own text",
+        box=box,
+        v3_box=(0, 0, 100, 100),
+    )
+    doc.add_leaf(
+        block_id="cell",
+        page_no=0,
+        block_type=KIND_TABLE_CELL,
+        text="cell text",
+        box=box,
+        v3_box=(0, 0, 100, 100),
+        parent_id="table",
+    )
+    pages = ingest_document_to_pages(doc)
+    assert len(pages[0].blocks) == 1
+    assert "table own text" in pages[0].blocks[0].text
+    assert "cell text" in pages[0].blocks[0].text

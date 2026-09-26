@@ -474,6 +474,27 @@ def _to_legacy_past_key_values(pkv: Any) -> Any:
         except Exception:  # noqa: BLE001 -- 转换失败按空 cache 处理
             pass
         return None
+    if hasattr(pkv, "get_seq_length") and not hasattr(pkv, "to_legacy_cache"):
+        try:
+            if pkv.get_seq_length(0) <= 0:
+                return None
+        except (AttributeError, IndexError, TypeError):
+            return None
+        layers = getattr(pkv, "layers", None)
+        if layers:
+            converted = []
+            for layer in layers:
+                keys = getattr(layer, "keys", None)
+                values = getattr(layer, "values", None)
+                if keys is None or values is None:
+                    return None
+                converted.append((keys, values))
+            return tuple(converted)
+        key_cache = getattr(pkv, "key_cache", None)
+        value_cache = getattr(pkv, "value_cache", None)
+        if key_cache is not None and value_cache is not None:
+            return tuple(zip(key_cache, value_cache))
+        return None
     if hasattr(pkv, "to_legacy_cache"):
         try:
             leg = pkv.to_legacy_cache()
@@ -1108,7 +1129,8 @@ def _normalize_blocks(
     # 上游（pdf2zh.parse_args）已把 CLI 的 1 基输入转换为 0 基，这里不做二次兼容，
     # 否则 pages=[1] 会同时命中第 0、1 页导致过滤失效。
     target_pages: set[int] | None = None
-    if pages is not None and pages != "" and pages != "all":
+    filter_requested = pages not in (None, "", "all", [], (), set())
+    if filter_requested:
         target_pages = set()
         if isinstance(pages, str):
             for part in pages.split(","):
@@ -1132,11 +1154,22 @@ def _normalize_blocks(
                     target_pages.add(int(p))
                 except (ValueError, TypeError):
                     pass
+        if not target_pages:
+            raise ValueError(f"page selection contains no valid pages: {pages!r}")
 
     page_info = _page_info_lookup(middle.get("page_info"))
     pdf_info = middle.get("pdf_info")
     if pdf_info is None:
         pdf_info = [p.get("blocks") for p in (middle.get("pages") or [])]
+    if target_pages:
+        page_count = len(pdf_info or [])
+        invalid = sorted(
+            page for page in target_pages if page < 0 or page >= page_count
+        )
+        if invalid:
+            raise ValueError(
+                f"page selection out of range for {page_count} pages: {invalid}"
+            )
     results: list[MagicPdfParseResult] = []
 
     for idx, page_blocks in enumerate(pdf_info or []):
@@ -1782,8 +1815,12 @@ class MagicPdfAdapter:
 
         worker = Path(__file__).resolve().parent / "kernel" / "mineru_worker.py"
         owned_dir = out_dir is None
+        try:
+            timeout = int(os.environ.get("PDF2ZH_MINERU_TIMEOUT", "").strip() or 3600)
+        except (TypeError, ValueError):
+            timeout = 3600
+        timeout = max(1, timeout)
         work_dir = out_dir or tempfile.mkdtemp(prefix="pdf2zh_mineru_sub_")
-        timeout = int(os.environ.get("PDF2ZH_MINERU_TIMEOUT", "").strip() or 3600)
         if progress_cb is not None:
             try:
                 progress_cb(

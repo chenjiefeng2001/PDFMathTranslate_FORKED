@@ -21,13 +21,18 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-from pdf2zh.services.runtime_service import RuntimeService, TranslationRequest
+from pdf2zh.services.runtime_service import (
+    RuntimeService,
+    TranslationRequest,
+    _BatchContext,
+)
 
 
 class TestTranslationRequestParseEngine:
@@ -50,9 +55,9 @@ class TestTranslationRequestParseEngine:
 class TestExecuteTaskRouting:
     """parse_engine routes to the right execution pipeline without heavy deps."""
 
-    def _run(self, parse_engine: str = "auto") -> list:
+    def _run(self, parse_engine: str = "auto", ingest_backend: str = "auto") -> list:
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         tid = "t_route"
         svc._store.create_task(tid)
         calls: list = []
@@ -70,6 +75,7 @@ class TestExecuteTaskRouting:
                 TranslationRequest(
                     source_path="/tmp/test.pdf",
                     parse_engine=parse_engine,
+                    ingest_backend=ingest_backend,
                     magicpdf_ocr=parse_engine == "magicpdf",
                 ),
             )
@@ -83,6 +89,9 @@ class TestExecuteTaskRouting:
 
     def test_auto_defaults_to_legacy(self):
         assert self._run("auto") == ["legacy"]
+
+    def test_jina_routes_to_magicpdf_from_auto(self):
+        assert self._run("auto", "jina") == ["magicpdf"]
 
     def test_legacy_routes_to_legacy(self):
         assert self._run("legacy") == ["legacy"]
@@ -100,7 +109,7 @@ class TestAutoSwitchGate:
     ) -> tuple[list, "RuntimeService"]:
         """模拟 auto 预检（默认命中），返回路由结果与服务实例。"""
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         svc._store.create_task(tid)
         calls: list = []
         extra = {"mode_choice": mode_choice} if mode_choice else None
@@ -156,7 +165,7 @@ class TestAutoSwitchGate:
         """矛盾配置：magicpdf 解析引擎 + BabelDOC 模式 → run_magicpdf_main
         收到 degrade_to="babeldoc"（MinerU 失败时按模式降级，而非静默 legacy）。"""
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         tid = "t_combine_degrade"
         svc._store.create_task(tid)
         src = tmp_path / "in.pdf"
@@ -194,7 +203,7 @@ class TestAutoSwitchGate:
         """MinerU 失败抛 MagicPdfDegradeError → 服务层改走 _execute_babeldoc
         （BabelDOC 模式真正兜底，而不是 legacy 假死）。"""
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         tid = "t_combine_reroute"
         svc._store.create_task(tid)
         src = tmp_path / "in.pdf"
@@ -270,7 +279,7 @@ class TestExecuteBatchRouting:
 
     def _run_batch(self, parse_engine: str = "auto", mode_choice: str = "auto") -> list:
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         tid = "t_batch_route"
         svc._store.create_task(tid)
         calls: list = []
@@ -317,7 +326,7 @@ class TestExecuteBatchRouting:
 class TestExecuteMagicpdf:
     def test_maps_request_and_completes(self, tmp_path):
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         tid = "t_magic"
         svc._store.create_task(tid)
         src = tmp_path / "in.pdf"
@@ -328,6 +337,8 @@ class TestExecuteMagicpdf:
         magic_dir.mkdir(parents=True)
         (magic_dir / "in_magicpdf.json").write_text("{}", encoding="utf-8")
         (magic_dir / "in_document.json").write_text("{}", encoding="utf-8")
+        # P1-1:JSON 转储不再列入 result_files;PDF 产物才进入下载/预览。
+        (magic_dir / "other_mono.pdf").write_bytes(b"%PDF-1.4 other")
 
         captured = {}
 
@@ -335,6 +346,9 @@ class TestExecuteMagicpdf:
             captured["ns"] = ns
             captured["progress_cb"] = progress_cb
             captured["degrade_to"] = degrade_to
+            output_dir = Path(ns.output) / "magicpdf"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            (output_dir / "in_mono.pdf").write_bytes(b"%PDF-1.4 mono")
             return 0
 
         with pytest.MonkeyPatch.context() as mp:
@@ -350,6 +364,12 @@ class TestExecuteMagicpdf:
                     engine="google",
                     source_lang="en",
                     target_lang="zh",
+                    ingest_backend="jina",
+                    jina_model="jinaai/jina-ocr-v1",
+                    jina_revision="abc123",
+                    jina_device="cuda",
+                    jina_dpi=240,
+                    jina_min_coverage=0.35,
                 ),
                 svc.config,
             )
@@ -360,20 +380,69 @@ class TestExecuteMagicpdf:
         assert ns.magicpdf_ocr is True
         assert ns.magicpdf_ocr_mode == "auto"
         assert ns.backend == "cpu"
-        assert ns.pages == "1-3"
+        assert ns.pages == [0, 1, 2]
         assert ns.service == "google"
         assert ns.lang_in == "en"
         assert ns.lang_out == "zh"
         assert ns.output == str(out_dir)
+        assert ns.ingest_backend == "jina"
+        assert ns.jina_revision == "abc123"
+        assert ns.jina_device == "cuda:0"
+        assert ns.jina_dpi == 240
+        assert ns.jina_min_coverage == 0.35
 
         state = svc.get_task_state(tid)
         assert state is not None
         assert state.status == "completed"
-        assert len(state.result_files) == 2
+        assert len(state.result_files) == 1
+        # P1-1: JSON 转储不再进入 result_files,只有 PDF 产物
+        assert state.result_files[0]["name"] == "in_mono.pdf"
+
+    def test_magicpdf_batch_completes_each_file_and_task(self, tmp_path):
+        svc = RuntimeService()
+        svc.shutdown()
+        tid = "t_magic_batch"
+        svc._store.create_task(tid)
+        sources = [tmp_path / "a.pdf", tmp_path / "b.pdf"]
+        for source in sources:
+            source.write_bytes(b"%PDF-1.4 test")
+        out_dir = tmp_path / "out"
+        svc.config.output_dir = str(out_dir)
+        svc._batch_ctx[tid] = _BatchContext(total_files=2)
+
+        def fake_main(ns, progress_cb=None, degrade_to=None):
+            magic_dir = Path(ns.output) / "magicpdf"
+            magic_dir.mkdir(parents=True, exist_ok=True)
+            stem = Path(ns.files[0]).stem
+            (magic_dir / f"{stem}_mono.pdf").write_bytes(b"%PDF-1.4 mono")
+            return 0
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr("pdf2zh.magicpdf_cli.run_magicpdf_main", fake_main)
+            svc._execute_magicpdf(
+                tid,
+                TranslationRequest(
+                    source_path=str(sources[0]),
+                    files=[str(source) for source in sources],
+                    parse_engine="magicpdf",
+                ),
+                svc.config,
+            )
+
+        state = svc.get_task_state(tid)
+        assert state is not None
+        assert state.status == "completed"
+        assert state.completed_files == 2
+        assert state.failed_files == 0
+        assert {item["name"] for item in state.result_files} == {
+            "a_mono.pdf",
+            "b_mono.pdf",
+        }
+        assert state.result_zip and os.path.isfile(state.result_zip)
 
     def test_failure_marks_task_failed(self, tmp_path):
         svc = RuntimeService()
-        svc._sweeper = None
+        svc.shutdown()
         tid = "t_magic_fail"
         svc._store.create_task(tid)
         src = tmp_path / "in.pdf"
@@ -433,6 +502,17 @@ class TestGuiWorkerPassThrough:
                 ocr_mode="auto",
                 parse_engine="magicpdf",
                 magicpdf_ocr="on",
+                ingest_backend="jina",
+                jina_model="jinaai/jina-ocr-v1",
+                jina_revision="abc123",
+                jina_device="cuda",
+                jina_dpi=240,
+                jina_max_pixels=3_000_000,
+                jina_max_new_tokens=2048,
+                jina_timeout=120,
+                jina_cache_dir="C:/cache/jina",
+                jina_min_coverage=0.35,
+                jina_offline=True,
             )
         assert task_id == "tid_1"
         req = fake_svc.submit_task.call_args[0][0]
@@ -440,3 +520,7 @@ class TestGuiWorkerPassThrough:
         assert req.parse_engine == "magicpdf"
         assert req.magicpdf_ocr is True
         assert req.magicpdf_ocr_mode == "on"
+        assert req.ingest_backend == "jina"
+        assert req.jina_revision == "abc123"
+        assert req.jina_device == "cuda:0"
+        assert req.jina_offline is True

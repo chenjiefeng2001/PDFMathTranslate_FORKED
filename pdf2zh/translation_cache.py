@@ -188,6 +188,7 @@ class TranslationCache:
                 (text_hash, text[:500], lang_in, lang_out, translation, time.time()),
             )
             self.conn.commit()
+            self._enforce_limits()
 
     def clear(self):
         """Clear all cached translations."""

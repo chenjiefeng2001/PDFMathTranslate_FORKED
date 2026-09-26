@@ -9,9 +9,12 @@
 import argparse
 import multiprocessing
 import sys
+import time
 
 
 def main() -> int:
+    t0 = time.perf_counter()
+
     # frozen (PyInstaller) 环境必须最先调用：legacy 并行翻译使用
     # ProcessPoolExecutor，Windows spawn 会以特殊 argv 重新拉起本 exe；
     # freeze_support() 拦截该请求并进入 worker 引导。缺失时子进程会
@@ -31,6 +34,12 @@ def main() -> int:
     app = create_api_app(
         service=get_runtime_service(), allow_origins=["http://tauri.localhost"]
     )
+
+    t1 = time.perf_counter()
+    print(
+        f"[sidecar] app created in {t1 - t0:.1f}s, starting uvicorn on :{args.port} ..."
+    )
+
     uvicorn.run(app, host="127.0.0.1", port=args.port, log_level="warning")
     return 0
 

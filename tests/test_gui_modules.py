@@ -986,6 +986,44 @@ class TestV120GuiSync:
         ]
 
 
+class TestTerminalClearsPreviewOnFailure:
+    """翻译失败/取消后清空预览与下载区（修复：失败后预览残留原件/旧内容）。"""
+
+    def test_failed_task_clears_preview_and_downloads(self, monkeypatch):
+        import pdf2zh.gui.app as app
+        from pdf2zh.services.runtime_service import RuntimeService
+
+        svc = RuntimeService()
+        svc._store.create_task("t_fail")
+        monkeypatch.setattr(app, "get_runtime_service", lambda: svc)
+
+        acc = app._DeltaAccumulator()
+        app._render_terminal(acc, "failed", "boom", "t_fail")
+        # 预览回到空态，不再指向任何文件（原件或上一个任务的输出）
+        assert "preview-empty" in acc._updates["pdf_preview"]["value"]
+        assert acc._updates["download_single"]["visible"] is False
+        assert acc._updates["download_zip"]["visible"] is False
+        assert acc._updates["result_selector"]["visible"] is False
+
+    def test_cancelled_task_clears_preview(self):
+        import pdf2zh.gui.app as app
+
+        acc = app._DeltaAccumulator()
+        app._render_terminal(acc, "cancelled", "by user", "")
+        assert "preview-empty" in acc._updates["pdf_preview"]["value"]
+        assert acc._updates["download_single"]["visible"] is False
+        assert acc._updates["download_zip"]["visible"] is False
+
+    def test_completed_terminal_leaves_preview_to_file_events(self):
+        import pdf2zh.gui.app as app
+
+        acc = app._DeltaAccumulator()
+        app._render_terminal(acc, "completed", "done", "")
+        # 完成的预览由 FileGenerated/PreviewReady 事件驱动，此处不得清空
+        assert "pdf_preview" not in acc._updates
+        assert "download_single" not in acc._updates
+
+
 # =============================================================================
 # 5. Import Resolution Tests
 # =============================================================================
@@ -1104,6 +1142,67 @@ class TestWorkerModule:
             None,
         ) == ["/tmp/a.pdf", "/tmp/b.pdf"]
 
+    def test_submit_translation_task_forwards_trace(self, monkeypatch):
+        """GUI 提交路径把 trace 开关与目录透传到运行时 extra_config。"""
+        from pdf2zh.gui import worker
+
+        captured = {}
+
+        class FakeSvc:
+            def submit_task(self, request):
+                captured["request"] = request
+                return "task_trace"
+
+        monkeypatch.setattr(
+            worker, "_resolve_source_paths", lambda *a, **k: ["/tmp/a.pdf"]
+        )
+        monkeypatch.setattr(worker, "get_runtime_service", lambda: FakeSvc())
+
+        tid = worker.submit_translation_task(
+            client_id="c1",
+            file_type="file",
+            file_input="/tmp/a.pdf",
+            link_input="",
+            service="google",
+            lang_from="auto",
+            lang_to="zh-CN",
+            trace_enabled=True,
+            trace_dir="C:/traces",
+        )
+        assert tid == "task_trace"
+        req = captured["request"]
+        assert req.extra_config["trace_enabled"] is True
+        assert req.extra_config["trace_dir"] == "C:/traces"
+
+    def test_submit_translation_task_trace_off_by_default(self, monkeypatch):
+        """未开启 trace 时 extra_config 不含 trace 键（保持历史行为）。"""
+        from pdf2zh.gui import worker
+
+        captured = {}
+
+        class FakeSvc:
+            def submit_task(self, request):
+                captured["request"] = request
+                return "task_notrace"
+
+        monkeypatch.setattr(
+            worker, "_resolve_source_paths", lambda *a, **k: ["/tmp/a.pdf"]
+        )
+        monkeypatch.setattr(worker, "get_runtime_service", lambda: FakeSvc())
+
+        worker.submit_translation_task(
+            client_id="c2",
+            file_type="file",
+            file_input="/tmp/a.pdf",
+            link_input="",
+            service="google",
+            lang_from="auto",
+            lang_to="zh-CN",
+        )
+        req = captured["request"]
+        assert "trace_enabled" not in req.extra_config
+        assert "trace_dir" not in req.extra_config
+
 
 # =============================================================================
 # 7. Gradio Component Interface Tests (headless)
@@ -1120,6 +1219,16 @@ class TestComponentInterfaces:
         from pdf2zh.gui.components.config_panel import create_config_panel
 
         assert callable(create_config_panel)
+
+    def test_ingest_choices_include_jina(self):
+        from pdf2zh.gui.components.config_panel import INGEST_CHOICES
+
+        assert [value for _, value in INGEST_CHOICES] == [
+            "auto",
+            "mineru",
+            "marker",
+            "jina",
+        ]
 
     def test_progress_panel_returns_dict(self):
         from pdf2zh.gui.components.progress_panel import create_progress_panel

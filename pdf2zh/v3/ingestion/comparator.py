@@ -225,7 +225,7 @@ def _match_runs(left: List[Tuple[str, str]], right_text: str) -> Optional[List[s
 def compare(a: IngestDocument, b: IngestDocument) -> IngestionDiff:
     """Compare two canonical ingestion IRs and produce an IngestionDiff.
 
-    Pages are aligned by order (both are 0-based page lists).  Divergence
+    Pages are aligned by canonical ``page_no``.  Divergence
     items follow the plan vocabulary: page_count mismatch (HIGH), structural
     kind (table/figure/header/footer) count drift, and paragraph-level
     merges/splits detected by exact normalized-text runs.
@@ -248,10 +248,10 @@ def compare(a: IngestDocument, b: IngestDocument) -> IngestionDiff:
             )
         )
 
-    n = max(len(a_pages), len(b_pages))
-    for pno in range(n):
-        pa = a_pages[pno] if pno < len(a_pages) else None
-        pb = b_pages[pno] if pno < len(b_pages) else None
+    page_numbers = sorted({page.page_no for page in a_pages + b_pages})
+    for pno in page_numbers:
+        pa = a.page(pno)
+        pb = b.page(pno)
         if pa is None or pb is None:
             continue
         pd = diff.page(pno)

@@ -45,6 +45,9 @@ class TestApplyRequestBackend:
 
     def _svc(self):
         svc = RuntimeService()
+        # 这些用例只测 backend 切换，不需要后台 sweeper；MagicMock store 会让
+        # 它每轮抛错，因此构造后立即停线程。
+        svc.shutdown()
         svc._store = MagicMock()
         return svc
 

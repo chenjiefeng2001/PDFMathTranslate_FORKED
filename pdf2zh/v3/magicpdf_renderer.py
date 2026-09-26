@@ -30,7 +30,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_PAGE = (612.0, 792.0)
+_DEFAULT_PAGE = (612.0, 792.0)  # US Letter; see pdf2zh.page_standard
 _DEFAULT_FONT_SIZE = 12.0
 
 

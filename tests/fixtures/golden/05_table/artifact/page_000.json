@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "page_index": 0,
+  "source_page_hash": "5c88047b0bb7f9cf",
+  "page_size": {
+    "width": 612.0,
+    "height": 792.0
+  },
+  "content_stream": [],
+  "resources": {
+    "fonts": []
+  },
+  "annotations": [],
+  "links": [],
+  "metrics": {
+    "elapsed": 0.0,
+    "translation_chars": 0
+  },
+  "geometry": {
+    "media_box": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "crop_box": null,
+    "bleed_box": null,
+    "trim_box": null,
+    "rotation": 0,
+    "user_unit": 1.0
+  }
+}

@@ -296,11 +296,44 @@ class TestRuntimeService:
         assert svc.get_task_state("nonexistent") is None
 
     def test_cancel_task(self):
+        # 直接建任务（不启动 worker），保证取消发生在终态之前。
         svc = RuntimeService()
-        task_id = svc.submit_task(TranslationRequest(source_path="/tmp/test.pdf"))
-        assert svc.cancel_task(task_id) is True
-        state = svc.get_task_state(task_id)
+        svc.shutdown()
+        svc._store.create_task("t_cancel")
+        assert svc.cancel_task("t_cancel") is True
+        state = svc.get_task_state("t_cancel")
         assert state.status == TaskStage.CANCELLED.value
+
+    def test_cancel_terminal_task_is_rejected(self):
+        """终态是吸收态：已失败的任务不能再被 cancel 改写。"""
+        svc = RuntimeService()
+        svc.shutdown()
+        svc._store.create_task("t_failed")
+        assert (
+            svc._store.set_status("t_failed", TaskStage.FAILED.value, error_message="x")
+            is True
+        )
+        assert svc.cancel_task("t_failed") is False
+        assert svc.get_task_state("t_failed").status == TaskStage.FAILED.value
+
+    def test_cancel_is_idempotent(self):
+        svc = RuntimeService()
+        svc.shutdown()
+        svc._store.create_task("t_cancel_twice")
+        assert svc.cancel_task("t_cancel_twice") is True
+        assert svc.cancel_task("t_cancel_twice") is False
+        assert svc.get_task_state("t_cancel_twice").status == TaskStage.CANCELLED.value
+
+    def test_late_completion_cannot_resurrect_cancelled_task(self):
+        """取消后迟到的完成/失败回调必须被丢弃（终态吸收）。"""
+        svc = RuntimeService()
+        svc.shutdown()
+        svc._store.create_task("t_late")
+        assert svc.cancel_task("t_late") is True
+        svc._complete_file("t_late", [{"name": "a.pdf", "path": "a.pdf"}])
+        svc._fail_file("t_late", "late boom")
+        assert svc.get_task_state("t_late").status == TaskStage.CANCELLED.value
+        assert svc.get_task_state("t_late").result_files == []
 
     def test_cancel_nonexistent(self):
         svc = RuntimeService()

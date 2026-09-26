@@ -242,7 +242,7 @@ def _line_overlap_rate(pages: Sequence) -> float:
 def _overflow_rate(
     pages: Sequence, page_w: float = 612.0, page_h: float = 792.0
 ) -> float:
-    """溢出率：越过页面边界的行数占比。"""
+    """溢出率：越过页面边界的行数占比。（默认 US Letter；see pdf2zh.page_standard）"""
     total = 0
     overflow = 0
     margin = _MARGIN_RATIO * max(page_w, page_h)

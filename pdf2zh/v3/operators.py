@@ -42,7 +42,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +55,13 @@ def _as_jsonable(obj: Any, depth: int = 0) -> Any:
         return repr(obj)[:200]
     if isinstance(obj, dict):
         return {str(k): _as_jsonable(v, depth + 1) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple, set)):
+    if isinstance(obj, (list, tuple)):
         return [_as_jsonable(v, depth + 1) for v in obj]
+    if isinstance(obj, (set, frozenset)):
+        return sorted(
+            (_as_jsonable(v, depth + 1) for v in obj),
+            key=repr,
+        )
     for attr in ("to_dict", "to_json"):
         method = getattr(obj, attr, None)
         if callable(method):
@@ -623,7 +628,6 @@ class TypographyRule:
             "block_height": m.block_height,
             "baseline_shift": 0.0,
         }
-        expansion = m.expansion_ratio
         total_w = GlyphProbe.text_width(translated, font_size)
         overflow_w = m.estimated_width - width
         if overflow_w > self.max_overflow_ratio * width or total_w > width * 1.5:

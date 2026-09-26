@@ -23,18 +23,25 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence
 
-from pdf2zh.v3.ingestion.base import BACKEND_MARKER, BACKEND_MINERU
+from pdf2zh.v3.ingestion.config import (
+    AUTO_CANDIDATES,
+    BACKEND_IDS,
+    BACKEND_MINERU,
+    INGEST_REQUEST_CHOICES,
+    REQUEST_AUTO,
+    REQUEST_JINA,
+    REQUEST_MARKER,
+    REQUEST_MINERU,
+    normalize_ingest_backend,
+)
 from pdf2zh.v3.ingestion.rules import run_ingest_rules
 from pdf2zh.v3.trace_rules import SEVERITY_DEFECT
 
-#: 请求语义：``mineru``/``marker`` 强制指定；``auto`` = selector 决策。
-REQUEST_AUTO = "auto"
-REQUEST_MINERU = BACKEND_MINERU
-REQUEST_MARKER = BACKEND_MARKER
-REQUEST_CHOICES = (REQUEST_AUTO, REQUEST_MINERU, REQUEST_MARKER)
+#: 请求语义：``mineru``/``marker``/``jina`` 强制指定；``auto`` = selector 决策。
+REQUEST_CHOICES = INGEST_REQUEST_CHOICES
 
 #: 候选顺序（primary 在前）—— 回退总是尝试下一个候选。
-DEFAULT_CANDIDATES = (BACKEND_MINERU, BACKEND_MARKER)
+DEFAULT_CANDIDATES = AUTO_CANDIDATES
 
 #: gate 结果。
 QUALITY_PASS = "PASS"
@@ -50,9 +57,7 @@ REASON_FALLBACK_RUN_FAILED = "fallback_ingest_failed"
 
 
 def normalize_requested(raw: Optional[str]) -> str:
-    """``raw`` → one of auto/mineru/marker (unknown → auto)."""
-    value = (raw or "").strip().lower()
-    return value if value in REQUEST_CHOICES else REQUEST_AUTO
+    return normalize_ingest_backend(raw)
 
 
 @dataclass
@@ -171,6 +176,8 @@ def decide(
     """
     req = normalize_requested(requested)
     cands = [c for c in (list(candidates) or DEFAULT_CANDIDATES)]
+    if req != REQUEST_AUTO and req not in cands:
+        cands.append(req)
     failed = list(primary_failed_rules or [])
 
     if req == REQUEST_AUTO:
@@ -226,8 +233,13 @@ __all__ = [
     "REQUEST_AUTO",
     "REQUEST_MINERU",
     "REQUEST_MARKER",
+    "REQUEST_JINA",
     "REQUEST_CHOICES",
+    "INGEST_REQUEST_CHOICES",
     "DEFAULT_CANDIDATES",
+    "AUTO_CANDIDATES",
+    "BACKEND_IDS",
+    "normalize_ingest_backend",
     "QUALITY_PASS",
     "QUALITY_FAIL",
     "REASON_FORCED",

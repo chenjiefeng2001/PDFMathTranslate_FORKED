@@ -139,8 +139,22 @@ def on_translate(
     backend: str,
     ocr_mode: str,
     parse_engine: str,
+    ingest_backend: str,
     magicpdf_ocr: str,
     glossary_files: Any,
+    trace_enabled: bool,
+    trace_dir: str,
+    jina_model: str,
+    jina_revision: str,
+    jina_prompt: str,
+    jina_device: str,
+    jina_dpi: float,
+    jina_max_pixels: float,
+    jina_max_new_tokens: float,
+    jina_timeout: float,
+    jina_cache_dir: str,
+    jina_min_coverage: float,
+    jina_offline: bool,
     current_task_id: str,
     last_inputs: Any = None,
 ) -> tuple:
@@ -189,8 +203,22 @@ def on_translate(
             backend=backend,
             ocr_mode=ocr_mode,
             parse_engine=parse_engine,
+            ingest_backend=ingest_backend,
             magicpdf_ocr=magicpdf_ocr,
             glossary_files=glossary_files,
+            trace_enabled=bool(trace_enabled),
+            trace_dir=(trace_dir or "").strip(),
+            jina_model=jina_model,
+            jina_revision=jina_revision,
+            jina_prompt=jina_prompt,
+            jina_device=jina_device,
+            jina_dpi=int(jina_dpi),
+            jina_max_pixels=int(jina_max_pixels),
+            jina_max_new_tokens=int(jina_max_new_tokens),
+            jina_timeout=float(jina_timeout),
+            jina_cache_dir=(jina_cache_dir or "").strip(),
+            jina_min_coverage=float(jina_min_coverage),
+            jina_offline=bool(jina_offline),
         )
     except Exception as exc:
         logger.error("Failed to submit task: %s", exc)
@@ -226,17 +254,32 @@ def on_translate(
         backend,
         ocr_mode,
         parse_engine,
+        ingest_backend,
         magicpdf_ocr,
         glossary_files,
+        trace_enabled,
+        trace_dir,
+        jina_model,
+        jina_revision,
+        jina_prompt,
+        jina_device,
+        jina_dpi,
+        jina_max_pixels,
+        jina_max_new_tokens,
+        jina_timeout,
+        jina_cache_dir,
+        jina_min_coverage,
+        jina_offline,
     )
     return task_id, gr.update(interactive=False), saved
 
 
 def on_retry(last_inputs: Any) -> tuple:
     """Resubmit the last translation request after a failure."""
-    # 26 元素快照为当前版本；<26 元素来自旧版会话（缺少 parse_engine /
-    # magicpdf_ocr / glossary_files 等），视为无效。
-    if not isinstance(last_inputs, tuple) or len(last_inputs) < 26:
+    import inspect
+
+    expected = len(inspect.signature(on_translate).parameters) - 2
+    if not isinstance(last_inputs, tuple) or len(last_inputs) != expected:
         return "", gr.update(visible=False)
     result = on_translate(*last_inputs, "", None)
     return result[0], gr.update(visible=True, interactive=False)
@@ -656,32 +699,42 @@ def _render_terminal(
                 )
             ),
         )
-    elif status == "failed":
+    elif status in ("failed", "cancelled"):
+        # 任务失败/取消后没有任何新产物：清空预览与下载区，避免 iframe 残留
+        # 上一次的内容（原件或上一个任务的书），让预览准确反映失败状态。
         acc.set(
-            "progress_bar",
-            gr.update(value=build_progress_bar_html("failed", 100.0, message)),
+            "pdf_preview",
+            gr.update(value=f"<div class='preview-empty'>{B('preview_empty')}</div>"),
         )
-        hint = message or f"{B('label_error')}: -"
-        acc.set(
-            "status_markdown",
-            gr.update(
-                value=(
-                    f"**{B('label_status')}**: {B('status_failed')}\n\n"
-                    f"**{B('label_error')}**: {hint}\n\n{B('retry_hint')}"
-                )
-            ),
-        )
-    else:
-        acc.set(
-            "progress_bar",
-            gr.update(value=build_progress_bar_html("cancelled", 0.0, message)),
-        )
-        acc.set(
-            "status_markdown",
-            gr.update(
-                value=message or f"**{B('label_status')}**: {B('status_cancelled')}"
-            ),
-        )
+        acc.set("result_selector", gr.update(choices=[], value=None, visible=False))
+        acc.set("download_single", gr.update(value=None, visible=False))
+        acc.set("download_zip", gr.update(value=None, visible=False))
+        if status == "failed":
+            acc.set(
+                "progress_bar",
+                gr.update(value=build_progress_bar_html("failed", 100.0, message)),
+            )
+            hint = message or f"{B('label_error')}: -"
+            acc.set(
+                "status_markdown",
+                gr.update(
+                    value=(
+                        f"**{B('label_status')}**: {B('status_failed')}\n\n"
+                        f"**{B('label_error')}**: {hint}\n\n{B('retry_hint')}"
+                    )
+                ),
+            )
+        else:
+            acc.set(
+                "progress_bar",
+                gr.update(value=build_progress_bar_html("cancelled", 0.0, message)),
+            )
+            acc.set(
+                "status_markdown",
+                gr.update(
+                    value=message or f"**{B('label_status')}**: {B('status_cancelled')}"
+                ),
+            )
 
 
 def _render_cancelled(acc: _DeltaAccumulator, ev: "TaskCancelled") -> None:
@@ -1193,8 +1246,22 @@ def create_gui() -> gr.Blocks:
             cc["backend"],
             cc["ocr_mode"],
             cc["parse_engine"],
+            cc["ingest_backend"],
             cc["magicpdf_ocr"],
             cc["glossary_files"],
+            cc["trace_enabled"],
+            cc["trace_dir"],
+            cc["jina_model"],
+            cc["jina_revision"],
+            cc["jina_prompt"],
+            cc["jina_device"],
+            cc["jina_dpi"],
+            cc["jina_max_pixels"],
+            cc["jina_max_new_tokens"],
+            cc["jina_timeout"],
+            cc["jina_cache_dir"],
+            cc["jina_min_coverage"],
+            cc["jina_offline"],
             task_id_state,
         ]
         # Snapshot of the last submitted request (powers the Retry button).

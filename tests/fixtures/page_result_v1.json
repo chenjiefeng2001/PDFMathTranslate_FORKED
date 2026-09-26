@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "page_index": 0,
+  "source_page_hash": "",
+  "page_size": {
+    "width": 612,
+    "height": 792
+  },
+  "content_stream": [
+    66,
+    84,
+    32,
+    47,
+    70,
+    49,
+    32,
+    49,
+    50,
+    32,
+    84,
+    102,
+    32,
+    49,
+    48,
+    48,
+    32,
+    55,
+    48,
+    48,
+    32,
+    84,
+    100,
+    32,
+    40,
+    72,
+    101,
+    108,
+    108,
+    111,
+    41,
+    32,
+    84,
+    106,
+    32,
+    69,
+    84
+  ],
+  "resources": {
+    "fonts": []
+  },
+  "annotations": [],
+  "links": [],
+  "metrics": {
+    "elapsed": 0.0,
+    "translation_chars": 0
+  }
+}

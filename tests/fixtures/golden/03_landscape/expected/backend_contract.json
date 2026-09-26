@@ -1,0 +1,50 @@
+{
+  "mupdf": {
+    "must_preserve": [
+      "page_count",
+      "page_size",
+      "rotation",
+      "media_box",
+      "fonts",
+      "annotations",
+      "links"
+    ],
+    "allowed_changes": [
+      "content_stream_hash",
+      "object_ids",
+      "xref_structure",
+      "internal_references",
+      "compression"
+    ],
+    "forbidden_changes": [
+      "page_index",
+      "source_page_hash",
+      "geometry.rotation",
+      "geometry.media_box"
+    ]
+  },
+  "pikepdf": {
+    "must_preserve": [
+      "page_count",
+      "page_size",
+      "rotation",
+      "media_box",
+      "fonts"
+    ],
+    "allowed_changes": [
+      "content_stream_hash",
+      "object_ids",
+      "xref_structure",
+      "internal_references",
+      "compression",
+      "annotations",
+      "links"
+    ],
+    "forbidden_changes": [
+      "page_index",
+      "source_page_hash",
+      "geometry.rotation",
+      "geometry.media_box"
+    ]
+  }
+}

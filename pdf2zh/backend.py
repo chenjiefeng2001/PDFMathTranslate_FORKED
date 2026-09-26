@@ -51,24 +51,39 @@ def translate_task(
         self.update_state(state="PROGRESS", meta={"n": t.n, "total": t.total})  # noqa
         print(f"Translating {t.n} / {t.total} pages")
 
+    if not isinstance(args, dict):
+        raise ValueError("translation args must be a JSON object")
     if "prompt" in args:
-        args["prompt"] = Template(args["prompt"])
+        if isinstance(args["prompt"], str):
+            args["prompt"] = Template(args["prompt"])
+    if args.get("pages") not in (None, ""):
+        from pdf2zh.v3.ingestion.config import normalize_user_page_indices
 
-    doc_mono, doc_dual = translate_stream(
+        args["pages"] = normalize_user_page_indices(args["pages"])
+
+    doc_dual, doc_mono = translate_stream(
         stream,
         callback=progress_bar,
         model=ModelInstance.value,
         **args,
     )
+    if not doc_mono or not doc_dual:
+        raise RuntimeError("translate_stream returned empty output")
     return doc_mono, doc_dual
 
 
 @flask_app.route("/v1/translate", methods=["POST"])
 def create_translate_tasks():
-    file = request.files["file"]
+    file = request.files.get("file")
+    if file is None:
+        return {"error": "No file provided"}, 400
     stream = file.stream.read()
-    print(request.form.get("data"))
-    args = json.loads(request.form.get("data"))
+    try:
+        args = json.loads(request.form.get("data") or "{}")
+    except (TypeError, ValueError) as exc:
+        return {"error": f"invalid data: {exc}"}, 400
+    if not isinstance(args, dict):
+        return {"error": "data must be a JSON object"}, 400
     task = translate_task.delay(stream, args)
     return {"id": task.id}
 
@@ -112,7 +127,12 @@ def create_translate_task_v2():
 
     file = request.files.get("file")
     form_data = request.form.get("data", "{}")
-    args = json.loads(form_data)
+    try:
+        args = json.loads(form_data)
+    except (TypeError, ValueError) as exc:
+        return {"error": f"invalid data: {exc}"}, 400
+    if not isinstance(args, dict):
+        return {"error": "data must be a JSON object"}, 400
 
     if file is None:
         return {"error": "No file provided"}, 400
@@ -122,19 +142,167 @@ def create_translate_task_v2():
     import tempfile
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
-    tmp.write(stream)
-    tmp.close()
+    try:
+        tmp.write(stream)
+    finally:
+        tmp.close()
 
-    req = TranslationRequest(
-        source_path=tmp.name,
-        target_lang=args.get("lang_out", "zh-CN"),
-        source_lang=args.get("lang_in", "auto"),
-        engine=args.get("service", "google"),
-        page_range=args.get("pages"),
+    from pdf2zh.v3.ingestion.config import (
+        JINA_DEFAULT_DPI,
+        JINA_DEFAULT_MAX_NEW_TOKENS,
+        JINA_DEFAULT_MAX_PIXELS,
+        JINA_DEFAULT_TIMEOUT,
+        JINA_MIN_COVERAGE,
+        JINA_MODEL_ID,
+        JINA_PROMPT,
+        JINA_REVISION,
+        JinaOcrOptions,
+        normalize_ingest_backend,
     )
 
-    svc = get_runtime_service()
-    task_id = svc.submit_task(req)
+    from pdf2zh.fs_utils import remove_path_robust
+
+    try:
+        magicpdf_ocr_raw = args.get("magicpdf_ocr", False)
+        magicpdf_ocr = (
+            magicpdf_ocr_raw.strip().lower() in {"1", "true", "yes", "on"}
+            if isinstance(magicpdf_ocr_raw, str)
+            else bool(magicpdf_ocr_raw)
+        )
+        jina_options = None
+        glossary_value = args.get("glossary_files") or []
+        if isinstance(glossary_value, str):
+            glossary_value = [
+                item.strip() for item in glossary_value.split(",") if item.strip()
+            ]
+        elif not isinstance(glossary_value, list):
+            raise ValueError("glossary_files must be a list or comma-separated string")
+        if normalize_ingest_backend(args.get("ingest_backend", "auto")) == "jina":
+            jina_options = JinaOcrOptions.from_mapping(
+                {
+                    "model": args.get("jina_model", JINA_MODEL_ID),
+                    "revision": args.get("jina_revision", JINA_REVISION),
+                    "prompt": args.get("jina_prompt", JINA_PROMPT),
+                    "device": args.get("jina_device", "auto"),
+                    "dpi": args.get("jina_dpi", JINA_DEFAULT_DPI),
+                    "max_pixels": args.get("jina_max_pixels", JINA_DEFAULT_MAX_PIXELS),
+                    "max_new_tokens": args.get(
+                        "jina_max_new_tokens", JINA_DEFAULT_MAX_NEW_TOKENS
+                    ),
+                    "timeout": args.get("jina_timeout", JINA_DEFAULT_TIMEOUT),
+                    "cache_dir": args.get("jina_cache_dir", ""),
+                    "min_coverage": args.get("jina_min_coverage", JINA_MIN_COVERAGE),
+                    "offline": args.get("jina_offline", False),
+                }
+            )
+        req = TranslationRequest(
+            source_path=tmp.name,
+            target_lang=args.get("lang_out", "zh-CN"),
+            source_lang=args.get("lang_in", "auto"),
+            engine=args.get("service", "google"),
+            threads=max(1, min(32, int(args.get("threads", 4) or 4))),
+            page_range=args.get("pages"),
+            parse_engine=args.get("parse_engine", "auto"),
+            ingest_backend=args.get("ingest_backend", "auto"),
+            backend=(args.get("backend") or "auto").strip().lower() or "auto",
+            output_dir=args.get("output_dir", ""),
+            magicpdf_ocr=magicpdf_ocr,
+            magicpdf_ocr_mode=(
+                str(args.get("magicpdf_ocr_mode") or "auto").strip().lower()
+            ),
+            mineru_vram_size=str(args.get("mineru_vram_size") or "").strip(),
+            mineru_window_size=str(args.get("mineru_window_size") or "").strip(),
+            mineru_parse_method=str(args.get("mineru_parse_method") or "").strip(),
+            mineru_backend=str(args.get("mineru_backend") or "").strip(),
+            glossary_files=[str(item) for item in glossary_value],
+            jina_model=(
+                jina_options.model
+                if jina_options is not None
+                else args.get("jina_model", JINA_MODEL_ID)
+            ),
+            jina_revision=(
+                jina_options.revision
+                if jina_options is not None
+                else args.get("jina_revision", JINA_REVISION)
+            ),
+            jina_prompt=(
+                jina_options.prompt
+                if jina_options is not None
+                else args.get("jina_prompt", JINA_PROMPT)
+            ),
+            jina_device=(
+                jina_options.device
+                if jina_options is not None
+                else args.get("jina_device", "auto")
+            ),
+            jina_dpi=(
+                jina_options.dpi
+                if jina_options is not None
+                else args.get("jina_dpi", JINA_DEFAULT_DPI)
+            ),
+            jina_max_pixels=(
+                jina_options.max_pixels
+                if jina_options is not None
+                else args.get("jina_max_pixels", JINA_DEFAULT_MAX_PIXELS)
+            ),
+            jina_max_new_tokens=(
+                jina_options.max_new_tokens
+                if jina_options is not None
+                else args.get("jina_max_new_tokens", JINA_DEFAULT_MAX_NEW_TOKENS)
+            ),
+            jina_timeout=(
+                jina_options.timeout
+                if jina_options is not None
+                else args.get("jina_timeout", JINA_DEFAULT_TIMEOUT)
+            ),
+            jina_cache_dir=(
+                jina_options.cache_dir
+                if jina_options is not None
+                else args.get("jina_cache_dir", "")
+            ),
+            jina_min_coverage=(
+                jina_options.min_coverage
+                if jina_options is not None
+                else args.get("jina_min_coverage", JINA_MIN_COVERAGE)
+            ),
+            jina_offline=(
+                jina_options.offline
+                if jina_options is not None
+                else args.get("jina_offline", False)
+            ),
+        )
+
+        svc = get_runtime_service()
+        task_id = svc.submit_task(req)
+    except (TypeError, ValueError) as exc:
+        remove_path_robust(tmp.name, defer=True)
+        return {"error": str(exc)}, 400
+    except Exception:
+        remove_path_robust(tmp.name, defer=True)
+        raise
+
+    def _cleanup_input() -> None:
+        import time
+
+        for _ in range(86400):
+            state = svc.get_task_state(task_id)
+            if state is None or state.status in {
+                "completed",
+                "failed",
+                "cancelled",
+            }:
+                time.sleep(1.0)
+                remove_path_robust(tmp.name, defer=True)
+                return
+            time.sleep(1.0)
+
+    import threading
+
+    threading.Thread(
+        target=_cleanup_input,
+        name="pdf2zh-v2-input-cleanup",
+        daemon=True,
+    ).start()
     return {"task_id": task_id}
 
 
@@ -195,14 +363,10 @@ def get_translate_artifact_v2(task_id: str, format: str):
     return {"error": f"No artifact for format: {format}"}, 404
 
 
-def delete_translate_task(id: str):
-    result: AsyncResult = celery_app.AsyncResult(id)
-    result.revoke(terminate=True)
-    return {"state": str(result.state)}
-
-
 @flask_app.route("/v1/translate/<id>/<format>")
 def get_translate_result(id: str, format: str):
+    if format not in {"mono", "dual"}:
+        return {"error": "format must be mono or dual"}, 400
     result = celery_app.AsyncResult(id)
     if not result.ready():
         return {"error": "task not finished"}, 400

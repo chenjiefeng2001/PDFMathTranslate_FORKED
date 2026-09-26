@@ -2,6 +2,9 @@ import logging
 import os
 import json
 import hashlib
+import time
+import copy
+
 from peewee import Model, SqliteDatabase, AutoField, CharField, TextField, SQL
 from typing import Optional
 
@@ -50,11 +53,15 @@ class _FileCache(Model):
 class TranslationCache:
     @staticmethod
     def _sort_dict_recursively(obj):
+        if isinstance(obj, (set, frozenset)):
+            return sorted(
+                (TranslationCache._sort_dict_recursively(item) for item in obj),
+                key=repr,
+            )
         if isinstance(obj, dict):
             return {
-                k: TranslationCache._sort_dict_recursively(v)
-                for k in sorted(obj.keys())
-                for v in [obj[k]]
+                k: TranslationCache._sort_dict_recursively(obj[k])
+                for k in sorted(obj.keys(), key=lambda item: str(item))
             }
         elif isinstance(obj, list):
             return [TranslationCache._sort_dict_recursively(item) for item in obj]
@@ -73,8 +80,8 @@ class TranslationCache:
     def replace_params(self, params: dict = None):
         if params is None:
             params = {}
-        self.params = params
-        params = self._sort_dict_recursively(params)
+        self.params = copy.deepcopy(params)
+        params = self._sort_dict_recursively(self.params)
         self.translate_engine_params = json.dumps(params)
 
     def update_params(self, params: dict = None):
@@ -90,23 +97,46 @@ class TranslationCache:
     # Since peewee and the underlying sqlite are thread-safe,
     # get and set operations don't need locks.
     def get(self, original_text: str) -> Optional[str]:
-        result = _TranslationCache.get_or_none(
-            translate_engine=self.translate_engine,
-            translate_engine_params=self.translate_engine_params,
-            original_text=original_text,
-        )
-        return result.translation if result else None
+        """查询缓存;SQLite busy(并行页 worker 写冲突)时退避重试一次。
+
+        失败降级为未命中(代价=同段文本重复翻译),绝不向翻译主流程抛异常。
+        """
+        last_err: Optional[Exception] = None
+        for _attempt in (1, 2):
+            try:
+                result = _TranslationCache.get_or_none(
+                    translate_engine=self.translate_engine,
+                    translate_engine_params=self.translate_engine_params,
+                    original_text=original_text,
+                )
+                return result.translation if result else None
+            except Exception as e:
+                last_err = e
+                time.sleep(0.2)
+        logger.warning("Error getting cache after retry: %s", last_err)
+        return None
 
     def set(self, original_text: str, translation: str):
-        try:
-            _TranslationCache.create(
-                translate_engine=self.translate_engine,
-                translate_engine_params=self.translate_engine_params,
-                original_text=original_text,
-                translation=translation,
-            )
-        except Exception as e:
-            logger.debug(f"Error setting cache: {e}")
+        """写入缓存;SQLite busy 时退避重试一次,仍失败显式 warning。
+
+        此前异常被静默吞掉(仅 debug 日志):busy 冲突 -> 写入丢失 ->
+        同段文本重复走网络翻译。缓存丢失的代价远大于任何本地磁盘开销,
+        因此必须可观测。
+        """
+        last_err: Optional[Exception] = None
+        for _attempt in (1, 2):
+            try:
+                _TranslationCache.create(
+                    translate_engine=self.translate_engine,
+                    translate_engine_params=self.translate_engine_params,
+                    original_text=original_text,
+                    translation=translation,
+                )
+                return
+            except Exception as e:
+                last_err = e
+                time.sleep(0.2)
+        logger.warning("Error setting cache after retry: %s", last_err)
 
 
 # ========== 文件级 Hash 缓存操作 ==========
@@ -177,11 +207,21 @@ def set_file_cache(
         )
         logger.info(f"文件翻译缓存已记录: {file_name} ({file_hash[:12]}...)")
     except Exception as e:
-        logger.debug(f"Error setting file cache: {e}")
+        logger.warning("Error setting file cache: %s", e)
+
+
+def _normalize_page_range(value: Optional[str]) -> str:
+    return ",".join(
+        part.strip() for part in str(value or "").split(",") if part.strip()
+    )
 
 
 def check_file_cache(
-    file_path: str, lang_in: str, lang_out: str, service: str
+    file_path: str,
+    lang_in: str,
+    lang_out: str,
+    service: str,
+    page_range: str = "",
 ) -> Optional[dict]:
     """综合检查：计算文件 hash 并查看是否已有缓存"""
     try:
@@ -193,6 +233,8 @@ def check_file_cache(
                 cache["lang_in"] == lang_in
                 and cache["lang_out"] == lang_out
                 and cache["service"] == service
+                and _normalize_page_range(cache.get("page_range"))
+                == _normalize_page_range(page_range)
             ):
                 return cache
     except Exception as e:
@@ -221,7 +263,11 @@ def init_db(remove_exists=False):
         cache_db_path,
         pragmas={
             "journal_mode": "wal",
-            "busy_timeout": 1000,
+            # 并行页翻译 worker 同时写缓存:锁等待放宽到 30s(与
+            # translation_cache.py 一致)。旧值 1000ms 时 busy 冲突即失败,
+            # 写入被吞 -> 缓存丢失 -> 同段文本重复走网络翻译。
+            "busy_timeout": 30000,
+            "synchronous": "normal",
         },
     )
     db.create_tables([_TranslationCache, _FileCache], safe=True)

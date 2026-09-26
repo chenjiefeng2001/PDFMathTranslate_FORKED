@@ -72,13 +72,24 @@ def _fallback_legacy(parsed_args, reason: str, progress_cb=None) -> int:
 
 
 def _degrade_engine(parsed_args, reason: str, progress_cb=None, degrade_to=None) -> int:
-    """按降级目标路由：``degrade_to="babeldoc"`` 抛 :class:`MagicPdfDegradeError`
-    由服务层改走 BabelDOC 执行器；否则（默认）走 :func:`_fallback_legacy`。
+    """按降级目标路由；显式 Jina 失败时保持失败，不偷换 OCR 引擎。"""
+    from pdf2zh.v3.ingestion.config import BACKEND_JINA, normalize_ingest_backend
 
-    矛盾配置（magicpdf 解析引擎 + BabelDOC 模式）下，MinerU 不可用/解析失败
-    时若静默降级 legacy，用户会看到「选 BabelDOC 却毫无 BabelDOC 痕迹且进度
-    不再刷新」——即「直接卡死」的体感。降级目标显式化 + 事件上报可消除该盲区。
-    """
+    if (
+        normalize_ingest_backend(getattr(parsed_args, "ingest_backend", "auto"))
+        == BACKEND_JINA
+    ):
+        logger.error("[magicpdf] Jina OCR forced mode failed: %s", reason)
+        if progress_cb is not None:
+            try:
+                progress_cb(
+                    "analyzing",
+                    _PCT_PARSE_START,
+                    f"[失败] Jina OCR：{reason}",
+                )
+            except Exception:
+                pass
+        return 1
     if degrade_to == "babeldoc":
         if progress_cb is not None:
             try:
@@ -174,22 +185,48 @@ def _write_dumps(
     stem = os.path.splitext(os.path.basename(pdf_path))[0]
     parse_dump = os.path.join(magic_dir, f"{stem}_magicpdf.json")
     doc_dump = os.path.join(magic_dir, f"{stem}_document.json")
+    # 紧凑 JSON(去 indent=2):大文档 dump 单份可达数十 MB,美化输出
+    # 白白放大 30-50% 磁盘写;人工审计用 jq/编辑器格式化即可。
     with open(parse_dump, "w", encoding="utf-8") as fh:
-        json.dump([r.to_dict() for r in results], fh, ensure_ascii=False, indent=2)
+        json.dump([r.to_dict() for r in results], fh, ensure_ascii=False)
     with open(doc_dump, "w", encoding="utf-8") as fh:
-        json.dump(document.to_dict(), fh, ensure_ascii=False, indent=2)
+        json.dump(document.to_dict(), fh, ensure_ascii=False)
     logger.info("[magicpdf] parse dump: %s", parse_dump)
     logger.info("[magicpdf] document dump: %s", doc_dump)
     if channel is not None:
         channel_dump = os.path.join(magic_dir, f"{stem}_formula_channel.json")
         with open(channel_dump, "w", encoding="utf-8") as fh:
-            fh.write(channel.to_json())
+            fh.write(channel.to_json(indent=None))
         logger.info("[magicpdf] formula channel dump: %s", channel_dump)
     if fixed_plan:
         plan_dump = os.path.join(magic_dir, f"{stem}_render_plan.json")
         with open(plan_dump, "w", encoding="utf-8") as fh:
-            json.dump(fixed_plan, fh, ensure_ascii=False, indent=2)
+            json.dump(fixed_plan, fh, ensure_ascii=False)
         logger.info("[magicpdf] render plan dump: %s", plan_dump)
+
+
+def _validate_jina_page_selection(pdf_path: str, pages) -> None:
+    if pages is None:
+        return
+    from pdf2zh.v3.ingestion.config import normalize_jina_page_indices
+
+    selected = normalize_jina_page_indices(pages)
+    if selected is None:
+        return
+    try:
+        import pymupdf
+    except ImportError:
+        return
+    try:
+        with pymupdf.open(pdf_path) as document:
+            page_count = int(document.page_count)
+    except Exception as exc:
+        raise ValueError(f"cannot validate Jina OCR page selection: {exc}") from exc
+    invalid = [page for page in selected if page < 0 or page >= page_count]
+    if invalid:
+        raise ValueError(
+            f"Jina OCR page selection out of range for {page_count} pages: {invalid}"
+        )
 
 
 def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb, lang=None):
@@ -223,12 +260,10 @@ def _adapter_parse(adapter, path: str, pages, ocr: bool, progress_cb, lang=None)
 
 def _write_ingest_dump(pdf_path: str, ingest_doc: Any, magic_dir: str) -> str:
     """Marker ingestion IR dump（{stem}_ingest.json）——双链路对照的原料。"""
-    import json as _json
-
     stem = os.path.splitext(os.path.basename(pdf_path))[0]
     out = os.path.join(magic_dir, f"{stem}_ingest.json")
     with open(out, "w", encoding="utf-8") as fh:
-        fh.write(ingest_doc.to_json(indent=2))
+        fh.write(ingest_doc.to_json(indent=None))
     logger.info(
         "[magicpdf] ingest dump: %s (%d pages, %d blocks, backend=%s)",
         out,
@@ -267,12 +302,22 @@ def _marker_live_available() -> bool:
 
 
 def _run_marker_ingest(
-    path: str, marker_json, marker_version, magic_dir: str, progress_cb=None
+    path: str,
+    marker_json,
+    marker_version,
+    magic_dir: str,
+    progress_cb=None,
+    *,
+    pages=None,
+    ocr=None,
 ):
     """Marker ingestion → ``(ingest_doc, v3 DocumentModel)``.
 
-    Shared by 强制 marker 模式与 auto 模式的回退路径；失败抛异常由调用方
-    决定熔断（强制模式）或保留 MinerU 结果（auto 回退）。
+    Shared by 强制 marker 模式、auto 回退与 auto-no-MinerU 路径；失败抛异常
+    由调用方决定熔断（强制模式）或保留 MinerU 结果（auto 回退）。
+
+    ``pages`` / ``ocr`` 透传给 MarkerBackend（Marker 的 ``page_range`` /
+    ``force_ocr``），使 Marker 路由与 MinerU 切片/OCR 语义一致。
     """
     from pdf2zh.v3.ingestion import MarkerBackend
     from pdf2zh.v3.ingestion.bridge import model_from_ingest_document
@@ -288,9 +333,97 @@ def _run_marker_ingest(
             pass
     _backend = MarkerBackend(marker_version=marker_version)
     if marker_json:
-        ingest_doc = _backend.ingest_json(marker_json, pdf_path=path)
+        ingest_doc = _backend.ingest_json(marker_json, pdf_path=path, pages=pages)
     else:
-        ingest_doc = _backend.ingest(path)
+        ingest_doc = _backend.ingest(path, pages=pages, ocr=ocr)
+    doc = model_from_ingest_document(ingest_doc, default_font="")
+    _write_ingest_dump(path, ingest_doc, magic_dir)
+    return ingest_doc, doc
+
+
+def _jina_options_from_args(parsed_args):
+    from pdf2zh.v3.ingestion.config import JinaOcrOptions
+
+    fields = {
+        "jina_model": "model",
+        "jina_revision": "revision",
+        "jina_prompt": "prompt",
+        "jina_device": "device",
+        "jina_dpi": "dpi",
+        "jina_max_pixels": "max_pixels",
+        "jina_max_new_tokens": "max_new_tokens",
+        "jina_timeout": "timeout",
+        "jina_min_coverage": "min_coverage",
+    }
+    values = {}
+    for attribute, field in fields.items():
+        if hasattr(parsed_args, attribute):
+            values[field] = getattr(parsed_args, attribute)
+    if hasattr(parsed_args, "jina_offline"):
+        values["offline"] = bool(parsed_args.jina_offline)
+    cache_dir = getattr(parsed_args, "jina_cache_dir", "")
+    if getattr(parsed_args, "ignore_cache", False):
+        values["cache_dir"] = None
+    elif cache_dir:
+        values["cache_dir"] = cache_dir
+    return JinaOcrOptions.from_env(**values)
+
+
+def _ensure_jina_page_sizes(pdf_path: str, base_pages):
+    if not base_pages:
+        return []
+    pages = list(base_pages) if isinstance(base_pages, (list, tuple)) else [base_pages]
+    if not pages or not any(
+        float(getattr(page, "width", 0.0) or 0.0) <= 0
+        or float(getattr(page, "height", 0.0) or 0.0) <= 0
+        for page in pages
+    ):
+        return pages
+    try:
+        from pdf2zh.v3.ingestion.adapter import read_pdf_page_sizes
+
+        sizes = read_pdf_page_sizes(pdf_path)
+    except Exception:
+        return pages
+    for page in pages:
+        page_no = int(getattr(page, "page_num", 0))
+        if page_no < 0 or page_no >= len(sizes):
+            continue
+        if float(getattr(page, "width", 0.0) or 0.0) <= 0:
+            page.width = sizes[page_no][0]
+        if float(getattr(page, "height", 0.0) or 0.0) <= 0:
+            page.height = sizes[page_no][1]
+    return pages
+
+
+def _run_jina_ingest(
+    path,
+    base_pages,
+    magic_dir,
+    parsed_args,
+    progress_cb=None,
+    *,
+    pages=None,
+):
+    from pdf2zh.v3.ingestion import JinaOcrBackend
+    from pdf2zh.v3.ingestion.bridge import model_from_ingest_document
+
+    if progress_cb is not None:
+        try:
+            progress_cb(
+                "analyzing",
+                _PCT_PARSE_START,
+                f"{os.path.basename(path)}: Jina OCR ingestion...",
+            )
+        except Exception:
+            pass
+    base_pages = _ensure_jina_page_sizes(path, base_pages)
+    backend = JinaOcrBackend(_jina_options_from_args(parsed_args))
+    ingest_doc = backend.ingest(
+        path,
+        pages=pages,
+        base_pages=base_pages,
+    )
     doc = model_from_ingest_document(ingest_doc, default_font="")
     _write_ingest_dump(path, ingest_doc, magic_dir)
     return ingest_doc, doc
@@ -322,47 +455,83 @@ def run_magicpdf_main(
     # vendor/marker 子模块；JSON 离线或 live 运行）。与 v3/ingestion 计划一致：
     # Marker 只做 PDF understanding，不参与排版渲染；其 canonical IR 经
     # v3/ingestion/bridge 进同一 DocumentModel 主链路。
-    ingest_backend = (getattr(parsed_args, "ingest_backend", "") or "auto").lower()
-    if ingest_backend not in ("auto", "mineru", "marker"):
-        ingest_backend = "auto"
+    from pdf2zh.v3.ingestion.config import (
+        BACKEND_JINA,
+        BACKEND_MARKER,
+        BACKEND_MINERU,
+        REQUEST_AUTO,
+        normalize_ingest_backend,
+    )
+
+    ingest_backend = normalize_ingest_backend(
+        getattr(parsed_args, "ingest_backend", "auto")
+    )
+    if ingest_backend == BACKEND_JINA:
+        try:
+            _jina_options_from_args(parsed_args)
+        except (TypeError, ValueError) as exc:
+            logger.error("[magicpdf] invalid Jina OCR options: %s", exc)
+            return 1
+
     marker_json = getattr(parsed_args, "marker_json", None)
     marker_version = getattr(parsed_args, "marker_version", "") or None
 
-    adapter = MagicPdfAdapter(
-        device=parsed_args.backend,
-        mineru_vram_size=getattr(parsed_args, "mineru_vram_size", "") or "",
-        mineru_window_size=getattr(parsed_args, "mineru_window_size", "") or "",
-        mineru_parse_method=getattr(parsed_args, "mineru_parse_method", "") or "",
-        mineru_backend=getattr(parsed_args, "mineru_backend", "") or "",
-    )
-    # 解析前打印 magic-pdf 实际执行设备（torch CUDA 状态 + 配置 device-mode），
-    # 避免"选 cuda 实际跑 cpu"的排障盲区；未走 GPU 时给出安装指引。
-    try:
-        from pdf2zh.magicpdf_adapter import get_magicpdf_device_status
-
-        status = get_magicpdf_device_status(requested=parsed_args.backend)
-        logger.info(
-            "[magicpdf] device status: requested=%s torch=%s torch_cuda=%s "
-            "device-mode=%s effective=%s mineru_venv=%s mineru_cuda=%s",
-            status["requested"],
-            status["torch"] or "-",
-            status["torch_cuda"],
-            status["device_mode"],
-            status["effective"],
-            status.get("mineru_venv") or "-",
-            status.get("mineru_venv_torch_cuda"),
+    # Marker 独立路由不需要 MinerU：只有 auto/mineru 才建适配器。auto 且 MinerU
+    # 未安装时不再立即降级——改由每文件的 Marker 回退路径服务（见循环内
+    # “adapter is None → 直接 Marker”分支）。强制 mineru 不可用才维持既有
+    # 熔断降级（先于任何文件处理）。
+    need_mineru = ingest_backend in (REQUEST_AUTO, BACKEND_MINERU, BACKEND_JINA)
+    adapter = None
+    if need_mineru:
+        adapter = MagicPdfAdapter(
+            device=parsed_args.backend,
+            mineru_vram_size=getattr(parsed_args, "mineru_vram_size", "") or "",
+            mineru_window_size=getattr(parsed_args, "mineru_window_size", "") or "",
+            mineru_parse_method=(
+                "ocr"
+                if ingest_backend == BACKEND_JINA
+                else getattr(parsed_args, "mineru_parse_method", "") or ""
+            ),
+            mineru_backend=getattr(parsed_args, "mineru_backend", "") or "",
         )
-        if status.get("hint"):
-            logger.warning("[magicpdf] %s", status["hint"])
-    except Exception as exc:  # noqa: BLE001 -- 诊断失败不阻断解析
-        logger.debug("[magicpdf] device status probe skipped: %s", exc)
-    if not adapter.is_available():
-        adapter.close()
-        return _degrade_engine(
-            parsed_args,
-            "magic-pdf/MinerU 未安装",
-            progress_cb=progress_cb,
-            degrade_to=degrade_to,
+        # 解析前打印 magic-pdf 实际执行设备（torch CUDA 状态 + 配置 device-mode），
+        # 避免"选 cuda 实际跑 cpu"的排障盲区；未走 GPU 时给出安装指引。
+        try:
+            from pdf2zh.magicpdf_adapter import get_magicpdf_device_status
+
+            status = get_magicpdf_device_status(requested=parsed_args.backend)
+            logger.info(
+                "[magicpdf] device status: requested=%s torch=%s torch_cuda=%s "
+                "device-mode=%s effective=%s mineru_venv=%s mineru_cuda=%s",
+                status["requested"],
+                status["torch"] or "-",
+                status["torch_cuda"],
+                status["device_mode"],
+                status["effective"],
+                status.get("mineru_venv") or "-",
+                status.get("mineru_venv_torch_cuda"),
+            )
+            if status.get("hint"):
+                logger.warning("[magicpdf] %s", status["hint"])
+        except Exception as exc:  # noqa: BLE001 -- 诊断失败不阻断解析
+            logger.debug("[magicpdf] device status probe skipped: %s", exc)
+        if not adapter.is_available():
+            adapter.close()
+            adapter = None
+            if ingest_backend in (BACKEND_MINERU, BACKEND_JINA):
+                # 强制 mineru：不可用 → 维持既有熔断降级。
+                return _degrade_engine(
+                    parsed_args,
+                    "magic-pdf/MinerU 未安装",
+                    progress_cb=progress_cb,
+                    degrade_to=degrade_to,
+                )
+            logger.warning(
+                "[magicpdf] magic-pdf/MinerU 未安装 —— auto 摄入将回退 Marker 兜底"
+            )
+    else:
+        logger.info(
+            "[magicpdf] ingest_backend=marker：不依赖 MinerU，直接走 Marker 摄入"
         )
 
     files = list(parsed_args.files or [])
@@ -370,6 +539,11 @@ def run_magicpdf_main(
         from pdf2zh.pdf2zh import find_all_files_in_directory
 
         files = find_all_files_in_directory(files[0])
+    if not files:
+        if adapter is not None:
+            adapter.close()
+        logger.error("magicpdf: no input files")
+        return 1
 
     bridge = MagicPdfBridge(default_font="")
     magic_dir = _output_dir(parsed_args)
@@ -383,6 +557,7 @@ def run_magicpdf_main(
     prompt_text = _prompt_text(parsed_args)
     from pdf2zh.scanned_detection import preflight_scan_check
 
+    translation_failed = False
     for path in files:
         #: 本次摄入故事（doc, end-status, fallback_from）＋决策，随后按序写入
         #: flight recorder：mineru (FAIL) → marker fallback (PASS, fallback_from)
@@ -433,12 +608,24 @@ def run_magicpdf_main(
                 logger.debug("[magicpdf] preflight skipped: %s", exc)
         #: 非 None ⇒ doc 已由解析崩溃兜底路径产出，跳过 canonical 选择。
         served_doc = None
+        parse_ocr = True if ingest_backend == BACKEND_JINA else ocr
         try:
+            if adapter is None:
+                # Marker 独立路由（ingest_backend=marker）或 auto 且 MinerU 不可
+                # 用：不创建也不调用 MinerU —— 直接把“解析不可用”作为 primary
+                # 失败交给 Marker 回退路由（跳过 MinerU 的安装要求与双重解析）。
+                raise RuntimeError(
+                    "magic-pdf/MinerU 不可用（Marker 为强制摄入后端）"
+                    if ingest_backend == BACKEND_MARKER
+                    else "magic-pdf/MinerU 未安装"
+                )
+            if ingest_backend == BACKEND_JINA:
+                _validate_jina_page_selection(path, parsed_args.pages)
             results = _adapter_parse(
                 adapter,
                 path,
                 parsed_args.pages,
-                ocr,
+                parse_ocr,
                 _make_parse_progress(progress_cb, path),
                 lang=getattr(parsed_args, "lang_in", None),
             )
@@ -456,53 +643,97 @@ def run_magicpdf_main(
                 gate_quality,
             )
 
-            # P1: auto + parse crash → Marker 回退（同一 selector 决策模型，
-            # reason=mineru_parse_failed，绝不伪装成 quality failure）。失败链
-            # 完整进 trace：mineru run_failure → marker run_failure → engine 级
-            # legacy/BabelDOC 降级（降级不吞掉前面的 ingestion failure）。
-            if ingest_backend == "auto" and (
-                bool(marker_json) or _marker_live_available()
-            ):
-                try:
-                    emit_ingest_run_failure(
-                        BACKEND_MINERU, f"parse failed: {exc}", rec, pdf_path=path
-                    )
-                except Exception:  # noqa: BLE001 -- 采集失败不阻断回退
-                    pass
+            # Marker 回退/独立路由（同一 selector 决策模型）：
+            #   - ingest_backend=marker（强制）→ Marker 直接服务（reason=forced_backend）；
+            #   - auto + MinerU parse crash / MinerU 不可用 → Marker 兜底
+            #     （reason=mineru_parse_failed，绝不伪装成 quality failure）。
+            # 失败链完整进 trace：mineru run_failure → marker run_failure → engine
+            # 级 legacy/BabelDOC 降级（降级不吞掉前面的 ingestion failure）。
+            marker_requested = ingest_backend == BACKEND_MARKER
+            marker_candidate = marker_requested or (
+                ingest_backend == REQUEST_AUTO
+                and (bool(marker_json) or _marker_live_available())
+            )
+            if marker_candidate:
+                if not marker_requested:
+                    # auto 才记录 MinerU 的失败足迹；强制 Marker 从未尝试 MinerU。
+                    try:
+                        emit_ingest_run_failure(
+                            BACKEND_MINERU,
+                            f"parse failed: {exc}",
+                            rec,
+                            pdf_path=path,
+                        )
+                    except Exception:  # noqa: BLE001 -- 采集失败不阻断回退
+                        pass
                 try:
                     ingest_doc, doc = _run_marker_ingest(
-                        path, marker_json, marker_version, magic_dir, progress_cb
+                        path,
+                        marker_json,
+                        marker_version,
+                        magic_dir,
+                        progress_cb,
+                        pages=parsed_args.pages,
+                        ocr=ocr,
                     )
                     results = []
-                    # 解析崩溃走同一条回退路由：以 failed primary 表达（没有事件
-                    # 可过门），reason 随后如实覆盖为 mineru_parse_failed —— 绝不
-                    # 伪装成 quality failure；quality/failed_rules 也随后被 marker
-                    # run 自身的 gate 结果覆盖。
-                    ingest_decision = decide(
-                        "auto",
-                        primary=BACKEND_MINERU,
-                        primary_quality=QUALITY_FAIL,
-                        fallback_available=True,
-                    )
-                    ingest_decision.reason = REASON_PRIMARY_PARSE_FAIL
-                    ingest_decision.failed_rules = []
                     marker_gate = gate_quality(ingest_block_events(ingest_doc))
-                    ingest_decision.quality = marker_gate.quality
-                    ingest_decision.fallback_succeeded = True
-                    ingest_events.append(
-                        (
-                            ingest_doc,
-                            ("FAIL" if marker_gate.quality == QUALITY_FAIL else "PASS"),
-                            BACKEND_MINERU,
+                    if marker_requested:
+                        # 强制 Marker：没有 primary，直接以 marker 为 selected。
+                        ingest_decision = decide(
+                            "marker",
+                            primary=BACKEND_MARKER,
+                            primary_quality=marker_gate.quality,
+                            primary_failed_rules=marker_gate.failed_rules,
+                            fallback_available=False,
                         )
-                    )
+                        ingest_events.append(
+                            (
+                                ingest_doc,
+                                (
+                                    "FAIL"
+                                    if marker_gate.quality == QUALITY_FAIL
+                                    else "PASS"
+                                ),
+                                None,
+                            )
+                        )
+                        logger.warning(
+                            "[magicpdf] %s Marker 摄入服务成功: %s", path, exc
+                        )
+                    else:
+                        # auto 回退：以 failed primary 表达（没有事件可过门），
+                        # reason 随后如实覆盖为 mineru_parse_failed —— quality /
+                        # failed_rules 随后被 marker run 自身的 gate 结果覆盖。
+                        ingest_decision = decide(
+                            "auto",
+                            primary=BACKEND_MINERU,
+                            primary_quality=QUALITY_FAIL,
+                            fallback_available=True,
+                        )
+                        ingest_decision.reason = REASON_PRIMARY_PARSE_FAIL
+                        ingest_decision.failed_rules = []
+                        ingest_decision.quality = marker_gate.quality
+                        ingest_decision.fallback_succeeded = True
+                        ingest_events.append(
+                            (
+                                ingest_doc,
+                                (
+                                    "FAIL"
+                                    if marker_gate.quality == QUALITY_FAIL
+                                    else "PASS"
+                                ),
+                                BACKEND_MINERU,
+                            )
+                        )
+                        logger.warning(
+                            "[magicpdf] %s MinerU 解析失败，auto 回退 Marker "
+                            "成功: %s",
+                            path,
+                            exc,
+                        )
                     served_doc = doc
-                    logger.warning(
-                        "[magicpdf] %s MinerU 解析失败，auto 回退 Marker 成功: %s",
-                        path,
-                        exc,
-                    )
-                except Exception as exc2:  # noqa: BLE001 -- Marker 也失败 → engine 降级
+                except Exception as exc2:  # noqa: BLE001 -- Marker 也失败 → 降级
                     logger.warning(
                         "[magicpdf] %s MinerU 解析失败且 Marker 回退也失败: %s / %s",
                         path,
@@ -515,15 +746,18 @@ def run_magicpdf_main(
                             f"fallback failed: {exc2}",
                             rec,
                             pdf_path=path,
-                            fallback_from=BACKEND_MINERU,
+                            fallback_from=(
+                                BACKEND_MINERU if not marker_requested else None
+                            ),
                         )
                     except Exception:  # noqa: BLE001
                         pass
                     rec.close()
-                    adapter.close()
+                    if adapter is not None:
+                        adapter.close()
                     return _degrade_engine(
                         parsed_args,
-                        f"{path} 解析失败且 Marker 回退失败",
+                        f"{path} 解析失败且 Marker 摄入失败",
                         progress_cb=progress_cb,
                         degrade_to=degrade_to,
                     )
@@ -535,7 +769,8 @@ def run_magicpdf_main(
                 except Exception:  # noqa: BLE001
                     pass
                 rec.close()
-                adapter.close()
+                if adapter is not None:
+                    adapter.close()
                 return _degrade_engine(
                     parsed_args,
                     f"{path} 解析失败",
@@ -557,7 +792,64 @@ def run_magicpdf_main(
             except Exception as exc:  # noqa: BLE001 -- 采集失败不阻断主链路
                 logger.debug("[magicpdf] raw ingest trace emission failed: %s", exc)
             pages = bridge.convert_all(results)
-            if ingest_backend == "marker":
+            if ingest_backend == BACKEND_JINA:
+                from pdf2zh.v3.ingestion.base import (
+                    emit_ingest_run_failure,
+                    ingest_block_events,
+                )
+                from pdf2zh.v3.ingestion.selector import (
+                    QUALITY_FAIL,
+                    decide,
+                    gate_quality,
+                )
+
+                try:
+                    ingest_doc, doc = _run_jina_ingest(
+                        path,
+                        pages,
+                        magic_dir,
+                        parsed_args,
+                        progress_cb,
+                        pages=parsed_args.pages,
+                    )
+                except Exception as exc:
+                    logger.warning("[magicpdf] %s Jina ingestion failed: %s", path, exc)
+                    try:
+                        emit_ingest_run_failure(
+                            BACKEND_JINA,
+                            f"Jina ingestion failed: {exc}",
+                            rec,
+                            pdf_path=path,
+                        )
+                    except Exception:
+                        pass
+                    rec.close()
+                    try:
+                        adapter.close()
+                    except Exception:
+                        pass
+                    return _degrade_engine(
+                        parsed_args,
+                        f"Jina ingestion failed: {exc}",
+                        progress_cb=progress_cb,
+                        degrade_to=degrade_to,
+                    )
+                gate = gate_quality(ingest_block_events(ingest_doc))
+                ingest_events.append(
+                    (
+                        ingest_doc,
+                        "FAIL" if gate.quality == QUALITY_FAIL else None,
+                        None,
+                    )
+                )
+                ingest_decision = decide(
+                    BACKEND_JINA,
+                    primary=BACKEND_JINA,
+                    primary_quality=gate.quality,
+                    primary_failed_rules=gate.failed_rules,
+                    fallback_available=False,
+                )
+            elif ingest_backend == BACKEND_MARKER:
                 # Marker ingestion backend：丢弃 MinerU 块（本页已解析），从 Marker
                 # JSON（离线，--marker-json）或 live 转换产出 canonical IR，再由
                 # ingestion/bridge 投影成与 MinerU 同构的 DocumentModel —— 之后
@@ -572,7 +864,13 @@ def run_magicpdf_main(
 
                 try:
                     ingest_doc, doc = _run_marker_ingest(
-                        path, marker_json, marker_version, magic_dir, progress_cb
+                        path,
+                        marker_json,
+                        marker_version,
+                        magic_dir,
+                        progress_cb,
+                        pages=parsed_args.pages,
+                        ocr=ocr,
                     )
                     results = []
                 except Exception as exc:  # noqa: BLE001 -- 熔断降级保持既有语义
@@ -629,7 +927,9 @@ def run_magicpdf_main(
                 )
                 gate = gate_quality(ingest_block_events(mineru_doc))
                 fallback_available = bool(marker_json) or (
-                    _marker_live_available() if ingest_backend == "auto" else False
+                    _marker_live_available()
+                    if ingest_backend == REQUEST_AUTO
+                    else False
                 )
                 ingest_decision = decide(
                     ingest_backend,
@@ -649,7 +949,13 @@ def run_magicpdf_main(
                     # （决策如实改为 fallback_ingest_failed，失败可见不静默）。
                     try:
                         ingest_doc, doc = _run_marker_ingest(
-                            path, marker_json, marker_version, magic_dir, progress_cb
+                            path,
+                            marker_json,
+                            marker_version,
+                            magic_dir,
+                            progress_cb,
+                            pages=parsed_args.pages,
+                            ocr=ocr,
                         )
                         results = []
                         marker_gate = gate_quality(ingest_block_events(ingest_doc))
@@ -700,10 +1006,22 @@ def run_magicpdf_main(
                 prompt=prompt_text,
                 ignore_cache=parsed_args.ignore_cache,
             )
+            translation_errors: list[Exception] = []
+
+            def translate_with_tracking(value: str) -> str:
+                try:
+                    return translator.translate(value)
+                except Exception as exc:
+                    translation_errors.append(exc)
+                    raise
+
             stats = translate_document(
-                doc, translator.translate, lang_out=parsed_args.lang_out
+                doc, translate_with_tracking, lang_out=parsed_args.lang_out
             )
-        except Exception as exc:  # noqa: BLE001 -- 翻译失败不阻断转储
+            if translation_errors:
+                translation_failed = True
+        except Exception as exc:  # noqa: BLE001 -- 翻译失败仍保留转储
+            translation_failed = True
             logger.warning("[magicpdf] 翻译阶段失败（转储原始模型）: %s", exc)
 
         # Step 1.3：收集 magic-pdf 的公式 LaTeX 侧通道并回填模型，供
@@ -840,5 +1158,6 @@ def run_magicpdf_main(
             fixup_stats.get("shifted", 0),
             fixup_stats.get("overflowed", 0),
         )
-    adapter.close()
-    return 0
+    if adapter is not None:
+        adapter.close()
+    return 1 if translation_failed else 0

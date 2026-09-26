@@ -91,7 +91,7 @@ def _on_sigint(signum, frame):  # noqa: ANN001
     - 默认模式（CLI）：第一次即抛 KeyboardInterrupt（标准中断语义），
       此后（关闭流程中）只置旗标，由 coordinator 轮询感知并短路。
     """
-    global _first_ctrl_c_handled, _exit_armed, _last_sigint_ts
+    global _first_ctrl_c_handled, _last_sigint_ts
     _interrupt_event.set()
     if _interpreter_is_finalizing():
         return

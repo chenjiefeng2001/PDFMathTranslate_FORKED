@@ -99,6 +99,14 @@ class TestCliArgs(unittest.TestCase):
         self.assertTrue(args.magicpdf_ocr)
         self.assertEqual(args.files, ["x.pdf"])
 
+    def test_jina_ingest_selects_magicpdf(self):
+        from pdf2zh.pdf2zh import parse_args
+
+        args = parse_args(["--ingest-backend", "jina", "x.pdf"])
+        self.assertEqual(args.ingest_backend, "jina")
+        self.assertEqual(args.parse_engine, "magicpdf")
+        self.assertEqual(args.jina_model, "jinaai/jina-ocr-v1")
+
     def test_default_is_auto(self):
         from pdf2zh.pdf2zh import parse_args
 
@@ -235,6 +243,33 @@ class TestRunMagicPdfMain(unittest.TestCase):
             ]
             self.assertTrue(translated[0].startswith("T:"))
             bt.assert_called_once()
+
+    def test_translation_failure_is_not_reported_as_success(self):
+        from pdf2zh.magicpdf_cli import run_magicpdf_main
+
+        fake_translator = Mock()
+        fake_translator.translate = Mock(side_effect=RuntimeError("translator down"))
+        results = MagicPdfAdapter.from_middle_json(SAMPLE_MIDDLE)
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "paper.pdf")
+            with open(pdf_path, "w", encoding="utf-8") as fh:
+                fh.write("%PDF-1.4 placeholder")
+            with (
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                    return_value=True,
+                ),
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
+                    return_value=results,
+                ),
+                patch(
+                    "pdf2zh.translator.build_translator",
+                    return_value=fake_translator,
+                ),
+            ):
+                code = run_magicpdf_main(make_args(files=[pdf_path], output=tmp))
+            self.assertEqual(code, 1)
 
 
 class TestTorchPreload(unittest.TestCase):

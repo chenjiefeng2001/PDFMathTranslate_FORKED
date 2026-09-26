@@ -1,6 +1,8 @@
 import importlib
+import re
 import sys
 import unittest
+from pathlib import Path
 from unittest.mock import Mock, patch
 
 
@@ -23,7 +25,14 @@ class TestCliVersion(unittest.TestCase):
         before = set(sys.modules)
         pkg = importlib.import_module("pdf2zh")
 
-        self.assertEqual(pkg.__version__, "1.9.12")
+        pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+        declared = re.search(
+            r'^version\s*=\s*"([^"]+)"',
+            pyproject.read_text(encoding="utf-8"),
+            re.MULTILINE,
+        )
+        self.assertIsNotNone(declared)
+        self.assertEqual(pkg.__version__, declared.group(1))
         # diff-based: assert importing pdf2zh introduces no heavy modules,
         # regardless of what earlier tests already imported into sys.modules
         newly_imported = set(sys.modules) - before

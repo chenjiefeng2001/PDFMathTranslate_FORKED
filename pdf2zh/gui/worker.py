@@ -7,7 +7,6 @@ Supports cancellation, pause/resume, queue management, and double-click preventi
 from __future__ import annotations
 
 import logging
-import os
 import threading
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
@@ -17,6 +16,16 @@ from pdf2zh.services.runtime_service import (
     TranslationRequest,
 )
 from pdf2zh.gui.state import GLOBAL_TASK_STORE, TaskState
+from pdf2zh.v3.ingestion.config import (
+    JINA_DEFAULT_DPI,
+    JINA_DEFAULT_MAX_NEW_TOKENS,
+    JINA_DEFAULT_MAX_PIXELS,
+    JINA_DEFAULT_TIMEOUT,
+    JINA_MIN_COVERAGE,
+    JINA_MODEL_ID,
+    JINA_PROMPT,
+    JINA_REVISION,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +101,23 @@ def submit_translation_task(
     backend: str = "auto",
     ocr_mode: str = "auto",
     parse_engine: str = "auto",
+    ingest_backend: str = "auto",
     magicpdf_ocr: str = "auto",
     glossary_files: Any = None,
+    trace_enabled: bool = False,
+    trace_dir: str = "",
     callback: Optional[Callable] = None,
+    jina_model: str = JINA_MODEL_ID,
+    jina_revision: str = JINA_REVISION,
+    jina_prompt: str = JINA_PROMPT,
+    jina_device: str = "auto",
+    jina_dpi: int = JINA_DEFAULT_DPI,
+    jina_max_pixels: int = JINA_DEFAULT_MAX_PIXELS,
+    jina_max_new_tokens: int = JINA_DEFAULT_MAX_NEW_TOKENS,
+    jina_timeout: float = JINA_DEFAULT_TIMEOUT,
+    jina_cache_dir: str = "",
+    jina_min_coverage: float = JINA_MIN_COVERAGE,
+    jina_offline: bool = False,
 ) -> str:
     """Submit a translation task to RuntimeService.
 
@@ -106,7 +129,8 @@ def submit_translation_task(
     with _SUBMIT_LOCK:
         existing = _IN_FLIGHT.get(client_id)
         if existing:
-            ts = svc.get_task_state(existing)
+            get_state = getattr(svc, "get_task_state", None)
+            ts = get_state(existing) if callable(get_state) else None
             if ts and ts.status in (
                 "pending",
                 "parsing",
@@ -142,6 +166,12 @@ def submit_translation_task(
         "ocr_mode": ocr_mode,
         "prompt": prompt_env,
     }
+    # v3 flight-recorder trace（magicpdf 链路生效）：与 CLI --trace / --trace-dir
+    # 一致，透传到运行时 _execute_magicpdf（ns.trace / ns.trace_dir）。
+    if trace_enabled:
+        extra_config["trace_enabled"] = True
+    if (trace_dir or "").strip():
+        extra_config["trace_dir"] = trace_dir.strip()
     envs = _parse_env_lines(env0, env1, env2)
     if envs:
         extra_config["envs"] = envs
@@ -160,6 +190,18 @@ def submit_translation_task(
         extra_config=extra_config,
         backend=backend,
         parse_engine=parse_engine,
+        ingest_backend=ingest_backend,
+        jina_model=jina_model,
+        jina_revision=jina_revision,
+        jina_prompt=jina_prompt,
+        jina_device=jina_device,
+        jina_dpi=jina_dpi,
+        jina_max_pixels=jina_max_pixels,
+        jina_max_new_tokens=jina_max_new_tokens,
+        jina_timeout=jina_timeout,
+        jina_cache_dir=jina_cache_dir,
+        jina_min_coverage=jina_min_coverage,
+        jina_offline=bool(jina_offline),
         magicpdf_ocr=_magicpdf_ocr_bool(magicpdf_ocr),
         magicpdf_ocr_mode=_magicpdf_ocr_mode(magicpdf_ocr),
         glossary_files=_resolve_glossary_paths(glossary_files),

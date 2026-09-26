@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "page_index": 0,
+  "source_page_hash": "4a4f00a192652c66",
+  "page_size": {
+    "width": 594.9599609375,
+    "height": 841.9199829101562
+  },
+  "content_stream": [],
+  "resources": {
+    "fonts": []
+  },
+  "annotations": [],
+  "links": [],
+  "metrics": {
+    "elapsed": 0.0,
+    "translation_chars": 0
+  },
+  "geometry": {
+    "media_box": [
+      0.0,
+      0.0,
+      594.9599609375,
+      841.9199829101562
+    ],
+    "crop_box": null,
+    "bleed_box": null,
+    "trim_box": null,
+    "rotation": 0,
+    "user_unit": 1.0
+  }
+}

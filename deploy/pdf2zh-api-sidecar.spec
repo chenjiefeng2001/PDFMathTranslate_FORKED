@@ -35,6 +35,16 @@ from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 import sysconfig
 from pathlib import Path
 
+# PyInstaller 以 spec 文件所在目录（deploy/）为基准解析 spec 内的相对路径，
+# 不是命令执行目录。jina_ocr_worker.py 位于仓库根的 pdf2zh/ 下，必须显式
+# 从 spec 目录上溯一级，否则 frozen 产物里会缺这个 worker 文件（Jina OCR 运行时
+# ModuleNotFoundError），且构建期直接报 "Unable to find ... when adding binary
+# and data files"。
+_ROOT = Path(SPECPATH).resolve().parent
+_JINA_WORKER = _ROOT / "pdf2zh" / "kernel" / "jina_ocr_worker.py"
+if not _JINA_WORKER.is_file():
+    raise SystemExit(f"jina worker not found: {_JINA_WORKER}")
+
 # hyperscan 为 delvewheel 修补 wheel：_hs_ext.pyd 依赖同级 `hyperscan.libs`
 # 目录内哈希后缀的 msvcp140 DLL；PyInstaller 只收 pyd 不收该兄弟目录，
 # 导致 frozen 环境 `import hyperscan`（babeldoc.glossary 顶层导入）报
@@ -48,6 +58,7 @@ a = Analysis(
         (str(_SITE / "hyperscan.libs"), "hyperscan.libs"),
     ],
     datas=[
+        (str(_JINA_WORKER), 'pdf2zh/kernel'),
         *copy_metadata('babeldoc'),
         # tiktoken 经 importlib.metadata entry_points 加载编码插件
         # （tiktoken_ext.openai_public），缺 dist-info 会报
@@ -61,6 +72,9 @@ a = Analysis(
         'pdf2zh.translator',
         'pdf2zh.converter',
         'pdf2zh.high_level',
+        'pdf2zh.v3.ingestion.jina_adapter',
+        'pdf2zh.v3.ingestion.jina_backend',
+        'pdf2zh.kernel.jina_ocr_env',
         'uvicorn.logging',
         'uvicorn.loops.auto',
         'uvicorn.protocols.http.auto',

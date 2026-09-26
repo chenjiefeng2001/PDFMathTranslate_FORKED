@@ -155,7 +155,7 @@ def fake_worker_payload(tmp_path, monkeypatch):
 
     stem = "doc"
 
-    def _run(python_exe: str, pdf_path: str) -> dict:
+    def _run(python_exe: str, pdf_path: str, **kw) -> dict:
         work = tmp_path / "work"
         (work / stem).mkdir(parents=True, exist_ok=True)
         payload = {
@@ -333,3 +333,66 @@ def test_marker_live_available_false_on_env_module_failure(monkeypatch):
     except Exception as exc:  # pragma: no cover - 不应到达
         pytest.fail(f"_marker_live_available raised: {exc}")
     assert isinstance(result, bool)
+
+
+# ── Marker 页子集（pages / page_range）与 renumber ────────────────────────────
+
+
+def _payload_with_pages(n: int) -> dict:
+    def _page(p: int) -> dict:
+        return {
+            "id": f"/page/{p}",
+            "block_type": "Page",
+            "bbox": [0, 0, 1000, 1400],
+            "children": [
+                {
+                    "id": f"/page/{p}/Text/0",
+                    "block_type": "Text",
+                    "html": f"page {p} content",
+                    "bbox": [10, 10, 900, 60],
+                }
+            ],
+        }
+
+    return {"block_type": "Document", "children": [_page(p) for p in range(n)]}
+
+
+def test_normalize_page_indices():
+    from pdf2zh.v3.ingestion.marker_backend import normalize_page_indices
+
+    assert normalize_page_indices(None) is None
+    assert normalize_page_indices("") is None
+    assert normalize_page_indices("all") is None
+    assert normalize_page_indices("1-3") == [1, 2, 3]
+    assert normalize_page_indices("2, 5,2") == [2, 5]
+    assert normalize_page_indices([1, 1, 3]) == [1, 3]
+    assert normalize_page_indices((4,)) == [4]
+    assert normalize_page_indices("bad") is None  # 非法项全丢 → 全文档
+
+
+def test_ingest_json_pages_subset_keeps_original_numbers(tmp_path):
+    from pdf2zh.v3.ingestion.marker_backend import MarkerBackend
+
+    doc = MarkerBackend().ingest_json(_payload_with_pages(4), pages=[1, 3])
+    assert doc.page_count == 2
+    assert {pg.page_no for pg in doc.pages()} == {1, 3}
+    # 原文编号保留（MinerU 切片 page_map 同款语义）
+    by_page = {b.page_no for b in doc.blocks()}
+    assert by_page == {1, 3}
+    texts = sorted((b.page_no, b.text) for b in doc.blocks() if b.text)
+    assert texts == [(1, "page 1 content"), (3, "page 3 content")]
+
+
+def test_ingest_json_single_page_slice(tmp_path):
+    from pdf2zh.v3.ingestion.marker_backend import MarkerBackend
+
+    doc = MarkerBackend().ingest_json(_payload_with_pages(3), pages=[0])
+    assert doc.page_count == 1
+    assert [pg.page_no for pg in doc.pages()] == [0]
+
+
+def test_ingest_json_no_pages_keeps_all(tmp_path):
+    from pdf2zh.v3.ingestion.marker_backend import MarkerBackend
+
+    doc = MarkerBackend().ingest_json(_payload_with_pages(3))
+    assert doc.page_count == 3

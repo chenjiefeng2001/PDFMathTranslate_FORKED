@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Tuple
+from typing import Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def normalize_ocr_mode(ocr_mode: Optional[str] = None) -> str:
     Invalid values fall back to ``auto`` with a warning so a bad GUI/CLI value
     never hard-fails the translation task.
     """
-    raw = (ocr_mode or "auto").strip().lower() or "auto"
+    raw = str(ocr_mode or "auto").strip().lower() or "auto"
     if raw not in VALID_OCR_MODES:
         logger.warning(
             "Ignoring invalid BabelDOC OCR mode %r (expected one of %s); "

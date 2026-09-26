@@ -12,7 +12,21 @@ import sys
 from string import Template
 
 from pdf2zh import __version__, log
-from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+from pdf2zh.converter_docx import cleanup_converted_pdf, convert_to_pdf, is_convertible
+from pdf2zh.v3.ingestion.config import (
+    BACKEND_JINA,
+    INGEST_REQUEST_CHOICES,
+    JINA_DEFAULT_DPI,
+    JINA_DEFAULT_MAX_NEW_TOKENS,
+    JINA_DEFAULT_MAX_PIXELS,
+    JINA_DEFAULT_TIMEOUT,
+    JINA_MIN_COVERAGE,
+    JINA_MODEL_ID,
+    JINA_PROMPT,
+    JINA_REVISION,
+    normalize_ingest_backend,
+    normalize_user_page_indices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -285,15 +299,11 @@ def create_parser() -> argparse.ArgumentParser:
     parse_params.add_argument(
         "--ingest-backend",
         type=str,
-        choices=["auto", "mineru", "marker"],
+        choices=list(INGEST_REQUEST_CHOICES),
         default="auto",
         help="Ingestion backend for the magicpdf parse engine: auto "
-        "(default; MinerU/magic-pdf primary, Marker fallback when the "
-        "canonical ingest gate fails and Marker is available), mineru "
-        "(MinerU/magic-pdf pipeline only) or marker (datalab-to/marker, "
-        "vendored at vendor/marker). Marker runs live via its PdfConverter, "
-        "or offline when --marker-json points at an existing marker.json "
-        "(produced by `marker_single file.pdf --output_format json`).",
+        "(MinerU primary with Marker fallback), mineru, marker, or jina "
+        "(Jina-OCR-v1 text with MinerU geometry in the isolated Jina venv).",
     )
     parse_params.add_argument(
         "--marker-json",
@@ -310,6 +320,66 @@ def create_parser() -> argparse.ArgumentParser:
         metavar="TAG",
         help="Marker revision recorded in the ingest provenance/"
         "flight-recorder metadata (e.g. v2.0.0).",
+    )
+    parse_params.add_argument(
+        "--jina-model",
+        default=JINA_MODEL_ID,
+        help="Jina OCR model ID or local snapshot path.",
+    )
+    parse_params.add_argument(
+        "--jina-revision",
+        default=JINA_REVISION,
+        help="Pinned Jina model revision; empty is valid for a local model path.",
+    )
+    parse_params.add_argument(
+        "--jina-device",
+        default="auto",
+        help="Jina worker device: auto, cpu, cuda, or cuda:N.",
+    )
+    parse_params.add_argument(
+        "--jina-dpi",
+        type=int,
+        default=JINA_DEFAULT_DPI,
+        help="PDF rendering DPI for Jina OCR input.",
+    )
+    parse_params.add_argument(
+        "--jina-max-pixels",
+        type=int,
+        default=JINA_DEFAULT_MAX_PIXELS,
+        help="Maximum rendered pixels per Jina page.",
+    )
+    parse_params.add_argument(
+        "--jina-max-new-tokens",
+        type=int,
+        default=JINA_DEFAULT_MAX_NEW_TOKENS,
+        help="Maximum Jina output tokens per page.",
+    )
+    parse_params.add_argument(
+        "--jina-timeout",
+        type=float,
+        default=JINA_DEFAULT_TIMEOUT,
+        help="Jina worker timeout in seconds.",
+    )
+    parse_params.add_argument(
+        "--jina-cache-dir",
+        default="",
+        help="Persistent Jina page-result cache directory; empty disables it.",
+    )
+    parse_params.add_argument(
+        "--jina-min-coverage",
+        type=float,
+        default=JINA_MIN_COVERAGE,
+        help="Minimum matched MinerU text coverage required from Jina.",
+    )
+    parse_params.add_argument(
+        "--jina-prompt",
+        default=JINA_PROMPT,
+        help="Prompt passed to the Jina document parser.",
+    )
+    parse_params.add_argument(
+        "--jina-offline",
+        action="store_true",
+        help="Use only a locally cached Jina model snapshot.",
     )
     # v1.1 trace 控制：默认关闭；开启后在 magicpdf 引擎链路产出 flight-
     # recorder trace（JSONL）+ 自动 trace_audit（summary/ledger/qualification）。
@@ -392,16 +462,15 @@ def parse_args(args: list[str] | None) -> argparse.Namespace:
     parsed_args = create_parser().parse_args(args=args)
 
     if parsed_args.pages:
-        pages = []
-        for p in parsed_args.pages.split(","):
-            if "-" in p:
-                start, end = p.split("-")
-                pages.extend(range(int(start) - 1, int(end)))
-            else:
-                pages.append(int(p) - 1)
         parsed_args.raw_pages = parsed_args.pages
-        parsed_args.pages = pages
+        parsed_args.pages = normalize_user_page_indices(parsed_args.pages)
 
+    parsed_args.ingest_backend = normalize_ingest_backend(parsed_args.ingest_backend)
+    if (
+        parsed_args.ingest_backend == BACKEND_JINA
+        and parsed_args.parse_engine == "auto"
+    ):
+        parsed_args.parse_engine = "magicpdf"
     return parsed_args
 
 
@@ -690,6 +759,11 @@ def resolve_parse_engine(parsed_args) -> str:
     否则 legacy kernel；显式指定值直接生效。
     """
     engine = getattr(parsed_args, "parse_engine", "auto")
+    if (
+        normalize_ingest_backend(getattr(parsed_args, "ingest_backend", "auto"))
+        == BACKEND_JINA
+    ):
+        return "magicpdf"
     if engine == "auto" and parsed_args.babeldoc:
         return "babeldoc"
     return engine
@@ -757,9 +831,9 @@ def _try_auto_switch_magicpdf(parsed_args) -> bool:
         try:
             from pdf2zh.engine_env import available_backend
 
-            backend, ok = available_backend()
+            ok = available_backend()[1]
         except Exception:  # noqa: BLE001
-            backend, ok = None, False
+            ok = False
         if ok:
             logger.warning(
                 "%s 文本层质量预检命中扫描/损坏信号（%s）；magic-pdf/MinerU "
@@ -846,7 +920,10 @@ def _run_legacy_kernel(parsed_args) -> int:
         compatible=parsed_args.compatible,
         debug=parsed_args.debug,
     )
-    kernel.translate(request)
+    results = kernel.translate(request)
+    if not results:
+        logger.error("translation kernel returned no output files")
+        return 1
     return 0
 
 
@@ -888,6 +965,9 @@ def yadt_main(parsed_args) -> int:
         untranlate_file = find_all_files_in_directory(parsed_args.files[0])
     else:
         untranlate_file = parsed_args.files
+    if not untranlate_file:
+        logger.error("No input files")
+        return 1
     lang_in = parsed_args.lang_in
     lang_out = parsed_args.lang_out
     ignore_cache = parsed_args.ignore_cache
@@ -1000,70 +1080,103 @@ def yadt_main(parsed_args) -> int:
 
     import asyncio
 
+    failed = False
     for file in untranlate_file:
         file = file.strip("\"'")
         _converted_pdf = None
-        if is_convertible(file):
-            _converted_pdf = convert_to_pdf(file)
-            file = _converted_pdf
-        yadt_config = YadtConfig(
-            input_file=file,
-            font=font_path,
-            pages=",".join(str(x) for x in getattr(parsed_args, "raw_pages", [])),
-            output_dir=outputdir,
-            doc_layout_model=_build_doclayout_model(),
-            translator=babeldoc_translator,
-            debug=parsed_args.debug,
-            lang_in=lang_in,
-            lang_out=lang_out,
-            no_dual=False,
-            no_mono=False,
-            qps=parsed_args.thread,
-            # 双语 PDF 使用交替页模式（与 RuntimeService 的
-            # babeldoc_adapter 路由保持一致）：原文页、译文页各自独立成页
-            # 并交替排列，而不是 BabelDOC 默认的原文+译文 side-by-side 合并。
-            use_alternating_pages_dual=True,
-            # 扫描版 / 无文本层 PDF 的 OCR 处理由 --babeldoc-ocr / 环境变量
-            # PDF2ZH_BABELDOC_OCR 决定（auto 自动检测扫描并启用 OCR / on
-            # 强制 OCR / off 跳过扫描检测），而不是保持 BabelDOC 默认的
-            # 扫描检测失败行为。
-            **dict(
-                zip(
-                    (
-                        "ocr_workaround",
-                        "auto_enable_ocr_workaround",
-                        "skip_scanned_detection",
-                    ),
-                    resolve_ocr_flags(parsed_args.babeldoc_ocr),
+        original_output_dir = outputdir or os.path.dirname(os.path.abspath(file))
+        try:
+            if is_convertible(file):
+                _converted_pdf = convert_to_pdf(file)
+                file = _converted_pdf
+            raw_pages = getattr(parsed_args, "raw_pages", None)
+            pages = (
+                raw_pages
+                if isinstance(raw_pages, str)
+                else ",".join(str(x) for x in (raw_pages or []))
+            )
+            yadt_config = YadtConfig(
+                input_file=file,
+                font=font_path,
+                pages=pages or None,
+                output_dir=original_output_dir,
+                doc_layout_model=_build_doclayout_model(),
+                translator=babeldoc_translator,
+                debug=parsed_args.debug,
+                lang_in=lang_in,
+                lang_out=lang_out,
+                no_dual=False,
+                no_mono=False,
+                qps=parsed_args.thread,
+                # 双语 PDF 使用交替页模式（与 RuntimeService 的
+                # babeldoc_adapter 路由保持一致）：原文页、译文页各自独立成页
+                # 并交替排列，而不是 BabelDOC 默认的原文+译文 side-by-side 合并。
+                use_alternating_pages_dual=True,
+                # 扫描版 / 无文本层 PDF 的 OCR 处理由 --babeldoc-ocr / 环境变量
+                # PDF2ZH_BABELDOC_OCR 决定（auto 自动检测扫描并启用 OCR / on
+                # 强制 OCR / off 跳过扫描检测），而不是保持 BabelDOC 默认的
+                # 扫描检测失败行为。
+                **dict(
+                    zip(
+                        (
+                            "ocr_workaround",
+                            "auto_enable_ocr_workaround",
+                            "skip_scanned_detection",
+                        ),
+                        resolve_ocr_flags(
+                            parsed_args.babeldoc_ocr,
+                            source_path=file,
+                        ),
+                    )
+                ),
+                glossaries=glossaries or None,
+            )
+
+            async def yadt_translate_coro(yadt_config):
+                result = None
+                progress_context, progress_handler = create_progress_handler(
+                    yadt_config
                 )
-            ),
-            glossaries=glossaries or None,
-        )
+                with progress_context:
+                    async for event in yadt_translate(yadt_config):
+                        if not isinstance(event, dict):
+                            raise RuntimeError("BabelDOC returned an invalid event")
+                        progress_handler(event)
+                        if yadt_config.debug:
+                            logger.debug(event)
+                        event_type = event.get("type")
+                        if event_type == "error":
+                            raise RuntimeError(
+                                event.get("error") or "BabelDOC translation failed"
+                            )
+                        if event_type == "finish":
+                            result = event.get("translate_result")
+                            if result is None:
+                                raise RuntimeError(
+                                    "BabelDOC finished without a translation result"
+                                )
+                            logger.info("Translation Result:")
+                            logger.info(f"  Original PDF: {result.original_pdf_path}")
+                            logger.info(f"  Time Cost: {result.total_seconds:.2f}s")
+                            logger.info(f"  Mono PDF: {result.mono_pdf_path or 'None'}")
+                            logger.info(f"  Dual PDF: {result.dual_pdf_path or 'None'}")
+                            break
+                if result is None:
+                    raise RuntimeError("BabelDOC produced no terminal result")
+                return result
 
-        async def yadt_translate_coro(yadt_config):
-            progress_context, progress_handler = create_progress_handler(yadt_config)
-            # 开始翻译
-            with progress_context:
-                async for event in yadt_translate(yadt_config):
-                    progress_handler(event)
-                    if yadt_config.debug:
-                        logger.debug(event)
-                    if event["type"] == "finish":
-                        result = event["translate_result"]
-                        logger.info("Translation Result:")
-                        logger.info(f"  Original PDF: {result.original_pdf_path}")
-                        logger.info(f"  Time Cost: {result.total_seconds:.2f}s")
-                        logger.info(f"  Mono PDF: {result.mono_pdf_path or 'None'}")
-                        logger.info(f"  Dual PDF: {result.dual_pdf_path or 'None'}")
-                        break
-
-        asyncio.run(yadt_translate_coro(yadt_config))
-        if _converted_pdf:
-            try:
-                os.unlink(_converted_pdf)
-            except OSError:
-                pass
-    return 0
+            asyncio.run(yadt_translate_coro(yadt_config))
+        except Exception as exc:
+            failed = True
+            logger.error("BabelDOC translation failed for %s: %s", file, exc)
+        finally:
+            if _converted_pdf:
+                try:
+                    os.unlink(_converted_pdf)
+                except OSError:
+                    pass
+                cleanup_converted_pdf(_converted_pdf)
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

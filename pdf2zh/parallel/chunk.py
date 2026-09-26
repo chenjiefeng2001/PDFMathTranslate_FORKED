@@ -42,7 +42,11 @@ class CancelToken:
     __slots__ = ("token", "_path")
 
     def __init__(self, token: str = "") -> None:
-        self.token = token or uuid.uuid4().hex
+        raw = token or uuid.uuid4().hex
+        # token 参与临时文件路径拼接：只保留文件名安全的字符，防止带分隔符的
+        # 调用方把标记文件写到 temp 根目录之外。
+        safe = "".join(ch for ch in raw if ch.isalnum() or ch in "-_")
+        self.token = safe or uuid.uuid4().hex
         self._path = os.path.join(tempfile.gettempdir(), f"pdf2zh_cancel_{self.token}")
 
     @property
@@ -138,10 +142,15 @@ class ChunkResult:
     elapsed: float = 0.0
     error_message: str = ""
     is_fatal: bool = False
+    # Phase 1.2: page_result 模式下的 PageResult 列表
+    page_results: Optional[list] = None
+    translation_errors: Optional[dict] = None
+    # 取消与失败必须区分：失败进串行补跑，取消则整体短路（补跑等于无视取消）。
+    cancelled: bool = False
 
     @property
     def ok(self) -> bool:
-        return not self.error_message
+        return not self.error_message and not self.cancelled
 
 
 class ChunkManifest:

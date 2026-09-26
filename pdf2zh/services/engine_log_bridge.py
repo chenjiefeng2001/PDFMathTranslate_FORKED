@@ -37,6 +37,9 @@ _ENGINE_CTX: "contextvars.ContextVar[Optional[Tuple[str, str]]]" = (
 
 #: logger-name prefix (engine namespace) → preferred engine tag.
 _NS_TAGS: Tuple[Tuple[str, str], ...] = (
+    ("pdf2zh.v3.ingestion.jina", "jina"),
+    ("jina_ocr", "jina"),
+    ("pdf2zh.kernel.jina", "jina"),
     ("pdf2zh.magicpdf_", "mineru"),
     ("pdf2zh.magicpdf_cli", "mineru"),
     ("magic_pdf", "mineru"),
@@ -119,7 +122,7 @@ class _EngineLogHandler(logging.Handler):
                 if not ns_tag:
                     return
             # 命名空间命中优先；未命中（服务自身 WARNING/ERROR）按上下文引擎记。
-            engine_tag = ns_tag or engine
+            engine_tag = engine or ns_tag
             msg = (record.getMessage() or "").strip()
             msg = _NOISE_SUB.sub(" ", msg)
             if not msg or _NOISE_RE.search(msg):

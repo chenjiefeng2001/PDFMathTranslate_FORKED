@@ -19,6 +19,7 @@ import os
 import signal
 import sys
 import time
+from asyncio import CancelledError
 from typing import Any, Dict, Optional
 
 from pdf2zh.parallel.chunk import ChunkResult, ChunkTask
@@ -169,16 +170,28 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
     chunk_pages = list(task.chunk_pages)
     # 8.1.2: pages 第二道防线 —— 与 chunk_pages 取交集；交集为空直接返回
     # 空结果（绝不回落成全量翻译：translate_patch 的 `if pages and` 会把空
-    # 列表当“未过滤”，旧代码在 pages=[] 时会全量处理）。
+    # 列表当"未过滤"，旧代码在 pages=[] 时会全量处理）。
     if task.pages is not None:
         pages_set = set(task.pages)
         chunk_pages = [p for p in chunk_pages if p in pages_set]
     if not chunk_pages:
+        # 空 chunk 不能绕过取消检查：否则被取消的任务仍会拿到一个“成功”结果。
+        if task.cancel_event is not None and task.cancel_event.is_set():
+            return ChunkResult(
+                obj_patch=None,
+                elapsed=time.perf_counter() - t0,
+                error_message="cancelled",
+                cancelled=True,
+            )
         return ChunkResult(
             obj_patch={},
             obs_bundle=None,
             elapsed=time.perf_counter() - t0,
         )
+    doc_zh = None
+    doc_en = None
+    text_metrics: Dict[str, Any] = {}
+    translation_cache_obj = None
     try:
         # 从共享字节流重建文档（pickle-safe：worker 内打开）
         doc_zh = _fitz.open(stream=task.fp_bytes, filetype="pdf")
@@ -193,7 +206,6 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
 
         noto = _fitz.Font(task.noto_name, task.font_path) if task.font_path else None
 
-        text_metrics: Dict[str, Any] = {}
         if task.use_text_metrics and task.font_path:
             try:
                 from pdf2zh.text_metrics import TextMetrics as _TM  # noqa: PLC0415
@@ -202,7 +214,6 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
             except Exception:  # noqa: BLE001
                 pass
 
-        translation_cache_obj = None
         if task.use_translation_cache and not task.ignore_cache:
             try:
                 from pdf2zh.translation_cache import TranslationCache  # noqa: PLC0415
@@ -216,6 +227,7 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
 
         from pdf2zh.high_level import translate_patch  # noqa: PLC0415
 
+        chunk_output = {}
         result = translate_patch(
             _io.BytesIO(task.fp_bytes),
             pages=chunk_pages,
@@ -252,19 +264,90 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
             observability=task.observability,
             reconstruction_channel=task.reconstruction_channel,
             reconstruction_adopt=task.reconstruction_adopt,
+            v3_output=chunk_output,
         )
         obs = None
         if isinstance(result, dict) and "__obs__" in result:
             obs = result.pop("__obs__")
             result = dict(result)
+        translation_errors = chunk_output.get("translation_errors")
+
+        # Phase 1.1: 生成 PageProcessOutput 并转换
+        from pdf2zh.migration.flags import (
+            get_page_result_mode,
+            PageResultMode,
+        )  # noqa: PLC0415
+        from pdf2zh.worker.process import process_page  # noqa: PLC0415
+        from pdf2zh.worker.adapters import (
+            ObjPatchAdapter,
+            PageResultAdapter,
+        )  # noqa: PLC0415
+
+        mode = get_page_result_mode()
+        page_results = []
+
+        if mode in (PageResultMode.DUAL, PageResultMode.PAGE_RESULT):
+            # 为每个页面生成 PageProcessOutput
+            for page_idx in chunk_pages:
+                try:
+                    output = process_page(
+                        page_index=page_idx,
+                        doc_zh=doc_zh,
+                        obj_patch=result if result else {},
+                        page_xref_map=task.page_xref_map,
+                    )
+                    page_result = PageResultAdapter.convert(output)
+                    page_results.append(page_result)
+                except Exception as page_err:
+                    logger.warning(
+                        "PageProcessOutput generation failed for page %d: %s",
+                        page_idx,
+                        str(page_err)[:200],
+                    )
+
+        if mode == PageResultMode.DUAL:
+            # dual 模式：比较 obj_patch 和 PageResult
+            # Phase 1.1: 只记录日志，不影响旧输出
+            logger.info(
+                "execute_chunk: dual mode - generated %d PageResults for %d pages",
+                len(page_results),
+                len(chunk_pages),
+            )
+
+        # Phase 1.2: page_result 模式下，obj_patch 为空，page_results 承载结果
+        if mode == PageResultMode.PAGE_RESULT:
+            if not page_results:
+                # 没有任何 PageResult：退回 obj_patch，绝不返回「成功但无产出」
+                # 的 chunk（调用方会把它并进空结果，表现为静默没翻���）。
+                return ChunkResult(
+                    obj_patch=result,
+                    obs_bundle=obs,
+                    elapsed=time.perf_counter() - t0,
+                    translation_errors=translation_errors,
+                )
+            return ChunkResult(
+                obj_patch=None,  # 不再需要 obj_patch
+                obs_bundle=obs,
+                elapsed=time.perf_counter() - t0,
+                page_results=page_results,
+                translation_errors=translation_errors,
+            )
+
         return ChunkResult(
             obj_patch=result,
             obs_bundle=obs,
             elapsed=time.perf_counter() - t0,
+            translation_errors=translation_errors,
         )
-    except KeyboardInterrupt:
-        # 取消信号：传播给 coordinator → shutdown 短路，不进入串行兜底
-        raise
+    except (KeyboardInterrupt, CancelledError):
+        # 取消信号：绝不包装成普通失败（那会触发串行补跑，等于无视取消）。
+        return ChunkResult(
+            obj_patch=None,
+            obs_bundle=None,
+            elapsed=time.perf_counter() - t0,
+            error_message="cancelled",
+            cancelled=True,
+        )
     except Exception as exc:  # noqa: BLE001 -- 单 chunk 计算异常封装回传
         return ChunkResult(
             obj_patch=None,
@@ -273,3 +356,23 @@ def execute_chunk(task: ChunkTask) -> ChunkResult:
             error_message=f"{type(exc).__name__}: {str(exc)[:400]}",
             is_fatal=False,
         )
+    finally:
+        for document in (doc_zh, doc_en):
+            if document is not None and not getattr(document, "is_closed", False):
+                try:
+                    document.close()
+                except Exception:
+                    logger.debug("failed to close worker document", exc_info=True)
+        # 字体度量缓存与翻译缓存持有 native/DB 句柄：只靠 GC 回收会在长驻
+        # worker 进程里累积，必须显式关闭。
+        for holder in (text_metrics, translation_cache_obj):
+            if holder is None:
+                continue
+            values = holder.values() if isinstance(holder, dict) else (holder,)
+            for value in values:
+                close = getattr(value, "close", None)
+                if callable(close):
+                    try:
+                        close()
+                    except Exception:  # noqa: BLE001
+                        logger.debug("failed to close worker cache", exc_info=True)

@@ -16,14 +16,36 @@ Lifecycle:
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import logging
 import os
+import re
+import tempfile
 import threading
 import time
 import uuid
+from asyncio import CancelledError
+from pathlib import Path
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
+
+from pdf2zh.v3.ingestion.config import (
+    BACKEND_JINA,
+    BACKEND_MARKER,
+    JINA_DEFAULT_DPI,
+    JINA_DEFAULT_MAX_NEW_TOKENS,
+    JINA_DEFAULT_MAX_PIXELS,
+    JINA_DEFAULT_TIMEOUT,
+    JINA_MIN_COVERAGE,
+    JINA_MODEL_ID,
+    JINA_PROMPT,
+    JINA_REVISION,
+    normalize_ingest_backend,
+    normalize_jina_device,
+    normalize_parse_engine,
+    normalize_user_page_indices,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +146,61 @@ MODE_PIPELINES: Dict[str, str] = {
 #: 默认 CPU，超过该页数时在解析启动前给用户「改用 BabelDOC / 页码范围分批」
 #: 的可操作提示（修复 #5：1262 页书被误判「假死」的预防性提示）。
 _MINERU_LONG_DOC_PAGES = 300
+
+#: 结果文件名长度上限（字符）。下载文件名 = 磁盘 basename：源文件名超长
+#: （如几百字的长标题）时 ``{stem}-mono.pdf`` 会超过浏览器/OS 的文件名上限，
+#: 导致下载完全不可用。超过此上限的结果文件在 ``_complete_file`` 时改写为
+#: ``{hash}-{suffix}`` 形式（哈希+特殊命名），不再沿用源文件名；短名保持
+#: 可读原样，不影响正常命名与既有测试。
+_MAX_RESULT_NAME_LEN = 100
+
+#: 结果文件「特殊命名」后缀模式（-mono / -dual / -translated），hash 化时保留。
+_RESULT_SUFFIX_RE = re.compile(r"-(mono|dual|translated)(\.[A-Za-z0-9]+)$")
+
+#: 每任务事件历史上限（P1-2）。progress/notice/log 事件无上限时,长任务
+#: （BabelDOC 0.2s 节流约 5 事件/秒≈6.7 分钟写满）会使内存与 SSE 重连
+#: 重放无限膨胀。超限后丢弃最旧事件;SSE 端 seq 单调递增,前端去重不受
+#: 影响,断线续传窗口远小于该阈值。
+_EVENT_RING_SIZE = 2000
+
+# ── 「全部下载」ZIP 下载名 ────────────────────────────────────────────────────
+#: ZIP 下载名中 stem 的长度上限；超长时截断并附加源名稳定短哈希
+#: （与 _short_result_name 同思路，避免超长标题撑爆另存为对话框）。
+_MAX_ZIP_STEM_LEN = 80
+
+#: stem 侧的「特殊命名」后缀（无扩展名版）。
+_ZIP_STEM_SUFFIX_RE = re.compile(r"-(mono|dual|translated)$", re.IGNORECASE)
+
+
+def _sanitize_zip_stem(raw: str) -> str:
+    """把结果 stem 清洗为 zip 下载名的安全可读成分；空 stem 返回空串。"""
+    stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", str(raw or "")).strip(". ")
+    if not stem:
+        return ""
+    if len(stem) <= _MAX_ZIP_STEM_LEN:
+        return stem
+    digest = hashlib.sha1(stem.encode("utf-8", "replace")).hexdigest()[:8]
+    return f"{stem[:_MAX_ZIP_STEM_LEN - 9]}_{digest}"
+
+
+def result_zip_download_name(state: "TaskState") -> str:
+    """按 ``{stem}-translated-{yyyymmdd_hhmmss}.zip`` 组合防重复下载名。
+
+    stem 取第一个结果文件名并剥离 ``-mono`` / ``-dual`` / ``-translated``
+    特殊后缀（即源文档名）；时间戳到秒，不同批次 / 不同任务天然不同名；
+    同一任务重复下载得到同一名（由浏览器 / OS 另存为语义自然处理覆盖）。
+    无结果文件时回退 ``pdf2zh``。
+    """
+    stem = ""
+    for rf in state.result_files or []:
+        name = (rf.get("name") or "").strip()
+        if not name:
+            continue
+        stem = _ZIP_STEM_SUFFIX_RE.sub("", os.path.splitext(name)[0])
+        break
+    stem = _sanitize_zip_stem(stem) or "pdf2zh"
+    return f"{stem}-translated-{time.strftime('%Y%m%d_%H%M%S')}.zip"
+
 
 # ── 引擎健康熔断 ─────────────────────────────────────────────────────────────
 #
@@ -244,32 +321,8 @@ def legacy_mode_kwargs(mode_choice: Optional[str]) -> Dict[str, Any]:
 
 
 def _parse_page_range_to_indices(page_range: Optional[str]) -> Optional[List[int]]:
-    """把 ``"1-5, 8"`` 形式的页码串转成 0 基页号列表（与 CLI 语义一致）。
-
-    babeldoc / magicpdf 链路直接消费字符串；legacy 的 ``translate_stream``
-    需要 ``list[int]``。空串/None 返回 None（= 全部页）。
-    """
-    raw = (page_range or "").strip()
-    if not raw:
-        return None
-    indices: List[int] = []
-    for part in raw.split(","):
-        part = part.strip()
-        if not part:
-            continue
-        if "-" in part:
-            start, _, end = part.partition("-")
-            try:
-                lo, hi = int(start.strip()), int(end.strip())
-            except ValueError:
-                continue
-            indices.extend(range(lo - 1, hi))
-        else:
-            try:
-                indices.append(int(part) - 1)
-            except ValueError:
-                continue
-    return indices or None
+    """把 1-based 用户页码转成 legacy 链路的 0-based 页号列表。"""
+    return normalize_user_page_indices(page_range)
 
 
 # ── Data Models ──────────────────────────────────────────────────────────────
@@ -291,6 +344,19 @@ class TaskStage(str, Enum):
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     FAILED = "failed"
+
+
+#: 终态集合：一旦进入即不可被后续写入改写（吸收态）。
+#: 取消、完成、失败可能由不同线程几乎同时写入；没有这层保护时，
+#: 「取消」会被迟到的 worker 覆写成 completed（或反之被 cancel 覆盖成功），
+#: 表现为用户点了取消却仍显示成功。
+TERMINAL_STATUSES = frozenset(
+    {
+        TaskStage.COMPLETED.value,
+        TaskStage.CANCELLED.value,
+        TaskStage.FAILED.value,
+    }
+)
 
 
 @dataclass
@@ -376,7 +442,30 @@ class TranslationRequest:
 
     与 do_parse 的 ``backend`` 对应；vlm/hybrid 需对应服务/模型就绪。"""
 
+    ingest_backend: str = "auto"
+    """摄入后端选择（auto/mineru/marker/jina），magicpdf 解析引擎生效。
+
+    ``jina`` 使用隔离环境中的 Jina-OCR-v1 生成文本，并复用 MinerU 页面几何。"""
+
     extra_config: Dict[str, Any] = field(default_factory=dict)
+    jina_model: str = JINA_MODEL_ID
+    jina_revision: str = JINA_REVISION
+    jina_prompt: str = JINA_PROMPT
+    jina_device: str = "auto"
+    jina_dpi: int = JINA_DEFAULT_DPI
+    jina_max_pixels: int = JINA_DEFAULT_MAX_PIXELS
+    jina_max_new_tokens: int = JINA_DEFAULT_MAX_NEW_TOKENS
+    jina_timeout: float = JINA_DEFAULT_TIMEOUT
+    jina_cache_dir: str = ""
+    jina_min_coverage: float = JINA_MIN_COVERAGE
+    jina_offline: bool = False
+
+    def __post_init__(self) -> None:
+        self.ingest_backend = normalize_ingest_backend(self.ingest_backend)
+        self.parse_engine = normalize_parse_engine(self.parse_engine)
+        self.jina_device = normalize_jina_device(self.jina_device)
+        if self.page_range not in (None, ""):
+            normalize_user_page_indices(self.page_range)
 
     def resolved_files(self) -> List[str]:
         """Return the effective list of files to translate (batch or single)."""
@@ -386,18 +475,34 @@ class TranslationRequest:
         return files
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            "lang_in": self.source_lang,
-            "lang_out": self.target_lang,
-            "service": self.engine,
-            "vfont": self.vfont,
-            "vchar": self.vchar,
-            "thread": self.threads,
-            "pages": self.page_range,
-            "skip_subset_fonts": self.skip_subset_fonts,
-            "ignore_cache": self.ignore_cache,
-            **self.extra_config,
-        }
+        data = dict(self.extra_config or {})
+        data.update(
+            {
+                "lang_in": self.source_lang,
+                "lang_out": self.target_lang,
+                "service": self.engine,
+                "vfont": self.vfont,
+                "vchar": self.vchar,
+                "thread": self.threads,
+                "pages": self.page_range,
+                "skip_subset_fonts": self.skip_subset_fonts,
+                "ignore_cache": self.ignore_cache,
+                "parse_engine": self.parse_engine,
+                "ingest_backend": self.ingest_backend,
+                "jina_model": self.jina_model,
+                "jina_revision": self.jina_revision,
+                "jina_prompt": self.jina_prompt,
+                "jina_device": self.jina_device,
+                "jina_dpi": self.jina_dpi,
+                "jina_max_pixels": self.jina_max_pixels,
+                "jina_max_new_tokens": self.jina_max_new_tokens,
+                "jina_timeout": self.jina_timeout,
+                "jina_cache_dir": self.jina_cache_dir,
+                "jina_min_coverage": self.jina_min_coverage,
+                "jina_offline": self.jina_offline,
+            }
+        )
+        return data
 
 
 @dataclass
@@ -548,6 +653,9 @@ class TaskState:
     result_files: List[Dict[str, str]] = field(default_factory=list)
     selected_file: Optional[str] = None
     result_zip: Optional[str] = None
+    result_zip_name: Optional[str] = None
+    """「全部下载」ZIP 的下载文件名（{stem}-translated-{时间戳}.zip），
+    打包时由 result_zip_download_name() 确定并与磁盘路径（result_zip）分离。"""
     preview_path: Optional[str] = None
     diagnostic_summary: Optional[str] = None
     quality_scores: Optional[Dict[str, float]] = None
@@ -579,8 +687,19 @@ class TaskState:
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
+    #: 摘要模式下剔除的「全文档快照」巨字段:每个字段都含 per-page 大字典,
+    #: 列表端点（每任务全量）与 15s 历史轮询会反复递归序列化,造成显著的
+    #: CPU/内存/带宽开销（P0-1）。详情字段保留在 ``GET /api/tasks/{id}``
+    #: 与 SSE state 快照帧中,前端诊断面板需要的字段不在此列。
+    _SUMMARY_EXCLUDED = (
+        "ir_snapshots",
+        "processor_reports",
+        "gate_verdicts",
+        "toc_ir_records",
+    )
+
+    def to_dict(self, summary: bool = False) -> Dict[str, Any]:
+        raw = {
             "task_id": self.task_id,
             "status": self.status,
             "progress": self.progress,
@@ -599,6 +718,7 @@ class TaskState:
             "result_files": self.result_files,
             "selected_file": self.selected_file,
             "result_zip": self.result_zip,
+            "result_zip_name": self.result_zip_name,
             "preview_path": self.preview_path,
             "diagnostic_summary": self.diagnostic_summary,
             "quality_scores": self.quality_scores,
@@ -617,6 +737,10 @@ class TaskState:
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }
+        if summary:
+            for key in self._SUMMARY_EXCLUDED:
+                raw[key] = None
+        return raw
 
 
 @dataclass
@@ -663,9 +787,13 @@ class _TaskStore:
     """Thread-safe in-memory task store."""
 
     def __init__(self) -> None:
-        self._lock = threading.Lock()
+        # Condition 兼作互斥锁（with 语义兼容 Lock）:add_event 后 notify 唤醒
+        # 阻塞在 SSE 泵上的线程,空闲时不再 0.4s 忙轮询（P2-3）。
+        self._lock = threading.Condition()
         self._tasks: Dict[str, TaskState] = {}
         self._events: Dict[str, List[TaskProgressEvent]] = {}
+        #: 因环形上限被裁剪丢弃的事件数(每任务),用于 get_events 游标校正。
+        self._dropped: Dict[str, int] = {}
         self._cancel_events: Dict[str, threading.Event] = {}
         self._pause_events: Dict[str, threading.Event] = {}
 
@@ -698,38 +826,109 @@ class _TaskStore:
             state.updated_at = time.time()
             return state
 
+    def set_status(self, task_id: str, status: str, **kwargs: Any) -> bool:
+        """Atomically set a task's status. Terminal states are absorbing.
+
+        Returns True when the transition was applied, False when the task is
+        unknown or already terminal (i.e. the write was rejected). Callers use
+        the return value to drop late completions / failures instead of
+        overwriting a cancellation the user just requested.
+        """
+        with self._lock:
+            state = self._tasks.get(task_id)
+            if state is None:
+                return False
+            if state.status in TERMINAL_STATUSES:
+                return False
+            state.status = status
+            for key, value in kwargs.items():
+                if hasattr(state, key):
+                    setattr(state, key, value)
+            state.updated_at = time.time()
+            return True
+
+    def terminal_status(self, task_id: str) -> Optional[str]:
+        """Return the task's status if it is terminal, else None."""
+        with self._lock:
+            state = self._tasks.get(task_id)
+            if state is None or state.status not in TERMINAL_STATUSES:
+                return None
+            return state.status
+
     def add_event(self, task_id: str, event: TaskProgressEvent) -> None:
         with self._lock:
-            if task_id in self._events:
-                self._events[task_id].append(event)
+            if task_id not in self._events:
+                return
+            ring = self._events[task_id]
+            ring.append(event)
+            if len(ring) > _EVENT_RING_SIZE:
+                drop = len(ring) - _EVENT_RING_SIZE
+                del ring[:drop]
+                self._dropped[task_id] = self._dropped.get(task_id, 0) + drop
+            # P2-3: 唤醒 SSE 泵（等待中的线程即刻返回,不必等 0.4s 轮询）。
+            self._lock.notify_all()
 
     def get_events(self, task_id: str, since: int = 0) -> List[TaskProgressEvent]:
         with self._lock:
             events = self._events.get(task_id, [])
-            return events[since:]
+            dropped = self._dropped.get(task_id, 0)
+            # since 为全局绝对序号;若客户端游标已被裁剪,回退到最早可用事件。
+            start = max(since - dropped, 0)
+            return events[start:]
+
+    def get_events_with_cursor(
+        self, task_id: str, since: int = 0
+    ) -> Tuple[List[TaskProgressEvent], int]:
+        """Read new events and the absolute cursor to use for the next read.
+
+        ``since`` is an absolute index into the logical (never-trimmed) event
+        stream. Callers must advance with the returned cursor rather than
+        ``cursor += len(events)``: once the ring trimmed old entries, the
+        retained slice no longer starts at ``since``, so the naive increment
+        re-delivers the tail events on every poll.
+        """
+        with self._lock:
+            events = self._events.get(task_id, [])
+            dropped = self._dropped.get(task_id, 0)
+            start = max(since - dropped, 0)
+            batch = events[start:]
+            return batch, dropped + start + len(batch)
+
+    def wait_signal(self, task_id: str, timeout: float) -> None:
+        """P2-3: 阻塞等待新事件（或超时）。由 add_event 的 notify 唤醒。"""
+        with self._lock:
+            self._lock.wait(timeout)
 
     def is_cancelled(self, task_id: str) -> bool:
         with self._lock:
             ev = self._cancel_events.get(task_id)
             return ev is not None and ev.is_set()
 
-    def cancel_task(self, task_id: str) -> None:
+    def cancel_task(self, task_id: str, message: Optional[str] = None) -> bool:
+        """Signal the cancel event and move the task to CANCELLED atomically.
+
+        Returns False when the task is unknown or already terminal, so a
+        worker that finished first wins the race and the cancel is a no-op
+        instead of overwriting a real result.
+        """
         with self._lock:
             ev = self._cancel_events.get(task_id)
             if ev:
                 ev.set()
             state = self._tasks.get(task_id)
-            if state and state.status not in (
-                TaskStage.COMPLETED.value,
-                TaskStage.CANCELLED.value,
-                TaskStage.FAILED.value,
-            ):
-                state.status = TaskStage.CANCELLED.value
+            if state is None or state.status in TERMINAL_STATUSES:
+                return False
+            state.status = TaskStage.CANCELLED.value
+            if message is not None:
+                state.message = message
+            state.updated_at = time.time()
+            return True
 
     def remove_task(self, task_id: str) -> None:
         with self._lock:
             self._tasks.pop(task_id, None)
             self._events.pop(task_id, None)
+            self._dropped.pop(task_id, None)
             self._cancel_events.pop(task_id, None)
             self._pause_events.pop(task_id, None)
 
@@ -760,22 +959,29 @@ class _TaskStore:
 
         Returns the number of removed tasks.
         """
-        terminal = (
-            TaskStage.COMPLETED.value,
-            TaskStage.CANCELLED.value,
-            TaskStage.FAILED.value,
-        )
+        return len(self.prune_terminated_ids(max_age, now))
+
+    def prune_terminated_ids(self, max_age: float, now: float) -> List[str]:
+        """Same as :meth:`prune_terminated` but returns the pruned task ids.
+
+        The sweeper needs the ids to clean up per-task side artifacts (result
+        ZIPs). Deriving them from a separate pre-scan is racy: a task refreshed
+        by ``update_task`` between the scan and the prune would survive in the
+        store while its download was already deleted.
+        """
         with self._lock:
             stale = [
                 tid
                 for tid, st in self._tasks.items()
-                if st.status in terminal and (now - st.updated_at) > max_age
+                if st.status in TERMINAL_STATUSES and (now - st.updated_at) > max_age
             ]
             for tid in stale:
                 self._tasks.pop(tid, None)
                 self._events.pop(tid, None)
+                self._dropped.pop(tid, None)
                 self._cancel_events.pop(tid, None)
-            return len(stale)
+                self._pause_events.pop(tid, None)
+            return stale
 
     def pause_task(self, task_id: str) -> None:
         with self._lock:
@@ -812,7 +1018,11 @@ class RuntimeService:
         self.config = config or ServiceConfig()
         self._store = _TaskStore()
         #: S2: 终态任务保留时长（秒）；超龄任务由 sweeper 定期清理。
-        self._retention_seconds = _env_float("PDF2ZH_TASK_RETENTION_SECONDS", 3600.0)
+        # 下限 60s：保留期为 0（或极小）时，正在收尾打包的任务会在写入
+        # 终态的瞬间被清掉，用户看到「任务不存在」且下载丢失。
+        self._retention_seconds = max(
+            60.0, _env_float("PDF2ZH_TASK_RETENTION_SECONDS", 3600.0)
+        )
         #: S2: 后台清扫线程间隔（秒）。
         self._sweep_interval = max(10.0, _env_float("PDF2ZH_SWEEP_INTERVAL", 60.0))
         self._lock = threading.Lock()
@@ -877,6 +1087,7 @@ class RuntimeService:
         self._submit_dedup_lock = threading.Lock()
 
         #: S2: 后台清扫线程（终态任务内存清理；daemon 不阻塞退出）。
+        self._shutdown_event = threading.Event()
         self._sweeper = threading.Thread(
             target=self._sweeper_loop,
             name="pdf2zh-task-sweeper",
@@ -906,6 +1117,33 @@ class RuntimeService:
             self._event_listeners.clear()
 
     @staticmethod
+    def _fingerprint_value(value: Any, key: str = "") -> Any:
+        lowered = str(key or "").lower()
+        if re.search(r"(api[_-]?key|token|secret|password|credential)", lowered):
+            raw = str(value or "").encode("utf-8", "replace")
+            return {
+                "configured": bool(value),
+                "sha256": hashlib.sha256(raw).hexdigest(),
+            }
+        if isinstance(value, dict):
+            return {
+                str(item_key): RuntimeService._fingerprint_value(
+                    item_value, str(item_key)
+                )
+                for item_key, item_value in sorted(
+                    value.items(), key=lambda item: str(item[0])
+                )
+            }
+        if isinstance(value, (list, tuple)):
+            return [RuntimeService._fingerprint_value(item) for item in value]
+        if isinstance(value, (set, frozenset)):
+            return sorted(
+                (RuntimeService._fingerprint_value(item) for item in value),
+                key=repr,
+            )
+        return value
+
+    @staticmethod
     def _submit_fingerprint(request: TranslationRequest) -> str:
         """同一任务请求的稳定指纹（文件集排序 + 全部关键参数）。
 
@@ -914,10 +1152,24 @@ class RuntimeService:
         """
         import json as _json
 
-        files = sorted(request.resolved_files())
-        extras = dict(request.extra_config or {})
+        file_identities = []
+        for path in sorted(request.resolved_files()):
+            try:
+                stat = os.stat(path)
+                file_identities.append(
+                    {
+                        "path": path,
+                        "size": int(stat.st_size),
+                        "mtime_ns": int(
+                            getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1e9))
+                        ),
+                    }
+                )
+            except OSError:
+                file_identities.append({"path": path})
+        extras = RuntimeService._fingerprint_value(request.extra_config or {})
         payload = {
-            "files": files,
+            "files": file_identities,
             "target_lang": request.target_lang,
             "source_lang": request.source_lang,
             "engine": request.engine,
@@ -929,6 +1181,22 @@ class RuntimeService:
             "ignore_cache": request.ignore_cache,
             "backend": request.backend,
             "parse_engine": request.parse_engine,
+            "ingest_backend": request.ingest_backend,
+            "mineru_vram_size": request.mineru_vram_size,
+            "mineru_window_size": request.mineru_window_size,
+            "mineru_parse_method": request.mineru_parse_method,
+            "mineru_backend": request.mineru_backend,
+            "jina_model": request.jina_model,
+            "jina_revision": request.jina_revision,
+            "jina_prompt": request.jina_prompt,
+            "jina_device": request.jina_device,
+            "jina_dpi": request.jina_dpi,
+            "jina_max_pixels": request.jina_max_pixels,
+            "jina_max_new_tokens": request.jina_max_new_tokens,
+            "jina_timeout": request.jina_timeout,
+            "jina_cache_dir": request.jina_cache_dir,
+            "jina_min_coverage": request.jina_min_coverage,
+            "jina_offline": request.jina_offline,
             "magicpdf_ocr": request.magicpdf_ocr,
             "magicpdf_ocr_mode": request.magicpdf_ocr_mode,
             "output_dir": request.output_dir,
@@ -949,11 +1217,7 @@ class RuntimeService:
             hit = self._submit_dedup.get(dedup_key)
             if hit is not None:
                 existing = self._store.get_task(hit[1])
-                if existing is not None and existing.status not in (
-                    TaskStage.COMPLETED.value,
-                    TaskStage.CANCELLED.value,
-                    TaskStage.FAILED.value,
-                ):
+                if existing is not None and existing.status not in TERMINAL_STATUSES:
                     logger.info(
                         "submit dedup: request fingerprint %s already in flight "
                         "as %s (status=%s); reusing instead of creating a duplicate",
@@ -964,7 +1228,10 @@ class RuntimeService:
                     return hit[1]
             task_id = f"task_{uuid.uuid4().hex[:12]}"
             self._submit_dedup[dedup_key] = (time.time(), task_id)
-        self._store.create_task(task_id)
+            # Publish the task INSIDE the dedup lock: creating it after the
+            # lock is released leaves a window where a second identical submit
+            # sees the fingerprint, finds no task, and starts a duplicate job.
+            self._store.create_task(task_id)
         self._store.update_task(
             task_id,
             mode_choice=(request.extra_config or {}).get("mode_choice") or "auto",
@@ -974,9 +1241,9 @@ class RuntimeService:
         self._init_aggregator(task_id)
         files = request.resolved_files()
         if not files:
-            self._store.update_task(
+            self._store.set_status(
                 task_id,
-                status=TaskStage.FAILED.value,
+                TaskStage.FAILED.value,
                 error_message="No source files provided",
                 message="Error: No source files provided",
             )
@@ -984,11 +1251,17 @@ class RuntimeService:
         filenames = [os.path.basename(f) for f in files]
         self._store.update_task(
             task_id,
-            status=TaskStage.PENDING.value,
             current_file_name=filenames[0],
             file_list=filenames,
             total_files=len(files),
         )
+        # Cancelled between create_task and here: the terminal write already
+        # happened, so do not queue a worker for a task nobody will finish.
+        if not self._store.set_status(task_id, TaskStage.PENDING.value):
+            logger.info(
+                "[task=%s] already terminal at submit; not starting worker", task_id
+            )
+            return task_id
         if len(files) > 1:
             with self._batch_ctx_lock:
                 self._batch_ctx[task_id] = _BatchContext(total_files=len(files))
@@ -1022,15 +1295,8 @@ class RuntimeService:
         return self._store.update_task(task_id, **kwargs)
 
     def cancel_task(self, task_id: str) -> bool:
-        state = self._store.get_task(task_id)
-        if state is None:
+        if not self._store.cancel_task(task_id, message="Cancelled by user"):
             return False
-        self._store.cancel_task(task_id)
-        self._store.update_task(
-            task_id,
-            status=TaskStage.CANCELLED.value,
-            message="Cancelled by user",
-        )
         # 立即下发一次终态事件：SSE 泵下一轮即退出并向客户端发 done 帧，
         # 前端无需等协作式排空的流水线跑到检查点就能感知到「已取消」。
         # 终态阶段绕过工作量聚合器，事件携带 status=cancelled 供前端停刷。
@@ -1138,15 +1404,12 @@ class RuntimeService:
             state = self._store.get_task(task_id)
             if state is None:
                 break
-            events = self._store.get_events(task_id, since=last_index)
+            events, last_index = self._store.get_events_with_cursor(
+                task_id, since=last_index
+            )
             for event in events:
                 yield event
-            last_index += len(events)
-            if state.status in (
-                TaskStage.COMPLETED.value,
-                TaskStage.CANCELLED.value,
-                TaskStage.FAILED.value,
-            ):
+            if state.status in TERMINAL_STATUSES:
                 break
             time.sleep(poll_interval)
 
@@ -1157,6 +1420,20 @@ class RuntimeService:
         ``subscribe_events`` 的内部游标语义一致。
         """
         return self._store.get_events(task_id, since=since)
+
+    def get_task_events_with_cursor(
+        self, task_id: str, since: int = 0
+    ) -> Tuple[List[TaskProgressEvent], int]:
+        """读新事件并返回下一次应使用的绝对游标（见 store 注释）。"""
+        return self._store.get_events_with_cursor(task_id, since=since)
+
+    def wait_task_signal(self, task_id: str, timeout: float) -> None:
+        """P2-3: 阻塞等待该任务产生新事件（或超时）。
+
+        SSE 泵从 0.4s 忙轮询改为事件驱动唤醒 + 超时兜底。其它网关
+        （Gradio 轮询）不受影响。
+        """
+        self._store.wait_signal(task_id, timeout)
 
     def _apply_request_backend(self, task_id: str, request: TranslationRequest) -> None:
         """Apply the requested ONNX layout-inference backend for this task.
@@ -1218,7 +1495,13 @@ class RuntimeService:
         except Exception:  # noqa: BLE001 -- 清理失败绝不阻断翻译
             pass
         try:
-            self._store.update_task(task_id, status=TaskStage.RUNNING.value)
+            if not self._store.set_status(task_id, TaskStage.RUNNING.value):
+                # Cancelled before the worker got scheduled: do not resurrect
+                # the task and do not start any engine work.
+                logger.info(
+                    "[task=%s] already terminal before start; skipping", task_id
+                )
+                return
             self._emit_event(task_id, TaskStage.PARSING.value, 5.0, "Starting...")
             if self._store.is_cancelled(task_id):
                 return
@@ -1236,6 +1519,14 @@ class RuntimeService:
             # 解析引擎路由（--parse-engine 语义）：magicpdf 优先于 mode_choice；
             # babeldoc 显式值等价 mode_choice=babeldoc，保持历史行为不变。
             parse_engine = (getattr(request, "parse_engine", "auto") or "auto").lower()
+            if request.ingest_backend == BACKEND_JINA and parse_engine != "magicpdf":
+                self._emit_event(
+                    task_id,
+                    TaskStage.PARSING.value,
+                    6.0,
+                    "[路由] Jina OCR 需要 MinerU 提供页面几何，已切换到 magicpdf 解析引擎",
+                )
+                parse_engine = "magicpdf"
 
             # Auto-switch: 当 parse_engine=auto 且用户未显式关闭 OCR 时，
             # 对 PDF 文件做扫描预检——命中扫描/损坏信号且 MinerU 可用则
@@ -1282,29 +1573,44 @@ class RuntimeService:
             else:
                 self._execute_legacy(task_id, request, task_config, cancel_event)
         except KeyboardInterrupt:
-            # V3-4：Ctrl+C 中断（GUI 场景由 parallel.interrupt 旗标桥接，后台
-            # 翻译线程经 coordinator 短路抛 KeyboardInterrupt）。按“用户取消”
-            # 语义落终态 —— 绝不打印线程级未处理异常（threading.excepthook），
-            # 也绝不进入任何串行兜底（translate_stream 已 except KeyboardInterrupt: raise）。
+            # V3-4：Ctrl+C 中断（GUI 场景由 parallel.interrupt 旗标桥接）。
+            # 按“用户取消”语义落终态 —— 绝不打印线程级未处理异常
+            # （threading.excepthook），也绝不进入任何串行兜底。
             logger.info("[task=%s] interrupted by Ctrl+C; task cancelled", task_id)
-            self._store.update_task(
+            if self._store.set_status(
                 task_id,
-                status=TaskStage.CANCELLED.value,
+                TaskStage.CANCELLED.value,
                 error_message="Interrupted by user",
                 message="Cancelled by user",
-            )
-            self._emit_event(
-                task_id, TaskStage.CANCELLED.value, 100.0, "Cancelled by user"
-            )
+            ):
+                self._emit_event(
+                    task_id, TaskStage.CANCELLED.value, 100.0, "Cancelled by user"
+                )
+        except CancelledError:
+            # 协作式取消：high_level 抛 asyncio.CancelledError，Py3.8+ 属
+            # BaseException，不会被下面的 `except Exception` 捕获 —— 不接住
+            # 的话任务线程会静默退出，任务永远停在 running。
+            logger.info("[task=%s] cancelled during translation", task_id)
+            if self._store.set_status(
+                task_id,
+                TaskStage.CANCELLED.value,
+                error_message="Cancelled by user",
+                message="Cancelled by user",
+            ):
+                self._emit_event(
+                    task_id, TaskStage.CANCELLED.value, 100.0, "Cancelled by user"
+                )
         except Exception as exc:
             logger.error("Task %s failed: %s", task_id, exc, exc_info=True)
-            self._store.update_task(
+            if self._store.set_status(
                 task_id,
-                status=TaskStage.FAILED.value,
+                TaskStage.FAILED.value,
                 error_message=str(exc),
                 message=f"Error: {exc}",
-            )
-            self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {exc}")
+            ):
+                self._emit_event(
+                    task_id, TaskStage.FAILED.value, 100.0, f"Failed: {exc}"
+                )
         finally:
             # V3-5：任务已落终态（COMPLETED/CANCELLED/FAILED，含单/批量/v4 全路径）——
             # 此后无活动任务。GUI cancel_only 模式下“下一次 Ctrl+C 即关闭应用”
@@ -1312,11 +1618,7 @@ class RuntimeService:
             #  用户再按一次即视为主动关闭，无需连续按两次）。新任务提交时
             # on_translate 会 reset_interrupt_flag() 清除该标记，恢复运行中语义。
             state = self._store.get_task(task_id)
-            if state and state.status in (
-                TaskStage.COMPLETED.value,
-                TaskStage.CANCELLED.value,
-                TaskStage.FAILED.value,
-            ):
+            if state and state.status in TERMINAL_STATUSES:
                 try:
                     from pdf2zh.parallel.interrupt import mark_exit_pending
 
@@ -1400,7 +1702,14 @@ class RuntimeService:
                 progress=self._agg(ctx, 0.0),
                 message=f"Processing {ctx.current_file}",
             )
-            sub_request = dataclasses.replace(request, source_path=path, files=[])
+            sub_request = dataclasses.replace(
+                request,
+                source_path=path,
+                files=[],
+                output_dir=self._isolated_batch_output(
+                    task_id, request, config, path, files
+                ),
+            )
             try:
                 # 路由必须与 _execute_task 完全一致：parse_engine 显式值优先，
                 # 否则按 mode_choice 的管线预设。此前这里只看 mode_choice——
@@ -1491,7 +1800,14 @@ class RuntimeService:
         def _run_one(path: str) -> None:
             if self._store.is_cancelled(task_id):
                 return
-            sub_request = dataclasses.replace(request, source_path=path, files=[])
+            sub_request = dataclasses.replace(
+                request,
+                source_path=path,
+                files=[],
+                output_dir=self._isolated_batch_output(
+                    task_id, request, config, path, files
+                ),
+            )
             ctx.current_file = os.path.basename(path)
             self._slot_begin(task_id, path, ctx)
             try:
@@ -1537,33 +1853,46 @@ class RuntimeService:
 
     def _finish_batch(self, task_id: str, ctx: _BatchContext) -> None:
         """Terminal wrap-up for a batch task after every file was processed."""
+        with ctx.lock:
+            failed = ctx.failed_files
+            completed = ctx.completed_files
         total = ctx.total_files
-        if ctx.failed_files >= total:
-            self._store.update_task(
+        if failed >= total:
+            if not self._store.set_status(
                 task_id,
-                status=TaskStage.FAILED.value,
+                TaskStage.FAILED.value,
                 progress=100.0,
                 total_progress=100.0,
                 message="All files failed",
                 error_message="All files failed",
-            )
+            ):
+                logger.info(
+                    "[task=%s] already terminal; dropping batch failure", task_id
+                )
+                return
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, "All files failed")
             return
-        msg = f"Completed {total - ctx.failed_files}/{total} file(s)"
-        if ctx.failed_files:
-            msg += f", {ctx.failed_files} failed"
+        msg = f"Completed {total - failed}/{total} file(s)"
+        if failed:
+            msg += f", {failed} failed"
         zip_path = self._build_batch_zip(task_id)
         state = self._store.get_task(task_id)
-        self._store.update_task(
+        if not self._store.set_status(
             task_id,
-            status=TaskStage.COMPLETED.value,
+            TaskStage.COMPLETED.value,
             progress=100.0,
             total_progress=100.0,
             file_progress=100.0,
             message=msg,
+            completed_files=completed,
+            failed_files=failed,
             result_zip=zip_path,
             result_files=list(state.result_files or []) if state else [],
-        )
+        ):
+            logger.info(
+                "[task=%s] already terminal; dropping batch completion", task_id
+            )
+            return
         self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, msg)
 
     def _file_failure_recorded(self, task_id: str, ctx: _BatchContext) -> bool:
@@ -1594,21 +1923,27 @@ class RuntimeService:
                 )
             else:
                 agg = self._agg(ctx, 0.0)
+            # Counters must be snapshotted under the same lock that guards their
+            # increments, otherwise a concurrent per-file completion can write a
+            # newer value and this thread then regresses completed/failed_files.
+            completed_snapshot = ctx.completed_files
+            failed_snapshot = ctx.failed_files
+            message = message or f"Completed {ctx.current_file}"
         self._store.update_task(
             task_id,
             stage=TaskStage.RENDERING.value,
             progress=agg,
             total_progress=agg,
             file_progress=100.0,
-            completed_files=ctx.completed_files,
-            failed_files=ctx.failed_files,
-            message=message or f"Completed {ctx.current_file}",
+            completed_files=completed_snapshot,
+            failed_files=failed_snapshot,
+            message=message,
         )
         event = TaskProgressEvent(
             task_id=task_id,
             stage=TaskStage.RENDERING.value,
             progress=agg,
-            message=message or f"Completed {ctx.current_file}",
+            message=message,
         )
         self._store.add_event(task_id, event)
         self._notify_event_listeners(event)
@@ -1617,6 +1952,32 @@ class RuntimeService:
         """Total files of a batch task (1 for single-file tasks)."""
         ctx = self._batch_ctx.get(task_id)
         return ctx.total_files if ctx else 1
+
+    def _isolated_batch_output(
+        self,
+        task_id: str,
+        request: TranslationRequest,
+        config: Optional[ServiceConfig],
+        path: str,
+        files: List[str],
+    ) -> str:
+        counts: Dict[str, int] = {}
+        for item in files:
+            stem = os.path.splitext(os.path.basename(item))[0].casefold()
+            counts[stem] = counts.get(stem, 0) + 1
+        stem = os.path.splitext(os.path.basename(path))[0].casefold()
+        if counts.get(stem, 0) <= 1:
+            return request.output_dir
+        base_dir = (
+            self._resolve_out_dir(request, config)
+            or os.path.dirname(path)
+            or os.getcwd()
+        )
+        os.makedirs(base_dir, exist_ok=True)
+        return tempfile.mkdtemp(
+            prefix=f"pdf2zh-{task_id}-{stem[:24]}-",
+            dir=base_dir,
+        )
 
     # ── 并发批处理：线程槽与总体进度 ─────────────────────────────────
     def _slot_begin(self, task_id: str, path: str, ctx: _BatchContext) -> None:
@@ -1634,6 +1995,86 @@ class RuntimeService:
         path = getattr(self._batch_file_local, "path", None)
         return task_id, path
 
+    @staticmethod
+    def _short_result_name(old_name: str, source_path: str) -> str:
+        """Rewrite an over-long result filename to ``{hash}-{suffix}``.
+
+        The name served for download is the on-disk basename, so a result
+        file derived from a very long source title (``{stem}-mono.pdf`` etc.)
+        can exceed browser/OS filename limits and become completely
+        undownloadable. Names above ``_MAX_RESULT_NAME_LEN`` are rewritten to
+        a short, deterministic hash of the source path while keeping the
+        special ``-mono`` / ``-dual`` / ``-translated`` suffix (or the plain
+        extension for dumps). Short names are returned unchanged.
+
+        Args:
+            old_name: current result basename (``name`` entry).
+            source_path: origin used to derive the stable hash (the result
+                file's own path — unique per source file, so same input
+                always maps to the same short name).
+
+        Returns:
+            The (possibly rewritten) basename.
+        """
+        if len(old_name) <= _MAX_RESULT_NAME_LEN:
+            return old_name
+        digest = hashlib.sha1(source_path.encode("utf-8", "replace")).hexdigest()[:8]
+        m = _RESULT_SUFFIX_RE.search(old_name)
+        if m:
+            return f"{digest}-{m.group(1)}{m.group(2)}"
+        return f"{digest}{os.path.splitext(old_name)[1] or ''}"
+
+    def _shorten_result_entries(
+        self,
+        result_files: List[Dict[str, str]],
+        extra: Dict[str, Any],
+    ) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
+        """Rename over-long result files to short hash names on disk.
+
+        Applied at the single ``_complete_file`` chokepoint so every pipeline
+        (legacy / v4 / babeldoc / magicpdf / batch) gets bounded, hash-based
+        download names. The on-disk file is renamed in place (same directory,
+        atomic); ``extra``'s ``preview_path`` and ``selected_file`` are
+        remapped to the new paths/names so previews and the output selector
+        keep pointing at the same artifact. Never raises; any rename failure
+        falls back to the original entry.
+        """
+        if not result_files:
+            return result_files, extra
+        renamed: List[Dict[str, str]] = []
+        path_map: Dict[str, str] = {}
+        name_map: Dict[str, str] = {}
+        for rf in result_files:
+            old_path = rf.get("path") or ""
+            old_name = rf.get("name") or os.path.basename(old_path) or ""
+            new_name = self._short_result_name(old_name, old_path or old_name)
+            if new_name != old_name and old_path and os.path.exists(old_path):
+                new_path = os.path.join(os.path.dirname(old_path), new_name)
+                try:
+                    if new_path != old_path and not os.path.exists(new_path):
+                        os.rename(old_path, new_path)
+                    if os.path.exists(new_path):
+                        path_map[old_path] = new_path
+                        name_map[old_name] = new_name
+                        renamed.append({"name": new_name, "path": new_path})
+                        continue
+                except OSError:
+                    logger.warning(
+                        "Failed to rename result file %s -> %s",
+                        old_path,
+                        new_name,
+                    )
+            renamed.append(rf)
+        if path_map:
+            extra = dict(extra)
+            pv = extra.get("preview_path")
+            if isinstance(pv, str) and pv in path_map:
+                extra["preview_path"] = path_map[pv]
+            sel = extra.get("selected_file")
+            if isinstance(sel, str) and sel in name_map:
+                extra["selected_file"] = name_map[sel]
+        return renamed, extra
+
     def _complete_file(
         self,
         task_id: str,
@@ -1648,7 +2089,18 @@ class RuntimeService:
 
         Single-file tasks complete the whole task here (existing behaviour);
         batch tasks accumulate ``result_files`` and bump the aggregate progress.
+        Over-long result filenames are rewritten to short hash names first
+        (``_shorten_result_entries``) so downloads never expose unusable
+        basenames derived from the source title.
         """
+        if not result_files:
+            self._fail_file(
+                task_id,
+                "pipeline produced no output files",
+                total_files=total_files,
+            )
+            return
+        result_files, extra = self._shorten_result_entries(result_files, extra)
         if total_files <= 1 or task_id not in self._batch_ctx:
             if self._store.is_cancelled(task_id):
                 # Single-file task cancelled by the user: drop the late completion
@@ -1660,12 +2112,12 @@ class RuntimeService:
             # supplied result_zip (commonly a bare mono/dual PDF path) would
             # surface as a bogus "Download All (ZIP)" target, so drop it.
             extra.pop("result_zip", None)
+            # Publish the artifacts BEFORE the terminal transition: the sweeper
+            # prunes terminal tasks older than the retention window, so a task
+            # that is already completed while the ZIP is still being packaged
+            # can be dropped mid-build and lose its download.
             self._store.update_task(
                 task_id,
-                status=TaskStage.COMPLETED.value,
-                progress=100.0,
-                total_progress=100.0,
-                file_progress=100.0,
                 result_files=result_files,
                 selected_file=(
                     extra.pop("selected_file", None)
@@ -1675,6 +2127,19 @@ class RuntimeService:
                 **extra,
             )
             self._ensure_result_zip(task_id)
+            if not self._store.set_status(
+                task_id,
+                TaskStage.COMPLETED.value,
+                progress=100.0,
+                total_progress=100.0,
+                file_progress=100.0,
+            ):
+                # Cancelled while packaging: keep the cancellation terminal.
+                logger.info(
+                    "[task=%s] cancelled during packaging; dropping completion",
+                    task_id,
+                )
+                return
             self._emit_event(task_id, TaskStage.COMPLETED.value, 100.0, message)
             return
         ctx = self._batch_ctx[task_id]
@@ -1686,14 +2151,34 @@ class RuntimeService:
                 ctx.progress_map[file_path] = 100.0
             state = self._store.get_task(task_id)
             prev = list(state.result_files or []) if state else []
+            used_names = {str(item.get("name") or "") for item in prev}
+            unique_results: List[Dict[str, str]] = []
+            name_map: Dict[str, str] = {}
+            for item in result_files:
+                entry = dict(item)
+                original_name = str(
+                    entry.get("name") or os.path.basename(entry.get("path") or "")
+                )
+                name = original_name
+                if name in used_names:
+                    stem, ext = os.path.splitext(name)
+                    digest = hashlib.sha1(
+                        str(entry.get("path") or name).encode("utf-8", "replace")
+                    ).hexdigest()[:8]
+                    name = f"{stem}-{digest}{ext}"
+                entry["name"] = name
+                name_map[original_name] = name
+                used_names.add(name)
+                unique_results.append(entry)
             upd: Dict[str, Any] = {
-                "result_files": prev + list(result_files),
+                "result_files": prev + unique_results,
                 "file_progress": 100.0,
                 "completed_files": ctx.completed_files,
                 "message": f"Completed {file_path or ctx.current_file}",
             }
             if extra.get("selected_file"):
-                upd["selected_file"] = extra.pop("selected_file")
+                selected = str(extra.pop("selected_file"))
+                upd["selected_file"] = name_map.get(selected, selected)
             for key in (
                 "diagnostic_summary",
                 "quality_scores",
@@ -1738,12 +2223,16 @@ class RuntimeService:
                     "[task=%s] cancelled; dropping late failure report", task_id
                 )
                 return
-            self._store.update_task(
+            if not self._store.set_status(
                 task_id,
-                status=TaskStage.FAILED.value,
+                TaskStage.FAILED.value,
                 error_message=error,
                 message=message or f"Error: {error}",
-            )
+            ):
+                logger.info(
+                    "[task=%s] already terminal; dropping late failure report", task_id
+                )
+                return
             self._emit_event(task_id, TaskStage.FAILED.value, 100.0, f"Failed: {error}")
             return
         ctx = self._batch_ctx[task_id]
@@ -1779,11 +2268,38 @@ class RuntimeService:
             return None
         zip_path = os.path.join(tempfile.gettempdir(), f"pdf2zh_task_{task_id}.zip")
         try:
+            written = 0
+            used_arcnames: set[str] = set()
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for rf in state.result_files:
                     p = rf.get("path") or ""
-                    if p and os.path.exists(p):
-                        zf.write(p, arcname=os.path.basename(p))
+                    try:
+                        valid = bool(p and os.path.isfile(p) and os.path.getsize(p) > 0)
+                    except OSError:
+                        valid = False
+                    if not valid:
+                        continue
+                    arcname = os.path.basename(p)
+                    if arcname in used_arcnames:
+                        stem, ext = os.path.splitext(arcname)
+                        digest = hashlib.sha1(
+                            os.path.abspath(p).encode("utf-8", "replace")
+                        ).hexdigest()[:8]
+                        arcname = f"{stem}-{digest}{ext}"
+                    used_arcnames.add(arcname)
+                    zf.write(p, arcname=arcname)
+                    written += 1
+            if written == 0:
+                try:
+                    os.unlink(zip_path)
+                except OSError:
+                    pass
+                return None
+            # 打包成功即确定下载名（前端经 /api/tasks/{id} 的
+            # result_zip_name 字段读取，Content-Disposition 同步使用）。
+            self._store.update_task(
+                task_id, result_zip_name=result_zip_download_name(state)
+            )
             return zip_path
         except Exception:
             logger.exception("Failed to build result zip for task %s", task_id)
@@ -1801,16 +2317,22 @@ class RuntimeService:
         if state is None:
             return None
         if zip_path is None:
-            zip_path = (
-                next(
-                    (
-                        rf.get("path")
-                        for rf in (state.result_files or [])
-                        if rf.get("path") and os.path.exists(rf.get("path"))
-                    ),
-                    None,
-                )
-                or ""
+
+            def _valid_result_path(path: str) -> bool:
+                try:
+                    return bool(
+                        path and os.path.isfile(path) and os.path.getsize(path) > 0
+                    )
+                except OSError:
+                    return False
+
+            zip_path = next(
+                (
+                    rf.get("path")
+                    for rf in (state.result_files or [])
+                    if _valid_result_path(rf.get("path") or "")
+                ),
+                "",
             )
         self._store.update_task(task_id, result_zip=zip_path)
         return zip_path
@@ -1827,7 +2349,6 @@ class RuntimeService:
         try:
             from pdf2zh.v3.feature_flags import (
                 FallbackTelemetry,
-                FeatureFlags,
                 get_feature_flags,
                 set_feature_flags,
             )
@@ -1930,9 +2451,41 @@ class RuntimeService:
                 from pdf2zh.v3.planner import TranslationPlan
 
                 plan = TranslationPlan(node_ids=list(rt.plans.keys()))
-                tr.execute(rt.graph, plan)
+                translation_results = tr.execute(rt.graph, plan)
+                failed_nodes = [
+                    node_id
+                    for node_id, result in translation_results.items()
+                    if str(
+                        getattr(
+                            getattr(result, "status", ""),
+                            "value",
+                            getattr(result, "status", ""),
+                        )
+                    ).lower()
+                    == "failed"
+                ]
+                if failed_nodes:
+                    self._fail_file(
+                        task_id,
+                        f"V4 translation failed for {len(failed_nodes)} node(s): "
+                        + ", ".join(failed_nodes[:5]),
+                        total_files=total_files,
+                    )
+                    return
         else:
             rt.translate()
+            session = getattr(getattr(rt, "translator", None), "session", None)
+            translation_errors = dict(getattr(session, "errors", {}) or {})
+            if translation_errors:
+                self._fail_file(
+                    task_id,
+                    f"V4 translation failed for {len(translation_errors)} node(s): "
+                    + "; ".join(
+                        str(item) for item in list(translation_errors.values())[:3]
+                    ),
+                    total_files=total_files,
+                )
+                return
         if self._store.is_cancelled(task_id):
             return
         self._emit_event(task_id, TaskStage.LAYOUTING.value, 70.0, "Laying out...")
@@ -1941,6 +2494,13 @@ class RuntimeService:
             return
         self._emit_event(task_id, TaskStage.RENDERING.value, 85.0, "Rendering...")
         output = rt.pipeline(request.source_path)
+        if not output:
+            self._fail_file(
+                task_id,
+                "V4 pipeline produced no output",
+                total_files=total_files,
+            )
+            return
 
         self._emit_event(task_id, TaskStage.EVALUATING.value, 95.0, "Evaluating...")
         # -- V4 Diagnostic Data Collection --
@@ -2073,6 +2633,50 @@ class RuntimeService:
         config = config or self.config
         total_files = self._batch_total(task_id)
 
+        extra_config = dict(request.extra_config or {})
+        extra_config.pop("mode_choice", None)
+        reserved_extra = {
+            "stream",
+            "pages",
+            "lang_in",
+            "lang_out",
+            "service",
+            "thread",
+            "vfont",
+            "vchar",
+            "callback",
+            "cancellation_event",
+            "model",
+            "emit_ir",
+            "relayout_gate",
+            "v3_output",
+            "relink_links",
+            "image_engine",
+            "content_preservation",
+            "emit_preservation",
+            "processor_channels",
+            "progress_cb",
+            "parse_engine",
+            "ingest_backend",
+            "jina_model",
+            "jina_revision",
+            "jina_prompt",
+            "jina_device",
+            "jina_dpi",
+            "jina_max_pixels",
+            "jina_max_new_tokens",
+            "jina_timeout",
+            "jina_cache_dir",
+            "jina_min_coverage",
+            "jina_offline",
+        }
+        conflicts = sorted(reserved_extra.intersection(extra_config))
+        if conflicts:
+            raise ValueError(
+                "extra_config cannot override runtime parameters: "
+                + ", ".join(conflicts)
+            )
+
         # Ensure layout model is loaded before translation
         if is_cpu_degraded():
             rearmed = try_rearm_gpu()
@@ -2139,8 +2743,6 @@ class RuntimeService:
 
         try:
             mode = (request.extra_config or {}).get("mode_choice") or "auto"
-            extra_config = dict(request.extra_config or {})
-            extra_config.pop("mode_choice", None)
             doc_dual, doc_mono = translate_stream(
                 file_bytes,
                 pages=_parse_page_range_to_indices(request.page_range),
@@ -2190,12 +2792,26 @@ class RuntimeService:
             return
         if self._store.is_cancelled(task_id):
             return
+        translation_errors = v3_output.get("translation_errors") or {}
+        if translation_errors.get("count"):
+            samples = "; ".join(
+                str(item) for item in translation_errors.get("samples", [])[:3]
+            )
+            self._fail_file(
+                task_id,
+                f"legacy translation failed for {translation_errors['count']} segment(s)"
+                + (f": {samples}" if samples else ""),
+                total_files=total_files,
+            )
+            return
         logger.info("[task=%s] translate_stream complete, merging output...", task_id)
         self._emit_event(task_id, TaskStage.RENDERING.value, 80.0, "Merging pages...")
-        if doc_mono is None or doc_dual is None:
-            logger.error("Page merging failed: translate_stream returned None")
+        if not doc_mono or not doc_dual:
+            logger.error("Page merging failed: translate_stream returned empty output")
             self._fail_file(
-                task_id, "translate_stream returned None", total_files=total_files
+                task_id,
+                "translate_stream returned empty output",
+                total_files=total_files,
             )
             return
         self._emit_event(
@@ -2476,6 +3092,7 @@ class RuntimeService:
             os.path.abspath(files[0])
         )
         ns.output = out_dir
+        artifact_baseline = self._magicpdf_artifact_snapshot(out_dir, files[0])
         ns.backend = request.backend or "auto"
         # OCR 模式：优先从 extra_config（API 表单 ocr_mode）提取，再回落到
         # request 级字段（兼容旧调用方直接设置 magicpdf_ocr/magicpdf_ocr_mode）。
@@ -2498,7 +3115,7 @@ class RuntimeService:
         ns.service = request.engine or "google"
         ns.lang_in = request.source_lang or "auto"
         ns.lang_out = request.target_lang or "zh-CN"
-        ns.pages = request.page_range
+        ns.pages = normalize_user_page_indices(request.page_range)
         ns.thread = request.threads
         ns.vfont = request.vfont or ""
         ns.vchar = request.vchar or ""
@@ -2510,6 +3127,19 @@ class RuntimeService:
         ns.mineru_window_size = getattr(request, "mineru_window_size", "") or ""
         ns.mineru_parse_method = getattr(request, "mineru_parse_method", "") or ""
         ns.mineru_backend = getattr(request, "mineru_backend", "") or ""
+        ingest_backend = normalize_ingest_backend(request.ingest_backend)
+        ns.ingest_backend = ingest_backend
+        ns.jina_model = request.jina_model
+        ns.jina_revision = request.jina_revision
+        ns.jina_prompt = request.jina_prompt
+        ns.jina_device = request.jina_device
+        ns.jina_dpi = request.jina_dpi
+        ns.jina_max_pixels = request.jina_max_pixels
+        ns.jina_max_new_tokens = request.jina_max_new_tokens
+        ns.jina_timeout = request.jina_timeout
+        ns.jina_cache_dir = request.jina_cache_dir
+        ns.jina_min_coverage = request.jina_min_coverage
+        ns.jina_offline = request.jina_offline
         self._emit_event(
             task_id, TaskStage.PARSING.value, 10.0, "magic-pdf/MinerU parsing..."
         )
@@ -2532,6 +3162,12 @@ class RuntimeService:
             logger.warning("[task=%s] %s", task_id, hint)
             self._emit_event(task_id, TaskStage.PARSING.value, 8.0, hint)
 
+        progress_engine = (
+            request.ingest_backend
+            if request.ingest_backend in {BACKEND_JINA, BACKEND_MARKER}
+            else "mineru"
+        )
+
         def _forward_magicpdf_progress(
             stage: str, pct: float, msg: str, detail: Optional[Dict[str, Any]] = None
         ) -> None:
@@ -2540,7 +3176,9 @@ class RuntimeService:
             self._emit_smooth(task_id, stage, pct, msg, detail=detail)
             if detail:
                 try:
-                    self._maybe_detail_log(task_id, detail, stage, engine="mineru")
+                    self._maybe_detail_log(
+                        task_id, detail, stage, engine=progress_engine
+                    )
                 except Exception:  # noqa: BLE001 -- 日志失败不影响解析
                     pass
 
@@ -2562,7 +3200,7 @@ class RuntimeService:
         from pdf2zh.services.engine_log_bridge import engine_task
 
         try:
-            with engine_task(task_id, "mineru"):
+            with engine_task(task_id, progress_engine):
                 rc = run_magicpdf_main(
                     ns,
                     progress_cb=_forward_magicpdf_progress,
@@ -2593,7 +3231,13 @@ class RuntimeService:
                 task_id, f"magicpdf engine returned {rc}", total_files=total
             )
             return
-        self._collect_magicpdf_results(task_id, out_dir, total)
+        self._collect_magicpdf_results(
+            task_id,
+            out_dir,
+            total,
+            source_path=files[0],
+            baseline=artifact_baseline,
+        )
 
     def _execute_magicpdf_batch(
         self,
@@ -2615,6 +3259,11 @@ class RuntimeService:
         mode_babeldoc = (
             (request.extra_config or {}).get("mode_choice") or ""
         ).lower() == "babeldoc"
+        progress_engine = (
+            request.ingest_backend
+            if request.ingest_backend in {BACKEND_JINA, BACKEND_MARKER}
+            else "mineru"
+        )
 
         ctx = self._batch_ctx.get(task_id)
         if ctx is None:
@@ -2622,8 +3271,10 @@ class RuntimeService:
             with self._batch_ctx_lock:
                 self._batch_ctx[task_id] = ctx
 
-        failed_count = 0
-        for path in files:
+        import copy
+
+        os.makedirs(str(ns.output), exist_ok=True)
+        for index, path in enumerate(files):
             if self._store.is_cancelled(task_id):
                 return
             ctx.current_file = os.path.basename(path)
@@ -2637,15 +3288,18 @@ class RuntimeService:
                 progress=self._agg(ctx, 0.0),
                 message=f"Processing {ctx.current_file}",
             )
-            # 每个文件用独立 ns 副本（run_magicpdf_main 会修改 ns.files）
-            import copy
-
-            from pdf2zh.services.engine_log_bridge import engine_task
-
-            file_ns = copy.copy(ns)
-            file_ns.files = [path]
+            file_output = ""
+            handled_by_babeldoc = False
             try:
-                with engine_task(task_id, "mineru"):
+                file_output = tempfile.mkdtemp(
+                    prefix=f"pdf2zh-{task_id}-{index:04d}-", dir=str(ns.output)
+                )
+                file_ns = copy.copy(ns)
+                file_ns.output = file_output
+                file_ns.files = [path]
+                from pdf2zh.services.engine_log_bridge import engine_task
+
+                with engine_task(task_id, progress_engine):
                     rc = run_magicpdf_main(
                         file_ns,
                         progress_cb=progress_cb,
@@ -2660,12 +3314,32 @@ class RuntimeService:
                     )
                     self._reset_shared_layout_model()
                     self._fail_file(
-                        task_id, f"magicpdf returned {rc}", total_files=total
+                        task_id,
+                        f"magicpdf returned {rc}",
+                        total_files=total,
+                        file_path=path,
                     )
-                    failed_count += 1
+                    continue
+                result_files = self._magicpdf_result_entries(file_output)
+                if not result_files:
+                    self._fail_file(
+                        task_id,
+                        "magicpdf engine produced no output artifacts "
+                        f"(expected under {file_output}{os.sep}magicpdf); check server logs",
+                        total_files=total,
+                        file_path=path,
+                    )
+                    continue
+                self._complete_file(
+                    task_id,
+                    result_files,
+                    total_files=total,
+                    file_path=path,
+                    selected_file=result_files[0]["name"],
+                    preview_path=result_files[0]["path"],
+                    message="Completed (MagicPDF)",
+                )
             except MagicPdfDegradeError as exc:
-                # 尊重模式降级：该文件 MinerU 不可用/失败 → 按 BabelDOC 模式
-                # 重路由（BabelDOC 执行器自行完成/失败并落终态）。
                 logger.warning(
                     "[task=%s] file %s degrade -> babeldoc: %s",
                     task_id,
@@ -2678,8 +3352,14 @@ class RuntimeService:
                     8.0,
                     f"[降级] {exc} —— 按模式（BabelDOC）切换 BabelDOC 引擎重试",
                 )
-                self._execute_babeldoc(task_id, request, config)
-                return
+                fallback_request = dataclasses.replace(
+                    request,
+                    source_path=path,
+                    files=[],
+                    output_dir=file_output or self._resolve_out_dir(request, config),
+                )
+                self._execute_babeldoc(task_id, fallback_request, config)
+                handled_by_babeldoc = True
             except Exception as exc:  # noqa: BLE001
                 logger.error(
                     "[task=%s] file %s failed: %s",
@@ -2689,56 +3369,122 @@ class RuntimeService:
                     exc_info=True,
                 )
                 self._reset_shared_layout_model()
-                self._fail_file(task_id, exc, total_files=total)
-                failed_count += 1
+                self._fail_file(
+                    task_id,
+                    exc,
+                    total_files=total,
+                    file_path=path,
+                )
+            if handled_by_babeldoc:
+                continue
             state = self._store.get_task(task_id)
             if (
                 state is not None
                 and state.status == TaskStage.FAILED.value
                 and not self._file_failure_recorded(task_id, ctx)
             ):
-                ctx.failed_files += 1
+                self._fail_file(
+                    task_id,
+                    state.error_message or "File failed",
+                    total_files=total,
+                    file_path=path,
+                )
 
-        self._collect_magicpdf_results(task_id, ns.output, total)
+        self._finish_batch(task_id, ctx)
 
-    def _collect_magicpdf_results(self, task_id: str, out_dir: str, total: int) -> None:
-        """收集 magicpdf 产物（JSON 转储 + 译后 mono PDF）并落 COMPLETE 终态。"""
+    def _magicpdf_result_entries(
+        self,
+        out_dir: str,
+        source_path: Optional[str] = None,
+        baseline: Optional[Dict[str, Tuple[int, int]]] = None,
+    ) -> List[Dict[str, str]]:
         result_files: List[Dict[str, str]] = []
-        pdf_entry: Optional[Dict[str, str]] = None
+        stem = os.path.splitext(os.path.basename(source_path))[0] if source_path else ""
+
+        def matches_source(name: str) -> bool:
+            return not stem or name.startswith((f"{stem}_", f"{stem}-"))
+
+        def add_entry(name: str, path: str) -> None:
+            try:
+                stat = os.stat(path)
+                if not os.path.isfile(path) or stat.st_size <= 0:
+                    return
+                signature = (
+                    int(stat.st_size),
+                    int(getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1e9))),
+                )
+            except OSError:
+                return
+            if (
+                baseline is not None
+                and baseline.get(os.path.abspath(path)) == signature
+            ):
+                return
+            result_files.append({"name": name, "path": path})
+
+        magic_dir = os.path.join(out_dir, "magicpdf")
         try:
-            magic_dir = os.path.join(out_dir, "magicpdf")
             if os.path.isdir(magic_dir):
                 for name in sorted(os.listdir(magic_dir)):
-                    if not (name.endswith(".json") or name.endswith(".pdf")):
+                    if not name.endswith(".pdf") or not matches_source(name):
                         continue
                     path = os.path.join(magic_dir, name)
-                    entry = {"name": name, "path": path}
-                    result_files.append(entry)
-                    if name.endswith(".pdf") and pdf_entry is None:
-                        pdf_entry = entry
-        except Exception:  # noqa: BLE001 -- 结果收集失败不影响落终态
+                    if os.path.isfile(path):
+                        add_entry(name, path)
+        except OSError:
             pass
-        if not result_files:
-            # magicpdf 子目录无产物：可能是 MinerU/magic-pdf 解析失败后熔断
-            # 降级 legacy 内核（_fallback_legacy），其 mono/dual PDF 写在
-            # out_dir 父目录（{stem}-mono.pdf / {stem}-dual.pdf），并非失败。
-            # 回退收集这些 legacy 产物，避免把已成功的降级翻译误报为失败。
+        if result_files:
+            return result_files
+        try:
+            for name in sorted(os.listdir(out_dir)):
+                low = name.lower()
+                if (
+                    not name.endswith(".pdf")
+                    or not matches_source(name)
+                    or not ("-mono." in low or "-dual." in low)
+                ):
+                    continue
+                path = os.path.join(out_dir, name)
+                if os.path.isfile(path):
+                    add_entry(name, path)
+        except OSError:
+            pass
+        return result_files
+
+    def _magicpdf_artifact_snapshot(
+        self, out_dir: str, source_path: Optional[str]
+    ) -> Dict[str, Tuple[int, int]]:
+        snapshot: Dict[str, Tuple[int, int]] = {}
+        for entry in self._magicpdf_result_entries(out_dir, source_path=source_path):
             try:
-                for name in sorted(os.listdir(out_dir)):
-                    low = name.lower()
-                    if not (
-                        name.endswith(".pdf") and ("-mono." in low or "-dual." in low)
-                    ):
-                        continue
-                    path = os.path.join(out_dir, name)
-                    if not os.path.isfile(path):
-                        continue
-                    entry = {"name": name, "path": path}
-                    result_files.append(entry)
-                    if pdf_entry is None:
-                        pdf_entry = entry
-            except OSError:  # noqa: BLE001 -- out_dir 不可读时保持空产物判失败
-                pass
+                stat = os.stat(entry["path"])
+            except OSError:
+                continue
+            snapshot[os.path.abspath(entry["path"])] = (
+                int(stat.st_size),
+                int(getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1e9))),
+            )
+        return snapshot
+
+    def _collect_magicpdf_results(
+        self,
+        task_id: str,
+        out_dir: str,
+        total: int,
+        *,
+        source_path: Optional[str] = None,
+        baseline: Optional[Dict[str, Tuple[int, int]]] = None,
+    ) -> None:
+        """收集 magicpdf 产物（PDF 产物 + 可选 JSON 转储）并落 COMPLETE 终态。
+
+        P1-1:JSON 转储（*_magicpdf.json / *_document.json / *_render_plan.json
+        等大文件）不再列入 result_files,避免:① 前端下载列表出现巨型 JSON;
+        ② artifacts 列表随之膨胀。JSON 保留在磁盘(供排查取证),仅 PDF 产物
+        进入下载/预览。
+        """
+        result_files = self._magicpdf_result_entries(
+            out_dir, source_path=source_path, baseline=baseline
+        )
         if not result_files:
             # 空产物绝不落 COMPLETED 终态：静默的"完成但没有任何输出"会掩盖
             # 解析/回退链路的真实故障（用户不可见失败）。这里显式置 FAILED 并
@@ -2750,14 +3496,13 @@ class RuntimeService:
                 total_files=total,
             )
             return
+        pdf_entry = result_files[0]
         self._complete_file(
             task_id,
             result_files,
             total_files=total,
-            selected_file=(
-                pdf_entry["name"] if pdf_entry is not None else result_files[0]["name"]
-            ),
-            preview_path=(pdf_entry["path"] if pdf_entry is not None else None),
+            selected_file=pdf_entry["name"],
+            preview_path=pdf_entry["path"],
             message="Completed (MagicPDF)",
         )
         logger.info("[task=%s] magicpdf engine complete", task_id)
@@ -3646,7 +4391,35 @@ class RuntimeService:
         whose owner task no longer exists -- these grew unboundedly with
         every finished job in long-running service processes.
         """
-        removed = self._store.prune_terminated(self._retention_seconds, now)
+        # Snapshot the ZIP paths *before* pruning, but only ever delete the
+        # archives of tasks the prune actually removed: a task refreshed by a
+        # concurrent update_task survives the prune, and deleting its download
+        # would leave a visible task with a missing artifact.
+        candidates = {
+            tid: state.result_zip
+            for tid in self._store.list_task_ids()
+            if (state := self._store.get_task(tid)) is not None
+            and state.status in TERMINAL_STATUSES
+            and state.result_zip
+        }
+        removed_ids = self._store.prune_terminated_ids(self._retention_seconds, now)
+        removed = len(removed_ids)
+        for tid in removed_ids:
+            path = candidates.get(tid)
+            if not path:
+                continue
+            try:
+                path_obj = Path(path)
+                temp_root = Path(tempfile.gettempdir()).resolve()
+                if (
+                    path_obj.name.startswith("pdf2zh_task_")
+                    and path_obj.resolve().parent == temp_root
+                ):
+                    from pdf2zh.fs_utils import remove_path_robust
+
+                    remove_path_robust(path_obj, defer=True)
+            except (OSError, ValueError):
+                logger.debug("failed to clean retired result zip: %s", path)
         if removed:
             logger.info(
                 "Pruned %d terminated task(s) older than %.0fs",
@@ -3669,12 +4442,26 @@ class RuntimeService:
             for tid in list(self._task_stage_weights):
                 if self._store.get_task(tid) is None:
                     self._task_stage_weights.pop(tid, None)
+        with self._log_lock:
+            for tid in list(self._log_lines):
+                if self._store.get_task(tid) is None:
+                    self._log_lines.pop(tid, None)
+                    self._log_last.pop(tid, None)
         return removed
+
+    def shutdown(self, wait: bool = False, timeout: float = 5.0) -> None:
+        """停止后台清扫线程（进程退出/测试收尾时调用）。
+
+        RuntimeService 的 sweeper 是 daemon 线程，不会阻塞解释器退出；但在测试、
+        长期嵌入或多实例场景下，不停止它会让线程随实例生命周期泄漏。重复调用安全。
+        """
+        self._shutdown_event.set()
+        if wait and self._sweeper.is_alive():
+            self._sweeper.join(timeout=timeout)
 
     def _sweeper_loop(self) -> None:
         """Daemon background loop: bounded-memory cleanup of terminal tasks."""
-        while True:
-            time.sleep(self._sweep_interval)
+        while not self._shutdown_event.wait(self._sweep_interval):
             # 提交层幂等去重表的收尾：任务已终态/已清理时移除指纹条目，防常驻服务
             # 长期运行后内存无限累积（同指纹在途任务才需要去重）。
             try:

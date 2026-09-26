@@ -29,6 +29,7 @@ import logging
 import os
 import sys
 import threading
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -402,7 +403,7 @@ def build_next_settings(
         translation=TranslationSettings(
             lang_in=lang_in or "en",
             lang_out=lang_out or "zh",
-            qps=max(1, int(qps or 4)),
+            qps=max(1, int(qps or 4)) if str(qps or 4).strip().isdigit() else 4,
             ignore_cache=bool(ignore_cache),
             output=output_dir,
             custom_system_prompt=_resolve_prompt_text(prompt),
@@ -495,13 +496,22 @@ def run_babeldoc_next_translation(
                 if not path:
                     continue
                 path = os.fspath(path)
-                if path in seen or not os.path.exists(path):
+                if path in seen or not os.path.isfile(path):
+                    continue
+                try:
+                    if os.path.getsize(path) <= 0:
+                        continue
+                except OSError:
                     continue
                 seen.add(path)
                 files.append({"name": os.path.basename(path), "path": path})
             return files
 
-    from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+    from pdf2zh.converter_docx import (
+        cleanup_converted_pdf,
+        convert_to_pdf,
+        is_convertible,
+    )
 
     # 把后端开关（--backend / PDF2ZH_BABELDOC_BACKEND）同步到 BabelDOC 内部
     # ONNX 会话（幂等）：显式 cuda/dml 时版面分析也走 GPU，而不是硬编码 CPU。
@@ -541,6 +551,7 @@ def run_babeldoc_next_translation(
     cleanup_paths: List[str] = []
     result = None
     cancelled = False
+    default_output_dir = os.path.dirname(os.path.abspath(source_path))
 
     try:
         # BabelDOC only ingests PDF; convert DOCX/DOC via LibreOffice when needed.
@@ -549,7 +560,7 @@ def run_babeldoc_next_translation(
             work_path = convert_to_pdf(work_path)
             cleanup_paths.append(work_path)
 
-        out_dir = output_dir or os.path.dirname(os.path.abspath(work_path))
+        out_dir = output_dir or default_output_dir
 
         settings = build_next_settings(
             service=service,
@@ -675,6 +686,7 @@ def run_babeldoc_next_translation(
                 os.unlink(path)
             except OSError:
                 pass
+            cleanup_converted_pdf(path)
 
     if cancelled:
         raise _BabeldocNextCancelledError()
@@ -693,6 +705,15 @@ def run_babeldoc_next_translation(
 
 #: 子进程模式下轮询取消信号的间隔（秒）。
 _SUBPROCESS_CANCEL_POLL = 1.0
+
+
+def _env_float(name: str, default: float) -> float:
+    """Read a float env var, falling back to ``default`` on garbage."""
+    try:
+        raw = (os.environ.get(name) or "").strip()
+        return float(raw) if raw else default
+    except (TypeError, ValueError):
+        return default
 
 
 def run_babeldoc_next_translation_subprocess(
@@ -733,7 +754,7 @@ def run_babeldoc_next_translation_subprocess(
         "envs": envs,
         "prompt": prompt if isinstance(prompt, (str, type(None))) else str(prompt),
         "ignore_cache": bool(ignore_cache),
-        "qps": int(qps or 4),
+        "qps": int(qps) if str(qps or "").strip().isdigit() else 4,
         "output_dir": output_dir,
         "debug": bool(debug),
         "ocr_mode": ocr_mode,
@@ -757,6 +778,7 @@ def run_babeldoc_next_translation_subprocess(
     )
     final: Dict[str, Any] = {}
     reader_err: List[str] = []
+    rc: Optional[int] = None
 
     def _read_stdout() -> None:
         try:
@@ -785,11 +807,6 @@ def run_babeldoc_next_translation_subprocess(
         except Exception as exc:  # noqa: BLE001 -- 读流失败记录后按退出码处理
             reader_err.append(str(exc))
 
-    reader = threading.Thread(
-        target=_read_stdout, name="babeldoc-worker-reader", daemon=True
-    )
-    reader.start()
-
     def _cancel_watcher() -> None:
         while proc.poll() is None:
             try:
@@ -800,22 +817,74 @@ def run_babeldoc_next_translation_subprocess(
                 pass
             threading.Event().wait(_SUBPROCESS_CANCEL_POLL)
 
-    watcher = threading.Thread(
-        target=_cancel_watcher, name="babeldoc-worker-watch", daemon=True
-    )
-    watcher.start()
-
     try:
+        reader = threading.Thread(
+            target=_read_stdout, name="babeldoc-worker-reader", daemon=True
+        )
+        reader.start()
+        watcher = threading.Thread(
+            target=_cancel_watcher, name="babeldoc-worker-watch", daemon=True
+        )
+        watcher.start()
         try:
             proc.stdin.write(_json.dumps(payload, ensure_ascii=False, default=str))
-            proc.stdin.close()
         except Exception:  # noqa: BLE001 -- worker 提前退出时写 stdin 失败
             pass
-        rc = proc.wait()
+        finally:
+            # close 必须独立于 write：写失败若跳过 close，仍在读 stdin 的子进程
+            # 会永远等不到 EOF，父进程则在 wait() 上永久挂起。
+            try:
+                if proc.stdin is not None:
+                    proc.stdin.close()
+            except (OSError, ValueError):
+                pass
+        # 分段等待：取消看门狗 kill 后 wait 会立即返回；可选的全局超时
+        # （PDF2ZH_BABELDOC_NEXT_TIMEOUT）避免子进程挂死时任务线程永不退出。
+        timeout = _env_float("PDF2ZH_BABELDOC_NEXT_TIMEOUT", 0.0)
+        deadline = time.monotonic() + timeout if timeout > 0 else None
+        while True:
+            try:
+                rc = proc.wait(timeout=_SUBPROCESS_CANCEL_POLL)
+                break
+            except _subprocess.TimeoutExpired:
+                if deadline is not None and time.monotonic() > deadline:
+                    logger.warning(
+                        "babeldoc-next worker exceeded %.0fs; terminating", timeout
+                    )
+                    proc.kill()
+                    try:
+                        rc = proc.wait(timeout=10)
+                    except _subprocess.TimeoutExpired:
+                        rc = proc.returncode
+                    final.pop("ok", None)
+                    final.setdefault(
+                        "error",
+                        f"babeldoc-next worker timed out after {timeout:.0f}s",
+                    )
+                    break
         reader.join(timeout=10)
     finally:
         if proc.poll() is None:
             proc.kill()
+        try:
+            # kill 之后必须回收，否则 POSIX 上留下僵尸进程。
+            proc.wait(timeout=5)
+        except Exception:  # noqa: BLE001 -- 回收失败不影响调用方
+            pass
+        for stream in (proc.stdin, proc.stdout):
+            try:
+                if stream is not None:
+                    stream.close()
+            except (OSError, ValueError):
+                pass
+        try:
+            watcher.join(timeout=2.0)
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            reader.join(timeout=2.0)
+        except Exception:  # noqa: BLE001
+            pass
 
     if cancelled_check is not None:
         try:
@@ -832,6 +901,10 @@ def run_babeldoc_next_translation_subprocess(
             f"(exit={rc}, reader_error={reader_err[:1]})"
         )
     if final.get("ok"):
+        if rc not in (0, None):
+            logger.warning(
+                "babeldoc-next worker reported success but exited with %s", rc
+            )
         return [dict(f) for f in (final.get("files") or [])]
     error_type = str(final.get("error_type") or "")
     message = str(final.get("error") or "babeldoc-next subprocess failed")
