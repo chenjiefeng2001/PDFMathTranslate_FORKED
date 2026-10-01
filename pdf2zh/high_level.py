@@ -528,6 +528,7 @@ def translate_patch(
         if translation_errors:
             v3_output["translation_errors"] = {
                 "count": len(translation_errors),
+                "ok": int(getattr(device, "_translation_ok", 0) or 0),
                 "samples": translation_errors[:10],
             }
     if observability:
@@ -2319,6 +2320,97 @@ def _translate_parallel(
     return obj_patch
 
 
+#: 判定「翻译服务不可达」的异常名片段。tenacity 的 ``RetryError`` 只是重试
+#: 耗尽的包装，真正的原因藏在 ``__cause__``/``str()`` 里（形如
+#: ``RetryError[<Future ... raised ConnectionError>]``），直接抛给用户毫无
+#: 信息量 —— 看到的人只知道「失败了」，不知道是网络、鉴权还是配额。
+_TRANSPORT_ERROR_MARKERS = (
+    "ConnectionError",
+    "ConnectTimeout",
+    "ReadTimeout",
+    "Timeout",
+    "NewConnectionError",
+    "MaxRetryError",
+    "SSLError",
+    "ProxyError",
+    "NameResolutionError",
+    "Temporary failure in name resolution",
+    "Connection refused",
+    "getaddrinfo",
+)
+
+#: 判定「鉴权 / 配额」类错误 —— 与网络问题分开提示，因为处置方式完全不同。
+_AUTH_ERROR_MARKERS = (
+    "Unauthorized",
+    "401",
+    "403",
+    "Invalid API key",
+    "authentication",
+    "insufficient_quota",
+    "quota",
+    "PermissionDenied",
+)
+
+
+def _describe_total_translation_failure(service: str, failed: int, samples: str) -> str:
+    """全部段翻译失败时，给出**可操作**的根因而不是 tenacity 的 RetryError。
+
+    实测踩过的坑：325 页文档、21 段报
+    ``RetryError[<Future at 0x… raised ConnectionError>]``，用户看到的是
+    「magicpdf engine failed: Translation failed for 21 segment(s): RetryError…」
+    —— 既不知道是哪个引擎，也不知道是网络不通。这类信息必须翻译成一句能直接
+    照做的提示。
+    """
+    engine = service or "(未指定引擎)"
+    head = f"全部 {failed} 段翻译失败，未产出任何译文（引擎：{engine}）"
+    blob = f"{samples}\n{engine}"
+    if any(marker in blob for marker in _TRANSPORT_ERROR_MARKERS):
+        return (
+            f"{head}。原因是翻译服务不可达（连接被拒 / DNS 解析失败 / 超时）。"
+            "请检查：网络与代理（PDF2ZH_PROXY）、API endpoint 地址、"
+            "以及该引擎所需的 API Key 是否已配置；离线环境请改用本地引擎"
+            "（如 ollama）。原始错误：" + (samples or "n/a")
+        )
+    if any(marker in blob for marker in _AUTH_ERROR_MARKERS):
+        return (
+            f"{head}。原因是鉴权或配额被拒。请检查该引擎的 API Key / endpoint "
+            "是否正确、账户是否还有剩余配额。原始错误：" + (samples or "n/a")
+        )
+    return head + "。原始错误：" + (samples or "n/a")
+
+
+def _enforce_translation_error_policy(
+    service: str, translation_errors: Dict[str, Any]
+) -> None:
+    """收尾门禁：区分「部分段失败」与「全部段失败」。
+
+    ``converter._safe_worker`` 对失败段已经回落成原文，所以
+
+    - **部分失败**（有成功段）：文档完整可读，只是失败段保留原文。此时
+      raise 等于把可用产物直接丢弃、整任务判FAILED —— 实测 325 页的书只挂
+      21 段就全盘作废。改为告警后继续出产物（与 magicpdf 链路的
+      ``EXIT_PARTIAL`` 同一取舍）。
+    - **全部失败**（无成功段）：产物等于原文，没有任何翻译价值，这才是真
+      失败，且必须报出**可操作**的根因而不是 tenacity 的 ``RetryError``。
+    """
+    failed = int((translation_errors or {}).get("count") or 0)
+    if not failed:
+        return
+    ok = int((translation_errors or {}).get("ok") or 0)
+    samples = "; ".join(
+        str(item) for item in (translation_errors or {}).get("samples", [])[:3]
+    )
+    if ok > 0:
+        logger.warning(
+            "[translate] %d/%d 段翻译失败（失败段已保留原文，其余段正常输出）：%s",
+            failed,
+            failed + ok,
+            samples,
+        )
+        return
+    raise PDFValueError(_describe_total_translation_failure(service, failed, samples))
+
+
 def translate(
     files: list[str],
     output: str = "",
@@ -2444,15 +2536,9 @@ def translate(
             v3_output=translation_output,
             **locals(),
         )
-        translation_errors = translation_output.get("translation_errors") or {}
-        if translation_errors.get("count"):
-            samples = "; ".join(
-                str(item) for item in translation_errors.get("samples", [])[:3]
-            )
-            raise PDFValueError(
-                f"Translation failed for {translation_errors['count']} segment(s)"
-                + (f": {samples}" if samples else "")
-            )
+        _enforce_translation_error_policy(
+            service, translation_output.get("translation_errors") or {}
+        )
         if not s_mono or not s_dual:
             raise PDFValueError("Translation produced an empty PDF output.")
         if output:

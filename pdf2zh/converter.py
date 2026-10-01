@@ -229,6 +229,7 @@ class TranslateConverter(PDFConverterEx):
         # 首个翻译块被推出页面顶部等系统性错位。
         self._layout_violations: list = []
         self._translation_errors: list[str] = []
+        self._translation_ok: int = 0  # 成功段数（含缓存命中）
 
         # F2: 接管段 display 公式垂直流标记（{vN} → 是否块级展示公式）
         self._render_display_marks: dict = {}
@@ -564,10 +565,7 @@ class TranslateConverter(PDFConverterEx):
                 new = self.translator.translate(s)
                 return new
             except BaseException as e:
-                if log.isEnabledFor(logging.DEBUG):
-                    log.exception(e)
-                else:
-                    log.exception(e, exc_info=False)
+                log.exception(e, exc_info=log.isEnabledFor(logging.DEBUG))
                 raise e
 
         def _safe_worker(s: str, font_sig: str = ""):
@@ -575,11 +573,13 @@ class TranslateConverter(PDFConverterEx):
             if self.cache:
                 cached = _cache_get_font(s, font_sig)
                 if cached is not None:
+                    self._translation_ok += 1
                     return cached
             try:
                 result = worker(s)
                 if self.cache:
                     _cache_set_font(s, result, font_sig)
+                self._translation_ok += 1
                 return result
             except BaseException as e:
                 self._translation_errors.append(f"{type(e).__name__}: {str(e)[:240]}")
