@@ -34,7 +34,7 @@ FILES = ["/tmp/cc_a.pdf", "/tmp/cc_b.pdf", "/tmp/cc_c.pdf"]
 
 def _make_service(tid: str) -> RuntimeService:
     svc = RuntimeService()
-    svc._sweeper = None
+    svc.shutdown()
     svc._store.create_task(tid)
     return svc
 

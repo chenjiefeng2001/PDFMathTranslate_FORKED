@@ -69,9 +69,13 @@
   ; 用系统自带的 tar.exe（Win10+ 内置 libarchive）解包，快且无需额外二进制；
   ; 失败回退到 PowerShell Expand-Archive（慢，仅兜底）。解包成功后删除 .zip
   ; 以节省磁盘，卸载时该路径已不存在，NSIS 对其的单一 Delete 为空操作。
+  ;
+  ; 压缩格式兼容：构建脚本优先使用 zstd（--zstd），回退到 deflate（-a）。
+  ; Windows 10 1809+ 内置 tar.exe 均含 libzstd，Win11 默认支持。
+  ; tar.exe -xf 自动检测压缩格式，无需显式指定。
   IfFileExists "$INSTDIR\pdf2zh-api-sidecar.zip" 0 pdf2zh_extract_done
     CreateDirectory "$INSTDIR\pdf2zh-api-sidecar"
-    ; 优先：系统 tar.exe（libarchive，原生快）
+    ; 优先：系统 tar.exe（libarchive，原生快；自动检测 zstd/deflate）
     nsExec::ExecToLog '"$SYSDIR\tar.exe" -xf "$INSTDIR\pdf2zh-api-sidecar.zip" -C "$INSTDIR\pdf2zh-api-sidecar"'
     Pop $0
     IntCmp $0 0 pdf2zh_extract_ok pdf2zh_extract_fallback pdf2zh_extract_fallback

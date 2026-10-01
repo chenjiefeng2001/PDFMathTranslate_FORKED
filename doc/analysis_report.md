@@ -108,9 +108,26 @@
 | 模块 | 文件 | 状态 |
 |------|------|------|
 | LayoutGraph / TextNode | pdf2zh/layout_graph.py | ✅ 已完成 |
-| ScanPDFProcessor | pdf2zh/scan_pdf_processor.py | ✅ 已完成 |
+| ~~ScanPDFProcessor~~ | ~~pdf2zh/scan_pdf_processor.py~~ | 🗑️ **已删除**（见下） |
 | 测试（LayoutGraph） | tests/test_layout_graph.py (12 tests) | ✅ 通过 |
-| 测试（ScanPDF） | tests/test_scan_pdf_processor.py (13 tests) | ✅ 通过 |
+| ~~测试（ScanPDF）~~ | ~~tests/test_scan_pdf_processor.py~~ | 🗑️ **随模块删除** |
+
+> **⚠️ 更正（ScanPDFProcessor 原标记「✅ 已完成」有误）**
+>
+> 该模块的 `_ocr_region()` 硬编码 `return []`，因此
+> `extract_text_with_positions()` **恒返回空列表** —— 版面分析代码不可达，
+> 模块功能为零。它从未被任何调用方引用（`ScanPDFProcessor` / `TextSegment` /
+> `LayoutRegion` 在一线代码中零出现），三份调查报告
+> （`ocr_module_investigation_report.md`、`v3_architecture_analysis_report.md`）
+> 均标记其为「从未接线的骨架」。
+>
+> 原表中 13 个「✅ 通过」的测试断言的正是这个 stub 恒返回空的行为 —— 属
+> **覆盖率表演**，会让后人误以为该模块可用。二者已一并删除。
+>
+> `layout_graph.py` / `LayoutGraph._spatial_sort()` **保留**（独立的排序实现，
+> 不依赖本模块）。若日后真要给 legacy 链路补 OCR 兜底，应复用 MinerU 隔离
+> venv 的 `PytorchPaddleOCR`（`PDF2ZH_MINERU_PYTHON` 子进程机制已有成熟先例），
+> 而不是复活这个骨架。
 
 **设计要点：**
 - LayoutGraph 基于有向无环图（DAG）的阅读顺序拓扑排序
@@ -146,7 +163,7 @@
 | tests/test_pdf_op_builder.py | 9 | ✅ |
 | tests/test_layout_graph.py | 12 | ✅ |
 | tests/test_collision_resolver.py | 12 | ✅ |
-| tests/test_scan_pdf_processor.py | 13 | ✅ |
+| ~~tests/test_scan_pdf_processor.py~~ | ~~13~~ | 🗑️ 已删除（stub 覆盖率表演） |
 | tests/test_translation_cache.py | 11 | ✅ |
 | tests/test_overflow_policy.py | 8 | ✅ |
 | **合计** | **126** | **✅ 全部通过** |
@@ -201,7 +218,7 @@
 | pdf2zh/text_metrics.py | fontTools 字宽测量 |
 | pdf2zh/paragraph_layout.py | 级联段落布局 |
 | pdf2zh/layout_graph.py | DAG 阅读顺序 |
-| pdf2zh/scan_pdf_processor.py | 扫描版版面分析 |
+| ~~pdf2zh/scan_pdf_processor.py~~ | ~~扫描版版面分析~~ 🗑️ 已删除（OCR 从未接线，功能为零） |
 | pdf2zh/translation_cache.py | SQLite 翻译缓存 |
 | pdf2zh/pdf_op_builder.py | PDF TJ 指令重构 |
 | pdf2zh/collision_resolver.py | 碰撞检测与推下 |
@@ -218,7 +235,7 @@
 | 文件 | 测试数 |
 |------|--------|
 | tests/test_translation_cache.py | 11 |
-| tests/test_scan_pdf_processor.py | 13 |
+| ~~tests/test_scan_pdf_processor.py~~ | ~~13~~ 🗑️ 已删除 |
 | tests/test_overflow_policy.py | 8 |
 
 ## 七、Bug 修复报告

@@ -19,18 +19,25 @@ const BRAND = (tokens as { light: Record<string, string> }).light["color_accent"
  * 健康门闩：主窗口在 sidecar 就绪前显示，轮询 /api/health 通过后才挂载
  * 业务页面。打开失败调查显示极端情况（后端异常退出、端口被外部程序占用
  * 又不响应等）会无限转圈——连续失败约 40s 后切换为可重试的错误态兜底。
+ *
+ * 轮询策略：前 5 次 300ms 快速探测（sidecar 通常 1-2s 就绪），之后退避到
+ * 1s 长轮询。总超时 30s（实测 AV + Defender 扫描叠加时首启 ~20s）。
  */
 function ReadyGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [attempts, setAttempts] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (ready || failed) return undefined;
     let cancelled = false;
     let timer = 0;
+    let attempts = 0;
+    const startTime = Date.now();
+
     async function poll() {
+      if (cancelled) return;
       try {
         await getHealth();
         if (!cancelled) setReady(true);
@@ -39,8 +46,16 @@ function ReadyGate({ children }: { children: ReactNode }) {
         /* 服务未就绪，继续等 */
       }
       if (cancelled) return;
-      setAttempts((n) => n + 1);
-      timer = window.setTimeout(() => void poll(), 700);
+      attempts++;
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+      // 前 5 次快速探测（300ms），之后退避到 1s
+      const delay = attempts < 5 ? 300 : 1000;
+      // 总超时 30s
+      if (attempts >= 30) {
+        setFailed(true);
+        return;
+      }
+      timer = window.setTimeout(() => void poll(), delay);
     }
     void poll();
     return () => {
@@ -48,10 +63,6 @@ function ReadyGate({ children }: { children: ReactNode }) {
       if (timer) window.clearTimeout(timer);
     };
   }, [ready, failed]);
-
-  useEffect(() => {
-    if (attempts >= 60) setFailed(true);
-  }, [attempts]);
 
   if (ready) return <>{children}</>;
   if (failed) {
@@ -69,8 +80,8 @@ function ReadyGate({ children }: { children: ReactNode }) {
         <Typography.Text type="danger">{t("ui.connect_failed")}</Typography.Text>
         <Button
           onClick={() => {
-            setAttempts(0);
             setFailed(false);
+            setElapsed(0);
           }}
         >
           {t("ui.connect_retry")}
@@ -92,6 +103,7 @@ function ReadyGate({ children }: { children: ReactNode }) {
       <Spin size="large" />
       <Typography.Text type="secondary" style={{ fontSize: 13 }}>
         {t("ui.connecting")}
+        {elapsed > 0 && ` (${elapsed}s)`}
       </Typography.Text>
     </div>
   );

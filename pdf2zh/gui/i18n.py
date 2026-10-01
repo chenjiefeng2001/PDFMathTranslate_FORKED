@@ -93,16 +93,23 @@ T: Dict[str, Tuple[str, str]] = {
     "config_backend_auto": ("自动（默认）", "Auto (default)"),
     "config_backend_cpu": ("仅 CPU", "CPU only"),
     "config_backend_cuda": ("CUDA（NVIDIA GPU）", "CUDA (NVIDIA GPU)"),
-    "config_ocr_mode": ("扫描版 PDF OCR", "Scanned-PDF OCR"),
+    "config_ocr_mode": ("BabelDOC 扫描版处理", "BabelDOC Scanned-PDF Handling"),
     "config_ocr_mode_info": (
-        "BabelDOC 对扫描版 / 无文本层 PDF 的 OCR 处理。auto 自动检测扫描并启用 OCR；"
-        "on 强制对所有 PDF 执行 OCR（无文本层 PDF 首选）；off 跳过扫描检测（不做 OCR）。",
-        "OCR handling for scanned / textless PDFs in BabelDOC. auto auto-detects "
-        "scanned pages and enables OCR; on forces OCR for every PDF (best for "
-        "textless PDFs); off skips scan detection (no OCR).",
+        "BabelDOC 布局引擎的扫描版处理。注意：此处不跑 OCR 模型——on 仅把译文"
+        "强制为黑字白底（ocr_workaround），对「已有隐形文本层」的 PDF 有效，对"
+        "纯图片扫描件无效。auto 自动检测扫描页并启用；off 跳过扫描检测。"
+        "真正需要 OCR 请选解析引擎 magicpdf（配合 MagicPDF OCR 开关）"
+        "或摄入后端 marker / jina。",
+        "Scanned-PDF handling for the BabelDOC layout engine. NOTE: no OCR model "
+        "runs here — 'on' only forces translated glyphs to black-on-white "
+        "(ocr_workaround), which helps PDFs that already carry an invisible text "
+        "layer but does nothing for textless image scans. auto auto-detects "
+        "scanned pages and enables it; off skips scan detection. For real OCR "
+        "pick the magicpdf parse engine (with its MagicPDF OCR switch) or the "
+        "marker / jina ingest backend.",
     ),
     "config_ocr_mode_auto": ("自动（检测到扫描时启用）", "Auto (enable when scanned)"),
-    "config_ocr_mode_on": ("强制开启（所有 PDF 均 OCR）", "Force on (OCR every PDF)"),
+    "config_ocr_mode_on": ("强制黑字白底（非 OCR）", "Force black-on-white (not OCR)"),
     "config_ocr_mode_off": ("关闭（跳过扫描检测）", "Off (skip scan detection)"),
     "config_parse_engine": ("解析引擎", "Parse Engine"),
     "config_parse_engine_info": (
@@ -118,6 +125,37 @@ T: Dict[str, Tuple[str, str]] = {
     "config_parse_engine_legacy": ("Legacy 内核", "Legacy kernel"),
     "config_parse_engine_babeldoc": ("BabelDOC 排版", "BabelDOC layout"),
     "config_parse_engine_magicpdf": ("Magic-PDF/MinerU", "Magic-PDF/MinerU"),
+    "config_ingest_backend": ("摄入后端", "Ingestion backend"),
+    "config_ingest_backend_info": (
+        "PDF 理解后端：auto 为 MinerU 主链路加 Marker 兜底；mineru、marker、jina "
+        "强制指定。jina 使用隔离环境中的 Jina-OCR-v1 生成文本，并复用 MinerU "
+        "提供的真实页面几何。模型权重为 CC BY-NC 4.0，商业使用需另行取得授权。",
+        "PDF-understanding backend: auto uses MinerU with Marker fallback; mineru, "
+        "marker, and jina force a backend. Jina runs Jina-OCR-v1 in an isolated "
+        "environment and reuses MinerU page geometry. Model weights are CC BY-NC "
+        "4.0; commercial use requires separate permission.",
+    ),
+    "config_ingest_auto": (
+        "自动（MinerU 优先 + Marker 兜底）",
+        "Auto (MinerU + Marker fallback)",
+    ),
+    "config_ingest_mineru": ("仅 MinerU（magic-pdf）", "MinerU (magic-pdf) only"),
+    "config_ingest_marker": ("Marker（datalab）", "Marker (datalab)"),
+    "config_ingest_jina": (
+        "Jina-OCR-v1 + MinerU 几何",
+        "Jina-OCR-v1 + MinerU geometry",
+    ),
+    "config_jina_model": ("Jina 模型", "Jina model"),
+    "config_jina_revision": ("Jina 模型修订", "Jina model revision"),
+    "config_jina_prompt": ("Jina 提示词", "Jina prompt"),
+    "config_jina_device": ("Jina 推理设备", "Jina inference device"),
+    "config_jina_dpi": ("Jina 渲染 DPI", "Jina render DPI"),
+    "config_jina_max_pixels": ("Jina 单页最大像素", "Jina max pixels per page"),
+    "config_jina_max_new_tokens": ("Jina 最大输出 tokens", "Jina max output tokens"),
+    "config_jina_timeout": ("Jina 超时（秒）", "Jina timeout (seconds)"),
+    "config_jina_cache_dir": ("Jina 缓存目录", "Jina cache directory"),
+    "config_jina_min_coverage": ("Jina 最低匹配覆盖率", "Jina minimum match coverage"),
+    "config_jina_offline": ("Jina 仅离线模型", "Jina offline model only"),
     "config_magicpdf_ocr": ("MagicPDF OCR", "MagicPDF OCR"),
     "config_magicpdf_ocr_info": (
         "magicpdf 解析的 OCR 处理：auto 预检命中扫描/损坏信号才自动开启 OCR；"
@@ -132,6 +170,27 @@ T: Dict[str, Tuple[str, str]] = {
     "config_magicpdf_ocr_auto": ("自动（预检决定）", "Auto (preflight)"),
     "config_magicpdf_ocr_on": ("强制 OCR", "Force OCR"),
     "config_magicpdf_ocr_off": ("关闭 OCR", "Disable OCR"),
+    "config_trace_enabled": (
+        "飞行记录 Trace（magicpdf）",
+        "Flight-Recorder Trace (magicpdf)",
+    ),
+    "config_trace_enabled_info": (
+        "启用 v3 flight-recorder trace（JSONL）并自动运行 trace 审计"
+        "（summary/ledger/qualification）。仅 magicpdf 解析链路生效；大文档会占用"
+        "额外磁盘与时间。对应 CLI --trace。",
+        "Record a v3 flight-recorder trace (JSONL) and run the automatic trace "
+        "audit (summary/ledger/qualification). Applies to the magicpdf parse "
+        "pipeline only; costs extra disk + time on large books. Equivalent to "
+        "CLI --trace.",
+    ),
+    "config_trace_dir": ("Trace 输出目录", "Trace Output Dir"),
+    "config_trace_dir_info": (
+        "trace 根目录：JSONL 写入 <目录>/trace/，审计产物写入 <目录>/audit/；"
+        "留空使用输出目录。对应 CLI --trace-dir。",
+        "Root directory for trace outputs: trace JSONL goes to <dir>/trace/ "
+        "and audit artifacts to <dir>/audit/; empty uses the output directory. "
+        "Equivalent to CLI --trace-dir.",
+    ),
     "config_glossary_files": ("专业词表（CSV）", "Glossaries (CSV)"),
     "config_glossary_files_info": (
         "专业术语固定翻译（babeldoc 解析引擎生效）。CSV 表头："

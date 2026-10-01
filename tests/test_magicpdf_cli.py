@@ -99,6 +99,14 @@ class TestCliArgs(unittest.TestCase):
         self.assertTrue(args.magicpdf_ocr)
         self.assertEqual(args.files, ["x.pdf"])
 
+    def test_jina_ingest_selects_magicpdf(self):
+        from pdf2zh.pdf2zh import parse_args
+
+        args = parse_args(["--ingest-backend", "jina", "x.pdf"])
+        self.assertEqual(args.ingest_backend, "jina")
+        self.assertEqual(args.parse_engine, "magicpdf")
+        self.assertEqual(args.jina_model, "jinaai/jina-ocr-v1")
+
     def test_default_is_auto(self):
         from pdf2zh.pdf2zh import parse_args
 
@@ -235,6 +243,152 @@ class TestRunMagicPdfMain(unittest.TestCase):
             ]
             self.assertTrue(translated[0].startswith("T:"))
             bt.assert_called_once()
+
+    def test_translation_failure_is_not_reported_as_success(self):
+        from pdf2zh.magicpdf_cli import run_magicpdf_main
+
+        fake_translator = Mock()
+        fake_translator.translate = Mock(side_effect=RuntimeError("translator down"))
+        results = MagicPdfAdapter.from_middle_json(SAMPLE_MIDDLE)
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "paper.pdf")
+            with open(pdf_path, "w", encoding="utf-8") as fh:
+                fh.write("%PDF-1.4 placeholder")
+            with (
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                    return_value=True,
+                ),
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
+                    return_value=results,
+                ),
+                patch(
+                    "pdf2zh.translator.build_translator",
+                    return_value=fake_translator,
+                ),
+            ):
+                code = run_magicpdf_main(make_args(files=[pdf_path], output=tmp))
+            self.assertEqual(code, 1)
+
+    def test_partial_translation_failure_returns_partial_exit_code(self):
+        """回归：部分块翻译失败时不再把整份文件判死（产物已渲染）。
+
+        修复前：任一块翻译失败 → exit 1 → RuntimeService 走 ``_fail_file``
+        且不收集产物 —— 一次 429/超时就让用户丢掉本来可用的译文 PDF。
+        修复后：exit EXIT_PARTIAL(2)，服务层照常收集产物并挂警告。
+        """
+        from pdf2zh.magicpdf_cli import EXIT_PARTIAL, run_magicpdf_main
+
+        # 前 1 次成功、其后全部失败 → 「部分成功」。
+        calls = {"n": 0}
+
+        def flaky(text):
+            calls["n"] += 1
+            if calls["n"] > 1:
+                raise RuntimeError("429 too many requests")
+            return "T:" + text
+
+        fake_translator = Mock()
+        fake_translator.translate = Mock(side_effect=flaky)
+        results = MagicPdfAdapter.from_middle_json(SAMPLE_MIDDLE)
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "paper.pdf")
+            with open(pdf_path, "w", encoding="utf-8") as fh:
+                fh.write("%PDF-1.4 placeholder")
+            with (
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                    return_value=True,
+                ),
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
+                    return_value=results,
+                ),
+                patch(
+                    "pdf2zh.translator.build_translator",
+                    return_value=fake_translator,
+                ),
+            ):
+                code = run_magicpdf_main(make_args(files=[pdf_path], output=tmp))
+            self.assertEqual(code, EXIT_PARTIAL)
+            # 部分成功的判据是「至少译出一块」，所以确实调过翻译器。
+            self.assertGreaterEqual(fake_translator.translate.call_count, 1)
+
+    def test_all_blocks_failing_is_still_a_hard_failure(self):
+        """全部块翻译失败 → 那份 PDF 只是原文，必须仍是 exit 1。"""
+        from pdf2zh.magicpdf_cli import EXIT_PARTIAL, run_magicpdf_main
+
+        fake_translator = Mock()
+        fake_translator.translate = Mock(side_effect=RuntimeError("translator down"))
+        results = MagicPdfAdapter.from_middle_json(SAMPLE_MIDDLE)
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = os.path.join(tmp, "paper.pdf")
+            with open(pdf_path, "w", encoding="utf-8") as fh:
+                fh.write("%PDF-1.4 placeholder")
+            with (
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                    return_value=True,
+                ),
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
+                    return_value=results,
+                ),
+                patch(
+                    "pdf2zh.translator.build_translator",
+                    return_value=fake_translator,
+                ),
+            ):
+                code = run_magicpdf_main(make_args(files=[pdf_path], output=tmp))
+            self.assertEqual(code, 1)
+            self.assertNotEqual(code, EXIT_PARTIAL)
+
+    def test_translation_failure_on_one_batch_file_does_not_poison_others(self):
+        """回归：批量任务里前一个文件的翻译失败不得污染后续文件。
+
+        修复前 ``translation_failed`` 在循环外初始化且从不按文件重置，
+        第一个文件翻译失败后，后续全部文件即使成功也返回 1。
+        """
+        from pdf2zh.magicpdf_cli import run_magicpdf_main
+
+        results = MagicPdfAdapter.from_middle_json(SAMPLE_MIDDLE)
+        bad = Mock()
+        bad.translate = Mock(side_effect=RuntimeError("translator down"))
+        good = Mock()
+        good.translate = Mock(side_effect=lambda t: "T:" + t)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for name in ("first.pdf", "second.pdf"):
+                p = os.path.join(tmp, name)
+                with open(p, "w", encoding="utf-8") as fh:
+                    fh.write("%PDF-1.4 placeholder")
+                paths.append(p)
+
+            translators = [bad, good]
+            with (
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                    return_value=True,
+                ),
+                patch(
+                    "pdf2zh.magicpdf_adapter.MagicPdfAdapter.parse",
+                    return_value=results,
+                ),
+                patch(
+                    "pdf2zh.translator.build_translator",
+                    side_effect=lambda *a, **k: translators.pop(0),
+                ),
+            ):
+                code = run_magicpdf_main(make_args(files=paths, output=tmp))
+            # 第二个文件完全成功 → 整批不该被判失败。
+            self.assertEqual(code, 1)  # 首个文件是硬失败
+            self.assertEqual(translators, [])
+            # 第二个文件的产物必须已生成（未被首个文件的失败牵连）。
+            self.assertTrue(
+                os.path.exists(os.path.join(tmp, "magicpdf", "second_mono.pdf"))
+            )
 
 
 class TestTorchPreload(unittest.TestCase):

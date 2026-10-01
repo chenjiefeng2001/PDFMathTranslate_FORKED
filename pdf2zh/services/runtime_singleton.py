@@ -8,21 +8,25 @@ RuntimeService 实例——任务存储是纯内存 dict，多实例会导致任
 from __future__ import annotations
 
 from typing import Optional
+import threading
 
 from pdf2zh.services.runtime_service import RuntimeService
 
 _runtime_service: Optional[RuntimeService] = None
+_runtime_service_lock = threading.Lock()
 
 
 def get_runtime_service() -> RuntimeService:
     """Get or create the process-wide RuntimeService singleton."""
     global _runtime_service
-    if _runtime_service is None:
-        _runtime_service = RuntimeService()
-    return _runtime_service
+    with _runtime_service_lock:
+        if _runtime_service is None:
+            _runtime_service = RuntimeService()
+        return _runtime_service
 
 
 def reset_runtime_service() -> None:
     """Drop the singleton (tests / hot reconfiguration)."""
     global _runtime_service
-    _runtime_service = None
+    with _runtime_service_lock:
+        _runtime_service = None

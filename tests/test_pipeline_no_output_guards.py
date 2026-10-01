@@ -34,6 +34,9 @@ class _FakeTaskStore:
     def get_task(self, task_id):
         return self.tasks.get(task_id)
 
+    def list_task_ids(self):
+        return list(self.tasks)
+
     def is_cancelled(self, task_id):
         return False
 
@@ -47,6 +50,7 @@ class TestMagicpdfEmptyResultsFail(unittest.TestCase):
         from pdf2zh.services.runtime_service import RuntimeService
 
         svc = RuntimeService()
+        self.addCleanup(svc.shutdown)
         svc._store = _FakeTaskStore()
         tid = "task_empty_magicpdf"
         svc._store.create_task(tid)
@@ -74,6 +78,7 @@ class TestMagicpdfEmptyResultsFail(unittest.TestCase):
         from pdf2zh.services.runtime_service import RuntimeService
 
         svc = RuntimeService()
+        self.addCleanup(svc.shutdown)
         svc._store = _FakeTaskStore()
         tid = "task_fallback_pdfs"
         svc._store.create_task(tid)

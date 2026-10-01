@@ -47,7 +47,12 @@ PAGE_BROKEN_THRESHOLD = 0.30
 TO_UNICODE_MISSING_THRESHOLD = 0.60
 #: 页面图像面积占比阈值（≥60% 判定为扫描页面）。
 IMAGE_RATIO_THRESHOLD = 0.60
-#: 预检默认采样页数。
+#: 预检默认采样页数（每端）。总采样量 = 2 * ``DEFAULT_MAX_PAGES``（去重后）。
+#:
+#: 早期实现只取**前** N 页，于是「封面/目录有文本层、正文是扫描图」这种
+#: 最常见的教科书版式永远检测不到 —— 而这恰恰是必须开 OCR 的那批文档。
+#: 改为**首尾各 N 页**：命中「前有后无」的混合文档，代价几乎不变（渲染
+#: 页数从 3 变 6），却覆盖了实际出问题的那一类。
 DEFAULT_MAX_PAGES = 3
 
 
@@ -529,11 +534,30 @@ def _page_font_table(page) -> Dict[str, Dict[str, bool]]:
     return table
 
 
+def _sample_page_indices(page_count: int, max_pages: int) -> List[int]:
+    """首尾各 ``max_pages`` 页的采样页号（0-based，已去重、有序）。
+
+    只取前 N 页会漏掉「封面/目录有文本层、正文是扫描图」这类最常见的
+    教科书版式 —— 恰好是最该开 OCR 的一批。首尾各取 N 页即可覆盖，
+    采样成本从 N 变 2N（默认 3 → 6 页），可接受。
+    """
+    if page_count <= 0:
+        return []
+    if max_pages is None or max_pages <= 0:
+        return list(range(page_count))
+    if page_count <= max_pages * 2:
+        return list(range(page_count))
+    head = list(range(max_pages))
+    tail = list(range(page_count - max_pages, page_count))
+    return sorted(set(head) | set(tail))
+
+
 def _extract_pdf_samples(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
-    """轻量提取 PDF 前 ``max_pages`` 页的文本与 glyph 记录。
+    """轻量提取 PDF 采样页（首尾各 ``max_pages`` 页）的文本与 glyph 记录。
 
     复用 ``PDFConverterEx`` 的 ``render_char`` 语义（``(cid:N)`` / ``�`` 由
     pdfminer 的 ``to_unichr`` 失败自然产生），但只收集字符，不跑翻译。
+    采样页号由 :func:`_sample_page_indices` 决定（首尾各 N 页）。
     返回 ``(page_texts, glyph_records)``。
     """
     from io import BytesIO
@@ -554,9 +578,13 @@ def _extract_pdf_samples(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
         rsrcmgr = PDFResourceManager()
         device = PDFConverterEx(rsrcmgr)
         interp = PDFPageInterpreterEx(rsrcmgr, device, {})
-        for pageno, page in enumerate(PDFPage.create_pages(doc)):
-            if max_pages is not None and pageno >= max_pages:
-                break
+        wanted = None
+        pages = list(PDFPage.create_pages(doc))
+        if max_pages is not None and max_pages > 0:
+            wanted = set(_sample_page_indices(len(pages), max_pages))
+        for pageno, page in enumerate(pages):
+            if wanted is not None and pageno not in wanted:
+                continue
             page.pageno = pageno
             page.page_xref = pageno
             try:
@@ -597,6 +625,55 @@ def _extract_pdf_samples(pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES):
                     }
                 )
     return page_texts, glyph_records
+
+
+def _page_image_ratio(
+    pdf_path: str, max_pages: int = DEFAULT_MAX_PAGES
+) -> Optional[float]:
+    """采样页的图像面积占比（0..1），无需任何解析产物。
+
+    ``image_ratio`` 是判断「扫描件」最直接的信号（一张扫描页通常 >60% 面积
+    被图像覆盖），但历史实现要求调用方传入 ``blocks_by_page``（magic-pdf /
+    BabelDOC 的布局产物），而**所有**调用点都传 ``None`` —— 信号 5 事实上
+    从未生效，五信号只剩三信号。
+
+    预检发生在任何解析之前，没有布局产物可用，因此这里直接用 pymupdf 读
+    image bbox（``page.get_image_info()``）现算：毫秒级/页，无需渲染。
+    """
+    try:
+        import pymupdf  # noqa: PLC0415
+    except Exception as exc:  # noqa: BLE001 -- 无 pymupdf 则该信号缺席
+        logger.debug("image_ratio signal skipped (no pymupdf): %s", exc)
+        return None
+    ratios: List[float] = []
+    try:
+        with pymupdf.open(pdf_path) as doc:
+            for pageno in _sample_page_indices(doc.page_count, max_pages):
+                page = doc[pageno]
+                page_area = abs(float(page.rect.width) * float(page.rect.height))
+                if page_area <= 0:
+                    continue
+                image_area = 0.0
+                try:
+                    infos = page.get_image_info()
+                except Exception:  # noqa: BLE001 -- 单页失败不阻断整体
+                    continue
+                for info in infos or []:
+                    bbox = info.get("bbox")
+                    if not bbox or len(bbox) != 4:
+                        continue
+                    w = abs(float(bbox[2]) - float(bbox[0]))
+                    h = abs(float(bbox[3]) - float(bbox[1]))
+                    # 同一图像可能被多个 xref 引用，按页去重前先累加；
+                    # 上限 1.0 防止重叠 bbox 把比例放大到无意义区间。
+                    image_area = min(page_area, image_area + w * h)
+                ratios.append(_safe_ratio(image_area, page_area))
+    except Exception as exc:  # noqa: BLE001 -- 探测失败只缺席该信号
+        logger.debug("image_ratio signal skipped: %s", exc)
+        return None
+    if not ratios:
+        return None
+    return sum(ratios) / len(ratios)
 
 
 def preflight_scan_check(
@@ -673,16 +750,25 @@ def preflight_scan_check(
             )
         )
 
-    # 信号 5：图像面积占比（可选）。
+    # 信号 5：图像面积占比。
+    # 优先用调用方给的布局产物；没有则现算（pymupdf image bbox）—— 历史实现
+    # 只认 blocks_by_page，而所有调用点都传 None，该信号从未真正参与判定。
+    image_ratio: Optional[float] = None
+    image_source = ""
     if blocks_by_page:
         ratios = [layout_image_ratio(b or []) for b in blocks_by_page]
-        avg = sum(ratios) / len(ratios) if ratios else 0.0
+        image_ratio = sum(ratios) / len(ratios) if ratios else None
+        image_source = "布局块"
+    if image_ratio is None and pdf_path and os.path.exists(pdf_path):
+        image_ratio = _page_image_ratio(pdf_path, max_pages=max_pages)
+        image_source = "页面图像 bbox"
+    if image_ratio is not None:
         signals.append(
             ScannedSignal(
                 name="image_ratio",
-                value=avg,
+                value=image_ratio,
                 threshold=IMAGE_RATIO_THRESHOLD,
-                detail=f"图像块面积占比 {avg:.3f}",
+                detail=f"图像块面积占比 {image_ratio:.3f}（{image_source}）",
             )
         )
 

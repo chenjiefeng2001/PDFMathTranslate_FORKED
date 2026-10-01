@@ -48,6 +48,7 @@ async def run_translation(cli_args: list[str]) -> dict:
     settings.basic.input_files = set()
 
     results = []
+    errors = []
     start_time = time.time()
 
     for file_path in input_files:
@@ -71,30 +72,42 @@ async def run_translation(cli_args: list[str]) -> dict:
 
                 elif event_type == "finish":
                     tr = event.get("translate_result")
+                    if tr is None or not tr.mono_pdf_path or not tr.dual_pdf_path:
+                        errors.append("BabelDOC finished without mono/dual output")
+                        print(
+                            json.dumps(
+                                {
+                                    "type": "error",
+                                    "message": "BabelDOC finished without mono/dual output",
+                                }
+                            ),
+                            file=sys.stderr,
+                            flush=True,
+                        )
+                        continue
                     result = {
-                        "mono_pdf": (
-                            str(tr.mono_pdf_path) if tr and tr.mono_pdf_path else None
-                        ),
-                        "dual_pdf": (
-                            str(tr.dual_pdf_path) if tr and tr.dual_pdf_path else None
-                        ),
-                        "time_cost": tr.total_seconds if tr else 0.0,
+                        "mono_pdf": str(tr.mono_pdf_path),
+                        "dual_pdf": str(tr.dual_pdf_path),
+                        "time_cost": tr.total_seconds,
                     }
                     results.append(result)
 
                 elif event_type == "error":
+                    message = event.get("error", "Unknown error")
+                    errors.append(str(message))
                     error_event = {
                         "type": "error",
-                        "message": event.get("error", "Unknown error"),
+                        "message": message,
                     }
                     print(json.dumps(error_event), file=sys.stderr, flush=True)
 
         except Exception as e:
+            errors.append(str(e))
             error_event = {"type": "error", "message": str(e)}
             print(json.dumps(error_event), file=sys.stderr, flush=True)
 
     elapsed = time.time() - start_time
-    return {"results": results, "time_cost": elapsed}
+    return {"results": results, "errors": errors, "time_cost": elapsed}
 
 
 def main():

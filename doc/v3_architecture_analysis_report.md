@@ -444,7 +444,7 @@ Quality Evaluator ←─── ✅ V3 已实现 (Module 9)                      
 | 字体元数据 | `font_resolver.py` → `FontResolver` | ✅ **良好** | 支持 serif/sans/mono 风格映射 + PDF 字体标志位分析 |
 | 物理字形度量 | `text_metrics.py` → `TextMetrics` | ✅ **良好** | fontTools 真实度量（ascent/descent/advance width） |
 | 版面元素检测 | `doclayout.py` → `OnnxModel` | ✅ **良好** | YOLO ONNX 模型推理，支持 CPU/CUDA/DML 后端 |
-| OCR 扫描 PDF | `scan_pdf_processor.py` → `ScanPDFProcessor` | 🟡 **骨架** | 分栏投影分析已实现，OCR 引擎未连接（`_ocr_region()` 空返回） |
+| OCR 扫描 PDF | ~~`scan_pdf_processor.py` → `ScanPDFProcessor`~~ | 🗑️ **已删除** | 原为骨架（`_ocr_region()` 空返回 → 模块功能为零、零调用方）。真正的 OCR 链路是 `--parse-engine magicpdf`（MinerU `PytorchPaddleOCR`），另见 `scan_pdf_processor.py` 调查结论（`ocr_module_investigation_report.md`） |
 | 字体缓存 | `font_cache.py` → `DocumentFontCache` | ✅ **良好** | 文档级字体复用，避免每页重复嵌入 |
 | 交叉引用表 | 依赖 `pdfminer.pdfparser` | 🟡 **依赖外部** | 未封装为独立 `xref_parser` |
 
@@ -581,7 +581,7 @@ class LayoutGraph:
 | 子能力 | 当前状态 | 代码位置 | 评估 |
 |:-------|:---------|:---------|:----:|
 | 版面分析 | ✅ **存在** | `doclayout.py` → `OnnxModel.predict()` | YOLO 检测可输出多类别（含 Table/Figure/Formula），但当前仅使用了二值掩码 |
-| 阅读顺序 | 🟡 **存在但未接入主流水线** | `layout_graph.py` → `LayoutGraph._spatial_sort()` | 已实现分栏检测 + 拓扑排序，仅在 `scan_pdf_processor.py` 中使用 |
+| 阅读顺序 | 🔴 **当前无任何调用方** | `layout_graph.py` → `LayoutGraph._spatial_sort()` | 已实现分栏检测 + 拓扑排序；原本唯一使用者 `scan_pdf_processor.py` 已删除，故当前未接入主流水线 |
 | 段落检测 | ✅ **V3 已实现** | `v3/analyzer.py` → `SemanticAnalyzer._merge_fragments()` | 同页同字号碎片合并 + 段落边界标记已实现 |
 | 句子边界 | 🟡 **V3 部分实现** | `v3/analyzer.py` → `_refine_paragraphs()` | 基于末尾标点的段尾标记已实现，但 `e.g.` / `Fig.` 特殊句点处理仍需完善 |
 | 标题检测 | ✅ **V3 已实现** | `v3/analyzer.py` → `_refine_headings()` | 基于字体比率的 H1–H4 层级分配 + 节编号正则匹配 |
@@ -1144,12 +1144,21 @@ class ServiceRegistry:
 - **SQLite 文件级缓存**（`cache.py`）：记录已翻译文件的完整映射（hash → 输入/输出路径）
 - **2.0 独立缓存**（`translation_cache.py`）：增加语言方向维度，支持 TTL 与条目上限管理
 
-### 5.3 扫描 PDF 处理骨架
+### 5.3 扫描 PDF 处理骨架（已删除）
 
-`scan_pdf_processor.py` 实现了基于投影分析的版面分栏 + OCR 流水线原型：
+`scan_pdf_processor.py` 曾实现基于投影分析的版面分栏 + OCR 流水线原型：
 - `analyze_layout()`：投影分析 → 分栏检测 → 页眉/页脚识别
 - `_sort_by_reading_order()`：调用 `LayoutGraph._spatial_sort()` 处理阅读顺序
-- `_ocr_region()`：OCR 引擎接口（当前为空骨架）
+- `_ocr_region()`：OCR 引擎接口 —— **硬编码 `return []`**
+
+因为 `_ocr_region()` 恒返回空，`extract_text_with_positions()` 恒返回空列表，
+上述版面分析代码**不可达**，模块功能为零且无任何调用方，已连同其 13 个
+「断言 stub 行为」的覆盖率表演测试一并删除。
+
+现存的真正 OCR 链路是 `--parse-engine magicpdf`（MinerU `PytorchPaddleOCR`），
+`--ingest-backend marker`（surya-ocr）/ `jina`（jina-ocr-v1）作为摄入回退。
+BabelDOC 链路的 `ocr_workaround` **不做 OCR**（只强制黑字白底），纯图片 PDF
+走该链路产出为零 —— 详见 `doc/ocr_module_investigation_report.md`。
 
 ### 5.4 文档级字体缓存
 
@@ -2262,7 +2271,7 @@ Universal Document Runtime
 | `translation_cache.py` | ~130 | 2.0 独立缓存 | Translation Engine |
 | `config.py` | ~210 | JSON 配置管理 | CLI / Infrastructure |
 | `pdfinterp.py` | ~310 | pdfminer 解释器重载 | Parser Layer |
-| `scan_pdf_processor.py` | ~125 | 扫描 PDF 分析骨架 | Parser Layer |
+| ~~`scan_pdf_processor.py`~~ | ~~125~~ | ~~扫描 PDF 分析骨架~~ 🗑️ 已删除 | Parser Layer |
 | `kernel/`（6 文件） | ~450 | 热插拔内核架构 | Infrastructure |
 | 🆕 **`v3/parser.py`** | ~270 | RawSpan/RawBlock + PDFParser 封装 | **V3 Module 1: Parser** |
 | 🆕 **`v3/normalizer.py`** | ~165 | Normalizer + NormalizerConfig + FontResolver 集成 | **V3 Module 2: Normalizer** |

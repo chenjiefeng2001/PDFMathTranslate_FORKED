@@ -8,6 +8,7 @@ import logging
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Optional
 
@@ -116,7 +117,6 @@ class PreciseKernel:
             "Please install Python from https://python.org and ensure it is on PATH."
         )
 
-
     def ensure_venv(self) -> None:
         """Create venv and install pdf2zh_next if not already set up."""
         if (
@@ -198,6 +198,24 @@ class PreciseKernel:
         )
 
         stderr_lines: list[str] = []
+        stop_watcher = threading.Event()
+
+        def _watch_cancel() -> None:
+            while proc.poll() is None:
+                try:
+                    if cancellation_event is not None and cancellation_event.is_set():
+                        proc.kill()
+                        return
+                except Exception:
+                    return
+                stop_watcher.wait(0.2)
+
+        watcher = threading.Thread(
+            target=_watch_cancel,
+            name="precise-kernel-cancel",
+            daemon=True,
+        )
+        watcher.start()
         try:
             assert proc.stdin is not None
             assert proc.stderr is not None
@@ -222,27 +240,59 @@ class PreciseKernel:
             stdout = proc.stdout.read()
             proc.wait()
 
-        except Exception:
-            proc.kill()
+        except BaseException:
+            if proc.poll() is None:
+                proc.kill()
             raise
+        finally:
+            stop_watcher.set()
+            watcher.join(timeout=2.0)
+            for stream in (proc.stdin, proc.stdout, proc.stderr):
+                try:
+                    close = getattr(stream, "close", None)
+                    if close is not None:
+                        close()
+                except (OSError, ValueError):
+                    pass
 
+        if cancellation_event is not None and cancellation_event.is_set():
+            raise asyncio.CancelledError("precise kernel translation cancelled")
         if proc.returncode != 0:
             detail = "\n".join(stderr_lines[-20:]) if stderr_lines else "(no stderr)"
             raise RuntimeError(
-                f"Precise kernel subprocess failed (exit {proc.returncode}):\n{detail}"
+                f"Precise kernel subprocess failed (exit={proc.returncode}):\n{detail}"
             )
 
         try:
             result_data = json.loads(stdout)
-        except json.JSONDecodeError:
-            raise RuntimeError(f"Invalid JSON from worker: {stdout[:200]}")
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"Invalid JSON from worker: {stdout[:200]}") from exc
+        if not isinstance(result_data, dict):
+            raise RuntimeError("Precise kernel worker result must be a JSON object")
+        errors = result_data.get("errors") or []
+        if errors:
+            raise RuntimeError(
+                "Precise kernel reported file failure(s): "
+                + "; ".join(str(item) for item in errors[:3])
+            )
+        raw_results = result_data.get("results")
+        if not isinstance(raw_results, list):
+            raise RuntimeError("Precise kernel worker results must be a list")
 
         results = []
-        for r in result_data.get("results", []):
+        for r in raw_results:
+            if not isinstance(r, dict):
+                raise RuntimeError("Precise kernel result entry must be an object")
+            mono = r.get("mono_pdf")
+            dual = r.get("dual_pdf")
+            if not mono or not dual:
+                raise RuntimeError("Precise kernel result is missing mono/dual output")
+            mono_path = Path(mono)
+            dual_path = Path(dual)
             results.append(
                 TranslateResult(
-                    mono_pdf=Path(r["mono_pdf"]) if r.get("mono_pdf") else None,
-                    dual_pdf=Path(r["dual_pdf"]) if r.get("dual_pdf") else None,
+                    mono_pdf=mono_path,
+                    dual_pdf=dual_path,
                     time_cost=result_data.get("time_cost", 0.0),
                 )
             )
@@ -270,9 +320,36 @@ class PreciseKernel:
             env=env,
         )
 
-        stdout_bytes, stderr_bytes = await proc.communicate(input=input_json.encode())
+        async def _watch_cancel() -> None:
+            while proc.returncode is None:
+                try:
+                    if cancellation_event is not None and cancellation_event.is_set():
+                        proc.kill()
+                        return
+                except Exception:
+                    return
+                await asyncio.sleep(0.2)
+
+        watcher = asyncio.create_task(_watch_cancel())
+        try:
+            stdout_bytes, stderr_bytes = await proc.communicate(
+                input=input_json.encode()
+            )
+        except asyncio.CancelledError:
+            if proc.returncode is None:
+                proc.kill()
+            await proc.wait()
+            raise
+        finally:
+            watcher.cancel()
+            try:
+                await watcher
+            except asyncio.CancelledError:
+                pass
         stdout = stdout_bytes.decode()
 
+        if cancellation_event is not None and cancellation_event.is_set():
+            raise asyncio.CancelledError("precise kernel translation cancelled")
         if proc.returncode != 0:
             detail = stderr_bytes.decode()[-2000:] if stderr_bytes else "(no stderr)"
             raise RuntimeError(
@@ -281,15 +358,34 @@ class PreciseKernel:
 
         try:
             result_data = json.loads(stdout)
-        except json.JSONDecodeError:
-            raise RuntimeError(f"Invalid JSON from worker: {stdout[:200]}")
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"Invalid JSON from worker: {stdout[:200]}") from exc
+        if not isinstance(result_data, dict):
+            raise RuntimeError("Precise kernel worker result must be a JSON object")
+        errors = result_data.get("errors") or []
+        if errors:
+            raise RuntimeError(
+                "Precise kernel reported file failure(s): "
+                + "; ".join(str(item) for item in errors[:3])
+            )
+        raw_results = result_data.get("results")
+        if not isinstance(raw_results, list):
+            raise RuntimeError("Precise kernel worker results must be a list")
 
         results = []
-        for r in result_data.get("results", []):
+        for r in raw_results:
+            if not isinstance(r, dict):
+                raise RuntimeError("Precise kernel result entry must be an object")
+            mono = r.get("mono_pdf")
+            dual = r.get("dual_pdf")
+            if not mono or not dual:
+                raise RuntimeError("Precise kernel result is missing mono/dual output")
+            mono_path = Path(mono)
+            dual_path = Path(dual)
             results.append(
                 TranslateResult(
-                    mono_pdf=Path(r["mono_pdf"]) if r.get("mono_pdf") else None,
-                    dual_pdf=Path(r["dual_pdf"]) if r.get("dual_pdf") else None,
+                    mono_pdf=mono_path,
+                    dual_pdf=dual_path,
                     time_cost=result_data.get("time_cost", 0.0),
                 )
             )

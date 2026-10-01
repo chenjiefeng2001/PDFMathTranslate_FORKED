@@ -415,7 +415,7 @@ class ConstraintSolver:
 
 
 class LayoutEngine:
-    def __init__(self, page_width=612.0, page_height=792.0):
+    def __init__(self, page_width: float = 612.0, page_height: float = 792.0):
         self.measure = Measure()
         self.flow = Flow(page_width=page_width, page_height=page_height)
         self.constraint_solver = ConstraintSolver()

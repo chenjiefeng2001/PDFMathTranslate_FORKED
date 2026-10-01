@@ -44,7 +44,8 @@ def _ingest_records(events: Sequence[Dict[str, Any]]) -> Dict[str, Dict[str, Any
     for ev in events:
         if ev.get("event") != EVENT_INGEST_BLOCK:
             continue
-        pno = int(ev.get("page") or -1)
+        page_value = ev.get("page")
+        pno = -1 if page_value is None else int(page_value)
         bid = ev.get("block_id") or "?"
         tid = ev.get("trace_id") or f"{pno}/{bid}"
         p = ev.get("payload") or {}

@@ -41,15 +41,42 @@ fn api_port() -> u16 {
     pick_free_port()
 }
 
-/// TCP 探活 + 子进程存活监测：端口可连接即视为就绪；sidecar 进程提前
-/// 死亡（典型：端口被占 bind 失败、依赖损坏）立即返回失败，不再傻等满
-/// 超时。返回 (是否成功, 失败原因)。
+/// 语义级健康检查：TCP 连通后发送 HTTP GET /api/health 并校验响应。
+///
+/// 旧实现只做 TCP 探活（端口可连接 = 就绪），但 sidecar 进程可能"活着"
+/// 但内部初始化未完成（FastAPI 已绑定端口但翻译引擎未就绪、uvicorn 尚在
+/// 预热 worker pool）。前端 ReadyGate 通过 TCP 探活后仍会遇到 API 错误。
+///
+/// 新实现：TCP 连通后发送一行 HTTP/1.1 请求，读取状态行：
+/// - 200 OK → sidecar 完全就绪
+/// - 连接拒绝 / 超时 / 进程退出 → 未就绪
+/// - 其他状态码（如 503）→ sidecar 在响应但未就绪，继续等待
 fn wait_for_api(port: u16, child: &mut Child, timeout_secs: u64) -> (bool, String) {
+    use std::io::{BufRead, BufReader, Write};
     use std::net::TcpStream;
+
     let deadline = std::time::Instant::now() + Duration::from_secs(timeout_secs);
     loop {
-        if TcpStream::connect(("127.0.0.1", port)).is_ok() {
-            return (true, String::new());
+        // 阶段 1：TCP 连通性
+        if let Ok(mut stream) = TcpStream::connect(("127.0.0.1", port)) {
+            stream.set_read_timeout(Some(Duration::from_secs(2))).ok();
+            stream.set_write_timeout(Some(Duration::from_secs(2))).ok();
+            // 阶段 2：HTTP 语义验证
+            let request = format!(
+                "GET /api/health HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+            );
+            if stream.write_all(request.as_bytes()).is_ok() {
+                let mut reader = BufReader::new(&stream);
+                let mut status_line = String::new();
+                if reader.read_line(&mut status_line).is_ok() {
+                    // HTTP/1.1 200 OK → 完全就绪
+                    if status_line.contains("200") {
+                        return (true, String::new());
+                    }
+                    // 其他状态码（503 等）→ sidecar 在响应但未就绪，继续轮询
+                }
+            }
+            // TCP 通了但 HTTP 未就绪，继续等
         }
         // fail-fast：子进程已退出（含 panic/绑定失败），继续轮询毫无意义。
         if let Some(status) = child.try_wait().ok().flatten() {
@@ -96,8 +123,7 @@ fn spawn_api_server(port: u16, log_path: &std::path::Path) -> Child {
     // 优先级：
     // 1. 捆绑 sidecar onedir 资源（tauri resources：安装目录下
     //    pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe）—— 生产/分发形态；
-    // 2. 兼容旧便携布局（与主程序同目录的 sidecar 单文件）；
-    // 3. PDF2ZH_PYTHON 显式解释器 → `python -m pdf2zh.pdf2zh --api` —— 开发后备。
+    // 2. PDF2ZH_PYTHON 显式解释器 → `python -m pdf2zh.pdf2zh --api` —— 开发后备。
     //
     // 动态端口下理论上不再有同映像孤儿挡路；但强杀/崩溃遗留的僵尸仍会
     // 白白占着 ~64MB 内存，且单实例锁保证此刻不该有任何存活者——
@@ -105,38 +131,31 @@ fn spawn_api_server(port: u16, log_path: &std::path::Path) -> Child {
     // 不做此清理，避免误伤用户其他 python 进程。
     if let Ok(current_exe) = std::env::current_exe() {
         let exe_dir = current_exe.parent().expect("exe has no parent dir");
-        for rel in [
-            "pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe",
-            "binaries/pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe",
-            "pdf2zh-api-sidecar.exe",
-            "pdf2zh-api-sidecar-x86_64-pc-windows-msvc.exe",
-        ] {
-            let candidate = exe_dir.join(rel);
-            if candidate.exists() {
-                // best-effort 清场：单实例锁保证此刻不该有其他存活 sidecar
-                let cleanup = std::process::Command::new("taskkill")
-                    .args(["/F", "/IM", "pdf2zh-api-sidecar.exe"])
-                    .output();
-                if let Ok(out) = cleanup {
-                    eprintln!(
-                        "stale sidecar cleanup rc={}",
-                        out.status.code().unwrap_or(-1)
-                    );
-                }
-                let (out, err): (Stdio, Stdio) = match std::fs::File::create(log_path) {
-                    Ok(file) => {
-                        let dup = file.try_clone().expect("clone sidecar log handle");
-                        (file.into(), dup.into())
-                    }
-                    Err(_) => (Stdio::inherit(), Stdio::inherit()), // 退回旧行为
-                };
-                return Command::new(&candidate)
-                    .args(["--port", &port.to_string()])
-                    .stdout(out)
-                    .stderr(err)
-                    .spawn()
-                    .unwrap_or_else(|e| panic!("failed to spawn bundled api sidecar: {e}"));
+        let candidate = exe_dir.join("pdf2zh-api-sidecar/pdf2zh-api-sidecar.exe");
+        if candidate.exists() {
+            // best-effort 清场：单实例锁保证此刻不该有其他存活 sidecar
+            let cleanup = std::process::Command::new("taskkill")
+                .args(["/F", "/IM", "pdf2zh-api-sidecar.exe"])
+                .output();
+            if let Ok(out) = cleanup {
+                eprintln!(
+                    "stale sidecar cleanup rc={}",
+                    out.status.code().unwrap_or(-1)
+                );
             }
+            let (out, err): (Stdio, Stdio) = match std::fs::File::create(log_path) {
+                Ok(file) => {
+                    let dup = file.try_clone().expect("clone sidecar log handle");
+                    (file.into(), dup.into())
+                }
+                Err(_) => (Stdio::inherit(), Stdio::inherit()), // 退回旧行为
+            };
+            return Command::new(&candidate)
+                .args(["--port", &port.to_string()])
+                .stdout(out)
+                .stderr(err)
+                .spawn()
+                .unwrap_or_else(|e| panic!("failed to spawn bundled api sidecar: {e}"));
         }
     }
     let python = std::env::var("PDF2ZH_PYTHON").unwrap_or_else(|_| "python".to_string());

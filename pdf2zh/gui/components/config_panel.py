@@ -16,6 +16,17 @@ from __future__ import annotations
 import gradio as gr
 
 from pdf2zh.gui.i18n import B
+from pdf2zh.v3.ingestion.config import (
+    INGEST_REQUEST_CHOICES,
+    JINA_DEFAULT_DPI,
+    JINA_DEFAULT_MAX_NEW_TOKENS,
+    JINA_DEFAULT_MAX_PIXELS,
+    JINA_DEFAULT_TIMEOUT,
+    JINA_MIN_COVERAGE,
+    JINA_MODEL_ID,
+    JINA_PROMPT,
+    JINA_REVISION,
+)
 
 # Available translation engines (from pdf2zh translators)
 ENGINES = [
@@ -66,6 +77,9 @@ MODE_CHOICES = [
     (B("config_mode_standard"), "standard"),
     (B("config_mode_quality"), "quality"),
     (B("config_mode_babeldoc"), "babeldoc"),
+]
+INGEST_CHOICES = [
+    (B(f"config_ingest_{backend}"), backend) for backend in INGEST_REQUEST_CHOICES
 ]
 
 
@@ -246,6 +260,15 @@ def create_config_panel() -> dict:
             label=B("config_parse_engine"),
             info=B("config_parse_engine_info"),
         )
+        # 摄入后端（--ingest-backend，解析引擎=magicpdf 时生效）：auto = MinerU
+        # 主链路 + 质量门/解析失败/未安装时 Marker 兜底；mineru / marker 强制。
+        # Marker 独立路由经隔离子进程运行，不依赖 MinerU 安装。
+        ingest_backend = gr.Radio(
+            choices=INGEST_CHOICES,
+            value="auto",
+            label=B("config_ingest_backend"),
+            info=B("config_ingest_backend_info"),
+        )
         magicpdf_ocr = gr.Radio(
             choices=[
                 (B("config_magicpdf_ocr_auto"), "auto"),
@@ -294,6 +317,86 @@ def create_config_panel() -> dict:
                 )
 
             with gr.Row():
+                jina_model = gr.Textbox(
+                    label=B("config_jina_model"),
+                    value=JINA_MODEL_ID,
+                )
+                jina_revision = gr.Textbox(
+                    label=B("config_jina_revision"),
+                    value=JINA_REVISION,
+                )
+            with gr.Row():
+                jina_device = gr.Dropdown(
+                    label=B("config_jina_device"),
+                    choices=["auto", "cpu", "cuda"],
+                    value="auto",
+                )
+                jina_dpi = gr.Slider(
+                    label=B("config_jina_dpi"),
+                    minimum=72,
+                    maximum=600,
+                    value=JINA_DEFAULT_DPI,
+                    step=1,
+                )
+                jina_max_pixels = gr.Slider(
+                    label=B("config_jina_max_pixels"),
+                    minimum=1_000_000,
+                    maximum=64_000_000,
+                    value=JINA_DEFAULT_MAX_PIXELS,
+                    step=100_000,
+                )
+            with gr.Row():
+                jina_max_new_tokens = gr.Slider(
+                    label=B("config_jina_max_new_tokens"),
+                    minimum=1,
+                    maximum=32_768,
+                    value=JINA_DEFAULT_MAX_NEW_TOKENS,
+                    step=256,
+                )
+                jina_timeout = gr.Slider(
+                    label=B("config_jina_timeout"),
+                    minimum=1,
+                    maximum=86_400,
+                    value=JINA_DEFAULT_TIMEOUT,
+                    step=60,
+                )
+                jina_min_coverage = gr.Slider(
+                    label=B("config_jina_min_coverage"),
+                    minimum=0,
+                    maximum=1,
+                    value=JINA_MIN_COVERAGE,
+                    step=0.05,
+                )
+            with gr.Row():
+                jina_prompt = gr.Textbox(
+                    label=B("config_jina_prompt"),
+                    value=JINA_PROMPT,
+                    lines=2,
+                )
+                jina_cache_dir = gr.Textbox(
+                    label=B("config_jina_cache_dir"),
+                    value="",
+                )
+                jina_offline = gr.Checkbox(
+                    label=B("config_jina_offline"),
+                    value=False,
+                )
+
+            # v3 flight-recorder trace（magicpdf 链路生效）：开关 + 输出根目录。
+            # 与 CLI --trace / --trace-dir 语义一致，逐任务透传到运行时。
+            with gr.Row():
+                trace_enabled = gr.Checkbox(
+                    value=False,
+                    label=B("config_trace_enabled"),
+                )
+                trace_dir = gr.Textbox(
+                    label=B("config_trace_dir"),
+                    info=B("config_trace_dir_info"),
+                    placeholder="e.g. C:/traces or /tmp/traces",
+                )
+            gr.Markdown(B("config_trace_enabled_info"))
+
+            with gr.Row():
                 page_range = gr.Textbox(
                     label=B("config_pages"),
                     placeholder="e.g. 1-5, 7, 10-12",
@@ -330,8 +433,22 @@ def create_config_panel() -> dict:
         "backend": backend,
         "ocr_mode": ocr_mode,
         "parse_engine": parse_engine,
+        "ingest_backend": ingest_backend,
         "magicpdf_ocr": magicpdf_ocr,
+        "jina_model": jina_model,
+        "jina_revision": jina_revision,
+        "jina_prompt": jina_prompt,
+        "jina_device": jina_device,
+        "jina_dpi": jina_dpi,
+        "jina_max_pixels": jina_max_pixels,
+        "jina_max_new_tokens": jina_max_new_tokens,
+        "jina_timeout": jina_timeout,
+        "jina_cache_dir": jina_cache_dir,
+        "jina_min_coverage": jina_min_coverage,
+        "jina_offline": jina_offline,
         "glossary_files": glossary_files,
+        "trace_enabled": trace_enabled,
+        "trace_dir": trace_dir,
         "backend_status": backend_status,
         "threads": threads,
         "skip_subset_fonts": skip_subset_fonts,

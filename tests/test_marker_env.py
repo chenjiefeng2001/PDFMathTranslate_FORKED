@@ -14,9 +14,12 @@ import json
 import os
 import py_compile
 import sys
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
+from pdf2zh import magicpdf_cli
 from pdf2zh.kernel import marker_env
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -155,7 +158,7 @@ def fake_worker_payload(tmp_path, monkeypatch):
 
     stem = "doc"
 
-    def _run(python_exe: str, pdf_path: str) -> dict:
+    def _run(python_exe: str, pdf_path: str, **kw) -> dict:
         work = tmp_path / "work"
         (work / stem).mkdir(parents=True, exist_ok=True)
         payload = {
@@ -327,9 +330,156 @@ def test_marker_live_available_false_on_env_module_failure(monkeypatch):
     from pdf2zh.magicpdf_cli import _marker_live_available
 
     monkeypatch.setenv(marker_env.PYTHON_OVERRIDE_ENV, "   ")
-    # 探测不应因 marker_env 缺失/异常而崩溃——最多走 import marker 回退
+    # 探测不应因 marker_env 缺失/异常而崩溃——最多走 import 回退
     try:
         result = _marker_live_available()
     except Exception as exc:  # pragma: no cover - 不应到达
         pytest.fail(f"_marker_live_available raised: {exc}")
     assert isinstance(result, bool)
+
+
+def test_marker_live_available_rejects_half_installed_marker(monkeypatch, tmp_path):
+    """回归：裸 ``import marker`` 会把半安装的树误判为「可用」。
+
+    marker 是 namespace package（``marker.__file__ is None``），只要目录下有
+    文件裸 import 就成功。旧探测因此会在 marker 缺子模块时仍返回 True，直到
+    worker 子进程启动才炸，用户只看到含糊的「降级/失败」信息。现在探测 import
+    worker 真正用到的三个子模块（见 kernel/marker_worker.py）。
+    """
+    from pdf2zh.magicpdf_cli import _marker_live_available
+
+    monkeypatch.setenv(marker_env.PYTHON_OVERRIDE_ENV, "   ")
+    monkeypatch.delenv(marker_env.VENV_DIR_ENV, raising=False)
+    monkeypatch.setattr(marker_env, "_user_data_dir", lambda: tmp_path / "nohome")
+    monkeypatch.setattr(marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv")
+
+    imported = []
+
+    def _fake_import(name, *args, **kwargs):
+        imported.append(name)
+        # 「半安装」：裸 marker 与部分子模块在，marker.output 缺失。
+        if name in {"marker", "marker.config.parser", "marker.models"}:
+            return SimpleNamespace()
+        raise ImportError(f"No module named {name!r}")
+
+    monkeypatch.setattr(magicpdf_cli.importlib, "import_module", _fake_import)
+
+    assert _marker_live_available() is False
+    # 探测确实逐个 import 了 worker 需要的子模块，并因 marker.output 缺失而否掉。
+    assert imported == ["marker.config.parser", "marker.models", "marker.output"]
+
+
+def test_marker_live_available_accepts_complete_marker(monkeypatch, tmp_path):
+    """三个子模块齐备时才算可用。"""
+    from pdf2zh.magicpdf_cli import _marker_live_available
+
+    monkeypatch.setenv(marker_env.PYTHON_OVERRIDE_ENV, "   ")
+    monkeypatch.delenv(marker_env.VENV_DIR_ENV, raising=False)
+    monkeypatch.setattr(marker_env, "_user_data_dir", lambda: tmp_path / "nohome")
+    monkeypatch.setattr(marker_env, "_VENV_DIR", tmp_path / "nosub" / ".venv")
+    monkeypatch.setattr(
+        magicpdf_cli.importlib,
+        "import_module",
+        lambda name, *a, **k: SimpleNamespace(),
+    )
+
+    assert _marker_live_available() is True
+
+
+def test_marker_probe_checks_the_modules_the_worker_needs():
+    """探测的模块集必须与 worker 的实际 import 一致，否则探测没意义。"""
+    from pdf2zh.magicpdf_cli import _marker_live_available  # noqa: F401
+
+    worker_src = (
+        Path(marker_env.__file__).resolve().parent / "marker_worker.py"
+    ).read_text(encoding="utf-8")
+    probed = {"marker.config.parser", "marker.models", "marker.output"}
+    for module in sorted(probed):
+        assert f"from {module}" in worker_src, module
+
+
+# ── Marker 页子集（pages / page_range）与 renumber ────────────────────────────
+
+
+def _payload_with_pages(n: int) -> dict:
+    def _page(p: int) -> dict:
+        return {
+            "id": f"/page/{p}",
+            "block_type": "Page",
+            "bbox": [0, 0, 1000, 1400],
+            "children": [
+                {
+                    "id": f"/page/{p}/Text/0",
+                    "block_type": "Text",
+                    "html": f"page {p} content",
+                    "bbox": [10, 10, 900, 60],
+                }
+            ],
+        }
+
+    return {"block_type": "Document", "children": [_page(p) for p in range(n)]}
+
+
+def test_normalize_page_indices():
+    from pdf2zh.v3.ingestion.marker_backend import normalize_page_indices
+
+    assert normalize_page_indices(None) is None
+    assert normalize_page_indices("") is None
+    assert normalize_page_indices("all") is None
+    assert normalize_page_indices("1-3") == [1, 2, 3]
+    assert normalize_page_indices("2, 5,2") == [2, 5]
+    assert normalize_page_indices([1, 1, 3]) == [1, 3]
+    assert normalize_page_indices((4,)) == [4]
+    assert normalize_page_indices("bad") is None  # 非法项全丢 → 全文档
+
+
+def test_marker_worker_annotations_are_resolvable():
+    """回归：marker_worker 的注解必须能被 ``get_type_hints`` 真实求值。
+
+    ``_parse_extra`` 曾标注 ``tuple[Optional[list[int]], bool]`` 却从未 import
+    ``Optional``，只是靠 ``from __future__ import annotations`` 让注解不求值
+    才没炸；任何 ``typing.get_type_hints()``（序列化 / 文档生成 / 运行时校验）
+    都会 NameError。现已改为 PEP 604。
+    """
+    import typing
+
+    from pdf2zh.kernel import marker_worker
+
+    hints = typing.get_type_hints(marker_worker._parse_extra)
+    assert hints["return"] == tuple[list[int] | None, bool]
+
+
+def test_parse_extra_parses_pages_and_force_ocr():
+    from pdf2zh.kernel.marker_worker import _parse_extra
+
+    assert _parse_extra(["--pages", "0,2", "--force-ocr"]) == ([0, 2], True)
+    assert _parse_extra(["--force-ocr"]) == (None, True)
+    assert _parse_extra(["--unknown"]) == (None, False)
+
+
+def test_ingest_json_pages_subset_keeps_original_numbers(tmp_path):
+    from pdf2zh.v3.ingestion.marker_backend import MarkerBackend
+
+    doc = MarkerBackend().ingest_json(_payload_with_pages(4), pages=[1, 3])
+    assert doc.page_count == 2
+    assert {pg.page_no for pg in doc.pages()} == {1, 3}
+    # 原文编号保留（MinerU 切片 page_map 同款语义）
+    by_page = {b.page_no for b in doc.blocks()}
+    assert by_page == {1, 3}
+    texts = sorted((b.page_no, b.text) for b in doc.blocks() if b.text)
+    assert texts == [(1, "page 1 content"), (3, "page 3 content")]
+
+
+def test_ingest_json_single_page_slice(tmp_path):
+    from pdf2zh.v3.ingestion.marker_backend import MarkerBackend
+
+    doc = MarkerBackend().ingest_json(_payload_with_pages(3), pages=[0])
+    assert doc.page_count == 1
+    assert [pg.page_no for pg in doc.pages()] == [0]
+
+
+def test_ingest_json_no_pages_keeps_all(tmp_path):
+    from pdf2zh.v3.ingestion.marker_backend import MarkerBackend
+
+    doc = MarkerBackend().ingest_json(_payload_with_pages(3))
+    assert doc.page_count == 3

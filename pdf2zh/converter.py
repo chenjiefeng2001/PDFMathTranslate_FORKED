@@ -228,6 +228,7 @@ class TranslateConverter(PDFConverterEx):
         # 记录 source_bbox → target_bbox 的完整几何轨迹，供 QA/报告定位
         # 首个翻译块被推出页面顶部等系统性错位。
         self._layout_violations: list = []
+        self._translation_errors: list[str] = []
 
         # F2: 接管段 display 公式垂直流标记（{vN} → 是否块级展示公式）
         self._render_display_marks: dict = {}
@@ -278,9 +279,8 @@ class TranslateConverter(PDFConverterEx):
                     font = font.decode('utf-8')
                 except UnicodeDecodeError:
                     return ""
-            # 处理 /ABCDEF+CMMI10 格式（取最后一个 + 之后的部分）
-            if "+" in font:
-                font = font.split("+")[-1]
+            if "+" in font:  # 处理 /ABCDEF+CMMI10 格式（取最后一个 + 之后的部分）
+                return font.split("+")[-1]
             return font
 
         def vflag(font: str, char: str):    # 匹配公式（和角标）字体
@@ -582,6 +582,7 @@ class TranslateConverter(PDFConverterEx):
                     _cache_set_font(s, result, font_sig)
                 return result
             except BaseException as e:
+                self._translation_errors.append(f"{type(e).__name__}: {str(e)[:240]}")
                 log.error("Translation worker exhausted retries, falling back to original: %s", str(e)[:120])
                 return s
 
@@ -1098,8 +1099,7 @@ class TranslateConverter(PDFConverterEx):
                 ops_list.append(gen_op_line(l.pts[0][0], l.pts[0][1], l.pts[1][0] - l.pts[0][0], l.pts[1][1] - l.pts[0][1], l.linewidth))
         run_mainline_channels(self, ltpage)  # V8.3/V8.4 side-channels
 
-        ops = f"BT {''.join(ops_list)}ET "
-        return ops
+        return f"BT {''.join(ops_list)}ET "
 
 
 class OpType(Enum):
