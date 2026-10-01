@@ -9,7 +9,13 @@ Upgrades for Phase 2 (70% target):
 """
 
 from __future__ import annotations
-import hashlib, json, logging, time, uuid
+
+import hashlib
+import json
+import logging
+import time
+import uuid
+from collections import OrderedDict
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple, Generator
@@ -321,29 +327,35 @@ class CacheEntry:
 
 class TranslationCache:
     def __init__(self, max_size=10000):
-        self._max_size = max_size
-        self._cache = {}
-        self._access_order = []
+        self._max_size = max(1, int(max_size))
+        self._cache: OrderedDict[str, CacheEntry] = OrderedDict()
         self._stats = {"hits": 0, "misses": 0}
 
-    def _make_key(self, src, sl, tl, m):
-        return hashlib.sha256(f"{src}|{sl}|{tl}|{m}".encode()).hexdigest()[:32]
+    def _make_key(self, src, sl, tl, m, variant=""):
+        payload = f"{src}|{sl}|{tl}|{m}|{variant}"
+        return hashlib.sha256(payload.encode()).hexdigest()
 
-    def get(self, source_text, source_lang, target_lang, model):
-        key = self._make_key(source_text, source_lang, target_lang, model)
+    def get(self, source_text, source_lang, target_lang, model, variant=""):
+        key = self._make_key(source_text, source_lang, target_lang, model, variant)
         entry = self._cache.get(key)
         if entry is None:
             self._stats["misses"] += 1
             return None
         entry.hit_count += 1
         self._stats["hits"] += 1
-        if key in self._access_order:
-            self._access_order.remove(key)
-        self._access_order.append(key)
+        self._cache.move_to_end(key)
         return entry.translated_text
 
-    def put(self, source_text, translated_text, source_lang, target_lang, model):
-        key = self._make_key(source_text, source_lang, target_lang, model)
+    def put(
+        self,
+        source_text,
+        translated_text,
+        source_lang,
+        target_lang,
+        model,
+        variant="",
+    ):
+        key = self._make_key(source_text, source_lang, target_lang, model, variant)
         self._cache[key] = CacheEntry(
             key=key,
             source_text=source_text,
@@ -353,14 +365,13 @@ class TranslationCache:
             model=model,
             timestamp=time.time(),
         )
-        self._access_order.append(key)
-        if len(self._cache) > self._max_size:
-            self._cache.pop(self._access_order.pop(0), None)
+        self._cache.move_to_end(key)
+        while len(self._cache) > self._max_size:
+            self._cache.popitem(last=False)
         return key
 
     def clear(self):
         self._cache.clear()
-        self._access_order.clear()
         self._stats = {"hits": 0, "misses": 0}
 
     @property
@@ -371,9 +382,10 @@ class TranslationCache:
     def stats(self):
         return dict(self._stats)
 
-    def contains(self, source_text, source_lang, target_lang, model):
+    def contains(self, source_text, source_lang, target_lang, model, variant=""):
         return (
-            self._make_key(source_text, source_lang, target_lang, model) in self._cache
+            self._make_key(source_text, source_lang, target_lang, model, variant)
+            in self._cache
         )
 
 
@@ -507,21 +519,42 @@ class Translator:
         resp = self.session.provider.complete(messages, **kw)
         return resp.text
 
+    @staticmethod
+    def _cache_variant(composed) -> str:
+        payload = repr(
+            (
+                getattr(composed, "model", ""),
+                getattr(composed, "temperature", None),
+                getattr(composed, "max_tokens", None),
+                getattr(composed, "messages", None),
+            )
+        )
+        return hashlib.sha256(payload.encode("utf-8", "replace")).hexdigest()
+
     def translate_node(self, node_id, force=False):
         node = self.session.graph.get_node(node_id)
         if node is None:
             raise ValueError(f"Node {node_id!r} not found")
         pl = self.session.planner
+        composed = self.composer.compose(self.session.graph, node_id)
+        cache_variant = self._cache_variant(composed)
         if not force and self.session.cache.contains(
-            node.text, pl.config.source_lang, pl.config.target_lang, "default"
+            node.text,
+            pl.config.source_lang,
+            pl.config.target_lang,
+            composed.model,
+            cache_variant,
         ):
             cached = self.session.cache.get(
-                node.text, pl.config.source_lang, pl.config.target_lang, "default"
+                node.text,
+                pl.config.source_lang,
+                pl.config.target_lang,
+                composed.model,
+                cache_variant,
             )
             if cached is not None:
                 self.session.record_result(node_id, cached)
                 return cached
-        composed = self.composer.compose(self.session.graph, node_id)
         try:
             result = self._llm_handler(
                 composed.messages,
@@ -532,13 +565,15 @@ class Translator:
         except Exception as e:
             self.session.record_error(node_id, str(e))
             return None
-        self.session.cache.put(
-            node.text,
-            result,
-            pl.config.source_lang,
-            pl.config.target_lang,
-            composed.model,
-        )
+        if result is not None:
+            self.session.cache.put(
+                node.text,
+                result,
+                pl.config.source_lang,
+                pl.config.target_lang,
+                composed.model,
+                cache_variant,
+            )
         self.session.record_result(node_id, result)
         return result
 

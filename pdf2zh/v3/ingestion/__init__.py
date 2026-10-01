@@ -1,22 +1,4 @@
-"""pdf2zh.v3.ingestion — pluggable PDF-understanding backends into one canonical IR.
-
-Two backends implement the same :class:`~.base.IngestionBackend` protocol
-and both return :class:`~.ir.IngestDocument`:
-
-- :class:`~.existing_backend.ExistingBackend` — the v3 pdfminer/canonical-page path;
-- :class:`~.marker_backend.MarkerBackend` — datalab-to/marker (``vendor/marker``),
-  offline JSON ingestion or live in-process conversion.
-
-Downstream code never asks "was this Marker or the old parser?" — it only
-knows the canonical IR, and every block carries provenance
-(``source_backend`` / ``source_id``) plus declared coordinate semantics.
-
-CLI::
-
-    python -m pdf2zh.v3.ingestion --pdf book.pdf --marker-json book.json
-
-runs both backends and prints the ``INGESTION_DIFF``.
-"""
+"""pdf2zh.v3.ingestion — pluggable PDF-understanding backends into one canonical IR."""
 
 from pdf2zh.v3.ingestion.adapter import (
     existing_pages_to_document,
@@ -24,19 +6,37 @@ from pdf2zh.v3.ingestion.adapter import (
 )
 from pdf2zh.v3.ingestion.base import (
     BACKEND_EXISTING,
+    BACKEND_IDS,
+    BACKEND_JINA,
     BACKEND_MARKER,
     BACKEND_MINERU,
+    INGEST_REQUEST_CHOICES,
     IngestionBackend,
     IngestionBackendUnavailable,
     IngestionError,
+    JinaOcrBackendUnavailable,
+    JinaOcrCoverageError,
+    JinaOcrDeviceError,
+    JinaOcrError,
+    JinaOcrModelUnavailable,
+    JinaOcrOfflineError,
+    JinaOcrSchemaError,
+    JinaOcrTimeoutError,
+    JinaOcrWorkerError,
 )
-from pdf2zh.v3.ingestion.selector import (
-    IngestionDecision,
-    REQUEST_AUTO,
-    decide,
-    gate_quality,
+from pdf2zh.v3.ingestion.bridge import (
+    ingest_document_to_pages,
+    model_from_ingest_document,
 )
 from pdf2zh.v3.ingestion.comparator import IngestionDiff, compare
+from pdf2zh.v3.ingestion.config import (
+    AUTO_CANDIDATES,
+    JINA_MODEL_ID,
+    JINA_PROMPT,
+    JINA_REVISION,
+    JinaOcrOptions,
+    normalize_ingest_backend,
+)
 from pdf2zh.v3.ingestion.existing_backend import ExistingBackend
 from pdf2zh.v3.ingestion.ir import (
     IngestBlock,
@@ -44,17 +44,34 @@ from pdf2zh.v3.ingestion.ir import (
     IngestDocument,
     IngestPage,
 )
+from pdf2zh.v3.ingestion.jina_adapter import (
+    JinaSemanticBlock,
+    jina_result_to_document,
+    parse_markdown,
+    split_markdown,
+)
+from pdf2zh.v3.ingestion.jina_backend import JinaOcrBackend, JinaOcrInputError
 from pdf2zh.v3.ingestion.marker_backend import MarkerBackend
-
-from pdf2zh.v3.ingestion.bridge import (
-    ingest_document_to_pages,
-    model_from_ingest_document,
+from pdf2zh.v3.ingestion.selector import (
+    IngestionDecision,
+    REQUEST_AUTO,
+    decide,
+    gate_quality,
 )
 
 __all__ = [
     "BACKEND_EXISTING",
     "BACKEND_MARKER",
     "BACKEND_MINERU",
+    "BACKEND_JINA",
+    "BACKEND_IDS",
+    "INGEST_REQUEST_CHOICES",
+    "AUTO_CANDIDATES",
+    "JINA_MODEL_ID",
+    "JINA_REVISION",
+    "JINA_PROMPT",
+    "JinaOcrOptions",
+    "normalize_ingest_backend",
     "REQUEST_AUTO",
     "IngestionDecision",
     "decide",
@@ -64,11 +81,26 @@ __all__ = [
     "IngestPage",
     "IngestDocument",
     "IngestionDiff",
-    "IngestError",
-    "IngestBackend",
-    "IngestBackendUnavailable",
+    "IngestionError",
+    "IngestionBackend",
+    "IngestionBackendUnavailable",
     "ExistingBackend",
     "MarkerBackend",
+    "JinaOcrBackend",
+    "JinaOcrInputError",
+    "JinaOcrBackendUnavailable",
+    "JinaOcrError",
+    "JinaOcrModelUnavailable",
+    "JinaOcrCoverageError",
+    "JinaOcrDeviceError",
+    "JinaOcrOfflineError",
+    "JinaOcrSchemaError",
+    "JinaOcrTimeoutError",
+    "JinaOcrWorkerError",
+    "JinaSemanticBlock",
+    "jina_result_to_document",
+    "parse_markdown",
+    "split_markdown",
     "existing_pages_to_document",
     "marker_json_to_document",
     "ingest_document_to_pages",

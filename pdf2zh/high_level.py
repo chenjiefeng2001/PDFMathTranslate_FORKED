@@ -1,6 +1,8 @@
 """Functions that can be used for the most common use-cases for pdf2zh.six"""
 
 import asyncio
+import concurrent.futures
+import hashlib
 import io
 import json
 import os
@@ -19,7 +21,11 @@ import numpy as np
 import requests
 import tqdm
 
-from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+from pdf2zh.converter_docx import (
+    cleanup_converted_pdf,
+    convert_to_pdf,
+    is_convertible,
+)
 from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfexceptions import PDFValueError
 from pdfminer.pdfinterp import PDFResourceManager
@@ -39,6 +45,7 @@ from babeldoc.assets.assets import get_font_and_metadata
 from pdf2zh.text_metrics import TextMetrics
 from pdf2zh.translation_cache import TranslationCache
 from pdf2zh.collision_resolver import CollisionResolver
+from pdf2zh.fs_utils import remove_path_robust
 from pdf2zh.layout_graph import LayoutGraph
 
 NOTO_NAME = "noto"
@@ -516,6 +523,14 @@ def translate_patch(
         dm = getattr(device, "document_model", None)
         if dm is not None and hasattr(dm, "to_dict"):
             v3_output["document_model"] = dm.to_dict()
+        v3_output["toc_reports"] = list(getattr(device, "_toc_reports", []) or [])
+        translation_errors = list(getattr(device, "_translation_errors", []) or [])
+        if translation_errors:
+            v3_output["translation_errors"] = {
+                "count": len(translation_errors),
+                "ok": int(getattr(device, "_translation_ok", 0) or 0),
+                "samples": translation_errors[:10],
+            }
     if observability:
         obs_extra = _collect_observability(device, v3_output)
         if obs_extra and v3_output is None:
@@ -1431,9 +1446,10 @@ def translate_stream(
                             workers=parallel_workers,
                             page_xref_map=page_xref_map,
                         )
-                    except KeyboardInterrupt:
-                        # V3（§5.4/§5.5）：Ctrl+C 绝不进入串行兜底 —— 直接传播给上层
-                        # 关闭流程（GUI 优雅关闭 / CLI 退出），由上层负责 worker 回收。
+                    except (KeyboardInterrupt, CancelledError):
+                        # V3（§5.4/§5.5）：Ctrl+C / 任务取消绝不进入串行兜底 ——
+                        # 直接传播给上层关闭流程（GUI 优雅关闭 / CLI 退出），
+                        # 由上层负责 worker 回收。
                         raise
                     except ParallelError as parallel_err:
                         # V3（§5.5）语义化兜底：池整体不可用（bootstrap / 协议违例）
@@ -1511,6 +1527,11 @@ def translate_stream(
                             obj_patch = translate_patch(fp, **dict(locals()))
         else:
             obj_patch = translate_patch(fp, **dict(locals()))
+
+        if isinstance(obj_patch, dict) and "__translation_errors__" in obj_patch:
+            translation_errors = obj_patch.pop("__translation_errors__")
+            if v3_output is not None:
+                v3_output["translation_errors"] = translation_errors
 
         # Phase D: 并行路径的可观测 payload 经 __obs__ 私有键回传，这里并入 v3_output
         if (
@@ -1806,7 +1827,7 @@ def translate_stream(
         # V1.19: TOC 观察报告落盘（PDF2ZH_TOC_REPORT=1；无环境变量时零开销）
         if os.environ.get("PDF2ZH_TOC_REPORT", "") == "1":
             try:
-                _toc_reports = getattr(device, "_toc_reports", None) or []
+                _toc_reports = (v3_output or {}).get("toc_reports") or []
                 if _toc_reports:
                     _reports_path = (
                         stream.name if hasattr(stream, "name") and stream.name else None
@@ -2091,7 +2112,6 @@ def _translate_parallel(
         # Fall back to serial
         return translate_patch(fp, **locals_dict)
 
-    all_pages = list(range(doc_zh.page_count))
     # === 8.1.2 并行路径 pages 过滤修复 ===
     # 旧实现按 `range(doc_zh.page_count)` 全量切分 chunk，`pages` 子集过滤只在
     # 串行 `translate_patch` 生效 → 并行下请求 `--pages 0-19` 会翻译整本 959 页
@@ -2237,6 +2257,14 @@ def _translate_parallel(
 
     # 增量降级：只有失败 chunk 走串行补跑，绝不整文档重跑（V3 §5.4）
     try:
+        if (
+            serial_indices
+            and isinstance(_shared_cancel, CancelToken)
+            and (_shared_cancel.is_set())
+        ):
+            # 用户已取消：串行补跑等于无视取消，必须整体短路。
+            logger.info("Cancellation requested; skipping serial fallback")
+            serial_indices = []
         if serial_indices:
             logger.warning(
                 "Incremental serial fallback for %d chunk(s): %s",
@@ -2244,6 +2272,11 @@ def _translate_parallel(
                 serial_indices,
             )
             for idx in serial_indices:
+                if isinstance(_shared_cancel, CancelToken) and _shared_cancel.is_set():
+                    logger.info(
+                        "Cancellation requested mid-fallback; aborting serial run"
+                    )
+                    break
                 try:
                     chunk_result, obs_bundle = _translate_parallel_chunk(
                         chunks[idx],
@@ -2252,7 +2285,7 @@ def _translate_parallel(
                         cancel_event=_shared_cancel,
                         **scalar_args,
                     )
-                except KeyboardInterrupt:
+                except (KeyboardInterrupt, CancelledError):
                     raise
                 except Exception as serial_err:
                     logger.error(
@@ -2285,6 +2318,97 @@ def _translate_parallel(
         if isinstance(_shared_cancel, CancelToken):
             _shared_cancel.clear()  # 清理取消标记文件（尽力而为；异常传播时也执行）
     return obj_patch
+
+
+#: 判定「翻译服务不可达」的异常名片段。tenacity 的 ``RetryError`` 只是重试
+#: 耗尽的包装，真正的原因藏在 ``__cause__``/``str()`` 里（形如
+#: ``RetryError[<Future ... raised ConnectionError>]``），直接抛给用户毫无
+#: 信息量 —— 看到的人只知道「失败了」，不知道是网络、鉴权还是配额。
+_TRANSPORT_ERROR_MARKERS = (
+    "ConnectionError",
+    "ConnectTimeout",
+    "ReadTimeout",
+    "Timeout",
+    "NewConnectionError",
+    "MaxRetryError",
+    "SSLError",
+    "ProxyError",
+    "NameResolutionError",
+    "Temporary failure in name resolution",
+    "Connection refused",
+    "getaddrinfo",
+)
+
+#: 判定「鉴权 / 配额」类错误 —— 与网络问题分开提示，因为处置方式完全不同。
+_AUTH_ERROR_MARKERS = (
+    "Unauthorized",
+    "401",
+    "403",
+    "Invalid API key",
+    "authentication",
+    "insufficient_quota",
+    "quota",
+    "PermissionDenied",
+)
+
+
+def _describe_total_translation_failure(service: str, failed: int, samples: str) -> str:
+    """全部段翻译失败时，给出**可操作**的根因而不是 tenacity 的 RetryError。
+
+    实测踩过的坑：325 页文档、21 段报
+    ``RetryError[<Future at 0x… raised ConnectionError>]``，用户看到的是
+    「magicpdf engine failed: Translation failed for 21 segment(s): RetryError…」
+    —— 既不知道是哪个引擎，也不知道是网络不通。这类信息必须翻译成一句能直接
+    照做的提示。
+    """
+    engine = service or "(未指定引擎)"
+    head = f"全部 {failed} 段翻译失败，未产出任何译文（引擎：{engine}）"
+    blob = f"{samples}\n{engine}"
+    if any(marker in blob for marker in _TRANSPORT_ERROR_MARKERS):
+        return (
+            f"{head}。原因是翻译服务不可达（连接被拒 / DNS 解析失败 / 超时）。"
+            "请检查：网络与代理（PDF2ZH_PROXY）、API endpoint 地址、"
+            "以及该引擎所需的 API Key 是否已配置；离线环境请改用本地引擎"
+            "（如 ollama）。原始错误：" + (samples or "n/a")
+        )
+    if any(marker in blob for marker in _AUTH_ERROR_MARKERS):
+        return (
+            f"{head}。原因是鉴权或配额被拒。请检查该引擎的 API Key / endpoint "
+            "是否正确、账户是否还有剩余配额。原始错误：" + (samples or "n/a")
+        )
+    return head + "。原始错误：" + (samples or "n/a")
+
+
+def _enforce_translation_error_policy(
+    service: str, translation_errors: Dict[str, Any]
+) -> None:
+    """收尾门禁：区分「部分段失败」与「全部段失败」。
+
+    ``converter._safe_worker`` 对失败段已经回落成原文，所以
+
+    - **部分失败**（有成功段）：文档完整可读，只是失败段保留原文。此时
+      raise 等于把可用产物直接丢弃、整任务判FAILED —— 实测 325 页的书只挂
+      21 段就全盘作废。改为告警后继续出产物（与 magicpdf 链路的
+      ``EXIT_PARTIAL`` 同一取舍）。
+    - **全部失败**（无成功段）：产物等于原文，没有任何翻译价值，这才是真
+      失败，且必须报出**可操作**的根因而不是 tenacity 的 ``RetryError``。
+    """
+    failed = int((translation_errors or {}).get("count") or 0)
+    if not failed:
+        return
+    ok = int((translation_errors or {}).get("ok") or 0)
+    samples = "; ".join(
+        str(item) for item in (translation_errors or {}).get("samples", [])[:3]
+    )
+    if ok > 0:
+        logger.warning(
+            "[translate] %d/%d 段翻译失败（失败段已保留原文，其余段正常输出）：%s",
+            failed,
+            failed + ok,
+            samples,
+        )
+        return
+    raise PDFValueError(_describe_total_translation_failure(service, failed, samples))
 
 
 def translate(
@@ -2328,8 +2452,10 @@ def translate(
         raise PDFValueError("Some files do not exist.")
 
     result_files = []
+    used_output_stems: set[str] = set()
 
     for file in files:
+        _downloaded_tmp = None
         if type(file) is str and (
             file.startswith("http://") or file.startswith("https://")
         ):
@@ -2343,6 +2469,7 @@ def translate(
                         print(f"Writing the file: {file}...")
                         tmp_file.write(r.content)
                         file = tmp_file.name
+                        _downloaded_tmp = file
                 else:
                     r.raise_for_status()
             except Exception as e:
@@ -2361,18 +2488,35 @@ def translate(
 
         # If the commandline has specified converting to PDF/A format
         # --compatible / -cp
-        if compatible:
-            with tempfile.NamedTemporaryFile(
-                suffix="-pdfa.pdf", delete=False
-            ) as tmp_pdfa:
-                print(f"Converting {file} to PDF/A format...")
-                convert_to_pdfa(file, tmp_pdfa.name)
-                doc_raw = open(tmp_pdfa.name, "rb")
-                os.unlink(tmp_pdfa.name)
-        else:
-            doc_raw = open(file, "rb")
-        s_raw = doc_raw.read()
-        doc_raw.close()
+        pdfa_tmp = None
+        try:
+            if compatible:
+                with tempfile.NamedTemporaryFile(
+                    suffix="-pdfa.pdf", delete=False
+                ) as tmp_pdfa:
+                    pdfa_tmp = tmp_pdfa.name
+                    print(f"Converting {file} to PDF/A format...")
+                    convert_to_pdfa(file, pdfa_tmp)
+                doc_raw = open(pdfa_tmp, "rb")
+            else:
+                doc_raw = open(file, "rb")
+            try:
+                s_raw = doc_raw.read()
+            finally:
+                doc_raw.close()
+        except Exception:
+            if pdfa_tmp is not None:
+                remove_path_robust(pdfa_tmp, defer=True)
+            if _converted_pdf is not None:
+                remove_path_robust(_converted_pdf, defer=True)
+                cleanup_converted_pdf(_converted_pdf)
+            if _downloaded_tmp is not None:
+                remove_path_robust(_downloaded_tmp, defer=True)
+            raise
+        # 清理临时 PDF/A 与在线下载的临时源文件。删除失败只告警并延迟重试，
+        # 绝不阻断翻译（Windows 上文件被 AV/索引器短暂占用时删除会报错）。
+        if pdfa_tmp is not None:
+            remove_path_robust(pdfa_tmp, defer=True)
 
         temp_dir = Path(tempfile.gettempdir())
         file_path = Path(file)
@@ -2380,25 +2524,43 @@ def translate(
             if file_path.exists() and file_path.resolve().is_relative_to(
                 temp_dir.resolve()
             ):
-                file_path.unlink(missing_ok=True)
+                remove_path_robust(file_path, defer=True)
+                cleanup_converted_pdf(str(file_path))
                 logger.debug(f"Cleaned temp file: {file_path}")
         except Exception:
             logger.warning(f"Failed to clean temp file {file_path}", exc_info=True)
 
-        s_mono, s_dual = translate_stream(
+        translation_output: Dict[str, Any] = {}
+        s_dual, s_mono = translate_stream(
             s_raw,
+            v3_output=translation_output,
             **locals(),
         )
+        _enforce_translation_error_policy(
+            service, translation_output.get("translation_errors") or {}
+        )
+        if not s_mono or not s_dual:
+            raise PDFValueError("Translation produced an empty PDF output.")
         if output:
             os.makedirs(output, exist_ok=True)
-        file_mono = Path(output) / f"{filename}-mono.pdf"
-        file_dual = Path(output) / f"{filename}-dual.pdf"
-        doc_mono = open(file_mono, "wb")
-        doc_dual = open(file_dual, "wb")
-        doc_mono.write(s_mono)
-        doc_dual.write(s_dual)
-        doc_mono.close()
-        doc_dual.close()
+        output_stem = filename
+        if output_stem in used_output_stems:
+            suffix = hashlib.sha1(str(file).encode("utf-8", "replace")).hexdigest()[:8]
+            output_stem = f"{output_stem}-{suffix}"
+            counter = 2
+            while output_stem in used_output_stems:
+                output_stem = f"{filename}-{suffix}-{counter}"
+                counter += 1
+        used_output_stems.add(output_stem)
+        file_mono = Path(output) / f"{output_stem}-mono.pdf"
+        file_dual = Path(output) / f"{output_stem}-dual.pdf"
+        try:
+            file_mono.write_bytes(s_mono)
+            file_dual.write_bytes(s_dual)
+        except Exception:
+            remove_path_robust(file_mono, defer=True)
+            remove_path_robust(file_dual, defer=True)
+            raise
         result_files.append((str(file_mono), str(file_dual)))
 
     return result_files

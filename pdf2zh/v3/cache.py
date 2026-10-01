@@ -41,7 +41,15 @@ class LayerCache:
             self._data.popitem(last=False)
 
     def invalidate(self, prefix: str = "") -> int:
-        keys = [k for k in self._data if k.startswith(prefix)]
+        if prefix:
+            keys = [
+                k
+                for k in self._data
+                if k == prefix
+                or k.startswith((prefix + ":", prefix + "-", prefix + "/"))
+            ]
+        else:
+            keys = list(self._data)
         for k in keys:
             self._data.pop(k, None)
         return len(keys)

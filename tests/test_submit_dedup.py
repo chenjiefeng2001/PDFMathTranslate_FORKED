@@ -90,6 +90,22 @@ class TestSubmitDedup(unittest.TestCase):
         t2 = self.svc.submit_task(b)
         self.assertEqual(t1, t2)
 
+    def test_different_jina_options_new_task(self):
+        first = self.svc.submit_task(_req(ingest_backend="jina", jina_dpi=200))
+        second = self.svc.submit_task(_req(ingest_backend="jina", jina_dpi=300))
+        self.assertNotEqual(first, second)
+
+    def test_different_mineru_options_new_task(self):
+        first = self.svc.submit_task(_req(mineru_window_size="8"))
+        second = self.svc.submit_task(_req(mineru_window_size="16"))
+        self.assertNotEqual(first, second)
+
+    def test_fingerprint_redacts_secret_values(self):
+        request = _req(extra_config={"envs": {"OPENAI_API_KEY": "secret-value"}})
+        fingerprint = self.svc._submit_fingerprint(request)
+        self.assertNotIn("secret-value", fingerprint)
+        self.assertIn("sha256", fingerprint)
+
 
 if __name__ == "__main__":
     unittest.main()

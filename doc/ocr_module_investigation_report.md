@@ -146,4 +146,27 @@ test_text_quality_gate.py / test_parse_engine_switch.py
 4. **判定盲区**：预检 3 页采样 + MinerU classify 采样式启发对长文档中后部损坏页存在漏检，可考虑页数自适应采样（如前 3 + 均匀抽 3）。
 5. **开关整合**：GUI 两个 OCR Radio 增加 i18n 说明互链（或在文档中给出「哪个场景用哪个」决策表），降低混淆。
 
+---
+
+## 9. 处置结果（本报告 6 项问题的后续落地）
+
+第 6 节列出的问题已按下表处置；未列出的条目表示当时未改动。
+
+| # | 问题 | 处置 |
+|---|------|------|
+| 1 | `scan_pdf_processor.py` 死桩 | 🗑️ **模块 + 13 个覆盖率表演测试已删除**。`_ocr_region` 恒返回 `[]` 使版面分析代码不可达、零调用方。`layout_graph.py` 保留（`_spatial_sort` 不依赖它，但当前已无调用方，见 `v3_architecture_analysis_report.md` §5.3/§584） |
+| 2 | `ocr_crosscheck` 信号未接线 | ✅ 已接线 `image_ratio`（另一条死信号）：无布局产物时改用 pymupdf image bbox 现算，五个信号全部参与判定。`ocr_crosscheck` 仍需 `ocr_texts`（即先跑过 OCR 才有），保持「有则用、无则跳过」 |
+| 3 | 文档滞后（GUI checkbox / `--magicpdf-ocr-mode`） | ✅ `babeldoc_ocr_mode.py` 模块 docstring、CLI `--babeldoc-ocr` help、GUI i18n（`config_ocr_mode_*`）均已改为准确描述；GUI/CLI 文案重导出（`python -m pdf2zh.gui.export_assets`） |
+| 4 | 描述失真（`ocr_workaround` 不是 OCR） | ✅ 已对照 babeldoc 0.6.4 源码确认并改写文档；新增 `warn_if_babeldoc_ocr_is_a_noop()` —— 请求 OCR 语义但 PDF 无文本层时打 ERROR 级警告并指向 `--parse-engine magicpdf`，取代「任务成功但一个字符没翻」 |
+| 5 | 采样盲区（只看前 3 页） | ✅ 改为**首尾各 3 页**（`_sample_page_indices`），覆盖「封面有文本层、正文是扫描图」这类最常见教科书版式，代价从 3 页变 6 页 |
+| 6 | 双开关心智负担 | ✅ 两个开关已解耦：新增 `resolve_magicpdf_ocr_mode()`，magicpdf 侧不再读 BabelDOC 的 `extra_config["ocr_mode"]`（此前恒非空，导致 GUI 的 magicpdf 单选**从未生效**）；API 补 `magicpdf_ocr_mode` 表单字段 |
+
+### 同批次修复的其他 OCR 链路缺陷
+
+- **MinerU OCR 语言表**：`_LANG_TO_MINERU` 原透传 `ja/ko/fr/de/es/pt/it/vi`，而 MinerU 只认 14 个模型 key 且 `ja≠japan`、`ko≠korean` → 日/韩/法/德/西/葡/意源语言走 magicpdf+OCR **必挂**且被静默降级。已重写并加出口不变量（`tests/test_mineru_ocr_lang_map.py`）。
+- **已渲染 PDF 被丢弃**：任一块翻译失败即 exit 1，`RuntimeService` 走 `_fail_file` 且不收集产物 —— 一次 429 就让整份文件不可用。已引入 `EXIT_PARTIAL=2`；顺带修复批量任务中 `translation_failed` 跨文件污染的隐藏 bug。
+- **Jina 链路**：`torch.bfloat16` 硬编码使 CPU 机器完全不可用；`_generation_truncated` 在查不到 EOS 时反向判定为「截断」造成误杀；单页触顶 `max_new_tokens` 会让整份文档作废。三者均已修复（`tests/test_jina_ocr_backend.py`）。
+- **Jina 前置可用性**：显式 `--ingest-backend jina` 时不换引擎是对的，但失败要等解析阶段才炸；已加 `_probe_jina_available()` 在选项校验阶段 fail-fast。
+- **Marker 探测**：`import marker` 对 namespace package 恒成功，半安装的树会被误判可用；已改为 import worker 真正用到的三个子模块。
+
 

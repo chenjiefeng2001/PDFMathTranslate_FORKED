@@ -370,8 +370,14 @@ class TestInterruptFlag:
             def update_task(self, task_id, **kwargs):
                 pass
 
+            def set_status(self, task_id, status, **kwargs):
+                return True
+
             def add_event(self, task_id, event):
                 pass
+
+            def list_task_ids(self):
+                return []
 
         from pdf2zh.parallel import interrupt as im
 
@@ -402,6 +408,7 @@ class TestInterruptFlag:
         finally:
             im._cancel_only_mode = old_mode
             im.reset_interrupt_flag()
+            svc.shutdown()
 
 
 # ── worker SIGINT 免疫 ──────────────────────────────────────────────────
@@ -491,6 +498,58 @@ class TestCoordinatorInterruptShortCircuit:
         assert serial == []
         assert sorted(obj) == [0, 1, 2, 3]
         assert not obs
+
+    def test_cancelled_chunk_short_circuits_without_serial_fallback(self):
+        """worker 报取消：绝不能进串行补跑（补跑等于无视用户的取消）。"""
+        seen = []
+
+        def run_task(task):
+            seen.append(task.chunk_pages[0])
+            if task.chunk_pages[0] == 1:
+                return ChunkResult(
+                    obj_patch=None, error_message="cancelled", cancelled=True
+                )
+            time.sleep(0.01)
+            return ChunkResult(obj_patch={task.chunk_pages[0]: "ok"})
+
+        coord = TaskCoordinator(max_workers=2)
+        obj, _obs, serial = coord.run(
+            _tasks(6),
+            executor_factory=_thread_executor_factory,
+            task_fn=run_task,
+        )
+        assert serial == [], "cancelled chunks must not be queued for serial rerun"
+        assert 1 not in obj
+
+    def test_pool_crash_after_success_queues_pending_chunks(self):
+        """池崩后增量降级：未提交的 chunk 也必须进串行补跑，不能静默丢失。"""
+
+        class HalfBrokenExecutor(ThreadedExecutor):
+            """前两个 chunk 成功，之后的 submit 全部 BrokenProcessPool。"""
+
+            def __init__(self, max_workers, initializer, initargs):
+                super().__init__(max_workers, initializer, initargs)
+                self._n = 0
+
+            def submit(self, fn, *a, **k):
+                self._n += 1
+                if self._n > 2:
+                    return PreFailedFuture(BrokenProcessPool("worker died"))
+                return super().submit(fn, *a, **k)
+
+        def ok_fn(task):
+            return ChunkResult(obj_patch={task.chunk_pages[0]: "ok"})
+
+        coord = TaskCoordinator(max_workers=1, in_flight_multiplier=1)
+        obj, _obs, serial = coord.run(
+            _tasks(6),
+            executor_factory=lambda w, i, a: HalfBrokenExecutor(w, i, a),
+            task_fn=ok_fn,
+        )
+        # 崩溃在途 + 未提交的 chunk 全部进补跑清单，只有成功过的留在结果里。
+        assert len(obj) >= 1
+        assert set(range(len(obj), 6)).issubset(set(serial))
+        assert set(serial).isdisjoint(obj)
 
 
 # ── 中断即终止 worker（V3-5：Ctrl+C 后不再跑完 chunk 才退出）──────────────────

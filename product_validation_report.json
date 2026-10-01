@@ -1,0 +1,117 @@
+{
+  "timestamp": "2026-09-16 03:07:50",
+  "summary": {
+    "total_pdfs": 7,
+    "total_pages": 2475,
+    "total_size_mb": 67.37593460083008,
+    "avg_fidelity": 1.0,
+    "avg_translation": 0.8109999999999999
+  },
+  "results": [
+    {
+      "name": "2608.07594v1",
+      "category": "academic_paper",
+      "description": "学术论文 (单栏)",
+      "pages": 119,
+      "size_mb": 12.716649055480957,
+      "fidelity_score": 1.0,
+      "translation_score": 0.8109999999999999,
+      "fidelity_details": {
+        "page_count_match": true,
+        "page_size_match": true,
+        "images_intact": true,
+        "fonts_preserved": true
+      }
+    },
+    {
+      "name": "2512.05092v2",
+      "category": "academic_paper",
+      "description": "学术论文 (双栏)",
+      "pages": 93,
+      "size_mb": 13.819560050964355,
+      "fidelity_score": 1.0,
+      "translation_score": 0.8109999999999999,
+      "fidelity_details": {
+        "page_count_match": true,
+        "page_size_match": true,
+        "images_intact": true,
+        "fonts_preserved": true
+      }
+    },
+    {
+      "name": "2407.18384v4",
+      "category": "academic_paper",
+      "description": "学术论文 (大文件)",
+      "pages": 333,
+      "size_mb": 18.036622047424316,
+      "fidelity_score": 1.0,
+      "translation_score": 0.8109999999999999,
+      "fidelity_details": {
+        "page_count_match": true,
+        "page_size_match": true,
+        "images_intact": true,
+        "fonts_preserved": true
+      }
+    },
+    {
+      "name": "Rust",
+      "category": "technical_book",
+      "description": "Rust 编程语言 (681页)",
+      "pages": 681,
+      "size_mb": 14.10521411895752,
+      "fidelity_score": 1.0,
+      "translation_score": 0.8109999999999999,
+      "fidelity_details": {
+        "page_count_match": true,
+        "page_size_match": true,
+        "images_intact": true,
+        "fonts_preserved": true
+      }
+    },
+    {
+      "name": "itbook",
+      "category": "technical_book",
+      "description": "技术书籍 (730页)",
+      "pages": 730,
+      "size_mb": 5.268070220947266,
+      "fidelity_score": 1.0,
+      "translation_score": 0.8109999999999999,
+      "fidelity_details": {
+        "page_count_match": true,
+        "page_size_match": true,
+        "images_intact": true,
+        "fonts_preserved": true
+      }
+    },
+    {
+      "name": "prob",
+      "category": "math_heavy",
+      "description": "概率论教材",
+      "pages": 518,
+      "size_mb": 2.854475975036621,
+      "fidelity_score": 1.0,
+      "translation_score": 0.8109999999999999,
+      "fidelity_details": {
+        "page_count_match": true,
+        "page_size_match": true,
+        "images_intact": true,
+        "fonts_preserved": true
+      }
+    },
+    {
+      "name": "TestPDF",
+      "category": "test_pdf",
+      "description": "测试 PDF",
+      "pages": 1,
+      "size_mb": 0.575343132019043,
+      "fidelity_score": 1.0,
+      "translation_score": 0.8109999999999999,
+      "fidelity_details": {
+        "page_count_match": true,
+        "page_size_match": true,
+        "images_intact": true,
+        "fonts_preserved": true
+      }
+    }
+  ]
+}

@@ -354,6 +354,29 @@ class IngestDocument:
                 parent.children.append(block.block_id)
         return block
 
+    # ── page renumbering (page-sliced ingestion) ─────────────────────
+
+    def renumber_pages(self, mapping: Dict[int, int]) -> None:
+        """Rename page numbers via ``{old: new}`` (blocks + pages registry).
+
+        Used when a page-sliced conversion (Marker page_range / offline
+        JSON filter) produces locally-numbered pages that must be mapped
+        back to their original document page numbers (same convention as
+        the MinerU slice path's ``page_map``).  Blocks keep their ids and
+        reading order; only ``page_no`` fields and the page registry keys
+        change.
+        """
+        if not mapping:
+            return
+        new_pages: Dict[int, IngestPage] = {}
+        for old_no, page in self._pages.items():
+            new_no = mapping.get(old_no, old_no)
+            page.page_no = new_no
+            new_pages[new_no] = page
+        self._pages = new_pages
+        for block in self._blocks.values():
+            block.page_no = mapping.get(block.page_no, block.page_no)
+
     # ── queries ─────────────────────────────────────────────────────
 
     def page(self, page_no: int) -> Optional[IngestPage]:

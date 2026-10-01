@@ -46,15 +46,49 @@ def _force_utf8_stdio() -> None:
         pass
 
 
+def _parse_extra(argv: list[str]) -> tuple[list[int] | None, bool]:
+    """解析可选尾参：``--pages <0基,逗号列表>`` / ``--force-ocr``。
+
+    其余未知 token 忽略（向前兼容，绝不因多余参数失败）。
+    """
+    # 用 PEP 604 (``| None``) 而非 ``Optional``：本模块从未 import ``Optional``，
+    # 之前能跑只是因为 ``from __future__ import annotations`` 让注解不求值 ——
+    # 一旦有人对该函数调 ``typing.get_type_hints()`` 就是 NameError。
+    pages: list[int] | None = None
+    force_ocr = False
+    it = iter(argv)
+    for tok in it:
+        if tok == "--pages":
+            try:
+                raw = next(it, "")
+                pages = [int(x) for x in raw.split(",") if x.strip()]
+            except (ValueError, TypeError):
+                print(
+                    f"marker_worker: bad --pages value: {raw!r}",
+                    file=sys.stderr,
+                )
+                return None, force_ocr
+        elif tok == "--force-ocr":
+            force_ocr = True
+        else:
+            print(f"marker_worker: ignoring unknown argument: {tok}", file=sys.stderr)
+    return pages, force_ocr
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) not in (2, 3):
+    if len(argv) < 2:
         print(
-            "usage: marker_worker.py <pdf_path> <output_dir> [mode]",
+            "usage: marker_worker.py <pdf_path> <output_dir> "
+            "[mode] [--pages p1,p2] [--force-ocr]",
             file=sys.stderr,
         )
         return 2
     pdf_path, output_dir = argv[0], argv[1]
-    mode = argv[2] if len(argv) >= 3 else ""
+    rest = argv[2:]
+    mode = ""
+    if rest and not rest[0].startswith("--"):
+        mode = rest.pop(0)
+    pages, force_ocr = _parse_extra(rest)
     if not os.path.exists(pdf_path):
         print(f"marker_worker: pdf not found: {pdf_path}", file=sys.stderr)
         return 2
@@ -72,6 +106,11 @@ def main(argv: list[str]) -> int:
     marker_mode = _MODE_MAP.get(str(mode).strip().lower())
     if marker_mode:
         cli_options["mode"] = marker_mode
+    if pages:
+        # marker 官方 page_range 配置：0 基页号列表，只转换所选页。
+        cli_options["page_range"] = pages
+    if force_ocr:
+        cli_options["force_ocr"] = True
     config_parser = ConfigParser(cli_options)
 
     models = create_model_dict()

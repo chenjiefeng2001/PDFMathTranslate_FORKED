@@ -380,10 +380,17 @@ Long-running tasks are guarded by several self-healing mechanisms; all knobs are
 **No-text documents.** Scanned/vector/image-only PDFs (no extractable text) are detected early and passed through as-is — no font embedding, no translation, output size mirrors the input instead of ballooning 10–20×.
 
 <h3 id="downstream">4.3 Downstream Development</h3>
+Start the REST/SSE server with `pdf2zh --api` (default port `11009`, no Redis and no Celery required):
+
+```bash
+pdf2zh --api
+```
+
 For downstream applications, please refer to our document about [API Details](./docs/APIS.md) for further information about:
 
 - [Python API](./docs/APIS.md#api-python), how to use the program in other Python programs
 - [HTTP API](./docs/APIS.md#api-http), how to communicate with a server with the program installed
+- [Legacy HTTP API](./docs/APIS.md#api-http-legacy), the deprecated Flask/Celery `/v1` service (port `11008`)
 
 <h3 id="downstream">4.4 Differences between two major forks</h3>
 
