@@ -83,11 +83,14 @@ def test_engine_bridge_forwards_only_inside_ctx() -> None:
             logging.getLogger("pdf2zh.services.runtime_service").info("noise")
         with engine_task("T2", "babeldoc"):
             logging.getLogger("doclayout").warning("low confidence")
+        with engine_task("T3", "jina"):
+            logging.getLogger("pdf2zh.magicpdf_cli").info("jina geometry ready")
     finally:
         uninstall_engine_log_bridge()
     assert ("T1", "info", "mineru", "loading model") in got
     assert not any(g[0] == "T1" and g[3] == "noise" for g in got)
     assert ("T2", "warning", "babeldoc", "low confidence") in got
+    assert ("T3", "info", "jina", "jina geometry ready") in got
 
 
 def test_cli_trace_flags_default_off_and_custom_dir() -> None:
@@ -121,6 +124,12 @@ def test_cli_ingest_backend_auto_default_and_choices() -> None:
         .parse_args(["in.pdf", "--ingest-backend", "marker"])
         .ingest_backend
         == "marker"
+    )
+    assert (
+        create_parser()
+        .parse_args(["in.pdf", "--ingest-backend", "jina"])
+        .ingest_backend
+        == "jina"
     )
     with pytest.raises(SystemExit):
         create_parser().parse_args(["in.pdf", "--ingest-backend", "bogus"])

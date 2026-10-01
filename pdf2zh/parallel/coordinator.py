@@ -87,6 +87,9 @@ class TaskCoordinator:
         total = len(chunk_tasks)
         obj_patch: dict = {}
         obs_bundles: list = []
+        translation_errors: list[str] = []
+        translation_error_count = 0
+        page_results: list = []
         if total == 0:
             return obj_patch, obs_bundles, []
 
@@ -101,6 +104,7 @@ class TaskCoordinator:
 
         pending: List[int] = list(range(total))
         inflight: Dict[Any, int] = {}
+        cancelled_seen = False
 
         def _submit(idx: int) -> None:
             # Ctrl+C 已请求：绝不提交新 chunk（GPU 会话、翻译线程等都不该再启动）。
@@ -169,7 +173,15 @@ class TaskCoordinator:
                         )
                         continue
 
-                    if isinstance(result, ChunkResult) and not result.ok:
+                    if isinstance(result, ChunkResult) and result.cancelled:
+                        # 取消是短路信号：不重试、不进串行补跑，剩余 chunk 全部作废。
+                        manifest.mark_failed(idx)
+                        logger.info("Parallel chunk %d cancelled; short-circuit", idx)
+                        for pidx in list(pending):
+                            manifest.mark_failed(pidx)
+                        pending.clear()
+                        cancelled_seen = True
+                    elif isinstance(result, ChunkResult) and not result.ok:
                         self._handle_chunk_failure(
                             idx,
                             PageProcessingError(result.error_message),
@@ -182,8 +194,20 @@ class TaskCoordinator:
                         manifest.mark_ok(idx)
                         if result.obj_patch:
                             obj_patch.update(result.obj_patch)
+                        if result.page_results:
+                            # page_result 模式：逐 chunk 收集，否则这些 chunk
+                            # 会被并成「成功但零产出」。
+                            page_results.extend(result.page_results)
                         if result.obs_bundle:
                             obs_bundles.append(result.obs_bundle)
+                        if result.translation_errors:
+                            translation_error_count += int(
+                                result.translation_errors.get("count", 0) or 0
+                            )
+                            translation_errors.extend(
+                                str(item)
+                                for item in result.translation_errors.get("samples", [])
+                            )
                         if callable(progress_cb):
                             done_chunks = manifest.ok_count + len(serial_indices)
                             try:
@@ -195,7 +219,6 @@ class TaskCoordinator:
                                 pass
 
                 if pool_broken:
-                    # Ctrl+C 恰与 worker 崩溃同刻：一律按“用户中断”短路 ——
                     # 绝不把中断误判为 bootstrap/协议失败而触发整文档串行兜底。
                     if is_interrupted():
                         raise KeyboardInterrupt(
@@ -214,6 +237,19 @@ class TaskCoordinator:
                     for fidx in list(inflight.values()):
                         manifest.mark_failed(fidx)
                         serial_indices.append(fidx)
+                    inflight.clear()
+                    # 尚未提交的 chunk 同样必须进串行补跑：漏掉它们会让增量
+                    # 降级变成「静默少译若干段」，而调用方只看到成功的 obj_patch。
+                    for pidx in list(pending):
+                        manifest.mark_failed(pidx)
+                        serial_indices.append(pidx)
+                    pending.clear()
+                    break
+
+                if cancelled_seen:
+                    # 取消：作废所有在途 chunk（它们的结果不会被合并）并停止补充。
+                    for fidx in list(inflight.values()):
+                        manifest.mark_failed(fidx)
                     inflight.clear()
                     break
 
@@ -250,6 +286,13 @@ class TaskCoordinator:
                 except Exception:  # noqa: BLE001 -- 清理不阻塞主流程
                     pass
 
+        if translation_error_count:
+            obj_patch["__translation_errors__"] = {
+                "count": translation_error_count,
+                "samples": translation_errors[:10],
+            }
+        if page_results:
+            obj_patch["__page_results__"] = page_results
         return obj_patch, obs_bundles, serial_indices
 
     # ── 内部 ──────────────────────────────────────────────────────────────

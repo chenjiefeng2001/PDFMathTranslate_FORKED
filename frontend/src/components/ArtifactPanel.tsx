@@ -124,7 +124,14 @@ export function ArtifactRow({
 }
 
 /** 全部产物打包 ZIP：主操作按钮，落盘/回退逻辑与单文件一致。 */
-export function ZipDownload({ taskId }: { taskId: string }) {
+export function ZipDownload({
+  taskId,
+  zipName,
+}: {
+  taskId: string;
+  /** 后端按 {stem}-translated-{时间戳}.zip 组合的下载名；空则回退默认名。 */
+  zipName?: string | null;
+}) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
 
@@ -132,13 +139,15 @@ export function ZipDownload({ taskId }: { taskId: string }) {
     setBusy(true);
     try {
       const blob = await fetchArtifactBlob(resultZipUrl(taskId));
+      // 下载名优先用后端组合的防重复名，旧后端缺字段时回退默认名。
+      const saveName = (zipName || "").trim() || "pdf2zh-results.zip";
       if (isTauri()) {
-        const path = await pickSavePath("pdf2zh-results.zip");
+        const path = await pickSavePath(saveName);
         if (!path) return;
         await writeBytesAt(path, new Uint8Array(await blob.arrayBuffer()));
         message.success(`${t("ui.download_done")} · ${path}`);
       } else {
-        saveViaAnchor(blob, "pdf2zh-results.zip");
+        saveViaAnchor(blob, saveName);
         message.success(t("ui.download_done"));
       }
     } catch (err) {

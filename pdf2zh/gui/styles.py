@@ -736,10 +736,11 @@ SESSION_JS = (
     } catch (e) { window.__pdf2zh_last_results = []; }
 
     // ---- persist config panel values to localStorage when changed ----
-    var configKeys = ["service","lang_from","lang_to","mode_choice","backend","parse_engine","magicpdf_ocr","threads",
+    var configKeys = ["service","lang_from","lang_to","mode_choice","backend","parse_engine","ingest_backend","magicpdf_ocr","threads",
         "ocr_mode",
         "skip_subset_fonts","ignore_cache","vfont","vchar","page_range",
-        "prompt_env","env0","env1","env2"];
+        "prompt_env","env0","env1","env2",
+        "trace_enabled","trace_dir","jina_model","jina_revision","jina_prompt","jina_device","jina_dpi","jina_max_pixels","jina_max_new_tokens","jina_timeout","jina_cache_dir","jina_min_coverage","jina_offline"];
     document.addEventListener("change", function (e) {
         var t = e.target;
         if (!t || !t.id) return;

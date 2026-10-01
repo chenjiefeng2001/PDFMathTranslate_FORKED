@@ -377,7 +377,11 @@ def run_babeldoc_translation(
 
     apply_babeldoc_xobj_shim()
 
-    from pdf2zh.converter_docx import convert_to_pdf, is_convertible
+    from pdf2zh.converter_docx import (
+        cleanup_converted_pdf,
+        convert_to_pdf,
+        is_convertible,
+    )
 
     from pdf2zh.high_level import download_remote_fonts
     from pdf2zh.translator import build_translator
@@ -385,6 +389,7 @@ def run_babeldoc_translation(
     cleanup_paths: List[str] = []
     result = None
     cancelled = False
+    default_output_dir = os.path.dirname(os.path.abspath(source_path))
     try:
         # BabelDOC requires an initialised cache folder before translating.
         yadt_init()
@@ -418,7 +423,7 @@ def run_babeldoc_translation(
             resolve_ocr_flags(ocr_mode, source_path=work_path)
         )
 
-        out_dir = output_dir or os.path.dirname(os.path.abspath(work_path))
+        out_dir = output_dir or default_output_dir
 
         # 专业词表：预检 + 装载（坏文件在翻译开始前快速失败）。
         from pdf2zh.glossary_store import load_babeldoc_glossaries
@@ -437,7 +442,7 @@ def run_babeldoc_translation(
             lang_out=lang_out,
             no_dual=False,
             no_mono=False,
-            qps=max(1, int(qps or 4)),
+            qps=max(1, int(qps or 4)) if str(qps or 4).strip().isdigit() else 4,
             # GUI/CLI render progress themselves; never spawn a rich/tqdm bar.
             use_rich_pbar=False,
             # pdf2zh outputs are plain PDFs, not AI-watermarked documents.
@@ -530,6 +535,7 @@ def run_babeldoc_translation(
                 os.unlink(path)
             except OSError:
                 pass
+            cleanup_converted_pdf(path)
 
     if cancelled:
         raise _BabeldocCancelledError()
@@ -552,7 +558,12 @@ def _collect_result_files(result: Any) -> List[Dict[str, str]]:
         if not path:
             continue
         path = os.fspath(path)
-        if path in seen or not os.path.exists(path):
+        if path in seen or not os.path.isfile(path):
+            continue
+        try:
+            if os.path.getsize(path) <= 0:
+                continue
+        except OSError:
             continue
         seen.add(path)
         files.append({"name": os.path.basename(path), "path": path})

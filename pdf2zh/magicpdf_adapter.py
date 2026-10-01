@@ -60,43 +60,134 @@ _MAGICPDF_REQUIRED_MODELS = (
     _MAGICPDF_MFR_MODEL,
 )
 
+#: MinerU OCR 引擎在 ``models_config.yml`` 中实际提供的语言模型 key。
+#:
+#: 该集合是 :func:`_lang_to_mineru` 输出的**唯一**合法取值域 —— 任何不在
+#: 此处的标识符都会被 ``mineru.utils.ocr_language.normalize_ocr_model_lang``
+#: 抛 ``ValueError("Language ... not supported")``，进而让整个解析阶段失败。
+#: 与 ``vendor/MinerU/mineru/model/utils/pytorchocr/utils/resources/
+#: models_config.yml`` 的 ``lang:`` 段保持一致。
+_MINERU_MODEL_LANGS: frozenset = frozenset(
+    {
+        "arabic",
+        "ch",
+        "ch_server",
+        "cyrillic",
+        "devanagari",
+        "east_slavic",
+        "el",
+        "ka",
+        "korean",
+        "seal",
+        "seal_lite",
+        "ta",
+        "te",
+        "th",
+    }
+)
+
 #: PDF2ZH 内部语言代码 → MinerU ``p_lang_list`` 映射表。
-#: MinerU OCR 引擎需要文档原始语言以优化识别精度；键为小写 BCP-47
+#: MinerU OCR 引擎需要文档原始语言以选对识别模型；键为小写 BCP-47
 #: 前缀 / ISO-639-1 代码（与 ``TranslationRequest.source_lang`` 一致），
-#: 值为 MinerU ``p_lang_list`` 接受的语言标识符。
+#: 值**必须**是 :data:`_MINERU_MODEL_LANGS` 中的模型 key。
+#:
+#: 归一化依据（``vendor/MinerU/mineru/utils/ocr_language.py``）:
+#:
+#: - ``ch`` 模型的字符集覆盖 "Chinese, English, Japanese, Chinese
+#:   Traditional, Latin"（见 ``_PUBLIC_OCR_LANGUAGE_DESCRIPTIONS``），
+#:   因此日语 ``ja`` 与全部拉丁字母语言（fr/de/es/pt/it/vi/...）都映射到
+#:   ``ch``，而不是各自作一个 MinerU 并不存在的单语言模型。
+#: - ``normalize_ocr_model_lang`` 的别名表只认 ``japan``（不认 ``ja``）、
+#:   ``korean``（不认 ``ko``），所以这里直接输出归一化**之后**的模型 key，
+#:   避免依赖 MinerU 侧的别名解析。
+#: - 斯拉夫语系走 ``east_slavic``（ru/be/uk），其余西里尔文种走
+#:   ``cyrillic``；天城文走 ``devanagari``。
 _LANG_TO_MINERU: Dict[str, str] = {
-    "zh": "ch",
-    "zh-cn": "ch",
+    # 中文（含简繁）：ch_server 是 PP-OCRv6 medium 识别模型，中文精度更高。
+    "zh": "ch_server",
+    "zh-cn": "ch_server",
     "zh-tw": "ch",
-    "zh-hans": "ch",
+    "zh-hans": "ch_server",
     "zh-hant": "ch",
-    "en": "en",
-    "ja": "ja",
-    "ko": "ko",
-    "ru": "ru",
-    "fr": "fr",
-    "de": "de",
-    "es": "es",
-    "pt": "pt",
-    "it": "it",
-    "ar": "ar",
+    # 日语与全部拉丁字母语言共用 ch 模型（日语含在 ch 字符集内）。
+    "en": "ch",
+    "ja": "ch",
+    "ja-jp": "ch",
+    "ko": "korean",
+    "ko-kr": "korean",
+    "ru": "east_slavic",
+    "uk": "east_slavic",
+    "be": "east_slavic",
+    "ar": "arabic",
+    "fa": "arabic",
+    "ur": "arabic",
     "th": "th",
-    "vi": "vi",
-    "hi": "hi",
+    "el": "el",
+    "ta": "ta",
+    "te": "te",
+    "kn": "ka",
+    "hi": "devanagari",
+    "mr": "devanagari",
+    "ne": "devanagari",
+    # 拉丁字母语言：ch 模型的字符集含 Latin。
+    "fr": "ch",
+    "de": "ch",
+    "es": "ch",
+    "pt": "ch",
+    "it": "ch",
+    "vi": "ch",
+    "nl": "ch",
+    "pl": "ch",
+    "tr": "ch",
+    "id": "ch",
+    "ms": "ch",
+    # 其他西里尔文种。
+    "bg": "cyrillic",
+    "sr": "cyrillic",
+    "mn": "cyrillic",
+    "kk": "cyrillic",
+    "ky": "cyrillic",
+    "tg": "cyrillic",
+    "mk": "cyrillic",
+    "tt": "cyrillic",
+    "uz": "cyrillic",
 }
+
+#: ``_lang_to_mineru`` 归一化失败时的兜底模型：ch 覆盖中/英/日/繁/拉丁，
+#: 是 OCR 场景下最不容易整体崩掉的默认选择。
+_MINERU_DEFAULT_LANG = "ch_server"
 
 
 def _lang_to_mineru(lang_in: Optional[str]) -> str:
-    """将 PDF2ZH source_lang 映射为 MinerU p_lang_list 语言标识符。
+    """将 PDF2ZH source_lang 映射为 MinerU ``p_lang_list`` 语言标识符。
 
-    ``auto`` / 空串 / 无法识别的语言代码回落到 ``ch``（中文为默认 OCR
-    目标语言，覆盖大多数中文 PDF 翻译场景）。映射为幂等、无副作用。
+    ``auto`` / 空串 / 无法识别的语言代码回落到 :data:`_MINERU_DEFAULT_LANG`。
+    映射为幂等、无副作用。
+
+    返回值保证是 :data:`_MINERU_MODEL_LANGS` 中的模型 key —— 传入非法标识符
+    会让 MinerU 在 ``PytorchPaddleOCR.__init__`` 抛 ``ValueError`` 并拖垮整个
+    解析阶段，因此这里做出口兜底（并在开发期以 assert 固化该不变量）。
     """
     if not lang_in or lang_in.lower() == "auto":
-        return "ch"
-    key = lang_in.lower().split("-")[0]  # "zh-CN" → "zh", "en-US" → "en"
+        return _MINERU_DEFAULT_LANG
+    raw = lang_in.lower()
+    # 已经是 MinerU 模型 key 时原样返回，使本函数幂等且全域安全
+    # （避免上游把映射结果回灌时静默退化成默认模型）。
+    if raw in _MINERU_MODEL_LANGS:
+        return raw
+    key = raw.split("-")[0]  # "zh-CN" → "zh", "en-US" → "en"
     # 先查完整键（如 "zh-cn"），再查前缀（如 "zh"）
-    return _LANG_TO_MINERU.get(lang_in.lower()) or _LANG_TO_MINERU.get(key, "ch")
+    mapped = (
+        _LANG_TO_MINERU.get(raw) or _LANG_TO_MINERU.get(key) or _MINERU_DEFAULT_LANG
+    )
+    # 出口不变量：非法模型 key 会让 MinerU 抛 ValueError 并拖垮整个解析阶段。
+    # _LANG_TO_MINERU 的字面量若写错，这里在 import 期即失败而非运行时静默。
+    assert mapped in _MINERU_MODEL_LANGS, (
+        f"_LANG_TO_MINERU produced {mapped!r} for {lang_in!r}, "
+        f"which MinerU does not ship; expected one of "
+        f"{sorted(_MINERU_MODEL_LANGS)}"
+    )
+    return mapped
 
 
 def _ensure_magicpdf_models(models_dir: str) -> list[str]:
@@ -105,7 +196,8 @@ def _ensure_magicpdf_models(models_dir: str) -> list[str]:
     magic-pdf 1.3.12 的模型加载（``YOLOv8MFDModel`` 等）直接 ``torch.load``，
     模型文件缺失时会在批量推理内部抛 ``FileNotFoundError``（空跑数十秒才失败）。
     这里解析 ``model_configs.yaml`` 的 weights 表，提前给出可操作的缺失清单。
-    解析失败时返回 ``[]``（不阻断，doc_analyze 自会抛原始错误）。
+    解析失败时返回 ``[]``（不阻断，doc_analyze 自会抛原始错误），但会把原因
+    记到日志 —— 静默 no-op 会让「预检失效」这件事完全不可见。
 
     Args:
         models_dir: magic-pdf ``models-dir``（通常 ``~/.cache/magic-pdf/models``）。
@@ -115,8 +207,17 @@ def _ensure_magicpdf_models(models_dir: str) -> list[str]:
     """
     try:
         import magic_pdf
+    except Exception:  # noqa: BLE001 -- magic-pdf 未安装，预检无意义
+        return []
+    try:
         import yaml
-    except Exception:  # noqa: BLE001 -- magic-pdf 缺失则跳过预检
+    except Exception as exc:  # noqa: BLE001 -- 缺 PyYAML 则预检失效
+        logger.warning(
+            "[magicpdf] PyYAML 不可用（%s），模型权重预检已跳过 —— "
+            "缺失模型将推迟到 doc_analyze 内部报错（可能空跑数十秒）。"
+            "安装 `pdf2zh[magicpdf]` 可恢复预检。",
+            exc,
+        )
         return []
     weights_path = os.path.join(
         os.path.dirname(magic_pdf.__file__),
@@ -127,7 +228,12 @@ def _ensure_magicpdf_models(models_dir: str) -> list[str]:
     try:
         with open(weights_path, encoding="utf-8") as fh:
             weights = yaml.safe_load(fh)["weights"]
-    except Exception:  # noqa: BLE001 -- yaml 解析失败跳过预检
+    except Exception as exc:  # noqa: BLE001 -- yaml 解析失败跳过预检
+        logger.warning(
+            "[magicpdf] 无法解析模型权重表 %s（%s），模型权重预检已跳过。",
+            weights_path,
+            exc,
+        )
         return []
     # 与 _ensure_magicpdf_config 的默认值保持一致，避免空串被 expanduser("")
     # 解析为当前工作目录导致预检基准漂移。
@@ -473,6 +579,27 @@ def _to_legacy_past_key_values(pkv: Any) -> Any:
                 return pkv.to_legacy_cache()
         except Exception:  # noqa: BLE001 -- 转换失败按空 cache 处理
             pass
+        return None
+    if hasattr(pkv, "get_seq_length") and not hasattr(pkv, "to_legacy_cache"):
+        try:
+            if pkv.get_seq_length(0) <= 0:
+                return None
+        except (AttributeError, IndexError, TypeError):
+            return None
+        layers = getattr(pkv, "layers", None)
+        if layers:
+            converted = []
+            for layer in layers:
+                keys = getattr(layer, "keys", None)
+                values = getattr(layer, "values", None)
+                if keys is None or values is None:
+                    return None
+                converted.append((keys, values))
+            return tuple(converted)
+        key_cache = getattr(pkv, "key_cache", None)
+        value_cache = getattr(pkv, "value_cache", None)
+        if key_cache is not None and value_cache is not None:
+            return tuple(zip(key_cache, value_cache))
         return None
     if hasattr(pkv, "to_legacy_cache"):
         try:
@@ -1108,7 +1235,8 @@ def _normalize_blocks(
     # 上游（pdf2zh.parse_args）已把 CLI 的 1 基输入转换为 0 基，这里不做二次兼容，
     # 否则 pages=[1] 会同时命中第 0、1 页导致过滤失效。
     target_pages: set[int] | None = None
-    if pages is not None and pages != "" and pages != "all":
+    filter_requested = pages not in (None, "", "all", [], (), set())
+    if filter_requested:
         target_pages = set()
         if isinstance(pages, str):
             for part in pages.split(","):
@@ -1132,11 +1260,22 @@ def _normalize_blocks(
                     target_pages.add(int(p))
                 except (ValueError, TypeError):
                     pass
+        if not target_pages:
+            raise ValueError(f"page selection contains no valid pages: {pages!r}")
 
     page_info = _page_info_lookup(middle.get("page_info"))
     pdf_info = middle.get("pdf_info")
     if pdf_info is None:
         pdf_info = [p.get("blocks") for p in (middle.get("pages") or [])]
+    if target_pages:
+        page_count = len(pdf_info or [])
+        invalid = sorted(
+            page for page in target_pages if page < 0 or page >= page_count
+        )
+        if invalid:
+            raise ValueError(
+                f"page selection out of range for {page_count} pages: {invalid}"
+            )
     results: list[MagicPdfParseResult] = []
 
     for idx, page_blocks in enumerate(pdf_info or []):
@@ -1782,8 +1921,12 @@ class MagicPdfAdapter:
 
         worker = Path(__file__).resolve().parent / "kernel" / "mineru_worker.py"
         owned_dir = out_dir is None
+        try:
+            timeout = int(os.environ.get("PDF2ZH_MINERU_TIMEOUT", "").strip() or 3600)
+        except (TypeError, ValueError):
+            timeout = 3600
+        timeout = max(1, timeout)
         work_dir = out_dir or tempfile.mkdtemp(prefix="pdf2zh_mineru_sub_")
-        timeout = int(os.environ.get("PDF2ZH_MINERU_TIMEOUT", "").strip() or 3600)
         if progress_cb is not None:
             try:
                 progress_cb(

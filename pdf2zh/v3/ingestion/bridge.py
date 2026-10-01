@@ -29,7 +29,7 @@ Synthesis rules (mirroring the MinerU bridge's accepted convention):
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from pdf2zh.v3.ingestion.ir import (
     KIND_BIBLIOGRAPHY,
@@ -86,7 +86,7 @@ _COLLAPSE_KINDS = frozenset(
 )
 
 #: kinds with no textual payload (preserve-only in the v3 render paths).
-_NO_TEXT_KINDS = frozenset({KIND_FIGURE, KIND_IMAGE, KIND_TABLE, KIND_FORMULA})
+_NO_TEXT_KINDS = frozenset({KIND_FIGURE, KIND_IMAGE})
 
 
 def _merge_text(block: IngestBlock, doc: IngestDocument) -> "Tuple[str, set]":

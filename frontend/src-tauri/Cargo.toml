@@ -1,10 +1,8 @@
 [package]
 name = "pdf2zh-desktop"
-version = "0.1.0"
-description = "PDFMathTranslate desktop shell (Tauri v2 PoC)"
+version = "1.9.16"
+description = "PDFMathTranslate desktop application"
 edition = "2021"
-
-# PoC 阶段不发布 crate
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

@@ -1,4 +1,8 @@
 target/
 Cargo.lock
 
-binaries/
+# binaries/ holds only build artifacts (the ~180MB sidecar bundle plus the
+# extracted onedir / single-file exe). The zip exceeds GitHub's 100MB per-file
+# push limit, so it is produced by the build pipeline rather than committed.
+binaries/*
+!binaries/.gitkeep

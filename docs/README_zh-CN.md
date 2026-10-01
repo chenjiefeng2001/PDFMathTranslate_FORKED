@@ -349,13 +349,16 @@ pdf2zh --parse-engine magicpdf --no-magicpdf-render example.pdf
 
 <h2 id="downstream">二次开发 (API)</h2>
 
-当前的 pdf2zh API 暂时已弃用。API 将在 [pdf2zh 2.0](https://github.com/Byaidu/PDFMathTranslate/issues/586)发布后重新提供。对于需要程序化访问的用户，请使用[BabelDOC](https://github.com/funstory-ai/BabelDOC)的 `babeldoc.high_level.async_translate` 函数。
+程序化访问有两条路径：
 
-API 暂时弃用意味着：相关代码暂时不会被移除，但不会提供技术支持，也不会修复 bug。
+- **当前 HTTP API（推荐）**：`pdf2zh --api` 启动的 FastAPI 服务（默认端口 `11009`，
+  命名空间 `/api/*`），**不需要 Redis / Celery**，也是桌面版与内置前端实际使用的服务。
+  完整端点、参数、错误码与鉴权约定见 [API 详细信息](./APIS.md#api-http)。
+- **Python API**：`from pdf2zh import translate, translate_stream`，见
+  [Python API](./APIS.md#api-python)。
 
-<!-- 对于下游应用程序，请参阅我们的文档 [API 详细信息](./APIS.md)，以获取更多信息：
-- [Python API](./APIS.md#api-python)，如何在其他 Python 程序中使用该程序
-- [HTTP API](./APIS.md#api-http)，如何与已安装该程序的服务器进行通信 -->
+已弃用的是旧的 Flask + Celery 服务（`pdf2zh --flask`，端口 `11008`，`/v1/*`）：
+仅保留兼容、不再修复，详见 [Legacy HTTP API](./APIS.md#api-http-legacy)。
 
 <h2 id="todo">待办事项</h2>
 

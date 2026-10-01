@@ -17,6 +17,12 @@ import requests
 import xinference_client
 from azure.ai.translation.text import TextTranslationClient
 from azure.core.credentials import AzureKeyCredential
+from tenacity import retry, retry_if_exception_type
+from tenacity import stop_after_attempt
+from tenacity import wait_exponential
+
+from pdf2zh.cache import TranslationCache
+from pdf2zh.config import ConfigManager
 
 # TencentCloud SDK: lazy import to handle version incompatibility
 _tmt_available = False
@@ -34,14 +40,6 @@ except ImportError:
     _TextTranslateRequest = None
     _TextTranslateResponse = None
     _TmtClient = None
-
-from pdf2zh.cache import TranslationCache
-from pdf2zh.config import ConfigManager
-
-
-from tenacity import retry, retry_if_exception_type
-from tenacity import stop_after_attempt
-from tenacity import wait_exponential
 
 # 并发翻译（thread=4+）与重试突发下，默认 10 连接的池会被打满导致
 # urllib3 每请求"丢弃重建"TCP+TLS 连接（Connection pool is full,
@@ -261,7 +259,8 @@ class BaseTranslator:
                 return cache
 
         translation = self.do_translate(text)
-        self.cache.set(text, translation)
+        if translation is not None:
+            self.cache.set(text, translation)
         return translation
 
     def do_translate(self, text: str) -> str:
@@ -1059,7 +1058,7 @@ class AnythingLLMTranslator(BaseTranslator):
 
         response = requests.post(
             self.api_url,
-            headers=headers,
+            headers=self.headers,
             data=json.dumps(payload),
             timeout=(15, 60),
             proxies=_resolve_translator_proxy(),

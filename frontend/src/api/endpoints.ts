@@ -3,6 +3,9 @@
 import { api } from "./client";
 import type { EngineInfo, GlossaryInfo, TaskState } from "./types";
 
+export const INGEST_BACKENDS = ["auto", "mineru", "marker", "jina"] as const;
+export type IngestBackend = (typeof INGEST_BACKENDS)[number];
+
 export function getHealth(): Promise<{ status: string; tasks: number }> {
   return api().get("/api/health");
 }
@@ -29,9 +32,21 @@ export interface SubmitParams {
   threads?: number;
   pageRange?: string;
   parseEngine?: string;
+  ingestBackend?: IngestBackend;
   modeChoice?: string;
   ocrMode?: string;
   backend?: string;
+  jinaModel?: string;
+  jinaRevision?: string;
+  jinaPrompt?: string;
+  jinaDevice?: string;
+  jinaDpi?: number;
+  jinaMaxPixels?: number;
+  jinaMaxNewTokens?: number;
+  jinaTimeout?: number;
+  jinaCacheDir?: string;
+  jinaMinCoverage?: number;
+  jinaOffline?: boolean;
   outputDir?: string;
   ignoreCache?: boolean;
   glossaryNames?: string[];
@@ -43,6 +58,10 @@ export interface SubmitParams {
   mineruParseMethod?: string;
   /** MinerU 解析后端（pipeline/hybrid/vlm，空=pipeline 本地后端）。 */
   mineruBackend?: string;
+  /** v3 flight-recorder trace（magicpdf 链路生效），对应 CLI --trace。 */
+  traceEnabled?: boolean;
+  /** trace 输出根目录（JSONL→<dir>/trace/，审计→<dir>/audit/），对应 CLI --trace-dir。 */
+  traceDir?: string;
 }
 
 export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
@@ -57,17 +76,47 @@ export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
   form.append("threads", String(params.threads ?? 4));
   if (params.pageRange) form.append("page_range", params.pageRange);
   if (params.parseEngine) form.append("parse_engine", params.parseEngine);
+  if (params.ingestBackend) form.append("ingest_backend", params.ingestBackend);
   if (params.modeChoice && params.modeChoice !== "auto") {
     form.append("mode_choice", params.modeChoice);
   }
   if (params.ocrMode) form.append("ocr_mode", params.ocrMode);
   if (params.backend) form.append("backend", params.backend);
+  if (params.jinaModel) {
+    form.append("jina_model", params.jinaModel);
+    form.append("jina_revision", params.jinaRevision ?? "");
+  } else if (params.jinaRevision) {
+    form.append("jina_revision", params.jinaRevision);
+  }
+  if (params.jinaPrompt) form.append("jina_prompt", params.jinaPrompt);
+  if (params.jinaDevice) form.append("jina_device", params.jinaDevice);
+  if (typeof params.jinaDpi === "number") {
+    form.append("jina_dpi", String(params.jinaDpi));
+  }
+  if (typeof params.jinaMaxPixels === "number") {
+    form.append("jina_max_pixels", String(params.jinaMaxPixels));
+  }
+  if (typeof params.jinaMaxNewTokens === "number") {
+    form.append("jina_max_new_tokens", String(params.jinaMaxNewTokens));
+  }
+  if (typeof params.jinaTimeout === "number") {
+    form.append("jina_timeout", String(params.jinaTimeout));
+  }
+  if (params.jinaCacheDir) form.append("jina_cache_dir", params.jinaCacheDir);
+  if (typeof params.jinaMinCoverage === "number") {
+    form.append("jina_min_coverage", String(params.jinaMinCoverage));
+  }
+  if (typeof params.jinaOffline === "boolean") {
+    form.append("jina_offline", String(params.jinaOffline));
+  }
   if (params.outputDir) form.append("output_dir", params.outputDir);
   form.append("ignore_cache", String(!!params.ignoreCache));
   if (params.mineruVramSize) form.append("mineru_vram_size", params.mineruVramSize);
   if (params.mineruWindowSize) form.append("mineru_window_size", params.mineruWindowSize);
   if (params.mineruParseMethod) form.append("mineru_parse_method", params.mineruParseMethod);
   if (params.mineruBackend) form.append("mineru_backend", params.mineruBackend);
+  if (params.traceEnabled) form.append("trace_enabled", "true");
+  if (params.traceDir) form.append("trace_dir", params.traceDir);
   if (params.glossaryNames?.length) {
     form.append("glossary_files", params.glossaryNames.join(","));
   }
@@ -210,6 +259,31 @@ export function setupMineruCuda(): Promise<{ started: boolean; reason?: string }
 
 export function getMineruCudaSetupStatus(): Promise<MineruSetupStatus> {
   return api().get("/api/setup/mineru/cuda");
+}
+
+export interface JinaSetupStatus {
+  running: boolean;
+  done: boolean;
+  error: string | null;
+  interpreter: string | null;
+}
+
+export interface JinaSelftestResult {
+  ok: boolean;
+  interpreter: string;
+  hint: string;
+}
+
+export function selftestJina(): Promise<JinaSelftestResult> {
+  return api().get("/api/selftest/jina");
+}
+
+export function setupJina(): Promise<{ started: boolean; reason?: string }> {
+  return api().request("POST", "/api/setup/jina");
+}
+
+export function getJinaSetupStatus(): Promise<JinaSetupStatus> {
+  return api().get("/api/setup/jina");
 }
 
 /** 结果文件下载地址（浏览器原生 GET，尊重 apiBase 解析链）。 */

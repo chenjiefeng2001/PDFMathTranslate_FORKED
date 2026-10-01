@@ -128,6 +128,40 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: frontend/src-tauri
+      # tauri_build::build()（build.rs）会校验 tauri.conf.json 声明的每个
+      # resource 与 frontendDist 路径是否存在，而这两者都是构建产物、被
+      # .gitignore 排除：
+      #   binaries/pdf2zh-api-sidecar.zip — ~180MB PyInstaller onedir 产物，
+      #     只能由 deploy/pdf2zh-api-sidecar.spec 生成（binaries/* 只留 .gitkeep）
+      #   frontendDist: "../dist"          — 前端构建输出（frontend/.gitignore: dist/）
+      # 本 job 只做 fmt/clippy/test，从不打包，因此任何全新 checkout 都会失败：
+      #   error: resource path `binaries\pdf2zh-api-sidecar.zip` doesn't exist
+      #   error: The `frontendDist` configuration is set to `"../dist"`
+      #          but this path doesn't exist
+      # 放最小占位产物让校验通过；clippy / cargo test 只编译与跑单测，不会读取
+      # 其内容，真正的产物由 release 构建流程产出。
+      - name: Stub gitignored Tauri build artifacts
+        shell: pwsh
+        run: |
+          # cwd 是 frontend/src-tauri（job 级 working-directory）
+          $dist = Join-Path '..' 'dist'
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+          $index = Join-Path $dist 'index.html'
+          if (-not (Test-Path $index)) {
+            Set-Content -LiteralPath $index -Value '<!doctype html><title>stub</title>'
+          }
+
+          $binaries = Join-Path 'binaries' 'pdf2zh-api-sidecar.zip'
+          New-Item -ItemType Directory -Force -Path 'binaries' | Out-Null
+          if (-not (Test-Path $binaries)) {
+            $stage = Join-Path $env:RUNNER_TEMP 'sidecar-stub'
+            New-Item -ItemType Directory -Force -Path $stage | Out-Null
+            Set-Content -LiteralPath (Join-Path $stage 'placeholder.txt') -Value 'stub'
+            Compress-Archive -Path $stage -DestinationPath $binaries -Force
+          }
+
+          Write-Host "stub dist/index.html : $((Get-Item $index).Length) bytes"
+          Write-Host "stub sidecar zip     : $((Get-Item $binaries).Length) bytes"
       - name: cargo fmt --check
         run: cargo fmt --check
       - name: cargo clippy

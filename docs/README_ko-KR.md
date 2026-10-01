@@ -329,7 +329,35 @@ with open("example.pdf", "rb") as f:
     stream_mono, stream_dual = translate_stream(stream=f.read(), **params)
 ```
 
-### HTTP
+### HTTP（현재, 권장）
+
+```bash
+pdf2zh --api            # http://127.0.0.1:11009, FastAPI. Redis/Celery 불필요
+```
+
+```bash
+curl http://127.0.0.1:11009/api/health
+{"status":"ok","tasks":0}
+
+curl http://127.0.0.1:11009/api/tasks -F "file=@example.pdf" -F "target_lang=zh"
+{"task_id":"task_1a2b3c4d5e6f"}
+
+curl http://127.0.0.1:11009/api/tasks/task_1a2b3c4d5e6f
+{"task_id":"task_1a2b3c4d5e6f","status":"completed","progress":100.0, ...}
+
+curl -X DELETE http://127.0.0.1:11009/api/tasks/task_1a2b3c4d5e6f
+{"cancelled":true}
+```
+
+전체 엔드포인트·파라미터·오류 코드·인증 규칙은
+[API Details](./APIS.md#api-http)를 참고하세요. 데스크톱 앱과 내장
+프런트엔드도 이 서비스를 사용합니다.
+
+### HTTP（구 서비스, 권장하지 않음）
+
+아래 `pdf2zh --flask` + Celery 서비스(포트 `11008`, `/v1/*`)는 호환성을
+위해 남아 있을 뿐이며 수정되지 않습니다.
+[Legacy HTTP API](./APIS.md#api-http-legacy) 참고.
 
 ```bash
 pip install pdf2zh[backend]
