@@ -37,6 +37,7 @@ import type { ResultFile, TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
 import { isTauri, pickExistingDirectory } from "../api/nativeSave";
 import { useAppStore } from "../stores/taskStore";
+import { hasDiagnostics } from "./DiagnosticsPanel";
 import DiagnosticsPanel from "./DiagnosticsPanel";
 import ProgressPanel, { statusLabelKey } from "./ProgressPanel";
 import { ArtifactRow, BatchSaveToFolder, ZipDownload } from "../components/ArtifactPanel";
@@ -198,6 +199,7 @@ export default function Dashboard() {
       ingestBackend: (values.ingest_backend as IngestBackend) || "auto",
       modeChoice: (values.mode_choice as string) || "auto",
       ocrMode: (values.ocr_mode as string) || "auto",
+      magicpdfOcrMode: (values.magicpdf_ocr_mode as string) || "auto",
       backend: (values.backend as string) || "auto",
       jinaModel: ((values.jina_model as string) || "").trim(),
       jinaRevision: ((values.jina_revision as string) || "").trim(),
@@ -213,8 +215,16 @@ export default function Dashboard() {
       outputDir: ((values.output_dir as string) || "").trim(),
       ignoreCache: !!values.ignore_cache,
       glossaryNames: (values.glossary_names as string[]) || [],
-      mineruVramSize: ((values.mineru_vram_size as string) || "").trim(),
-      mineruWindowSize: ((values.mineru_window_size as string) || "").trim(),
+      // InputNumber 产出 number 而非 string；后端要的是纯数字字符串
+      // （写进 MINERU_VIRTUAL_VRAM_SIZE / MINERU_PROCESSING_WINDOW_SIZE）。
+      mineruVramSize:
+        values.mineru_vram_size != null && values.mineru_vram_size !== ""
+          ? String(values.mineru_vram_size)
+          : "",
+      mineruWindowSize:
+        values.mineru_window_size != null && values.mineru_window_size !== ""
+          ? String(values.mineru_window_size)
+          : "",
       mineruParseMethod: ((values.mineru_parse_method as string) || "").trim(),
       mineruBackend: ((values.mineru_backend as string) || "").trim(),
       traceEnabled: !!values.trace_enabled,
@@ -237,6 +247,15 @@ export default function Dashboard() {
   const pickedFiles = (Form.useWatch("file", form) ?? []) as {
     name?: string;
   }[];
+  const selectedGlossaries =
+    (Form.useWatch("glossary_names", form) as string[] | undefined) ?? [];
+  // 词表只在 BabelDOC 两条分支里被传下去（runtime_service 把 glossary_files
+  // 只交给 babeldoc_next / legacy babeldoc 适配器），magicpdf 与 legacy 内核
+  // 都收不到。此前 UI 只在 tooltip 里写「babeldoc 解析引擎生效」，而
+  // parse_engine 默认是 auto —— 用户选词表、提交，词表被静默丢弃。
+  const parseEngine = (Form.useWatch("parse_engine", form) as string) || "auto";
+  const glossaryIgnored =
+    selectedGlossaries.length > 0 && parseEngine !== "babeldoc";
   const selectedCount = pickedFiles.length;
   const selectedNames = pickedFiles
     .map((f) => f.name)
@@ -259,6 +278,7 @@ export default function Dashboard() {
           ingest_backend: "auto",
           mode_choice: "auto",
           ocr_mode: "auto",
+          magicpdf_ocr_mode: "auto",
           backend: "auto",
           jina_model: "",
           jina_revision: "",
@@ -287,7 +307,11 @@ export default function Dashboard() {
             selectedCount > 0 ? (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 {t("ui.upload_selected_prefix")}
-                {selectedNames.length > 0 ? selectedNames.join("、") : `${selectedCount} file(s)`}
+                {/* 英文 "file(s)" 兜底 + 无条件用「、」连接：英文界面里
+                    顿号也是错的。数量与分隔符都交给 i18n。 */}
+                {selectedNames.length > 0
+                  ? selectedNames.join(t("ui.list_separator"))
+                  : t("ui.upload_selected_count", { count: selectedCount })}
               </Typography.Text>
             ) : undefined
           }
@@ -373,7 +397,9 @@ export default function Dashboard() {
                           style={{ width: 200 }}
                           options={INGEST_BACKENDS.map((value) => ({
                             value,
-                            label: t(`ui.config_ingest_${value}`),
+                            label: t(`ui.config_ingest_${value}`, {
+                              defaultValue: value,
+                            }),
                           }))}
                         />
                       </Form.Item>
@@ -512,6 +538,24 @@ export default function Dashboard() {
                           ]}
                         />
                       </Form.Item>
+                      {/* MinerU 链路自己的 OCR 三态。这是**唯一**真正跑 OCR 的开关：
+                          上面的 ocr_mode 属 BabelDOC，只做黑字白底。二者语义独立，
+                          必须分列，否则「（非 OCR）」的选项会因后端 legacy fallback
+                          真的把 MinerU OCR 打开（api/endpoints.ts 现在也发这个字段）。 */}
+                      <Form.Item
+                        label={t("ui.config_magicpdf_ocr")}
+                        name="magicpdf_ocr_mode"
+                        tooltip={t("ui.config_magicpdf_ocr_info")}
+                      >
+                        <Select
+                          style={{ width: 200 }}
+                          options={[
+                            { value: "auto", label: t("ui.config_magicpdf_ocr_auto") },
+                            { value: "on", label: t("ui.config_magicpdf_ocr_on") },
+                            { value: "off", label: t("ui.config_magicpdf_ocr_off") },
+                          ]}
+                        />
+                      </Form.Item>
                       <Form.Item label={t("ui.config_ignore_cache")} name="ignore_cache" valuePropName="checked">
                         <Switch />
                       </Form.Item>
@@ -533,28 +577,51 @@ export default function Dashboard() {
                         name="mineru_vram_size"
                         tooltip={t("ui.config_mineru_vram_info")}
                       >
-                        <Input placeholder={t("ui.config_mineru_auto")} allowClear />
+                        {/* 数值字段此前是自由文本框：「6GB」「六」「0x10」都会
+                            原样提交，而后端只接受纯 GB 数字（worker 写进
+                            MINERU_VIRTUAL_VRAM_SIZE）。改用 InputNumber 并
+                            给出区间。 */}
+                        <InputNumber
+                          style={{ width: 140 }}
+                          min={4}
+                          max={32}
+                          step={1}
+                          placeholder={t("ui.config_mineru_auto")}
+                        />
                       </Form.Item>
                       <Form.Item
                         label={t("ui.config_mineru_window")}
                         name="mineru_window_size"
                         tooltip={t("ui.config_mineru_window_info")}
                       >
-                        <Input placeholder={t("ui.config_mineru_auto")} allowClear />
+                        <InputNumber
+                          style={{ width: 140 }}
+                          min={1}
+                          max={512}
+                          step={8}
+                          placeholder={t("ui.config_mineru_auto")}
+                        />
                       </Form.Item>
                       <Form.Item
                         label={t("ui.config_mineru_parse_method")}
                         name="mineru_parse_method"
                         tooltip={t("ui.config_mineru_parse_method_info")}
                       >
+                        {/* 「留空」与「auto」是两个不同的取值（留空=跟随上方
+                            OCR 开关；auto=恒不 OCR，见 magicpdf_adapter
+                            parse_method 推导），此前两者都显示「自动」，
+                            用户无法分辨自己在哪个状态。 */}
                         <Select
-                          style={{ width: 200 }}
+                          style={{ width: 220 }}
                           allowClear
-                          placeholder={t("ui.config_mineru_auto")}
+                          placeholder={t("ui.config_mineru_follow_ocr")}
                           options={[
-                            { value: "auto", label: t("ui.config_mineru_auto") },
-                            { value: "ocr", label: "OCR" },
-                            { value: "txt", label: "TXT" },
+                            {
+                              value: "auto",
+                              label: t("ui.config_mineru_auto_no_ocr"),
+                            },
+                            { value: "ocr", label: t("ui.config_mineru_ocr") },
+                            { value: "txt", label: t("ui.config_mineru_txt") },
                           ]}
                         />
                       </Form.Item>
@@ -563,14 +630,19 @@ export default function Dashboard() {
                         name="mineru_backend"
                         tooltip={t("ui.config_mineru_backend_info")}
                       >
+                        {/* 空值等价于 pipeline，而 pipeline 同时是一个选项，
+                            所以占位符不能写「自动」。 */}
                         <Select
                           style={{ width: 200 }}
                           allowClear
-                          placeholder={t("ui.config_mineru_auto")}
+                          placeholder={t("ui.config_mineru_default_pipeline")}
                           options={[
-                            { value: "pipeline", label: "Pipeline" },
-                            { value: "hybrid", label: "Hybrid" },
-                            { value: "vlm", label: "VLM" },
+                            {
+                              value: "pipeline",
+                              label: t("ui.config_mineru_pipeline"),
+                            },
+                            { value: "hybrid", label: t("ui.config_mineru_hybrid") },
+                            { value: "vlm", label: t("ui.config_mineru_vlm") },
                           ]}
                         />
                       </Form.Item>
@@ -588,7 +660,7 @@ export default function Dashboard() {
                         tooltip={t("ui.config_trace_dir_info")}
                       >
                         <Input
-                          placeholder={t("ui.label_n_a")}
+                          placeholder={t("ui.config_trace_dir_ph")}
                           allowClear
                         />
                       </Form.Item>
@@ -600,7 +672,7 @@ export default function Dashboard() {
                       >
                         {/* 手输仍可用（高级场景），桌面壳内提供原生选夹一键填入。 */}
                         <Input
-                          placeholder={t("ui.label_n_a")}
+                          placeholder={t("ui.config_output_dir_ph")}
                           allowClear
                           addonAfter={
                             isTauri() ? (
@@ -620,19 +692,36 @@ export default function Dashboard() {
                       </Form.Item>
                     </Space>
                     {glossaryOptions.length > 0 && (
-                      <Form.Item
-                        label={t("ui.config_glossary_files")}
-                        name="glossary_names"
-                        tooltip={t("ui.config_glossary_files_info")}
-                      >
-                        <Select
-                          mode="multiple"
-                          allowClear
-                          placeholder={t("ui.settings_glossary_empty")}
-                          options={glossaryOptions}
-                          style={{ width: "100%" }}
-                        />
-                      </Form.Item>
+                      <>
+                        <Form.Item
+                          label={t("ui.config_glossary_files")}
+                          name="glossary_names"
+                          tooltip={t("ui.config_glossary_files_info")}
+                          style={{ minWidth: 320, flex: 1 }}
+                        >
+                          <Select
+                            mode="multiple"
+                            allowClear
+                            placeholder={t("ui.config_glossary_select_ph")}
+                            options={glossaryOptions}
+                            style={{ width: "100%" }}
+                          />
+                        </Form.Item>
+                        {glossaryIgnored && (
+                          <Alert
+                            style={{ width: "100%", marginTop: 8 }}
+                            showIcon
+                            type={
+                              parseEngine === "auto" ? "info" : "warning"
+                            }
+                            message={
+                              parseEngine === "auto"
+                                ? t("ui.glossary_needs_babeldoc_auto")
+                                : t("ui.glossary_ignored")
+                            }
+                          />
+                        )}
+                      </>
                     )}
                   </Space>
                 ),
@@ -709,7 +798,7 @@ export default function Dashboard() {
       )}
 
       {/* 诊断与质量评分（深度面板） */}
-      {active && (active.diagnostic_summary || active.diagnostic_report || active.heal_status || active.confidence_stats) && (
+      {active && hasDiagnostics(active) && (
         <Card size="small" title={t("ui.section_diagnostics")}>
           <Space direction="vertical" style={{ width: "100%" }}>
             {active.diagnostic_summary && <div>{active.diagnostic_summary}</div>}
@@ -772,7 +861,9 @@ export default function Dashboard() {
                   />
                 )}
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {t("ui.preview_pick_hint")}
+                  {artifacts.some((f) => /\.pdf$/i.test(f.name || ""))
+                    ? t("ui.preview_pick_hint")
+                    : t("ui.preview_no_pdf_hint")}
                 </Typography.Text>
               </Space>
               <List
@@ -781,13 +872,18 @@ export default function Dashboard() {
                   key: i,
                   name: f.name || `artifact-${i}`,
                   url: artifactUrl(activeId, i),
+                  // 只有 PDF 能预览。DOCX 输入的产物同样落到这里，
+                  // 此前照样渲染 PdfPreview 并必然失败，提示「预览不可用」。
+                  previewable: /\.pdf$/i.test(f.name || ""),
                 }))}
                 renderItem={(item) => (
                   <ArtifactRow
                     name={item.name}
                     url={item.url}
-                    selected={previewIndex === item.key}
-                    onSelect={() => setPreviewIndex(item.key)}
+                    selected={item.previewable && previewIndex === item.key}
+                    onSelect={
+                      item.previewable ? () => setPreviewIndex(item.key) : undefined
+                    }
                   />
                 )}
               />
@@ -796,13 +892,16 @@ export default function Dashboard() {
               <Suspense
                 fallback={
                   <div style={{ textAlign: "center", padding: 24, opacity: 0.6 }}>
-                    loading…
+                    {t("ui.loading")}
                   </div>
                 }
               >
                 <PdfPreview
                   key={previewIndex}
-                  url={artifactUrl(activeId, Math.min(previewIndex, artifacts.length - 1))}
+                  url={artifactUrl(
+                    activeId,
+                    Math.min(previewIndex, artifacts.length - 1),
+                  )}
                 />
               </Suspense>
             </Space>

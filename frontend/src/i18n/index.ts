@@ -39,12 +39,16 @@ const SPA_OVERLAY = {
       task_history: "任务历史",
       stage_label: "阶段",
       engine_label: "解析引擎",
+      engine_label_magicpdf: "解析引擎（MinerU）",
       current_file: "当前文件",
       progress_detail: "{{stage}}：{{current}}/{{total}}",
+      sse_live: "SSE · 实时",
+      sse_disconnected: "SSE · 已断开（进度可能滞后）",
       unit_page: "页",
       unit_paragraph: "段",
       unit_term: "词条",
       unit_batch: "批",
+      unit_component: "组件",
       upload_selected_prefix: "已选择：",
       preview_unavailable: "预览不可用（文件缺失或非 PDF）",
       settings_credentials_edit: "凭据",
@@ -60,9 +64,9 @@ const SPA_OVERLAY = {
       batch_count: "批量 {{count}} 个文件",
       download_all_zip: "全部下载（ZIP）",
       batch_failed_files: "{{count}} 个文件翻译失败",
-      settings_models: "版面模型（GPU）",
+      settings_models: "版面分析模型",
       settings_models_hint:
-        "doclayout ONNX 模型用于 GPU 加速的版面分析，按需下载到本地缓存（~/.cache/babeldoc），不随安装包分发。首次翻译前建议先下载。",
+        "doclayout ONNX 模型用于版面分析（GPU 加速为可选项，CPU 解析同样需要它），按需下载到本地缓存（~/.cache/babeldoc），不随安装包分发。首次翻译前建议先下载。",
       settings_models_download: "下载模型",
       settings_models_downloading: "下载中…",
       settings_models_ready: "已就绪",
@@ -71,10 +75,10 @@ const SPA_OVERLAY = {
       settings_models_failed: "下载失败",
       settings_gpu_provider: "GPU 布局加速（CUDA 执行器）",
       settings_gpu_provider_hint:
-        "CUDA 执行器（约 164MB）不随安装包分发：需要 NVIDIA GPU 加速版面分析时再点击下载，将从 PyPI 获取与内置 onnxruntime 同版本的组件并安装到应用目录；未安装或本机缺少 CUDA 运行时则自动回退 CPU，不影响翻译。",
+        "CUDA 执行器不随安装包分发：需要 NVIDIA GPU 加速版面分析时再点击下载，将从 PyPI 获取与内置 onnxruntime 同版本的组件并安装到应用目录；未安装或本机缺少 CUDA 运行时则自动回退 CPU，不影响翻译。",
       settings_gpu_provider_download: "下载并启用 CUDA",
       settings_gpu_provider_downloading: "下载中… {{percent}}%",
-      settings_gpu_provider_active: "已生效",
+      settings_gpu_provider_active: "已安装 · 还需在「ONNX 加速后端」选 CUDA 才会生效",
       settings_gpu_provider_installed: "已安装（等待生效）",
       settings_gpu_provider_missing: "未安装（CPU 推理）",
       settings_gpu_provider_remove: "移除",
@@ -89,9 +93,17 @@ const SPA_OVERLAY = {
       config_mineru_window_info:
         "MinerU 处理窗口页数（对应 MINERU_PROCESSING_WINDOW_SIZE）：留空用引擎默认 64；小显存卡建议设 8–16 进一步降低显存峰值。",
       config_mineru_auto: "自动",
+      config_mineru_follow_ocr: "跟随上方 OCR 开关",
+      config_mineru_auto_no_ocr: "自动（不使用 OCR）",
+      config_mineru_ocr: "强制 OCR",
+      config_mineru_txt: "纯文本",
+      config_mineru_default_pipeline: "默认（Pipeline）",
+      config_mineru_pipeline: "Pipeline（本地模型）",
+      config_mineru_hybrid: "Hybrid（混合）",
+      config_mineru_vlm: "VLM（视觉语言模型）",
       config_mineru_parse_method: "MinerU 解析方法",
       config_mineru_parse_method_info:
-        "显式切换 MinerU 解析方法（对应 do_parse parse_method）：auto=常规文本解析，ocr=强制 OCR（扫描件），txt=纯文本。留空跟随「OCR 模式」开关。",
+        "显式切换 MinerU 解析方法（对应 do_parse parse_method）：auto=常规文本解析，ocr=强制 OCR（扫描件），txt=纯文本。留空=由上方的「MinerU OCR 开关」决定。",
       config_mineru_backend: "MinerU 解析后端",
       config_mineru_backend_info:
         "显式切换 MinerU 解析后端：pipeline=本地模型（默认），hybrid=混合，vlm=视觉语言模型（需对应服务/模型就绪）。留空用 pipeline。",
@@ -109,7 +121,7 @@ const SPA_OVERLAY = {
       config_jina_revision_info: "模型版本或提交哈希；留空使用后端默认版本。",
       config_jina_prompt: "Jina 提示词",
       config_jina_prompt_info: "传给 Jina 文档解析器的指令；留空使用官方默认提示词。",
-      config_jina_device: "Jina 推理设备",
+      config_jina_device: "Jina 推理设备（仅 Jina OCR）",
       config_jina_device_info: "auto 自动选择，cpu 仅使用 CPU，cuda 使用 NVIDIA GPU。",
       config_jina_device_auto: "自动",
       config_jina_device_cpu: "CPU",
@@ -181,12 +193,16 @@ const SPA_OVERLAY = {
       task_history: "Tasks",
       stage_label: "Stage",
       engine_label: "Engine",
+      engine_label_magicpdf: "Parse engine (MinerU)",
       current_file: "Current file",
       progress_detail: "{{stage}}: {{current}}/{{total}}",
+      sse_live: "SSE · live",
+      sse_disconnected: "SSE · disconnected (progress may be stale)",
       unit_page: "pages",
       unit_paragraph: "paragraphs",
       unit_term: "terms",
       unit_batch: "batches",
+      unit_component: "components",
       upload_selected_prefix: "Selected: ",
       preview_unavailable: "Preview unavailable (file missing or not a PDF)",
       settings_credentials_edit: "Credentials",
@@ -204,9 +220,9 @@ const SPA_OVERLAY = {
       batch_count: "Batch · {{count}} files",
       download_all_zip: "Download all (ZIP)",
       batch_failed_files: "{{count}} file(s) failed",
-      settings_models: "Layout model (GPU)",
+      settings_models: "Layout analysis model",
       settings_models_hint:
-        "The doclayout ONNX model powers GPU-accelerated layout analysis. It is downloaded on demand into the local cache (~/.cache/babeldoc) and is not shipped with the installer.",
+        "The doclayout ONNX model powers layout analysis. GPU acceleration is optional — CPU parsing needs this model too. It is downloaded on demand into the local cache (~/.cache/babeldoc) and is not shipped with the installer.",
       settings_models_download: "Download model",
       settings_models_downloading: "Downloading…",
       settings_models_ready: "Ready",
@@ -215,10 +231,10 @@ const SPA_OVERLAY = {
       settings_models_failed: "Download failed",
       settings_gpu_provider: "GPU layout acceleration (CUDA EP)",
       settings_gpu_provider_hint:
-        "The CUDA execution provider (~164MB) is not bundled with the installer: download it on demand for NVIDIA GPU-accelerated layout analysis. It is fetched from PyPI matching the bundled onnxruntime version and installed into the app directory; if missing or the machine lacks a CUDA runtime, translation safely falls back to CPU.",
+        "The CUDA execution provider is not bundled with the installer: download it on demand for NVIDIA GPU-accelerated layout analysis. It is fetched from PyPI matching the bundled onnxruntime version and installed into the app directory; if missing or the machine lacks a CUDA runtime, translation safely falls back to CPU.",
       settings_gpu_provider_download: "Download & enable CUDA",
       settings_gpu_provider_downloading: "Downloading… {{percent}}%",
-      settings_gpu_provider_active: "Active",
+      settings_gpu_provider_active: "Installed · also pick CUDA as the ONNX backend to actually use it",
       settings_gpu_provider_installed: "Installed (awaiting effect)",
       settings_gpu_provider_missing: "Not installed (CPU inference)",
       settings_gpu_provider_remove: "Remove",
@@ -235,9 +251,17 @@ const SPA_OVERLAY = {
       config_mineru_window_info:
         "MinerU processing window size (MINERU_PROCESSING_WINDOW_SIZE): empty = engine default 64; small cards: 8–16 to lower VRAM peaks.",
       config_mineru_auto: "Auto",
+      config_mineru_follow_ocr: "Follow the OCR switch above",
+      config_mineru_auto_no_ocr: "Auto (never OCR)",
+      config_mineru_ocr: "Force OCR",
+      config_mineru_txt: "Plain text",
+      config_mineru_default_pipeline: "Default (Pipeline)",
+      config_mineru_pipeline: "Pipeline (local models)",
+      config_mineru_hybrid: "Hybrid",
+      config_mineru_vlm: "VLM (vision-language)",
       config_mineru_parse_method: "MinerU parse method",
       config_mineru_parse_method_info:
-        "Explicit MinerU parse method (do_parse parse_method): auto=normal text parse, ocr=force OCR (scanned), txt=plain text. Empty follows the OCR mode toggle.",
+        "Explicit MinerU parse method (do_parse parse_method): auto=normal text parse, ocr=force OCR (scanned), txt=plain text. Empty = decided by the MinerU OCR switch above.",
       config_mineru_backend: "MinerU backend",
       config_mineru_backend_info:
         "Explicit MinerU backend: pipeline=local models (default), hybrid, vlm (needs a ready VLM service/models). Empty uses pipeline.",
@@ -255,7 +279,7 @@ const SPA_OVERLAY = {
       config_jina_revision_info: "Model revision or commit hash; leave empty to use the backend default.",
       config_jina_prompt: "Jina prompt",
       config_jina_prompt_info: "Instruction passed to the Jina document parser; empty uses the official default.",
-      config_jina_device: "Jina inference device",
+      config_jina_device: "Jina inference device (Jina OCR only)",
       config_jina_device_info: "auto selects automatically, cpu uses CPU only, and cuda uses an NVIDIA GPU.",
       config_jina_device_auto: "Auto",
       config_jina_device_cpu: "CPU",
@@ -368,8 +392,19 @@ void i18n.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+// 首帧就同步一次 <html lang>：switchLang 只在用户点击时才跑，而语言是
+// 从 localStorage 恢复的（见下方 init），首帧必须自己对齐。
+if (typeof document !== "undefined") {
+  document.documentElement.lang = (i18n.language as Lang) || "zh-CN";
+}
+
 export function switchLang(lang: Lang): void {
   void i18n.changeLanguage(lang);
+  // <html lang> 必须跟随：index.html 里硬编码了 zh-CN 且此前无人更新，
+  // 读屏软件于是用中文语音念英文界面（反之亦然）。
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = lang;
+  }
   try {
     window.localStorage.setItem(STORAGE_KEY, lang);
   } catch {

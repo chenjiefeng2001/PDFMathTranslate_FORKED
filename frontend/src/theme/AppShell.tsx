@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import tokens from "../../../pdf2zh/gui/assets/generated/tokens/tokens.json";
 import { getHealth } from "../api/endpoints";
 import { currentLang, switchLang } from "../i18n";
+import type { Lang } from "../i18n";
 import { useSettingsStore } from "../stores/settingsStore";
 import SettingsDrawer from "../pages/SettingsDrawer";
 
@@ -110,10 +111,13 @@ function ReadyGate({ children }: { children: ReactNode }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dark = useSettingsStore((s) => s.dark);
   const toggleTheme = useSettingsStore((s) => s.toggleTheme);
-  const [lang, setLangState] = useState(currentLang);
+  // 语言必须从 i18n 派生，不能用本地 state：设置抽屉里的 switchLang() 只
+  // 改 i18n，不会同步这里的状态，于是「在抽屉里切语言 → 回到顶部」会出现
+  // 按钮标签仍是旧语言、ConfigProvider 的 antd 内置文案也停在旧语言。
+  const lang: Lang = (i18n.resolvedLanguage as Lang) || currentLang();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // data-theme 挂在 <html> 上：tokens.css 的暗色变量覆盖与原生控件
@@ -173,9 +177,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Button
               type="text"
               onClick={() => {
-                const next = lang === "zh-CN" ? "en" : "zh-CN";
-                switchLang(next);
-                setLangState(next);
+                switchLang(lang === "zh-CN" ? "en" : "zh-CN");
               }}
             >
               {lang === "zh-CN" ? "English" : "中文"}

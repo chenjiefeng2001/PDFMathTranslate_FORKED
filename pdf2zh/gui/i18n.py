@@ -184,6 +184,13 @@ T: Dict[str, Tuple[str, str]] = {
         "CLI --trace.",
     ),
     "config_trace_dir": ("Trace 输出目录", "Trace Output Dir"),
+    # 这两个输入框原先用 label_n_a（字面「无」/「N/A」）当占位符。空值有明确
+    # 语义，写「无」只会让人以为该字段不适用。
+    "config_trace_dir_ph": ("留空 = 与输出目录相同", "empty = same as output dir"),
+    "config_output_dir_ph": (
+        "留空 = 源文件所在目录",
+        "empty = the source folder",
+    ),
     "config_trace_dir_info": (
         "trace 根目录：JSONL 写入 <目录>/trace/，审计产物写入 <目录>/audit/；"
         "留空使用输出目录。对应 CLI --trace-dir。",
@@ -192,6 +199,13 @@ T: Dict[str, Tuple[str, str]] = {
         "Equivalent to CLI --trace-dir.",
     ),
     "config_glossary_files": ("专业词表（CSV）", "Glossaries (CSV)"),
+    # 该选择器仅在「确有可用词表」时渲染，因此占位符不能写「暂无词表，
+    # 点击上方按钮导入」—— 条件与文案互斥，永远不可能成立，且那个
+    # 「上方按钮」在设置抽屉里、不在本页面。
+    "config_glossary_select_ph": (
+        "选择要应用的词表（留空则不使用）",
+        "Select glossaries to apply (leave empty for none)",
+    ),
     "config_glossary_files_info": (
         "专业术语固定翻译（babeldoc 解析引擎生效）。CSV 表头："
         "source,target[,tgt_lng]，tgt_lng 按目标语过滤词条；"
@@ -311,16 +325,26 @@ T: Dict[str, Tuple[str, str]] = {
     "label_files": ("文件数", "Files"),
     "label_message": ("信息", "Message"),
     "label_n_a": ("无", "N/A"),
+    "label_cancel": ("取消", "Cancel"),
+    "label_unknown": ("未知", "Unknown"),
     "status_ready": ("就绪", "Ready"),
     "status_paused": ("已暂停", "Paused"),
     "status_running": ("运行中", "Running"),
     "status_completed": ("完成", "Complete"),
+    "status_completed_partial": (
+        "完成（{{count}} 个文件失败）",
+        "Complete ({{count}} files failed)",
+    ),
     "status_failed": ("失败", "Failed"),
     "status_cancelled": ("已取消", "Cancelled"),
     "status_skipping": ("正在跳过当前文件...", "Skipping current file..."),
     "retry_hint": (
-        "翻译失败，可点击『重试』重新提交。",
-        "Translation failed. Click 'Retry' to resubmit.",
+        # 原文写「可点击『重试』重新提交」，但 SPA 从未提供重试按钮
+        # （progress_retry 已定义却无人渲染）—— 指向不存在的控件比不给
+        # 指引更糟。改为给出真正可执行的下一步。
+        "翻译失败。请按上方日志排查（引擎凭据、API Key 或网络）后重新提交。",
+        "Translation failed. Check the log above (engine credentials, API key or "
+        "network) and submit again.",
     ),
     # ── queue / misc ─────────────────────────────────────────────────────
     "waiting_task": ("等待翻译任务...", "Waiting for a translation task..."),
@@ -330,6 +354,59 @@ T: Dict[str, Tuple[str, str]] = {
         "Quality scores appear after translation",
     ),
     "idle_diag": ("尚未运行诊断分析", "No diagnostic analysis yet"),
+    "preview_prev_page": ("上一页", "Previous page"),
+    "preview_next_page": ("下一页", "Next page"),
+    "preview_no_pdf_hint": (
+        "产物中没有 PDF 文件，无法在下方预览；请用行内图标保存到本地查看。",
+        "No PDF among the artifacts, so there is nothing to preview here — use the row icons to save a file and open it locally.",
+    ),
+    "glossary_ignored": (
+        "词表只会传给 BabelDOC 解析引擎；当前解析引擎是「{engine}」，所选词表在本次任务中不会被使用。",
+        "Glossaries are only passed to the BabelDOC parse engine. The current engine is \u300c{engine}\u300d, so the selected glossaries will not be used for this task.",
+    ),
+    "glossary_needs_babeldoc_auto": (
+        "词表仅在最终由 BabelDOC 解析时生效。解析引擎当前为「自动」，实际引擎由引擎模式与扫描件预检决定，可能不会用到词表。",
+        "Glossaries only apply when BabelDOC ends up doing the parsing. The parse engine is currently \u300cauto\u300d \u2014 the engine mode and the scanned preflight decide it, so the glossaries may not be used.",
+    ),
+    "task_cancelled_by_user": ("已由用户取消", "Cancelled by user"),
+    "loading": ("加载中…", "Loading…"),
+    "list_separator": ("、", ", "),
+    "upload_selected_count": ("已选 {{count}} 个文件", "{{count}} file(s) selected"),
+    "diag_panel_empty": ("尚无诊断数据", "No diagnostics yet"),
+    "diag_report": ("诊断报告", "Diagnostic report"),
+    "diag_report_keys": (
+        "诊断报告（{{count}} 项）",
+        "Diagnostic report ({{count}} keys)",
+    ),
+    "diag_heal": ("自愈", "Self-heal"),
+    "diag_heal_ran": ("已执行", "ran"),
+    "diag_heal_iterations": ("迭代", "iterations"),
+    "diag_heal_errors": ("错误数", "errors"),
+    "diag_heal_improved": ("已改善", "improved"),
+    "diag_repairs": ("修复记录", "Repair records"),
+    "diag_repairs_count": ("修复记录（{{count}}）", "Repair records ({{count}})"),
+    "diag_gate_verdicts": ("闸门判定", "Gate verdicts"),
+    "diag_gate_verdicts_pages": (
+        "闸门判定（{{count}} 页）",
+        "Gate verdicts ({{count}} pages)",
+    ),
+    "diag_processor_reports": ("处理器报告", "Processor reports"),
+    "diag_processor_reports_pages": (
+        "处理器报告（{{count}} 页）",
+        "Processor reports ({{count}} pages)",
+    ),
+    "diag_toc_ir": ("目录 IR", "TOC IR"),
+    "diag_toc_ir_pages": ("目录 IR（{{count}} 页）", "TOC IR ({{count}} pages)"),
+    "diag_page": ("第 {{page}} 页", "Page {{page}}"),
+    "diag_no_gate_verdicts": ("无闸门判定", "No gate verdicts"),
+    "diag_no_processor_reports": ("无处理器报告", "No processor reports"),
+    "diag_no_toc_ir": ("无目录 IR 记录", "No TOC IR records"),
+    "diag_col_code": ("代码", "code"),
+    "diag_col_page": ("页", "page"),
+    "diag_col_severity": ("严重度", "severity"),
+    "diag_col_action": ("动作", "action"),
+    "diag_col_status": ("状态", "status"),
+    "diag_col_message": ("信息", "message"),
     "cancel_confirm": ("确定停止当前翻译任务？", "Cancel the current task?"),
     "theme_dark_label": ("深色模式", "Dark"),
     "theme_light_label": ("浅色模式", "Light"),

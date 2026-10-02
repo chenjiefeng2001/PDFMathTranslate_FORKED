@@ -24,20 +24,39 @@ import type { TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
 
 /**
- * 流水线阶段与后端 runtime_service._STAGE_ORDER / _STAGE_WEIGHTS 对齐：
- *   parsing 0-10 | analyzing(+planning) 10-40 | translating 40-70 |
- *   layouting 70-85 | rendering(+evaluating) 85-100
+ * 步骤条边界（百分比累计），与后端 `runtime_service._STAGE_WEIGHTS` 对齐。
  *
- * BabelDOC 原生阶段名会乱序到达（如 Extract Terms 先于版面分析被映射成
- * translating），直接用 stage 推导步骤会让步骤条来回跳。因此步骤索引一律
- * 由**单调的工作量百分比**推导，stage 仅用于文字标签。
+ * 后端 7 个阶段的累计区间：
+ *   parsing 0-10 | analyzing 10-30 | planning 30-40 | translating 40-70 |
+ *   layouting 70-85 | rendering 85-95 | evaluating 95-100
+ *
+ * 这里合并为 5 步显示：「解析」吸收 parsing+analyzing+planning（0→40），
+ * 「渲染」吸收 rendering+evaluating（85→100）。`pending` 的 2% 是进入
+ * 第一个真实阶段前的排队余量，与后端无对应阶段。
+ *
+ * 旧值把 layouting 收在 92 —— 该数字既非任何后端边界，也与本文件顶部注释
+ * 自称的 85 矛盾：步骤条会在排版尚未结束时就跳到「渲染」，看起来比实际进度
+ * 领先。改动本表前请同步 tests/test_frontend_stage_bounds.py（该测试直接读取
+ * 本常量并与后端 _STAGE_BOUNDS 比对）。
  */
+export const STAGE_PCT_END: Readonly<Record<string, number>> = Object.freeze({
+  pending: 2,
+  parsing: 40,
+  translating: 70,
+  layouting: 85,
+  rendering: 100,
+});
+
 const PIPELINE: { key: string; label: string; pctEnd: number }[] = [
-  { key: "pending", label: "stage.pending", pctEnd: 2 },
-  { key: "parsing", label: "stage.parsing", pctEnd: 40 },
-  { key: "translating", label: "stage.translating", pctEnd: 70 },
-  { key: "layouting", label: "stage.layouting", pctEnd: 92 },
-  { key: "rendering", label: "stage.rendering", pctEnd: 100 },
+  { key: "pending", label: "stage.pending", pctEnd: STAGE_PCT_END.pending },
+  { key: "parsing", label: "stage.parsing", pctEnd: STAGE_PCT_END.parsing },
+  {
+    key: "translating",
+    label: "stage.translating",
+    pctEnd: STAGE_PCT_END.translating,
+  },
+  { key: "layouting", label: "stage.layouting", pctEnd: STAGE_PCT_END.layouting },
+  { key: "rendering", label: "stage.rendering", pctEnd: STAGE_PCT_END.rendering },
 ];
 
 function stepIndexForPercent(pct: number, status: string): number {
@@ -102,6 +121,12 @@ export default function ProgressPanel({
   const terminal = isTerminal(task.status);
   const paused = task.status === "paused";
   const failed = task.status === "failed";
+  const cancelled = task.status === "cancelled";
+  // 「任务完成但有文件失败」——批量任务里 failed_files 是文件级计数，与
+  // 任务级 status 无关。此前只看 status，于是 10 个文件挂 3 个时进度环
+  // 满绿、标签写「完成」、五个步骤全打勾，唯一的线索是行尾灰色括号。
+  const partial =
+    terminal && !failed && !cancelled && (task.failed_files ?? 0) > 0;
 
   // 百分比单调钳制：SSE 帧偶发乱序时进度条绝不回退。
   const maxPctRef = useRef(0);
@@ -120,13 +145,15 @@ export default function ProgressPanel({
 
   const stepStatus = failed
     ? "error"
-    : task.status === "cancelled"
+    : cancelled
       ? "error"
-      : terminal
+      : partial
         ? "finish"
-        : paused
-          ? "wait"
-          : "process";
+        : terminal
+          ? "finish"
+          : paused
+            ? "wait"
+            : "process";
 
   const statusKey = statusLabelKey(task.status);
 
@@ -142,11 +169,15 @@ export default function ProgressPanel({
             status={
               failed
                 ? "exception"
-                : task.status === "completed"
-                  ? "success"
-                  : paused
+                : cancelled
+                  ? "normal"
+                  : partial
                     ? "normal"
-                    : "active"
+                    : task.status === "completed"
+                      ? "success"
+                      : paused
+                        ? "normal"
+                        : "active"
             }
           />
           <Space direction="vertical" size={4} style={{ flex: 1, minWidth: 0 }}>
@@ -154,32 +185,60 @@ export default function ProgressPanel({
               {statusKey ? (
                 <Tag
                   color={
-                    task.status === "completed"
-                      ? "green"
-                      : failed || task.status === "cancelled"
-                        ? "red"
-                        : paused
-                          ? "orange"
-                          : "blue"
+                    partial
+                      ? "orange"
+                      : task.status === "completed"
+                        ? "green"
+                        : failed || cancelled
+                          ? "red"
+                          : paused
+                            ? "orange"
+                            : "blue"
                   }
                 >
-                  {t(statusKey)}
+                  {partial
+                    ? t("ui.status_completed_partial", {
+                        count: task.failed_files,
+                      })
+                    : t(statusKey)}
                 </Tag>
               ) : (
                 <Tag>{task.status}</Tag>
               )}
               {!terminal && (
-                <Tag color={connected ? "cyan" : "orange"}>
-                  SSE · {connected ? "live" : "…"}
+                /* 断线时进度会停在最后一个已知值（百分比是单调钳制的），
+                   所以「橙色 + …」会被读成「正在连接」而不是「已断开、
+                   进度可能滞后」。改为红色并直说含义。 */
+                <Tag color={connected ? "cyan" : "red"}>
+                  {connected
+                    ? t("ui.sse_live")
+                    : t("ui.sse_disconnected")}
                 </Tag>
               )}
-              <Tag>{t("ui.stage_label")}: {t(`stage.${task.stage || task.status}`)}</Tag>
+              {/* defaultValue 兜底：i18n 未设 parseMissingKeyHandler，缺键会
+                  直接把 key 本身当文案渲染出来。后端若新增 stage/status 值，
+                  这里退化为显示原始值，而不是 "stage.whatever"。 */}
+              <Tag>
+                {t("ui.stage_label")}:{" "}
+                {t(`stage.${task.stage || task.status}`, {
+                  defaultValue: task.stage || task.status,
+                })}
+              </Tag>
               {task.parse_engine && (
                 <Tag color="geekblue">
-                  {t("ui.engine_label")}: {task.parse_engine}
+                  {t("ui.engine_label_magicpdf")}: {task.parse_engine}
                 </Tag>
               )}
             </Space>
+            {/* 部分失败必须在本卡片内可见：下面那张 batch_failed_files
+                提示位于「预览与下载」卡片，用户盯着执行状态时看不到。 */}
+            {partial && (
+              <Alert
+                type="warning"
+                showIcon
+                message={t("ui.batch_failed_files", { count: task.failed_files })}
+              />
+            )}
             <span style={{ opacity: 0.65 }}>
               {t("ui.progress_eta")}: {terminal && task.eta <= 0 ? "-" : formatEta(task.eta)}
               {"　"}
@@ -212,12 +271,18 @@ export default function ProgressPanel({
                   {t("ui.progress_detail", {
                     stage:
                       task.stage_detail.raw_stage ||
-                      t(`stage.${task.stage || task.status}`),
+                      t(`stage.${task.stage || task.status}`, {
+                        defaultValue: task.stage || task.status,
+                      }),
                     current: task.stage_detail.current ?? 0,
                     total: task.stage_detail.total,
                   })}
+                  {/* unit 由后端给出，magicpdf 会发 "component"；缺键时退回
+                      原始值而不是把 "ui.unit_component" 打到界面上。 */}
                   {task.stage_detail.unit
-                    ? ` (${t(`ui.unit_${task.stage_detail.unit}`)})`
+                    ? ` (${t(`ui.unit_${task.stage_detail.unit}`, {
+                        defaultValue: task.stage_detail.unit,
+                      })})`
                     : ""}
                 </span>
               )}
@@ -251,7 +316,7 @@ export default function ProgressPanel({
             <Popconfirm
               title={t("ui.cancel_confirm")}
               okText={t("ui.progress_cancel")}
-              cancelText={t("ui.label_n_a")}
+              cancelText={t("ui.label_cancel")}
               onConfirm={onCancel}
             >
               <Button danger icon={<StopOutlined />}>{t("ui.progress_cancel")}</Button>
