@@ -1028,7 +1028,12 @@ def create_api_app(
             extra.setdefault("ocr_mode", ocr_mode)
         # magicpdf 链路独立的 OCR 三态（对应 CLI --magicpdf-ocr-mode）。
         # 与上面的 BabelDOC ocr_mode 分开，避免一个字段同时驱动两条链路。
-        if magicpdf_ocr_mode and magicpdf_ocr_mode != "auto":
+        #
+        # **即使取值是 "auto" 也必须下发**：resolve_magicpdf_ocr_mode 把
+        # 「没有专用字段」当作「回退读 ocr_mode」的信号，若这里把 auto 丢掉，
+        # 用户在 MinerU OCR 开关上选「自动」仍会被 BabelDOC 的 ocr_mode 覆盖
+        # —— 而那个开关在 UI 上明确标注了「非 OCR」。
+        if magicpdf_ocr_mode in ("auto", "on", "off"):
             extra["magicpdf_ocr_mode"] = magicpdf_ocr_mode
         # v3 flight-recorder trace（magicpdf 链路生效）：与 CLI --trace / --trace-dir
         # 语义一致，随 extra_config 透传到运行时（_execute_magicpdf 读取）。

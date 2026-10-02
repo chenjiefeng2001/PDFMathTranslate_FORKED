@@ -15,6 +15,7 @@ import type {
   TaskState,
 } from "../api/types";
 import { isTerminal } from "../api/types";
+import i18n from "../i18n";
 
 interface AppState {
   engines: EngineInfo[];
@@ -261,7 +262,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       return {
         tasks: {
           ...state.tasks,
-          [taskId]: { ...cur, status: "cancelled", message: "Cancelled by user" },
+          [taskId]: {
+            ...cur,
+            status: "cancelled",
+            // 走 i18n 实例翻译：store 在 React 之外，拿不到 useTranslation。
+            // 原文硬编码英文，会在中文界面的 Alert 里露出 "Cancelled by user"。
+            message: i18n.t("ui.task_cancelled_by_user"),
+          },
         },
       };
     });

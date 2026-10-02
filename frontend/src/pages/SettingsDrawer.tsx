@@ -62,9 +62,12 @@ function AppearanceSection() {
   const toggleTheme = useSettingsStore((s) => s.toggleTheme);
   return (
     <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      {/* label + htmlFor/id：此前用 <span>，开关的可访问名只剩
+          checkedChildren（「深色」= 状态而非设置名），读屏会念不出这是什么设置。 */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>{t("ui.settings_theme")}</span>
+        <label htmlFor="settings-theme">{t("ui.settings_theme")}</label>
         <Switch
+          id="settings-theme"
           checked={dark}
           onChange={() => toggleTheme()}
           checkedChildren={t("ui.theme_dark_label")}
@@ -72,8 +75,9 @@ function AppearanceSection() {
         />
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>{t("ui.settings_language")}</span>
+        <label htmlFor="settings-language">{t("ui.settings_language")}</label>
         <Select
+          id="settings-language"
           value={(i18n.language as Lang) || "zh-CN"}
           style={{ width: 140 }}
           onChange={(lng) => switchLang(lng as Lang)}
@@ -409,7 +413,9 @@ function ModelsSection({ active }: { active: boolean }) {
     </Space>
   );
 }
-/** CUDA execution provider：本体不携带（~746MB），按需下载安装后 GPU 版面加速。 */
+/** CUDA execution provider：本体不携带，按需下载安装后启用 GPU 版面加速。
+ *  体积随 onnxruntime 版本而变，不在此处写死 —— 安装后由
+ *  /api/gpu/provider 的 cuda_dll_size_bytes 如实展示（见下方 MB 读数）。 */
 function GpuProviderSection({ active }: { active: boolean }) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<GpuProviderStatus | null>(null);
@@ -654,32 +660,42 @@ function MineruSection() {
         </Space>
       )}
       <Divider style={{ margin: "4px 0" }} />
-      {/* 启用 MinerU GPU：隔离 venv 的 torch 升级为 CUDA 版（torch ~2GB 下载，后台执行）。 */}
-      <Space wrap size={8}>
-        {cudaInstalling ? (
-          <Tag color="processing">{t("ui.settings_mineru_cuda_enabling")}</Tag>
-        ) : mineruCuda === true ? (
-          <Tag color="green">{t("ui.settings_mineru_cuda_ready")}</Tag>
-        ) : mineruCuda === false ? (
-          <Tag color="warning">{t("ui.settings_mineru_cuda_cpu")}</Tag>
-        ) : (
-          <Tag>{t("ui.label_n_a")}</Tag>
-        )}
-        <Button
-          size="small"
-          loading={cudaInstalling}
-          disabled={cudaInstalling || mineruCuda === true}
-          onClick={() => void startCuda()}
-        >
-          {cudaInstalling
-            ? t("ui.settings_mineru_cuda_enabling")
-            : t("ui.settings_mineru_cuda_enable")}
-        </Button>
-      </Space>
-      {cudaError && (
-        <Typography.Text type="danger" style={{ fontSize: 12 }}>
-          {cudaError}
-        </Typography.Text>
+      {/* 启用 MinerU GPU：隔离 venv 的 torch 升级为 CUDA 版（torch ~2GB 下载，后台执行）。
+
+          整行只在 MinerU 已就绪时渲染。此前它落在 state?.ok 三元式之外，
+          于是在「MinerU 根本没装」的机器上也会显示，而
+          selftest 在无 venv 时返回 mineru_cuda=false —— 于是 UI 谎称
+          「MinerU 当前为 CPU 推理」，安装按钮还可用，点击只会打向一个
+          不存在的环境。 */}
+      {state?.ok && (
+        <>
+          <Space wrap size={8}>
+            {cudaInstalling ? (
+              <Tag color="processing">{t("ui.settings_mineru_cuda_enabling")}</Tag>
+            ) : mineruCuda === true ? (
+              <Tag color="green">{t("ui.settings_mineru_cuda_ready")}</Tag>
+            ) : mineruCuda === false ? (
+              <Tag color="warning">{t("ui.settings_mineru_cuda_cpu")}</Tag>
+            ) : (
+              <Tag>{t("ui.label_unknown")}</Tag>
+            )}
+            <Button
+              size="small"
+              loading={cudaInstalling}
+              disabled={cudaInstalling || mineruCuda === true}
+              onClick={() => void startCuda()}
+            >
+              {cudaInstalling
+                ? t("ui.settings_mineru_cuda_enabling")
+                : t("ui.settings_mineru_cuda_enable")}
+            </Button>
+          </Space>
+          {cudaError && (
+            <Typography.Text type="danger" style={{ fontSize: 12 }}>
+              {cudaError}
+            </Typography.Text>
+          )}
+        </>
       )}
     </Space>
   );
@@ -809,8 +825,14 @@ function ConnectionSection() {
   }
 
   return (
+    /* settings_api_base 这个标签串一直存在却从未渲染 —— 输入框的可访问名
+       只有那个 URL 占位符。补上 label/htmlFor，顺带让死键复活。 */
     <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <label htmlFor="settings-api-base" style={{ fontSize: 12 }}>
+        {t("ui.settings_api_base")}
+      </label>
       <Input
+        id="settings-api-base"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="http://127.0.0.1:11009"

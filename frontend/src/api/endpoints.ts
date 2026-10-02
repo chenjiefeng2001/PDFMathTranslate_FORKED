@@ -35,6 +35,8 @@ export interface SubmitParams {
   ingestBackend?: IngestBackend;
   modeChoice?: string;
   ocrMode?: string;
+  /** magicpdf(MinerU) 链路的 OCR 三态。独立于 ocrMode —— 后者属 BabelDOC。 */
+  magicpdfOcrMode?: string;
   backend?: string;
   jinaModel?: string;
   jinaRevision?: string;
@@ -81,6 +83,12 @@ export function submitTask(params: SubmitParams): Promise<{ task_id: string }> {
     form.append("mode_choice", params.modeChoice);
   }
   if (params.ocrMode) form.append("ocr_mode", params.ocrMode);
+  // 必须显式发送（哪怕是 "auto"）：不发送时后端会退回把 ocr_mode 当作
+  // magicpdf 侧开关的 legacy 兼容分支，于是「BabelDOC 黑字白底」这个
+  // 明确标注了非 OCR 的选项会真的打开 MinerU OCR。
+  if (params.magicpdfOcrMode) {
+    form.append("magicpdf_ocr_mode", params.magicpdfOcrMode);
+  }
   if (params.backend) form.append("backend", params.backend);
   if (params.jinaModel) {
     form.append("jina_model", params.jinaModel);

@@ -54,11 +54,14 @@ export function ArtifactRow({
   url,
   selected,
   onSelect,
+  previewable = true,
 }: {
   name: string;
   url: string;
   selected: boolean;
-  onSelect(): void;
+  onSelect?(): void;
+  /** 不可预览的产物（如 DOCX 输入的产物）：行不再可点，也不显示 pointer 光标。 */
+  previewable?: boolean;
 }) {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
@@ -86,12 +89,13 @@ export function ArtifactRow({
   return (
     <List.Item
       style={{
-        cursor: "pointer",
+        // 不可预览的行不给 pointer 光标，否则「能点」就是假的。
+        cursor: previewable ? "pointer" : "default",
         background: selected ? "var(--color-accent-soft)" : undefined,
         borderRadius: 6,
         paddingInline: 8,
       }}
-      onClick={onSelect}
+      onClick={previewable ? onSelect : undefined}
       actions={[
         <Button
           key="preview"
@@ -99,9 +103,11 @@ export function ArtifactRow({
           size="small"
           icon={<EyeOutlined />}
           title={t("ui.download_preview_action")}
+          // 无预览能力时隐藏眼睛按钮，而不是给一个必然失败的预览。
+          style={previewable ? undefined : { display: "none" }}
           onClick={(e) => {
             e.stopPropagation();
-            onSelect();
+            onSelect?.();
           }}
         />,
         <Button

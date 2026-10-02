@@ -84,11 +84,24 @@ export default function PdfPreview({ url }: Props) {
   return (
     <div style={{ textAlign: "center" }}>
       <Space style={{ marginBottom: 8 }}>
-        <Button size="small" icon={<LeftOutlined />} disabled={page <= 1} onClick={() => void goto(page - 1)} />
-        <span>
+        {/* 图标按钮没有可访问名，读屏只会念「button」。 */}
+        <Button
+          size="small"
+          icon={<LeftOutlined />}
+          aria-label={t("ui.preview_prev_page")}
+          disabled={page <= 1}
+          onClick={() => void goto(page - 1)}
+        />
+        <span aria-live="polite">
           {page} / {numPages || "?"}
         </span>
-        <Button size="small" icon={<RightOutlined />} disabled={page >= numPages} onClick={() => void goto(page + 1)} />
+        <Button
+          size="small"
+          icon={<RightOutlined />}
+          aria-label={t("ui.preview_next_page")}
+          disabled={page >= numPages}
+          onClick={() => void goto(page + 1)}
+        />
       </Space>
       <div style={{ position: "relative", minHeight: 120 }}>
         {loading && <Spin style={{ position: "absolute", inset: 0, margin: "auto" }} />}

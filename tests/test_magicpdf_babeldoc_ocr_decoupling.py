@@ -121,3 +121,47 @@ def test_babeldoc_path_still_reads_ocr_mode():
     assert resolve_magicpdf_ocr_mode(_req(extra_config=extra)) == "off"
     # resolve_ocr_flags 在 mode="on" 时给出 ocr_workaround=True
     assert resolve_ocr_flags("on", None)[0] is True
+
+
+# ── 端到端：SPA 选了「自动」也不能被 BabelDOC 的开关顶掉 ────────────────────
+#
+# 桌面端只有一个名为「BabelDOC 扫描版处理」的 OCR 控件，其 on 选项在 UI 上
+# 明确标注「（非 OCR）」；它同时是早期 SPA 唯一能发送的 OCR 字段。若 API 在
+# 收到 magicpdf_ocr_mode="auto" 时不把它写进 extra_config，resolver 就认定
+# 「专用字段缺席」并回退去读 ocr_mode —— 于是「非 OCR」选项真的打开了 MinerU
+# OCR。以下两条钉死该行为。
+
+
+def test_explicit_auto_magicpdf_mode_beats_legacy_babeldoc_fallback():
+    """专用字段显式为 auto 时，不得回退到 ocr_mode。"""
+    req = _req(extra_config={"ocr_mode": "on", "magicpdf_ocr_mode": "auto"})
+    assert resolve_magicpdf_ocr_mode(req) == "auto"
+
+
+@pytest.mark.parametrize("dedicated", ["auto", "on", "off"])
+def test_dedicated_field_always_wins_over_ocr_mode(dedicated):
+    req = _req(extra_config={"ocr_mode": "on", "magicpdf_ocr_mode": dedicated})
+    assert resolve_magicpdf_ocr_mode(req) == dedicated
+
+
+def test_legacy_fallback_still_applies_when_dedicated_absent():
+    """完全不下发专用字段的旧客户端仍走 legacy 兜底（保持向后兼容）。"""
+    req = _req(extra_config={"ocr_mode": "on"})
+    assert resolve_magicpdf_ocr_mode(req) == "on"
+
+
+def test_api_forwards_magicpdf_ocr_mode_even_when_auto():
+    """API 层必须连 "auto" 一起下发，否则上面的保护形同虚设。"""
+    import inspect
+
+    from pdf2zh.services import api
+
+    source = (
+        inspect.getsource(api.create_api_app)
+        if hasattr(api, "create_api_app")
+        else inspect.getsource(api)
+    )
+    assert 'in ("auto", "on", "off")' in source, (
+        "magicpdf_ocr_mode must be forwarded for every valid value, including "
+        '"auto" — dropping it re-enables the legacy ocr_mode fallback'
+    )
