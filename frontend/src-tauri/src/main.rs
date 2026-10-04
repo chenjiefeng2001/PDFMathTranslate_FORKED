@@ -97,9 +97,11 @@ fn wait_for_api(port: u16, child: &mut Child, timeout_secs: u64) -> (bool, Strin
 
 #[cfg(windows)]
 extern "system" {
-    /// kernel32 导出，清除文件的 Mark-of-the-Web（删除 `Zone.Identifier` ADS）。
-    /// 直接声明 FFI 以避免为此引入 windows/winapi 依赖（kernel32 已由 std 链上）。
-    fn UnblockFileW(lpFileName: *const u16) -> i32;
+    /// kernel32 导出，删除一个文件**或备用数据流**。Mark-of-the-Web 就住在
+    /// `Zone.Identifier` 这个 ADS 里，删掉它即等于解封 —— 没有别的 API 可用。
+    /// 不写 `#[link]`：kernel32 由 std 链上（函数级 `#[link]` 已被弃用），而
+    /// 正因为它确实在默认库里，这次链接才成功。
+    fn DeleteFileW(lpFileName: *const u16) -> i32;
 }
 
 /// 清除 Windows 的 Mark-of-the-Web。
@@ -112,16 +114,24 @@ extern "system" {
 /// 「所有解析器都正常、只有浏览器打不开」。
 ///
 /// 另一个坑：`std::fs::write` 是截断写，**保留**已存在的 ADS，所以重存同一个
-/// 文件名不会清掉标记，必须显式 Unblock。
+/// 文件名不会清掉标记，必须显式删流。
+///
+/// 没有 `UnblockFile` 这个 API。上一版实现声明并调用了 `UnblockFileW`，并注释
+/// 说它由 kernel32 导出 —— 实测 shlwapi / shell32 / kernel32 / kernelbase 里
+/// 都没有这个导出（`GetProcAddress` 全部返回 NULL）。`cargo check` 不做链接，
+/// 所以这个符号一路混到 CI 才炸成 `LNK2019: unresolved external symbol
+/// UnblockFileW`，把整个 Tauri 打包链路打断。**链接错误只能靠链接发现。**
 ///
 /// 非 Windows 或调用失败一律忽略：这是尽力而为的清理，不该让保存失败。
 #[cfg(windows)]
 fn unblock_mark_of_the_web(path: &std::path::Path) {
-    let mut wide: Vec<u16> = path.as_os_str().encode_wide().collect();
-    wide.push(0);
-    // SAFETY: wide 以 NUL 结尾，长度与内容均由上面构造，函数不写入该缓冲区。
+    let mut stream: Vec<u16> = path.as_os_str().encode_wide().collect();
+    // 追加 ADS 名 ":Zone.Identifier" 与结尾 NUL。
+    stream.extend(":Zone.Identifier\0".encode_utf16());
+    // SAFETY: stream 以 NUL 结尾，内容完全由上面构造；DeleteFileW 不写入该
+    // 缓冲区，返回值只表示成功与否。
     unsafe {
-        UnblockFileW(wide.as_ptr());
+        DeleteFileW(stream.as_ptr());
     }
 }
 
