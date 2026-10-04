@@ -251,10 +251,13 @@ class MarkerBackend:
                     f"start: {exc}"
                 ) from exc
             if completed.returncode != 0:
-                stderr = (completed.stderr or "")[-2000:]
+                # 合并 stdout+stderr：Marker 的失败原因（缺包、缺模型、worker
+                # 文件缺失）经常只出现在其中一路，只读一路会把线索丢掉。
+                merged = ((completed.stderr or "") + (completed.stdout or ""))[-2000:]
                 raise IngestionBackendUnavailable(
-                    f"marker worker failed (exit {completed.returncode}): "
-                    f"{stderr or '(no stderr)'}"
+                    f"marker worker failed (exit {completed.returncode}) "
+                    f"[cmd={' '.join(cmd[:2])}...]: "
+                    f"{merged.strip() or '(worker produced no output)'}"
                 )
             return self._load_worker_payload(pdf_path, work_dir)
         finally:

@@ -89,6 +89,12 @@ class TaskCoordinator:
         obs_bundles: list = []
         translation_errors: list[str] = []
         translation_error_count = 0
+        #: 真正译出内容变化的段数（跨 chunk 聚合）。
+        translation_ok_count = 0
+        #: 各 chunk 报告的尝试段数。**必须单独聚合**：只聚合 count+ok 时，
+        #: 「所有 chunk 都试过但一段都没译出」会得到 count=0/ok=0，与「根本没
+        #: 尝试翻译」完全一样，收尾门禁无法区分，产物会静默交付原文。
+        translation_attempted = 0
         page_results: list = []
         if total == 0:
             return obj_patch, obs_bundles, []
@@ -204,6 +210,15 @@ class TaskCoordinator:
                             translation_error_count += int(
                                 result.translation_errors.get("count", 0) or 0
                             )
+                            # ``ok``/``attempted`` 必须一起聚合：只有 count 时，
+                            # 「所有 chunk 都试过但一段都没译出」（翻译器返回原文）
+                            # 会退化成"无错误"，被当成成功交付。
+                            translation_ok_count += int(
+                                result.translation_errors.get("ok", 0) or 0
+                            )
+                            translation_attempted += int(
+                                result.translation_errors.get("attempted", 0) or 0
+                            )
                             translation_errors.extend(
                                 str(item)
                                 for item in result.translation_errors.get("samples", [])
@@ -286,9 +301,11 @@ class TaskCoordinator:
                 except Exception:  # noqa: BLE001 -- 清理不阻塞主流程
                     pass
 
-        if translation_error_count:
+        if translation_error_count or translation_ok_count or translation_attempted:
             obj_patch["__translation_errors__"] = {
                 "count": translation_error_count,
+                "ok": translation_ok_count,
+                "attempted": translation_attempted,
                 "samples": translation_errors[:10],
             }
         if page_results:

@@ -527,13 +527,9 @@ def translate_patch(
         if dm is not None and hasattr(dm, "to_dict"):
             v3_output["document_model"] = dm.to_dict()
         v3_output["toc_reports"] = list(getattr(device, "_toc_reports", []) or [])
-        translation_errors = list(getattr(device, "_translation_errors", []) or [])
-        if translation_errors:
-            v3_output["translation_errors"] = {
-                "count": len(translation_errors),
-                "ok": int(getattr(device, "_translation_ok", 0) or 0),
-                "samples": translation_errors[:10],
-            }
+        counters = translation_counters(device)
+        if counters is not None:
+            v3_output["translation_errors"] = counters
     if observability:
         obs_extra = _collect_observability(device, v3_output)
         if obs_extra and v3_output is None:
@@ -1282,8 +1278,10 @@ def translate_stream(
                 # clean=True 会触发 MuPDF 内容流消毒器，实测会把 converter 生成的
                 # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
                 # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
-                doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
-                doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
+                # 命名与下方正常路径保持一致：mono=doc_zh（译文侧）、dual=doc_en。
+                # passthrough 没有走 merge，两份都是 N 页原样内容，页数不受影响。
+                doc_mono = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
+                doc_dual = doc_en.write(deflate=True, garbage=4, use_objstms=1)
             finally:
                 doc_en.close()
                 doc_zh.close()
@@ -1786,32 +1784,43 @@ def translate_stream(
                 "source": _bm_source,
                 "count": _bm_count,
             }
-        logger.info("translate_stream: writing doc_zh (dual) PDF bytes...")
+        # ── 写出：哪份文档对应哪个名字 ──────────────────────────────────────
+        # 上面的 merge 把 doc_zh（纯译文）整份插进了 doc_en（原文）并交错
+        # 排序，所以此刻：
+        #   doc_en = [原页, 译页, 原页, 译页, ...]  2N 页  → BabelDOC 的 dual
+        #   doc_zh = [译页, 译页, ...]                N 页  → BabelDOC 的 mono
+        # 旧实现把两者写反了：doc_dual=doc_zh(N 页)、doc_mono=doc_en(2N 页)。
+        # 实测后果：325 页扫描件产出 650 页的 ``-mono.pdf`` 和 325 页的
+        # ``-dual.pdf`` —— 页数翻倍、mono 里是「原页/译页交替」，正是用户看到的
+        # 「排版重合」。同一函数的切片路径（_interleave_dual_pages →
+        # _dual_full、_splice_mono_pages → _mono_full，high_level.py:1218-1229）
+        # 一直是对的，全文档路径与它不一致本身就说明这是笔误而非设计。
+        logger.info("translate_stream: writing doc_en (dual, interleaved) PDF bytes...")
         try:
             _write_start = _merge_time.time()
             # clean=True 会触发 MuPDF 内容流消毒器，实测会把 converter 生成的
             # 文本指令重排破坏（Tf/Tm 丢失、TJ 脱离 BT/ET 块），导致输出整页
             # 空白（文本层与视觉层同时丢失）。deflate/garbage 已足够压缩。
-            doc_dual = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
+            doc_dual = doc_en.write(deflate=True, garbage=4, use_objstms=1)
             logger.info(
-                "translate_stream: doc_zh write OK (size=%d bytes, %.1fs)",
+                "translate_stream: doc_en write OK (dual=%d bytes, %.1fs)",
                 len(doc_dual),
                 _merge_time.time() - _write_start,
             )
         except Exception as write_err:
-            logger.error("translate_stream: doc_zh write failed: %s", write_err)
+            logger.error("translate_stream: doc_en write failed: %s", write_err)
             raise
-        logger.info("translate_stream: writing doc_en (mono) PDF bytes...")
+        logger.info("translate_stream: writing doc_zh (mono) PDF bytes...")
         try:
             _write_start = _merge_time.time()
-            doc_mono = doc_en.write(deflate=True, garbage=4, use_objstms=1)
+            doc_mono = doc_zh.write(deflate=True, garbage=4, use_objstms=1)
             logger.info(
-                "translate_stream: doc_en write OK (size=%d bytes, %.1fs)",
+                "translate_stream: doc_zh write OK (mono=%d bytes, %.1fs)",
                 len(doc_mono),
                 _merge_time.time() - _write_start,
             )
         except Exception as write_err:
-            logger.error("translate_stream: doc_en write failed: %s", write_err)
+            logger.error("translate_stream: doc_zh write failed: %s", write_err)
             raise
         logger.info(
             "translate_stream: write complete (mono=%d bytes, dual=%d bytes, total=%.1fs)",
@@ -2374,6 +2383,50 @@ def _describe_total_translation_failure(service: str, failed: int, samples: str)
     return head + "。原始错误：" + (samples or "n/a")
 
 
+def translation_counters(device: Any) -> Optional[Dict[str, Any]]:
+    """把 converter 侧的翻译计数整理成收尾门禁要的形状。
+
+    三个计数字段各有分工，少一个就会把「没翻」误判成「翻了」：
+
+    - ``count``：失败的段数（有异常）。
+    - ``ok``：**内容真正变化**的段数 —— 翻译器返回原文时不计入。
+    - ``attempted``：尝试过的段数，``ok + count``。它是「零变化」的判据：
+      ``count==0 且 ok==0 且 attempted>0`` 就是「试过了但产物等同原文」。
+
+    提取成独立函数是因为 ``translate_patch`` 有 40+ 参数，无法在测试里直接
+    调用；没有这个函数，「attempted 是否被算出来」就只能靠读源码断言。
+
+    Returns ``None`` 表示完全没尝试翻译（纯扫描件 passthrough），此时不应写入
+    ``v3_output``，否则收尾门禁会把它当成零变化失败。
+    """
+    errors = list(getattr(device, "_translation_errors", []) or [])
+    ok = int(getattr(device, "_translation_ok", 0) or 0)
+    if not errors and ok <= 0:
+        return None
+    return {
+        "count": len(errors),
+        "ok": ok,
+        "attempted": ok + len(errors),
+        "samples": errors[:10],
+    }
+
+
+def _describe_identity_translation(service: str, attempted: int) -> str:
+    """「翻译器全程返回原文」的可操作报错。
+
+    不报 tenacity 的 RetryError（那会把用户引向网络/密钥排查，而这里根本没
+    发请求或请求成功但返回了原文）。
+    """
+    return (
+        f"Translation produced no changes: all {attempted} segment(s) came back "
+        f"identical to the source text (service={service!r}). The output would be "
+        f"a copy of the original, so it is not delivered. Common causes: the "
+        f"translation cache holds same-language entries, target language equals "
+        f"source language, or the service degraded to passthrough. Try clearing "
+        f"the cache / enabling 'ignore cache', or pick another service."
+    )
+
+
 def _enforce_translation_error_policy(
     service: str, translation_errors: Dict[str, Any]
 ) -> None:
@@ -2389,12 +2442,18 @@ def _enforce_translation_error_policy(
       失败，且必须报出**可操作**的根因而不是 tenacity 的 ``RetryError``。
     """
     failed = int((translation_errors or {}).get("count") or 0)
-    if not failed:
-        return
     ok = int((translation_errors or {}).get("ok") or 0)
+    attempted = int((translation_errors or {}).get("attempted") or 0)
     samples = "; ".join(
         str(item) for item in (translation_errors or {}).get("samples", [])[:3]
     )
+    if not failed and ok == 0 and attempted > 0:
+        # 「尝试过、一段都没译出」：翻译器全程返回原文（缓存命中同源文本、
+        # 目标语=源语、服务端 passthrough），没有异常所以 failed=0。产物等同
+        # 原文却会以成功交付 —— 与「全部段报错」同等对待，按硬失败处理。
+        raise PDFValueError(_describe_identity_translation(service, attempted))
+    if not failed:
+        return
     if ok > 0:
         logger.warning(
             "[translate] %d/%d 段翻译失败（失败段已保留原文，其余段正常输出）：%s",

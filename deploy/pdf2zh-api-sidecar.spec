@@ -45,6 +45,32 @@ _JINA_WORKER = _ROOT / "pdf2zh" / "kernel" / "jina_ocr_worker.py"
 if not _JINA_WORKER.is_file():
     raise SystemExit(f"jina worker not found: {_JINA_WORKER}")
 
+# mineru_worker.py 同理，且它的缺失后果严重得多：magicpdf_adapter 用
+# ``Path(__file__).parent / "kernel" / "mineru_worker.py"`` 起子进程跑
+# MinerU。frozen 产物里没有这个文件时，worker 启动失败 → 解析退 legacy →
+# 走 translate_stream 的 BabelDOC 路径，产出「原页+ 译页」交替的 650 页
+# dual，页数翻倍且排版错乱。实测安装版 sidecar 的 _internal/pdf2zh/kernel/
+# 只有 jina_ocr_worker.py，日志里唯一线索是
+# ``mineru worker failed (exit 2): (no stderr)`` —— 子进程连脚本都没找到，
+# 自然没有 stderr，而这条信息没有把 worker 路径一起带出来，排障时完全看不出
+# 是打包漏文件而不是 MinerU 本身出问题。
+_MINERU_WORKER = _ROOT / "pdf2zh" / "kernel" / "mineru_worker.py"
+if not _MINERU_WORKER.is_file():
+    raise SystemExit(f"mineru worker not found: {_MINERU_WORKER}")
+
+# marker_worker.py 同样缺失，且它是 MinerU 失败后的 auto 回退目标：
+# 缺了它则「MinerU 失败 → Marker 回退」整条兜底链在安装版里静默失效，
+# 最终退到 legacy 路径。它是 stdlib-only，打进 bundle 无依赖代价。
+_MARKER_WORKER = _ROOT / "pdf2zh" / "kernel" / "marker_worker.py"
+if not _MARKER_WORKER.is_file():
+    raise SystemExit(f"marker worker not found: {_MARKER_WORKER}")
+
+# v2_worker.py：pdf2zh_next 隔离 venv 链路的子进程入口（kernel/precise.py 的
+# ``_WORKER_SCRIPT``）。同属「从 bundle 路径起子进程」的类别，一并补收并校验。
+_V2_WORKER = _ROOT / "pdf2zh" / "kernel" / "v2_worker.py"
+if not _V2_WORKER.is_file():
+    raise SystemExit(f"v2 worker not found: {_V2_WORKER}")
+
 # hyperscan 为 delvewheel 修补 wheel：_hs_ext.pyd 依赖同级 `hyperscan.libs`
 # 目录内哈希后缀的 msvcp140 DLL；PyInstaller 只收 pyd 不收该兄弟目录，
 # 导致 frozen 环境 `import hyperscan`（babeldoc.glossary 顶层导入）报
@@ -59,6 +85,9 @@ a = Analysis(
     ],
     datas=[
         (str(_JINA_WORKER), 'pdf2zh/kernel'),
+        (str(_MINERU_WORKER), 'pdf2zh/kernel'),
+        (str(_MARKER_WORKER), 'pdf2zh/kernel'),
+        (str(_V2_WORKER), 'pdf2zh/kernel'),
         *copy_metadata('babeldoc'),
         # tiktoken 经 importlib.metadata entry_points 加载编码插件
         # （tiktoken_ext.openai_public），缺 dist-info 会报

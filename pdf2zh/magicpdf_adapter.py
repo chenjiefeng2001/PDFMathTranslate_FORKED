@@ -1983,10 +1983,14 @@ class MagicPdfAdapter:
                 total_pages=_pdf_page_count(pdf_path) or 0,
             )
             if completed.returncode != 0:
-                stderr = (completed.stderr or "")[-2000:]
+                # worker 的 stderr 被合并进 stdout（见 _run_mineru_process 的
+                # stderr=STDOUT），所以 CompletedProcess.stderr 恒为空 —— 旧实现
+                # 读它，于是失败信息永远是 "(no stderr)"。必须读 stdout。
+                output = (completed.stdout or completed.stderr or "")[-2000:]
                 raise MagicPdfParseError(
-                    f"mineru worker failed (exit {completed.returncode}): "
-                    f"{stderr or '(no stderr)'}"
+                    f"mineru worker failed (exit {completed.returncode}) "
+                    f"[cmd={' '.join(cmd[:2])}...]: "
+                    f"{output.strip() or '(worker produced no output)'}"
                 )
             middle_path = _find_mineru_middle_json(work_dir)
             if middle_path is None:

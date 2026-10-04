@@ -569,17 +569,19 @@ class TranslateConverter(PDFConverterEx):
                 raise e
 
         def _safe_worker(s: str, font_sig: str = ""):
-            """带 fallback + cache 的 worker (2.0 L3)；font_sig=多字体段指纹走缓存 variant（V1.19）"""
+            """带 fallback + cache 的 worker (2.0 L3)；font_sig=多字体段指纹走缓存 variant（V1.19）
+
+            ``_translation_ok`` 只在译文内容真的变了时才增（返回原文不抛异常）。"""
             if self.cache:
                 cached = _cache_get_font(s, font_sig)
                 if cached is not None:
-                    self._translation_ok += 1
+                    self._translation_ok += int((cached or "").strip() != s.strip())
                     return cached
             try:
                 result = worker(s)
                 if self.cache:
                     _cache_set_font(s, result, font_sig)
-                self._translation_ok += 1
+                self._translation_ok += int((result or "").strip() != s.strip())
                 return result
             except BaseException as e:
                 self._translation_errors.append(f"{type(e).__name__}: {str(e)[:240]}")
@@ -587,8 +589,7 @@ class TranslateConverter(PDFConverterEx):
                 return s
 
         def _cache_get_font(s: str, font_sig: str):
-            # 兼容旧缓存接口（无 variant 参数）
-            try:
+            try:  # 兼容旧缓存接口（无 variant 参数）
                 return self.cache.get(s, self.translator.lang_in, self.translator.lang_out, variant=font_sig)
             except TypeError:
                 return self.cache.get(s, self.translator.lang_in, self.translator.lang_out)
@@ -600,8 +601,7 @@ class TranslateConverter(PDFConverterEx):
                 self.cache.set(s, self.translator.lang_in, self.translator.lang_out, result)
 
         _font_sigs = [
-            ("|fonts:" + "|".join(sorted(f)[:8])) if len(f) > 1 else ""
-            for f in pfkstk
+            ("|fonts:" + "|".join(sorted(f)[:8])) if len(f) > 1 else "" for f in pfkstk
         ]
         # 8.3.1 段落级 Batch（实现外移 v3/paragraph_batch.py；开关在模块内部）。
         # === Semantic Phase 1: 代码保护（keep 掩码，逻辑外移 v3/semantic_sidechannel.py）===

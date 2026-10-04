@@ -34,10 +34,12 @@ RETRY_SAMPLE = (
 
 
 def test_no_errors_is_a_noop():
-    """没有错误时门禁必须什么都不做。"""
+    """没有错误时什么都不做（无 attempted 字段 = 旧调用方，语义不变）。"""
     _enforce_translation_error_policy("openai", {})
     _enforce_translation_error_policy("openai", {"count": 0})
     _enforce_translation_error_policy("openai", None)
+    # attempted=0 表示"根本没尝试翻译"（纯扫描件 passthrough），不该 raise
+    _enforce_translation_error_policy("openai", {"count": 0, "ok": 0, "attempted": 0})
 
 
 def test_partial_failure_does_not_raise(caplog):
@@ -71,6 +73,41 @@ def test_total_failure_raises():
         _enforce_translation_error_policy(
             "openai", {"count": 21, "ok": 0, "samples": [RETRY_SAMPLE]}
         )
+
+
+def test_identity_translation_raises():
+    """尝试过、一段都没译出（翻译器全程返回原文）→ 必须 raise。
+
+    这类失败没有任何异常，所以 ``count == 0``；旧逻辑直接 return，
+    于是一份逐字等于原文的「译文」被当成功交付（实测 325 页扫描件）。
+    """
+    with pytest.raises(PDFValueError) as exc:
+        _enforce_translation_error_policy(
+            "google", {"count": 0, "ok": 0, "attempted": 1200}
+        )
+    message = str(exc.value)
+    assert "identical to the source" in message
+    assert "google" in message, "报错要指名服务，避免用户去查网络"
+    assert "1200" in message
+
+
+def test_identity_translation_names_the_real_cause():
+    """报错必须指向缓存 / 同语 / passthrough，而不是网络超时。"""
+    with pytest.raises(PDFValueError) as exc:
+        _enforce_translation_error_policy(
+            "openai", {"count": 0, "ok": 0, "attempted": 5}
+        )
+    message = str(exc.value).lower()
+    assert "cache" in message
+    assert "passthrough" in message
+    assert "retryerror" not in message, "不该把用户引向 tenacity 重试排查"
+
+
+def test_partial_failure_with_attempted_still_passes():
+    """有成功段时 attempted 的存在不应改变「部分失败只告警」的行为。"""
+    _enforce_translation_error_policy(
+        "openai", {"count": 21, "ok": 1200, "attempted": 1221}
+    )
 
 
 def test_missing_ok_key_is_treated_as_total_failure():
