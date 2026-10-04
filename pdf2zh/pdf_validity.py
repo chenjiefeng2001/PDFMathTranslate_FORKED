@@ -48,9 +48,14 @@ Edge 里打不开。
 而 pikepdf 的 load+save **不会**修好它（原样保留），所以 :func:`repair_pdf`
 必须显式做 Catalog 类型清洗，否则「修复」永远失败。
 
-``pypdfium2`` 是既有传递依赖（``uv.lock`` 内已有，随 marker-pdf 一同安装），
-因此这里不新增依赖。万一缺失：结构校验照跑（只依赖 pikepdf），PDFium 试开
-降级为 **warning**（不再是静默 info）—— 明确告知「产物未经真实阅读器验证」。
+``pypdfium2`` 是**声明依赖**（``pyproject.toml``），不是可选增强：它捆绑的
+PDFium 就是本闸门的「浏览器判据」，而 :func:`repair_pdf` 没有它会拒绝原地
+改写（无法验证的改写比不改更危险）。此前它只是 ``mineru``（``magicpdf``
+extra）/ ``pdftext`` 的传递依赖，默认安装与 CI 的 ``uv sync`` 都没有，闸门
+静默退化成「只看结构」。
+
+万一仍然缺失：结构校验照跑（只依赖 pikepdf），PDFium 试开降级为 **warning**
+（不再是静默 info）—— 明确告知「产物未经真实阅读器验证」。
 """
 
 from __future__ import annotations

@@ -45,7 +45,13 @@ from pdf2zh.v3.magicpdf_renderer import render_plan_to_pdf
 from pdf2zh.v3.render_payload import KEEP_KINDS
 from pdf2zh.v3.structure import BlockRole, _looks_like_display_formula
 
-ARIAL = r"C:\Windows\Fonts\arial.ttf"
+#: 一份与平台无关的字体字节：MuPDF 内置 Helvetica。
+#:
+#: 旧实现写死 ``ARIAL = r"C:\Windows\Fonts\arial.ttf"``。本机（Windows）永远
+#: 通过，Linux CI 上却必然 ``FzErrorSystem: cannot open C:\Windows\Fonts\...``，
+#: 4 个字体测试在那里全红 —— 平台写死的测试等于没测。用 ``fontbuffer`` 直接把
+#: 字节喂给 ``insert_font``，连临时文件都不需要。
+HELVETICA = pymupdf.Font("helv").buffer
 
 
 def _flow_entry(text, x, box_width, font_size, page=0, page_height=842.0):
@@ -525,7 +531,7 @@ class TestFontResourcesAndLengthIntegrity(unittest.TestCase):
         doc = pymupdf.open()
         for i in range(6):
             doc.new_page(width=595, height=842).insert_text((72, 100), f"p{i}")
-        font_xref = doc[0].insert_font("noto", ARIAL)
+        font_xref = doc[0].insert_font("noto", fontbuffer=HELVETICA)
         for i in range(1, 6):
             self.assertTrue(
                 broadcast_page_font(doc, doc[i].xref, font_xref, "noto"),
@@ -551,7 +557,7 @@ class TestFontResourcesAndLengthIntegrity(unittest.TestCase):
             with self.subTest(resources=broken):
                 doc = pymupdf.open()
                 doc.new_page(width=300, height=300)
-                font_xref = doc[0].insert_font("noto", ARIAL)
+                font_xref = doc[0].insert_font("noto", fontbuffer=HELVETICA)
                 page_xref = doc[0].xref
                 if broken is None:
                     # 整键删掉：直接改页面对象文本（PyMuPDF 没有 del-key API）
@@ -578,7 +584,7 @@ class TestFontResourcesAndLengthIntegrity(unittest.TestCase):
     def test_broadcast_is_idempotent(self):
         doc = pymupdf.open()
         doc.new_page(width=300, height=300)
-        font_xref = doc[0].insert_font("noto", ARIAL)
+        font_xref = doc[0].insert_font("noto", fontbuffer=HELVETICA)
         for _ in range(3):
             self.assertTrue(broadcast_page_font(doc, doc[0].xref, font_xref, "noto"))
         self.assertEqual(
@@ -598,7 +604,7 @@ class TestFontResourcesAndLengthIntegrity(unittest.TestCase):
         doc.update_object(
             math_xref, "<< /Type /Font /Subtype /Type1 /BaseFont /CMR10 >>"
         )
-        font_xref = doc[0].insert_font("noto", ARIAL)
+        font_xref = doc[0].insert_font("noto", fontbuffer=HELVETICA)
         for i in range(1, 5):
             broadcast_page_font(doc, doc[i].xref, font_xref, "noto")
         out = doc.write(deflate=True, garbage=3)

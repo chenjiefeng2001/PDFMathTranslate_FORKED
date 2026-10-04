@@ -107,6 +107,32 @@ def _all_text(path):
 @unittest.skipUnless(
     HAVE_PDFIUM, "pypdfium2 unavailable; gate degrades to pass-through"
 )
+class TestPdfiumOracleIsInstalled(unittest.TestCase):
+    """PDFium 是**声明依赖**，不是可选增强。
+
+    它此前只是 ``mineru``（``magicpdf`` extra）和 ``pdftext`` 的传递依赖，
+    默认安装与 CI 的 ``uv sync`` 都没有。于是闸门退化成「只看结构」、
+    ``repair_pdf`` 全部拒绝改写，而 CI 里 9 个修复测试就是这么红的 ——
+    本机（装了 magicpdf extra）永远绿。
+
+    降级行为本身有测试（``test_degrades_to_pass_through_without_pdfium``、
+    ``test_repair_refuses_to_rewrite_without_pypdfium2``），所以这里防的是
+    「依赖被悄悄摘掉、没人发现」。
+    """
+
+    def test_pypdfium2_is_importable(self):
+        self.assertIsNotNone(
+            pdf_validity._pdfium(),
+            "pypdfium2 is a declared pdf2zh dependency; without it the strict "
+            "reader gate has no browser oracle and repair_pdf refuses to run",
+        )
+
+    def test_it_is_declared_in_pyproject(self):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        with open(os.path.join(root, "pyproject.toml"), encoding="utf-8") as fh:
+            self.assertIn("pypdfium2", fh.read())
+
+
 class TestStrictReaderCheck(unittest.TestCase):
     def test_valid_pdf_is_accepted(self):
         with tempfile.TemporaryDirectory() as tmp:

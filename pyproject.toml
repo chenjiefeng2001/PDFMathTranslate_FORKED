@@ -38,6 +38,11 @@ dependencies = [
     "peewee>=3.17.8",
     "fontTools",
     "babeldoc>=0.6.4",
+    # 严格阅读器闸门（pdf2zh.pdf_validity）用它捆绑的 PDFium 充当
+    # "Chrome/Edge 判据"，`repair_pdf` 没有它会拒绝原地改写。此前它只是
+    # mineru（magicpdf extra）/ pdftext 的传递依赖：默认安装和 CI 的
+    # `uv sync` 都没有 → 闸门静默降级成"只看结构"，修档路径整条失效。
+    "pypdfium2",
     "rich",
 ]
 
