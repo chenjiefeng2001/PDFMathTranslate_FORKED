@@ -53,6 +53,38 @@ from pdf2zh.v3.structure import BlockRole, _looks_like_display_formula
 #: 字节喂给 ``insert_font``，连临时文件都不需要。
 HELVETICA = pymupdf.Font("helv").buffer
 
+#: 判定一个异常是否只是「资源没下载到」，而不是被测不变量被破坏。
+#:
+#: 端到端那条测试要真跑 ``translate_stream``，转换器初始化时会去拉 BabelDOC 的
+#: embedding 资源。CI 上这是外网：``ubuntu-24.04-arm`` 那条腿遇到过
+#: ``httpx.ConnectError: All connection attempts failed`` 三次重试全败，于是
+#: ``RuntimeError: asset coroutine failed`` 把测试判成 FAILED —— 一次网络抖动
+#: 被报成了产品缺陷。网络问题必须 skip，断言问题必须 fail。
+_ASSET_FETCH_MARKERS = (
+    "connect",
+    "network",
+    "asset coroutine",
+    "retry",
+    "timeout",
+    "timed out",
+    "resolve",
+    "download",
+    "temporary failure in name resolution",
+)
+
+
+def _looks_like_asset_fetch_failure(exc: BaseException) -> bool:
+    """沿 ``__cause__`` / ``__context__`` 链找网络取资源失败的痕迹。"""
+    seen = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        text = f"{type(cur).__name__}: {cur}".lower()
+        if any(marker in text for marker in _ASSET_FETCH_MARKERS):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
 
 def _flow_entry(text, x, box_width, font_size, page=0, page_height=842.0):
     return {
@@ -633,6 +665,28 @@ class TestFontResourcesAndLengthIntegrity(unittest.TestCase):
                 )
 
 
+class TestAssetFetchFailureClassifier(unittest.TestCase):
+    """``_looks_like_asset_fetch_failure`` 自身也要被测，否则它可能退化成永假。"""
+
+    def test_connect_error_chain_counts(self):
+        try:
+            try:
+                raise ConnectionError("All connection attempts failed")
+            except ConnectionError as inner:
+                raise RuntimeError("asset coroutine failed: RetryError") from inner
+        except RuntimeError as exc:
+            self.assertTrue(_looks_like_asset_fetch_failure(exc))
+
+    def test_plain_failure_does_not_count(self):
+        for exc in (
+            ValueError("bad page"),
+            AssertionError(""),
+            RuntimeError("document has 0 pages"),
+        ):
+            with self.subTest(exc=type(exc).__name__):
+                self.assertFalse(_looks_like_asset_fetch_failure(exc))
+
+
 class TestTranslateStreamMathFontIntegrity(unittest.TestCase):
     """端到端跑一遍 ``translate_stream`` —— ``/Length`` 损坏正是在这里发生。
 
@@ -709,17 +763,22 @@ class TestTranslateStreamMathFontIntegrity(unittest.TestCase):
         src = self._math_pdf()
         with open(src, "rb") as fh:
             data = fh.read()
-        dual, mono = hl.translate_stream(
-            data,
-            lang_in="en",
-            lang_out="zh-CN",
-            service="google",
-            thread=1,
-            envs={},
-            ignore_cache=True,
-            parallel_pages=False,
-            model=ModelInstance.value,
-        )
+        try:
+            dual, mono = hl.translate_stream(
+                data,
+                lang_in="en",
+                lang_out="zh-CN",
+                service="google",
+                thread=1,
+                envs={},
+                ignore_cache=True,
+                parallel_pages=False,
+                model=ModelInstance.value,
+            )
+        except Exception as exc:  # noqa: BLE001 -- 只把「取不到资源」当 skip
+            if _looks_like_asset_fetch_failure(exc):
+                raise unittest.SkipTest(f"BabelDOC assets unreachable: {exc}") from exc
+            raise
         for tag, blob in (("mono", mono), ("dual", dual)):
             with self.subTest(output=tag):
                 self.assertNotIn(
