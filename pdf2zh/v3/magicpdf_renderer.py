@@ -206,19 +206,26 @@ def _insert_text_wrapped(
     text: str,
     font_size: float,
     fontname: Optional[str],
+    stats: Optional[Dict[str, Any]] = None,
 ) -> None:
     """在 rect 内手动换行插入文本（兼容 CJK 字体度量）。
 
-    - 按「词」（空白分隔）累积行，行宽用 ``page.get_text_length`` 精确度量；
+    - 按「词」（空白分隔）累积行，行宽按绘制字体精确度量；
     - 全角/无空格文本（中文）逐字符累积；
-    - 行高 ``font_size * 1.4``，超出 rect 下边界即停止（不裁剪不报错，
-      评测用途，后续排版迭代处理截断/换页）。
+    - 行高 ``font_size * 1.4``；**放不下时先缩字号重排**（与 flow 路径的 SHRINK
+      recovery 同一取舍），缩到下限仍放不下才截断，并记入 ``wrap_truncated``。
+    - 落笔统一走 :func:`_draw_line` —— 换行只按 rect 宽度收敛，rect 本身可能
+      越出页面右边界，或单个超长 token 宽于整行，两者都会让 pymupdf 静默截断。
+
+    旧实现「超出 rect 下边界即停止」是静默丢字：译文比原文多一行时，后面整段
+    直接消失且无任何日志/指标。实测扫描件上的标题块
+    ``'Chapter One: The Scanning Machine'`` 只剩下 ``'Chapter One:'``。
     """
-    line_h = font_size * 1.4
-    y = float(rect.y0) + font_size * 0.85
+    stats = stats if stats is not None else {}
     x = float(rect.x0)
     max_w = max(0.1, float(rect.x1) - float(rect.x0))
-    bottom = float(rect.y1)
+    box_h = max(1e-6, float(rect.y1) - float(rect.y0))
+    top = float(rect.y0)
     import pymupdf
 
     # pymupdf 内置 CJK 字体对拉丁字符的 advance 偏宽，提取文本时会在字符间
@@ -228,29 +235,75 @@ def _insert_text_wrapped(
     if effective_font == "china-ss" and all(ord(ch) < 0x2E80 for ch in text):
         effective_font = "helv"
 
-    def _width(s: str) -> float:
-        if effective_font in ("helv", "cour"):
-            return pymupdf.get_text_length(
-                s, fontsize=font_size, fontname=effective_font
-            )
-        # CJK 内置字体（china-ss）对全角/拉丁均近似 1em 等宽，逐字符估算。
-        return len(s) * font_size
+    def _layout(fs: float) -> list[str]:
+        def _width(s: str) -> float:
+            if effective_font in ("helv", "cour"):
+                return pymupdf.get_text_length(s, fontsize=fs, fontname=effective_font)
+            # CJK 内置字体（china-ss）对全角/拉丁均近似 1em 等宽，逐字符估算。
+            return len(s) * fs
 
-    tokens = text.split(" ")
-    cur = ""
-    for tok in tokens:
-        sep = " " if cur else ""
-        trial = f"{cur}{sep}{tok}"
-        if cur and _width(trial) > max_w:
-            page.insert_text((x, y), cur, fontsize=font_size, fontname=effective_font)
-            y += line_h
-            if y > bottom:
-                return
-            cur = tok
-        else:
-            cur = trial
-    if cur:
-        page.insert_text((x, y), cur, fontsize=font_size, fontname=effective_font)
+        lines: list[str] = []
+        cur = ""
+        for tok in text.split(" "):
+            sep = " " if cur else ""
+            trial = f"{cur}{sep}{tok}"
+            if cur and _width(trial) > max_w:
+                lines.append(cur)
+                cur = tok
+            else:
+                cur = trial
+        if cur:
+            lines.append(cur)
+        return lines
+
+    def _stack_height(n_lines: int, fs: float) -> float:
+        # 首行基线在 top + 0.85em，末行基线再下移 (n-1) 个行距
+        return fs * 0.85 + max(0, n_lines - 1) * fs * 1.4
+
+    draw_fs = float(font_size)
+    lines = _layout(draw_fs)
+    if _stack_height(len(lines), draw_fs) > box_h:
+        for scale in _WRAP_SHRINK_STEPS:
+            if scale >= 1.0:
+                continue
+            candidate = float(font_size) * scale
+            if _stack_height(len(_layout(candidate)), candidate) <= box_h:
+                draw_fs = candidate
+                lines = _layout(candidate)
+                stats["fit_shrunk"] = stats.get("fit_shrunk", 0) + 1
+                logger.debug(
+                    "[magicpdf] wrapped block shrunk %.2f -> %.2f to fit %d line(s) "
+                    "in %.1fpt",
+                    float(font_size),
+                    draw_fs,
+                    len(lines),
+                    box_h,
+                )
+                break
+
+    line_h = draw_fs * 1.4
+    y = top + draw_fs * 0.85
+    drawn = 0
+    for line in lines:
+        # 首行始终落笔：退化几何（零高/零宽的 box）下这也是历史行为，
+        # 既有测试锁定了它。行数不够时只从第二行开始截，并如实计数。
+        if drawn and y > float(rect.y1) + 1e-6:
+            break
+        _draw_line(page, line, x, y, effective_font, draw_fs, stats, "wrapped")
+        drawn += 1
+        y += line_h
+    if drawn < len(lines):
+        dropped = len(lines) - drawn
+        stats["wrap_truncated"] = stats.get("wrap_truncated", 0) + 1
+        logger.warning(
+            "[magicpdf] wrapped block needs %d line(s) but only %d fit in %.1fpt; "
+            "%d line(s) dropped: %r",
+            len(lines),
+            drawn,
+            box_h,
+            dropped,
+            text[:60],
+        )
 
 
 def _resolve_effect_font(text: str, fontname: Optional[str]) -> Optional[str]:
@@ -259,6 +312,141 @@ def _resolve_effect_font(text: str, fontname: Optional[str]) -> Optional[str]:
     if effective == "china-ss" and all(ord(ch) < 0x2E80 for ch in text):
         effective = "helv"
     return effective
+
+
+#: 单行字号可缩到的最小比例。排版层自身的 SHRINK recovery（flow payload 的
+#: ``recovery.steps``）已在上游缩过一次，这里是渲染层的兜底：只保证字形不越出
+#: 页面右边界，不再重排（重排归排版层，见 _render_flow_commands 的不变式）。
+_FIT_MIN_SCALE = 0.55
+
+#: 末字形与页面右边界之间保留的余量（pt），避免压边。
+_FIT_MARGIN_PT = 1.5
+
+#: legacy wrapped 路径逐级尝试的缩放比例（用于把多行译文压进源框高度）。
+_WRAP_SHRINK_STEPS = (1.0, 0.92, 0.85, 0.78, 0.72, 0.66, 0.60, 0.55)
+
+
+def _page_width(page: Any) -> float:
+    """页面宽度（pt）；取不到时返回 0.0 表示「不做页面内收敛」。"""
+    try:
+        return float(page.rect.width)
+    except Exception:  # noqa: BLE001 -- 拿不到页宽就按原样画
+        return 0.0
+
+
+def _advance_width(text: str, fontname: Optional[str], font_size: float) -> float:
+    """``text`` 在**真正用来绘制它的字体**下的水平前进宽度。
+
+    必须用绘制字体度量：``china-ss`` 的拉丁字符 advance ≈ 1em，而排版层
+    （``semantic/layout/measure.py``）按 helv 度量，同一行两者相差约 2 倍。
+    """
+    import pymupdf
+
+    if not text:
+        return 0.0
+    size = float(font_size)
+    try:
+        return float(
+            pymupdf.get_text_length(text, fontname=fontname or "helv", fontsize=size)
+        )
+    except Exception:  # noqa: BLE001 -- 度量失败退回等宽估算，不阻断渲染
+        return len(text) * size
+
+
+def _fit_line_to_page(
+    text: str,
+    fontname: Optional[str],
+    font_size: float,
+    x: float,
+    page_width: float,
+) -> Tuple[float, str, str]:
+    """把一行缩放/裁剪到能落在页面内，返回 ``(字号, 文本, 状态)``。
+
+    ``pymupdf.Page.insert_text`` 对超出页面右边界的部分**静默丢弃**并仍然返回
+    成功码，译文会毫无征兆地被从中间截断（实测 x=300 时一行 60 字符只剩 30）。
+    根因是排版按 helv 度量、渲染按 china-ss 绘制（含 CJK 的行一律切
+    china-ss，见 :func:`_resolve_effect_font`），两者宽度不一致。
+
+    先按比例缩字号（与排版层 SHRINK recovery 同一取舍），仍放不下才显式裁剪
+    并把状态返回给调用方记入统计 —— 任何丢失都变成可观测的，而不是静默的。
+    """
+    if not text or page_width <= 0:
+        return float(font_size), text, "fit"
+    avail = float(page_width) - float(x) - _FIT_MARGIN_PT
+    if avail <= 0:
+        return float(font_size), "", "dropped"
+    width = _advance_width(text, fontname, font_size)
+    if width <= 0 or width <= avail:
+        return float(font_size), text, "fit"
+    scale = avail / width
+    floor = float(font_size) * _FIT_MIN_SCALE
+    if scale >= _FIT_MIN_SCALE:
+        return float(font_size) * scale, text, "shrunk"
+    # 已到缩放下限仍放不下：显式裁剪到能放下的前缀（pymupdf 只会默默扔掉剩余部分）
+    keep = ""
+    for ch in text:
+        if _advance_width(keep + ch, fontname, floor) > avail:
+            break
+        keep += ch
+    if not keep:
+        return floor, "", "dropped"
+    return floor, keep, "clipped"
+
+
+def _draw_line(
+    page: Any,
+    text: str,
+    x: float,
+    y: float,
+    eff_font: Optional[str],
+    font_size: float,
+    stats: Dict[str, Any],
+    label: str = "",
+) -> Tuple[float, str, str]:
+    """所有 draw 路径的唯一落笔出口：先保证整行在页面内，再 ``insert_text``。
+
+    四个绘制路径（list / toc / flow / legacy wrapped）都曾直接调
+    ``insert_text`` 且不做任何宽度核算，因此统一收敛到这里，避免只修一条路径。
+
+    ``eff_font`` 须已由 :func:`_resolve_effect_font` 解析。返回实际使用的
+    ``(字号, 落笔文本, 状态)`` —— 调用方要用它回算基线（trace 的
+    ``FLOW_BASELINE_MISMATCH`` 规则比对的就是这个值）。
+    """
+    if not text:
+        return float(font_size), "", "empty"
+    draw_fs, out_text, status = _fit_line_to_page(
+        text, eff_font, font_size, x, _page_width(page)
+    )
+    if status == "shrunk":
+        stats["fit_shrunk"] = stats.get("fit_shrunk", 0) + 1
+        logger.debug(
+            "[magicpdf] line shrunk %.2f -> %.2f to stay on page%s",
+            float(font_size),
+            draw_fs,
+            f" ({label})" if label else "",
+        )
+    elif status == "clipped":
+        stats["fit_clipped"] = stats.get("fit_clipped", 0) + 1
+        logger.warning(
+            "[magicpdf] line too wide for the page even at the size floor; "
+            "%d of %d characters dropped%s: %r",
+            len(text) - len(out_text),
+            len(text),
+            f" ({label})" if label else "",
+            text[:60],
+        )
+    elif status == "dropped":
+        stats["fit_clipped"] = stats.get("fit_clipped", 0) + 1
+        logger.warning(
+            "[magicpdf] line starts past the page's right edge; dropped whole%s: %r",
+            f" ({label})" if label else "",
+            text[:60],
+        )
+        return draw_fs, "", status
+    page.insert_text((x, y), out_text, fontsize=draw_fs, fontname=eff_font)
+    stats["blocks"] += 1
+    stats["glyphs"] += len(out_text)
+    return draw_fs, out_text, status
 
 
 def _render_list_commands(
@@ -286,9 +474,7 @@ def _render_list_commands(
         x = float(c.get("x") or 0.0)
         y = float(c.get("y") or 0.0)
         eff = _resolve_effect_font(t, fontname)
-        page.insert_text((x, page_height - y), t, fontsize=font_size, fontname=eff)
-        stats["blocks"] += 1
-        stats["glyphs"] += len(t)
+        _draw_line(page, t, x, page_height - y, eff, font_size, stats, "list")
 
 
 def _render_flow_commands(
@@ -327,6 +513,8 @@ def _render_flow_commands(
     # FLOW_BASELINE_MISMATCH 规则与实际基线比对 —— 若未来回归去掉 0.85
     # 偏移，trace 会立即暴露 actual != expected）。
     used_baselines: List[float] = []
+    block_id = (entry or {}).get("block_id")
+    page_width = _page_width(page)
     for c in commands or []:
         t = c.get("text") or ""
         if not t:
@@ -345,11 +533,15 @@ def _render_flow_commands(
         # fitz 矩形顶边；基线必须再下移 ~0.85em（与 _insert_text_wrapped 的
         # 锚定一致），否则译文墨水整体上浮 ≈1em 顶进上一行。多行命令的
         # 相对步进（line_step）保持不变，整列只平移这个锚定偏移。
-        baseline = (page_height - y) + draw_fs * 0.85
-        page.insert_text((x, baseline), t, fontsize=draw_fs, fontname=eff)
-        used_baselines.append((float(y), float(draw_fs), float(baseline)))
-        stats["blocks"] += 1
-        stats["glyphs"] += len(t)
+        # 这里的 0.85 必须用**实际落笔**字号：_fit_line_to_page 可能为把整行
+        # 留在页面内而缩过字号（见该函数），用计划字号算出的 baseline 会与
+        # 真实墨水错位，trace 的 FLOW_BASELINE_MISMATCH 也就不再成立。
+        fitted_fs, _, _ = _fit_line_to_page(t, eff, draw_fs, x, page_width)
+        baseline = (page_height - y) + fitted_fs * 0.85
+        used_fs, _drawn, _status = _draw_line(
+            page, t, x, baseline, eff, draw_fs, stats, f"flow {block_id}"
+        )
+        used_baselines.append((float(y), float(used_fs), float(baseline)))
         overflow_hit = overflow_hit or bool(c.get("overflow"))
     if overflow_hit:
         logger.debug(
@@ -461,6 +653,15 @@ def render_plan_to_pdf(
         return translated != text
 
     by_page: Dict[int, List[dict]] = {}
+    # 页集合 = 计划里出现的页 ∪ 调用方声明了页尺寸的页。
+    # 后半是关键：某一页 OCR/布局一个块都没检出时，render_plan 里不会有它，
+    # 但扫描件上那一页的内容来自背景层 —— 只按计划建页会把整页从产物里删掉
+    # （实测 3 页扫描件 → 2 页 PDF，且退出码 0、无任何告警）。
+    for pno in sizes:
+        try:
+            by_page.setdefault(int(pno), [])
+        except (TypeError, ValueError):
+            continue
     for entry in list(plan or []):
         pno = int(entry.get("page") or 0)
         by_page.setdefault(pno, []).append(entry)
@@ -473,6 +674,11 @@ def render_plan_to_pdf(
     # 空 plan 也产出至少 1 个空页，保证下游可打开（pymupdf 无 0 页 PDF）。
     if not by_page:
         by_page[0] = []
+
+    empty_pages = sum(1 for entries in by_page.values() if not entries)
+    if empty_pages:
+        # 显式计数：这些页没有可翻译块，但仍必须出现在产物里（背景层承载内容）。
+        stats["pages_without_entries"] = empty_pages
 
     for pno in sorted(by_page):
         w, h = sizes.get(pno, default_page)
@@ -676,9 +882,9 @@ def render_plan_to_pdf(
             # 7N-FIX-3A：wrapped 路径与 _insert_text_wrapped 同一锚定 ——
             # baseline = box top (fitz rect.y0) + 0.85*fs。
             baseline = float(rect.y0) + font_size * 0.85
-            _insert_text_wrapped(page, rect, text, font_size, block_font)
-            stats["blocks"] += 1
-            stats["glyphs"] += len(text)
+            # stats 交给 _insert_text_wrapped：逐行经 _draw_line 累加，块级的
+            # blocks/glyphs 由那里按**实际落笔**的文本计（裁剪时不能按原文数）。
+            _insert_text_wrapped(page, rect, text, font_size, block_font, stats)
             _emit_render_trace(
                 trace,
                 entry,

@@ -31,6 +31,7 @@ from pdf2zh.assembler.base import (
     PageResult,
     TranslationArtifact,
 )
+from pdf2zh.font_cache import find_math_fonts
 
 logger = logging.getLogger(__name__)
 
@@ -176,46 +177,23 @@ class MuPDFAssembler(PDFAssembler):
 
     @staticmethod
     def _protect_math_fonts(doc):
-        """保护数学字体不被 MuPDF subset_fonts 破坏。"""
+        """记录会被子集化的数学字体（只读诊断，绝不写 xref）。
+
+        ``subset_fonts()`` 没有按字体排除的接口，因此只能报告名单。旧实现用
+        ``xref_set_key(xref, "/Length", ...)`` 企图阻止子集化：在 PyMuPDF
+        1.28.2 上带前导斜杠读键返回 ``('null','null')``，写出来是
+        ``/Length 58  / << /Length null >> >>``（重复键 + 无键子字典），
+        会让阅读器报「文件已损坏」；而 ``"/BaseFont"`` 读键同样为 null，
+        所以旧函数整体空转、声称的保护从未存在。详见
+        :func:`pdf2zh.font_cache.find_math_fonts`。
+        """
         try:
-            xreflen = doc.xref_length()
-            for xref in range(1, xreflen):
-                try:
-                    basefont_res = doc.xref_get_key(xref, "/BaseFont")
-                    if basefont_res[0] == "name":
-                        bf = str(basefont_res[1])
-                        math_patterns = [
-                            "CM",
-                            "CMSY",
-                            "CMEX",
-                            "CMMI",
-                            "EUFM",
-                            "MSBM",
-                            "MSAM",
-                            "STIX",
-                            "XITS",
-                            "MnSymbol",
-                            "rsfs",
-                            "txsy",
-                            "wasy",
-                            "stmary",
-                            "Symbol",
-                            "MT",
-                            "BL",
-                            "RM",
-                            "EU",
-                            "LA",
-                            "RS",
-                        ]
-                        for mp in math_patterns:
-                            if mp in bf:
-                                doc.xref_set_key(
-                                    xref,
-                                    "/Length",
-                                    doc.xref_get_key(xref, "/Length")[1],
-                                )
-                                break
-                except Exception:
-                    pass
-        except Exception:
-            pass
+            math_fonts = find_math_fonts(doc)
+        except Exception:  # noqa: BLE001 -- 诊断路径，永不阻断渲染
+            return
+        if math_fonts:
+            logger.info(
+                "mupdf_assembler: %d math/symbol font(s) will be subset " "(e.g. %s)",
+                len(math_fonts),
+                ", ".join(sorted({n for _x, n in math_fonts})[:5]),
+            )

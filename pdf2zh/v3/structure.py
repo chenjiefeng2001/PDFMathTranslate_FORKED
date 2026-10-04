@@ -131,6 +131,69 @@ _RE_PUNCT = re.compile(r"[^\w\s]")
 _RE_UPPER = re.compile(r"[A-Z]")
 _RE_FORMULA_SYMBOLS = re.compile(r"^[\s\d+\-*/=(){}^_\\<>,.~]+$")
 
+# ── 显示公式判定的「运算符」证据（块级 role 用）────────────────────────────
+# 与 span 级的 _RE_MATH_SYMBOL 分开：后者把 () <> ~ 也算作数学符号，用于
+# annotate_formulas 的 math 标记 / formula_density 统计；块级 role 决定
+# 「整块是否保留原文」，误判代价是**整段永远不被翻译**，必须更保守。
+#
+# 不收 ()：括号在自然语言里同样高频 —— 引用 '(Smith et al., 2019)'、括注
+# '(test)'、图号 'Fig. 7(a)'、区间 '[0, 1]'。<> 保留：'a < b' 是真数学，而
+# 散文里几乎不出现。\ { } ~ 是 LaTeX 记号的可靠证据；'~' 在中文里是数值区间
+# 连接号（'2001~2010'），但中文散文会被下面的 CJK 守卫先排除。
+_RE_FORMULA_OPERATOR = re.compile(r"[\+\-*/=^_~\\{}×÷±∑∏∫√∞≠≈≤≥<>→←⇒∈∀∃]")
+
+#: 判定「像自然语言」的词：整词为字母（可含内部连字符/撇号）、≥3 字符。
+#: 按空白切 token 后要求**整词**匹配，这样 LaTeX 记号 '\int_0^1' 不会被
+#: 误当成单词 'int'。
+_RE_PROSE_WORD = re.compile(r"[A-Za-z][A-Za-z'\-]*")
+
+#: 散文里至少要有这么多个自然语言词，才认定「这是句子，不是显示公式」。
+_PROSE_MIN_WORDS = 2
+#: CJK 字符达到这个数即视为散文（显示公式不含成句的汉字）。
+_PROSE_MIN_CJK = 4
+
+
+def _prose_word_count(text: str) -> int:
+    """按空白切词后，统计「整词为字母且 ≥3 字符」的 token 数。"""
+    count = 0
+    for token in text.split():
+        if len(token) >= 3 and _RE_PROSE_WORD.fullmatch(token):
+            count += 1
+    return count
+
+
+def _looks_like_display_formula(text: str) -> bool:
+    """文本启发式：这段文字**整体**是不是一条显示公式。
+
+    这是布局类别缺失时的兜底（MinerU/magic-pdf 已判为 ``interline_equation``
+    的块根本不会走到这里 —— ``annotate_roles`` 只处理 ``kind == "paragraph"``）。
+    原文把「≥2 个数学符号 + 字母数字占比 < 0.85」当公式，但：
+
+    1. 数学符号集含 ``()``，而英文散文的引用/括注/图号都带括号；
+    2. ``str.isalnum()`` 不计空格，英文散文天然落在 0.72~0.84，这个守卫
+       对散文**从不生效**。
+
+    实测 20 句普通英文散文有 15 句被判成 formula（置信度 0.9），于是整块落入
+    ``KEEP_KINDS`` 被保留 —— 扫描件里这些正文从此不再翻译。所以这里改成：
+    要求真正的运算符证据，并显式排除「读起来是句子」的文本。
+    """
+    stripped = (text or "").strip()
+    if not stripped:
+        return False
+    # 纯符号/数字串（'x = a + b'、'2001-2010'、'45.2 +/- 1.3'）直接认定。
+    if _RE_FORMULA_SYMBOLS.match(stripped):
+        return True
+    operators = sum(1 for _ in _RE_FORMULA_OPERATOR.finditer(stripped))
+    if operators < 2:
+        return False
+    # 「读起来是句子」→ 不是显示公式（哪怕句中含公式）。
+    if _prose_word_count(stripped) >= _PROSE_MIN_WORDS:
+        return False
+    if sum(1 for c in stripped if "一" <= c <= "鿿") >= _PROSE_MIN_CJK:
+        return False
+    alnum = sum(1 for c in stripped if c.isalnum()) / max(len(stripped), 1)
+    return alnum < 0.85
+
 
 @dataclass
 class BlockFeatures:
@@ -422,11 +485,10 @@ class StructureClassifier:
         if arb is not None:
             return arb
 
-        # 4. 公式：数学符号密度（连续公式行 / 公式表达式）
-        if _RE_FORMULA_SYMBOLS.match(text) or (
-            sum(1 for _ in _RE_MATH_SYMBOL.finditer(text)) >= 2
-            and sum(1 for c in text if c.isalnum()) / max(len(text), 1) < 0.85
-        ):
+        # 4. 公式：要求真正的运算符证据，并排除读起来是句子的文本
+        #    （旧规则把 '(Smith et al., 2019)' / '2001-2010' / '45.2 +/- 1.3'
+        #     判成 formula，扫描件里这些正文整块落入 KEEP_KINDS 从不翻译）。
+        if _looks_like_display_formula(text):
             return BlockRole.FORMULA, 0.9
 
         # 5. 脚注：脚注标记开头 + 字号小于正文（标记可为 † 等符号或数字标记）

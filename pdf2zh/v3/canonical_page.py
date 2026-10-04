@@ -423,7 +423,7 @@ def annotate_formulas(page: PageModel) -> int:
     占比）。返回标记的 span 数。
     """
     try:
-        from pdf2zh.v3.structure import _RE_FORMULA_SYMBOLS, _RE_MATH_SYMBOL
+        from pdf2zh.v3.structure import _looks_like_display_formula
     except Exception:  # noqa: BLE001
         return 0
     marked = 0
@@ -432,10 +432,7 @@ def annotate_formulas(page: PageModel) -> int:
         math_spans = 0
         for span in spans:
             text = span.text
-            if text and (
-                _RE_FORMULA_SYMBOLS.match(text)
-                or sum(1 for _ in _RE_MATH_SYMBOL.finditer(text)) >= 2
-            ):
+            if text and _looks_like_display_formula(text):
                 span.metadata["math"] = True
                 marked += 1
                 math_spans += 1

@@ -6,7 +6,6 @@ import hashlib
 import io
 import json
 import os
-import re
 import sys
 import tempfile
 import time
@@ -38,7 +37,11 @@ from pdf2zh.translator import build_translator
 from pdf2zh.doclayout import OnnxModel
 from pdf2zh.pdfinterp import PDFPageInterpreterEx
 from pdf2zh.font_resolver import FontResolver
-from pdf2zh.font_cache import DocumentFontCache
+from pdf2zh.font_cache import (
+    DocumentFontCache,
+    broadcast_page_font,
+    find_math_fonts,
+)
 
 from pdf2zh.config import ConfigManager
 from babeldoc.assets.assets import get_font_and_metadata
@@ -1306,16 +1309,25 @@ def translate_stream(
         font_cache = DocumentFontCache(doc_zh)
         registered_font_name = font_cache.register(font_path)
         # font_list = [("GoNotoKurrent-Regular.ttf", font_path), ("tiro", None)]
-        # === 8.1.1 字体嵌入重构：O(N×F) → O(F) ===
-        # 旧实现逐页 `insert_font`（`for page in doc_zh: for font in font_list`），
-        # 每页从磁盘重载同一字体文件（`fz_new_font_from_file`）并嵌入一份副本，
-        # 1918 次调用累计 18.5s（其中 7.5s 磁盘重载 14MB 字体 + 9.66s 逐副本嵌入）。
-        # 重构要点：
-        #   1) `fontbuffer` 一次读入内存，避开按路径重载（`fz_new_font_from_file`）；
-        #   2) `insert_font` 只在文档第一页调用一次，拿到唯一 font_id；
-        #   3) 保留下方 xref 共享广播循环（把字体引用写入各页 `Resources/Font`）。
-        # 空文档（page_count==0）跳过嵌入；xref 广播循环此时因 font_id 为空由
-        # `except Exception` 兜底（与旧行为一致）。
+        # === 8.1.1 字体嵌入重构：O(N×F) 次磁盘重载 → O(F) 次 ===
+        # 旧实现逐页 `insert_font` 且每页从磁盘重载同一字体文件
+        # （`fz_new_font_from_file`），1918 次调用累计 18.5s（7.5s 磁盘重载
+        # 14MB 字体 + 9.66s 逐副本嵌入）。两个优化把它压下来：
+        #   1) `fontbuffer` 一次读入内存，避开按路径重载；
+        #   2) 同一字体在多页 insert_font 返回**同一个 font xref**，不重复嵌入。
+        #
+        # 字体资源必须登记到**每一页**：转换器生成的内容流在任意页都可能引用
+        # /noto /tiro（semantic_sidechannel.gen_text_op），页面 /Resources/Font
+        # 里缺这个名字就是悬空字体引用。
+        # 曾经的实现是「只在第 0 页 insert_font 拿 font_id，再用
+        # `xref_set_key(page_xref, "Resources/Font/<name>", "<id> 0 R")` 广播」。
+        # 该写法在 PyMuPDF 1.28.2 上**必然抛异常** —— JM_set_object_value 拒绝
+        # 经多级路径新建键（"path to 'noto' has indirects"）—— 而外面套着
+        # `except Exception: pass`，于是第 1 页起全是悬空引用；同时该循环的
+        # `for xref in range(...)` 变量还被 `xref = int(...)` 重新赋值导致跳号。
+        # 现在：先在第 0 页嵌入一次拿到唯一 font xref，再把该引用**登记**到
+        # 其余页的资源字典（broadcast_page_font，325 页 0.16s）；登记失败时
+        # 退回受支持的 page.insert_font（38ms/页，正确但慢）。
         font_id = {}
         if doc_zh.page_count > 0:
             _font_buffer = None
@@ -1324,49 +1336,59 @@ def translate_stream(
                     _font_buffer = _fb.read()
             except OSError:
                 _font_buffer = None
-            _first_page = doc_zh[0]
-            for _fname, _fpath in font_list:
+
+            def _embed_font(_page, _fname, _fpath):
                 if _fpath:
-                    # 有真实字体文件 → 优先 fontbuffer 单次嵌入
                     if _font_buffer is not None:
                         try:
-                            font_id[_fname] = _first_page.insert_font(
-                                _fname, fontbuffer=_font_buffer
-                            )
-                            continue
-                        except Exception:  # noqa: BLE001 -- buffer 路径失败回退路径加载
+                            return _page.insert_font(_fname, fontbuffer=_font_buffer)
+                        except Exception:  # noqa: BLE001 -- buffer 失败回退路径
                             logger.debug(
                                 "insert_font(fontbuffer=) failed for %s; retry via path",
                                 _fname,
                             )
-                    font_id[_fname] = _first_page.insert_font(_fname, _fpath)
-                else:
-                    # 内置字体（tiro）按名称嵌入
-                    font_id[_fname] = _first_page.insert_font(_fname, None)
-        xreflen = doc_zh.xref_length()
-        for xref in range(1, xreflen):
-            for label in ["Resources/", ""]:  # 可能是基于 xobj 的 res
-                try:  # xref 读写可能出错
-                    font_res = doc_zh.xref_get_key(xref, f"{label}Font")
-                    target_key_prefix = f"{label}Font/"
-                    if font_res[0] == "xref":
-                        resource_xref_id = re.search("(\\d+) 0 R", font_res[1]).group(1)
-                        xref = int(resource_xref_id)
-                        font_res = ("dict", doc_zh.xref_object(xref))
-                        target_key_prefix = ""
+                    return _page.insert_font(_fname, _fpath)
+                return _page.insert_font(_fname, None)
 
-                    if font_res[0] == "dict":
-                        for font in font_list:
-                            target_key = f"{target_key_prefix}{font[0]}"
-                            font_exist = doc_zh.xref_get_key(xref, target_key)
-                            if font_exist[0] == "null":
-                                doc_zh.xref_set_key(
-                                    xref,
-                                    target_key,
-                                    f"{font_id[font[0]]} 0 R",
-                                )
-                except Exception:
-                    pass
+            _embed_failures = 0
+            _broadcast_fallbacks = 0
+            for _fname, _fpath in font_list:
+                try:
+                    font_id[_fname] = _embed_font(doc_zh[0], _fname, _fpath)
+                except Exception as exc:  # noqa: BLE001 -- 单个字体失败不阻断
+                    _embed_failures += 1
+                    logger.warning(
+                        "translate_stream: font %r failed to embed: %s", _fname, exc
+                    )
+            for _pno in range(1, doc_zh.page_count):
+                _page = doc_zh[_pno]
+                for _fname in font_id:
+                    if broadcast_page_font(doc_zh, _page.xref, font_id[_fname], _fname):
+                        continue
+                    # 资源字典登记不了（结构异常）→ 受支持的兜底
+                    _broadcast_fallbacks += 1
+                    try:
+                        _page.insert_font(_fname, fontbuffer=_font_buffer)
+                    except Exception as exc:  # noqa: BLE001
+                        _embed_failures += 1
+                        logger.warning(
+                            "translate_stream: font %r not registered on page %d: %s",
+                            _fname,
+                            _pno,
+                            exc,
+                        )
+            if _broadcast_fallbacks:
+                logger.info(
+                    "translate_stream: %d page-font registration(s) fell back to "
+                    "insert_font",
+                    _broadcast_fallbacks,
+                )
+            if _embed_failures:
+                logger.warning(
+                    "translate_stream: %d font registration(s) failed; the "
+                    "affected pages may reference an unresolved font",
+                    _embed_failures,
+                )
 
         fp = io.BytesIO()
 
@@ -1677,58 +1699,31 @@ def translate_stream(
             raise
 
         def _protect_math_fonts(doc):
-            """保护已知数学字体不被 MuPDF subset_fonts 子集化破坏宽度"""
+            """记录会被子集化的数学字体（只读诊断，绝不写 xref）。
+
+            ``subset_fonts()`` 没有按字体排除的接口，所以这里做不到真正的
+            「保护」——只能把名单记进日志，并把 ``--skip-subset-fonts`` 作为
+            逃生舱提示出来。
+
+            原实现用 ``xref_set_key(xref, "/Length", xref_get_key(xref,
+            "/Length")[1])`` 企图阻止子集化，既无效又会**损坏 PDF**：PyMuPDF
+            1.28.2 上带前导斜杠读键返回 ``('null','null')``，写出来是
+            ``/Length 58  / << /Length null >> >>``（重复键 + 无键子字典）。
+            同一处 ``"/BaseFont"`` 读键同样返回 null，所以旧函数整体空转 ——
+            声称的保护从未存在。详见 :func:`pdf2zh.font_cache.find_math_fonts`。
+            """
             try:
-                xreflen = doc.xref_length()
-                for xref in range(1, xreflen):
-                    try:
-                        subtype_res = doc.xref_get_key(xref, "/Subtype")
-                        if subtype_res[0] == "name" and "Type3" in str(subtype_res[1]):
-                            # Type3 字体跳过子集化
-                            doc.xref_set_key(
-                                xref, "/Length", doc.xref_get_key(xref, "/Length")[1]
-                            )
-                    except Exception:
-                        pass
-                    try:
-                        basefont_res = doc.xref_get_key(xref, "/BaseFont")
-                        if basefont_res[0] == "name":
-                            bf = str(basefont_res[1])
-                            math_patterns = [
-                                "CM",
-                                "CMSY",
-                                "CMEX",
-                                "CMMI",
-                                "EUFM",
-                                "MSBM",
-                                "MSAM",
-                                "STIX",
-                                "XITS",
-                                "MnSymbol",
-                                "rsfs",
-                                "txsy",
-                                "wasy",
-                                "stmary",
-                                "Symbol",
-                                "MT",
-                                "BL",
-                                "RM",
-                                "EU",
-                                "LA",
-                                "RS",
-                            ]
-                            for mp in math_patterns:
-                                if mp in bf:
-                                    doc.xref_set_key(
-                                        xref,
-                                        "/Length",
-                                        doc.xref_get_key(xref, "/Length")[1],
-                                    )
-                                    break
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                math_fonts = find_math_fonts(doc)
+            except Exception:  # noqa: BLE001 -- 诊断路径，永不阻断渲染
+                return
+            if math_fonts:
+                logger.info(
+                    "translate_stream: %d math/symbol font(s) will be subset "
+                    "(e.g. %s); pass --skip-subset-fonts if their metrics "
+                    "look wrong",
+                    len(math_fonts),
+                    ", ".join(sorted({n for _x, n in math_fonts})[:5]),
+                )
 
         logger.info("translate_stream: subsetting fonts...")
         if not skip_subset_fonts:

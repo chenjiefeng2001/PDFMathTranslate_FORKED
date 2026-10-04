@@ -447,6 +447,29 @@ def _ensure_jina_page_sizes(pdf_path: str, base_pages):
     return pages
 
 
+def _source_page_sizes(pdf_path: str) -> dict:
+    """源 PDF 每页的 ``(width, height)``（点），用于补齐解析器缺失的页面尺寸。
+
+    失败一律返回空 dict —— 调用方据此回落到渲染器默认尺寸，绝不让这条兜底
+    路径抛错打断渲染。
+    """
+    try:
+        from pdf2zh.v3.ingestion.adapter import read_pdf_page_sizes
+
+        sizes = read_pdf_page_sizes(pdf_path)
+    except Exception:  # noqa: BLE001 -- 兜底路径，失败即返回空
+        return {}
+    out = {}
+    for idx, wh in enumerate(sizes or []):
+        try:
+            w, h = float(wh[0]), float(wh[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if w > 0 and h > 0:
+            out[idx] = (w, h)
+    return out
+
+
 def _run_jina_ingest(
     path,
     base_pages,
@@ -640,6 +663,12 @@ def run_magicpdf_main(
         #: 判失败）。
         translation_failed = False
         partial_translation = False
+        #: 本文件是否产出了译后 PDF。**必须每文件初始化**：它只在渲染分支
+        #: （``magicpdf_render`` 且有 plan）里被赋值，而收尾的退出码判定
+        #: 无条件读它。配合 ``--no-magicpdf-render`` 且任一块翻译失败时，
+        #: 旧代码在这里抛 ``UnboundLocalError``（前一文件的值不会泄漏，
+        #: 但首个文件就读未定义名），把「部分失败」误报成崩溃。
+        rendered_pdf: str | None = None
         #: 本次摄入故事（doc, end-status, fallback_from）＋决策，随后按序写入
         #: flight recorder：mineru (FAIL) → marker fallback (PASS, fallback_from)
         #: → ingest.select，audit 的 first_divergence 因此能指向 ingest。
@@ -1184,11 +1213,20 @@ def run_magicpdf_main(
                         _PCT_RENDER,
                         f"{os.path.basename(path)}: rendering mono PDF...",
                     )
-                page_sizes = {
-                    p.page_num: [p.width, p.height]
-                    for p in doc.pages
-                    if getattr(p, "width", 0) and getattr(p, "height", 0)
-                }
+                # 每一页都必须出现在 page_sizes 里 —— 渲染器据此决定产出多少页。
+                # 解析器某页一个块都没检出时（空白页/纯图封面）尺寸仍要给出，
+                # 否则那一页会被静默丢出产物；尺寸缺失时回落到源 PDF 的真实
+                # 页面尺寸，仍拿不到才让渲染器用默认 612x792。
+                src_sizes = _source_page_sizes(path)
+                page_sizes = {}
+                for p in doc.pages:
+                    pno = int(getattr(p, "page_num", 0) or 0)
+                    w = float(getattr(p, "width", 0) or 0)
+                    h = float(getattr(p, "height", 0) or 0)
+                    if (w <= 0 or h <= 0) and pno in src_sizes:
+                        w, h = src_sizes[pno]
+                    if w > 0 and h > 0:
+                        page_sizes[pno] = [w, h]
                 mono_pdf = os.path.join(magic_dir, f"{stem}_mono.pdf")
                 try:
                     _, render_stats = render_plan_to_pdf(
