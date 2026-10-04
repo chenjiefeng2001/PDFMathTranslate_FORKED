@@ -34,8 +34,14 @@ jobs:
       - run: echo "Running repository check"
       - name: Check if commit is doc-only
         id: check-doc
+        # The message must arrive as an env var, not be substituted into the
+        # script text: it is a commit body, so any parenthesis, quote,
+        # backtick or $ in it is bash syntax, and the whole run dies with
+        # "syntax error near unexpected token" before a single job starts.
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
-          MSG=$(echo "${{ github.event.head_commit.message }}" | head -n 1)
+          MSG="${COMMIT_MESSAGE%%$'\n'*}"
           if [[ "$MSG" == doc:* ]] || [[ "$MSG" == "doc("* ]]; then
             echo "is_doc_only=true" >> $GITHUB_OUTPUT
           else
