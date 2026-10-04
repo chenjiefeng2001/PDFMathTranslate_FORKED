@@ -17,6 +17,9 @@ use std::process::{Child, Command};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+#[cfg(windows)]
+use std::os::windows::ffi::OsStrExt;
+
 /// 选一个当前空闲的 TCP 端口（绑定 127.0.0.1:0 由系统分配后立即释放）。
 ///
 /// 冷启动排障（doc/perf/coldstart-trace）之后的打开失败调查表明：固定
@@ -92,6 +95,39 @@ fn wait_for_api(port: u16, child: &mut Child, timeout_secs: u64) -> (bool, Strin
     }
 }
 
+#[cfg(windows)]
+extern "system" {
+    /// kernel32 导出，清除文件的 Mark-of-the-Web（删除 `Zone.Identifier` ADS）。
+    /// 直接声明 FFI 以避免为此引入 windows/winapi 依赖（kernel32 已由 std 链上）。
+    fn UnblockFileW(lpFileName: *const u16) -> i32;
+}
+
+/// 清除 Windows 的 Mark-of-the-Web。
+///
+/// 为什么必须做：webview 里 `http://tauri.localhost/`（Tauri 桌面壳的 origin）
+/// 触发的下载会被 Windows 打上 `Zone.Identifier: ZoneId=3`（Internet 区）。
+/// Edge/Chrome 依此走 SmartScreen / 增强安全策略，**直接拒绝打开**，报的是
+/// "We can't open this file. Something went wrong." —— 而 MuPDF / pikepdf /
+/// PDFium(pypdfium2) 走普通 Win32 打开，完全不看这个标记，于是同一份字节
+/// 「所有解析器都正常、只有浏览器打不开」。
+///
+/// 另一个坑：`std::fs::write` 是截断写，**保留**已存在的 ADS，所以重存同一个
+/// 文件名不会清掉标记，必须显式 Unblock。
+///
+/// 非 Windows 或调用失败一律忽略：这是尽力而为的清理，不该让保存失败。
+#[cfg(windows)]
+fn unblock_mark_of_the_web(path: &std::path::Path) {
+    let mut wide: Vec<u16> = path.as_os_str().encode_wide().collect();
+    wide.push(0);
+    // SAFETY: wide 以 NUL 结尾，长度与内容均由上面构造，函数不写入该缓冲区。
+    unsafe {
+        UnblockFileW(wide.as_ptr());
+    }
+}
+
+#[cfg(not(windows))]
+fn unblock_mark_of_the_web(_path: &std::path::Path) {}
+
 /// 把前端抓取的字节流写到用户经原生对话框选定的路径。
 ///
 /// 只接受 dialog 插件返回的路径（前端保证来源），因此无需开放
@@ -106,7 +142,9 @@ fn save_bytes(path: String, data: Vec<u8>) -> Result<(), String> {
             std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
         }
     }
-    std::fs::write(&path, data).map_err(|e| e.to_string())
+    std::fs::write(&path, data).map_err(|e| e.to_string())?;
+    unblock_mark_of_the_web(std::path::Path::new(&path));
+    Ok(())
 }
 
 /// sidecar stdout/stderr 落盘路径（每次启动截断重开）。
