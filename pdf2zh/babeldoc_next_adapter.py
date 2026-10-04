@@ -33,6 +33,8 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from pdf2zh.pdf_validity import ensure_readable
+
 logger = logging.getLogger(__name__)
 
 #: Bundled modified pdf2zh_next kernel directory (relative to this module).
@@ -503,6 +505,8 @@ def run_babeldoc_next_translation(
                         continue
                 except OSError:
                     continue
+                # 严格阅读器闸门：见 pdf2zh.pdf_validity 的模块说明。
+                ensure_readable(path, label=f"BabelDOC {os.path.basename(path)}")
                 seen.add(path)
                 files.append({"name": os.path.basename(path), "path": path})
             return files

@@ -30,6 +30,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
+from pdf2zh.pdf_validity import (
+    UnusableSourceError,
+    ensure_readable,
+    ensure_source_usable,
+)
 from pdf2zh.v3.ingestion.config import (
     BACKEND_JINA,
     BACKEND_MARKER,
@@ -1545,6 +1550,38 @@ class RuntimeService:
                     task_id,
                 )
 
+    def _warn_unreadable_source(self, task_id: str, request) -> None:
+        """源 PDF 的入口闸门：不能处理就立刻报错，能处理但浏览器会拒绝就告警。
+
+        刻意**不改写用户输入**：源文件属于用户。存在的意义是给「Chrome 打不开」
+        一个明确归因，并让**真正无法处理**的输入在任务开头就失败，而不是跑到
+        一半才在某个深层模块里抛一个语焉不详的异常。
+
+        已知形态一：无效的混合引用文件（``/Encrypt`` 只挂在 XRef 流上、传统
+        trailer 缺 ``/Encrypt``）—— MuPDF/pikepdf 宽松所以本工具能读，浏览器拒绝。
+        已知形态二：``/AcroForm`` 等 Catalog 键指向数组而非字典 —— 旧版 PDFium
+        容忍、Edge 155 直接拒绝整档（实测报「We can't open this file」、``0 of 0``）。
+
+        代价是每任务一次 PDFium 试开（实测约 6ms），失败静默。
+        """
+        try:
+            src = getattr(request, "source_path", "") or ""
+            if not src or not os.path.isfile(src):
+                return
+            verdict = ensure_source_usable(src, label=f"[task={task_id}] source")
+        except UnusableSourceError as exc:
+            # 真·无法处理：立刻失败，别把用户拖进一次注定失败的翻译。
+            # _execute_task 自带的 `except Exception` 会把任务置为 FAILED 并带上
+            # 这条消息，所以这里只需记录 + 重新抛出。
+            logger.error("[task=%s] %s", task_id, exc)
+            raise
+        except Exception:  # noqa: BLE001 -- 诊断路径，永不阻断翻译
+            return
+        if verdict.severity != "warn":
+            return
+        logger.warning("[task=%s] %s", task_id, verdict.message)
+        self._emit_event(task_id, TaskStage.PARSING.value, 6.0, verdict.message)
+
     def _execute_task(self, task_id: str, request: TranslationRequest) -> None:
         """Internal: run translation in background thread."""
         # V3-6：每个新任务开始前清空中断旗标。GUI 的 on_translate 也会做，
@@ -1568,6 +1605,7 @@ class RuntimeService:
             self._emit_event(task_id, TaskStage.PARSING.value, 5.0, "Starting...")
             if self._store.is_cancelled(task_id):
                 return
+            self._warn_unreadable_source(task_id, request)
             # 按用户选择的 ONNX 推理后端初始化版面分析（auto/cpu/cuda/dml）。
             # 必须在模型加载（ModelInstance）之前生效：后端变化时重置全局单例，
             # 使本任务按新 provider 重建 ONNX session（GPU 不可用自动回退 CPU）。
@@ -2610,6 +2648,23 @@ class RuntimeService:
         if output:
             with open(result_path, "wb") as f:
                 f.write(output)
+            # V4 的 PDFRenderer 目前吐的是纯文本桩（``%PDF-page num=...``，
+            # 无 xref/trailer/%%EOF）—— 以 .pdf 命名能通过 isfile+size 检查，
+            # 但任何阅读器都打不开。这里明确记录，避免它被当成正常产物交付。
+            if not ensure_readable(result_path, label=f"[task={task_id}] V4 output"):
+                logger.error(
+                    "[task=%s] V4 output %s is not a loadable PDF (the V4 "
+                    "PDFRenderer still emits a plain-text stub); it is kept on "
+                    "disk but will not open in a reader",
+                    task_id,
+                    result_path,
+                )
+                self._emit_event(
+                    task_id,
+                    TaskStage.DONE.value,
+                    100.0,
+                    f"注意：V4 产物不是有效 PDF，无法在阅读器中打开（{basename}-translated.pdf）",
+                )
 
         result_files = [{"name": f"{basename}-translated.pdf", "path": result_path}]
         # Preserve diagnostic data from evaluator (set above); fallback messages if empty
@@ -2912,6 +2967,10 @@ class RuntimeService:
         with open(dual_path, "wb") as f:
             f.write(doc_dual)
         logger.info("[task=%s] Output file write complete.", task_id)
+        # 严格阅读器闸门：legacy 链路是最重的 PDF 手术（garbage=4 +
+        # insert_file + subset_fonts），落盘后必须确认 Chrome/Edge 能打开。
+        ensure_readable(mono_path, label=f"[task={task_id}] mono")
+        ensure_readable(dual_path, label=f"[task={task_id}] dual")
         result_files = [
             {"name": f"{basename}-mono.pdf", "path": mono_path},
             {"name": f"{basename}-dual.pdf", "path": dual_path},
@@ -3497,6 +3556,9 @@ class RuntimeService:
                 and baseline.get(os.path.abspath(path)) == signature
             ):
                 return
+            # 严格阅读器闸门：st_size > 0 不代表 Chrome/Edge 能打开。开不了会先
+            # 尝试原地规范化修复，并始终交付产物（详见 pdf2zh.pdf_validity）。
+            ensure_readable(path, label=f"magicpdf {name}")
             result_files.append({"name": name, "path": path})
 
         magic_dir = os.path.join(out_dir, "magicpdf")

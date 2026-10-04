@@ -31,6 +31,8 @@ import os
 from string import Template
 from typing import Any, Callable, Dict, List, Optional
 
+from pdf2zh.pdf_validity import ensure_readable
+
 logger = logging.getLogger(__name__)
 
 
@@ -565,6 +567,9 @@ def _collect_result_files(result: Any) -> List[Dict[str, str]]:
                 continue
         except OSError:
             continue
+        # 严格阅读器闸门：字节数 > 0 不等于 Chrome/Edge 能打开。检查失败会先
+        # 尝试原地规范化修复（不修复也照常交付，只是不再静默）。
+        ensure_readable(path, label=f"BabelDOC {os.path.basename(path)}")
         seen.add(path)
         files.append({"name": os.path.basename(path), "path": path})
     return files
