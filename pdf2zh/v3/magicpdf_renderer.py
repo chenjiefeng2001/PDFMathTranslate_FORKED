@@ -583,6 +583,118 @@ def _render_toc_commands(
     )
 
 
+#: 判定两个 span「压盖」的最小重叠边长（pt）。3pt 以下视为字距内的正常
+#: 紧邻；实测正常排版的相邻 span 重叠远小于 1pt，而叠影会出现整行级别的重叠。
+_OVERLAP_MIN_PT = 3.0
+
+
+def _span_key(span: dict) -> tuple:
+    """span 的稳定标识：文本 + 量化 bbox。
+
+    用于把背景层 span 与本次绘制的 span 区分开 —— 两者会落在同一区域，
+    但只有后者是「我们画重了」。（实测：``show_pdf_page`` 会把原页文本复制
+    进输出文本层；不做区分的话，每个翻译块都会与它覆盖掉的原文报一次重叠，
+    审计立刻变成噪声 —— 那等于没修。）
+    """
+    x0, y0, x1, y1 = span["bbox"]
+    return (span.get("text", ""), round(x0), round(y0), round(x1), round(y1))
+
+
+def page_span_snapshot(page: Any) -> set:
+    """当前页文本层的 span 标识集合（用于「绘制前」基线）。"""
+    keys = set()
+    for block in page.get_text("dict").get("blocks", []):
+        if block.get("type") != 0:
+            continue
+        for line in block.get("lines", []):
+            for span in line.get("spans", []):
+                if (span.get("text") or "").strip():
+                    keys.add(_span_key(span))
+    return keys
+
+
+def audit_page_geometry(
+    doc: Any,
+    page_sizes: Optional[Dict[int, Any]] = None,
+    ignore: Optional[Dict[int, set]] = None,
+) -> dict:
+    """统计「span 越出页面」与「span 相互压盖」。
+
+    这两类几何错误此前完全没有观测点：渲染器只统计块数/字形数/页数，越界
+    与叠印既不进 ``stats`` 也不告警，于是「排版坏了」只能靠用户肉眼发现
+    （实测 325 页扫描件译文：60 页里 30 个 span 越界、9 页叠印）。
+
+    Args:
+        doc: 已渲染的文档。
+        page_sizes: 保留给调用方表达意图；几何一律以页自身的 ``rect`` 为准。
+        ignore: ``{page_num: span_keys}``，通常是「贴入背景之后、绘制之前」
+            的 :func:`page_span_snapshot`。这些 span 不参与统计 —— 否则
+            背景原文与覆盖其上的译文会被判成叠印。
+
+    Returns:
+        ``spans_outside_page`` / ``pages_with_spans_outside`` /
+        ``pages_with_overlap`` 三个计数，外加可读的 ``*_examples``。
+    """
+    out = {
+        "spans_outside_page": 0,
+        "pages_with_spans_outside": 0,
+        "pages_with_overlap": 0,
+        "outside_examples": [],
+        "overlap_examples": [],
+    }
+    if doc is None:
+        return out
+    skip = ignore or {}
+    for pno in range(doc.page_count):
+        page = doc[pno]
+        rect = page.rect
+        background = skip.get(pno) or set()
+        spans = []
+        for block in page.get_text("dict").get("blocks", []):
+            if block.get("type") != 0:
+                continue
+            for line in block.get("lines", []):
+                for span in line.get("spans", []):
+                    if (span.get("text") or "").strip():
+                        if _span_key(span) in background:
+                            continue
+                        spans.append(span)
+        if not spans:
+            continue
+        page_outside = 0
+        for span in spans:
+            x0, y0, x1, y1 = span["bbox"]
+            if x0 < -1 or y0 < -1 or x1 > rect.width + 1 or y1 > rect.height + 1:
+                page_outside += 1
+                if len(out["outside_examples"]) < 8:
+                    out["outside_examples"].append(
+                        {
+                            "page": pno,
+                            "text": span["text"][:30],
+                            "bbox": [round(v, 1) for v in span["bbox"]],
+                            "page_size": [round(rect.width, 1), round(rect.height, 1)],
+                        }
+                    )
+        if page_outside:
+            out["spans_outside_page"] += page_outside
+            out["pages_with_spans_outside"] += 1
+        hits = 0
+        for i in range(len(spans)):
+            ax0, ay0, ax1, ay1 = spans[i]["bbox"]
+            for j in range(i + 1, len(spans)):
+                bx0, by0, bx1, by1 = spans[j]["bbox"]
+                if (
+                    min(ax1, bx1) - max(ax0, bx0) > _OVERLAP_MIN_PT
+                    and min(ay1, by1) - max(ay0, by0) > _OVERLAP_MIN_PT
+                ):
+                    hits += 1
+        if hits:
+            out["pages_with_overlap"] += 1
+            if len(out["overlap_examples"]) < 8:
+                out["overlap_examples"].append({"page": pno, "overlaps": hits})
+    return out
+
+
 def render_plan_to_pdf(
     plan: Optional[Sequence[dict]],
     page_sizes: Optional[Dict[int, Sequence[float]]] = None,
@@ -680,6 +792,11 @@ def render_plan_to_pdf(
         # 显式计数：这些页没有可翻译块，但仍必须出现在产物里（背景层承载内容）。
         stats["pages_without_entries"] = empty_pages
 
+    #: ``{page:背景层 span 标识}`` —— ``show_pdf_page`` 会把原页文本复制进输出
+    #: 文本层，几何审计必须能把它们与本次绘制的 span 区分开，否则每个翻译块
+    #: 都会与它覆盖掉的原文报一次「重叠」。
+    background_spans: Dict[int, set] = {}
+
     for pno in sorted(by_page):
         w, h = sizes.get(pno, default_page)
         if w is None or h is None or float(w) <= 0 or float(h) <= 0:
@@ -691,6 +808,8 @@ def render_plan_to_pdf(
             # 原页作为背景层：保留图形/颜色块/图片，公式/代码等保留块的
             # 原文也由背景直接显示（不再重复绘制 LaTeX/原文，避免叠影）。
             page.show_pdf_page(page.rect, src_doc, pno)
+            # 记录背景文本：它会被复制进输出文本层，几何审计据此排除。
+            background_spans[pno] = page_span_snapshot(page)
         for entry in by_page[pno]:
             text = _entry_text(entry)
             if not text:
@@ -906,6 +1025,29 @@ def render_plan_to_pdf(
                 )
         stats["pages"] += 1
 
+    # 几何自检：把「画到页面外」和「同行叠印」变成**可统计的事实**，而不是
+    # 用户肉眼才能发现的观感问题。背景层（show_pdf_page）贴进来的原页文字不在
+    # 统计范围内 —— 这里只审计本次**新绘制**的文本层，那才是我们能修的部分。
+    geometry = audit_page_geometry(doc, ignore=background_spans)
+    if geometry["spans_outside_page"]:
+        stats["spans_outside_page"] = geometry["spans_outside_page"]
+        stats["pages_with_spans_outside"] = geometry["pages_with_spans_outside"]
+        logger.warning(
+            "[magicpdf] %d 个文本 span 落在页面外（涉及 %d 页）：排版越界，"
+            "这些文字在阅读器里被裁掉。首个样例 %s",
+            geometry["spans_outside_page"],
+            geometry["pages_with_spans_outside"],
+            geometry["outside_examples"][:3],
+        )
+    if geometry["pages_with_overlap"]:
+        stats["pages_with_overlap"] = geometry["pages_with_overlap"]
+        logger.warning(
+            "[magicpdf] %d 页存在文本 span 相互压盖：同一区域被重复绘制，"
+            "肉眼表现为叠影/重影。样例页 %s",
+            geometry["pages_with_overlap"],
+            geometry["overlap_examples"][:5],
+        )
+
     result = doc.write(deflate=True, garbage=3)
     doc.close()
     if src_doc is not None:
@@ -920,4 +1062,9 @@ def render_plan_to_pdf(
     return result, stats
 
 
-__all__ = ["render_plan_to_pdf", "_RenderProvenance"]
+__all__ = [
+    "render_plan_to_pdf",
+    "audit_page_geometry",
+    "page_span_snapshot",
+    "_RenderProvenance",
+]

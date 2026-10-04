@@ -1121,27 +1121,52 @@ def run_magicpdf_main(
             #: 它把「翻译失败后回落原文」的块也计在内（全失败时同样 >0），
             #: 会把「零块译出」误判成「部分成功」。
             translation_ok = 0
+            #: 「成功但译文与原文相同」的块数（**身份翻译**）。
+            #:
+            #: ``translation_ok`` 只说明翻译器没抛异常。实测存在这种链路：
+            #: 翻译器返回原文（缓存命中同源文本、目标语与源语相同、服务端
+            #: 降级为 passthrough）时，``translation_errors`` 为空、
+            #: ``translation_ok`` 为正 → 旧逻辑判 rc=0 → **交付一份
+            #: 逐字等于原文的「译文」PDF**，且退出码 0、无任何告警。
+            #: 必须单独计数：``changed == 0`` 意味着这份产物对用户零价值，
+            #: 与「全部块报错」同等对待（硬失败）。
+            translation_changed = 0
 
             def translate_with_tracking(value: str) -> str:
-                nonlocal translation_ok
+                nonlocal translation_ok, translation_changed
                 try:
                     out = translator.translate(value)
                 except Exception as exc:
                     translation_errors.append(exc)
                     raise
                 translation_ok += 1
+                if (out or "").strip() != (value or "").strip():
+                    translation_changed += 1
                 return out
 
             stats = translate_document(
                 doc, translate_with_tracking, lang_out=parsed_args.lang_out
             )
+            identity_only = translation_ok > 0 and translation_changed == 0
+            if identity_only:
+                # 无异常但零块内容变化：交付物就是原文。不阻断转储（JSON 仍
+                # 有排障价值），但必须硬失败，不能让「原样退回」冒充译文。
+                translation_failed = True
+                partial_translation = False
+                logger.error(
+                    "[magicpdf] 翻译器对全部 %d 个块返回了与原文相同的内容"
+                    "（身份翻译）——产物等同原文，按硬失败处理。"
+                    "常见原因：翻译缓存命中同源文本、目标语言与源语言相同、"
+                    "或翻译服务降级为 passthrough。",
+                    translation_ok,
+                )
             if translation_errors:
                 translation_failed = True
                 # 单块翻译失败（HTTP 429 / 超时等）由 render_payload 兜底为
                 # 保留原文，其余块照常翻译 → 产物仍可用。
                 # 但若「一个块都没翻出来」，那份 PDF 只是原文，对用户毫无价值
                 # —— 仍按硬失败处理（保持 exit 1）。
-                partial_translation = translation_ok > 0
+                partial_translation = translation_ok > 0 and not identity_only
                 logger.warning(
                     "[magicpdf] %d 个块翻译失败（首个错误: %s；译出 %d 块，%s）",
                     len(translation_errors),
@@ -1252,11 +1277,14 @@ def run_magicpdf_main(
                             mono_pdf,
                         )
                     logger.info(
-                        "[magicpdf] %s: mono PDF 已渲染（%d 页, %d 块, %d 字形）→ %s",
+                        "[magicpdf] %s: mono PDF 已渲染（%d 页, %d 块, %d 字形"
+                        ", 越界 %s, 叠印页 %s）→ %s",
                         path,
                         render_stats["pages"],
                         render_stats["blocks"],
                         render_stats["glyphs"],
+                        render_stats.get("spans_outside_page", 0),
+                        render_stats.get("pages_with_overlap", 0),
                         mono_pdf,
                     )
                 except Exception as exc:  # noqa: BLE001 -- 渲染失败不阻断转储

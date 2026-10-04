@@ -2224,6 +2224,10 @@ class RuntimeService:
                     extra.pop("selected_file", None)
                     or (result_files[0]["name"] if result_files else None)
                 ),
+                # 单文件任务此前只写 result_files 就返回，``completed_files``
+                # 留在初值 0 —— 于是 completed + completed_files=0 同时出现，
+                # 前端进度环与文案自相矛盾（实测「完成 0/1」）。这里显式置 1。
+                completed_files=1,
                 message=message,
                 **extra,
             )
@@ -3456,7 +3460,12 @@ class RuntimeService:
                         task_id,
                         path,
                     )
-                result_files = self._magicpdf_result_entries(file_output)
+                # 必须传 source_path：不传时 stem 为空，`matches_source`
+                # 恒真，会把 file_output 里任意 `-mono.`/`-dual.` 收成本次
+                # 产物（曾经因此交付过 stem 不同的陈旧文件）。
+                result_files = self._magicpdf_result_entries(
+                    file_output, source_path=path
+                )
                 if not result_files:
                     self._fail_file(
                         task_id,
@@ -3538,7 +3547,14 @@ class RuntimeService:
         stem = os.path.splitext(os.path.basename(source_path))[0] if source_path else ""
 
         def matches_source(name: str) -> bool:
-            return not stem or name.startswith((f"{stem}_", f"{stem}-"))
+            # 刻意**不做** `not stem or ...`：空 stem 时该表达式恒真，于是
+            # `_execute_magicpdf_batch`（不传 source_path）会把 out_dir 里
+            # 任意一个 `-mono.`/`-dual.` PDF 当成本次任务的产物交付 ——
+            # 实测因此交付过两个 stem 不同的陈旧文件，且退出码 0。宁可不收，
+            # 也不能收错：调用方对空产物已有明确的 FAILED 分支。
+            if not stem:
+                return False
+            return name.startswith((f"{stem}_", f"{stem}-"))
 
         def add_entry(name: str, path: str) -> None:
             try:
@@ -3624,6 +3640,24 @@ class RuntimeService:
         result_files = self._magicpdf_result_entries(
             out_dir, source_path=source_path, baseline=baseline
         )
+        if result_files and not source_path:
+            # 兜底路径（无 source_path → stem 为空）现在不可能收进任何东西；
+            # 若仍非空，说明 matches_source 的过滤被绕过，那是交付错文件，
+            # 比空产物严重得多：显式失败并把实际收到的名字写进消息。
+            logger.error(
+                "[task=%s] magicpdf 产物收集在无 source_path 下返回 %s —— "
+                "拒绝交付无法确认归属的文件",
+                task_id,
+                [f["name"] for f in result_files],
+            )
+            self._fail_file(
+                task_id,
+                "magicpdf artifact collection returned unverified files "
+                f"({[f['name'] for f in result_files]}); refusing to deliver "
+                "output that cannot be attributed to this task",
+                total_files=total,
+            )
+            return
         if not result_files:
             # 空产物绝不落 COMPLETED 终态：静默的"完成但没有任何输出"会掩盖
             # 解析/回退链路的真实故障（用户不可见失败）。这里显式置 FAILED 并

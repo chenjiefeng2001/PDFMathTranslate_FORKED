@@ -97,7 +97,14 @@ class TestMagicpdfEmptyResultsFail(unittest.TestCase):
                 patch.object(svc, "_fail_file", lambda *a, **k: failed.append((a, k))),
                 patch.dict(os.environ, {"PDF2ZH_NO_WARMUP": "1"}),
             ):
-                svc._collect_magicpdf_results(tid, str(out), total=1)
+                # 兜底路径按 stem 归属：只有与本任务源文件同名的 -mono./-dual.
+                # 才是本次产物。source_path 因此是必需参数，不再是可选线索。
+                svc._collect_magicpdf_results(
+                    tid,
+                    str(out),
+                    total=1,
+                    source_path=str(out / "paper.pdf"),
+                )
 
             self.assertEqual(failed, [])
             self.assertEqual(len(completed), 1)

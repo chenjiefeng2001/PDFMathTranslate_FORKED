@@ -157,7 +157,11 @@ class TestMagicpdfCompactDumps:
             (magic / "in_magicpdf.json").write_text("{}", encoding="utf-8")
             (magic / "in_mono.pdf").write_bytes(b"%PDF-1.4 mono")
             (magic / "in_dual.pdf").write_bytes(b"%PDF-1.4 dual")
-            svc._collect_magicpdf_results(tid, str(out), 1)
+            # source_path 必传：产物收集靠它确认归属，缺省 stem 时一律拒收
+            # （见 tests/test_scan_silent_failures.py 的 D2 用例）。
+            svc._collect_magicpdf_results(
+                tid, str(out), 1, source_path=str(out / "in.pdf")
+            )
             st = svc.get_task_state(tid)
             assert st.status == TaskStage.COMPLETED.value
             names = [rf["name"] for rf in st.result_files]
