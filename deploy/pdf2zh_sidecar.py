@@ -12,6 +12,31 @@ import sys
 import time
 
 
+def bootstrap_network() -> None:
+    """把系统代理导入环境变量 —— 桌面壳的翻译请求必须能走代理。
+
+    为什么 sidecar 入口必须自己做一次
+    ----------------------------------
+    浏览器级代理（Clash/VPN）只存在于 WinINET 注册表，而 ``requests`` /
+    ``httpx`` 只认环境变量。``pdf2zh.networking.sanitize_loopback_proxy()``
+    负责把注册表代理搬进 ``HTTP_PROXY`` / ``HTTPS_PROXY``，同时把回环地址写进
+    ``NO_PROXY`` —— 后半步对本进程尤其关键：桌面壳就是通过 ``127.0.0.1`` 与
+    sidecar 通信的，漏了它会把壳↔sidecar 的本地请求也塞进代理。
+
+    CLI（``pdf2zh.pdf2zh``）与 Gradio GUI（``pdf2zh.gui.entry``）都调用了它，
+    **只有本入口漏了** —— 于是「源码直跑能走代理、打包后不能」，而用户在桌面
+    应用里看到的现象是翻译请求直接超时。
+
+    绝不因此拦住启动：代理探测失败只降级为直连，不能让整个应用起不来。
+    """
+    try:
+        from pdf2zh.networking import sanitize_loopback_proxy
+
+        sanitize_loopback_proxy()
+    except Exception as exc:  # noqa: BLE001 -- 代理是尽力而为，绝不致命
+        print(f"[sidecar] WARNING: proxy bootstrap failed ({exc}); using direct")
+
+
 def main() -> int:
     t0 = time.perf_counter()
 
@@ -21,6 +46,10 @@ def main() -> int:
     # 把整个 uvicorn 服务再起一遍（端口冲突退出）→ BrokenProcessPool，
     # 多进程版面分析/GPU worker 全部失效。
     multiprocessing.freeze_support()
+
+    # 必须在 runtime service（以及它预热的 translator registry）构造**之前**：
+    # translator 的 set_envs 是从 os.environ 拷值的，晚一步就拿不到代理。
+    bootstrap_network()
 
     parser = argparse.ArgumentParser(description="pdf2zh REST/SSE sidecar")
     parser.add_argument("--port", type=int, default=11009)

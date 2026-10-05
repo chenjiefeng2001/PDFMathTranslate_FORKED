@@ -101,6 +101,12 @@ a = Analysis(
         'pdf2zh.translator',
         'pdf2zh.converter',
         'pdf2zh.high_level',
+        # sidecar 入口在 main() 里延迟导入它来把 WinINET 注册表代理搬进
+        # HTTP(S)_PROXY（桌面壳的翻译请求要靠这个走代理）。显式列出而不是
+        # 依赖 modulegraph：漏收的后果被 bootstrap_network() 的 except 吞掉，
+        # 表现为「打包后静默不走代理」—— 正是本条 hidden import 要防的事故。
+        'pdf2zh.networking',
+        'winreg',
         'pdf2zh.v3.ingestion.jina_adapter',
         'pdf2zh.v3.ingestion.jina_backend',
         'pdf2zh.kernel.jina_ocr_env',
