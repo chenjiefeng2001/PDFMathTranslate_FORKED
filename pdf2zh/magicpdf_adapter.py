@@ -1022,6 +1022,52 @@ def _mineru_device_mode(device: str) -> str | None:
     return None
 
 
+#: MinerU 3.x ``do_parse(backend=...)`` 的合法取值。``mineru.cli.backend_options
+#: .normalize_backend`` 就是拿这张表做白名单校验，表外取值直接 raise ValueError。
+_MINERU_BACKENDS: tuple[str, ...] = (
+    "pipeline",
+    "vlm-engine",
+    "hybrid-engine",
+    "vlm-http-client",
+    "hybrid-http-client",
+)
+
+#: 上层（UI / API / 旧版配置）的简称 → MinerU 3.x 合法名。UI 下拉框给的是
+#: ``pipeline`` / ``hybrid`` / ``vlm``（frontend/src/pages/Dashboard.tsx），而
+#: MinerU 3.x 只认 ``*-engine``；简称原样透传会让子进程在 normalize_backend 里
+#: 抛 ValueError，整轮 OCR 失败后静默降级 legacy，扫描件因无文本层产出零译文。
+_MINERU_BACKEND_ALIASES: dict[str, str] = {
+    "hybrid": "hybrid-engine",
+    "vlm": "vlm-engine",
+}
+
+
+def _normalize_mineru_backend(backend: str) -> tuple[str, Optional[str]]:
+    """把上层后端名映射为 MinerU 3.x ``do_parse`` 的合法 ``backend`` 值。
+
+    返回 ``(canonical, warning)``：``warning`` 非 None 表示原值无法映射，已回落
+    到 ``pipeline``（最保守的纯本地后端），由调用方告警。
+
+    这里不直接 raise：用户已经上传并排队了几百页扫描件，一个配置项笔误不该让整轮
+    OCR 失败；告警里带出全部合法值，用户能立刻看到并改。真正会崩的是「值非法却
+    没人拦」，那正是本次故障——worker 抛的 ValueError 只出现在子进程 stderr 里。
+    """
+    raw = str(backend or "").strip().lower()
+    if not raw:
+        return "pipeline", None
+    key = raw.replace("_", "-")
+    if key in _MINERU_BACKENDS:
+        return key, None
+    alias = _MINERU_BACKEND_ALIASES.get(key)
+    if alias:
+        return alias, None
+    return "pipeline", (
+        f"unknown MinerU backend {raw!r}; falling back to 'pipeline'. Valid values: "
+        + ", ".join(_MINERU_BACKENDS)
+        + " (UI aliases 'hybrid'/'vlm' map to 'hybrid-engine'/'vlm-engine')."
+    )
+
+
 def _build_do_parse_kwargs(
     do_parse: Callable[..., Any],
     wanted: Dict[str, Any],
@@ -1453,9 +1499,14 @@ class MagicPdfAdapter:
         # - ``mineru_parse_method``：auto / ocr / txt（对应 do_parse 的
         #   ``parse_method``；显式选择后不再受 ``ocr`` 开关影响）；
         # - ``mineru_backend``：pipeline / hybrid / vlm（对应 do_parse 的
-        #   ``backend``；空保持 pipeline 本地后端）。
+        #   ``backend``；空保持 pipeline 本地后端）。简称在这里规范化成 MinerU
+        #   3.x 的 ``*-engine`` 合法名，避免子进程 ValueError。
         self.mineru_parse_method = str(mineru_parse_method or "").strip().lower()
-        self.mineru_backend = str(mineru_backend or "").strip().lower()
+        # 唯一收口点：别名映射 + 默认 pipeline + 未知值告警都在这里做完，下游
+        # （do_parse kwargs 与 worker cmd）直接取属性，不再各自兜底。
+        self.mineru_backend, _backend_warn = _normalize_mineru_backend(mineru_backend)
+        if _backend_warn:
+            logger.warning("[magicpdf] %s", _backend_warn)
 
     def close(self) -> None:
         """释放底层 ONNX Runtime / magic-pdf 会话占用的 GPU 显存。
@@ -1771,7 +1822,8 @@ class MagicPdfAdapter:
                 pass
 
         wanted: Dict[str, Any] = {
-            "backend": self.mineru_backend or "pipeline",  # 本地模型后端
+            # 默认值与别名映射都已在 ``__init__`` 收口，此处不再二次兜底。
+            "backend": self.mineru_backend,
             "parse_method": self.mineru_parse_method or ("ocr" if ocr else "auto"),
             "f_dump_md": False,
             "f_dump_content_list": False,
@@ -1964,7 +2016,7 @@ class MagicPdfAdapter:
                 self.mineru_parse_method or ("ocr" if ocr else "auto"),
                 lang,
                 effective_device,
-                self.mineru_backend or "pipeline",
+                self.mineru_backend,
             ]
             env = None
             if self.mineru_vram_size or self.mineru_window_size:

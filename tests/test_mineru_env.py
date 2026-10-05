@@ -13,6 +13,7 @@ import importlib
 import os
 import py_compile
 import sys
+import types
 
 import pytest
 
@@ -593,7 +594,12 @@ def test_parse_subprocess_no_env_when_config_empty(
 def test_parse_subprocess_explicit_mode_and_backend(
     _fake_backend_mineru, monkeypatch, tmp_path
 ):
-    """mineru_parse_method=ocr + mineru_backend=hybrid 显式透传到 worker cmd。"""
+    """mineru_parse_method=ocr + mineru_backend=hybrid 透传到 worker cmd。
+
+    ``hybrid`` 是 UI 简称，MinerU 3.x 只认 ``hybrid-engine``：透传原值会让
+    ``normalize_backend`` 抛 ValueError（实测 325 页跑 1 分钟后失败并静默降级
+    legacy）。这里断言规范化后的名字。
+    """
     seen = {}
 
     def fake_run(cmd, timeout, **kw):
@@ -622,4 +628,104 @@ def test_parse_subprocess_explicit_mode_and_backend(
     )
     # cmd: [py, worker, pdf, outdir, parse_method, lang, device, backend]
     assert seen["cmd"][4] == "ocr"
-    assert seen["cmd"][-1] == "hybrid"
+    assert seen["cmd"][-1] == "hybrid-engine"
+
+
+def test_mineru_backend_normalization_matrix():
+    """每个 UI 选项 / 合法值 / 笔误都必须产出 MinerU 3.x 白名单内的名字。"""
+    from pdf2zh.magicpdf_adapter import (
+        _MINERU_BACKENDS,
+        _normalize_mineru_backend,
+    )
+
+    # UI 下拉框的三个选项（Dashboard.tsx）。
+    assert _normalize_mineru_backend("pipeline") == ("pipeline", None)
+    assert _normalize_mineru_backend("hybrid") == ("hybrid-engine", None)
+    assert _normalize_mineru_backend("vlm") == ("vlm-engine", None)
+    # 大小写 / 空白 / 下划线变体。
+    assert _normalize_mineru_backend(" Hybrid ") == ("hybrid-engine", None)
+    assert _normalize_mineru_backend("VLM") == ("vlm-engine", None)
+    assert _normalize_mineru_backend("vlm_engine") == ("vlm-engine", None)
+    # 已经是 MinerU 3.x 合法名的（含 http-client 变体）原样保留。
+    for name in _MINERU_BACKENDS:
+        assert _normalize_mineru_backend(name) == (name, None)
+    # 空 = 默认 pipeline，不告警。
+    assert _normalize_mineru_backend("") == ("pipeline", None)
+    assert _normalize_mineru_backend(None) == ("pipeline", None)
+    # 规范化结果永不为空：两个调用点的 ``self.mineru_backend or "pipeline"``
+    # 因此与规范化后的值恒等（不是需要独立覆盖的分支，而是同一值的两种写法）。
+    for raw in ("", "hybrid", "vlm", "bogus", "  "):
+        assert _normalize_mineru_backend(raw)[0]
+    # 未知值回落 pipeline，且必须在告警里列出全部合法值。
+    canonical, warning = _normalize_mineru_backend("vlm-local")
+    assert canonical == "pipeline"
+    assert warning is not None
+    for name in _MINERU_BACKENDS:
+        assert name in warning
+    # 回落不得静默：所有输出都必须落在白名单内。
+    for raw in ("hybrid", "vlm", "", "hybrid-engine", "totally-bogus"):
+        assert _normalize_mineru_backend(raw)[0] in _MINERU_BACKENDS
+
+
+def test_mineru_backend_normalized_in_adapter_and_do_parse(
+    _fake_backend_mineru, monkeypatch, tmp_path, caplog
+):
+    """别名映射发生在 __init__，因此 in-process 与子进程两条路都拿到合法值。"""
+    seen = {}
+
+    def fake_run(cmd, timeout, **kw):
+        seen["cmd"] = cmd
+        nested = os.path.join(cmd[3], "paper", "auto")
+        os.makedirs(nested, exist_ok=True)
+        import json as _json
+
+        with open(
+            os.path.join(nested, "paper_middle.json"), "w", encoding="utf-8"
+        ) as fh:
+            _json.dump(_MIDDLE, fh)
+        return _FakeCompleted()
+
+    monkeypatch.setattr("pdf2zh.magicpdf_adapter._run_mineru_process", fake_run)
+    monkeypatch.setenv("PDF2ZH_MINERU_PYTHON", sys.executable)
+    assert MagicPdfAdapter(mineru_backend="vlm").mineru_backend == "vlm-engine"
+
+    # in-process do_parse 路径：``wanted`` 里的 backend 也必须是合法名。
+    captured = {}
+    calls = {"do_parse": 0}
+
+    def fake_read_fn(_path):
+        return b"%PDF-1.4 fake"
+
+    def fake_do_parse(**kwargs):
+        calls["do_parse"] += 1
+        captured.update(kwargs)
+        out = kwargs["output_dir"]
+        stem = kwargs["pdf_file_names"][0]
+        nested = os.path.join(out, stem, "auto")
+        os.makedirs(nested, exist_ok=True)
+        import json as _json
+
+        with open(
+            os.path.join(nested, f"{stem}_middle.json"), "w", encoding="utf-8"
+        ) as fh:
+            _json.dump(_MIDDLE, fh)
+
+    fake_common = types.ModuleType("mineru.cli.common")
+    fake_common.do_parse = fake_do_parse  # type: ignore[attr-defined]
+    fake_common.read_fn = fake_read_fn  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "mineru.cli.common", fake_common)
+    # 本机装了真 MinerU venv 时mineru_python_override() 会自动探测到它并改走
+    # 子进程，这里强制留空以走in-process do_parse 分支。
+    monkeypatch.delenv("PDF2ZH_MINERU_PYTHON", raising=False)
+    monkeypatch.setattr("pdf2zh.engine_env.mineru_python_override", lambda: None)
+
+    MagicPdfAdapter(mineru_backend="vlm")._parse_mineru(__file__)
+    assert calls["do_parse"] == 1
+    assert captured["backend"] == "vlm-engine"
+
+    # 未知值必须留下告警，否则又是一次「静默用错后端」。
+    with caplog.at_level("WARNING", logger="pdf2zh.magicpdf_adapter"):
+        adapter = MagicPdfAdapter(mineru_backend="nonsense")
+    assert adapter.mineru_backend == "pipeline"
+    assert "nonsense" in caplog.text
+    assert "hybrid-engine" in caplog.text
