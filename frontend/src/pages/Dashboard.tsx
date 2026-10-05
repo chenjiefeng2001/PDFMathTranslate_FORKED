@@ -36,6 +36,10 @@ import type { IngestBackend } from "../api/endpoints";
 import type { ResultFile, TaskState } from "../api/types";
 import { isTerminal } from "../api/types";
 import { isTauri, pickExistingDirectory } from "../api/nativeSave";
+import {
+  buildEngineOptions,
+  engineFilterOption,
+} from "../components/engineOptions";
 import { useAppStore } from "../stores/taskStore";
 import { hasDiagnostics } from "./DiagnosticsPanel";
 import DiagnosticsPanel from "./DiagnosticsPanel";
@@ -70,6 +74,7 @@ export default function Dashboard() {
   const [form] = Form.useForm();
 
   const engines = useAppStore((s) => s.engines);
+  const enginesLoading = useAppStore((s) => s.enginesLoading);
   const tasks = useAppStore((s) => s.tasks);
   const activeId = useAppStore((s) => s.activeId);
   const connected = useAppStore((s) => s.connected);
@@ -123,6 +128,22 @@ export default function Dashboard() {
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
+
+  const engineOptions = useMemo(
+    () => buildEngineOptions(engines, t),
+    [engines, t],
+  );
+
+  // engine 是必填项，提交时会被强制造一个值（onSubmit 里 `|| "google"`），
+  // 但那份默认值从没和注册表核对过：后端去掉/改名某个服务后，表单里会留着一个
+  // 不存在的 id 并被原样提交。这里在选项到达后校正一次 —— 只在当前值确实不在
+  // 列表里时才写，用户自己选过的值不动。
+  useEffect(() => {
+    if (engineOptions.length === 0) return;
+    const current = form.getFieldValue("engine");
+    if (engineOptions.some((o) => o.value === current)) return;
+    form.setFieldValue("engine", engineOptions[0].value);
+  }, [engineOptions, form]);
 
   const active: TaskState | null = activeId ? tasks[activeId] ?? null : null;
 
@@ -272,7 +293,9 @@ export default function Dashboard() {
         initialValues={{
           target_lang: "zh-CN",
           source_lang: "auto",
-          engine: "google",
+          // engine 故意不给初值：注册表到达前填 "google" 会让下拉框显示一个
+          // 不存在于选项里的原始 id（冷启动预热可达数秒）。下面的 effect 在
+          // engines 到达后写入真实可选项。
           threads: 4,
           parse_engine: "auto",
           ingest_backend: "auto",
@@ -345,11 +368,15 @@ export default function Dashboard() {
               <Select
                 style={{ width: 240 }}
                 showSearch
-                optionFilterProp="value"
-                options={engines.map((e) => ({
-                  value: e.name,
-                  label: e.label && e.label !== e.name ? `${e.label} (${e.name})` : e.name,
-                }))}
+                loading={enginesLoading}
+                filterOption={engineFilterOption}
+                placeholder={
+                  enginesLoading ? t("ui.engine_loading") : t("ui.engine_select")
+                }
+                notFoundContent={
+                  enginesLoading ? undefined : t("ui.engine_none")
+                }
+                options={engineOptions}
               />
             </Form.Item>
           </Space>

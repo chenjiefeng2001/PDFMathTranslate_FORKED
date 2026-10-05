@@ -19,7 +19,12 @@ import {
   message,
 } from "antd";
 import { UploadOutlined, DownloadOutlined } from "@ant-design/icons";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   glossaryDownloadUrl,
@@ -46,6 +51,10 @@ import {
   type EngineEnvStatus,
 } from "../api/endpoints";
 import type { EngineInfo, GlossaryInfo } from "../api/types";
+import {
+  buildEngineOptions,
+  engineFilterOption,
+} from "../components/engineOptions";
 import { useSettingsStore } from "../stores/settingsStore";
 import { switchLang, type Lang } from "../i18n";
 
@@ -96,16 +105,25 @@ function EnginesSection({ active }: { active: boolean }) {
   const [engines, setEngines] = useState<EngineInfo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
+    setLoading(true);
+    setFailed(false);
     getEngines()
       .then((list) => {
         if (!cancelled) setEngines(list);
       })
       .catch(() => {
-        /* 服务未就绪时静默 */
+        // 失败必须留痕：原先这里是静默 catch，配合下面那个错误的加载态文案
+        // （"等待翻译任务…"），请求失败后这个抽屉会永远显示一句与本节无关的话。
+        if (!cancelled) setFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -113,28 +131,45 @@ function EnginesSection({ active }: { active: boolean }) {
   }, [active, refreshKey]);
 
   // 仅展示需要凭据的引擎；免凭据引擎（google/bing 等）无需设置。
-  const credEngines = engines.filter((e) => e.envs.length > 0);
+  const credEngines = useMemo(
+    () => engines.filter((e) => e.envs.length > 0),
+    [engines],
+  );
+  const engineOptions = useMemo(
+    () => buildEngineOptions(credEngines, t),
+    [credEngines, t],
+  );
   const current =
     credEngines.find((e) => e.name === selected) ?? credEngines[0] ?? null;
 
-  if (engines.length === 0) {
-    return <Typography.Text type="secondary">{t("ui.waiting_task")}</Typography.Text>;
+  if (loading) {
+    return (
+      <Typography.Text type="secondary">{t("ui.settings_engines_loading")}</Typography.Text>
+    );
+  }
+  if (failed) {
+    return (
+      <Typography.Text type="danger">{t("ui.settings_engines_failed")}</Typography.Text>
+    );
+  }
+  // 注意判据是过滤后的列表：原先判的是未过滤的 engines，于是「有引擎但全都
+  // 不需要凭据」会绕过这个分支，渲染出一个 options=[] 的空下拉框。
+  if (credEngines.length === 0) {
+    return (
+      <Typography.Text type="secondary">{t("ui.settings_engines_none")}</Typography.Text>
+    );
   }
 
   return (
     <Space direction="vertical" size={10} style={{ width: "100%" }}>
       <Select
         style={{ width: "100%" }}
-        placeholder={t("ui.settings_engines")}
+        placeholder={t("ui.settings_engines_select_ph")}
         value={current?.name}
         onChange={(name) => setSelected(name)}
         showSearch
-        optionFilterProp="value"
-        options={credEngines.map((e) => ({
-          value: e.name,
-          label:
-            e.label && e.label !== e.name ? `${e.label} (${e.name})` : e.name,
-        }))}
+        filterOption={engineFilterOption}
+        options={engineOptions}
       />
       {current && (
         <EngineCredentialForm

@@ -19,6 +19,12 @@ import i18n from "../i18n";
 
 interface AppState {
   engines: EngineInfo[];
+  /**
+   * `getEngines()` 是否在飞。注册表预热要数秒（冷启动实测约 4.9s），没有这个
+   * 标志就无法区分「还没加载完」和「加载完就是空的」—— 下拉框于是显示一个
+   * 空的 option 列表，看起来像坏了。
+   */
+  enginesLoading: boolean;
   tasks: Record<string, TaskState>;
   activeId: string | null;
   connected: boolean;
@@ -91,6 +97,7 @@ function applyEventToState(
 
 export const useAppStore = create<AppState>((set, get) => ({
   engines: [],
+  enginesLoading: false,
   tasks: {},
   activeId: null,
   connected: false,
@@ -100,11 +107,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   _unsub: null,
 
   async bootstrap() {
+    set({ enginesLoading: true });
     try {
       const [engines] = await Promise.all([getEngines(), get().refreshTasks()]);
       set({ engines });
     } catch (err) {
       set({ error: `bootstrap failed: ${String(err)}` });
+    } finally {
+      // 无论成败都要落下来，否则加载失败时下拉框会一直转圈。
+      set({ enginesLoading: false });
     }
   },
 
