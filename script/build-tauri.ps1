@@ -119,9 +119,27 @@ if (-not $SkipSidecar) {
 # (pdf2zh-api-sidecar\pdf2zh-api-sidecar.exe) 由 installer POSTINSTALL 用系统
 # tar.exe 解包还原，无需改动 Rust 侧路径解析。
 #
-# 压缩策略：优先使用 zstd（比 deflate 快 ~3x 且压缩率高 ~8%），回退到
-# 标准 deflate。Windows 10 1809+ 内置 tar.exe 均含 libzstd，Win11 默认支持。
-# 文件扩展名保持 .zip 以兼容 NSIS 和 Tauri resources 配置。
+# 压缩策略（实测见下）：
+#   1) zstd -19（外部 zstd.exe）  150.8 MB  <- 采用
+#   2) zstd 默认档（tar --zstd）   180.3 MB  <- 无外部 zstd 时回退
+#   3) deflate（tar -a）                  <- 连 libzstd 都没有时回退
+#
+# 为什么上高压缩档：sidecar onedir 是 438 MB / 2338 个文件，其中 87% 是
+# .pyd/.dll（cv2 98 MB、pymupdf 38 MB、onnxruntime 35 MB、numpy/scipy 的
+# openblas 各 ~19 MB…）。实测 zstd -19 把归档从 180.3 MB 压到 150.8 MB
+# （-16%），而**解压耗时不变**（3.53s vs 3.50s，噪声内）：
+#
+#   zstd -3   180.3 MB   解包 3.50 s
+#   zstd -19  150.8 MB   解包 3.53 s
+#
+# 高压缩档的代价只在构建期（本机 +4 min），换来的是安装包小 29 MB：下载更快，
+# NSIS 写入安装目录的字节更少，安装期 LZMA 也要处理更少数据。对"安装慢"这个
+# 诉求，这是唯一能同时改善体积和时间的改动。
+#
+# 注意 -19 用的是 tar 管道（`tar -cf -` | `zstd -19`）而不是 `tar --zstd`：
+# Windows 自带 bsdtar 不支持 `--level`，也不支持给 --use-compress-program
+# 传参数（实测报 "Can't launch external program"）。
+# 格式仍是 zstd tar，Windows 自带 tar.exe 在安装期照常 `tar -xf` 自动识别。
 $SidecarZip = Join-Path (Split-Path -Parent $SidecarTarget) "pdf2zh-api-sidecar.zip"
 if (-not (Test-Path (Join-Path $SidecarTarget "pdf2zh-api-sidecar.exe"))) {
     Write-Host "ERROR: sidecar missing at $SidecarTarget; cannot archive." -ForegroundColor Red
@@ -129,28 +147,83 @@ if (-not (Test-Path (Join-Path $SidecarTarget "pdf2zh-api-sidecar.exe"))) {
 }
 if (Test-Path $SidecarZip) { Remove-Item -LiteralPath $SidecarZip -Force }
 
-# 尝试 zstd 压缩（Windows 内置 tar.exe 3.8+ 含 libzstd）
-$useZstd = $false
-try {
-    $tarHelp = & tar.exe --help 2>&1 | Out-String
-    if ($tarHelp -match "zstd") {
-        $useZstd = $true
+# 外部 zstd.exe：给出 -19 档。没有它就退回 tar 自带的 libzstd（默认档）。
+function Find-ZstdExe {
+    $candidates = @()
+    $onPath = Get-Command "zstd.exe" -ErrorAction SilentlyContinue
+    if ($onPath) { $candidates += $onPath.Source }
+    $candidates += @(
+        "C:\msys64\usr\bin\zstd.exe",
+        "C:\Program Files\Git\usr\bin\zstd.exe",
+        "C:\ProgramData\chocolatey\bin\zstd.exe"
+    )
+    foreach ($c in $candidates) {
+        if ($c -and (Test-Path -LiteralPath $c)) { return $c }
     }
-} catch { }
-
-if ($useZstd) {
-    Write-Host "  using zstd compression (faster + ~8% smaller) ..."
-    & tar.exe --zstd -cf $SidecarZip -C $SidecarTarget .
-} else {
-    Write-Host "  using deflate compression (zstd unavailable) ..."
-    & tar.exe -a -cf $SidecarZip -C $SidecarTarget .
+    return $null
 }
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERROR: failed to archive sidecar into $SidecarZip (exit $LASTEXITCODE)." -ForegroundColor Red
+
+$ZstdLevel = 19
+$zstdExe = Find-ZstdExe
+
+# 归档**必须验证**，不能只看退出码或文件大小：
+# PS 7.4 以前的原生管道会把字节流转成字符串再转回，产出的是体积正常的
+# 垃圾归档 —— 大小检查抓不到，只有一个能真的读回来的检查抓得到。
+# 这里用 `tar -tf` 列目录：它会真正解析压缩流与 tar 结构。
+function Test-SidecarArchive {
+    param([string]$Archive, [int]$MinEntries)
+    if (-not (Test-Path -LiteralPath $Archive)) { return $false }
+    if ((Get-Item -LiteralPath $Archive).Length -lt 1MB) { return $false }
+    $listing = & tar.exe -tf $Archive 2>&1
+    if ($LASTEXITCODE -ne 0) { return $false }
+    $entries = @($listing | Where-Object { $_ -is [string] -and $_.Trim() -ne "" })
+    if ($entries.Count -lt $MinEntries) { return $false }
+    # sidecar 的主 exe 必须在包里，否则装完是个空壳。
+    if (-not ($entries -match "pdf2zh-api-sidecar\.exe$")) { return $false }
+    return $true
+}
+
+$expectedEntries = (Get-ChildItem -Recurse -File $SidecarTarget).Count
+$archived = $false
+
+# 依次尝试，每一级都真验证；失败才降级。全都失败才报错。
+if ($zstdExe) {
+    Write-Host "  trying external zstd -$ZstdLevel ($zstdExe) ..."
+    if (Test-Path $SidecarZip) { Remove-Item -LiteralPath $SidecarZip -Force }
+    & tar.exe -cf - -C $SidecarTarget . | & $zstdExe -q "-$ZstdLevel" -o $SidecarZip
+    if (Test-SidecarArchive -Archive $SidecarZip -MinEntries $expectedEntries) {
+        $archived = $true
+        Write-Host "  ok: zstd -$ZstdLevel" -ForegroundColor Green
+    } else {
+        Write-Host "  WARNING: zstd -$ZstdLevel archive unusable (corrupt or incomplete); falling back" -ForegroundColor Yellow
+        if (Test-Path $SidecarZip) { Remove-Item -LiteralPath $SidecarZip -Force }
+    }
+}
+
+if (-not $archived) {
+    Write-Host "  trying tar's built-in zstd (default level) ..."
+    if (Test-Path $SidecarZip) { Remove-Item -LiteralPath $SidecarZip -Force }
+    & tar.exe --zstd -cf $SidecarZip -C $SidecarTarget .
+    if (Test-SidecarArchive -Archive $SidecarZip -MinEntries $expectedEntries) {
+        $archived = $true
+    }
+}
+
+if (-not $archived) {
+    Write-Host "  trying deflate (no libzstd in tar) ..." -ForegroundColor Yellow
+    if (Test-Path $SidecarZip) { Remove-Item -LiteralPath $SidecarZip -Force }
+    & tar.exe -a -cf $SidecarZip -C $SidecarTarget .
+    if (Test-SidecarArchive -Archive $SidecarZip -MinEntries $expectedEntries) {
+        $archived = $true
+    }
+}
+
+if (-not $archived) {
+    Write-Host "ERROR: could not produce a readable sidecar archive at $SidecarZip." -ForegroundColor Red
     exit 1
 }
 $SidecarZipSize = (Get-Item $SidecarZip).Length
-Write-Host ("  sidecar archived: {0} ({1:N0} bytes)" -f $SidecarZip, $SidecarZipSize)
+Write-Host ("  sidecar archived: {0} ({1:N1} MB)" -f $SidecarZip, ($SidecarZipSize / 1MB))
 
 # ── [2/3] SPA（tsc + vite）─────────────────────────────────────────────────
 if (-not $SkipWeb) {

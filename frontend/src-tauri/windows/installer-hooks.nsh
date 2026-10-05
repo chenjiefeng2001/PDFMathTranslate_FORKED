@@ -84,6 +84,20 @@
     DetailPrint "tar.exe 解包失败(rc=$0)，回退 Expand-Archive"
     nsExec::ExecToLog '"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -Command "Expand-Archive -Force -Path ''$INSTDIR\pdf2zh-api-sidecar.zip'' -DestinationPath ''$INSTDIR\pdf2zh-api-sidecar''"'
     Pop $0
+    ; 此处不能直接落到 pdf2zh_extract_ok。原实现缺一个 Goto，
+    ; tar.exe 失败后会一路落进成功分支：打印“解包完成”（假成功）并
+    ; Delete 掉唯一的归档。结果是 sidecar 没有、归档也没有、日志还说成功——
+    ; 一个可重装的故障被变成了静默损坏。
+    ; 另外 Expand-Archive 只读得了真正的 ZIP，而本归档是 zstd tar（只是扩展名叫 .zip），
+    ; 实测必然失败，所以这条兜底只能当保护性检查，不能当成功信任。
+    IfFileExists "$INSTDIR\pdf2zh-api-sidecar\pdf2zh-api-sidecar.exe" 0 pdf2zh_extract_failed
+    Goto pdf2zh_extract_ok
+  pdf2zh_extract_failed:
+    DetailPrint "ERROR: sidecar 解包失败，归档已保留在 $INSTDIR\pdf2zh-api-sidecar.zip（请重新安装）"
+    ; 静默安装(/S)不弹窗，避免无人值守场景卡住。
+    IfSilent pdf2zh_extract_done
+    MessageBox MB_OK|MB_ICONEXCLAMATION "sidecar 后端解包失败。归档已保留在 $INSTDIR\pdf2zh-api-sidecar.zip，请重新运行安装程序。"
+    Goto pdf2zh_extract_done
   pdf2zh_extract_ok:
     DetailPrint "Sidecar 解包完成 (rc=$0)"
     ; 解包成功则删除 .zip，避免与解包目录重复占用磁盘
