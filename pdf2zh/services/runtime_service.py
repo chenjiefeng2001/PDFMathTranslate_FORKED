@@ -1606,6 +1606,10 @@ class RuntimeService:
             if self._store.is_cancelled(task_id):
                 return
             self._warn_unreadable_source(task_id, request)
+            # 损坏源文件在这里被自动修复成副本（原件不动），引擎随后读到的是
+            # 副本。必须在 _warn_unreadable_source 之后：那条闸门负责判定
+            # 「真的读不了」并抛错，可修的 warn 级问题交给这条链路。
+            self._repair_sources_if_needed(task_id, request)
             # 按用户选择的 ONNX 推理后端初始化版面分析（auto/cpu/cuda/dml）。
             # 必须在模型加载（ModelInstance）之前生效：后端变化时重置全局单例，
             # 使本任务按新 provider 重建 ONNX session（GPU 不可用自动回退 CPU）。
@@ -1713,6 +1717,10 @@ class RuntimeService:
                     task_id, TaskStage.FAILED.value, 100.0, f"Failed: {exc}"
                 )
         finally:
+            # 修复副本在任务落终态后回收。放在 finally 里是因为成功、失败、
+            # 取消三条路径都会留下临时目录 —— 而修复只对确实损坏的源触发，
+            # 漏回收就是每次任务白留一个目录。
+            self._release_repaired_sources(request)
             # V3-5：任务已落终态（COMPLETED/CANCELLED/FAILED，含单/批量/v4 全路径）——
             # 此后无活动任务。GUI cancel_only 模式下“下一次 Ctrl+C 即关闭应用”
             # （翻译运行中的第一次 Ctrl+C 只取消任务、不退出；任务结束后空闲态
@@ -1745,6 +1753,107 @@ class RuntimeService:
             release_model_instance()
         except Exception:  # noqa: BLE001 -- 回收失败不阻断翻译
             pass
+
+    def _repair_sources_if_needed(
+        self, task_id: str, request: "TranslationRequest"
+    ) -> None:
+        """源 PDF 损坏时自动修复，并把引擎要读的路径换成修复副本。
+
+        为什么需要这一层
+        ----------------
+        入口闸门（:meth:`_warn_unreadable_source`）对「能读但严格阅读器读不了」
+        只告警、不改写 —— 那是**刻意**的：源文件属于用户。可是下游引擎并不都是
+        MuPDF：MinerU 的 PDFium 后端拿**同一份原始字节**就会崩在
+        ``open_pdfium_document``（实测 325 页混合引用文件）。于是出现「告警说能继续」
+        与「引擎根本打不开」的矛盾。
+
+        这里补上中间那一档：探测 → 逐级 pikepdf 修复 → 用**同一个闸门**复检 →
+        采用副本（:mod:`pdf2zh.pdf_repair`）。原文件永远不动。
+
+        两条硬约束
+        ----------
+        1. **产物命名不能变**。结果文件名由源 stem 派生，
+           ``_shorten_result_entries`` 用结果文件自己的路径算稳定哈希。所以副本
+           沿用原文件名（见 ``pdf_repair.repair_copy``），否则同一份输入每次会
+           得到不同的下载名。
+        2. **副本必须在任务结束时回收**，否则每个任务留一个临时目录。
+
+        ``TranslationRequest.enable_repair`` 在此真正生效 —— 它此前是个从未被
+        读取过的死字段。
+        """
+        try:
+            from pdf2zh.pdf_repair import repair_copy
+        except Exception:  # noqa: BLE001 -- 修复链路不可用不该拦住翻译
+            logger.debug("[task=%s] pdf_repair unavailable", task_id)
+            return
+
+        files = request.resolved_files()
+        if not files:
+            return
+
+        enabled = bool(getattr(request, "enable_repair", True))
+        copies: List[str] = []
+        replacements: Dict[str, str] = {}
+
+        for src in files:
+            try:
+                outcome = repair_copy(src, enabled=enabled)
+            except Exception:  # noqa: BLE001 -- 诊断链路，绝不阻断翻译
+                logger.debug(
+                    "[task=%s] repair raised for %s", task_id, src, exc_info=True
+                )
+                continue
+            if outcome.healthy:
+                continue
+            if outcome.repaired:
+                copies.append(outcome.path)
+                replacements[src] = outcome.path
+                msg = outcome.summary()
+                level = logging.WARNING if outcome.pages_lost else logging.INFO
+                logger.log(level, "[task=%s] %s", task_id, msg)
+                if outcome.pages_lost:
+                    # 丢页必须让用户看见：译文会少掉对应内容。
+                    msg = (
+                        f"{msg}; {outcome.pages_lost} page(s) could not be "
+                        "recovered and will be missing from the translation"
+                    )
+                self._emit_event(task_id, TaskStage.PARSING.value, 4.0, msg)
+            else:
+                logger.warning(
+                    "[task=%s] %s -> repair found damage but could not fix it; "
+                    "continuing with the original so the engine reports its own "
+                    "error",
+                    task_id,
+                    os.path.basename(src),
+                )
+
+        if not replacements:
+            return
+
+        if request.files:
+            request.files = [replacements.get(f, f) for f in request.files]
+        if request.source_path:
+            request.source_path = replacements.get(
+                request.source_path, request.source_path
+            )
+        # 记录副本路径以便回收；放在 extra_config 里随请求走完整个任务。
+        extra = request.extra_config if request.extra_config is not None else {}
+        request.extra_config = extra
+        extra["_repair_copies"] = list(copies)
+
+    def _release_repaired_sources(self, request: "TranslationRequest") -> None:
+        """回收 :meth:`_repair_sources_if_needed` 产出的副本与临时目录。"""
+        extra = getattr(request, "extra_config", None) or {}
+        copies = list(extra.pop("_repair_copies", []) or [])
+        if not copies:
+            return
+        try:
+            from pdf2zh.pdf_repair import release_repair
+
+            for path in copies:
+                release_repair(path)
+        except Exception:  # noqa: BLE001 -- 清理失败不影响任务结果
+            logger.debug("releasing repaired source copies failed", exc_info=True)
 
     def _execute_batch(
         self,
