@@ -17,10 +17,11 @@ Chrome / Edge / 多数浏览器内置阅读器、以及 PDFium 系的校验器�
 而传统 ``trailer`` 里没有 ``/Encrypt``。按规范这是无效的混合引用结构 ——
 严格阅读器读到 ``/Encrypt`` 却建不起 security handler，于是在
 ``FPDF_LoadDocument`` 阶段就失败；宽松的 MuPDF/pikepdf 把它当未加密文档直接
-放行。``pikepdf`` 一次 load+save（0.2s、体积不变）即可修复：``/Encrypt`` 与
-``/XRefStm`` 同时消失。
+放行。``pikepdf`` 一次 load+save 即可修复：``/Encrypt`` 与 ``/XRefStm``
+同时消失。实测那份 325 页文件 0.08s、体积 16832152 → 16817213 字节
+（-0.09%）、文本层字符数逐字不变（745601 → 745601）。
 
-本模块做三件事
+本模块做四件事
 --------------
 1. :func:`catalog_structure_problems` —— **不依赖 PDFium** 的结构校验。检查
    Catalog 里那些「值类型由规范钉死」的键（``/AcroForm`` 必须是字典…）。
@@ -29,6 +30,12 @@ Chrome / Edge / 多数浏览器内置阅读器、以及 PDFium 系的校验器�
 3. :func:`repair_pdf` / :func:`ensure_readable` —— 产物若过不了闸门，先尝试
    用 pikepdf 规范化重写（原地），成功即交付修复后的文件；仍不通过才告警。
    **绝不因为校验失败就丢弃产物** —— 那会让用户什么都拿不到。
+4. :func:`normalized_copy` —— **不改原件**地给出规范化副本。源文件属于用户，
+   所以第 3 项那种原地重写只用在产物上；但源文件若交给**只能用 PDFium** 的
+   引擎（MinerU ``pipeline`` 后端靠 PDFium 渲染页面），入口闸门那条「warn，
+   可以继续翻译」的告警就是空头支票 —— 实测同一份混合引用文件 MuPDF/
+   pikepdf 放行、MinerU 直接崩在 ``open_pdfium_document``。这个函数补的就是
+   缺的那一环：原件一个字不动，另给一份可读副本。
 
 为什么必须有第 1 项（这是实测踩出来的）
 --------------------------------------
@@ -334,10 +341,17 @@ def strict_reader_check(path: str, deep: bool = False) -> Tuple[bool, str]:
     return verdict.ok, verdict.reason
 
 
-def repair_pdf(path: str) -> bool:
-    """把 ``path`` 原地规范化重写 + 清洗 Catalog 键类型。
+def _normalized_file(path: str, dest_dir: str, prefix: str) -> Optional[str]:
+    """规范化 ``path`` 并把副本落到 ``dest_dir``，返回**已复检通过**的路径。
 
-    做两件事：
+    :func:`repair_pdf`（原地替换）与 :func:`normalized_copy`（留副本给调用方）
+    共用的核心，所以「规范化」只有一处定义 —— 两者的差别只在于副本的归属。
+
+    任何一步失败（pikepdf 缺失、PDFium 缺失、打不开、复检不过）都返回
+    ``None`` 并清理临时文件，**永不抛给调用方**：规范化是尽力而为的补救，
+    失败时正确做法是退回原件，而不是让翻译任务崩在这里。
+
+    规范化做两件事：
     1. **Catalog 类型清洗**（:func:`_sanitize_catalog`）—— 修掉 PDFium 13x 会
        拒绝、而 pikepdf 忠实保留的类型错误（实测 ``/AcroForm`` 指向数组）。
     2. **load + save 重新序列化** —— pikepdf/qpdf 会写出单一、完整的 xref，
@@ -345,34 +359,27 @@ def repair_pdf(path: str) -> bool:
        ``startxref``）随之消失。
 
     刻意**不做**的事：不改页面内容、不重新压缩图像、不删对象，因此不会像
-    ``garbage=4`` 那样顺手丢掉不可达内容。
-
-    PDFium 不可用时**直接放弃**：那样就无从验证重写结果是否真的可读，属于
-    「无法验证的原地改写」，比不改更危险。结构校验只能证明 Catalog 键类型
-    修好了，不能证明阅读器仍能打开整份文件 —— 两者不可互相替代。
-
-    Returns:
-        重写成功且复检通过时为 True。
+    ``garbage=4`` 那样顺手丢掉不可达内容，实测文本层字符数逐字不变。
     """
     pikepdf = _pikepdf()
     if pikepdf is None:
-        return False
+        return None
     if _pdfium() is None:
         logger.warning(
             "refusing to rewrite %s: pypdfium2 is unavailable, so the result "
             "cannot be verified against a real browser PDF engine",
             os.path.basename(path),
         )
-        return False
+        return None
     if not os.path.exists(path):
-        return False
+        return None
 
     try:
-        directory = os.path.dirname(os.path.abspath(path)) or "."
-        fd, tmp = tempfile.mkstemp(
-            prefix=".pdf2zh_repair_", suffix=".pdf", dir=directory
-        )
+        fd, tmp = tempfile.mkstemp(prefix=prefix, suffix=".pdf", dir=dest_dir)
         os.close(fd)
+        # 只有「确认要交给调用方」时才置位：finally 无条件删 tmp 的话，
+        # return tmp 触发的 finally 会把刚交出去的副本删掉。
+        keep = False
         try:
             with pikepdf.open(path) as pdf:
                 removed = _sanitize_catalog(pdf)
@@ -385,25 +392,132 @@ def repair_pdf(path: str) -> bool:
                 pdf.save(tmp)
             verdict = inspect_pdf(tmp)
             if not verdict.ok:
-                os.unlink(tmp)
                 logger.debug(
-                    "repair of %s still fails: %s",
+                    "normalization of %s still fails: %s",
                     os.path.basename(path),
                     verdict.reason,
                 )
-                return False
-            # 校验通过才替换，避免把原件换成另一个坏文件
-            os.replace(tmp, path)
-            return True
+                return None
+            keep = True
+            return tmp
         finally:
-            if os.path.exists(tmp):
+            if not keep and os.path.exists(tmp):
                 try:
                     os.unlink(tmp)
                 except OSError:
                     pass
     except Exception as exc:  # noqa: BLE001 -- 修复是尽力而为，永不抛给调用方
-        logger.debug("pdf repair failed for %s: %s", path, exc)
+        logger.debug("pdf normalization failed for %s: %s", path, exc)
+        return None
+
+
+def repair_pdf(path: str) -> bool:
+    """把 ``path`` 原地规范化重写 + 清洗 Catalog 键类型。
+
+    PDFium 不可用时**直接放弃**：那样就无从验证重写结果是否真的可读，属于
+    「无法验证的原地改写」，比不改更危险。结构校验只能证明 Catalog 键类型
+    修好了，不能证明阅读器仍能打开整份文件 —— 两者不可互相替代。
+
+    Returns:
+        重写成功且复检通过时为 True。
+    """
+    tmp = _normalized_file(
+        path,
+        os.path.dirname(os.path.abspath(path)) or ".",
+        ".pdf2zh_repair_",
+    )
+    if tmp is None:
         return False
+    try:
+        # 校验通过才替换，避免把原件换成另一个坏文件
+        os.replace(tmp, path)
+        return True
+    except OSError as exc:
+        logger.debug("pdf repair swap failed for %s: %s", path, exc)
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        return False
+
+
+def normalized_copy(path: str) -> Optional[str]:
+    """PDFium 读不了 ``path`` 时，给出一份**规范化副本**的路径。
+
+    为什么需要它（这是实测踩出来的）
+    ------------------------------
+    本工具的主链路用 MuPDF/pikepdf 读源文件，它们比 PDFium 宽松，所以「入口闸门
+    只告警、不改写用户输入」是对的（:func:`source_readability_warning`、以及
+    :func:`ensure_source_usable` 背后 ``runtime_service._warn_unreadable_source``
+    的注释都明说了这一点）。但有一类消费者**只能用 PDFium** —— MinerU 3.x 的
+    ``pipeline`` 后端要靠 PDFium 渲染页面图像。实测那份 325 页混合引用文件：
+    MuPDF 报 ``is_encrypted=False``、pikepdf 语法检查无问题，入口闸门只发一条
+    ``warn``；而 MinerU 拿同一份原始字节直接崩在 ``open_pdfium_document``::
+
+        pypdfium2._helpers.misc.PdfiumError: Failed to load document
+        (PDFium: Unsupported security scheme error)
+
+    于是「入口告警说可以继续翻译」与「解析引擎根本打不开」互相矛盾。这里补上
+    缺的那一环：**不改用户原件**，另给一份规范化副本给这类引擎用。
+
+    与 :func:`repair_pdf` 的区别是不碰原文件 —— 源文件属于用户，而产物是我们
+    自己的文件，才有资格原地重写。
+
+    Returns:
+        副本路径（**调用方负责删除**）；原件本来就 PDFium 可读、无需规范化，
+        或规范化失败时返回 ``None`` —— 两种 ``None`` 都表示「继续用原件」。
+    """
+    if not path or not os.path.isfile(path):
+        return None
+    # 原件已可读就不重写：探测是载入期检查（实测 16MB/325 页约 20ms），
+    # 而 load+save 要完整解析一遍。对健康文件做这件事是纯浪费。
+    if inspect_pdf(path).ok:
+        return None
+    dest_dir = tempfile.mkdtemp(prefix="pdf2zh_norm_")
+    tmp = _normalized_file(path, dest_dir, ".pdf2zh_norm_")
+    if tmp is None:
+        try:
+            os.rmdir(dest_dir)
+        except OSError:
+            pass
+        return None
+    # 恢复原文件名：这份副本会作为 ``pdf_file_names`` 流进 MinerU，输出目录
+    # 层级直接由它决定，用原始 stem 才能在中间产物里看出是哪份文档。
+    # dest_dir 是刚建的私有目录，同名不会撞车。
+    final = os.path.join(dest_dir, os.path.basename(path))
+    try:
+        os.replace(tmp, final)
+    except OSError as exc:  # noqa: BLE001 -- 改名失败就沿用临时名，功能等价
+        logger.debug("could not rename normalized copy for %s: %s", path, exc)
+        final = tmp
+    logger.info(
+        "normalized %s into %s for PDFium-only consumers (source left untouched)",
+        os.path.basename(path),
+        final,
+    )
+    return final
+
+
+def release_normalized_copy(path: Optional[str]) -> None:
+    """删除 :func:`normalized_copy` 产出的副本及其私有临时目录。
+
+    只认自己建的布局（父目录以 ``pdf2zh_norm_`` 开头），传别的路径进来什么
+    也不做 —— 清理代码不该有能力删掉调用方自己的文件。
+    """
+    if not path:
+        return
+    parent = os.path.dirname(path)
+    if not os.path.basename(parent).startswith("pdf2zh_norm_"):
+        return
+    # 两步各自兜底：文件可能已被别处消费掉，但空目录仍要收掉。
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+    try:
+        os.rmdir(parent)
+    except OSError:
+        pass
 
 
 def ensure_readable(path: str, label: str = "") -> bool:
@@ -578,6 +692,8 @@ __all__ = [
     "ensure_readable",
     "ensure_source_usable",
     "inspect_pdf",
+    "normalized_copy",
+    "release_normalized_copy",
     "repair_pdf",
     "source_readability_warning",
     "strict_reader_check",

@@ -1750,7 +1750,53 @@ class MagicPdfAdapter:
         lang: str = "ch",
         progress_cb: Optional[MagicPdfProgressCB] = None,
     ) -> list[MagicPdfParseResult]:
-        """MinerU 3.x 解析（懒导入，官方编程入口 ``do_parse``）。
+        """MinerU 解析入口：确保 PDFium 读得了，再交给引擎。
+
+        MinerU 3.x 的 ``pipeline`` 后端靠 **PDFium** 渲染页面图像，而 PDFium 比
+        本工具主链路（MuPDF/pikepdf）严格得多。实测那份 325 页混合引用文件
+        （``/Encrypt`` 只挂在 XRef 流上、传统 trailer 里没有）：MuPDF 报
+        ``is_encrypted=False``、pikepdf 语法检查无问题、入口闸门因此只发一条
+        ``warn``「可以继续翻译」，但 MinerU 拿**同一份原始字节**直接崩在
+        ``open_pdfium_document``::
+
+            PdfiumError: Failed to load document
+            (PDFium: Unsupported security scheme error)
+
+        于是「入口告警说能继续」与「解析引擎根本打不开」自相矛盾。这层补的就是
+        缺的那一环：原件一个字不动（源文件属于用户，见
+        ``runtime_service._warn_unreadable_source``），另给一份规范化副本。
+
+        只在 PDFium 真读不了时才重写 —— 健康文件走 PDFium 试开即返回
+        （实测 16MB/325 页约 20ms），不付 load+save 全量解析的代价。
+        """
+        from pdf2zh.pdf_validity import normalized_copy, release_normalized_copy
+
+        normalized = normalized_copy(pdf_path)
+        try:
+            return self._parse_mineru_source(
+                normalized if normalized is not None else pdf_path,
+                pages=pages,
+                ocr=ocr,
+                lang=lang,
+                progress_cb=progress_cb,
+            )
+        finally:
+            release_normalized_copy(normalized)
+
+    def _parse_mineru_source(
+        self,
+        pdf_path: str,
+        pages: list[int] | None = None,
+        ocr: bool = False,
+        lang: str = "ch",
+        progress_cb: Optional[MagicPdfProgressCB] = None,
+    ) -> list[MagicPdfParseResult]:
+        """对**已确保 PDFium 可读**的 PDF 跑 MinerU 3.x（懒导入，``do_parse``）。
+
+        调用方 :meth:`_parse_mineru` 负责 PDFium 可读性，本函数假定 ``pdf_path``
+        已可直接喂给引擎 —— 两处调用点（进程内 ``do_parse`` 与隔离 venv 子进程）
+        共用这个前提，否则子进程路径里那份原始文件仍会让 MinerU 崩在
+        ``open_pdfium_document``。
 
         管线：``read_fn`` → ``do_parse(backend="pipeline",
         f_dump_middle_json=True)`` → 消费 ``{stem}_middle.json`` →

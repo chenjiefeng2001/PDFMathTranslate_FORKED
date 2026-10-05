@@ -20,12 +20,12 @@
 import os
 import tempfile
 import unittest
-import zlib
 from unittest.mock import patch
 
 import pikepdf
 import pymupdf
 
+from tests import conftest
 from pdf2zh import pdf_validity
 from pdf2zh.pdf_validity import (
     ensure_readable,
@@ -38,50 +38,17 @@ HAVE_PDFIUM = pdf_validity._pdfium() is not None
 
 
 def _plain_pdf(path, pages=1, text="hello"):
-    doc = pymupdf.open()
-    for i in range(pages):
-        page = doc.new_page(width=300, height=300)
-        page.insert_text((30, 60 + i * 20), f"{text} {i}")
-    doc.save(path)
-    doc.close()
-    return path
+    """见 :mod:`tests.conftest` —— 样本构造器的唯一实现在那里。"""
+    return conftest.plain_pdf(path, pages=pages, text=text)
 
 
 def _hybrid_encrypt_pdf(path):
     """pikepdf 能开、PDFium 拒绝的样本。
 
-    做法：给一份正常 PDF 追加一个 /Encrypt 字典，再在 trailer 里加
-    ``/XRefStm`` 指向一个携带 ``/Encrypt`` 的 /XRef 流。严格阅读器据此认为
-    文档已加密却又建不起 security handler，于是在载入阶段拒绝。
+    构造逻辑已收敛到 :mod:`tests.conftest`（MinerU 摄入路径的测试也要用同一
+    个样本），这里保留原名以免改动本文件里的既有调用点。
     """
-    _plain_pdf(path)
-    data = open(path, "rb").read()
-
-    enc_obj = (
-        b"1023 0 obj\n<</Filter/Standard/V 4/R 4/Length 128/P -3904"
-        b"/O <" + b"0" * 32 + b">/U <" + b"0" * 32 + b">>>\nendobj\n"
-    )
-    rows = b"\x00" + (0).to_bytes(4, "big") + (65535).to_bytes(2, "big")
-    comp = zlib.compress(rows)
-    xref_stream_obj = (
-        b"1024 0 obj\n<</Type/XRef/Size 1025/W [1 4 2]/Root 1 0 R"
-        b"/Encrypt 1023 0 R/Filter/FlateDecode/Length "
-        + str(len(comp)).encode()
-        + b">>\nstream\n"
-        + comp
-        + b"\nendstream\nendobj\n"
-    )
-
-    ti = data.rfind(b"trailer")
-    body, trailer = data[:ti], data[ti:]
-    sx = trailer.find(b"startxref")
-    if sx >= 0:
-        trailer = trailer[:sx]
-    new_trailer = trailer.replace(b">>", b"/XRefStm 999999>>", 1)
-    open(path, "wb").write(
-        body + enc_obj + xref_stream_obj + new_trailer + b"startxref\n999999\n%%EOF\n"
-    )
-    return path
+    return conftest.hybrid_encrypt_pdf(path)
 
 
 def _text_stub_pdf(path):
