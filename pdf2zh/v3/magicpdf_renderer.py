@@ -190,6 +190,66 @@ def _erase_rect_for(entry: dict, dst_box: Sequence[float], page_height: float):
     return pymupdf.Rect(_flip_v3_box(src, page_height))
 
 
+def _is_translated_block(entry: dict) -> bool:
+    """真翻译块：translated 非空且与原文不同。formula/code 等保留块的
+    translated 由 translate_document 回填为原文，不满足此条件。"""
+    text = entry.get("text") or ""
+    translated = entry.get("translated")
+    if not (isinstance(translated, str) and translated.strip()):
+        return False
+    return translated != text
+
+
+def _erases_source_region(entry: dict, src_doc: Optional[Any]) -> bool:
+    """该 entry 是否会**替换**一块源文本区域（因而需要先擦白）。
+
+    擦白遍与绘制遍共用这一判据 —— 两边一旦对「谁被替换」产生分歧，后果都是
+    静默的：判多一侧会抹掉本该保留的背景内容（公式/代码/表格的原文在背景层
+    直接可见，见 7N-FIX 保留块分支），判少一侧则残留原文字形。
+
+    判据必须与 :func:`_draw_entry` 的分派完全一致：list / toc / flow 三条
+    命令路径都会擦白，而 legacy 兜底路径只对**已翻译**块擦白 —— 保留块原文
+    由背景层显示，白擦了就是凭空抹掉内容。
+    """
+    if not _entry_text(entry):
+        return False
+    payload = entry.get("render_payload") or {}
+    kind = payload.get("kind")
+    cmds = payload.get("commands") or []
+    if kind == "list" or (not cmds and (entry.get("list_items") or {}).get("commands")):
+        return True
+    if kind == "toc" or (
+        not cmds and (entry.get("toc_commands") or {}).get("commands")
+    ):
+        return True
+    if kind == "flow" and cmds:
+        return True
+    if src_doc is not None and not _is_translated_block(entry):
+        return False
+    return True
+
+
+def _erase_plan(
+    entries: Sequence[dict], src_doc: Optional[Any], page_height: float
+) -> list:
+    """本页所有需要擦除的源区域（在**任何**译文落笔之前一次性画完）。
+
+    为什么必须前置：逐块「擦白→画字」交错时，块 N 的白矩形会盖掉块 N-1 已经
+    画好的译文 —— 只要 N-1 的译文比源区域高（重排后行数变多是常态）就会发生。
+    实测（Harvard 出版社 325 页书，正文页）译文被削掉上半/下半截字形，与下方
+    原文字形叠成不可读的一团。
+    """
+    rects = []
+    for entry in entries or []:
+        if not _erases_source_region(entry, src_doc):
+            continue
+        box = list(entry.get("dst_box") or entry.get("src_box") or [0, 0, 0, 0])
+        if len(box) != 4:
+            box = [0, 0, 0, 0]
+        rects.append(_erase_rect_for(entry, box, page_height))
+    return rects
+
+
 def _entry_text(entry: dict) -> str:
     """取块渲染文本：译文优先（保留块 translated 已由 translate_document
     回填为原文），缺失时回退原文。"""
@@ -463,8 +523,12 @@ def _render_list_commands(
 
     7N-FIX-3：``erase_rect`` 是**源文本几何**（src_box 翻转），与命令落点
     （dst）解耦 —— shift 块的白矩形只覆盖真正需要替换的原文，绝不盖相邻行。
+
+    ``erase_rect=None`` 表示擦除已由页级前置遍统一完成（见
+    :func:`_erase_plan`），本函数只落笔：逐块「擦白→画字」交错执行时，
+    **后一块**的白矩形会盖掉**前一块**已画好的译文。
     """
-    if src_doc is not None:
+    if src_doc is not None and erase_rect is not None:
         # 覆盖原文区域（白色矩形），保证译文不与原文混排。
         page.draw_rect(erase_rect, color=None, fill=(1, 1, 1))
     for c in commands or []:
@@ -506,7 +570,7 @@ def _render_flow_commands(
     replaced — never the shifted dst_box — so shifted blocks cannot wipe out
     neighbouring lines.
     """
-    if src_doc is not None:
+    if src_doc is not None and erase_rect is not None:
         page.draw_rect(erase_rect, color=None, fill=(1, 1, 1))
     overflow_hit = False
     # FlightRecorder：记录每条命令**实际使用**的 fitz baseline（供
@@ -755,15 +819,6 @@ def render_plan_to_pdf(
             src_doc = None
             del exc
 
-    def _is_translated_block(entry: dict) -> bool:
-        """真翻译块：translated 非空且与原文不同。formula/code 等保留块的
-        translated 由 translate_document 回填为原文，不满足此条件。"""
-        text = entry.get("text") or ""
-        translated = entry.get("translated")
-        if not (isinstance(translated, str) and translated.strip()):
-            return False
-        return translated != text
-
     by_page: Dict[int, List[dict]] = {}
     # 页集合 = 计划里出现的页 ∪ 调用方声明了页尺寸的页。
     # 后半是关键：某一页 OCR/布局一个块都没检出时，render_plan 里不会有它，
@@ -810,6 +865,11 @@ def render_plan_to_pdf(
             page.show_pdf_page(page.rect, src_doc, pno)
             # 记录背景文本：它会被复制进输出文本层，几何审计据此排除。
             background_spans[pno] = page_span_snapshot(page)
+        # 擦除遍：先把本页所有被替换的源区域统一画白，再落笔任何译文。
+        # 交错执行会让后一块的白矩形削掉前一块已画好的译文（见 _erase_plan）。
+        if src_doc is not None:
+            for _rect in _erase_plan(by_page[pno], src_doc, h):
+                page.draw_rect(_rect, color=None, fill=(1, 1, 1))
         for entry in by_page[pno]:
             text = _entry_text(entry)
             if not text:
@@ -837,7 +897,7 @@ def render_plan_to_pdf(
                 if font_size <= 0:
                     font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
                 _render_list_commands(
-                    page, list_cmds, h, font_size, fontname, erase_rect, stats, src_doc
+                    page, list_cmds, h, font_size, fontname, None, stats, src_doc
                 )
                 _emit_render_trace(
                     trace,
@@ -878,7 +938,7 @@ def render_plan_to_pdf(
                 if font_size <= 0:
                     font_size = float(font_size_fallback) or _DEFAULT_FONT_SIZE
                 _render_toc_commands(
-                    page, toc_cmds, h, font_size, fontname, erase_rect, stats, src_doc
+                    page, toc_cmds, h, font_size, fontname, None, stats, src_doc
                 )
                 _emit_render_trace(
                     trace,
@@ -923,7 +983,7 @@ def render_plan_to_pdf(
                     h,
                     font_size,
                     fontname,
-                    erase_rect,
+                    None,
                     stats,
                     src_doc,
                     entry,
@@ -977,8 +1037,9 @@ def render_plan_to_pdf(
             if src_doc is not None:
                 # 7N-FIX-3B：白矩形只覆盖源文本几何（src_box），译文仍画进
                 # dst_box（rect）—— 擦除与渲染几何解耦，shift 块不误抹相邻行。
+                # 落笔已由页级擦除遍完成，这里只保留 trace（几何取证仍按
+                # src_box 报，供 ERASE_GEOMETRY 规则核对）。
                 erase_rect = _erase_rect_for(entry, box, h)
-                page.draw_rect(erase_rect, color=None, fill=(1, 1, 1))
                 _emit_render_trace(
                     trace,
                     entry,

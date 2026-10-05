@@ -277,6 +277,72 @@ class TestJustifiedParagraphNotShattered(unittest.TestCase):
         verdict = _line_alignment(_line("x", [], 48.0, 320.0), 45.0, 374.0)
         self.assertEqual(verdict, "left", f"顶格行被判成 {verdict!r}")
 
+    def test_line_overhanging_the_block_box_is_left(self):
+        """行盒越出块 bbox（负余量）时按「没有留白」算，而不是翻转判定。
+
+        实测：某段块 bbox x=[45,372]，而其中多行 x1 到 390 —— 右边余量 -18。
+        不夹的话负号会翻转「哪侧更空」的比较，且平衡分支里 abs(39.0) 与
+        tol(39.2) 只差 0.2pt 就把同一段正文判成 right 又判回 left，于是被
+        「对齐翻转」切开。
+        """
+        from pdf2zh.v3.canonical_page import _line_alignment
+
+        # 行从 x=68 起、伸到 390，块只有 45..372 -> left=23, right=-18
+        verdict = _line_alignment(_line("x", [], 68.0, 390.0), 45.0, 372.0)
+        self.assertEqual(
+            verdict,
+            "left",
+            f"越界行被判成 {verdict!r}；负余量必须夹到 0 再比较",
+        )
+
+    def test_line_overhanging_both_sides_is_left_not_centred(self):
+        """两侧都越界的满宽行是正文，不是居中。
+
+        夹到 0 给出 (0, 0) → 非居中。若改用 ``abs()``，同样这行会得到
+        (25, 28) → 「大致对称且两侧都超过门槛」→ 被判成居中，于是整段正文
+        在「对齐翻转」名下被切开。夹取与取绝对值在这里结论相反，必须钉住。
+        """
+        from pdf2zh.v3.canonical_page import _line_alignment
+
+        verdict = _line_alignment(_line("x", [], 20.0, 400.0), 45.0, 372.0)
+        self.assertEqual(
+            verdict,
+            "left",
+            f"两侧都越界的满宽行被判成 {verdict!r}；"
+            "负余量应夹到 0（=没有留白），不能取绝对值（会伪装成对称留白）",
+        )
+
+    def test_overhanging_paragraph_is_not_split(self):
+        """实测 page 15 的那段正文：块 bbox 比行盒窄，修复前被切成 4 段。"""
+        lines = [
+            _line(
+                f"l{i}",
+                [_span(f"l{i}", 9.35, "Body")],
+                68.0 if i >= 2 else 47.0,
+                390.0 if i >= 2 else 372.0,
+            )
+            for i in range(12)
+        ]
+        page = _page_with(
+            [
+                BlockModel(
+                    kind="paragraph",
+                    x0=45.0,
+                    x1=372.0,
+                    y0=0,
+                    y1=200,
+                    lines=lines,
+                )
+            ]
+        )
+        splits = apply_layout_splits(page)
+        self.assertEqual(
+            splits,
+            0,
+            f"块 bbox 窄于行盒的段落被切了 {splits} 段；"
+            f"provenance={[b.metadata.get('layout_provenance') for b in page.blocks]}",
+        )
+
     def test_asymmetric_indent_is_left_not_centred(self):
         """两侧余量必须**都**过门槛，只看较大的一侧会把缩进行判成居中。
 

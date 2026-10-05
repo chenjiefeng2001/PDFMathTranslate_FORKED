@@ -542,10 +542,20 @@ def _line_alignment(line, box_x0: float, box_x1: float) -> str:
     :data:`_ALIGN_CENTER_MIN_PT` 以上的宽度**且大致对称的行才判 center ——
     门槛必须高于正文行的自然抖动余量，否则满宽正文行会被随机判成居中，
     进而被 :func:`apply_layout_splits` 切成碎片（见上方常量注释）。
+
+    负余量一律夹到 0：块 bbox 与行盒不一致时（实测）负余量会让判定在
+    取整噪声上乱跳，见下方注释。
     """
     box_w = max(1e-6, box_x1 - box_x0)
-    left = line.x0 - box_x0
-    right = box_x1 - line.x1
+    # 余量可能为**负**：MinerU 的块 bbox 与它自己的行盒并不总是一致（实测某段
+    # 块 bbox x=[45,372]，而其中多行的 x1 到 390）。负余量有两个害处：
+    #   1. 「哪一侧更空」的比较被符号翻转，判定随噪声乱跳；
+    #   2. 平衡分支里 abs(left-right) 与 tol 只差零点几 pt 时，判定纯粹取决于
+    #      取整噪声（实测 39.0 vs tol 39.2 就把同一段正文判成 right 然后又判回
+    #      left，于是一段正文在「对齐翻转」名下被切开）。
+    # 夹到 0 只是陈述事实：该行没有在该方向上留白。
+    left = max(0.0, line.x0 - box_x0)
+    right = max(0.0, box_x1 - line.x1)
     tol = max(6.0, 0.12 * box_w)
     center_min = max(_ALIGN_CENTER_MIN_PT, _ALIGN_CENTER_MIN_RATIO * box_w)
     if abs(left - right) <= tol:
