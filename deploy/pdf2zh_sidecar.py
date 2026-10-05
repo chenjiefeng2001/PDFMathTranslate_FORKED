@@ -47,10 +47,6 @@ def main() -> int:
     # 多进程版面分析/GPU worker 全部失效。
     multiprocessing.freeze_support()
 
-    # 必须在 runtime service（以及它预热的 translator registry）构造**之前**：
-    # translator 的 set_envs 是从 os.environ 拷值的，晚一步就拿不到代理。
-    bootstrap_network()
-
     parser = argparse.ArgumentParser(description="pdf2zh REST/SSE sidecar")
     parser.add_argument("--port", type=int, default=11009)
     args, _ = parser.parse_known_args()
@@ -84,6 +80,15 @@ def main() -> int:
         logging.getLogger("pdf2zh.sidecar").info(
             "root logger: installed stderr handler at INFO"
         )
+
+    # 必须在 runtime service（以及它预热的 translator registry）构造**之前**：
+    # translator 的 set_envs 是从 os.environ 拷值的，晚一步就拿不到代理。
+    #
+    # 放在 root logger 装好**之后**，是为了让「已导入哪个代理」这条 INFO 真的
+    # 进得了日志。放在它之前时，logging 还在 last-resort 状态（只出 WARNING+），
+    # 这条 INFO 会被静默丢弃 —— 而「日志里看不到代理」恰恰是本次缺陷最难查的
+    # 一点：现象是翻译超时，日志却对代理只字不提。
+    bootstrap_network()
 
     app = create_api_app(
         service=get_runtime_service(), allow_origins=["http://tauri.localhost"]

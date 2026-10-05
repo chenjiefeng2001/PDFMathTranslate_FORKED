@@ -155,6 +155,61 @@ def test_bootstrap_runs_before_the_runtime_service_is_built(
     assert "127.0.0.1" in noproxy, "NO_PROXY 未在服务构造前就绪"
 
 
+def test_proxy_import_is_logged_where_the_shell_can_see_it(
+    sidecar, monkeypatch, clean_proxy_env
+):
+    """「已导入哪个代理」必须是 root handler 装好**之后**才发出的 INFO。
+
+    否则 logging 仍处于 last-resort 状态（只输出 WARNING 及以上），这条 INFO
+    被静默丢弃 —— 而「日志里对代理只字不提」正是本缺陷最难排查的地方：用户
+    只看到翻译超时，日志却毫无线索。
+    """
+    _fake_registry(monkeypatch)
+    monkeypatch.setattr(sidecar.multiprocessing, "freeze_support", lambda: None)
+    monkeypatch.setattr(sys, "argv", ["pdf2zh-api-sidecar", "--port", "1"])
+
+    import logging
+
+    state = {"handlers_at_bootstrap": None}
+
+    real_bootstrap = sidecar.bootstrap_network
+
+    def _tracking_bootstrap():
+        root = logging.getLogger()
+        state["handlers_at_bootstrap"] = len(root.handlers)
+        state["level_at_bootstrap"] = root.level
+        real_bootstrap()
+
+    monkeypatch.setattr(sidecar, "bootstrap_network", _tracking_bootstrap)
+
+    fake_uvicorn = types.ModuleType("uvicorn")
+    fake_uvicorn.run = lambda *a, **k: (_ for _ in ()).throw(_Stop())
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    fake_api = types.ModuleType("pdf2zh.services.api")
+    fake_api.create_api_app = lambda **k: types.SimpleNamespace()
+    monkeypatch.setitem(sys.modules, "pdf2zh.services.api", fake_api)
+    fake_rt = types.ModuleType("pdf2zh.services.runtime_singleton")
+    fake_rt.get_runtime_service = lambda: object()
+    monkeypatch.setitem(sys.modules, "pdf2zh.services.runtime_singleton", fake_rt)
+
+    saved_handlers = list(logging.getLogger().handlers)
+    saved_level = logging.getLogger().level
+    try:
+        logging.getLogger().handlers = []
+        with pytest.raises(_Stop):
+            sidecar.main()
+    finally:
+        logging.getLogger().handlers = saved_handlers
+        logging.getLogger().setLevel(saved_level)
+
+    assert state["handlers_at_bootstrap"], (
+        "bootstrap ran before any root handler was installed, so its INFO about "
+        "the imported proxy is swallowed by logging's last-resort handler -- the "
+        "one diagnostic that would explain 'translation times out in the packaged "
+        "app' stays invisible"
+    )
+
+
 def test_spec_collects_the_network_module():
     """``pdf2zh.networking`` 在 main() 里是延迟导入，漏收会被 except 吞掉，
     表现为打包后静默不走代理 —— 没有任何报错。"""
