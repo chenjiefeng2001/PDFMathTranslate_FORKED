@@ -137,6 +137,190 @@ class TestLayoutSplits(unittest.TestCase):
         self.assertEqual(len(page.blocks), 1)
 
 
+class TestJustifiedParagraphNotShattered(unittest.TestCase):
+    """真实书籍排版下的对齐判定（回归护栏）。
+
+    缺陷
+    ----
+    ``_line_alignment`` 曾用「两侧余量 > 2pt」判居中。实测 325 页英文书
+    （Harvard 出版社正文）的行盒余量只有 **2–3pt** —— 那是两端对齐的自然抖动。
+    门槛低于它，「是否居中」由亚点取整噪声决定，于是正文行被随机判成 center，
+    而 ``apply_layout_splits`` 把「相邻行对齐不同」当段落边界，把一段 18 行正文
+    切成 **11** 段。后果：每段被孤立翻译（丢上下文，产出「白人It的出现」这类
+    碎片），且重排后长度对不上原行盒，渲染出空洞与叠字。50 页实测 292 次切分。
+
+    本类全部使用**实测几何**（块宽 329pt、行余量 2–3pt），而不是随手编的数字 ——
+    编出来的数字恰好落在阈值另一侧，就复现不了缺陷。
+    """
+
+    # 实测：block bbox x=[45, 374]，18 行正文，行余量在 2–3pt 之间浮动。
+    BOX_X0, BOX_X1 = 45.0, 374.0
+    #: 第 5 行实测余量 3.0/3.0 —— 修复前被判成 center 并在此处切开。
+    BALANCED_INSET = 3.0
+
+    def _justified_line(self, idx):
+        inset = 2.0 + (idx % 3) * 0.5  # 2.0 / 2.5 / 3.0 抖动
+        return _line(
+            f"line {idx}",
+            [_span(f"line {idx}", 9.35, "Body")],
+            self.BOX_X0 + inset,
+            self.BOX_X1 - inset,
+        )
+
+    def test_sub_point_insets_are_not_centred(self):
+        """核心断言：2–3pt 的余量是两端对齐噪声，不是居中。"""
+        from pdf2zh.v3.canonical_page import _line_alignment
+
+        verdict = _line_alignment(
+            _line(
+                "x",
+                [],
+                self.BOX_X0 + self.BALANCED_INSET,
+                self.BOX_X1 - self.BALANCED_INSET,
+            ),
+            self.BOX_X0,
+            self.BOX_X1,
+        )
+        self.assertEqual(
+            verdict,
+            "left",
+            f"行余量仅 {self.BALANCED_INSET}pt（块宽 329pt）却判成 {verdict!r}；"
+            "居中门槛必须高于两端对齐的自然抖动余量",
+        )
+
+    def test_justified_paragraph_survives_intact(self):
+        lines = [self._justified_line(i) for i in range(18)]
+        page = _page_with(
+            [
+                BlockModel(
+                    kind="paragraph",
+                    x0=self.BOX_X0,
+                    x1=self.BOX_X1,
+                    y0=0,
+                    y1=200,
+                    lines=lines,
+                )
+            ]
+        )
+        splits = apply_layout_splits(page)
+        self.assertEqual(
+            splits,
+            0,
+            f"18 行两端对齐正文被切了 {splits} 段（修复前为 11）；"
+            f"provenance={[b.metadata.get('layout_provenance') for b in page.blocks]}",
+        )
+        self.assertEqual(len(page.blocks), 1)
+        self.assertEqual(len(page.blocks[0].lines), 18)
+
+    def test_genuinely_centred_title_still_splits(self):
+        """收紧门槛不能把真正的级联防护一起关掉。
+
+        标题被并入正文段会引发字号级联放大（旧缺陷），所以「窄标题 + 宽正文」
+        必须仍然切开。
+        """
+        centred = _line(
+            "Abstract",
+            [_span("Abstract", 12, "Body")],
+            self.BOX_X0 + 64.0,
+            self.BOX_X1 - 64.0,
+        )
+        body = _line(
+            "Body text",
+            [_span("Body text", 12, "Body")],
+            self.BOX_X0,
+            self.BOX_X1,
+        )
+        page = _page_with(
+            [
+                BlockModel(
+                    kind="paragraph",
+                    x0=self.BOX_X0,
+                    x1=self.BOX_X1,
+                    y0=0,
+                    y1=200,
+                    lines=[centred, body],
+                )
+            ]
+        )
+        self.assertEqual(apply_layout_splits(page), 1)
+        self.assertIn("align:", page.blocks[0].metadata.get("layout_provenance", ""))
+
+    def test_centre_gate_scales_with_block_width(self):
+        """门槛取「固定下限」与「块宽比例」的**较大者**，两个项都得起作用。
+
+        同一段 10pt 余量：600pt 块里只占 1.7%（两端对齐噪声），60pt 块里占
+        17%（明显居中）。若只看固定下限，两种宽度会给出同一个结论，比例项
+        就是死代码。
+        """
+        from pdf2zh.v3.canonical_page import _line_alignment
+
+        inset = 10.0  # clears the 8pt floor, so the ratio term decides
+        wide = _line_alignment(_line("x", [], inset, 600.0 - inset), 0.0, 600.0)
+        narrow = _line_alignment(_line("x", [], inset, 60.0 - inset), 0.0, 60.0)
+        self.assertEqual(wide, "left", "600pt 块里的 10pt 余量不该算居中")
+        self.assertEqual(
+            narrow, "center", "60pt 块里的 10pt 余量（两侧各 17%）应算居中"
+        )
+
+    def test_full_width_line_is_left_not_right(self):
+        """两端对齐的满宽行两侧余量为 0，必须判 left（修复前的平衡分支保证）。"""
+        from pdf2zh.v3.canonical_page import _line_alignment
+
+        self.assertEqual(
+            _line_alignment(_line("x", [], 45.0, 374.0), 45.0, 374.0), "left"
+        )
+
+    def test_flush_left_line_with_short_tail_is_left(self):
+        """左顶格但收尾短的行不是居中 —— 两边余量可以都非零且悬殊。"""
+        from pdf2zh.v3.canonical_page import _line_alignment
+
+        verdict = _line_alignment(_line("x", [], 48.0, 320.0), 45.0, 374.0)
+        self.assertEqual(verdict, "left", f"顶格行被判成 {verdict!r}")
+
+    def test_asymmetric_indent_is_left_not_centred(self):
+        """两侧余量必须**都**过门槛，只看较大的一侧会把缩进行判成居中。
+
+        实测坐标是整数量化的（2.0 / 3.0 / 15.0），所以「靠一边空得多」是
+        缩进（引文首行、列表项），不是居中。这类误判同样会触发段落边界切分。
+        """
+        from pdf2zh.v3.canonical_page import _line_alignment
+
+        # 块宽 329pt：左缩进 30pt、右仅 9pt，明显偏左。
+        verdict = _line_alignment(_line("x", [], 30.0, 320.0), 0.0, 329.0)
+        self.assertEqual(
+            verdict,
+            "left",
+            f"左缩进 30pt / 右余 9pt 的行被判成 {verdict!r}；"
+            "居中要求两侧同时留出足够宽度",
+        )
+
+    def test_sub_point_inset_in_narrow_block_is_not_centred(self):
+        """固定下限（而非只看块宽比例）在窄块里才起作用。
+
+        窄块（20pt）的 6% 只有 1.2pt，而 MinerU 坐标是整数量化的 —— 1–2pt 的
+        余量不含任何对齐信息。若去掉固定下限，这种噪声会被判成居中。
+        """
+        from pdf2zh.v3.canonical_page import (
+            _ALIGN_CENTER_MIN_PT,
+            _line_alignment,
+        )
+
+        narrow_w = 20.0
+        inset = 1.5  # clears 6% of 20pt (1.2pt) but is below the 8pt floor
+        self.assertLess(inset, _ALIGN_CENTER_MIN_PT, "样本必须落在下限之下")
+        self.assertGreaterEqual(
+            inset,
+            0.06 * narrow_w,
+            "样本必须落在比例门槛之上，否则测的是别的东西",
+        )
+        verdict = _line_alignment(
+            _line("x", [], inset, narrow_w - inset), 0.0, narrow_w
+        )
+        self.assertEqual(
+            verdict, "left", f"{inset}pt 余量在 {narrow_w}pt 块里被判成 {verdict!r}"
+        )
+
+
 class TestInspector(unittest.TestCase):
     def test_inspect_layout_rows(self):
         from pdf2zh.v3.document_model import DocumentModel

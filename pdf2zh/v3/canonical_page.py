@@ -520,18 +520,36 @@ def _line_font_usage(line) -> tuple:
     return mfont, msize
 
 
+#: 判定「居中」所需的**单侧**最小余量，取固定下限与块宽比例的较大者。
+#:
+#: 为什么不能用「余量 > 2pt」这种小门槛：实测 325 页英文书（Harvard 出版社
+#: 正文）的行盒余量只有 **2–3pt** —— 那是两端对齐的自然抖动，不是居中。门槛
+#: 低于它，「是不是居中」就由亚点级取整噪声决定，于是正文行随机被判成 center，
+#: 而 :func:`apply_layout_splits` 把「相邻行对齐不同」当段落边界，一段 18 行
+#: 的正文被切成 11 段（实测）。
+#:
+#: 代价是每个片段被**孤立翻译**（丢上下文，产出「白人It的出现」这类碎片），
+#: 且片段重排后长度对不上原行盒，于是渲染出空洞与叠字。50 页实测：该门槛把
+#: 「center」判定从 285/1475 行降到 4/1475，切分从 292 次降到 32 次。
+_ALIGN_CENTER_MIN_PT = 8.0
+_ALIGN_CENTER_MIN_RATIO = 0.06
+
+
 def _line_alignment(line, box_x0: float, box_x1: float) -> str:
     """按行相对所在块的水平偏移判对齐（center / left / right）。
 
-    顶格/两端对齐的正文行（左右余量≈0）判为 left；只有两侧余量都超过
-    容差的行才判 center，避免把满宽正文行误判为右对齐。
+    顶格/两端对齐的正文行（左右余量≈0）判为 left；只有**两侧都真的空出
+    :data:`_ALIGN_CENTER_MIN_PT` 以上的宽度**且大致对称的行才判 center ——
+    门槛必须高于正文行的自然抖动余量，否则满宽正文行会被随机判成居中，
+    进而被 :func:`apply_layout_splits` 切成碎片（见上方常量注释）。
     """
     box_w = max(1e-6, box_x1 - box_x0)
     left = line.x0 - box_x0
     right = box_x1 - line.x1
     tol = max(6.0, 0.12 * box_w)
+    center_min = max(_ALIGN_CENTER_MIN_PT, _ALIGN_CENTER_MIN_RATIO * box_w)
     if abs(left - right) <= tol:
-        if left > 2.0 and right > 2.0:
+        if left >= center_min and right >= center_min:
             return "center"
         return "left"
     return "left" if left < right else "right"
