@@ -546,6 +546,37 @@ class TestErasePrecedesAllTextOnEveryPath(unittest.TestCase):
 class TestErasePlanMatchesDispatch(unittest.TestCase):
     """擦除遍与绘制遍共用判据 —— 两边对「谁被替换」的分歧都是静默故障。"""
 
+    def test_command_path_without_commands_is_not_erased(self):
+        """命令路径但**没有命令** → 不擦。
+
+        分派是按 ``payload["kind"]`` 走的：一个 ``kind="toc"`` 而命令为空的
+        条目会进入 toc 分支，却一笔都画不出来。此时若照旧擦白，结果是
+        「抹掉整页原文 + 一个字都不画」—— 实测目录页因此几乎全白。宁可不擦
+        （退回显示原文），也不能擦了却什么都不画。
+        """
+        from pdf2zh.v3.magicpdf_renderer import _erases_source_region
+
+        entry = {
+            "block_id": "p0_0",
+            "page": 0,
+            "kind": "toc",
+            "text": "Information 13",
+            "translated": "信息 13",
+            "src_box": [90.0, 586.0, 400.0, 600.0],
+            "dst_box": [90.0, 586.0, 400.0, 600.0],
+            "render_payload": {"kind": "toc", "commands": []},
+        }
+        self.assertFalse(
+            _erases_source_region(entry, object()),
+            "a toc entry with no commands must not have its region whited out",
+        )
+
+        entry["render_payload"]["commands"] = [{"text": "x", "x": 1.0, "y": 1.0}]
+        self.assertTrue(
+            _erases_source_region(entry, object()),
+            "once it has commands to draw, it must erase its source region",
+        )
+
     def test_preserved_blocks_are_not_erased(self):
         from pdf2zh.v3.magicpdf_renderer import _erases_source_region
 

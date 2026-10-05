@@ -210,6 +210,11 @@ def _erases_source_region(entry: dict, src_doc: Optional[Any]) -> bool:
     判据必须与 :func:`_draw_entry` 的分派完全一致：list / toc / flow 三条
     命令路径都会擦白，而 legacy 兜底路径只对**已翻译**块擦白 —— 保留块原文
     由背景层显示，白擦了就是凭空抹掉内容。
+
+    命令路径额外要求**真的有命令**：分派是按 ``payload["kind"]`` 走的，一个
+    ``kind="toc"`` 但命令为空的条目会进入 toc 分支却画不出任何东西。此时若
+    照旧擦白，就是「抹掉整页原文 + 一个字都不画」—— 实测目录页几乎全白就是
+    这么来的。宁可不擦（退回显示原文），也不能擦了却什么都不画。
     """
     if not _entry_text(entry):
         return False
@@ -217,11 +222,11 @@ def _erases_source_region(entry: dict, src_doc: Optional[Any]) -> bool:
     kind = payload.get("kind")
     cmds = payload.get("commands") or []
     if kind == "list" or (not cmds and (entry.get("list_items") or {}).get("commands")):
-        return True
+        return bool(cmds) or bool((entry.get("list_items") or {}).get("commands"))
     if kind == "toc" or (
         not cmds and (entry.get("toc_commands") or {}).get("commands")
     ):
-        return True
+        return bool(cmds) or bool((entry.get("toc_commands") or {}).get("commands"))
     if kind == "flow" and cmds:
         return True
     if src_doc is not None and not _is_translated_block(entry):
