@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 log = logging.getLogger(__name__)
 
@@ -509,8 +509,21 @@ def _heading_candidates(model) -> list[dict]:
     return heads
 
 
+def _translate_workers(thread: int = 0) -> int:
+    """翻译并发度（``thread`` 显式值 > ``PDF2ZH_PARAGRAPH_BATCH_THREADS`` > 4）。
+
+    刻意复用 :func:`pdf2zh.v3.paragraph_batch._translate_threads` 的同一个环境变量：
+    两条引擎路径（legacy / magicpdf）共用一个旋钮，而不是各认一个。
+    """
+    if thread and thread > 0:
+        return max(1, int(thread))
+    from pdf2zh.v3.paragraph_batch import _translate_threads
+
+    return max(1, _translate_threads())
+
+
 def translate_document(
-    model: DocumentModel, translate_fn, lang_out: str = "zh-CN"
+    model: DocumentModel, translate_fn, lang_out: str = "zh-CN", thread: int = 0
 ) -> dict:
     """Translation Pass：按翻译策略（TranslationPolicyPass 产出）翻译。
 
@@ -520,8 +533,56 @@ def translate_document(
       ``source_text``；
     - 无策略时按 kind 兜底。``translate_fn(text) -> str`` 缺省恒等。
     返回统计 {translated, preserved, skipped, toc_translated}。
+
+    ``thread`` > 1 时按块并发（7P1）
+    --------------------------------
+    实测（``doc/7p0_real_load_report.md`` §4）：``--thread 4`` 在本函数上**完全无效**。
+    服务串行延迟 9.7s/块、585 块跑了 5280s = 9.0s/块，有效并发 1.07×；4 线程本应
+    ~24 分钟。原因是这里原本是纯串行 for 循环，而线程池在
+    :mod:`pdf2zh.v3.paragraph_batch` 里、只被 legacy ``converter.py`` 引用。
+
+    并发粒度是**块**，不是 unit 内部：
+    - 每个块的 unit 只写自己的 ``block.metadata``，块间无写冲突；
+    - unit 内部对 ``translate_fn`` 的调用次数是数据决定的（list 逐 item、toc 逐
+      entry、flow 一次），按调用并发需要预知序列，会把「失败回退原文」的语义搞坏；
+    - ``_heading_candidates(model)`` 只读，不受影响。
+
+    因此语义与串行版**逐字一致**：统计按块序累加（不是按完成序），异常仍由 unit
+    内部吞掉并回落原文。``translate_fn`` 自身必须线程安全 —— 翻译缓存自带锁，
+    而 :func:`pdf2zh.magicpdf_cli` 里的计数器用锁保护。
     """
     stats = {"translated": 0, "preserved": 0, "skipped": 0, "toc_translated": 0}
+
+    workers = _translate_workers(thread)
+    # 先按文档序收集待译块：并发只作用于 translate_fn，块的遍历与统计仍是串行的。
+    work: List[Tuple[Any, int, Any]] = []
+    for page in model.pages:
+        for i, block in enumerate(page.blocks):
+            if (block.text or "").strip():
+                work.append((page, i, block))
+
+    if workers > 1 and len(work) > 1:
+        import concurrent.futures
+
+        from pdf2zh.v3.render_payload import block_translation_unit as _unit
+
+        def _unit_for(item):
+            _page, _i, blk = item
+            try:
+                return _unit(blk, translate_fn, model=model)
+            except Exception:  # noqa: BLE001 -- 单元失败按 flow 回落，绝不中断整篇
+                log.debug("translation unit failed under concurrency", exc_info=True)
+                return None
+
+        # ``ex.map`` 保序：返回列表与 ``work`` 同序。这是刻意的 —— 按完成序
+        # 收集会让每个块拿到别人的 unit（见测试
+        # test_toc_heavy_statistics_survive_concurrency）。
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as ex:
+            units = list(ex.map(_unit_for, work))
+    else:
+        units = None
+
+    cursor = 0
     for page in model.pages:
         for i, block in enumerate(page.blocks):
             text = (block.text or "").strip()
@@ -531,9 +592,23 @@ def translate_document(
             # Commit 7A：统一 TranslationUnit 分派（preserve/list/toc/flow）。
             # 所有结构化载荷（list_items / toc_entries / toc_commands）由
             # block_translation_unit 编译并写回 metadata，行为与旧特判等价。
-            from pdf2zh.v3.render_payload import block_translation_unit
+            #
+            # 并发路径下 unit 已在上一步算好（``work`` 与本循环同序，``cursor``
+            # 逐块推进）；串行路径（workers<=1 或只有一块）就地计算。
+            if units is not None:
+                unit = units[cursor]
+                cursor += 1
+                if unit is None:
+                    # 单元异常已回落：按 flow 处理，translated 用原文。
+                    block.metadata["translated"] = text
+                    block.metadata["translated_same"] = True
+                    block.metadata["translate"] = False
+                    stats["skipped"] += 1
+                    continue
+            else:
+                from pdf2zh.v3.render_payload import block_translation_unit
 
-            unit = block_translation_unit(block, translate_fn, model=model)
+                unit = block_translation_unit(block, translate_fn, model=model)
             kind = unit["kind"]
             if kind == "skip":
                 stats["skipped"] += 1

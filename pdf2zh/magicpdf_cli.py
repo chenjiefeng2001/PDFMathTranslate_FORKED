@@ -19,6 +19,7 @@ import inspect
 import json
 import logging
 import os
+import threading
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -1171,20 +1172,33 @@ def run_magicpdf_main(
             #: 与「全部块报错」同等对待（硬失败）。
             translation_changed = 0
 
+            #: 7P1：``translate_with_tracking`` 现在会被多个线程并发调用（--thread
+            #: 生效后），``x += 1`` 与 ``list.append`` 在 CPython 里恰好是原子的，
+            #: 但那依赖 GIL 实现细节而非语言保证 —— 一旦换解释器或引入无 GIL
+            #: 的构建，计数就会丢。显式上锁，代价可忽略（网络 I/O 占 99% 时间）。
+            _track_lock = threading.Lock()
+
             def translate_with_tracking(value: str) -> str:
                 nonlocal translation_ok, translation_changed
                 try:
                     out = translator.translate(value)
                 except Exception as exc:
-                    translation_errors.append(exc)
+                    with _track_lock:
+                        translation_errors.append(exc)
                     raise
-                translation_ok += 1
-                if (out or "").strip() != (value or "").strip():
-                    translation_changed += 1
+                with _track_lock:
+                    translation_ok += 1
+                    if (out or "").strip() != (value or "").strip():
+                        translation_changed += 1
                 return out
 
             stats = translate_document(
-                doc, translate_with_tracking, lang_out=parsed_args.lang_out
+                doc,
+                translate_with_tracking,
+                lang_out=parsed_args.lang_out,
+                # 7P1：此前 ``--thread`` 在本路径被完全忽略 —— 实测有效并发
+                # 1.07x（doc/7p0_real_load_report.md §4），585 块跑了 5280s。
+                thread=getattr(parsed_args, "thread", 0) or 0,
             )
             identity_only = translation_ok > 0 and translation_changed == 0
             if identity_only:
