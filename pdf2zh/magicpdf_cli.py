@@ -87,6 +87,114 @@ def _fallback_legacy(parsed_args, reason: str, progress_cb=None) -> int:
     return _run_legacy_kernel(parsed_args)
 
 
+def _swap_reparsed_pages(results: list, reparsed: dict) -> int:
+    """把重解析结果按页号换回 ``results``，返回**真正换成功**的页数。
+
+    为什么必须按页号换而不是「按顺序替换」
+    --------------------------------------
+    ``results`` 是**文档序**的完整列表，而 ``reparsed`` 只含出问题的几页。按顺序
+    替换会把第 7 页的内容写进第 3 页的槽位 —— 那正是并页本身的成因（页号错配），
+    等于自己又制造一次。而且换不进去时那一页会落到「既没隔离、也没正确内容」的
+    最坏组合，所以返回值必须被调用方用来决定它是否还算「已恢复」。
+    """
+    if not results or not reparsed:
+        return 0
+    index = {}
+    for i, cur in enumerate(results):
+        try:
+            index.setdefault(int(cur.page_num), i)
+        except (TypeError, ValueError):
+            continue
+    swapped = 0
+    for pno, res in reparsed.items():
+        slot = index.get(int(pno))
+        if slot is None:
+            continue
+        results[slot] = res
+        swapped += 1
+    return swapped
+
+
+def _swapped(reparsed: dict, pno: int) -> bool:
+    """该页是否在重解析结果里（用于筛掉仍未恢复的页）。"""
+    return int(pno) in reparsed
+
+
+def _reparse_merged_pages(adapter, path: str, page_nums: List[int], ocr, lang):
+    """对并页的页**单独重解析**，成功后用新结果替换旧结果。
+
+    为什么单独重解析能解决
+    ----------------------
+    实测（mp2e 前 50 页）：MinerU 把**源第 7~14 页共 8 页目录**压成第 7 页的**一个**
+    ``index`` 块 / 326 个 line，而该页高只有 665pt —— 327 行挤进一页，行距 2.03pt。
+    也就是说它是**把多页当成一页看**的结果。单独喂一页进去就没有"多页"可并，
+    这是唯一能拿回那 8 页目录的办法（隔离只能让它们不翻译）。
+
+    为什么复用既有的切片机制
+    ----------------------
+    :func:`_slice_pdf_for_pages` + :func:`_remap_magicpdf_result_pages` 已经在
+    ``adapter.parse`` 里做过"预切片 → 分析 → 页号还原"，而并页**正是页号错配造成的**
+    —— 自己再造一套页号映射等于把同一个缺陷再写一遍。所以这里只负责：把要修的页号
+    交给它，拿到**已还原为原文档页号**的结果。
+
+    返回 ``{page_num: MagicPdfParseResult}``。任何一步失败（切片失败、重解析又并页、
+    解析器缺席）都返回**空字典**——调用方随即退回隔离，绝不把没验证过的结果塞回去。
+    """
+    if not page_nums or adapter is None:
+        return {}
+    try:
+        from pdf2zh.magicpdf_adapter import detect_merged_pages
+
+        fixed: dict = {}
+        # 一页一次：并页可能只影响其中一页，逐页试比整批重跑更省，
+        # 而且失败时只损失那一页的隔离（其余页的隔离仍由调用方兜底）。
+        for pno in sorted({int(p) for p in page_nums if p is not None}):
+            try:
+                sub = _adapter_parse(adapter, path, [pno], ocr, None, lang=lang)
+            except Exception as exc:  # noqa: BLE001 -- 单页重解析失败不该中断
+                logger.warning(
+                    "[magicpdf] page %d re-parse failed (%s); keeping it isolated",
+                    pno,
+                    str(exc)[:120],
+                )
+                continue
+            sub = list(sub or [])
+            if not sub:
+                logger.warning(
+                    "[magicpdf] page %d re-parse returned nothing; keeping it isolated",
+                    pno,
+                )
+                continue
+            # 关键守卫：重解析**必须**不再触发并页检测，否则换回来的还是同一份
+            # 被压扁的结果，而且页号已经错位过一次，绝不能让它再进主链路。
+            still = detect_merged_pages(sub)
+            if still:
+                logger.warning(
+                    "[magicpdf] page %d re-parse is still collapsed (%s); "
+                    "keeping it isolated",
+                    pno,
+                    "; ".join(
+                        f"{m['lines']} lines, {m['pt_per_line']}pt/line"
+                        for m in still[:2]
+                    ),
+                )
+                continue
+            for res in sub:
+                fixed[int(res.page_num)] = res
+            logger.info(
+                "[magicpdf] page %d re-parsed cleanly (%d block(s)); quarantine lifted",
+                pno,
+                len(sub[0].blocks or []),
+            )
+        return fixed
+    except Exception as exc:  # noqa: BLE001 -- 诊断/补救链路，绝不阻断主流程
+        logger.warning(
+            "[magicpdf] per-page re-parse unavailable (%s); keeping pages isolated",
+            str(exc)[:160],
+        )
+        return {}
+
+
 def _quarantine_merged_pages(doc, page_nums: List[int]) -> int:
     """把「版面模型并页」的页标记为保留块：原文照常显示，但一个字符都不画。
 
@@ -1018,6 +1126,43 @@ def run_magicpdf_main(
                     detail,
                     total_pages - len(merged_page_nums),
                 )
+                # 先试逐页重解析：并页是"把多页当一页看"的产物，单独喂一页通常
+                # 就能拿回正确的页边界。失败才落到下面的隔离。
+                reparsed = _reparse_merged_pages(
+                    adapter,
+                    path,
+                    merged_page_nums,
+                    ocr,
+                    getattr(parsed_args, "lang_in", None),
+                )
+                # 把重解析结果**换回** results。换不回就等于白跑：隔离标记仍按旧页
+                # 挂着，而渲染器读的是 results 里的块 —— 于是那一页既没有被隔离、
+                # 也没有拿到正确内容，是两样都丢的最坏组合。
+                swapped = _swap_reparsed_pages(results, reparsed)
+                if reparsed and swapped != len(reparsed):
+                    logger.warning(
+                        "[magicpdf] %d/%d re-parsed page(s) had no matching slot in "
+                        "results; they fall back to isolation",
+                        len(reparsed) - swapped,
+                        len(reparsed),
+                    )
+                still = [
+                    p
+                    for p in merged_page_nums
+                    if p not in reparsed or not _swapped(reparsed, p)
+                ]
+                merged_page_nums = still
+                if reparsed and not still:
+                    logger.info(
+                        "[magicpdf] all %d collapsed page(s) re-parsed cleanly; "
+                        "no page needs isolation",
+                        swapped,
+                    )
+                if merged_page_nums:
+                    logger.warning(
+                        "[magicpdf] %d 页重解析未恢复，继续隔离（保留原文）",
+                        len(merged_page_nums),
+                    )
                 try:
                     emit_ingest_run_failure(
                         BACKEND_MINERU,

@@ -1,0 +1,55 @@
+{
+ "before": {
+  "label": "BEFORE (7P0)",
+  "run": "C:\\Users\\14977\\AppData\\Local\\Temp\\opencode\\load50",
+  "elapsed_s": 5341.1,
+  "degraded_to_legacy": false,
+  "engine": "magicpdf",
+  "quarantined_pages": 0,
+  "translation_cache_reused": true,
+  "blocks": 621,
+  "pages_with_blocks": 50,
+  "max_blocks_on_one_page": 201,
+  "worst_page": {
+   "page": 6,
+   "blocks": 201
+  },
+  "blocks_translated": 585,
+  "coverage": 0.942,
+  "empty_translation_with_source": 0,
+  "cjk_ratio": 0.551,
+  "mono_pages_total": 50,
+  "mono_pages_measured": 50,
+  "pages_with_overlap_noignore": 41,
+  "pages_with_overlap": 11,
+  "spans_outside_page": 0,
+  "pages_with_cjk": 42
+ },
+ "after": {
+  "label": "AFTER (HEAD)",
+  "run": "C:\\Users\\14977\\AppData\\Local\\Temp\\opencode\\reparse50",
+  "elapsed_s": 129.9,
+  "degraded_to_legacy": false,
+  "engine": "magicpdf",
+  "quarantined_pages": 1,
+  "translation_cache_reused": true,
+  "blocks": 449,
+  "pages_with_blocks": 50,
+  "max_blocks_on_one_page": 29,
+  "worst_page": {
+   "page": 6,
+   "blocks": 29
+  },
+  "blocks_translated": 413,
+  "coverage": 0.9198,
+  "empty_translation_with_source": 0,
+  "cjk_ratio": 0.578,
+  "mono_pages_total": 50,
+  "mono_pages_measured": 50,
+  "pages_with_overlap_noignore": 41,
+  "pages_with_overlap": 11,
+  "spans_outside_page": 0,
+  "pages_with_cjk": 42
+ },
+ "note": "AFTER degraded to legacy because P0 caught the collapsed TOC page"
+}
