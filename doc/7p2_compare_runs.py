@@ -95,9 +95,16 @@ def metrics(run: Path, label: str) -> dict:
 
     # --- engine actually used
     log = _log(run)
-    degraded = "并进了同一" in log or "merged source pages" in log
+    # 判定降级要看**真的走了 legacy**，而不是"日志里提到过并页"。
+    # 逐页隔离修复后并页仍然被检出并记录，但引擎仍是 magicpdf —— 早先这里用
+    # "并进了同一" 判定，于是隔离后的运行被误报成 legacy，整张表的 engine 列作废。
+    degraded = "并进了同一" in log and "保留原文不翻译" not in log
     out["degraded_to_legacy"] = degraded
     out["engine"] = "legacy (degraded)" if degraded else "magicpdf"
+    out["quarantined_pages"] = (
+        1 if "保留原文不翻译" in log else 0
+    )  # 隔离是逐页的，页数从日志里数不出来时先记存在性
+    out["translation_cache_reused"] = "--ignore-cache" not in log and _cache_nonempty()
 
     # --- block distribution / page collapse
     per_page = Counter(b["page"] for b in blocks)
@@ -150,6 +157,20 @@ def metrics(run: Path, label: str) -> dict:
         )
         doc.close()
     return out
+
+
+def _cache_nonempty() -> bool:
+    """翻译缓存是否有内容 —— 决定两次运行的墙钟是否可比。
+
+    实测：第二次跑同一批文本，585 块全部命中本地缓存，墙钟从 89 min 掉到 **66 s**。
+    那个数字**不是**加速，是缓存。拿它当"修复带来的提速"就是自欺，所以这里把它
+    单独标出来，墙钟一栏必须配上它读。
+    """
+    cache = Path.home() / ".cache" / "pdf2zh"
+    try:
+        return cache.is_dir() and any(p.is_file() for p in cache.rglob("*"))
+    except OSError:
+        return False
 
 
 def _page_limit(run: Path) -> int:

@@ -20,9 +20,13 @@ import json
 import logging
 import os
 import threading
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 logger = logging.getLogger(__name__)
+
+#: 并页占比超过这个比例时，逐页隔离没有意义（整篇解析都不可信），退回整篇降级。
+#: 1/50 = 2%，远低于此值，所以「只有目录折叠」这种典型场景走隔离而非降级。
+_MERGED_PAGE_DEGRADE_RATIO = 0.25
 
 
 class MagicPdfDegradeError(Exception):
@@ -81,6 +85,60 @@ def _fallback_legacy(parsed_args, reason: str, progress_cb=None) -> int:
     from pdf2zh.pdf2zh import _run_legacy_kernel
 
     return _run_legacy_kernel(parsed_args)
+
+
+def _quarantine_merged_pages(doc, page_nums: List[int]) -> int:
+    """把「版面模型并页」的页标记为保留块：原文照常显示，但一个字符都不画。
+
+    为什么不整篇降级
+    ----------------
+    实测（``doc/7p2_control_experiment.md``）：并页只发生在 50 页里的第 7 页，
+    而整篇降级让另外 49 页放弃了 magicpdf 的排版 —— 叠印 11→16 页、越界 0→3 个
+    span，含中文页虽然多了 5 页，但几何质量是**倒退**的。用整篇换一页不划算。
+
+    做法
+    ----
+    给这些块的 ``translation_policy.translate`` 置 False，于是
+    :func:`block_translation_unit` 走 preserve 分支（``translated = 原文``、
+    ``translate = False``），而渲染器的 :func:`_is_translated_block` 与
+    :func:`_erases_source_region` 都以「是否真被替换」为判据，于是：
+
+    - 不擦白（不会凭空抹掉背景原文）；
+    - 不绘制（不会叠影）；
+    - 页仍然存在（渲染器的页集合含调用方声明的页尺寸，见
+      ``render_plan_to_pdf`` 里 ``by_page`` 的注释），所以页数不变。
+
+    代价是这些页**不翻译**。这是有意的取舍：给一页原文，好过给一页互相覆盖的
+    译文，或者为它牺牲另外 49 页的排版。
+
+    Returns:
+        被标记的块数。
+    """
+    if doc is None or not page_nums:
+        return 0
+    wanted = {int(p) for p in page_nums}
+    marked = 0
+    for page in getattr(doc, "pages", None) or []:
+        if int(getattr(page, "page_num", -1)) not in wanted:
+            continue
+        for blk in getattr(page, "blocks", None) or []:
+            md = getattr(blk, "metadata", None)
+            if md is None:
+                continue
+            pol = md.get("translation_policy")
+            if not isinstance(pol, dict):
+                pol = {}
+            pol["translate"] = False
+            md["translation_policy"] = pol
+            # 同时清掉任何已回填的译文，避免渲染器拿到旧值后又画一遍
+            md.pop("translated", None)
+            marked += 1
+    logger.warning(
+        "[magicpdf] 已隔离 %d 个并页块（%d 页）：这些页保留原文，不翻译不重绘",
+        marked,
+        len(wanted),
+    )
+    return marked
 
 
 def _degrade_engine(parsed_args, reason: str, progress_cb=None, degrade_to=None) -> int:
@@ -911,35 +969,64 @@ def run_magicpdf_main(
             from pdf2zh.magicpdf_adapter import detect_merged_pages
 
             merged = detect_merged_pages(results)
+            merged_page_nums: List[int] = [
+                int(m["page_num"]) for m in merged if m.get("page_num") is not None
+            ]
             if merged:
                 detail = "; ".join(
                     "page {page_num}: {lines} lines, {pt_per_line}pt/line, "
                     "implies {implied_pages} page(s)".format(**m)
                     for m in merged[:3]
                 )
-                logger.error(
+                total_pages = max(1, len(results))
+                ratio = len(merged_page_nums) / total_pages
+                # 粒度：只隔离出问题的页，**不要**为 1 页折叠换掉整篇的渲染器。
+                # 实测（doc/7p2_control_experiment.md）：整篇降级让另外 49 页放弃
+                # magicpdf 的排版，代价是叠印 11->16 页、越界 0->3 个 span。折叠页
+                # 保留原文（背景层）远好过一页互相覆盖的叠影，而其余页不受影响。
+                # 只有当**多数**页都被并页时，逐页隔离才没有意义（那时整篇解析
+                # 都不可信），才退回整篇降级。
+                if ratio > _MERGED_PAGE_DEGRADE_RATIO:
+                    logger.error(
+                        "[magicpdf] 版面模型把多个源页并进了同一 render 页（%s），"
+                        "涉及 %d/%d 页（占比过高，逐页隔离无意义）；按解析不可用降级",
+                        detail,
+                        len(merged_page_nums),
+                        total_pages,
+                    )
+                    try:
+                        emit_ingest_run_failure(
+                            BACKEND_MINERU,
+                            f"merged_pages: {detail}",
+                            rec,
+                            pdf_path=path,
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass
+                    rec.close()
+                    if adapter is not None:
+                        adapter.close()
+                    return _degrade_engine(
+                        parsed_args,
+                        f"{path} 解析结果把多个源页并进了同一页（{detail}）",
+                        progress_cb=progress_cb,
+                        degrade_to=degrade_to,
+                    )
+                logger.warning(
                     "[magicpdf] 版面模型把多个源页并进了同一 render 页（%s）；"
-                    "继续渲染会产出整页叠影，按解析不可用降级",
+                    "这些页将保留原文不翻译，其余 %d 页照常翻译与渲染",
                     detail,
+                    total_pages - len(merged_page_nums),
                 )
                 try:
                     emit_ingest_run_failure(
                         BACKEND_MINERU,
-                        f"merged_pages: {detail}",
+                        f"merged_pages_quarantined: {detail}",
                         rec,
                         pdf_path=path,
                     )
                 except Exception:  # noqa: BLE001
                     pass
-                rec.close()
-                if adapter is not None:
-                    adapter.close()
-                return _degrade_engine(
-                    parsed_args,
-                    f"{path} 解析结果把多个源页并进了同一页（{detail}）",
-                    progress_cb=progress_cb,
-                    degrade_to=degrade_to,
-                )
 
             pages = bridge.convert_all(results)
             if ingest_backend == BACKEND_JINA:
@@ -1138,6 +1225,8 @@ def run_magicpdf_main(
                         ingest_decision.reason = REASON_FALLBACK_RUN_FAILED
                 else:
                     doc = bridge.to_document_model(pages)
+            if merged_page_nums:
+                _quarantine_merged_pages(doc, merged_page_nums)
         stats = {"translated": 0, "preserved": 0}
         try:
             from pdf2zh.translator import build_translator
