@@ -1,0 +1,18 @@
+risky blocks (CJK widened)      : 418
+translated chars in those blocks: 29100
+
+BEFORE  chars landed            : 24934  (85.7%)
+AFTER   chars landed            : 29005  (99.7%)
+recovered                      : 4071 chars
+
+worst offenders BEFORE (block, lost/total):
+       p45_10    24/26   (92.3%)
+        p35_9    20/22   (90.9%)
+       p26_10    11/13   (84.6%)
+        p29_7    11/13   (84.6%)
+       p26_15     9/11   (81.8%)
+        p26_2     8/10   (80.0%)
+        p26_6     8/10   (80.0%)
+        p26_8     8/11   (72.7%)
+
+blocks still losing real content AFTER: 0

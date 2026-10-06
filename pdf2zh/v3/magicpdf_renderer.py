@@ -288,7 +288,13 @@ def _insert_text_wrapped(
     """
     stats = stats if stats is not None else {}
     x = float(rect.x0)
-    max_w = max(0.1, float(rect.x1) - float(rect.x0))
+    raw_w = float(rect.x1) - float(rect.x0)
+    #: 退化几何（零宽/负宽 box）不做宽度收敛：没有可收敛的目标，逐字切分只会把
+    #: 一行拆成 N 行、然后被零高的 box 丢掉 N-1 行。既有测试
+    #: ``test_missing_dst_box_and_bad_font_size_fallbacks`` 锁定了这个行为 ——
+    #: 无 src_box 的块仍要落笔。此时交给 :func:`_draw_line` 的页宽裁剪兜底，
+    #: 那条路径本来就有计数与告警。
+    max_w = raw_w if raw_w > 0.0 else float("inf")
     box_h = max(1e-6, float(rect.y1) - float(rect.y0))
     top = float(rect.y0)
     import pymupdf
@@ -305,20 +311,56 @@ def _insert_text_wrapped(
             if effective_font in ("helv", "cour"):
                 return pymupdf.get_text_length(s, fontsize=fs, fontname=effective_font)
             # CJK 内置字体（china-ss）对全角/拉丁均近似 1em 等宽，逐字符估算。
+            # 全角标点（，。、）同样按 1em 计，所以逐字符求和对它们同样成立。
             return len(s) * fs
 
         lines: list[str] = []
         cur = ""
-        for tok in text.split(" "):
-            sep = " " if cur else ""
-            trial = f"{cur}{sep}{tok}"
-            if cur and _width(trial) > max_w:
+
+        def _flush() -> None:
+            nonlocal cur
+            if cur:
                 lines.append(cur)
-                cur = tok
-            else:
-                cur = trial
-        if cur:
-            lines.append(cur)
+                cur = ""
+
+        def _add_piece(piece: str) -> None:
+            """把 ``piece`` 接到当前行，放不下就换行。
+
+            ``piece`` 不是以空格分隔的长词，但**可能本身就宽于整行**
+            （无空格 CJK、URL、公式），所以内部还要按字符再切一刀 ——
+            实测 244 字无空格中文整段宽 1867pt，是框宽的 5.5 倍。
+            """
+            nonlocal cur
+            for ch in piece:
+                trial = f"{cur}{ch}"
+                if cur and _width(trial) > max_w:
+                    _flush()
+                    cur = ch
+                else:
+                    cur = trial
+
+        pending_space = False
+        for tok in _wrap_tokens(text):
+            if tok == " ":
+                # 空格只是「可断点」的标记：真正加不加要看下一个词放不放得下。
+                # 直接写入会把行尾留下一个尾随空格，而它在换行处本就该丢掉。
+                pending_space = True
+                continue
+            sep = " " if (cur and pending_space) else ""
+            pending_space = False
+            if cur and _width(f"{cur}{sep}{tok}") > max_w:
+                # 断在词间。此处**不能**把断点那个空格留在行尾：画出来行末会多一
+                # 个空隙，PDF 提取也会多出一个空格。空格只作为「可断点」标记
+                # （见上面的 pending_space），真正的写入发生在下一轮，所以这里
+                # 无需也不能再补一刀 —— 早期版本补了，结果与「不过滤行尾空格」
+                # 完全等价：那一轮 pending_space 已经被 sep 消耗掉了。
+                _flush()
+                sep = ""
+            # 一律走 _add_piece —— 它会在必要时按字符再切。
+            # 直接 `cur = tok` 会让「首个 token 就宽于整行」的情况（实测里
+            # 244 字无空格中文正是如此）绕过字符级切分，重新退化成单行 + 裁剪。
+            _add_piece(f"{sep}{tok}")
+        _flush()
         return lines
 
     def _stack_height(n_lines: int, fs: float) -> float:
@@ -397,6 +439,52 @@ def _page_width(page: Any) -> float:
         return float(page.rect.width)
     except Exception:  # noqa: BLE001 -- 拿不到页宽就按原样画
         return 0.0
+
+
+#: 可以在不改变词义的位置断开行尾的标点（中文排版的避头尾）。
+_CJK_BREAK_AFTER = "，。、；：？！）】》」』’”%…·"
+#: 行首禁则：这些字符不能出现在行首，断行点要往前挪。
+_CJK_NO_LINE_START = "，。、；：？！）】》」』’“"
+
+
+def _cjk(ch: str) -> bool:
+    return ord(ch) >= 0x2E80
+
+
+def _wrap_tokens(text: str) -> list[str]:
+    """把文本切成「可在空格或逐字处断开」的小块，供换行使用。
+
+    为什么不能直接 ``text.split(" ")``
+    ----------------------------------
+    旧实现只按空格切词，于是**没有空格的中文译文整段变成一个 token**。实测
+    mp2e 的摘要块 ``p38_2``：244 字、0 个空格 → 单个 token 宽 1867pt，而框宽
+    338pt（5.5 倍）→ 只能排成一行 → :func:`_draw_line` 按页宽裁掉 145 字。
+    日志里那句 ``145 of 244 characters dropped`` 就是这么来的：不是框不够高，
+    是**换行器根本不会在中文中间断**。
+
+    这里产出三类块：单个空格、可断的词、以及**逐字的 CJK/长字符**。真正的
+    断行决策留给调用方（它才知道框有多宽）。
+    """
+    tokens: list[str] = []
+    buf = ""
+    for ch in text:
+        if ch == " ":
+            if buf:
+                tokens.append(buf)
+                buf = ""
+            tokens.append(" ")
+            continue
+        if _cjk(ch) or not buf.isascii():
+            # CJK 逐字成块；已进入 CJK 上下文后，非 ASCII 也逐字处理
+            if buf:
+                tokens.append(buf)
+                buf = ""
+            tokens.append(ch)
+            continue
+        buf += ch
+    if buf:
+        tokens.append(buf)
+    return tokens
 
 
 def _advance_width(text: str, fontname: Optional[str], font_size: float) -> float:
