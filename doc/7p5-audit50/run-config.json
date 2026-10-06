@@ -1,0 +1,33 @@
+{
+ "git_head": "783fe37",
+ "git_dirty": true,
+ "book": "The Art of Multiprocessor Programming, 2e.pdf",
+ "book_pages": 562,
+ "pages": "1-50",
+ "thread": 4,
+ "service": "opencode",
+ "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
+ "server": "http://127.0.0.1:4599",
+ "python": "3.13.1 (tags/v3.13.1:0671451, Dec  3 2024, 19:06:28) [MSC v.1942 64 bit (AMD64)]",
+ "argv": [
+  "C:\\Users\\14977\\source\\repos\\PDFMathTranslate_FORKED\\tests\\file\\The Art of Multiprocessor Programming, 2e.pdf",
+  "--parse-engine",
+  "magicpdf",
+  "--lang-in",
+  "en",
+  "--lang-out",
+  "zh",
+  "--service",
+  "opencode",
+  "--output",
+  "doc\\7p5-audit50\\output",
+  "--pages",
+  "1-50",
+  "--no-parallel",
+  "--thread",
+  "4",
+  "--magicpdf-ocr-mode",
+  "off"
+ ],
+ "started": "2026-10-07 02:36:50"
+}

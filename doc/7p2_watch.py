@@ -50,8 +50,23 @@ def classify(log_text: str, prev: str) -> tuple[str, str | None]:
     """从日志里粗判阶段。返回 ``(phase, highlight)``。
 
     阶段只是给人看的；真正的停滞判定靠 ``idle_s``（日志多久没变），与这里无关。
+
+    判断顺序 = 阶段**时序倒序**（最晚的可能阶段排在最前）。日志是累积的，一旦某个
+    标记出现过就永远在文本里，所以"先命中先返回"会把后续阶段永久遮住：实测一整轮
+    50 页真跑全程只显示 ``reparse_recovered``，``render`` 阶段从未出现过。
     """
-    if "merged source pages" in log_text or "render 页" in log_text:
+    if "parse dump" in log_text or "render plan dump" in log_text:
+        return "render", None
+    if "translating blocks" in log_text or "translate_stream" in log_text:
+        n = log_text.count("it]")
+        return "translate", (f"~{n} progress lines" if n else None)
+    if "re-parsed cleanly" in log_text or "quarantine lifted" in log_text:
+        n = log_text.count("re-parsed cleanly")
+        return "reparse_recovered", (f"{n} collapsed page(s) recovered" if n else None)
+    if "merged source pages" in log_text or "并进了同一" in log_text:
+        # 注意：并页**不等于**降级到 legacy 引擎。曾经这里返回 "degraded_to_legacy"，
+        # 既与事实不符（走的是 magicpdf，只是先隔离再重解析），又因为排在判断前面
+        # 而把后续阶段整个遮住 —— 害我差点误判整轮跑废了。
         line = next(
             (
                 ln
@@ -60,12 +75,7 @@ def classify(log_text: str, prev: str) -> tuple[str, str | None]:
             ),
             None,
         )
-        return "degraded_to_legacy", (line or "")[:160]
-    if "parse dump" in log_text:
-        return "render", None
-    if "translating blocks" in log_text or "translate_stream" in log_text:
-        n = log_text.count("it]")
-        return "translate", (f"~{n} progress lines" if n else None)
+        return "merged_pages_detected", (line or "")[:160]
     if "page slice" in log_text:
         return "parse", None
     return "starting", None
