@@ -31,7 +31,10 @@ sys.path.insert(0, str(ROOT))
 
 BOOK = ROOT / "tests" / "file" / "The Art of Multiprocessor Programming, 2e.pdf"
 MODEL = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
-SERVER = "http://127.0.0.1:4599"
+#: 常驻 opencode 服务地址。CLI 冷启动实测 16~21s/次，常驻后 ~9.7s/次
+#: （``OPENCODE_SERVER_URL`` 正是为此存在），所以整轮测量都走常驻服务。
+#: 可用环境变量覆盖，便于对照实验在另一个端口起服务而互不干扰。
+SERVER = os.environ.get("PDF2ZH_BENCH_SERVER", "http://127.0.0.1:4599")
 
 
 def _git_head() -> str:

@@ -1,0 +1,51 @@
+{
+ "before": {
+  "label": "BEFORE (7P0)",
+  "run": "C:\\Users\\14977\\AppData\\Local\\Temp\\opencode\\load50",
+  "elapsed_s": 5341.1,
+  "degraded_to_legacy": false,
+  "engine": "magicpdf",
+  "blocks": 621,
+  "pages_with_blocks": 50,
+  "max_blocks_on_one_page": 201,
+  "worst_page": {
+   "page": 6,
+   "blocks": 201
+  },
+  "blocks_translated": 585,
+  "coverage": 0.942,
+  "empty_translation_with_source": 0,
+  "cjk_ratio": 0.551,
+  "mono_pages_total": 50,
+  "mono_pages_measured": 50,
+  "pages_with_overlap_noignore": 41,
+  "pages_with_overlap": 11,
+  "spans_outside_page": 0,
+  "pages_with_cjk": 42
+ },
+ "after": {
+  "label": "AFTER (HEAD)",
+  "run": "C:\\Users\\14977\\AppData\\Local\\Temp\\opencode\\fix50",
+  "elapsed_s": 2931.0,
+  "degraded_to_legacy": true,
+  "engine": "legacy (degraded)",
+  "blocks": 0,
+  "pages_with_blocks": 0,
+  "max_blocks_on_one_page": 0,
+  "worst_page": {
+   "page": null,
+   "blocks": 0
+  },
+  "blocks_translated": 0,
+  "coverage": null,
+  "empty_translation_with_source": 0,
+  "cjk_ratio": null,
+  "mono_pages_total": 562,
+  "mono_pages_measured": 50,
+  "pages_with_overlap_noignore": 18,
+  "pages_with_overlap": 16,
+  "spans_outside_page": 3,
+  "pages_with_cjk": 47
+ },
+ "note": "AFTER degraded to legacy because P0 caught the collapsed TOC page"
+}
