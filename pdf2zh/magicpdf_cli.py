@@ -901,6 +901,45 @@ def run_magicpdf_main(
                 emit_raw_ingest_events(results, rec, pdf_path=path)
             except Exception as exc:  # noqa: BLE001 -- 采集失败不阻断主链路
                 logger.debug("[magicpdf] raw ingest trace emission failed: %s", exc)
+
+            # 「多个源页被版面模型并进同一个 render 页」必须在 convert_all 之前
+            # 拦：一旦展开成 render 块就再也看不出它们来自几页，只能靠坐标碰撞
+            # 事后猜测，而那时已经画完一页叠影（实测 201 块 / 87 块 y 碰撞）。
+            # 走既有降级链（_degrade_engine -> legacy），与「解析失败」同等处理：
+            # 解析结果**不可用**，不是质量问题。
+            from pdf2zh.magicpdf_adapter import detect_merged_pages
+
+            merged = detect_merged_pages(results)
+            if merged:
+                detail = "; ".join(
+                    "page {page_num}: {lines} lines, {pt_per_line}pt/line, "
+                    "implies {implied_pages} page(s)".format(**m)
+                    for m in merged[:3]
+                )
+                logger.error(
+                    "[magicpdf] 版面模型把多个源页并进了同一 render 页（%s）；"
+                    "继续渲染会产出整页叠影，按解析不可用降级",
+                    detail,
+                )
+                try:
+                    emit_ingest_run_failure(
+                        BACKEND_MINERU,
+                        f"merged_pages: {detail}",
+                        rec,
+                        pdf_path=path,
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+                rec.close()
+                if adapter is not None:
+                    adapter.close()
+                return _degrade_engine(
+                    parsed_args,
+                    f"{path} 解析结果把多个源页并进了同一页（{detail}）",
+                    progress_cb=progress_cb,
+                    degrade_to=degrade_to,
+                )
+
             pages = bridge.convert_all(results)
             if ingest_backend == BACKEND_JINA:
                 from pdf2zh.v3.ingestion.base import (

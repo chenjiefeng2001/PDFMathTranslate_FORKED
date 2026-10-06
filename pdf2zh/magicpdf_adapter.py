@@ -33,7 +33,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Sequence
 
 logger = logging.getLogger(__name__)
 
@@ -1181,6 +1181,92 @@ def _normalize_lines(raw_lines: Any) -> list[dict[str, Any]]:
         spans = [_normalize_span(s) for s in (lr.get("spans") or [])]
         lines.append({"bbox": _as_bbox(lr.get("bbox")), "spans": spans})
     return lines
+
+
+def detect_merged_pages(
+    results: Sequence["MagicPdfParseResult"],
+    pt_per_line: float = 6.0,
+    implied: float = 2.0,
+) -> list[dict[str, Any]]:
+    """检出「多个源页被版面模型并进同一个 render 页」的页。
+
+    为什么需要
+    ----------
+    实测（mp2e 前 50 页，见 ``doc/7p0_real_load_report.md``）：MinerU 的版面模型把
+    **源第 7~14 页共 8 页目录**压成第 7 页的**一个** ``index`` 块、**326 个
+    line**，而该页高度只有 665pt。我们照单展开成 201 个 render 块后，它们按
+    ``src_box`` 画在同一页上 —— **87 块共享 35 个重复的顶部 y，最多 5 块 y 完全
+    相同**，即来自 8 个不同源页的行叠在同一坐标上。成品里目录条目的原文和译文
+    都查不到（被互相覆盖），该页成为全篇最差页（叠印 569~708 处）。
+
+    这类缺陷在**渲染之前**就能看出来，而且判据是物理的、与引擎无关：行距不可能
+    是 2pt，一页也装不下 6 页的行高。
+
+    阈值来自上面那次实测的**真实间隔**，不是拍脑袋：
+
+    ================  ======  =========  ==========
+    页                 lines   pt/line    隐含页数
+    ================  ======  =========  ==========
+    折叠页（源 7-14）     327     **2.03**   **5.83**
+    次差正常页           44      15.11      0.65
+    正常页中位数          ~40      ~16        ~0.6
+    ================  ======  =========  ==========
+
+    两个指标各留 3 倍以上余量（6.0 落在 2.03 与 15.11 之间，2.0 落在 5.83 与 0.65
+    之间），所以正常书页不会被误判；而折叠页同时违反两项，无法靠调参躲开。
+
+    Args:
+        results: 逐页解析结果。
+        pt_per_line: 每行可占高度下限（pt）。低于它即物理不可能。
+        implied: 行高总和 / 页高 的上限。超过它即装不下。
+
+    Returns:
+        可疑页的度量列表（空列表表示没有）。每项含 ``page_num`` / ``lines`` /
+        ``pt_per_line`` / ``implied_pages``，供日志与降级原因使用。
+    """
+    suspects: list[dict[str, Any]] = []
+    for res in results or []:
+        page_h = float(getattr(res, "height", 0) or 0)
+        if page_h <= 0:
+            continue
+        n_lines = 0
+        sum_line_h = 0.0
+        for blk in getattr(res, "blocks", None) or []:
+            if not isinstance(blk, dict):
+                continue
+            lines = blk.get("lines") or []
+            n_lines += len(lines)
+            for ln in lines:
+                bbox = ln.get("bbox") if isinstance(ln, dict) else None
+                if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
+                    continue
+                # 残缺/非数值 bbox 不能把检测带崩：这是渲染前的诊断代码，一个
+                # 畸形 line 就抛 ValueError 的话，唯一的真损坏反而检测不出来。
+                # 必须两端都成功解析才计入 —— ``_as_float`` 对不可解析值返回
+                # ``default=0.0``，用它会把「y1 坏掉」当成 y1=0，从而虚增
+                # 行高、把正常页误判成折叠。
+                try:
+                    y0 = float(bbox[1])
+                    y1 = float(bbox[3])
+                except (TypeError, ValueError):
+                    continue
+                sum_line_h += abs(y1 - y0)
+        if n_lines <= 0:
+            continue
+        per_line = page_h / n_lines
+        implied_pages = sum_line_h / page_h
+        if per_line < pt_per_line or implied_pages > implied:
+            suspects.append(
+                {
+                    "page_num": getattr(res, "page_num", None),
+                    "lines": n_lines,
+                    "blocks": len(getattr(res, "blocks", None) or []),
+                    "page_height": round(page_h, 1),
+                    "pt_per_line": round(per_line, 2),
+                    "implied_pages": round(implied_pages, 2),
+                }
+            )
+    return suspects
 
 
 def _normalize_block(raw: Any) -> dict[str, Any]:
