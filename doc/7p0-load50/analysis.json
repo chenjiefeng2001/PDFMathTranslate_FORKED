@@ -1,0 +1,486 @@
+{
+ "run_dir": "C:\\Users\\14977\\AppData\\Local\\Temp\\opencode\\load50",
+ "artifacts": {
+  "render_plan": "The Art of Multiprocessor Programming, 2e_render_plan.json",
+  "document": "The Art of Multiprocessor Programming, 2e_document.json",
+  "mono_pdf": "The Art of Multiprocessor Programming, 2e_mono.pdf"
+ },
+ "parse": {
+  "pages_with_blocks": 50,
+  "page_range": [
+   0,
+   49
+  ],
+  "blocks": 621,
+  "blocks_per_page_mean": 12.42,
+  "blocks_per_page_max": 201,
+  "by_kind": {
+   "paragraph": 276,
+   "figure": 6,
+   "heading": 86,
+   "formula": 16,
+   "list": 1,
+   "references": 70,
+   "toc": 137,
+   "code": 20,
+   "footnote": 8,
+   "abstract": 1
+  },
+  "by_render_path": {
+   "translate_refit": 437,
+   "preserve_float": 42,
+   "shift_down": 5,
+   "overlay": 137
+  },
+  "by_render_fixup": {
+   "keep": 574,
+   "preserve": 42,
+   "shift_down": 5
+  },
+  "layout_splits": null,
+  "per_page": {
+   "0": 5,
+   "1": 2,
+   "2": 1,
+   "3": 7,
+   "4": 18,
+   "5": 8,
+   "6": 201,
+   "7": 1,
+   "8": 1,
+   "9": 1,
+   "10": 1,
+   "11": 1,
+   "12": 1,
+   "13": 1,
+   "14": 7,
+   "15": 8,
+   "16": 2,
+   "17": 4,
+   "18": 14,
+   "19": 7,
+   "20": 7,
+   "21": 7,
+   "22": 11,
+   "23": 9,
+   "24": 8,
+   "25": 8,
+   "26": 18,
+   "27": 10,
+   "28": 11,
+   "29": 20,
+   "30": 13,
+   "31": 13,
+   "32": 12,
+   "33": 8,
+   "34": 9,
+   "35": 22,
+   "36": 14,
+   "37": 2,
+   "38": 7,
+   "39": 10,
+   "40": 8,
+   "41": 11,
+   "42": 12,
+   "43": 13,
+   "44": 12,
+   "45": 13,
+   "46": 14,
+   "47": 9,
+   "48": 6,
+   "49": 13
+  }
+ },
+ "translate": {
+  "blocks_total": 621,
+  "blocks_translated": 585,
+  "coverage": 0.942,
+  "empty_translation": 36,
+  "empty_translation_with_source": 0,
+  "identical_to_source": 26,
+  "identical_legit_untranslatable": 26,
+  "identical_suspect_miss": 0,
+  "latin_only_output": 22,
+  "suspicious_residue": 20,
+  "src_chars": 92068,
+  "out_chars": 36417,
+  "out_over_src": 0.396,
+  "by_kind": {
+   "paragraph": 276,
+   "figure": 6,
+   "heading": 86,
+   "formula": 16,
+   "list": 1,
+   "references": 70,
+   "toc": 137,
+   "code": 20,
+   "footnote": 8,
+   "abstract": 1
+  },
+  "identical_by_kind": {
+   "formula": 16,
+   "list": 1,
+   "references": 2,
+   "code": 6,
+   "heading": 1
+  },
+  "samples": {
+   "empty": [
+    "p0_1",
+    "p0_3",
+    "p2_0",
+    "p7_0",
+    "p8_0",
+    "p9_0",
+    "p10_0",
+    "p11_0"
+   ],
+   "empty_with_source": [],
+   "identical": [
+    {
+     "id": "p4_13",
+     "kind": "formula",
+     "text": "ISBN: 978-0-12-415950-1"
+    },
+    {
+     "id": "p4_15",
+     "kind": "list",
+     "text": "Publisher: Katey Birtcher\nAcquisitions Editor: Stephen R. Merken\nEdito"
+    },
+    {
+     "id": "p6_192",
+     "kind": "references",
+     "text": "A.4C++ .508"
+    },
+    {
+     "id": "p6_194",
+     "kind": "references",
+     "text": "A.5C# .514"
+    },
+    {
+     "id": "p23_8",
+     "kind": "code",
+     "text": "return value ++;"
+    }
+   ],
+   "identical_suspect": [],
+   "residue": [
+    {
+     "id": "p4_0",
+     "out": "Morgan Kaufmann 是 Elsevier 的一个品牌"
+    },
+    {
+     "id": "p4_15",
+     "out": "Publisher: Katey Birtcher\nAcquisitions Editor: Stephen R. Merken\nEditorial Project Manager"
+    },
+    {
+     "id": "p5_2",
+     "out": "献给Noun和Aliza、Shafi、Yonadav和Lior，以及Luisa。"
+    },
+    {
+     "id": "p6_13",
+     "out": "2.3.1 LockOne 类25"
+    },
+    {
+     "id": "p6_14",
+     "out": "2.3.2 LockTwo 类26"
+    }
+   ],
+   "latin_only": [
+    {
+     "id": "p4_13",
+     "out": "ISBN: 978-0-12-415950-1"
+    },
+    {
+     "id": "p4_15",
+     "out": "Publisher: Katey Birtcher\nAcquisitions Editor: Stephen R. Merken\nEditorial Project Manager"
+    },
+    {
+     "id": "p23_8",
+     "out": "return value ++;"
+    },
+    {
+     "id": "p32_1",
+     "out": "1 - p + { \\frac { p } { n } } ."
+    },
+    {
+     "id": "p32_3",
+     "out": "S = { \\frac { 1 } { 1 - p + { \\frac { p } { n } } } } ."
+    }
+   ]
+  }
+ },
+ "render": {
+  "mono_pages": 50,
+  "plan_pages": 50,
+  "overlap_pages": 41,
+  "overlap_total": 4170,
+  "overlap_by_page": {
+   "2": 3,
+   "4": 8,
+   "5": 23,
+   "6": 10,
+   "7": 708,
+   "15": 131,
+   "16": 124,
+   "17": 2,
+   "18": 195,
+   "19": 146,
+   "20": 96,
+   "21": 108,
+   "22": 104,
+   "23": 94,
+   "24": 39,
+   "25": 115,
+   "26": 80,
+   "27": 64,
+   "28": 113,
+   "29": 151,
+   "30": 124,
+   "31": 79,
+   "32": 57,
+   "33": 103,
+   "34": 70,
+   "35": 43,
+   "36": 84,
+   "37": 131,
+   "38": 6,
+   "39": 65,
+   "40": 32,
+   "41": 38,
+   "42": 152,
+   "43": 82,
+   "44": 168,
+   "45": 56,
+   "46": 85,
+   "47": 161,
+   "48": 85,
+   "49": 16,
+   "50": 219
+  },
+  "overlap_worst": [
+   {
+    "page": 2,
+    "overlaps": 3,
+    "examples": [
+     {
+      "a": "艺术的",
+      "b": "The",
+      "frac": 0.85
+     },
+     {
+      "a": "艺术的",
+      "b": "Art",
+      "frac": 0.6
+     },
+     {
+      "a": "多处理器编程",
+      "b": "Multiprocessor",
+      "frac": 0.83
+     }
+    ]
+   },
+   {
+    "page": 4,
+    "overlaps": 8,
+    "examples": [
+     {
+      "a": "艺术的",
+      "b": "The",
+      "frac": 0.85
+     },
+     {
+      "a": "艺术的",
+      "b": "Art",
+      "frac": 0.62
+     },
+     {
+      "a": "多处理器编程",
+      "b": "Multiprocessor",
+      "frac": 0.88
+     },
+     {
+      "a": "第二版",
+      "b": "Second Edition",
+      "frac": 0.72
+     }
+    ]
+   },
+   {
+    "page": 5,
+    "overlaps": 23,
+    "examples": [
+     {
+      "a": "Morgan Kaufmann 是 Elsevier 的一个品牌",
+      "b": "Morgan Kaufmann is an imprint of Elsevie",
+      "frac": 0.64
+     },
+     {
+      "a": "汉普郡街50号，5楼，马萨诸塞州剑桥市 02139，美国",
+      "b": "50 Hampshire Street, 5th Floor, Cambridg",
+      "frac": 0.72
+     },
+     {
+      "a": "版权所有 © 2021 Elsevier Inc. 保留所有权利。",
+      "b": "Copyright © 2021 Elsevier Inc. All right",
+      "frac": 0.77
+     },
+     {
+      "a": "本出版物的任何部分均不得以任何形式或任何方式（电子、机械、复印、录制或任何信息存",
+      "b": "No part of this publication may be repro",
+      "frac": 0.66
+     }
+    ]
+   },
+   {
+    "page": 6,
+    "overlaps": 10,
+    "examples": [
+     {
+      "a": "献给我的父母，大卫和帕特里夏·赫利希，以及柳巴、大卫和安娜。",
+      "b": "For my parents, David and Patricia Herli",
+      "frac": 0.86
+     },
+     {
+      "a": "·· M.H.",
+      "b": "– M.H.",
+      "frac": 1.0
+     },
+     {
+      "a": "献给Noun和Aliza、Shafi、Yonadav和Lior，以及Luisa。",
+      "b": "For Noun and Aliza, Shaﬁ, Yonadav, and L",
+      "frac": 0.77
+     },
+     {
+      "a": "献给Noun和Aliza、Shafi、Yonadav和Lior，以及Luisa。",
+      "b": ".",
+      "frac": 0.76
+     }
+    ]
+   },
+   {
+    "page": 7,
+    "overlaps": 708,
+    "examples": [
+     {
+      "a": "目录",
+      "b": "Contents",
+      "frac": 0.75
+     },
+     {
+      "a": "目录",
+      "b": "8.4 我们自己的可重入锁194",
+      "frac": 0.4
+     },
+     {
+      "a": "目录",
+      "b": "5.2 原子寄存器 106",
+      "frac": 0.36
+     },
+     {
+      "a": "目录",
+      "b": "8.5 信号量194",
+      "frac": 0.41
+     }
+    ]
+   },
+   {
+    "page": 15,
+    "overlaps": 131,
+    "examples": [
+     {
+      "a": "前言",
+      "b": "Preface",
+      "frac": 0.74
+     },
+     {
+      "a": "自第一版出版以来的十年里，本书已成为世界各地大学本科生和研究生课程的核心教材。",
+      "b": "In the decade since the ﬁrst edition, th",
+      "frac": 0.82
+     },
+     {
+      "a": "它也已进入大大小小公司从业者的书架。反过来，本书的读者也推动了多处理器编程领域",
+      "b": "and",
+      "frac": 0.81
+     },
+     {
+      "a": "它也已进入大大小小公司从业者的书架。反过来，本书的读者也推动了多处理器编程领域",
+      "b": "graduate",
+      "frac": 0.81
+     }
+    ]
+   }
+  ],
+  "out_of_page_spans": 0,
+  "out_of_page_samples": [],
+  "wide_line_drops": []
+ },
+ "loss": {
+  "checked_blocks": 309,
+  "missing_from_pdf": 17,
+  "missing_rate": 0.055,
+  "note": "4-gram majority match; page index converted 0-based -> 1-based",
+  "samples": [
+   {
+    "id": "p6_49",
+    "page": 6,
+    "len": 23,
+    "text": "5.8 compareAndSet 操作119"
+   },
+   {
+    "id": "p6_72",
+    "page": 6,
+    "len": 22,
+    "text": "7.9A 为单独运行的线程提供快速路径178"
+   },
+   {
+    "id": "p6_113",
+    "page": 6,
+    "len": 24,
+    "text": "13.3.2 BucketList 类 .318"
+   },
+   {
+    "id": "p6_114",
+    "page": 6,
+    "len": 30,
+    "text": "13.3.3 LockFreeHashSet<T> 类319"
+   },
+   {
+    "id": "p6_119",
+    "page": 6,
+    "len": 23,
+    "text": "13.4.4 可细化的并发布谷鸟哈希集合331"
+   },
+   {
+    "id": "p6_183",
+    "page": 6,
+    "len": 20,
+    "text": "20.6.1 带有所有权记录的交易485"
+   },
+   {
+    "id": "p6_186",
+    "page": 6,
+    "len": 21,
+    "text": "20.8 事务性数据结构设计 . .493"
+   },
+   {
+    "id": "p32_1",
+    "page": 32,
+    "len": 31,
+    "text": "1 - p + { \\frac { p } { n } } ."
+   },
+   {
+    "id": "p32_3",
+    "page": 32,
+    "len": 55,
+    "text": "S = { \\frac { 1 } { 1 - p + { \\frac { p } { n } } } } ."
+   },
+   {
+    "id": "p32_5",
+    "page": 32,
+    "len": 95,
+    "text": "S = { \\frac { 1 } { 1 - p + { \\frac { p } { n } } } } = { \\frac { 1 } { 1 / 6 + "
+   }
+  ]
+ }
+}

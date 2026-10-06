@@ -1,0 +1,48 @@
+{
+ "defect_P1_toc_page_collapse": {
+  "source_pdf_pages_of_toc": [
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14
+  ],
+  "minerU_raw_blocks_on_page7": 2,
+  "blocks_landed_on_render_page_6": 201,
+  "kinds": {
+   "heading": 1,
+   "toc": 137,
+   "references": 63
+  },
+  "example_fused_block_text": "Preface .xv\nAcknowledgmentsxix\nSuggested ways to teach the art of multiprocessor programmingxxi\nCHAPTER 1 Introduction .1\n1.1 Shared objects and synchronization3\n1.2 A fable6",
+  "markers_wrongly_on_one_page": {
+   "compareAndSet(source page 9)": true,
+   "BucketList(source page 11)": true
+  },
+  "src_box_top_y_collision": {
+   "distinct_y_values": 149,
+   "y_values_shared_by_multiple_blocks": 35,
+   "blocks_involved": 87,
+   "max_blocks_at_same_y": 5,
+   "y_span_pt": [
+    56.0,
+    574.0
+   ]
+  }
+ },
+ "defect_R2_truncation": {
+  "block_id": "p38_2",
+  "kind": "abstract",
+  "translated_chars": 244,
+  "landed_chars": 99,
+  "landed_ratio": 0.41,
+  "renderer_warning": "line too wide for the page even at the size floor; 145 of 244 characters dropped (wrapped)",
+  "src_box_height_pt": 141.0,
+  "font_size_pt": 7.65,
+  "blocks_at_or_below_font_floor": 168,
+  "pages_touching_floor": 38
+ }
+}
