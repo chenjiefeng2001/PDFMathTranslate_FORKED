@@ -1480,6 +1480,64 @@ def _normalize_page_selection(pages: Any, page_count: int) -> list[int]:
     return sorted(p for p in sel if 0 <= p < page_count)
 
 
+def _annotate_size_scale(results: list["MagicPdfParseResult"], source_pdf: str) -> int:
+    """给每页结果挂上按页校准的「行框高 → 字号」系数（挂在 ``raw["size_scale"]``）。
+
+    为什么在这里做
+    --------------
+    MinerU 的 span ``size`` 恒为 0，唯一可用信号是行框高，而行框比字形紧。固定的
+    0.85 系数因此系统性偏小 —— 实测 mp2e 正文 9.96pt 被推成 7.65pt，成品译文比原文
+    小 23%（``doc/7p2_font_chain_audit.md``）。这里读一次源 PDF 把系数校准回来，
+    渲染层的 SHRINK 阶梯仍负责「放不下就缩」，所以不会溢出。
+
+    用**源 PDF** 而不是渲染产物：源 PDF 就是那个字号的原始出处，测量它等于取事实，
+    而不是再猜一次。校准失败（无文本层/加密/损坏）一律不挂，渲染层退回 0.85。
+
+    Returns:
+        成功校准的页数。0 表示全部退回默认系数（不是错误，是"没得校准"）。
+    """
+    if not results or not source_pdf or not os.path.exists(source_pdf):
+        return 0
+    from pdf2zh.v3.magicpdf_bridge import calibrate_size_map
+
+    done = 0
+    for res in results:
+        boxes: list[float] = []
+        for blk in getattr(res, "blocks", None) or []:
+            if not isinstance(blk, dict):
+                continue
+            for line in blk.get("lines") or []:
+                if not isinstance(line, dict):
+                    continue
+                for sp in line.get("spans") or []:
+                    sb = sp.get("bbox") if isinstance(sp, dict) else None
+                    if isinstance(sb, (list, tuple)) and len(sb) == 4:
+                        try:
+                            h = abs(float(sb[3]) - float(sb[1]))
+                        except (TypeError, ValueError):
+                            continue
+                        if h > 0:
+                            boxes.append(h)
+        try:
+            cal = calibrate_size_map(
+                source_pdf, int(getattr(res, "page_num", 0) or 0), boxes
+            )
+        except Exception:  # noqa: BLE001 -- 校准是锦上添花，绝不阻断解析
+            cal = None
+        if cal is None:
+            continue
+        res.raw["size_map"] = cal
+        res.raw["size_scale"] = cal.fallback_scale
+        done += 1
+    if done:
+        logger.info(
+            "[magicpdf] size calibrated from source on %d/%d page(s)",
+            done,
+            len(results),
+        )
+    return done
+
+
 def _slice_pdf_for_pages(
     pdf_path: str, pages: Any
 ) -> tuple[Optional[str], Optional[dict[int, int]]]:
@@ -1686,8 +1744,11 @@ class MagicPdfAdapter:
                     progress_cb=progress_cb,
                 )
                 _remap_magicpdf_result_pages(results, page_map)
+                # 校准要用**原文档**的页内容，而 results 的页号已被还原成原页号，
+                # 所以这里传原 PDF；源读不到就只是不校准。
+                _annotate_size_scale(results, pdf_path)
                 return results
-            return self._parse_by_backend(
+            out = self._parse_by_backend(
                 backend,
                 pdf_path,
                 pages=pages,
@@ -1695,6 +1756,8 @@ class MagicPdfAdapter:
                 lang=mineru_lang,
                 progress_cb=progress_cb,
             )
+            _annotate_size_scale(out, pdf_path)
+            return out
         finally:
             if slice_path is not None:
                 try:

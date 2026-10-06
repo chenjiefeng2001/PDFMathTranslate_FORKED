@@ -23,7 +23,8 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Sequence
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -166,24 +167,165 @@ def _looks_like_pseudocode(text_or_lines: Any) -> bool:
     return hits >= 2 and hits >= len(lines) / 2
 
 
+#: 缺省字号估算系数：span 框高 × 0.85。
+#:
+#: 这是**保守猜测**，不是测量结果。实测 mp2e：源 PDF 里「字号 ≈ 行框高」（比值
+#: 1.00，264 行、每档纯度约 100%），而 MinerU 的 span 框高与源行框高几乎相等
+#: （delta ≈ 0.0）。也就是说真实的换算系数接近 **1.0**，0.85 会把正文推成 7.65pt ——
+#: 成品里译文比原文小 23%（``doc/7p2_font_chain_audit.md``）。
+#:
+#: 保留为**兜底**：源 PDF 读不到（加密/损坏/无文本层）时，解析不能停，退回这个
+#: 偏小但绝不会撑破框的猜测。
+DEFAULT_SIZE_SCALE = 0.85
+
+#: 逐框查表的容差（pt）。
+#:
+#: MinerU 对同一段文字的框高有 ±0.5pt 量化抖动（9.96pt 正文有时报 9.0、有时报
+#: 10.0），实测源/解析框差最大约 1.4pt。容差要盖住抖动，但又不能大到把 6pt 的图注
+#: 匹配到 21pt 的标题上 —— 那会让小字被放大。2.0 是两侧都能接受的取值。
+SIZE_LOOKUP_TOL = 2.0
+
+#: 查表系数的安全区间。
+SIZE_SCALE_MIN = 0.6
+SIZE_SCALE_MAX = 1.35
+
+
+@dataclass(frozen=True)
+class SizeCalibration:
+    """某页「MinerU 框高 → 真实字号」的测量结果。
+
+    Attributes:
+        by_box: ``{源行框高: 字号}``。查表时按**最近邻**匹配，因为 MinerU 的框高有
+            ±0.5pt 抖动（9.96pt 正文 → 9.0 或 10.0），精确匹配必然落空。
+        fallback_scale: 查表未命中时用 ``框高 × fallback_scale``。
+    """
+
+    by_box: dict = field(default_factory=dict)
+    fallback_scale: float = DEFAULT_SIZE_SCALE
+
+    def size_for(self, box_h: float) -> float:
+        """给定 MinerU 框高，返回该用的字号。
+
+        查表命中就用测到的字号（事实）；未命中才退回比例（猜测）。宁可退回偏小的
+        猜测，也不要用错档的查表值把小字放大。
+        """
+        if box_h <= 0:
+            return 0.0
+        if self.by_box:
+            near = min(self.by_box, key=lambda h: abs(h - box_h))
+            if abs(near - box_h) <= SIZE_LOOKUP_TOL:
+                return round(float(self.by_box[near]), 2)
+        return round(box_h * self.fallback_scale, 2)
+
+
+def calibrate_size_map(
+    source_pdf, page_num: int, span_boxes
+) -> Optional[SizeCalibration]:
+    """量出该页「MinerU span 框高 → 真实字号」的查表。
+
+    为什么不能用一个固定系数
+    ------------------------
+    MinerU 对同一段 9.96pt 正文，框高时而报 9.0、时而报 10.0。任何单一系数都无法
+    同时把 9.0 和 10.0 映射到 9.96 —— 实测「页级比例」方案在真实页面上把平均误差
+    从 9.9% 恶化到 15.3%，因为比例继承了众数的量化噪声。
+
+    为什么查表能work
+    -----------------
+    源 PDF 自己就是事实出处。实测源里「字号 = 行框高」（比值 1.00、每档纯度约 100%），
+    且源行框高与 MinerU span 框高几乎相等。所以：把源页每条行的 ``行框高 → 字号``
+    收成一张表，解析出的框高按最近邻查表即可。±0.5 的抖动落在容差内。
+
+    校准失败（读不到源 PDF / 无文本层 / 页码越界）返回 ``None``，调用方退回
+    :data:`DEFAULT_SIZE_SCALE`。校准是锦上添花，绝不阻断解析。
+    """
+    if not source_pdf:
+        return None
+    boxes = [float(h) for h in (span_boxes or []) if h and h > 0]
+    if not boxes:
+        return None
+    try:
+        import pymupdf
+        from collections import Counter, defaultdict
+
+        by_box: dict = defaultdict(Counter)
+        with pymupdf.open(str(source_pdf)) as doc:
+            if page_num < 0 or page_num >= doc.page_count:
+                return None
+            for blk in doc[page_num].get_text("dict").get("blocks", []):
+                if blk.get("type") != 0:
+                    continue
+                for line in blk.get("lines", []):
+                    bb = line.get("bbox") or []
+                    if len(bb) != 4 or bb[3] - bb[1] <= 0:
+                        continue
+                    sizes = Counter()
+                    for sp in line.get("spans", []):
+                        # 短 span（页码、标点）会拉偏众数，只看有实质内容的
+                        if len((sp.get("text") or "").strip()) >= 3:
+                            sizes[round(float(sp.get("size") or 0), 2)] += 1
+                    sizes.pop(0.0, None)
+                    if sizes:
+                        by_box[round(bb[3] - bb[1], 1)][sizes.most_common(1)[0][0]] += 1
+    except Exception:  # noqa: BLE001 -- 校准失败退回默认系数，绝不阻断解析
+        return None
+    table = {h: c.most_common(1)[0][0] for h, c in by_box.items() if c}
+    if not table:
+        return None
+
+    # 未命中时的兜底比例：两侧都按**出现次数加权**求均值再互比。
+    #
+    # 这里踩过一个坑：最初用的是「表值的未加权平均」，而表里每个档位只占一行 ——
+    # 21.9pt 的大标题只出现 4 次，却和出现 150 次的 9.96pt 正文一样重，算出均值
+    # 13.82、比例 1.45，被钳到上限 1.35。那种比例会让 60pt 的框拿到 81pt 的字号，
+    # 直接制造溢出。按次数加权后是 10.06 / 9.53 ≈ 1.06。
+    #
+    # 用均值而非众数：均值对 ±0.5 的量化抖动不敏感，而众数会随抖动整档跳。
+    weighted_sum = 0.0
+    weighted_n = 0
+    for h, cnt in ((h, sum(c.values())) for h, c in by_box.items() if c):
+        weighted_sum += table[h] * cnt
+        weighted_n += cnt
+    if weighted_n <= 0:
+        return None
+    src_mean = weighted_sum / weighted_n
+    box_mean = sum(boxes) / len(boxes)
+    scale = src_mean / box_mean if box_mean > 0 else DEFAULT_SIZE_SCALE
+    scale = max(SIZE_SCALE_MIN, min(SIZE_SCALE_MAX, scale))
+    return SizeCalibration(by_box=table, fallback_scale=round(scale, 4))
+
+
+def calibrate_size_scale(source_pdf, page_num: int, span_boxes) -> Optional[float]:
+    """便捷入口：只要一个系数时用（等价于 ``calibrate_size_map(...).fallback_scale``）。"""
+    cal = calibrate_size_map(source_pdf, page_num, span_boxes)
+    return None if cal is None else cal.fallback_scale
+
+
 class MagicPdfBridge:
     """magic-pdf 解析结果 → v3 规范页面模型转换器。
 
     Attributes:
         default_font: 无字体信息时兜底的字体名。
-        size_scale: span 高度 → 字号估算系数（缺字号时用）。
+        size_scale: span 行框高 → 字号的估算系数（缺字号时用）。默认取
+            :data:`DEFAULT_SIZE_SCALE`；若 :func:`calibrate_size_scale` 测到了
+            源 PDF 的真实字号，会给出更贴近的按页系数。
     """
 
     def __init__(
         self,
         default_font: str = "",
-        size_scale: float = 0.85,
+        size_scale: float = DEFAULT_SIZE_SCALE,
     ) -> None:
         self.default_font = default_font
         self.size_scale = size_scale
 
     def convert(self, result) -> Any:
         """单个 :class:`MagicPdfParseResult` → :class:`PageModel`。"""
+        # 该页自己的查表（源 PDF 实测）。没有就用全局兜底。
+        _raw = getattr(result, "raw", None) or {}
+        calib = _raw.get("size_map") or None
+        size_scale = float(_raw.get("size_scale") or self.size_scale)
+        if calib is None:
+            calib = SizeCalibration(fallback_scale=size_scale)
         from pdf2zh.v3.canonical_page import (
             BlockModel,
             GlyphModel,
@@ -233,7 +375,7 @@ class MagicPdfBridge:
                     size = max(0.0, float(sbox_tl[3]) - float(sbox_tl[1]))
                     sm = SpanModel(
                         font=self.default_font,
-                        size=round(size * self.size_scale, 2) if size else 0.0,
+                        size=calib.size_for(size) if size else 0.0,
                         text=text,
                         x0=sbox[0],
                         y0=sbox[1],
