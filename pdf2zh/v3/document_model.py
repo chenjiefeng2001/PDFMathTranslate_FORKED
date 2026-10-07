@@ -26,9 +26,13 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+#: 非空白字符。用于估 LaTeX 在文本里的占比。
+NONSPACE = re.compile(r"\S")
 
 log = logging.getLogger(__name__)
 
@@ -327,6 +331,27 @@ def annotate_roles(page, classifier=None) -> int:
     for block in page.blocks:
         if block.kind != "paragraph" or not (block.text or "").strip():
             continue
+        # P2 守卫：LaTeX 主导的块是**公式**，不是标题。
+        #
+        # 实测 mp2e page 36 的因果链（doc/7p2_locate_formula.py 可复现）：
+        #   1. MinerU 把行间公式塞进某个 **span 的 content**（block 级 text 里没有，
+        #      两者不一致 —— 只扫 block text 会漏掉这一层）；
+        #   2. 该 span 的框高 16.0pt，明显高于同页正文的 9~11pt；
+        #   3. 字号校准把这个框高如实映射成 15.95pt（**这一步是对的**，源 PDF 确实
+        #      有这一档，是公式本身比正文高）；
+        #   4. ``apply_layout_splits`` 把这一行单独拆成块；
+        #   5. ``StructureClassifier`` 见字号远大于正文 → 判成 ``heading``。
+        # 于是公式冒充标题被送去翻译，再被当成标题塞回 16pt 的框里：P1 只能把它缩到
+        # 5.58pt 才放下。根因在第 5 步，不在渲染。
+        if _is_latex_dominated(block.text):
+            block.kind = "formula"
+            block.metadata["kind"] = "formula"
+            block.metadata["role"] = "formula"
+            block.metadata["role_confidence"] = 1.0
+            block.metadata["latex"] = block.text
+            block.metadata["latex_source"] = "mineru_span_content"
+            hits += 1
+            continue
         try:
             classified = classifier.classify_paragraph(
                 _RuleParagraphAdapter(_NodeProxy(block)),
@@ -345,6 +370,85 @@ def annotate_roles(page, classifier=None) -> int:
             block.metadata["kind"] = mapped
             hits += 1
     return hits
+
+
+#: 行内即成形的 LaTeX 结构。
+#:
+#: 刻意用**显式白名单**而不是 ``\\[a-zA-Z]+``。后者会把 ``\n``（转义换行，mineru
+#: 输出里很常见）、``\t``、``\r`` 也当成 LaTeX 命令 —— 于是"公式区域"从一个 ``\n``
+#: 一路跨到块尾，正文块的存在一个反斜杠就被整段吞掉（实测某块 174 个非空白字符里
+#: 有 6 个在 ``\prime``、其余 129 个在 ``\n`` 之后，尾段占比算成 0.78，整段正文被判
+#: 成公式、整段不翻译）。命令白名单里每个都 ≥3 个字母，天然排除单字母转义。
+_LATEX_STRUCTURE = re.compile(
+    r"\\(?:begin|end|frac|dfrac|tfrac|sqrt|sum|prod|int|lim|left|right|cdot|times"
+    r"|leq|geq|neq|approx|infty|partial|nabla|alpha|beta|gamma|delta|epsilon|theta"
+    r"|lambda|sigma|omega|mu|pi|rho|tau|phi|psi|ldots|cdots|binom|overline|underline"
+    r"|hat|vec|mathbb|mathbf|mathrm|operatorname|log|ln|exp|sin|cos|tan|max|min"
+    r"|cup|cap|subset|supset|rightarrow|leftarrow|Rightarrow|bullet|prime)\b"
+)
+#: 判定"公式主导"用：LaTeX 源码里高频、而**_running prose 里几乎不会出现**的字符。
+#:
+#: 真正的信号不是"首末标记之间有多大" —— 实测某正文块里有**两处** ``\prime``（一前一后），
+#: 于是"从第一个标记到最后一个标记"的区域横跨整段 174 字符的散文，占比算成 0.78，整段
+#: 被误判成公式。跨度这个指标只对"一段连续公式"有效，对"散落着行内公式的散文"完全失效。
+#:
+#: 可靠信号是**字符构成**：公式 OCR 的输出是 ``C a c h e M i s s = \frac { N ^ { \bullet } }
+#: { N + 1 0 }`` —— 逐字符用空格隔开、满是花括号/反斜杠/上下标/数字。散文不会长这样。
+#:
+#: 实测两个真实样本正好落在两侧（mp2e page 36，doc/7p2_locate_formula.py 可复现）：
+#: - 公式块：公式区字符密度 **≈0.45** → 判为公式；
+#: - 夹两个 ``M ^ { \prime }`` 的正文块：**≈0.03** → 判为正文。
+_LATEX_FORMULA_CHARS = re.compile(r"[{}\\^_=+\-*/0-9]")
+#: **带花括号参数的** LaTeX 命令（``\frac{..}{..}`` / ``\begin{..}`` / ``\sqrt{..}`` …）。
+#:
+#: 这是必要的**结构**信号，用来把两种"都含反斜杠、字符密度都不低"的情况分开：
+#: - ``\frac{a}{b}`` —— 命令带参数，是公式源码；
+#: - ``M ^ { \prime }`` —— 命令**没有**参数，它只是某个字母的上标，整个区域只有 7 个
+#:   非空白字符，纯靠密度判必然误判（实测 0.29 > 0.25，被错判成公式，整段正文不翻译）。
+_LATEX_BRACED = re.compile(
+    r"\\(?:begin|end|frac|dfrac|tfrac|sqrt|binom|overline|underline|hat|vec"
+    r"|mathbb|mathbf|mathrm|operatorname|left|right|lim|max|min|log|ln|exp"
+    r"|sin|cos|tan)\s*\{"
+)
+#: 公式区里 :data:`_LATEX_FORMULA_CHARS` 的占比门槛。0.25 是两个真实样本（0.45 / 0.03）
+#: 之间的宽裕中位。
+_LATEX_DOMINANCE = 0.25
+
+
+def _is_latex_dominated(text: str, threshold: float = _LATEX_DOMINANCE) -> bool:
+    """这段文本是不是「一段连续的 LaTeX 源码」？
+
+    两个**同时**成立的条件：
+
+    1. **结构**：公式区里有带花括号参数的 LaTeX 命令（:data:`_LATEX_BRACED`）；
+    2. **密度**：公式区里 :data:`_LATEX_FORMULA_CHARS` 占非空白字符 ≥ 门槛。
+
+    两个都不能省：只看反斜杠会把行内上标误伤成公式（整段正文不翻译）；只看密度会把
+    ``M ^ { \\prime }`` 这种 7 字符的小尾巴算成"高密度公式"；只看结构会把散落着行内公式
+    的长散文算成公式（实测某块首末标记横跨 174 字符散文）。
+
+    Args:
+        text: 块文本。
+        threshold: 公式区字符密度的占比门槛。
+    """
+    if not text or "\\" not in text:
+        return False
+    marks = list(_LATEX_STRUCTURE.finditer(text))
+    if not marks:
+        return False
+    start = text.rfind("\\", 0, marks[0].start() + 1)
+    if start < 0:
+        start = marks[0].start()
+    # 区域右端取「最后一个标记」与「最后一个 ``}``」中更靠后的：``\frac{a}{b}`` 这种，
+    # 公式本体在命令名**之后**（``{a}{b}``），只看命令名的长度会漏判。
+    end = max(marks[-1].end(), text.rfind("}") + 1)
+    region = text[start:end]
+    if _LATEX_BRACED.search(region) is None:
+        return False
+    dense = len(NONSPACE.findall(region))
+    if dense <= 0:
+        return False
+    return len(_LATEX_FORMULA_CHARS.findall(region)) / dense >= threshold
 
 
 def _estimate_body_size(page) -> float:
