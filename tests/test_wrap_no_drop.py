@@ -378,3 +378,112 @@ def test_deep_shrink_and_expansion_metrics_are_distinct():
 @pytest.mark.parametrize("scale", _WRAP_DEEP_SHRINK_STEPS)
 def test_each_deep_shrink_step_is_a_finite_positive_factor(scale):
     assert 0.0 < scale < 1.0
+
+
+def test_paragraph_newline_is_a_hard_break_not_a_phantom_second_line():
+    """译文里的 ``\n`` 必须由换行布局自己消化，不能透传给 ``insert_text``。
+
+    pymupdf 会把 ``\n`` 解释成一次换行，于是在本行之下**额外**画出一行；而那一行
+    正好压在「按框宽正常换行得到的下一行」上。实测 mp2e 50 页 p23 出现三对这样的
+    叠印，纵向只差 0.91pt —— 肉眼是重影，但文字一个都没丢，所以既不会被丢字审计
+    抓到，也不会被 P1 的任何退让拦住。
+
+    回归点：绘制路径拿到的每一行都不含 ``\n``，且每行基线间距 = 一个行距。
+    """
+    import pymupdf
+
+    text = "第一种方法无法均匀分配工作，原因虽简单却很重要：\n相等的输入范围不会产生相等的工作量。"
+
+    doc = pymupdf.open()
+    pg = doc.new_page(width=PAGE[0], height=PAGE[1])
+    drawn: list[str] = []
+    import pdf2zh.v3.magicpdf_renderer as R
+
+    real = R._draw_line
+
+    def spy(page, s, x, y, eff_font, font_size, stats, label=""):
+        drawn.append(s)
+        return real(page, s, x, y, eff_font, font_size, stats, label)
+
+    r = type("R", (), {"x0": 60.0, "y0": 700.0, "x1": 400.0, "y1": 780.0})()
+    R._draw_line = spy
+    try:
+        _insert_text_wrapped(
+            pg,
+            r,
+            text,
+            12.0,
+            "china-ss",
+            {"pages": 0, "blocks": 0, "glyphs": 0},
+        )
+    finally:
+        R._draw_line = real
+
+    assert drawn, "没有落笔，测试无效"
+    bad = [s for s in drawn if "\n" in s]
+    assert not bad, f"仍把换行符透传给 insert_text，会多画一行造成重影：{bad}"
+
+    # 两段都必须画出来：断行是重排，不是裁字
+    flat = "".join("".join(drawn).split())
+    assert flat == "".join(text.split()), "换行处理丢了字"
+
+    # 相邻行基线必须差一个完整行距，不能出现 1pt 以内的贴身两行
+    ys = sorted(
+        sp["origin"][1]
+        for blk in pg.get_text("dict")["blocks"]
+        if blk.get("type") == 0
+        for line in blk["lines"]
+        for sp in line["spans"]
+        if (sp.get("text") or "").strip()
+    )
+    tight = [a for a, b in zip(ys, ys[1:]) if b - a < 4.0]
+    assert not tight, f"出现了 {tight} 这种几乎贴身的行，说明 \\n 仍然多画了一行"
+    doc.close()
+
+
+def test_newline_does_not_count_towards_line_width():
+    """``\n`` 是零宽字符，不能参与 ``_width()`` —— 否则每行都被算宽一行。"""
+    from pdf2zh.v3.magicpdf_renderer import _WRAP_LINE_HEIGHT
+
+    assert _WRAP_LINE_HEIGHT == 1.4
+
+
+def test_newline_breaks_even_when_both_paragraphs_fit_on_one_line():
+    """段末必须强制断行，哪怕两段拼起来还装得下同一行。
+
+    少了段末的 ``_flush()``，第二段会接在第一行尾巴上 —— 这是"看起来能渲染、
+    实际段结构被抹掉"的那类退化，比丢字更难发现：文本一个字不少，只是行数变了。
+    """
+    import pymupdf
+
+    import pdf2zh.v3.magicpdf_renderer as R
+
+    text = "第一段。\n第二段。"
+    # 框宽足够把 "第一段。第二段。" 七个字全放一行 —— 只有真正断行才会产生两行。
+    doc = pymupdf.open()
+    pg = doc.new_page(width=PAGE[0], height=PAGE[1])
+    drawn: list[str] = []
+    real = R._draw_line
+
+    def spy(page, s, x, y, eff_font, font_size, stats, label=""):
+        drawn.append(s)
+        return real(page, s, x, y, eff_font, font_size, stats, label)
+
+    r = type("R", (), {"x0": 60.0, "y0": 700.0, "x1": 400.0, "y1": 780.0})()
+    R._draw_line = spy
+    try:
+        _insert_text_wrapped(
+            pg,
+            r,
+            text,
+            12.0,
+            "china-ss",
+            {"pages": 0, "blocks": 0, "glyphs": 0},
+        )
+    finally:
+        R._draw_line = real
+
+    assert len(drawn) == 2, f"两段各占一行，实际落笔 {len(drawn)} 行：{drawn}"
+    # 换行符本身不该作为字符出现在任何一行里：它变成了行边界，不是可见字形。
+    assert "".join(drawn) == text.replace("\n", ""), f"行内容应原样保留，实际 {drawn}"
+    doc.close()

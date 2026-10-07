@@ -356,28 +356,35 @@ def _insert_text_wrapped(
                 else:
                     cur = trial
 
-        pending_space = False
-        for tok in _wrap_tokens(text):
-            if tok == " ":
-                # 空格只是「可断点」的标记：真正加不加要看下一个词放不放得下。
-                # 直接写入会把行尾留下一个尾随空格，而它在换行处本就该丢掉。
-                pending_space = True
-                continue
-            sep = " " if (cur and pending_space) else ""
+        # 译文里的段落换行必须在这里**当硬换行处理**。以前它们被原样透传给
+        # :func:`_draw_line` → pymupdf ``insert_text``，而后者会把 ``\n`` 解释成
+        # 一次换行：在本行之下额外画出一行，而它的位置正好压在「按框宽正常换行
+        # 得到的下一行」上 —— 实测 mp2e p23 的三对叠印纵向只差 0.91pt，肉眼是重影。
+        # 附带的第二个 bug：``\n`` 被当普通字符参与 ``_width()``，宽度也算错。
+        for para in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
             pending_space = False
-            if cur and _width(f"{cur}{sep}{tok}") > max_w:
-                # 断在词间。此处**不能**把断点那个空格留在行尾：画出来行末会多一
-                # 个空隙，PDF 提取也会多出一个空格。空格只作为「可断点」标记
-                # （见上面的 pending_space），真正的写入发生在下一轮，所以这里
-                # 无需也不能再补一刀 —— 早期版本补了，结果与「不过滤行尾空格」
-                # 完全等价：那一轮 pending_space 已经被 sep 消耗掉了。
-                _flush()
-                sep = ""
-            # 一律走 _add_piece —— 它会在必要时按字符再切。
-            # 直接 `cur = tok` 会让「首个 token 就宽于整行」的情况（实测里
-            # 244 字无空格中文正是如此）绕过字符级切分，重新退化成单行 + 裁剪。
-            _add_piece(f"{sep}{tok}")
-        _flush()
+            for tok in _wrap_tokens(para):
+                if tok == " ":
+                    # 空格只是「可断点」的标记：真正加不加要看下一个词放不放得下。
+                    # 直接写入会把行尾留下一个尾随空格，而它在换行处本就该丢掉。
+                    pending_space = True
+                    continue
+                sep = " " if (cur and pending_space) else ""
+                pending_space = False
+                if cur and _width(f"{cur}{sep}{tok}") > max_w:
+                    # 断在词间。此处**不能**把断点那个空格留在行尾：画出来行末会多一
+                    # 个空隙，PDF 提取也会多出一个空格。空格只作为「可断点」标记
+                    # （见上面的 pending_space），真正的写入发生在下一轮，所以这里
+                    # 无需也不能再补一刀 —— 早期版本补了，结果与「不过滤行尾空格」
+                    # 完全等价：那一轮 pending_space 已经被 sep 消耗掉了。
+                    _flush()
+                    sep = ""
+                # 一律走 _add_piece —— 它会在必要时按字符再切。
+                # 直接 `cur = tok` 会让「首个 token 就宽于整行」的情况（实测里
+                # 244 字无空格中文正是如此）绕过字符级切分，重新退化成单行 + 裁剪。
+                _add_piece(f"{sep}{tok}")
+            # 段末强制断行：否则下一段的第一个 token 会接在本行尾巴上。
+            _flush()
         return lines
 
     def _stack_height(n_lines: int, fs: float) -> float:

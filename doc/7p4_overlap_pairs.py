@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT))
 import pymupdf  # noqa: E402
 
 from pdf2zh.v3.magicpdf_renderer import (  # noqa: E402
+    _OVERLAP_MIN_PT,
     _span_key,
     page_span_snapshot,
     render_plan_to_pdf,
@@ -85,7 +86,16 @@ def main(out_dir: str, wanted: list[int]) -> int:
             for b in spans[i + 1 :]:
                 ax0, ay0, ax1, ay1 = a["bbox"]
                 bx0, by0, bx1, by1 = b["bbox"]
-                if ax0 < bx1 - 1 and bx0 < ax1 - 1 and ay0 < by1 - 1 and by0 < ay1 - 1:
+                # 容差直接取渲染器用的那个常量。曾经这里硬编码 1pt，于是相邻两行的
+                # 字面盒相接也算一对：同一份产物渲染器报 4 页、本脚本报 20 页。
+                # 口径不同的审计等于没有审计 —— 这个脚本的全部价值就在于它能指出
+                # 「到底哪两个 span 撞了」，前提是它数出来的和渲染器数出来的一样。
+                if (
+                    ax0 < bx1 - _OVERLAP_MIN_PT
+                    and bx0 < ax1 - _OVERLAP_MIN_PT
+                    and ay0 < by1 - _OVERLAP_MIN_PT
+                    and by0 < ay1 - _OVERLAP_MIN_PT
+                ):
                     pairs.append(
                         (
                             a,

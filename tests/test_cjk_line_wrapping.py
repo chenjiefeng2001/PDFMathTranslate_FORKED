@@ -78,6 +78,15 @@ def _render(box, text, font_size=7.65, font="china-ss"):
     return pg, stats
 
 
+def _squash(s):
+    """去掉所有纯排版空白，只留下真正要出现在页面上的字符。
+
+    空格在断行处会被丢弃、``\\n`` 被换行布局消化成行边界 —— 两者都不算内容丢失。
+    比逐个 case 写豁免更可靠：任何**字形**字符少一个，这里就会炸。
+    """
+    return "".join(ch for ch in (s or "") if not ch.isspace())
+
+
 # --------------------------------------------------------------------------
 # 切词本身
 # --------------------------------------------------------------------------
@@ -275,8 +284,11 @@ def test_no_risk_block_loses_real_content_across_the_measured_run():
     for b in risky:
         text = b["translated"]
         pg, _ = _render(b["src_box"], text, b.get("font_size") or 9.0)
-        # 行尾空格在换行处被丢弃是排版常态，不算内容丢失
-        if pg.text.replace(" ", "") != text.replace(" ", ""):
+        # 行尾空格在换行处被丢弃是排版常态，不算内容丢失。``\n`` 同理：它由换行布局
+        # 自己消化成行边界（以前是原样透传给 ``insert_text``，结果多画一行压在下一行
+        # 上，见 test_wrap_no_drop 里那个 0.91pt 重影的用例），提取文本里自然没有
+        # 这个字符。实测 418 个风险块里 38 个含 ``\n``，去掉换行符后与提取结果逐字相等。
+        if _squash(pg.text) != _squash(text):
             lossy.append((b["block_id"], len(text) - len(pg.text)))
 
     assert not lossy, f"blocks losing real translated content: {lossy[:10]}"
