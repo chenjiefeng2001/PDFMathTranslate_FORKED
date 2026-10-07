@@ -382,7 +382,7 @@ def _insert_text_wrapped(
 
     def _stack_height(n_lines: int, fs: float) -> float:
         # 首行基线在 top + 0.85em，末行基线再下移 (n-1) 个行距
-        return fs * 0.85 + max(0, n_lines - 1) * fs * 1.4
+        return fs * 0.85 + max(0, n_lines - 1) * fs * _WRAP_LINE_HEIGHT
 
     draw_fs = float(font_size)
     lines = _layout(draw_fs)
@@ -454,7 +454,7 @@ def _insert_text_wrapped(
                     text[:60],
                 )
 
-    line_h = draw_fs * 1.4
+    line_h = draw_fs * _WRAP_LINE_HEIGHT
     page_bottom = float(page.rect.y1) - _WRAP_EXPAND_BOTTOM_MARGIN
     #: 落笔不得越过页底：画到页外的字在阅读器里根本看不见，等于既丢了字又污染了
     #: 越界指标。宁可显式截断并计数。
@@ -569,6 +569,11 @@ _FIT_MARGIN_PT = 1.5
 
 #: legacy wrapped 路径逐级尝试的缩放比例（用于把多行译文压进源框高度）。
 _WRAP_SHRINK_STEPS = (1.0, 0.92, 0.85, 0.78, 0.72, 0.66, 0.60, 0.55)
+
+#: legacy wrapped 路径的行高倍数。与 :data:`_WRAP_SHRINK_STEPS` 放在一起是为了让
+#: 「估高度」和「真落笔」用同一个系数 —— 页级重排（:func:`_reflow_page_entries`）
+#: 要按 wrapped 块的实际占高来推后继块，两处一旦不一致，重排就会算错。
+_WRAP_LINE_HEIGHT = 1.4
 
 #: P1：常规阶梯走完仍装不下时的**深缩**档位。
 #:
@@ -924,6 +929,223 @@ def _render_flow_commands(
     return used_baselines
 
 
+#: 页级纵向重排（reflow）时相邻块之间保留的最小间隙（pt）。
+#:
+#: 不取 0：源 PDF 的行盒本身就几乎相接（实测行距 12.1pt / 行框高 10.0pt），
+#: 零间隙会把"刚好贴上"也算成碰撞。
+_REFLOW_MIN_GAP = 1.0
+
+#: 下推时允许使用的页底余量（pt）。留给页脚。
+_REFLOW_BOTTOM_MARGIN = 2.0
+
+#: 单个块向下推移的上限（pt），作为失控保护。
+#:
+#: 没有它时，一段病态几何（比如被 :func:`_insert_text_wrapped` 撑高的块）能把整页
+#: 剩余内容全部推到页外。宁可让它撞着，也要页面其余部分保持可读。
+#:
+#: 取 120 是实测逼出来的：mp2e page 15 的 ``p15_0`` 需要下推 62.5pt 才能让开
+#: ``p15_7``（它的首行在 y=584、末行下沿却到 521.5，而 p15_0 首行在 583）。
+#: 60 的上限会让它"推了但没推够"，既没解决叠印又制造了"我以为处理过了"的错觉。
+_REFLOW_MAX_SHIFT = 120.0
+
+
+def _entry_extent(entry: Dict[str, Any]) -> Optional[Tuple[float, float]]:
+    """这个块**实际**占用的纵向范围（v3 坐标，y 向上）。
+
+    不能用 ``dst_box``：那是源框，而译文常常比源文长（中文尤其），落笔时会超出
+    源框 —— 那正是块间叠印的来源。实际占高可以直接从 payload 读出来：
+
+    - flow/list/toc：每条命令自带该行的绝对 ``y``，最高行是块顶、最低行是块底；
+    - wrapped/legacy：没有预排命令，按「框顶 − 行数 × 行高」估算。
+
+    Returns:
+        ``(top, bottom)``；几何不可用时返回 ``None``（调用方按原样处理）。
+    """
+    box = entry.get("dst_box") or entry.get("src_box")
+    if not box or len(box) != 4:
+        return None
+    try:
+        bx0, by0, bx1, by1 = (float(v) for v in box)
+    except (TypeError, ValueError):
+        return None
+    if by1 <= by0:
+        return None
+
+    payload = entry.get("render_payload") or {}
+    ys = []
+    for cmd in payload.get("commands") or []:
+        if not isinstance(cmd, dict):
+            continue
+        y = cmd.get("y")
+        if isinstance(y, (int, float)):
+            ys.append(float(y))
+    if ys:
+        top = max(ys)
+        bottom = min(ys)
+        # 末行基线之下还有下伸部；用行高补一个字的余量（保守，宁可多留空）
+        fs = 0.0
+        try:
+            fs = float(payload.get("font_size") or entry.get("font_size") or 0.0)
+        except (TypeError, ValueError):
+            fs = 0.0
+        if fs <= 0:
+            fs = _DEFAULT_FONT_SIZE
+        return top, bottom - fs
+
+    # wrapped / legacy：按行数估算。行数来自 payload.lines，拿不到就当单行。
+    lines = payload.get("lines") or []
+    n = len(lines) if lines else max(1, entry.get("line_count") or 1)
+    try:
+        fs = float(payload.get("font_size") or entry.get("font_size") or 0.0)
+    except (TypeError, ValueError):
+        fs = 0.0
+    if fs <= 0:
+        fs = _DEFAULT_FONT_SIZE
+    return by1, by0 - max(0, n - 1) * fs * _WRAP_LINE_HEIGHT
+
+
+def _reflow_page_entries(
+    entries: Sequence[Dict[str, Any]],
+    page_height: float,
+    stats: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    """页级纵向重排：把撞上前一块的译文**往下推**，而不是让它压上去。
+
+    为什么需要
+    ----------
+    每个块都按源框独立排版，源框之间的纵向关系被原样继承。但译文常常比源文长 ——
+    中文尤其如此 —— 一旦某块排得比源框高，它就会伸进下一个块的地盘。实测 mp2e
+    page 15 上两个相邻正文块（9.96pt 与 9.46pt）纵向只错开 2.3pt 就压在一起。
+
+    两种可选做法里，本函数选了「下推后继块」而不是「调小全局行距」：
+
+    - 全局行距是**观感政策**。``pdf2zh/converter.py`` 有意按语言取值（zh 1.4 /
+      en 1.2），把 CJK 行距压到源实测的 1.21 会让中文明显偏挤，而且会改动每一页。
+    - 下推只影响**真的撞上了**的地方，正常段落的排版一点不变。
+
+    做法：按顶边从上到下扫描，维护一个"当前最低可用下沿"；某块的实际下沿越过它就
+    整块下移，并让这个下移**级联**给后续所有块。
+
+    安全边界
+    --------
+    - 下移有上限（:data:`_REFLOW_MAX_SHIFT`），病态块不会把整页内容推出页面；
+    - 推不动时**如实计数并告警**，绝不静默压上去；
+    - 只改纵向，横向几何一概不动；
+    - 返回新列表，不改调用方的原始 ``plan``（诊断脚本要能拿原样再跑一次对照）。
+
+    Args:
+        entries: 该页的渲染条目。
+        page_height: 页高（pt），v3 坐标下 y 的上限。
+        stats: 统计字典，可选。
+
+    Returns:
+        重排后的条目列表（未发生位移的条目按原样返回）。
+    """
+    stats = stats if stats is not None else {}
+    measurable = [e for e in entries if _entry_extent(e) is not None]
+    if len(measurable) < 2:
+        return list(entries)
+
+    order = sorted(
+        range(len(entries)),
+        key=lambda i: (_entry_extent(entries[i]) or (0.0, 0.0))[0],
+        reverse=True,
+    )
+    # v3 是 **y 向上**：页底在 ``y≈0``，页顶在 ``y≈page_height``。所以"不许推到页
+    # 外"是**下沿**不得低于 ``floor``，即 floor 要取页底那一侧。
+    #
+    #: 这里曾经写成 ``page_height - _REFLOW_BOTTOM_MARGIN``（≈664，也就是页顶），
+    #: 于是夹取条件对几乎所有块恒成立、``delta`` 被算成负数、**整轮一个块都没推**，
+    #: 而"没推"看起来像"没问题" —— 我据此差点又一次把失效当成结论。
+    floor = _REFLOW_BOTTOM_MARGIN
+    out = list(entries)
+    limit: Optional[float] = None
+    shifted = 0
+    clamped = 0
+    for i in order:
+        ext = _entry_extent(entries[i])
+        if ext is None:
+            continue
+        top, bottom = ext
+        delta = 0.0
+        if limit is not None:
+            # 关键：比的是**顶边**。前一块的下沿是 ``limit``，本块顶边一旦高于
+            # ``limit - gap``，说明它顶进了前一块已占用的区域。
+            #
+            #: 曾经写成 ``bottom < limit - gap``（比下沿），结果 p15_7 占
+            #: 521.5~584、p15_0 占 531.2~583 明明严重交错，却判成"不撞"，
+            #: 整页一个块都没推 —— 而且因为"没推"看起来像"没问题"，差点当成结论。
+            need_top = limit - _REFLOW_MIN_GAP
+            if top > need_top:
+                delta = top - need_top
+                # 不能推到页外：块高固定，下沿 ``limit`` 会跟着一起降
+                if need_top - (top - bottom) < floor:
+                    delta = top - (floor + (top - bottom))
+                if delta > _REFLOW_MAX_SHIFT:
+                    delta = _REFLOW_MAX_SHIFT
+                    clamped += 1
+        if delta <= 0.01:
+            limit = bottom if limit is None else min(limit, bottom)
+            continue
+        out[i] = _shift_entry_down(out[i], delta)
+        shifted += 1
+        new_ext = _entry_extent(out[i])
+        new_bottom = new_ext[1] if new_ext is not None else bottom - delta
+        limit = new_bottom if limit is None else min(limit, new_bottom)
+
+    if shifted:
+        stats["reflow_shifted_blocks"] = stats.get("reflow_shifted_blocks", 0) + shifted
+        stats["reflow_pages"] = stats.get("reflow_pages", 0) + 1
+        if clamped:
+            # 撞上限的块仍会压上去 —— 必须显式计数，否则就是"看不见的失败"
+            stats["reflow_shift_clamped"] = (
+                stats.get("reflow_shift_clamped", 0) + clamped
+            )
+            logger.warning(
+                "[magicpdf] page reflow: %d block(s) hit the %.0fpt shift cap and "
+                "still collide",
+                clamped,
+                _REFLOW_MAX_SHIFT,
+            )
+        logger.info(
+            "[magicpdf] page reflow: shifted %d block(s) down to clear collisions",
+            shifted,
+        )
+    return out
+
+
+def _shift_entry_down(entry: Dict[str, Any], delta: float) -> Dict[str, Any]:
+    """把一个块整体下移 ``delta`` pt（v3 坐标 y 向上，故是**减**）。"""
+    if delta <= 0:
+        return entry
+    out = dict(entry)
+    box = out.get("dst_box") or out.get("src_box")
+    if box and len(box) == 4:
+        try:
+            out["dst_box"] = [
+                float(box[0]),
+                float(box[1]) - delta,
+                float(box[2]),
+                float(box[3]) - delta,
+            ]
+        except (TypeError, ValueError):
+            pass
+    payload = out.get("render_payload") or {}
+    if payload.get("commands"):
+        new_payload = dict(payload)
+        cmds = []
+        for cmd in payload["commands"]:
+            cmd = dict(cmd)
+            y = cmd.get("y")
+            if isinstance(y, (int, float)):
+                cmd["y"] = float(y) - delta
+            cmds.append(cmd)
+        new_payload["commands"] = cmds
+        out["render_payload"] = new_payload
+    out["reflow_shift_pt"] = round(float(out.get("reflow_shift_pt") or 0.0) + delta, 2)
+    return out
+
+
 def _render_toc_commands(
     page: Any,
     commands: Sequence[dict],
@@ -1176,7 +1398,11 @@ def render_plan_to_pdf(
         if src_doc is not None:
             for _rect in _erase_plan(by_page[pno], src_doc, h):
                 page.draw_rect(_rect, color=None, fill=(1, 1, 1))
-        for entry in by_page[pno]:
+        # 页级纵向重排：在擦除之后、落笔之前，把撞上前一块的译文往下推。
+        # 擦除用的是 src_box，不受下推影响；放这里是因为重排要读 payload 里已算好的
+        # 每行 y —— 那正是布局阶段给出的真实占高。
+        page_entries = _reflow_page_entries(by_page[pno], h, stats)
+        for entry in page_entries:
             text = _entry_text(entry)
             if not text:
                 continue
