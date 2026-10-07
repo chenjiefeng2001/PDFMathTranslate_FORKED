@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -36,22 +37,46 @@ VERIFY = _load("bench_verify", "doc/7p2_verify_run.py")
 
 @pytest.fixture
 def captured_argv(tmp_path, monkeypatch):
-    """跑一次 runner 的 main()，抓下它交给 pdf2zh 的 argv 与写出的配置。"""
+    """跑一次 runner 的 main()，抓下它交给 pdf2zh 的 argv 与写出的配置。
+
+    两个坑，都踩过：
+
+    - **不能**用 ``monkeypatch.setitem(sys.modules, "pdf2zh.pdf2zh", stub)``。
+      runner 里写的是 ``import pdf2zh.pdf2zh as cli``，而 ``import a.b as c`` 会**先
+      取父包属性** ``getattr(a, "b")`` —— 只要真实模块此前被导入过，拿到的就是真身，
+      stub 被静默绕过（表现为 ``KeyError: 'argv'``：``main`` 根本没被调用）。
+      直接改真身对象的 ``main`` 属性才可靠。
+    - runner 的 ``main()`` 会**直接写进程环境**（``OPENCODE_TIMEOUT=180`` 等）。
+      这会泄漏到同一次 pytest 进程里的其它测试：实测 ``test_env_defaults`` 因此
+      看到 ``'180' != '300'`` 而失败。所以这里必须快照并还原整个环境。
+    """
+    import pdf2zh.pdf2zh as real_cli
+
     seen: dict = {}
+    monkeypatch.setattr(
+        real_cli,
+        "main",
+        staticmethod(lambda argv: seen.__setitem__("argv", list(argv)) or 0),
+    )
 
-    class _Cli:
-        @staticmethod
-        def main(argv):
-            seen["argv"] = list(argv)
-            return 0
+    before = dict(os.environ)
 
-    monkeypatch.setitem(sys.modules, "pdf2zh.pdf2zh", _Cli)
+    class _EnvGuard:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            os.environ.clear()
+            os.environ.update(before)
+            return False
+
     out = tmp_path / "run"
 
     def _main_with(extra):
         # main() 走 sys.argv 解析，所以直接替换它。
         monkeypatch.setattr(sys, "argv", ["runner", "--out", str(out)] + extra)
-        return RUNNER.main()
+        with _EnvGuard():
+            return RUNNER.main()
 
     return out, seen, _main_with
 

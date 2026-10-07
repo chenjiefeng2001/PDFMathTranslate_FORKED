@@ -1,0 +1,8 @@
+{
+ "exit": 0,
+ "elapsed_s": 6844.8,
+ "pages": "1-50",
+ "model": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free",
+ "thread": 1,
+ "ignore_cache": true
+}
