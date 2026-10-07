@@ -71,6 +71,11 @@ def main() -> int:
     ap.add_argument("--pages", default="1-50")
     ap.add_argument("--thread", type=int, default=4)
     ap.add_argument("--service", default="opencode")
+    ap.add_argument(
+        "--ignore-cache",
+        action="store_true",
+        help="绕过引擎翻译缓存（真机吞吐对照必需）。",
+    )
     args = ap.parse_args()
 
     out_dir = Path(args.out)
@@ -107,6 +112,10 @@ def main() -> int:
         "--magicpdf-ocr-mode",
         "off",
     ]
+    # 绕过翻译缓存。少了这一项，"并发提速"只能拿到微基准 —— 缓存命中时整轮根本
+    # 不会调用引擎，测出来的 66s/130s 之类全是缓存时间，与真实吞吐无关。
+    if args.ignore_cache:
+        argv.append("--ignore-cache")
 
     env_record = {
         "git_head": _git_head(),
@@ -118,6 +127,7 @@ def main() -> int:
         "service": args.service,
         "model": MODEL,
         "server": SERVER,
+        "ignore_cache": bool(args.ignore_cache),
         "python": sys.version.replace("\n", " "),
         "argv": argv,
         "started": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -174,6 +184,8 @@ def main() -> int:
         "elapsed_s": round(elapsed, 1),
         "pages": args.pages,
         "model": MODEL,
+        "thread": args.thread,
+        "ignore_cache": bool(args.ignore_cache),
     }
     (out_dir / "run-summary.json").write_text(
         json.dumps(summary, indent=1), encoding="utf-8"

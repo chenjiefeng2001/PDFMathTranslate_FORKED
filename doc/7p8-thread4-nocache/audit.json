@@ -1,0 +1,27 @@
+{
+ "blocks": 450,
+ "font_mean_abs_err_pct": 7.28,
+ "prev_font_mean_abs_err_pct": 17.57,
+ "font_dist": {
+  "9.96": 175,
+  "10.96": 69,
+  "8.72": 45,
+  "12.0": 36,
+  "11.96": 20,
+  "7.97": 18,
+  "9.46": 15,
+  "13.45": 12
+ },
+ "blocks_with_real_content_loss": 0,
+ "blocks_by_design_text_form": 45,
+ "dropped_line_warnings": 0,
+ "fixup": {
+  "keep": 399,
+  "preserve": 44,
+  "shift_down": 7
+ },
+ "recovery": {
+  "shrink": 16
+ },
+ "cjk_blocks": 384
+}

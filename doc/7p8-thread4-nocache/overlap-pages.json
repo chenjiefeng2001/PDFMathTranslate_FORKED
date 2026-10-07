@@ -1,0 +1,47 @@
+{
+ "overlap": {
+  "1": 1,
+  "3": 1,
+  "4": 1,
+  "6": 5,
+  "15": 7,
+  "17": 5,
+  "18": 1,
+  "19": 3,
+  "20": 3,
+  "23": 3,
+  "26": 5,
+  "28": 7,
+  "29": 10,
+  "31": 5,
+  "32": 2,
+  "35": 7,
+  "41": 1,
+  "43": 1,
+  "46": 1,
+  "49": 1
+ },
+ "kinds_on_overlap_pages": {
+  "heading": 53,
+  "paragraph": 149,
+  "formula": 11,
+  "list": 1,
+  "references": 1,
+  "toc": 27,
+  "code": 3,
+  "figure": 1,
+  "footnote": 6
+ },
+ "kinds_all": {
+  "paragraph": 274,
+  "figure": 6,
+  "heading": 88,
+  "formula": 19,
+  "list": 1,
+  "references": 8,
+  "toc": 27,
+  "code": 19,
+  "footnote": 7,
+  "abstract": 1
+ }
+}

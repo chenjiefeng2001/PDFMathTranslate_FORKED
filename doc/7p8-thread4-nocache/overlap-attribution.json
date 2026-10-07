@@ -1,0 +1,95 @@
+{
+ "ratio": 0.7680722891566265,
+ "old": {
+  "tag": "old x0.7681 (7.65pt)",
+  "pages_with_overlap": 14,
+  "spans_outside_page": 0,
+  "overlap_examples": [
+   {
+    "page": 4,
+    "overlaps": 1
+   },
+   {
+    "page": 6,
+    "overlaps": 3
+   },
+   {
+    "page": 15,
+    "overlaps": 4
+   },
+   {
+    "page": 17,
+    "overlaps": 5
+   },
+   {
+    "page": 19,
+    "overlaps": 2
+   },
+   {
+    "page": 20,
+    "overlaps": 2
+   },
+   {
+    "page": 23,
+    "overlaps": 3
+   },
+   {
+    "page": 26,
+    "overlaps": 2
+   }
+  ],
+  "renderer_overlap": 14,
+  "renderer_outside": null,
+  "fit_shrunk": 70,
+  "fit_shrunk_deep": 0,
+  "box_expanded": 0,
+  "wrap_overflow_preserved": 0,
+  "wrap_clipped_page": 0
+ },
+ "new": {
+  "tag": "new (9.96pt)",
+  "pages_with_overlap": 16,
+  "spans_outside_page": 0,
+  "overlap_examples": [
+   {
+    "page": 1,
+    "overlaps": 1
+   },
+   {
+    "page": 3,
+    "overlaps": 1
+   },
+   {
+    "page": 4,
+    "overlaps": 1
+   },
+   {
+    "page": 6,
+    "overlaps": 5
+   },
+   {
+    "page": 15,
+    "overlaps": 4
+   },
+   {
+    "page": 17,
+    "overlaps": 5
+   },
+   {
+    "page": 19,
+    "overlaps": 2
+   },
+   {
+    "page": 20,
+    "overlaps": 3
+   }
+  ],
+  "renderer_overlap": 16,
+  "renderer_outside": null,
+  "fit_shrunk": 108,
+  "fit_shrunk_deep": 0,
+  "box_expanded": 0,
+  "wrap_overflow_preserved": 0,
+  "wrap_clipped_page": 0
+ }
+}

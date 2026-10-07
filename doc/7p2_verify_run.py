@@ -19,7 +19,7 @@
 用法::
 
     python doc/7p2_verify_run.py serve-start
-    python doc/7p2_verify_run.py launch --out <dir> --pages 1-50 --thread 4
+    python doc/7p2_verify_run.py launch --out <dir> --pages 1-50 --thread 4 [--ignore-cache]
     python doc/7p2_verify_run.py poll  --out <dir> [--wait]
     python doc/7p2_verify_run.py serve-stop
 """
@@ -147,7 +147,7 @@ def serve_stop() -> int:
 
 
 # --------------------------------------------------------------------------
-def launch(out_dir: Path, pages: str, thread: int) -> int:
+def launch(out_dir: Path, pages: str, thread: int, ignore_cache: bool = False) -> int:
     """后台起 7p0_real_load_run，并另起一个心跳线程盯着 run.log 的推进。"""
     out_dir.mkdir(parents=True, exist_ok=True)
     hb_path = out_dir / "heartbeat.json"
@@ -168,7 +168,8 @@ def launch(out_dir: Path, pages: str, thread: int) -> int:
             pages,
             "--thread",
             str(thread),
-        ],
+        ]
+        + (["--ignore-cache"] if ignore_cache else []),
         cwd=str(ROOT),
         stdout=out_f,
         stderr=err_f,
@@ -303,6 +304,11 @@ def main() -> int:
     la.add_argument("--out", required=True)
     la.add_argument("--pages", default="1-50")
     la.add_argument("--thread", type=int, default=4)
+    la.add_argument(
+        "--ignore-cache",
+        action="store_true",
+        help="绕过翻译缓存。真机吞吐对照必需，否则测到的是缓存时间。",
+    )
     po = sub.add_parser("poll")
     po.add_argument("--out", required=True)
     po.add_argument("--wait", action="store_true")
@@ -314,7 +320,9 @@ def main() -> int:
     if args.cmd == "serve-stop":
         return serve_stop()
     if args.cmd == "launch":
-        return launch(Path(args.out), args.pages, args.thread)
+        return launch(
+            Path(args.out), args.pages, args.thread, ignore_cache=args.ignore_cache
+        )
     return poll(Path(args.out), args.wait, args.every)
 
 
