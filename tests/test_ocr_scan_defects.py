@@ -244,15 +244,50 @@ class TestNoSilentTruncation(unittest.TestCase):
         self.assertEqual(stats.get("fit_shrunk"), 1, "必须靠缩字号才放得下")
 
     def test_wrapped_block_unfittable_is_reported(self):
-        """缩到下限仍放不下 → 记入 wrap_truncated + warning（不再静默）。"""
+        """缩到下限仍放不下 → **绝不静默丢字**（P1）。
+
+        这个测试原本锁定的是「记 ``wrap_truncated`` + warning 说 dropped」。P1 有意
+        改掉了那条契约：真实框里装不下时，丢字是**最坏**的结果（读者根本看不到那
+        段文字，而且没有别的痕迹）。现在的契约是：
+
+        - 先深缩、再扩框，都救不了就在**页面范围内**把能画的行全画出来；
+        - 页面也放不下的部分显式计入 ``wrap_clipped_page`` 并告警 —— 那已经物理上
+          无处安放，画到页外只是"看不见地丢字"，还会污染越界指标；
+        - **不画到页外**，不产生 ``spans_outside_page``；
+        - 只有退化几何（零高 box）才保留历史的 ``wrap_truncated``。
+        """
         text = "【译】" + "very long translated heading " * 12
         with self.assertLogs("pdf2zh.v3.magicpdf_renderer", level="WARNING") as cap:
             pdf, stats = render_plan_to_pdf(
                 [self._wrapped_entry(text, [69, 699, 200, 706], 14.0)],
                 page_sizes={0: [612, 792]},
             )
-        self.assertEqual(stats.get("wrap_truncated"), 1)
-        self.assertTrue(any("dropped" in m for m in cap.output), cap.output)
+        self.assertNotIn(
+            "wrap_truncated",
+            stats,
+            "a real box must never fall back to silent line dropping",
+        )
+        self.assertTrue(
+            stats.get("wrap_clipped_page") or stats.get("wrap_overflow_preserved"),
+            f"the shortfall must be accounted for explicitly, got {stats}",
+        )
+        self.assertFalse(
+            any("line(s) dropped" in m for m in cap.output),
+            f"must not claim lines were dropped: {cap.output}",
+        )
+        self.assertNotIn(
+            "spans_outside_page",
+            stats,
+            "text drawn past the page edge is invisible -- that is losing it anyway",
+        )
+        # 页内能画多少就得画多少：303 字符里只剩个位数没画出来。
+        doc = pymupdf.open(stream=pdf, filetype="pdf")
+        drawn = "".join(doc[0].get_text().split())
+        doc.close()
+        want = "".join(text.split())
+        self.assertGreaterEqual(
+            len(drawn), len(want) - 12, f"drew only {len(drawn)}/{len(want)} chars"
+        )
         self.assertTrue(pdf.startswith(b"%PDF"))
 
     def test_heading_block_kind_reaches_a_draw_path(self):

@@ -272,19 +272,35 @@ def _insert_text_wrapped(
     font_size: float,
     fontname: Optional[str],
     stats: Optional[Dict[str, Any]] = None,
+    avoid: Optional[List[Sequence[float]]] = None,
 ) -> None:
     """在 rect 内手动换行插入文本（兼容 CJK 字体度量）。
 
     - 按「词」（空白分隔）累积行，行宽按绘制字体精确度量；
     - 全角/无空格文本（中文）逐字符累积；
     - 行高 ``font_size * 1.4``；**放不下时先缩字号重排**（与 flow 路径的 SHRINK
-      recovery 同一取舍），缩到下限仍放不下才截断，并记入 ``wrap_truncated``。
+      recovery 同一取舍）；
     - 落笔统一走 :func:`_draw_line` —— 换行只按 rect 宽度收敛，rect 本身可能
       越出页面右边界，或单个超长 token 宽于整行，两者都会让 pymupdf 静默截断。
 
     旧实现「超出 rect 下边界即停止」是静默丢字：译文比原文多一行时，后面整段
     直接消失且无任何日志/指标。实测扫描件上的标题块
     ``'Chapter One: The Scanning Machine'`` 只剩下 ``'Chapter One:'``。
+
+    P1：**真实框装不下时不再丢行**。三级退让，顺序即偏好：
+
+    1. 常规阶梯（:data:`_WRAP_SHRINK_STEPS`，下限 0.55）；
+    2. 深缩阶梯（:data:`_WRAP_DEEP_SHRINK_STEPS`）到可读下限
+       :data:`_WRAP_MIN_FONT_SIZE` —— 允许字变小，但**留在原框内**、不产生新叠印；
+    3. 都装不下就**向下扩框**：仅当页底有余量、且溢出区不与本页其它译文块
+       （``avoid``）相撞时才扩。
+
+    三级都救不了时（例如块正好在页底、下方又是别人的文字）仍**把全部行画出来**，
+    记 ``wrap_overflow_preserved`` 并告警 —— 视觉上溢出远好过无声丢字，且一定
+    可被审计发现。
+
+    只有**退化几何**（框高 ≤ :data:`_WRAP_DEGENERATE_BOX_PT`，即根本没有可用框）
+    才保留历史的「只画首行」行为，既有测试锁定了它。
     """
     stats = stats if stats is not None else {}
     x = float(rect.x0)
@@ -297,6 +313,7 @@ def _insert_text_wrapped(
     max_w = raw_w if raw_w > 0.0 else float("inf")
     box_h = max(1e-6, float(rect.y1) - float(rect.y0))
     top = float(rect.y0)
+    degenerate = box_h <= _WRAP_DEGENERATE_BOX_PT
     import pymupdf
 
     # pymupdf 内置 CJK 字体对拉丁字符的 advance 偏宽，提取文本时会在字符间
@@ -388,29 +405,150 @@ def _insert_text_wrapped(
                 )
                 break
 
+    # ------------------------------------------------------------------ P1
+    # 常规阶梯走完仍装不下时**不丢行**。先试深缩：允许字变小，但必须留在原框内 ——
+    # 这样不产生任何新叠印，比扩框更安全。
+    if (
+        _stack_height(len(lines), draw_fs) > box_h
+        and not degenerate
+        and max_w != float("inf")
+    ):
+        best_fs: Optional[float] = None
+        for scale in _WRAP_DEEP_SHRINK_STEPS:
+            candidate = float(font_size) * scale
+            if candidate < _WRAP_MIN_FONT_SIZE:
+                break
+            best_fs = candidate
+            if _stack_height(len(_layout(candidate)), candidate) <= box_h:
+                draw_fs = candidate
+                lines = _layout(candidate)
+                stats["fit_shrunk_deep"] = stats.get("fit_shrunk_deep", 0) + 1
+                logger.warning(
+                    "[magicpdf] block shrunk below the normal floor %.2f -> %.2fpt to "
+                    "keep all %d line(s) inside %.1fpt; it will be hard to read: %r",
+                    float(font_size),
+                    draw_fs,
+                    len(lines),
+                    box_h,
+                    text[:60],
+                )
+                break
+        else:
+            if best_fs is not None:
+                # 每一档都装不下。这时**不能**退回原始字号 —— 那样一页只画得下
+                # 开头几行，后面整段全丢。取最小候选（最接近可读下限）至少能把
+                # 最多的文字留在页内，剩下的再由下面的显式截断如实计数。
+                draw_fs = best_fs
+                lines = _layout(best_fs)
+                stats["fit_shrunk_best_effort"] = (
+                    stats.get("fit_shrunk_best_effort", 0) + 1
+                )
+                logger.warning(
+                    "[magicpdf] block needs %d line(s) at %.2fpt but its %.1fpt box "
+                    "holds none of the shrink steps; using the smallest step %.2fpt "
+                    "to preserve as much text as possible: %r",
+                    len(lines),
+                    float(font_size),
+                    box_h,
+                    best_fs,
+                    text[:60],
+                )
+
     line_h = draw_fs * 1.4
+    page_bottom = float(page.rect.y1) - _WRAP_EXPAND_BOTTOM_MARGIN
+    #: 落笔不得越过页底：画到页外的字在阅读器里根本看不见，等于既丢了字又污染了
+    #: 越界指标。宁可显式截断并计数。
+    #: ``_WRAP_EXPAND_BOTTOM_MARGIN`` 那 2.0pt 已含字形下伸部，见其注释里的实测。
+    page_limit = page_bottom
+    allowed_bottom = min(float(rect.y1), page_limit)
+
+    # 深缩也救不了 → 尝试向下扩框。前提：页底有余量，且溢出区不与本页其它译文块
+    # 相撞。撞了就宁可溢出也不去覆盖别人的字。
+    if (
+        _stack_height(len(lines), draw_fs) > box_h
+        and not degenerate
+        and max_w != float("inf")
+    ):
+        want_bottom = top + _stack_height(len(lines), draw_fs) + draw_fs * 0.25
+        spill = (x, float(rect.y1), x + max_w, want_bottom)
+        clear = want_bottom <= page_bottom and not any(
+            _rects_overlap(spill, b) for b in (avoid or [])
+        )
+        if clear:
+            allowed_bottom = want_bottom
+            stats["box_expanded"] = stats.get("box_expanded", 0) + 1
+            logger.debug(
+                "[magicpdf] block box expanded %.1fpt -> %.1fpt to hold %d line(s)",
+                float(rect.y1),
+                want_bottom,
+                len(lines),
+            )
+
     y = top + draw_fs * 0.85
     drawn = 0
     for line in lines:
         # 首行始终落笔：退化几何（零高/零宽的 box）下这也是历史行为，
         # 既有测试锁定了它。行数不够时只从第二行开始截，并如实计数。
-        if drawn and y > float(rect.y1) + 1e-6:
+        if y > allowed_bottom + 1e-6 and not (drawn == 0 and degenerate):
+            # 「首行始终落笔」只对**退化几何**成立（零高 box，既有测试锁定）。
+            # 真实框若连首行基线都已越过页底，画下去就是页外的字 —— 阅读器看不见，
+            # 还会计入越界指标，属于"看不见地丢字"。那种情况下一行都不画，交给下面
+            # 的显式计数。
             break
         _draw_line(page, line, x, y, effective_font, draw_fs, stats, "wrapped")
         drawn += 1
         y += line_h
+
     if drawn < len(lines):
-        dropped = len(lines) - drawn
-        stats["wrap_truncated"] = stats.get("wrap_truncated", 0) + 1
-        logger.warning(
-            "[magicpdf] wrapped block needs %d line(s) but only %d fit in %.1fpt; "
-            "%d line(s) dropped: %r",
-            len(lines),
-            drawn,
-            box_h,
-            dropped,
-            text[:60],
-        )
+        if degenerate:
+            stats["wrap_truncated"] = stats.get("wrap_truncated", 0) + 1
+            logger.warning(
+                "[magicpdf] wrapped block needs %d line(s) but only %d fit in %.1fpt; "
+                "%d line(s) dropped: %r",
+                len(lines),
+                drawn,
+                box_h,
+                len(lines) - drawn,
+                text[:60],
+            )
+            return
+        # P1：真实框里绝不**静默**丢字。先把页面剩余空间用尽，把能画的行全画出来；
+        # 页面也放不下的部分显式计数并告警 —— 那种几何已经物理上无处安放，画到
+        # 页外只是"看不见地丢字"，还会计入越界指标，比明确截断更糟。
+        clipped = 0
+        for line in lines[drawn:]:
+            if y > page_limit:
+                clipped += 1
+                y += line_h
+                continue
+            _draw_line(page, line, x, y, effective_font, draw_fs, stats, "wrapped")
+            drawn += 1
+            y += line_h
+        if clipped:
+            stats["wrap_clipped_page"] = stats.get("wrap_clipped_page", 0) + clipped
+            logger.warning(
+                "[magicpdf] block needs %d line(s); drew %d and clipped %d because "
+                "neither its %.1fpt box nor the remaining page can hold them. "
+                "CLIPPING (not silent): %r",
+                len(lines),
+                drawn,
+                clipped,
+                box_h,
+                text[:60],
+            )
+        else:
+            stats["wrap_overflow_preserved"] = (
+                stats.get("wrap_overflow_preserved", 0) + 1
+            )
+            logger.warning(
+                "[magicpdf] wrapped block needs %d line(s) but its %.1fpt box cannot "
+                "hold them even after shrinking; drew all %d line(s) anyway "
+                "(overflowing) instead of dropping text: %r",
+                len(lines),
+                box_h,
+                drawn,
+                text[:60],
+            )
 
 
 def _resolve_effect_font(text: str, fontname: Optional[str]) -> Optional[str]:
@@ -431,6 +569,81 @@ _FIT_MARGIN_PT = 1.5
 
 #: legacy wrapped 路径逐级尝试的缩放比例（用于把多行译文压进源框高度）。
 _WRAP_SHRINK_STEPS = (1.0, 0.92, 0.85, 0.78, 0.72, 0.66, 0.60, 0.55)
+
+#: P1：常规阶梯走完仍装不下时的**深缩**档位。
+#:
+#: 实测数据说明为什么必须有它（mp2e page 25 的 ``'1.2 一个寓言'``，框 67.0×15.0pt，
+#: 字号 16.65pt）：常规阶梯最低 0.55 时整串宽仍是 73.3pt > 框宽 67pt，于是**每一档
+#: 都还是 2 行**，阶梯走完只能丢行。深缩到 0.35 时字宽 46.6pt < 67pt，变回 1 行。
+#:
+#: 之所以选「深缩」而不是「扩框」作为第一退让：深缩把文字**留在原框内**，不与
+#: 任何东西相撞，因此不会加重已经存在的叠印问题。
+_WRAP_DEEP_SHRINK_STEPS = (0.50, 0.45, 0.40, 0.35)
+
+#: 深缩的绝对字号下限（pt）。比这更小就不可读了，那时宁可选扩框 —— 宁可占空间，
+#: 也不要画出一行蚂蚁。
+_WRAP_MIN_FONT_SIZE = 5.0
+
+#: 框高 ≤ 此值即视为**退化几何**（根本没有可用框，如缺 dst_box 的零高块）。
+#: 只有这种情况才保留历史的「只画首行」行为，既有测试锁定了它。
+_WRAP_DEGENERATE_BOX_PT = 1.0
+
+#: 向下扩框时，页底必须留的余量（pt）。
+#:
+#: 这 2.0pt **已经**盖住字形下伸部：跨 7 种字号 × 11 个位置共 77 组几何扫描，最低落笔
+#: 字形底 791.6pt（页高 792），0 个越界 span。曾试过在此之上再减一个 0.25em 的下伸部
+#: 余量，结果只是白白多跳过 7 组本来画得下的几何，一例越界都没多挡下 —— 属于重复
+#: 计算，已删除。
+_WRAP_EXPAND_BOTTOM_MARGIN = 2.0
+
+
+def _rects_overlap(a: Sequence[float], b: Sequence[float], tol: float = 0.5) -> bool:
+    """两个轴对齐矩形是否真的相交（``tol`` 吸收浮点与亚像素误差）。
+
+    扩框前必须问一句「下面是不是别人的字」。宁可判定为相撞（放弃扩框、改为
+    显式溢出）也不要覆盖邻块。
+    """
+    if len(a) < 4 or len(b) < 4:
+        return False
+    return (
+        float(a[0]) < float(b[2]) - tol
+        and float(b[0]) < float(a[2]) - tol
+        and float(a[1]) < float(b[3]) - tol
+        and float(b[1]) < float(a[3]) - tol
+    )
+
+
+def _occupied_translation_boxes(
+    entries: Sequence[Dict[str, Any]],
+    page_height: float,
+    exclude_id: Optional[str] = None,
+) -> List[List[float]]:
+    """本页其它**会被绘制**的译文块的落点框，供扩框时避让。
+
+    **必须翻到 fitz 坐标**：``dst_box`` 是 PDF 左下原点，而扩框判断发生在
+    ``pymupdf.Rect`` 的左上原点空间里。不翻的话碰撞检查会永远判为"不相撞"——
+    这正是本函数第一版栽的坑：单测用未翻转的框算出 ``overlap=True``，接进真实
+    渲染却照样扩了框（``test_box_does_not_expand_into_a_neighbouring_translation``
+    抓到的就是它）。两套坐标系混用是静默失效，不会有任何报错。
+
+    只收有可绘制文本的块（``_entry_text`` 非空）。注意 ``_entry_text`` 在
+    ``translated`` 为空时**回退到原文**，那种块照样会被画出来，所以也必须计入 ——
+    过滤条件是"会不会被画"，不是"有没有译文"。
+    """
+    out: List[List[float]] = []
+    for e in entries or []:
+        if exclude_id is not None and e.get("block_id") == exclude_id:
+            continue
+        if not _entry_text(e):
+            continue
+        b = e.get("dst_box") or e.get("src_box")
+        if not b or len(b) != 4:
+            continue
+        try:
+            out.append(_flip_v3_box([float(v) for v in b], page_height))
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def _page_width(page: Any) -> float:
@@ -1157,7 +1370,19 @@ def render_plan_to_pdf(
             baseline = float(rect.y0) + font_size * 0.85
             # stats 交给 _insert_text_wrapped：逐行经 _draw_line 累加，块级的
             # blocks/glyphs 由那里按**实际落笔**的文本计（裁剪时不能按原文数）。
-            _insert_text_wrapped(page, rect, text, font_size, block_font, stats)
+            # P1：把本页其它译文块的落点框交给 wrapped 路径，供「装不下就扩框」时
+            # 避让。扩框前不问一句就可能盖住邻块 —— 那等于把丢行换成叠印。
+            _insert_text_wrapped(
+                page,
+                rect,
+                text,
+                font_size,
+                block_font,
+                stats,
+                avoid=_occupied_translation_boxes(
+                    by_page[pno], h, entry.get("block_id")
+                ),
+            )
             _emit_render_trace(
                 trace,
                 entry,
