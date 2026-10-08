@@ -40,6 +40,24 @@ NONSPACE = re.compile(r"\S")
 
 
 def norm_nospace(s: str) -> str:
+    """去空白 + 统一连写字形 / 破折号 —— 不然就是假的"丢字"。
+
+    7p11 无缓存实跑把两个英文回落块误判成 REAL content loss，根因就在这里：
+
+    - 渲染器把连字写成 ``ﬂ``（U+FB02），而译文字段里是直着的 ``fl``；NFKC 前
+      两者不等，逐字比较就不匹配。
+    - 源文的连字符 ``-``（U+002D）和 CJK 字体里的 ``−``（U+2212，中文排版风格）
+      也是两回事。
+
+    于是 LCS 在这几处被切成两段，``want`` 全长 200+、最长公共子串却不到半数，
+    审计落在 ``REAL content loss`` 桶里。增补一个 unicodedata.normalize('NFKC')
+    再统一一行破折号变体即可。
+    """
+    import unicodedata
+
+    s = unicodedata.normalize("NFKC", s)
+    for ch in "‐‑‒–—−":
+        s = s.replace(ch, "-")
     return "".join(NONSPACE.findall(s))
 
 
