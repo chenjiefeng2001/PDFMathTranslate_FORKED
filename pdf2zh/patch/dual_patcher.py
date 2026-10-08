@@ -401,10 +401,20 @@ class DualPatcher:
                             max(page_h - 1.0, 0.0),
                         ),
                     )
-                    page.insert_text(
-                        point=(x0, py), text=text, fontsize=fs, fontname=resolved_font
-                    )
-                    count += 1
+                    # 防御：若 line.text 里仍带 ``\n``，必须拆开逐行落笔，否则 pymupdf
+                    # 会按自己的换行语义在基线下方多画一行（与 magicpdf 曾经同款毛病）。
+                    for frag in text.splitlines():
+                        if not frag.strip():
+                            py += fs * 1.4
+                            continue
+                        page.insert_text(
+                            point=(x0, py),
+                            text=frag,
+                            fontsize=fs,
+                            fontname=resolved_font,
+                        )
+                        count += 1
+                        py += fs * 1.4
         except Exception:  # noqa: BLE001
             return count
         return count

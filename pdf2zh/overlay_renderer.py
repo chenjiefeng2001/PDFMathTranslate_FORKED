@@ -73,15 +73,21 @@ class OverlayRenderer:
 
             x0, y0, x1, y1 = seg.bbox
 
-            # Insert text at the exact position
-            # Use the font already embedded in the page
-            overlay_page.insert_text(
-                point=(x0, y0 + seg.font_size * 0.85),  # Adjust for baseline
-                text=seg.text,
-                fontsize=seg.font_size,
-                color=(0, 0, 0),
-                overlay=True,
-            )
+            # 换行必须交给 splitlines 逐行落笔。原样把带 ``\n`` 的 seg.text 丢给
+            # ``insert_text``，pymupdf 会当它是换行并在基线下方额外画一行 —— 与
+            # magicpdf 渲染器曾经的幽灵行毛病同根。逐行绘制 + 固定行距即可。
+            for line in seg.text.splitlines():
+                if not line.strip():
+                    y0 += seg.font_size * 1.4
+                    continue
+                overlay_page.insert_text(
+                    point=(x0, y0 + seg.font_size * 0.85),  # Adjust for baseline
+                    text=line,
+                    fontsize=seg.font_size,
+                    color=(0, 0, 0),
+                    overlay=True,
+                )
+                y0 += seg.font_size * 1.4
 
         return overlay_doc.write(deflate=True, garbage=3)
 
@@ -121,13 +127,18 @@ class OverlayRenderer:
             if not seg.text.strip():
                 continue
             x0, y0, _x1, _y1 = seg.bbox
-            out_page.insert_text(
-                point=(x0, y0 + seg.font_size * 0.85),
-                text=seg.text,
-                fontsize=seg.font_size,
-                color=(0, 0, 0),
-                overlay=True,
-            )
+            for line in seg.text.splitlines():
+                if not line.strip():
+                    y0 += seg.font_size * 1.4
+                    continue
+                out_page.insert_text(
+                    point=(x0, y0 + seg.font_size * 0.85),
+                    text=line,
+                    fontsize=seg.font_size,
+                    color=(0, 0, 0),
+                    overlay=True,
+                )
+                y0 += seg.font_size * 1.4
         return out_doc.write(deflate=True, garbage=3)
 
 

@@ -65,13 +65,22 @@ class V4PDFRenderer:
                 bbox = entry.get("bbox", (0, 0, 0, 0))
                 font_size = entry.get("font_size", 12.0)
                 x0, y0, x1, y1 = bbox
-                page.insert_text(
-                    point=(x0, y0 + font_size * 0.85),
-                    text=text,
-                    fontsize=font_size,
-                    color=(0, 0, 0),
-                    overlay=True,
-                )
+                # 译文里的 ``\n`` 必须在这一步拆成多行分别落笔。直接丢给 pymupdf 的
+                # ``insert_text``，它会把 ``\n`` 当成一次换行，在当前基线下方**额外**
+                # 画一行，且不受我们的宽度/行距控制 —— 实测 mp2e p23 就因这个在本行
+                # 之下 0.91pt 处幽灵地多出一行。这里按固定的 1.4 倍行高逐行落笔。
+                for line in text.splitlines():
+                    if not line.strip():
+                        y0 += font_size * 1.4
+                        continue
+                    page.insert_text(
+                        point=(x0, y0 + font_size * 0.85),
+                        text=line,
+                        fontsize=font_size,
+                        color=(0, 0, 0),
+                        overlay=True,
+                    )
+                    y0 += font_size * 1.4
                 self._stats.total_glyphs += len(text)
             self._stats.pages_rendered += 1
         result = doc.write(deflate=True, garbage=3)
