@@ -361,6 +361,77 @@ class TestModelConsumption(unittest.TestCase):
         self.assertEqual(entry["render_payload"]["kind"], "flow")
         self.assertEqual(entry["translated"], "译_Body text here")
 
+    def test_whitespace_only_translation_is_treated_as_fallback(self):
+        """译文只差空白/连字符 = 没有有效翻译，必须同 fallback 一样走 preserve。
+
+        生产实测：OpenCode 退化时"译文"常只是源英文去掉换行/连字符空格
+        （Structural holes 全书 1097 块）。精确比较会判成"已翻译"，英文随后
+        被当 CJK 文本重排 —— 那是 4 页正文被排到页外（22 个 span 越界）的原因。
+        """
+        from pdf2zh.v3.document_model import (
+            build_document_model,
+            render_plan_from_model,
+            translate_document,
+        )
+        from pdf2zh.v3.render_payload import _same_content
+
+        # helper 边界：只动排版伪影，不动内容字符
+        self.assertTrue(_same_content("same", "same"))
+        self.assertTrue(_same_content("", ""))
+        self.assertTrue(_same_content("a b\nc", "abc"))
+        self.assertTrue(
+            _same_content("National Science\nFoundation", "National ScienceFoundation")
+        )
+        self.assertTrue(_same_content("well-known", "wellknown"))
+        self.assertFalse(_same_content("hello", "你好"))
+        self.assertFalse(_same_content("", "x"))
+
+        model = build_document_model([self._page_with_toc_and_formula()])
+        translate_document(model, lambda t: t.replace(" ", "").replace("\n", ""))
+        body = [
+            b for b in model.pages[0].blocks if (b.text or "").startswith("Body text")
+        ][0]
+        self.assertFalse(body.metadata["translate"])
+        self.assertTrue(body.metadata["translated_same"])
+
+        plan = render_plan_from_model(model)
+        entry = [p for p in plan if p["text"].startswith("Body text")][0]
+        self.assertEqual(entry["render_path"], "preserve_float")
+        self.assertEqual(entry["render_payload"]["kind"], "preserve")
+
+    def test_list_block_with_whitespace_only_translation_is_preserved(self):
+        """list 分支同样按内容判等：item 译文只差空白时整块保留，不重排。
+
+        list 的块级 ``translated`` 恒等于原文（marker 不进 translator），
+        判等必须在 payload 的 per-item content/translated 上做。
+        """
+        from types import SimpleNamespace
+
+        from pdf2zh.v3.render_payload import block_translation_unit
+
+        def ln(t, y):
+            return SimpleNamespace(text=t, x0=50.0, y0=y, x1=300.0, y1=y + 12.0)
+
+        block = SimpleNamespace(
+            kind="list",
+            text="• alpha beta\n• gamma delta",
+            lines=[ln("• alpha beta", 700.0), ln("• gamma delta", 688.0)],
+            metadata={},
+        )
+        # 真翻译：内容改变 → 仍走 list 命令路径
+        real = block_translation_unit(block, lambda s: "译 " + s)
+        self.assertEqual(real["kind"], "list")
+        self.assertTrue(real["translate"])
+        self.assertFalse(real["translated_same"])
+
+        # 退化：只去空白 → 整块保留
+        degraded = block_translation_unit(
+            block, lambda s: s.replace(" ", "").replace("•", "")
+        )
+        self.assertEqual(degraded["kind"], "list")
+        self.assertFalse(degraded["translate"])
+        self.assertTrue(degraded["translated_same"])
+
     def test_toc_records_from_model_schema(self):
         from pdf2zh.v3.document_model import (
             build_document_model,

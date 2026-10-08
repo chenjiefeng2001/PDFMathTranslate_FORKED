@@ -34,9 +34,38 @@ list / toc / flow）收敛为**单一分派入口**，同时保持行为完全�
 from __future__ import annotations
 
 import logging
+import unicodedata
 from typing import Callable, Dict, Mapping, Optional, Sequence
 
 log = logging.getLogger(__name__)
+
+
+def _same_content(a: str, b: str) -> bool:
+    """忽略空白/连字符差异的文本相等 —— 判断「翻译是否真的产出了新内容」。
+
+    精确串比较在生产上漏掉一整类退化：OpenCode 挂掉时"译文"常常只是源英文
+    去掉换行、去掉连字符空格（实测 Structural holes 全书 325 页：
+    ``"National Science Foundation" -> "National ScienceFoundation"``，
+    ``"STRUCTURAL HOLES\\nThe Social..." -> "STRUCTURAL HOLESThe Social..."``）。
+    按精确比较这些块算"翻译过了"，于是英文被当 CJK 文本重排，325 页里
+    1097 个块被重新排版，4 页正文被排到页外（22 个 span 越界）。
+
+    归一化只动**排版伪影**（空白、连字符），不动内容字符：内容真变了
+    （含中英互译）两者归一化后仍不相等。
+    """
+    if a == b:
+        return True
+
+    def _norm(s: str) -> str:
+        s = unicodedata.normalize("NFKC", s or "")
+        s = s.replace("-", "")  # 源提取会去掉软连字符的换行衔接
+        return "".join(ch for ch in s if not ch.isspace())
+
+    na, nb = _norm(a), _norm(b)
+    if not na or not nb:
+        return na == nb
+    return na == nb
+
 
 __all__ = [
     "block_translation_unit",
@@ -111,12 +140,19 @@ def block_translation_unit(
             from pdf2zh.v3.list_sidechannel import build_block_list_payload
 
             payload = build_block_list_payload(block, translate_fn)
+            # 逐 item 比较 content vs translated：内容没变（翻译服务退化为
+            # 原文）时整块按保留处理 —— list 的命令是逐 item 生成的，
+            # 块级 translated 恒等于原文，必须在 payload 里比。
+            items = payload.get("items") or []
+            same = bool(items) and all(
+                _same_content(it.get("content"), it.get("translated")) for it in items
+            )
             unit.update(
                 {
                     "kind": "list",
                     "translated": text,
-                    "translated_same": False,
-                    "translate": True,
+                    "translated_same": same,
+                    "translate": not same,
                     "payload": payload,
                 }
             )
@@ -145,13 +181,13 @@ def block_translation_unit(
             # metadata["toc_entries"]）才能拿到 translated_title，避免二次翻译。
             (getattr(block, "metadata", None) or {})["toc_entries"] = entries
             payload = build_block_toc_payload(block, translate_fn)
+            joined = "\n".join(e["translated"] for e in entries)
             unit.update(
                 {
                     "kind": "toc",
-                    "translated": "\n".join(e["translated"] for e in entries),
-                    "translated_same": "\n".join(e["translated"] for e in entries)
-                    == text,
-                    "translate": True,
+                    "translated": joined,
+                    "translated_same": _same_content(joined, text),
+                    "translate": not _same_content(joined, text),
                     "payload": {
                         "entries": entries,
                         "commands": payload.get("commands") or [],
@@ -173,15 +209,15 @@ def block_translation_unit(
         except Exception as e:  # noqa: BLE001
             log.debug("flow translation failed: %s", e)
             translated = src
+    # ``_same_content`` 而非精确比较：翻译服务退化时译文常只差空白/连字符
+    # （实测 325 页全书 1097 块），按精确比较会当成有效译文送进 CJK 排版。
+    same = _same_content(src, translated)
     unit.update(
         {
             "kind": "flow",
             "translated": translated,
-            "translated_same": translated == src,
-            # 若翻译结果仍等于原文（翻译服务已失败或退化为原始文本），
-            # 则视为“未翻译”，让后续 fixup/renderer 走 preserve 路径，
-            # 免受 CJK translate_refit 叠影。
-            "translate": translated != src,
+            "translated_same": same,
+            "translate": not same,
         }
     )
     return unit
