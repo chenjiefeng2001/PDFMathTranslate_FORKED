@@ -178,7 +178,10 @@ def block_translation_unit(
             "kind": "flow",
             "translated": translated,
             "translated_same": translated == src,
-            "translate": True,
+            # 若翻译结果仍等于原文（翻译服务已失败或退化为原始文本），
+            # 则视为“未翻译”，让后续 fixup/renderer 走 preserve 路径，
+            # 免受 CJK translate_refit 叠影。
+            "translate": translated != src,
         }
     )
     return unit

@@ -314,6 +314,53 @@ class TestModelConsumption(unittest.TestCase):
         self.assertEqual(toc["dst_box"], toc["src_box"])  # 初始 = 源几何
         self.assertGreater(toc["font_size"], 0)
 
+    def test_translation_fallback_block_is_routed_to_preserve(self):
+        """翻译回退为原文的块必须按保留块路由，不能再走 CJK translate_refit。
+
+        根因（mp2e p46）：fallback 英文块的 ``translated == src``，但 unit 仍返回
+        ``translate=True``，于是 fixup/renderer 把它当「已译文」用 CJK 估宽重排，
+        两个 Helvetica fallback 块叠在一起。修法：``translated == src`` 时
+        ``translate=False``，plan 里该块 render_path/payload 全部转 preserve。
+        """
+        from pdf2zh.v3.document_model import (
+            build_document_model,
+            render_plan_from_model,
+            translate_document,
+        )
+
+        model = build_document_model([self._page_with_toc_and_formula()])
+        # 翻译服务退化：原样返回（translated == src）
+        translate_document(model, lambda t: t)
+        body = [
+            b for b in model.pages[0].blocks if (b.text or "").startswith("Body text")
+        ]
+        self.assertEqual(len(body), 1)
+        # translated_same 旧语义保留（「原文未改动」），translate 变为 False
+        self.assertTrue(body[0].metadata["translated_same"])
+        self.assertFalse(body[0].metadata["translate"])
+
+        plan = render_plan_from_model(model)
+        entry = [p for p in plan if p["text"].startswith("Body text")][0]
+        self.assertEqual(entry["render_path"], "preserve_float")
+        self.assertEqual(entry["render_payload"]["kind"], "preserve")
+        self.assertEqual(entry["render_payload"]["commands"], [])
+
+    def test_really_translated_block_stays_on_flow_path(self):
+        """对照组：真译出的块行为不变 —— translate_refit + flow payload。"""
+        from pdf2zh.v3.document_model import (
+            build_document_model,
+            render_plan_from_model,
+            translate_document,
+        )
+
+        model = build_document_model([self._page_with_toc_and_formula()])
+        translate_document(model, lambda t: "译_" + t)
+        plan = render_plan_from_model(model)
+        entry = [p for p in plan if p["text"].startswith("Body text")][0]
+        self.assertEqual(entry["render_path"], "translate_refit")
+        self.assertEqual(entry["render_payload"]["kind"], "flow")
+        self.assertEqual(entry["translated"], "译_Body text here")
+
     def test_toc_records_from_model_schema(self):
         from pdf2zh.v3.document_model import (
             build_document_model,

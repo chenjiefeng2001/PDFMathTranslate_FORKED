@@ -766,10 +766,13 @@ def render_plan_from_model(model: DocumentModel, trace=None) -> List[dict]:
             _kind = block.kind
             if _kind == "paragraph":
                 _kind = "flow"
+            # ``translate=False`` 有两种来路：parse 时的保留 kind（code/公式/表格…），
+            # 以及翻译失败/回退为原文的 flow 块。两者语义相同：原样保留，不做拟合。
+            # 少了这条，fallback 英文块会带着 CJK 估算走 translate_refit 被当成
+            # 「已译文」重排 —— mp2e p46 的 Helvetica 叠印正是这么来的。
+            _preserve = block.metadata.get("translate") is False
             unit = {
-                "kind": (
-                    "preserve" if block.metadata.get("translate") is False else _kind
-                ),
+                "kind": ("preserve" if _preserve else _kind),
                 "payload": (
                     block.metadata.get("list_items")
                     if block.kind == "list"
@@ -782,10 +785,21 @@ def render_plan_from_model(model: DocumentModel, trace=None) -> List[dict]:
                             or [],
                         }
                         if block.kind == "toc"
-                        else (_build_flow_payload(block) if _kind == "flow" else None)
+                        else (
+                            None
+                            if _preserve
+                            else (
+                                _build_flow_payload(block) if _kind == "flow" else None
+                            )
+                        )
                     )
                 ),
             }
+            # 对齐 fixup_render_plan 的保留判据（render_path == preserve_float）：
+            # 只把本来要走 translate_refit 的块收过来，overlay/preserve_float 不动。
+            render_path = block.metadata.get("render_path", "translate_refit")
+            if _preserve and render_path == "translate_refit":
+                render_path = "preserve_float"
             bid = block_id(pno, i)
             entry = {
                 "block_id": bid,
@@ -793,7 +807,7 @@ def render_plan_from_model(model: DocumentModel, trace=None) -> List[dict]:
                 "kind": block.kind,
                 "text": block.text,
                 "translated": block.metadata.get("translated", block.text),
-                "render_path": block.metadata.get("render_path", "translate_refit"),
+                "render_path": render_path,
                 "src_box": [round(v, 2) for v in block.bbox],
                 "dst_box": [round(v, 2) for v in block.bbox],
                 "font_size": _node_font_size(block),
