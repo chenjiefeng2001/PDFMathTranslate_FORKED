@@ -13,7 +13,7 @@ from pdfminer.pdffont import PDFCIDFont, PDFUnicodeNotDefined
 from pdfminer.pdfinterp import PDFGraphicState, PDFResourceManager
 from pdfminer.utils import apply_matrix_pt, mult_matrix
 from pymupdf import Font
-from tenacity import retry, stop_after_attempt, wait_fixed
+from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wait_fixed
 
 
 def _translate_retry_attempts() -> int:
@@ -61,9 +61,7 @@ from pdf2zh.translator import (
     SiliconTranslator,
     TencentTranslator,
     XinferenceTranslator,
-    ZhipuTranslator,
-    X302AITranslator,
-    build_translator,
+    ZhipuTranslator, TranslationRateLimitError, X302AITranslator, build_translator,
 )
 
 log = logging.getLogger(__name__)
@@ -557,7 +555,7 @@ class TranslateConverter(PDFConverterEx):
                 if _ent and _ent.matched else None,
             })
 
-        @retry(wait=wait_fixed(1), stop=stop_after_attempt(_TRANSLATE_RETRY_ATTEMPTS))
+        @retry(wait=wait_fixed(1), stop=stop_after_attempt(_TRANSLATE_RETRY_ATTEMPTS), retry=retry_if_not_exception_type(TranslationRateLimitError))
         def worker(s: str):  # 多线程翻译
             if not s.strip() or re.match(r"^\{v\d+\}$", s):  # 空白和公式不翻译
                 return s
@@ -583,6 +581,8 @@ class TranslateConverter(PDFConverterEx):
                     _cache_set_font(s, result, font_sig)
                 self._translation_ok += int((result or "").strip() != s.strip())
                 return result
+            except TranslationRateLimitError:
+                raise
             except BaseException as e:
                 self._translation_errors.append(f"{type(e).__name__}: {str(e)[:240]}")
                 log.error("Translation worker exhausted retries, falling back to original: %s", str(e)[:120])

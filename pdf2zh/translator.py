@@ -57,6 +57,17 @@ _GOOGLE_RATE_LIMIT_STATUS = frozenset({429, 503})
 # 每次 3 次重试"之后仍然全失败，基本可断定是出口 IP 被限死而非瞬时抖动。
 _GOOGLE_RATE_LIMIT_FAIL_FAST = 12
 
+
+class TranslationRateLimitError(RuntimeError):
+    """持续限流的硬失败：整篇翻译应中止，而不是逐块回落原文。
+
+    单独一个异常类型而不是字符串匹配，是为了让 ``converter`` 的 per-block
+    fallback（``_safe_worker``）能把它和"这一块偶发失败"区分开：前者继续跑
+    只会把整本书磨成原文 PDF（实测 325 页书在 429 下跑 40 分钟交付英文
+    产物，且连续计数到 1477 也不停），后者应当保留原文继续译其余块。
+    """
+
+
 # === 8.2.2 LLM Client 单例化（连接池 + SSL 上下文复用） ===
 # 每次 ``build_translator`` 构造 ``openai.OpenAI`` 都会新建 httpx 客户端
 # （实测每个 client 建 3 个 SSL 上下文 + 证书加载 ≈1.59s）；单次运行可能
@@ -404,7 +415,7 @@ class GoogleTranslator(BaseTranslator):
                 streak,
             )
             if streak >= _GOOGLE_RATE_LIMIT_FAIL_FAST:
-                raise RuntimeError(
+                raise TranslationRateLimitError(
                     f"Google Translate 持续限流（HTTP {response.status_code}，已连续 "
                     f"{streak} 次），翻译已中止 —— 继续执行只会产出原文 PDF。常见原因："
                     "代理/VPN 出口 IP 被 Google 限流；请更换代理节点、降低翻译线程数，"

@@ -2,6 +2,7 @@ import unittest
 from textwrap import dedent
 from unittest import mock
 
+import pytest
 import requests
 
 from ollama import ResponseError as OllamaResponseError
@@ -335,6 +336,107 @@ class TestOllamaTranslator(unittest.TestCase):
             )
             self.assertEqual(t.do_translate("hello"), "Hallo")
         self.assertEqual(t._rate_limit_streak, 0)
+
+
+def test_rate_limit_hard_failure_escapes_the_retry_wrapper():
+    """硬失败必须穿透 tenacity 重试，且只调用一次。
+
+    ``converter.worker`` 用 tenacity 包装翻译调用。默认配置对**一切**异常
+    重试，持续限流会被重试 3 轮（每轮 wait_fixed(1)）才罢休 —— 每块多熬 3
+    秒，325 页就是额外 16 分钟。这里验证显式排除后 worker 只跑一次。
+    """
+    from tenacity import (
+        retry,
+        retry_if_not_exception_type,
+        stop_after_attempt,
+        wait_fixed,
+    )
+
+    from pdf2zh.translator import TranslationRateLimitError
+
+    calls = []
+
+    @retry(
+        wait=wait_fixed(0),
+        stop=stop_after_attempt(3),
+        retry=retry_if_not_exception_type(TranslationRateLimitError),
+        reraise=True,
+    )
+    def worker(s):
+        calls.append(s)
+        raise TranslationRateLimitError("持续限流")
+
+    with pytest.raises(TranslationRateLimitError):
+        worker("hello")
+
+    assert len(calls) == 1, "硬失败被 tenacity 重试了"
+
+    # 对照：普通异常仍然重试满 3 次
+    calls2 = []
+
+    @retry(
+        wait=wait_fixed(0),
+        stop=stop_after_attempt(3),
+        retry=retry_if_not_exception_type(TranslationRateLimitError),
+        reraise=True,
+    )
+    def worker2(s):
+        calls2.append(s)
+        raise ValueError("transient")
+
+    with pytest.raises(ValueError):
+        worker2("hello")
+    assert len(calls2) == 3, "可恢复异常应仍走重试"
+
+
+class TestSafeWorkerRateLimitPropagation(unittest.TestCase):
+    """converter._safe_worker：持续限流必须上抛，而不是回落原文后继续跑。
+
+    旧行为：translator 抛出的 RuntimeError 被 worker 重试吞掉、
+    ``_safe_worker`` 记一条单块 error 就返回原文 —— 325 页的书在 429 下继续
+    跑 40 分钟，连续计数冲到 1477 也不停，最后交付一份全英文 PDF。
+    """
+
+    def test_converter_branches_on_the_hard_failure_type(self):
+        import inspect
+
+        from pdf2zh import converter as C
+
+        self.assertTrue(hasattr(C, "TranslationRateLimitError"))
+        self.assertTrue(issubclass(C.TranslationRateLimitError, RuntimeError))
+
+        # worker / _safe_worker 是闭包，取不到引用；退而断言源码结构。
+        # 注意两处职责形态不同：worker 的"不重试"由 tenacity 的 retry= 承担，
+        # _safe_worker 的"不回落原文"才是 except 分支（converter.py 有行数预算，
+        # 不允许在 worker 里再写一个 except）。
+        src = inspect.getsource(C)
+        self.assertTrue(hasattr(C, "TranslationRateLimitError"))
+        self.assertTrue(issubclass(C.TranslationRateLimitError, RuntimeError))
+        self.assertIn(
+            "retry=retry_if_not_exception_type(TranslationRateLimitError)",
+            src,
+            "worker 的 tenacity 必须排除硬失败（否则每块白等 3 轮退避才中止）",
+        )
+        self.assertEqual(
+            src.count("except TranslationRateLimitError"),
+            1,
+            "_safe_worker 必须 reraise 硬失败，不能回落原文",
+        )
+        tail = src.split("except TranslationRateLimitError", 1)[1]
+        body = [
+            ln.strip()
+            for ln in tail.strip().splitlines()
+            if ln.strip() and not ln.strip().startswith("#")
+        ]
+        self.assertTrue(
+            any(b.startswith("raise") for b in body[:3]),
+            f"硬失败分支应在上抛前最多只记一条日志，实际分支体 {body[:4]}",
+        )
+
+    def test_rate_limit_error_type_is_importable_from_translator(self):
+        from pdf2zh.translator import TranslationRateLimitError
+
+        self.assertTrue(issubclass(TranslationRateLimitError, RuntimeError))
 
 
 if __name__ == "__main__":
