@@ -2,6 +2,8 @@ import unittest
 from textwrap import dedent
 from unittest import mock
 
+import requests
+
 from ollama import ResponseError as OllamaResponseError
 
 from pdf2zh import cache
@@ -270,6 +272,69 @@ class TestOllamaTranslator(unittest.TestCase):
             t.do_translate("hello")
             kwargs = m_get.call_args.kwargs
             self.assertEqual(kwargs["timeout"], HTTP_TIMEOUT)
+
+    def _rate_limited_response(self, status=429):
+        resp = mock.Mock(
+            status_code=status,
+            text="<html>Rate limit exceeded</html>",
+            headers={},
+        )
+        # Mock 的 raise_for_status 默认是 no-op —— 显式让它按 requests 的语义抛。
+        resp.raise_for_status.side_effect = requests.HTTPError(
+            f"{status} Client Error: rate limited"
+        )
+        return resp
+
+    def test_google_rate_limit_is_retried_not_silently_dropped(self):
+        """429/503 必须抛可重试错误，而不是静默返回原文。
+
+        旧行为：Google 限流页（429，body 3347 字节）被当成"页面格式变了"
+        回落原文 —— tenacity 根本看不到异常，一次重试都没有。实测 325 页书
+        90 秒 1367 次 429，最终交付一份全英文 PDF、退出码 0、无任何告警。
+        """
+        t = GoogleTranslator("en", "zh", None, True)
+        with mock.patch.object(t.session, "get") as m_get:
+            m_get.return_value = self._rate_limited_response(429)
+            with self.assertRaises(requests.HTTPError):
+                t.do_translate("hello")
+            # 单块重试 3 次：不重试 = 旧缺陷复现
+            self.assertEqual(m_get.call_count, 3)
+
+    def test_google_streak_rate_limit_fails_fast_with_actionable_message(self):
+        """连续限流要硬失败，而不是把整本书磨成原文 PDF。
+
+        瞬时限流应当被重试容忍（成功后计数清零，见下一条），但持续限流再翻
+        下去只是浪费时间：达到阈值后抛出带排查指引的 RuntimeError。
+        """
+        from pdf2zh.translator import _GOOGLE_RATE_LIMIT_FAIL_FAST
+
+        t = GoogleTranslator("en", "zh", None, True)
+        with mock.patch.object(t.session, "get") as m_get:
+            m_get.return_value = self._rate_limited_response(429)
+            err = None
+            # 每块 3 次尝试：跑到阈值就会从 HTTPError 切换成 RuntimeError
+            for _ in range(_GOOGLE_RATE_LIMIT_FAIL_FAST + 2):
+                try:
+                    t.do_translate("hello")
+                except RuntimeError as exc:  # noqa: BLE001 -- 正是要抓的
+                    err = exc
+                    break
+                except requests.HTTPError:
+                    continue
+            self.assertIsInstance(err, RuntimeError, "持续限流应硬失败")
+            self.assertIn("限流", str(err))
+            self.assertIn("代理", str(err))
+
+    def test_google_success_resets_rate_limit_streak(self):
+        """成功一次就清零：不能因为历史上被限流过就永久判死。"""
+        t = GoogleTranslator("en", "zh", None, True)
+        t._rate_limit_streak = 5
+        with mock.patch.object(t.session, "get") as m_get:
+            m_get.return_value = mock.Mock(
+                status_code=200, text='<div class="result-container">Hallo</div>'
+            )
+            self.assertEqual(t.do_translate("hello"), "Hallo")
+        self.assertEqual(t._rate_limit_streak, 0)
 
 
 if __name__ == "__main__":

@@ -49,6 +49,13 @@ _TRANSPORT_POOL_SIZE = 32
 # Google /m 端点单请求长度上限（官网 ~5000）；留余量，超长文本分段翻译
 # 后再拼接，避免整段截断丢尾部内容、以及长请求长期占住代理连接。
 _LONG_TEXT_CHUNK = 4000
+# Google 匿名 /m 端点对"出口 IP"的频率限制状态码。这类响应的 body 是
+# 限流页而不是译文 —— 必须当限流处理，不能当成"页面格式变了"回落原文。
+_GOOGLE_RATE_LIMIT_STATUS = frozenset({429, 503})
+# 连续限流达到这个次数就整篇中止：单块重试 3 次 × 最多 ~20s 退避已经给过
+# Google 恢复的机会，继续翻只是把整本书磨成原文。取 12 是"约 3-4 个块、
+# 每次 3 次重试"之后仍然全失败，基本可断定是出口 IP 被限死而非瞬时抖动。
+_GOOGLE_RATE_LIMIT_FAIL_FAST = 12
 
 # === 8.2.2 LLM Client 单例化（连接池 + SSL 上下文复用） ===
 # 每次 ``build_translator`` 构造 ``openai.OpenAI`` 都会新建 httpx 客户端
@@ -341,8 +348,11 @@ class GoogleTranslator(BaseTranslator):
             self._proxy = None
         self.endpoint = "https://translate.google.com/m"
         self.headers = {
-            "User-Agent": "Mozilla/4.0 (compatible;MSIE 6.0;Windows NT 5.1;SV1;.NET CLR 1.1.4322;.NET CLR 2.0.50727;.NET CLR 3.0.04506.30)"  # noqa: E501
+            "User-Agent": "Mozilla/4.0 (compatible;MSIE 6.0;Windows NT 5.1;SV1;.NET CLR 1.1.4322;.NET CLR 2.0.50727;.NET CLR 1.1.04506.30)"  # noqa: E501
         }
+        #: 连续限流计数 + 锁：多线程翻译下 ``+=`` 要显式同步，不能赌 GIL。
+        self._rate_limit_streak = 0
+        self._rate_limit_lock = threading.Lock()
 
     @property
     def session(self) -> "requests.Session":
@@ -351,6 +361,16 @@ class GoogleTranslator(BaseTranslator):
             session.proxies.update(self._proxy)
         return session
 
+    @retry(
+        retry=retry_if_exception_type(requests.HTTPError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=2, min=2, max=20),
+        reraise=True,
+        before_sleep=lambda retry_state: logger.warning(
+            "Google Translate 请求被限流/失败，重试中... (Attempt %d/3)",
+            retry_state.attempt_number,
+        ),
+    )
     def do_translate(self, text):
         if len(text) > _LONG_TEXT_CHUNK:
             parts = [self._translate_once(chunk) for chunk in _split_long_text(text)]
@@ -368,6 +388,29 @@ class GoogleTranslator(BaseTranslator):
         re_result = re.findall(
             r'(?s)class="(?:t0|result-container)">(.*?)<', response.text
         )
+        if response.status_code in _GOOGLE_RATE_LIMIT_STATUS:
+            # Google 对出口 IP 的频率限制。旧代码把这种情况当成「页面解析失败」
+            # 静默回落原文：一次重试都没有，整本书翻完交付一份全英文 PDF，且
+            # 退出码 0、无任何告警（实测 325 页书 90 秒 1367 次 429）。
+            # 抛 HTTPError 交给上面的 tenacity 重试；连续限流则直接硬失败。
+            with self._rate_limit_lock:
+                self._rate_limit_streak += 1
+                streak = self._rate_limit_streak
+            retry_after = response.headers.get("Retry-After", "")
+            logger.warning(
+                "Google Translate 被限流（HTTP %d%s），重试中；连续限流 %d 次。",
+                response.status_code,
+                f"，Retry-After={retry_after}s" if retry_after else "",
+                streak,
+            )
+            if streak >= _GOOGLE_RATE_LIMIT_FAIL_FAST:
+                raise RuntimeError(
+                    f"Google Translate 持续限流（HTTP {response.status_code}，已连续 "
+                    f"{streak} 次），翻译已中止 —— 继续执行只会产出原文 PDF。常见原因："
+                    "代理/VPN 出口 IP 被 Google 限流；请更换代理节点、降低翻译线程数，"
+                    "或改用其他翻译服务。"
+                )
+            response.raise_for_status()
         if response.status_code == 400:
             result = "IRREPARABLE TRANSLATION ERROR"
         elif not re_result:
@@ -382,6 +425,8 @@ class GoogleTranslator(BaseTranslator):
             result = text
         else:
             response.raise_for_status()
+            with self._rate_limit_lock:
+                self._rate_limit_streak = 0  # 成功一次即清零，容忍偶发限流
             result = html.unescape(re_result[0])
         return remove_control_characters(result)
 
