@@ -23,6 +23,7 @@ import pytest
 
 from pdf2zh.v3.canonical_page import BlockModel, LineModel, PageModel
 from pdf2zh.v3.document_model import DocumentModel, translate_document
+from pdf2zh.v3.paragraph_batch import PARA_BATCH_SEP
 
 
 def _block(text: str, kind: str = "paragraph", meta: dict | None = None) -> BlockModel:
@@ -58,6 +59,55 @@ def _doc(
 
 def _upper(text: str) -> str:
     return text.upper()
+
+
+def _segments_of(text: str) -> list:
+    """把一次请求的文本拆回段：打包后一个请求可能装着多个块。"""
+    return text.split(PARA_BATCH_SEP)
+
+
+class _SegmentRecorder:
+    """按**段**记账的翻译器：兼容打包器合并过的批量文本。
+
+    这些测试关心的是"哪些块被送进了翻译器、译文落在哪个块上"，而不是"发了几
+    次请求"—— 减少请求次数本来就是打包存在的理由。所以打包开关开或关都不影
+    响这里的断言：进来的文本先按分隔符拆段，再逐段记账。
+
+    顺带一提：它也让"保留块泄漏进翻译器"这类 bug 在打包路径上照样显形 —— 真漏
+    了的话，公式/代码的文本就会出现在拆出来的段里。
+    """
+
+    def __init__(self, transform=None, prefix=""):
+        self.sent: list = []
+        self.lock = threading.Lock()
+        self._transform = transform
+        self._prefix = prefix
+
+    def __call__(self, text: str) -> str:
+        parts = _segments_of(text)
+        with self.lock:
+            self.sent.extend(parts)
+        rendered = []
+        for part in parts:
+            out = self._transform(part) if self._transform else f"[{part}]"
+            rendered.append(self._prefix + out)
+        return PARA_BATCH_SEP.join(rendered) if len(rendered) > 1 else rendered[0]
+
+
+def _per_segment(transform):
+    """按段变换的翻译器：模拟"认得"分隔符、逐段给译文的真实服务。
+
+    打包后 translate_fn 收到的是若干块拼起来的文本。测试里要给每块加可识别
+    标记时，必须逐段加 —— 一次性加到整块上只会让第一段带上标记，后面的段反而
+    看起来像"没翻译"，那是测试自己写错了，不是打包错。
+    """
+
+    def fn(text: str) -> str:
+        parts = _segments_of(text)
+        out = [transform(p) for p in parts]
+        return PARA_BATCH_SEP.join(out) if len(out) > 1 else out[0]
+
+    return fn
 
 
 def _snapshot(model: DocumentModel) -> list:
@@ -196,22 +246,19 @@ def test_translation_calls_actually_overlap():
 
 
 def test_every_block_is_translated_exactly_once_under_concurrency():
-    """并发下不能漏译或重复译。"""
-    calls: list[str] = []
-    lock = threading.Lock()
+    """并发下不能漏译或重复译。
 
-    def _counting(text: str) -> str:
-        with lock:
-            calls.append(text)
-        return f"[{text}]"
+    计数按**段**而不是按请求：打包把若干块并成一次请求，请求数少而块数不能少。
+    """
+    rec = _SegmentRecorder()
 
     model = _doc(blocks_per_page=6, pages=4)
-    translate_document(model, _counting, thread=8)
+    translate_document(model, rec, thread=8)
 
     expected = [b.text for page in model.pages for b in page.blocks]
-    assert sorted(calls) == sorted(
+    assert sorted(rec.sent) == sorted(
         expected
-    ), f"call count mismatch: {len(calls)} calls for {len(expected)} blocks"
+    ), f"call count mismatch: {len(rec.sent)} segments for {len(expected)} blocks"
     for page in model.pages:
         for b in page.blocks:
             assert b.metadata["translated"] == f"[{b.text}]"
@@ -275,14 +322,12 @@ def test_a_raising_translation_unit_cannot_abort_the_whole_document(monkeypatch)
 
 
 def test_preserve_kinds_are_not_sent_to_the_translator_under_concurrency():
-    """公式/代码等保留块在并发下也绝不能进翻译器。"""
-    sent: list[str] = []
-    lock = threading.Lock()
+    """公式/代码等保留块在并发下也绝不能进翻译器。
 
-    def _rec(text: str) -> str:
-        with lock:
-            sent.append(text)
-        return "X"
+    断言按段看：打包会把多个块并进一次请求，但保留块一旦漏进来，它的文本就会
+    出现在拆出来的段里。
+    """
+    rec = _SegmentRecorder(transform=lambda t: "X")
 
     model = DocumentModel()
     page = PageModel(page_num=0, width=595.0, height=842.0)
@@ -296,11 +341,11 @@ def test_preserve_kinds_are_not_sent_to_the_translator_under_concurrency():
     ]
     model.pages.append(page)
 
-    stats = translate_document(model, _rec, thread=6)
+    stats = translate_document(model, rec, thread=6)
 
-    assert sent == ["translate me", "translate me too"] or sorted(sent) == sorted(
+    assert sorted(rec.sent) == sorted(
         ["translate me", "translate me too"]
-    ), f"a preserve-kind reached the translator: {sent}"
+    ), f"a preserve-kind reached the translator: {rec.sent}"
     assert stats["preserved"] == 4, stats
 
 
@@ -312,15 +357,19 @@ def test_empty_text_blocks_are_skipped_without_shifting_the_others():
     在跳过空块时**不推进 cursor**，后面的块就整体前移一格 —— ``real`` 会拿到
     空块的 skip unit，译文变成空串。这类错位在成品里表现为「某段突然空白」。
     """
+    rec = _SegmentRecorder(transform=lambda t: "T:" + t)
+
     model = DocumentModel()
     page = PageModel(page_num=0, width=595.0, height=842.0)
     page.blocks = [_block(""), _block("   "), _block("real"), _block("second")]
     model.pages.append(page)
 
-    sent: list[str] = []
-    translate_document(model, lambda t: sent.append(t) or f"T:{t}", thread=4)
+    translate_document(model, rec, thread=4)
 
-    assert sorted(sent) == ["real", "second"], f"unexpected translator input: {sent}"
+    assert sorted(rec.sent) == [
+        "real",
+        "second",
+    ], f"unexpected translator input: {rec.sent}"
     blocks = model.pages[0].blocks
     assert blocks[0].metadata.get("translated") is None, "empty block was translated"
     assert blocks[1].metadata.get("translated") is None, "blank block was translated"
@@ -374,3 +423,97 @@ def test_any_thread_count_gives_the_same_answer(thread):
     translate_document(got, _upper, thread=thread)
 
     assert _snapshot(got) == _snapshot(serial)
+
+
+# --------------------------------------------------------------------------
+# 打包接线：减少请求次数（7R）
+# --------------------------------------------------------------------------
+def test_packing_reaches_the_magicpdf_pipeline(packed_translation):
+    """打包必须接到 ``translate_document`` —— 这是 GUI/CLI 的必经之路。
+
+    RPM 治理有一条真实裂缝：静态打包（``batch_translate_paragraphs``）只服务
+    legacy ``converter.py``，而 magicpdf 链路一直是"一块一请求"。实测
+    ``--thread 4`` 在 90 秒内发出 1367 个请求，匿名 Google 端点直接回
+    ``/sorry/index`` 验证码页，整书回落原文。
+    """
+    n = 24  # 足够让 4 线程都排上
+    rec = _SegmentRecorder()
+
+    model = _doc(blocks_per_page=n // 3, pages=3)
+    translate_document(model, rec, thread=4)
+
+    assert len(rec.sent) == n, f"块被漏译：{len(rec.sent)} 段 / {n} 块"
+    # 打包的判据是请求次数少于块数；段数必须一个不少
+
+
+def test_packing_reduces_request_count(packed_translation):
+    """打包后请求数必须少于块数 —— 否则 RPM 一点没降。"""
+    n = 24
+    calls = []
+    lock = threading.Lock()
+
+    def spy(text):
+        with lock:
+            calls.append(text)
+        return text
+
+    model = _doc(blocks_per_page=n // 3, pages=3)
+    translate_document(model, spy, thread=4)
+
+    assert len(calls) < n, f"打包没接上：{len(calls)} 次请求 / {n} 块"
+
+
+def test_packing_off_leaves_request_count_alone(monkeypatch):
+    """关掉打包后不得偷偷打包：开关必须真的关得住。"""
+    from pdf2zh.v3 import paragraph_batch as pb
+
+    monkeypatch.setattr(pb, "_batch_enabled", lambda: False)
+
+    n = 12
+    rec = _SegmentRecorder()
+    model = _doc(blocks_per_page=n // 3, pages=3)
+    translate_document(model, rec, thread=4)
+
+    # 开关关掉 → 每块一次请求，段数就是块数
+    assert len(rec.sent) == n, f"开关没关住：仍有 {len(rec.sent)} 次请求"
+    # 且每块都拿到自己的译文（不是别人的）
+    for page in model.pages:
+        for b in page.blocks:
+            assert b.metadata["translated"] == f"[{b.text}]"
+
+
+def test_packed_translations_land_on_the_right_blocks(packed_translation):
+    """打包后每块的译文必须落在自己身上 —— 错位比不打包更糟。
+
+    inner 按段加可识别前缀，于是任何串号都会在快照里当场显形。
+    """
+    packed = _doc(blocks_per_page=8, pages=3)
+    plain = _doc(blocks_per_page=8, pages=3)
+
+    translate_document(packed, _per_segment(lambda t: "zh:" + t), thread=4)
+    translate_document(plain, _per_segment(lambda t: "zh:" + t), thread=1)
+
+    assert _snapshot(packed) == _snapshot(plain)
+    # 顺带确认译文真的落对了块（不是碰巧两边都没翻）
+    assert plain.pages[0].blocks[0].metadata["translated"]
+
+
+def test_serial_path_is_not_wrapped(monkeypatch, packed_translation):
+    """串行路径不包装打包器：不该有后台线程/攒批窗口的额外开销。"""
+    from pdf2zh.v3 import paragraph_batch as pb
+
+    # translate_document 是函数内 import，补丁必须打在模块属性本身
+    original = pb.make_batching_translate_fn
+    seen = []
+
+    def spy_ctor(inner, **kw):
+        seen.append(kw)
+        return original(inner, **kw)
+
+    monkeypatch.setattr(pb, "make_batching_translate_fn", spy_ctor)
+
+    translate_document(_doc(blocks_per_page=4, pages=1), _upper, thread=1)
+    assert not seen, "串行路径也构造了打包器"
+
+    translate_document(_doc(blocks_per_page=4, pages=1), _upper, thread=4)
+    assert seen, "并发路径没有构造打包器 —— 打包只对并发有意义"

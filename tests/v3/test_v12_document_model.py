@@ -28,6 +28,22 @@ from pdf2zh.v3.document_model import (
 )
 
 
+def _per_segment(transform):
+    """按段变换：模拟认得强分隔符、逐段给译文的真实翻译服务。
+
+    并发路径下（默认 thread=0 → 4 线程）打包器会把多个块并成一次请求，
+    translate_fn 收到的是拼起来的文本，必须逐段变换再拼回去。
+    """
+    from pdf2zh.v3.paragraph_batch import PARA_BATCH_SEP as _SEP
+
+    def fn(text):
+        parts = text.split(_SEP)
+        out = [transform(p) for p in parts]
+        return _SEP.join(out) if len(out) > 1 else out[0]
+
+    return fn
+
+
 def make_char(x, y, text="A", size=10.0, fontname="Helvetica"):
     font = Mock()
     font.fontname = fontname
@@ -346,7 +362,13 @@ class TestModelConsumption(unittest.TestCase):
         self.assertEqual(entry["render_payload"]["commands"], [])
 
     def test_really_translated_block_stays_on_flow_path(self):
-        """对照组：真译出的块行为不变 —— translate_refit + flow payload。"""
+        """对照组：真译出的块行为不变 —— translate_refit + flow payload。
+
+        translate_fn 按**段**变换：并发路径下打包器可能把多块并成一次请求，
+        translate_fn 拿到的是用强分隔符拼起来的文本，必须逐段加前缀再拼回去。
+        一次性加到整块上，只有第一段会带上前缀，其余块看起来"没译"，于是这条
+        对照组成立不了对照组。
+        """
         from pdf2zh.v3.document_model import (
             build_document_model,
             render_plan_from_model,
@@ -354,7 +376,7 @@ class TestModelConsumption(unittest.TestCase):
         )
 
         model = build_document_model([self._page_with_toc_and_formula()])
-        translate_document(model, lambda t: "译_" + t)
+        translate_document(model, _per_segment(lambda t: "译_" + t))
         plan = render_plan_from_model(model)
         entry = [p for p in plan if p["text"].startswith("Body text")][0]
         self.assertEqual(entry["render_path"], "translate_refit")

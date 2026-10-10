@@ -117,3 +117,27 @@ def hybrid_xref_pdf(tmp_path):
 def healthy_pdf(tmp_path):
     """PDFium 直接能开的正常 PDF。"""
     return plain_pdf(str(tmp_path / "plain.pdf"), pages=2, text="page")
+
+
+# --------------------------------------------------------------------------
+# 段落打包：测试环境默认关闭
+# --------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def packed_translation_off(monkeypatch):
+    """默认关掉段落打包，让"translate_fn 每块被调一次"这条契约恢复确定。
+
+    ``translate_document`` 的并发路径上，打包会把多个块并成一次请求 —— 而**哪些
+    块会并到一起取决于线程时序**。于是一份用例两次运行可能走进不同分支，不接受
+    分隔符的假译者就会随机红：既掩盖真 bug，也让 suite 变得不可信。
+
+    打包自己的用例（``tests/test_dynamic_batching.py``、
+    ``test_translate_document_concurrency.py`` 的打包小节）用
+    :func:`packed_translation` 显式重新打开。
+    """
+    monkeypatch.setenv("PDF2ZH_PARAGRAPH_BATCH", "0")
+
+
+@pytest.fixture()
+def packed_translation(monkeypatch):
+    """打开段落打包：只给"打包真的接到了调用链上"这类用例用。"""
+    monkeypatch.setenv("PDF2ZH_PARAGRAPH_BATCH", "1")

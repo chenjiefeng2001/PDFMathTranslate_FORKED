@@ -25,6 +25,22 @@ from pdf2zh.v3.document_model import (
     translate_document,
 )
 from pdf2zh.v3.render_payload import block_translation_unit, build_render_payload
+from pdf2zh.v3.paragraph_batch import PARA_BATCH_SEP
+
+
+def _per_segment(transform):
+    """按段变换：模拟认得强分隔符、逐段给译文的真实翻译服务。
+
+    打包开启时一次请求可能装着多个块（并发路径）。一次性把变换加到整块上，
+    只有第一段会带上标记，其余块看起来像"没译"。
+    """
+
+    def fn(text):
+        parts = text.split(PARA_BATCH_SEP)
+        out = [transform(p) for p in parts]
+        return PARA_BATCH_SEP.join(out) if len(out) > 1 else out[0]
+
+    return fn
 
 
 def _code_lines(src: str) -> list:
@@ -197,7 +213,8 @@ def test_render_plan_carries_payload_kind():
         ],
     )
     model = _mk_model([flow, toc_b])
-    translate_document(model, lambda s: f"T_{s}")
+    # 按段变换：打包开启时一次请求可能装着多个块，译者必须逐段译再拼回去
+    translate_document(model, _per_segment(lambda s: f"T_{s}"))
     plan = render_plan_from_model(model)
     by_kind = {p["render_payload"]["kind"] for p in plan}
     assert "flow" in by_kind

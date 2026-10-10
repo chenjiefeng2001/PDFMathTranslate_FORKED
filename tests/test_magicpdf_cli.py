@@ -277,15 +277,17 @@ class TestRunMagicPdfMain(unittest.TestCase):
         修复前：任一块翻译失败 → exit 1 → RuntimeService 走 ``_fail_file``
         且不收集产物 —— 一次 429/超时就让用户丢掉本来可用的译文 PDF。
         修复后：exit EXIT_PARTIAL(2)，服务层照常收集产物并挂警告。
+
+        失败判据是**文本内容**而不是调用次序。早先是"第 2 次调用起失败"，而打包
+        会把多个块并成一次请求，于是整个样本只剩 1 次调用、根本触发不到失败——
+        这条用例会变成永远绿的死测试。按内容判定后，失败块无论是在自己的请求里，
+        还是被打包进整批（整批抛错 → 逐段回落 → 那一节再抛），都算部分失败。
         """
         from pdf2zh.magicpdf_cli import EXIT_PARTIAL, run_magicpdf_main
 
-        # 前 1 次成功、其后全部失败 → 「部分成功」。
-        calls = {"n": 0}
-
+        # "Hello MagicPDF" 成功、"bridge test" 失败 → 「部分成功」。
         def flaky(text):
-            calls["n"] += 1
-            if calls["n"] > 1:
+            if "bridge" in text:
                 raise RuntimeError("429 too many requests")
             return "T:" + text
 

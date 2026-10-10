@@ -658,6 +658,23 @@ def translate_document(
     stats = {"translated": 0, "preserved": 0, "skipped": 0, "toc_translated": 0}
 
     workers = _translate_workers(thread)
+    # 并发路径下把 translate_fn 包一层动态打包：多个块的请求合并成一次调用。
+    # 静态打包（``paragraph_batch.batch_translate_paragraphs``）只服务 legacy
+    # ``converter.py``；本函数是 magicpdf / GUI 的必经之路，此前一直是"一块一"
+    # 请求"，请求次数直接就是被限流的 RPM。只在 workers>1 时包 —— 串行时无从
+    # 攒批，包上去只会凭空多出攒批窗口的延迟。
+    if workers > 1 and len(model.pages) > 0:
+        from pdf2zh.v3.paragraph_batch import (
+            _batch_chars_budget,
+            _batch_enabled,
+            make_batching_translate_fn,
+        )
+
+        if _batch_enabled():
+            translate_fn = make_batching_translate_fn(
+                translate_fn, max_chars=_batch_chars_budget()
+            )
+
     # 先按文档序收集待译块：并发只作用于 translate_fn，块的遍历与统计仍是串行的。
     work: List[Tuple[Any, int, Any]] = []
     for page in model.pages:

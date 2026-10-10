@@ -223,7 +223,14 @@ def remove_control_characters(s):
 #: 1367 个请求（约 15 次/秒），Google 直接回 ``/sorry/index`` 验证码页 + 429，
 #: 整书翻成原文。带 key 的 API（opencode/openai/deepseek…）本身每次请求要几百
 #: 毫秒到数秒，通常碰不到这个下限，设成 0.5~1s 也不会明显变慢。
-_MIN_REQUEST_INTERVAL = float(os.environ.get("PDF2ZH_MIN_REQUEST_INTERVAL") or 0)
+#:
+#: 两个来源，后者优先：环境变量 ``PDF2ZH_MIN_REQUEST_INTERVAL`` /
+#: ``.`` GUI 经 ConfigManager 存入。**必须是运行时读取**，不能像初版那样在模块
+#: 导入时算成一个常量：GUI 是在进程起来之后才写配置的，导入期取一次等于用户的
+#: 设置永远不生效（只能重启进程）。
+_MIN_REQUEST_INTERVAL_ENV = "PDF2ZH_MIN_REQUEST_INTERVAL"
+#: ConfigManager 里与上述环境变量等价的键名（GUI 设置抽屉写这里）。
+_MIN_REQUEST_INTERVAL_KEY = "min_request_interval"
 
 #: 节流用的锁 + 上次请求时间。类级别共享：翻译器实例是按 document 建的，
 #: 而限流要管的是「出口 IP 的总速率」，不是单个实例。
@@ -231,8 +238,31 @@ _rate_lock = threading.Lock()
 _last_request_at = 0.0
 
 
+def _request_interval() -> float:
+    """当前生效的请求间隔（秒）；0 = 不节流。
+
+    读两次：ConfigManager（GUI 写入的用户设置）优先，其次环境变量
+    （CLI / 批处理）。解析失败一律回 0 —— 配错一个数不该让翻译崩掉，
+    顶多是回到不限流。
+    """
+    try:
+        from pdf2zh.config import ConfigManager
+    except Exception:  # pragma: no cover - config 不可用不影响主流程
+        ConfigManager = None  # noqa: N806
+    try:
+        raw = None
+        if ConfigManager is not None:
+            raw = ConfigManager.get(_MIN_REQUEST_INTERVAL_KEY, None)
+        if raw in (None, ""):
+            raw = os.environ.get(_MIN_REQUEST_INTERVAL_ENV)
+        value = float(str(raw).strip() or 0)
+        return value if value > 0 else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _throttle() -> None:
-    """发请求前预约一个不早于 ``_MIN_REQUEST_INTERVAL`` 的时刻。
+    """发请求前预约一个不早于当前请求间隔的时刻。
 
     没有它时并发度就是 RPM：``--thread 4`` 约等于每秒 4 次请求起步，而匿名端点
     对单 IP 的容忍度远低于此。这里是**兜底**，不是主要手段 —— 主要手段是少发
@@ -246,12 +276,13 @@ def _throttle() -> None:
     （LLM 动辄几秒）之后，下一个请求应当**立刻**走，不该再白等一个满间隔
     —— 实测两次 0.6s 的请求按结束时刻记账会被拖成 1.2s。
     """
-    if _MIN_REQUEST_INTERVAL <= 0:
+    interval = _request_interval()
+    if interval <= 0:
         return
     global _last_request_at
     with _rate_lock:
         now = time.monotonic()
-        start = max(now, _last_request_at + _MIN_REQUEST_INTERVAL)
+        start = max(now, _last_request_at + interval)
         _last_request_at = start
     delay = start - now
     if delay > 0:

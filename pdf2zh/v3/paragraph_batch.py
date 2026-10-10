@@ -30,10 +30,13 @@ from __future__ import annotations
 
 import concurrent.futures
 import os
+import queue
 import re
+import threading
+import time
 from typing import Callable, List, Optional, Sequence
 
-__all__ = ["PARA_BATCH_SEP", "batch_translate_paragraphs"]
+__all__ = ["PARA_BATCH_SEP", "batch_translate_paragraphs", "make_batching_translate_fn"]
 
 #: 强分隔符（文本中出现概率极低；被 LLM 改写时还原校验失败 → 逐段回退）。
 PARA_BATCH_SEP = "\n\n=====PDF2ZH_PARAGRAPH_SEP=====\n\n"
@@ -187,3 +190,119 @@ def batch_translate_paragraphs(
         elif news[i] is None:
             news[i] = safe_worker(texts[i], font_sigs[i])
     return news
+
+
+# ── 动态批处理：并发到达的 translate_fn 攒成一撮 ──────────────────────────
+#: 攒批窗口（秒）。只影响"并发请求正在到达"的场景；串行翻译不等待。
+_BATCH_WAIT = 0.025
+
+
+def _flush_batch(inner, batch, sep):
+    """把一批文本合成一次请求，再按分隔符切回；任何不一致都整批逐段回落。"""
+    if len(batch) == 1:
+        text, ev, box = batch[0]
+        try:
+            box["ok"] = True
+            box["result"] = inner(text)
+        except BaseException as exc:  # noqa: BLE001
+            box["ok"] = False
+            box["error"] = exc
+        finally:
+            ev.set()
+        return
+
+    joined = sep.join(t for t, _ev, _box in batch)
+    try:
+        parts = inner(joined).split(sep)
+        if len(parts) != len(batch) or not all(p.strip() for p in parts):
+            raise ValueError("reassembly failed")
+    except BaseException:  # noqa: BLE001 -- 整批逐段回落，语义与不打包一致
+        for text, ev, box in batch:
+            try:
+                box["ok"] = True
+                box["result"] = inner(text)
+            except BaseException as exc:  # noqa: BLE001
+                box["ok"] = False
+                box["error"] = exc
+            finally:
+                ev.set()
+        return
+
+    for (text, ev, box), part in zip(batch, parts):
+        box["ok"] = True
+        box["result"] = part
+        ev.set()
+
+
+def make_batching_translate_fn(
+    inner,
+    max_chars: int = 4000,
+    wait: float = _BATCH_WAIT,
+    enabled: bool = True,
+):
+    """给 ``translate_fn`` 包一层动态批处理：并发到达的请求合并成一次调用。
+
+    为什么需要它：``document_model.translate_document`` 按块并发调 ``translate_fn``
+    （magicpdf 链路，GUI 也在上面）。**请求次数就是 RPM** —— 实测 325 页 / 1787 块、
+    ``--thread 4`` 在 90 秒内发出 1367 个请求，匿名 Google 端点直接回
+    ``/sorry/index`` 验证码页，整书回落原文。上面的静态打包
+    （``batch_translate_paragraphs``）只服务于 legacy ``converter.py``，magicpdf
+    这条链路一直是"一块一请求"。
+
+    做法：调用方无感知。请求先进队列，一个后台 flush 线程把当前积压攒成一批，
+    用强分隔符合并成**一次**调用，返回后按分隔符切回各处。
+
+    语义保证（与不打包逐字一致）：
+    - 分隔符被吞 / 段数不符 / 出现空段 / 任何异常 → 整批**逐段回落**，
+      绝不产出错位译文；
+    - 空白文本直接返回原文，**不触碰翻译器** —— 与静态打包一致：
+      白占一次请求就是白占一份 RPM。
+
+    ``wait`` 是攒批窗口。串行场景下（``workers<=1``）调用方根本不会包装本函数，
+    所以这里不必区分"独孤请求"，只管把积压攒大。
+    """
+    sep = PARA_BATCH_SEP
+    q: "queue.Queue" = queue.Queue()
+
+    def _flusher():
+        while True:
+            first = q.get()
+            if first is None:
+                return
+            batch = [first]
+            total = len(first[0])
+            deadline = time.monotonic() + wait
+            while total < max_chars:
+                try:
+                    nxt = q.get_nowait()
+                    batch.append(nxt)
+                    total += len(nxt[0])
+                except queue.Empty:
+                    if time.monotonic() >= deadline:
+                        break
+                    time.sleep(0.002)
+            try:
+                _flush_batch(inner, batch, sep)
+            except BaseException:  # noqa: BLE001
+                # 兜底：任何漏网异常都不许把等结果的调用方永久挂住。挂住比报错糟得
+                # 多 —— 整篇翻译静默卡死，连"回落原文"的机会都没有。
+                for _text, ev, box in batch:
+                    if not box.get("ok"):
+                        box["ok"] = False
+                        box.setdefault("error", RuntimeError("packing flusher failed"))
+                    ev.set()
+
+    threading.Thread(target=_flusher, name="para-batch-flush", daemon=True).start()
+
+    def fn(text):
+        if not (text or "").strip():
+            return text  # 空白段原样保留：不发请求
+        ev = threading.Event()
+        box: dict = {}
+        q.put((text, ev, box))
+        ev.wait()
+        if not box.get("ok"):
+            raise box["error"]
+        return box["result"]
+
+    return fn

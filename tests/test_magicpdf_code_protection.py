@@ -12,6 +12,7 @@ import unittest
 from pdf2zh.magicpdf_adapter import MagicPdfAdapter
 from pdf2zh.v3.document_model import _KEEP_KINDS, translate_document
 from pdf2zh.v3.magicpdf_bridge import MagicPdfBridge
+from pdf2zh.v3.paragraph_batch import PARA_BATCH_SEP
 
 SAMPLE_MIDDLE = {
     "pdf_info": [
@@ -97,9 +98,12 @@ class TestCodeProtection(unittest.TestCase):
         stats = translate_document(self.doc, fake_translate, lang_out="zh")
         self.assertEqual(self.code.metadata["translated"], "def f(): return 1")
         self.assertIs(self.code.metadata["translated_same"], True)
-        # 翻译器只被标题/正文调用（2 次），绝不触达 code 块
-        self.assertEqual(len(calls), 2)
-        self.assertNotIn("def f(): return 1", calls[0] + calls[1])
+        # 翻译器只被标题/正文调用（2 段），绝不触达 code 块。
+        # 按**段**核对而不是数请求：打包会把标题和正文并成一次请求，请求次数少
+        # 而段落不能少 —— 数请求次数的写法在打包开启后会变成永远绿的死测试。
+        seen = [seg for call in calls for seg in call.split(PARA_BATCH_SEP)]
+        self.assertEqual(sorted(seen), sorted(["Title", "A normal paragraph."]))
+        self.assertNotIn("def f(): return 1", seen)
         self.assertEqual(stats["preserved"], 1)
         self.assertEqual(stats["translated"], 2)
 
