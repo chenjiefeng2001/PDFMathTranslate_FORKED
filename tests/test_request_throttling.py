@@ -127,7 +127,12 @@ def reset_rate_state(monkeypatch):
 
 
 def _set_interval(seconds):
-    """设置间隔：环境变量 + ConfigManager，模拟 GUI 与 CLI 两种入口。"""
+    """设置间隔：环境变量 + ConfigManager，模拟 GUI 与 CLI 两种入口。
+
+    环境变量走 ``os.environ`` 而不是 monkeypatch：这个文件自己的 fixture 会在
+    收尾时还原，但**别的文件**（test_services_api）在同一个会话里读它，写进去
+    不还原就是给它们埋偶发失败。真正的清理在 ``reset_rate_state`` 里。
+    """
     from pdf2zh.config import ConfigManager
 
     os.environ[translator._MIN_REQUEST_INTERVAL_ENV] = str(seconds)

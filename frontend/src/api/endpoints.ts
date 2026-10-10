@@ -187,6 +187,34 @@ export function updateEngineEnvs(
   return api().request("PUT", `/api/engines/${encodeURIComponent(engineName)}/envs`, { envs });
 }
 
+/* ── 翻译节流设置（设置抽屉） ──────────────────────────────────────── */
+
+export interface TranslationSettings {
+  /** 当前生效的请求间隔（秒）；0 = 不限速。 */
+  min_request_interval: number;
+  /** 后端允许的上限（秒），UI 据此给出提示。 */
+  max_request_interval: number;
+  /** 用户是否显式配过（决定回显"未设置还是 0"）。 */
+  configured: boolean;
+  sources: {
+    config: number | string | null;
+    env: number | string | null;
+  };
+}
+
+export function getTranslationSettings(): Promise<TranslationSettings> {
+  return api().get("/api/settings/translation");
+}
+
+/** 写入请求间隔（秒）。传 "" 或 null 表示清除，回到默认。 */
+export function updateTranslationSettings(
+  interval: number | "" | null,
+): Promise<{ min_request_interval: number; effective: number }> {
+  return api().request("PUT", "/api/settings/translation", {
+    min_request_interval: interval ?? "",
+  });
+}
+
 /* ── 模型管理 / 可用性探测 ───────────────────────────────────────── */
 
 export interface DoclayoutModelStatus {

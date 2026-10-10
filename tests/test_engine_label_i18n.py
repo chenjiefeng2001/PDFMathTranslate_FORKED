@@ -249,3 +249,93 @@ def test_store_exposes_an_engines_loading_flag():
     assert (
         "set({ enginesLoading: false })" in store
     ), "加载失败时 enginesLoading 不落下，下拉框会永远转圈"
+
+
+# --------------------------------------------------------------------------
+# 翻译限速（设置抽屉）：缺键不会报错，只能靠这里对齐
+# --------------------------------------------------------------------------
+#: TranslationSection 实际引用的键。组件里写死的文案不算，那部分由 TS 编译管。
+_THROTTLE_KEYS = (
+    "settings_translation",
+    "settings_translation_hint",
+    "settings_translation_interval",
+    "settings_translation_zero",
+    "settings_translation_save",
+    "settings_translation_saved",
+    "settings_translation_max_hint",
+    "settings_translation_current",
+    "settings_translation_none",
+    "settings_translation_env_note",
+)
+
+
+def _locale_keys(section: str, prefix: str) -> set:
+    """抽出某段 locale 里带给定前缀的键名。
+
+    后缀用 ``*`` 不是 ``+``：``settings_translation`` 这个裸键后面直接跟冒号，
+    写成 ``+`` 会把它漏掉，于是"键不存在"这一整类检查对裸键全部失灵。
+    """
+    return set(re.findall(rf"({prefix}[A-Za-z0-9_]*)\s*:", section))
+
+
+def test_throttle_keys_exist_in_both_locales(sections):
+    """限速文案两个 locale 都要有：缺的那个会静默显示成键名本身。
+
+    i18next 没有配 parseMissingKeyHandler，缺键时用户看到的是
+    ``ui.settings_translation`` 这个原始字符串 —— 不报错，所以只能在这对齐。
+    """
+    zh = _locale_keys(sections["zh-CN"], "settings_translation")
+    en = _locale_keys(sections["en"], "settings_translation")
+    missing_zh = sorted(set(_THROTTLE_KEYS) - zh)
+    missing_en = sorted(set(_THROTTLE_KEYS) - en)
+    assert not missing_zh, f"zh-CN 缺键（界面会显示原始键名）: {missing_zh}"
+    assert not missing_en, f"en 缺键（界面会显示原始键名）: {missing_en}"
+
+
+def test_throttle_section_is_wired_into_the_drawer(sections):
+    """分区必须真的挂进抽屉，且接的是新端点 —— 否则只是多了几行死文案。"""
+    from pdf2zh.services import api as api_module  # noqa: F401
+
+    text = _strip_comments(SETTINGS_TSX.read_text(encoding="utf-8"))
+    assert "<TranslationSection" in text, "限速分区没有挂进设置抽屉"
+    # 必须接 open：写成 active={false}（或常量）时分区不会去后端拉现状，
+    # 用户看到的是一个永远空白、保存后也不知有没有生效的输入框。
+    assert (
+        "TranslationSection active={open}" in text
+    ), "限速分区没有随抽屉打开去拉取现状（active 须接 open）"
+    assert "getTranslationSettings" in text, "分区没有读取节流现状"
+    assert "updateTranslationSettings" in text, "分区没有保存入口"
+
+    endpoints = _strip_comments(
+        (FRONTEND / "api" / "endpoints.ts").read_text(encoding="utf-8")
+    )
+    assert "/api/settings/translation" in endpoints, "前端没有这个端点"
+    # 后端必须真的有对应路由 —— 否则前端拿到 404 且只在打开抽屉时才发现
+    api_src = _strip_comments(
+        (
+            Path(__file__).resolve().parent.parent / "pdf2zh" / "services" / "api.py"
+        ).read_text(encoding="utf-8")
+    )
+    assert '@app.get("/api/settings/translation")' in api_src
+    assert '@app.put("/api/settings/translation")' in api_src
+
+
+def test_throttle_setting_is_read_at_runtime():
+    """间隔必须是运行时读的键 —— 导入期冻结等于 GUI 改了也不生效。
+
+    这桩 bug 真实发生过：``_MIN_REQUEST_INTERVAL = float(os.environ.get(...))``
+    是模块级常量，桌面端在进程起来之后才写配置，用户怎么改都没反应。
+    """
+    from pdf2zh.translator import _request_interval
+
+    src = _strip_comments(
+        (Path(__file__).resolve().parent.parent / "pdf2zh" / "translator.py").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert "def _request_interval()" in src, "没有运行时读取入口"
+    # 反面：模块级不许再残留一个同名常量（那会让人以为导入期算一次就够）
+    assert (
+        "_MIN_REQUEST_INTERVAL = float(" not in src
+    ), "又回到了导入期常量 —— GUI 的设置将永远不生效"
+    assert _request_interval() >= 0.0

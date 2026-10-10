@@ -110,6 +110,140 @@ class TestHealthAndEngines:
                 assert set(item.keys()) == {"key", "configured"}
 
 
+class TestTranslationSettings:
+    """节流间隔设置（GET/PUT /api/settings/translation）。
+
+    为什么值得测：请求次数就是 RPM。实测 325 页 / 1787 块、4 线程 90 秒内
+    1367 个请求，匿名端点直接回验证码页。桌面端的设置抽屉就是靠这个端点落地的
+    —— 它必须**运行时**读写，否则用户的改动只能等下次重启。
+    """
+
+    def _put(self, client, payload):
+        return client.put("/api/settings/translation", json=payload)
+
+    def test_get_reports_zero_by_default(self, monkeypatch):
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY
+
+        monkeypatch.delenv("PDF2ZH_MIN_REQUEST_INTERVAL", raising=False)
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+
+        client = _client(monkeypatch)
+        resp = client.get("/api/settings/translation")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["min_request_interval"] == 0.0
+        assert body["max_request_interval"] > 0
+        assert body["configured"] is False
+
+    def test_put_takes_effect_without_restart(self, monkeypatch):
+        """写进去的间隔必须立刻被限速器读到 —— 这正是 GUI 的用法。"""
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY, _request_interval
+
+        monkeypatch.delenv("PDF2ZH_MIN_REQUEST_INTERVAL", raising=False)
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+        assert _request_interval() == 0.0
+
+        client = _client(monkeypatch)
+        resp = self._put(client, {"min_request_interval": 0.7})
+
+        assert resp.status_code == 200
+        assert _request_interval() == 0.7, "设置没有即时生效，GUI 改了也白改"
+
+    def test_put_accepts_numeric_string(self, monkeypatch):
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY, _request_interval
+
+        monkeypatch.delenv("PDF2ZH_MIN_REQUEST_INTERVAL", raising=False)
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+
+        client = _client(monkeypatch)
+        resp = self._put(client, {"min_request_interval": "1.5"})
+
+        assert resp.status_code == 200
+        assert _request_interval() == 1.5
+
+    def test_put_clears_back_to_default(self, monkeypatch):
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY, _request_interval
+
+        # 必须摘掉环境变量：不清的话"清除后回到 0"成立不了 —— 会回落到环境变量
+        # 的值，而别的测试（test_request_throttling）可能刚往里写过。这条断言
+        # 于是变成一个看前一个测试脸色的偶发失败。
+        monkeypatch.delenv("PDF2ZH_MIN_REQUEST_INTERVAL", raising=False)
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, 2.0)
+        assert _request_interval() == 2.0
+
+        client = _client(monkeypatch)
+        for empty in ({"min_request_interval": ""}, {"min_request_interval": None}):
+            resp = self._put(client, empty)
+            assert resp.status_code == 200
+            assert _request_interval() == 0.0, f"清除失败：{empty}"
+
+    def test_env_var_is_the_fallback(self, monkeypatch):
+        """清掉用户设置后应退回环境变量 —— CLI 用户的值不能被 GUI 清没。"""
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY, _request_interval
+
+        monkeypatch.setenv("PDF2ZH_MIN_REQUEST_INTERVAL", "0.9")
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+
+        client = _client(monkeypatch)
+        resp = client.get("/api/settings/translation")
+
+        assert resp.status_code == 200
+        assert _request_interval() == 0.9
+        assert resp.json()["sources"]["env"] == "0.9"
+
+    def test_config_beats_env(self, monkeypatch):
+        from pdf2zh.translator import _request_interval
+
+        monkeypatch.setenv("PDF2ZH_MIN_REQUEST_INTERVAL", "9.0")
+        client = _client(monkeypatch)
+        resp = self._put(client, {"min_request_interval": 0.4})
+
+        assert resp.status_code == 200
+        assert _request_interval() == 0.4
+        # 响应里要能看见环境变量还压着呢 —— 否则"改了没生效"查不到原因
+        assert resp.json()["effective"] == 0.4
+
+    @pytest.mark.parametrize("bad", ["abc", "-1", "999"])
+    def test_put_rejects_garbage(self, monkeypatch, bad):
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY
+
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+        client = _client(monkeypatch)
+        resp = self._put(client, {"min_request_interval": bad})
+
+        assert resp.status_code == 400, f"{bad!r} 应当被拒"
+        assert "min_request_interval" in resp.json()["detail"]
+
+    def test_payload_missing_key_is_not_a_crash(self, monkeypatch):
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY
+
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+        client = _client(monkeypatch)
+        resp = client.put("/api/settings/translation", json={})
+
+        assert resp.status_code == 200
+
+    def test_write_is_validated_against_upper_bound(self, monkeypatch):
+        """上限必须存在：填个 3600 进去会让一次 500 页翻译跑几天。"""
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY
+
+        ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+        client = _client(monkeypatch)
+        resp = self._put(client, {"min_request_interval": 3600})
+
+        assert resp.status_code == 400
+        assert "too large" in resp.json()["detail"]
+
+
 class TestSubmit:
 
     def test_submit_maps_form_fields(self, monkeypatch, fresh_service):

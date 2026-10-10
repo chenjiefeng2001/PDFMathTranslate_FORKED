@@ -121,6 +121,39 @@ proxy). Passing `allow_origins=["*"]` is **ignored** and logged as a warning.
 | `GET` | `/api/engines/{name}/envs` | `{ "name", "envs": [{ "key", "configured", "masked" }] }`. `masked` is `""` (unset) or `abc****wxyz`. `404` if the engine is unknown. |
 | `PUT` | `/api/engines/{name}/envs` | Body `{"envs": {"KEY": "value"}}`; `null` or `""` clears a key. Returns the same shape as the GET. `400` on unknown keys, `422` on a malformed body. |
 
+#### Translation throttling
+
+Minimum delay between translation requests, in seconds. `0` means no throttle.
+
+**Why it exists:** request count *is* the RPM. A 1787-block document with 4 worker
+threads was measured emitting 1367 requests in 90 seconds; anonymous endpoints
+(Google web, Bing, DeepL web) rate-limit by egress IP and answer with a
+CAPTCHA page, and the whole book silently falls back to the source text.
+
+The value is read **at request time**, so the desktop GUI can change it while the
+process is running — a setting frozen at import time would never take effect.
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/settings/translation` | `{ "min_request_interval", "max_request_interval", "configured", "sources": { "config", "env" } }` |
+| `PUT` | `/api/settings/translation` | Body `{"min_request_interval": <seconds>}`; `""` or `null` clears the user setting. `400` on non-numeric, negative, or above `max_request_interval` (60). |
+
+Precedence: `ConfigManager` (written by this endpoint / the GUI) wins over the
+`PDF2ZH_MIN_REQUEST_INTERVAL` environment variable, which remains the fallback
+for CLI users. Response `sources` reports both so a user can tell why a change
+did or did not apply.
+
+```bash
+curl http://127.0.0.1:11009/api/settings/translation
+{"min_request_interval":0.0,"max_request_interval":60.0,"configured":false,
+ "sources":{"config":null,"env":null}}
+
+curl -X PUT http://127.0.0.1:11009/api/settings/translation \
+  -H "Content-Type: application/json" \
+  -d '{"min_request_interval": 0.7}'
+{"min_request_interval":0.7,"effective":0.7}
+```
+
 ```bash
 curl http://127.0.0.1:11009/api/health
 {"status":"ok","tasks":0}

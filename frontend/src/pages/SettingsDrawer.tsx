@@ -46,6 +46,8 @@ import {
   setupJina,
   getJinaSetupStatus,
   updateEngineEnvs,
+  getTranslationSettings,
+  updateTranslationSettings,
   type DoclayoutModelStatus,
   type GpuProviderStatus,
   type EngineEnvStatus,
@@ -878,6 +880,106 @@ function ConnectionSection() {
   );
 }
 
+function TranslationSection({ active }: { active: boolean }) {
+  /* 请求间隔（翻译限速）。为什么值得在 GUI 上：请求次数就是 RPM，匿名翻译端点
+     按 IP 限流，被限流后整本书会静默变成原文 —— 而唯一的逃生口此前只有环境
+     变量，桌面用户根本找不到。写的是后端 ConfigManager 的运行时键，保存后新任务
+     立即生效，不需要重启进程。 */
+  const { t } = useTranslation();
+  const [value, setValue] = useState("");
+  const [maxSeconds, setMaxSeconds] = useState(60);
+  const [effective, setEffective] = useState(0);
+  const [configured, setConfigured] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!active) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const data = await getTranslationSettings();
+        if (!alive) return;
+        setMaxSeconds(Number(data.max_request_interval) || 60);
+        setEffective(Number(data.min_request_interval) || 0);
+        setConfigured(Boolean(data.configured));
+        setValue(
+          data.configured && Number(data.min_request_interval) > 0
+            ? String(data.min_request_interval)
+            : "",
+        );
+      } catch {
+        /* 服务未就绪：保持空态，保存时由后端报错 */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [active]);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const text = value.trim();
+      // 先本地挡一道：后端也会校验，但往返一次只为拿到 400 不划算
+      if (text && !/^\d+(\.\d+)?$/.test(text)) {
+        void message.error(t("ui.label_error"));
+        return;
+      }
+      const seconds = text ? Number(text) : 0;
+      if (seconds < 0 || (maxSeconds && seconds > maxSeconds)) {
+        void message.error(t("ui.label_error"));
+        return;
+      }
+      await updateTranslationSettings(text ? seconds : null);
+      void message.success(t("ui.settings_translation_saved"));
+      const data = await getTranslationSettings();
+      setEffective(Number(data.min_request_interval) || 0);
+      setConfigured(Boolean(data.configured));
+    } catch (err) {
+      void message.error(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Space direction="vertical" size={8} style={{ width: "100%" }}>
+      <Typography.Paragraph type="secondary" style={{ marginBottom: 0, fontSize: 12 }}>
+        {t("ui.settings_translation_hint")}
+      </Typography.Paragraph>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        {effective > 0
+          ? t("ui.settings_translation_current", { value: effective })
+          : t("ui.settings_translation_none")}
+      </Typography.Text>
+      <Space.Compact style={{ width: "100%" }}>
+        <Input
+          id="settings-translation-interval"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={t("ui.settings_translation_zero")}
+          addonBefore={t("ui.settings_translation_interval")}
+          inputMode="decimal"
+          allowClear
+        />
+        <Button type="primary" loading={busy} onClick={() => void save()}>
+          {t("ui.settings_translation_save")}
+        </Button>
+      </Space.Compact>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        {t("ui.settings_translation_max_hint", { max: maxSeconds })}
+      </Typography.Text>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        {t("ui.settings_translation_env_note")}
+      </Typography.Text>
+      {/* 让"当前生效"对未配置/显式 0 两种状态可区分 */}
+      {!configured && (
+        <Tag color="default">{t("ui.settings_translation_zero")}</Tag>
+      )}
+    </Space>
+  );
+}
+
 export default function SettingsDrawer({ open, onClose }: Props) {
   const { t } = useTranslation();
 
@@ -917,6 +1019,10 @@ export default function SettingsDrawer({ open, onClose }: Props) {
       {section(t("ui.settings_gpu_provider"), <GpuProviderSection active={open} />)}
       {section(t("ui.settings_mineru"), <MineruSection />)}
       {section(t("ui.settings_jina"), <JinaSection />)}
+      {section(
+        t("ui.settings_translation"),
+        <TranslationSection active={open} />,
+      )}
       {section(
         t("ui.settings_glossaries"),
         <Space direction="vertical" size={6} style={{ width: "100%" }}>

@@ -12,6 +12,8 @@ TaskProgressEvent / RuntimeNoticeEvent（客户端无关，见 gui/events.py）�
     GET    /api/engines                      引擎列表（envs 只回显是否已配置）
     GET    /api/engines/{name}/envs          引擎凭据明细（脱敏回显）
     PUT    /api/engines/{name}/envs          写入/清除用户级凭据（JSON body）
+    GET    /api/settings/translation         节流间隔现状（值/上限/生效来源）
+    PUT    /api/settings/translation         写入/清除节流间隔（JSON body）
 
     GET    /api/selftest/babeldoc            BabelDOC 导入链路自检
     GET    /api/selftest/magicpdf            MinerU/magic-pdf 可用性探测
@@ -611,6 +613,79 @@ def create_api_app(
             for key in cls.envs
         ]
         return {"name": name, "envs": envs}
+
+    # ── 翻译节流设置（GUI 设置抽屉） ─────────────────────────────────────
+    #
+    # 为什么值得单独开端点：请求次数就是 RPM。实测 325 页 / 1787 块、4 线程
+    # 在 90 秒内发出 1367 个请求，匿名翻译端点直接回验证码页 + 429，整书翻成
+    # 原文。打包负责减少请求次数，这里的间隔负责把剩下的请求摊平到出口 IP
+    # 能承受的速率。
+    #
+    # 写的是 ConfigManager 的 ``min_request_interval``，与
+    # ``PDF2ZH_MIN_REQUEST_INTERVAL`` 环境变量等价、且优先。**必须是运行时读
+    # 取的键**：桌面端是在进程起来之后才写配置的，导入期冻结的常量等于用户的
+    # 设置永远不生效（只能重启进程）。
+    _MAX_INTERVAL = 60.0
+
+    def _interval_from_payload(raw) -> float:
+        """解析间隔；0 表示不节流。非法输入抛 400，不静默吞掉。"""
+        if raw in (None, ""):
+            return 0.0
+        try:
+            value = float(str(raw).strip())
+        except (TypeError, ValueError):
+            raise HTTPException(400, "min_request_interval must be a number")
+        if value < 0:
+            raise HTTPException(400, "min_request_interval must not be negative")
+        if value > _MAX_INTERVAL:
+            raise HTTPException(
+                400,
+                f"min_request_interval too large: {value}s (max {_MAX_INTERVAL}s)",
+            )
+        return value
+
+    @app.get("/api/settings/translation")
+    def get_translation_settings() -> Dict[str, Any]:
+        """当前生效的节流间隔（秒）。0 = 不节流。"""
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import (
+            _MIN_REQUEST_INTERVAL_ENV,
+            _MIN_REQUEST_INTERVAL_KEY,
+            _request_interval,
+        )
+
+        raw = ConfigManager.get(_MIN_REQUEST_INTERVAL_KEY, None)
+        env_raw = os.environ.get(_MIN_REQUEST_INTERVAL_ENV)
+        return {
+            "min_request_interval": _request_interval(),
+            "max_request_interval": _MAX_INTERVAL,
+            "configured": raw not in (None, ""),
+            # 告诉用户这两个来源的当前值，免得"我改了没生效"查不到原因
+            "sources": {
+                "config": raw,
+                "env": env_raw,
+            },
+        }
+
+    @app.put("/api/settings/translation")
+    def update_translation_settings(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """写入节流间隔（秒）。空值/null 清除用户设置，回到默认。"""
+        from pdf2zh.config import ConfigManager
+        from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY, _request_interval
+
+        raw = payload.get("min_request_interval")
+        value = _interval_from_payload(raw)
+        if value > 0:
+            ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, value)
+        else:
+            ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+        logger.info("translation throttle updated: %ss", value)
+        return {
+            "min_request_interval": value,
+            "max_request_interval": _MAX_INTERVAL,
+            # 回读一次：万一有别的来源（环境变量）盖着，让用户立刻看见
+            "effective": _request_interval(),
+        }
 
     # ── selftest（frozen 分发诊断） ─────────────────────────────────────
     @app.get("/api/selftest/babeldoc")
