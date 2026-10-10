@@ -4,7 +4,7 @@
 翻译请求，网络 RTT 是长文档的主要成本之一。本模块把同页多段落合并为单次
 翻译请求（RTT 减 70–90%），返回后按强分隔符切回：
 
-- 开关 ``PDF2ZH_PARAGRAPH_BATCH=1`` 启用（默认关闭）；未启用时本模块退化
+- 开关 ``PDF2ZH_PARAGRAPH_BATCH=0`` 关闭（默认**开启**）；关闭时本模块退化
   为逐段并发翻译（与 converter 原 ``executor.map`` 语义一致），
   converter.py 无需感知开关 —— 满足 strangulation 行数死线；
 - 聚合规则：跳过空段 / 纯公式占位符（``{vN}``）/ TOC 行；
@@ -12,6 +12,18 @@
 - 严格还原校验：切回段数不符或出现空段（LLM 吞掉分隔符 / 篡改格式）
   → 整批逐段回退 ``safe_worker``，失败场景下与逐段翻译语义完全一致，
   绝不产出错误译文。
+
+为什么默认开启
+--------------
+默认关闭时每个段落一次请求。**请求次数就是 RPM**：325 页 / 1787 块、
+``--thread 4`` 实测 90 秒发出 1367 个请求（约 15 次/秒），匿名端点
+（google /m）直接从限流变成回 ``/sorry/index`` 验证码页，整书翻成原文。
+打包把 N 个段落合成 1 次请求，是这里唯一能真正把 RPM 降下来的手段
+（限流只是把速率摊平，请求次数一个没少）。
+
+代价：单个请求体变大。对匿名 endpoints 而言换来的是不被封；对 LLM
+（opencode/openai…）而言本来一次请求就要秒级，合并反而更划算。还原校验
+失败会整批回落逐段，正确性不受影响。
 """
 
 from __future__ import annotations
@@ -27,6 +39,15 @@ __all__ = ["PARA_BATCH_SEP", "batch_translate_paragraphs"]
 PARA_BATCH_SEP = "\n\n=====PDF2ZH_PARAGRAPH_SEP=====\n\n"
 
 
+def _batch_enabled() -> bool:
+    """段落打包开关：``PDF2ZH_PARAGRAPH_BATCH=0`` 关闭，其余视为开启。
+
+    默认开启的理由见模块 docstring：请求次数就是 RPM，不打包时长文档会把
+    匿名翻译端点的 IP 限额打爆（实测 90 秒 1367 次请求 → 整书 429 回落原文）。
+    """
+    return os.environ.get("PDF2ZH_PARAGRAPH_BATCH", "1") != "0"
+
+
 def _translate_threads() -> int:
     """并发翻译线程数（``PDF2ZH_PARAGRAPH_BATCH_THREADS``，默认 4）。"""
     try:
@@ -36,14 +57,19 @@ def _translate_threads() -> int:
 
 
 def _batch_chars_budget() -> int:
-    """单批字符预算（``PDF2ZH_PARAGRAPH_BATCH_CHARS``，默认 2000）。"""
+    """单批字符预算（``PDF2ZH_PARAGRAPH_BATCH_CHARS``，默认 4000）。
+
+    默认 2000 时一页约 59 段仍要分 3~4 批。4000 是"请求体别大到被网关拒"
+    和"请求次数尽量少"之间的折中：**请求次数就是 RPM**，而匿名端点封的是
+    IP 而不是单请求大小。上限 16000 不变。
+    """
     try:
         return max(
             200,
-            min(int(os.environ.get("PDF2ZH_PARAGRAPH_BATCH_CHARS") or 2000), 16000),
+            min(int(os.environ.get("PDF2ZH_PARAGRAPH_BATCH_CHARS") or 4000), 16000),
         )
     except (TypeError, ValueError):
-        return 2000
+        return 4000
 
 
 def batch_translate_paragraphs(
@@ -84,7 +110,7 @@ def batch_translate_paragraphs(
     if keep is None:
         keep = [False] * len(texts)
 
-    if os.environ.get("PDF2ZH_PARAGRAPH_BATCH") != "1":
+    if not _batch_enabled():
         # 开关关闭 → 逐段并发翻译（与原 executor.map 路径一致）；
         # keep=True 的段落走 passthrough（返回原文，不触碰翻译器/缓存）。
         def _fn(i: int) -> str:

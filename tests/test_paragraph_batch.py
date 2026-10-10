@@ -33,7 +33,8 @@ def _sep_swallowing_worker(text, font_sig):
 
 # ── 开关关闭：逐段语义 ─────────────────────────────────────────────────
 def test_disabled_falls_back_to_per_segment(monkeypatch):
-    monkeypatch.delenv("PDF2ZH_PARAGRAPH_BATCH", raising=False)
+    # 默认已改为开启，所以"关闭"必须显式设 "0"（delenv 只会回到默认=开启）
+    monkeypatch.setenv("PDF2ZH_PARAGRAPH_BATCH", "0")
     calls = []
 
     def _counting_worker(text, font_sig):
@@ -168,7 +169,7 @@ def test_keep_mask_passthrough_when_batch_enabled(monkeypatch):
 
 
 def test_keep_mask_passthrough_when_batch_disabled(monkeypatch):
-    monkeypatch.delenv("PDF2ZH_PARAGRAPH_BATCH", raising=False)
+    monkeypatch.setenv("PDF2ZH_PARAGRAPH_BATCH", "0")
     calls = []
 
     def _counting_worker(text, font_sig):

@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import threading
+import time
 import unicodedata
 from copy import copy
 from string import Template
@@ -215,6 +216,48 @@ def remove_control_characters(s):
     return "".join(ch for ch in s if unicodedata.category(ch)[0] != "C")
 
 
+#: 全局请求间隔下限（秒）。默认 0 = 不节流，交给服务自己扛。
+#:
+#: 什么时候必须调大：**匿名**翻译端点（google /m、bing、deepl 网页版）按出口 IP
+#: 限流。实测 mp2e 之外的 Structural holes 325 页、1787 块、4 线程：90 秒内发出
+#: 1367 个请求（约 15 次/秒），Google 直接回 ``/sorry/index`` 验证码页 + 429，
+#: 整书翻成原文。带 key 的 API（opencode/openai/deepseek…）本身每次请求要几百
+#: 毫秒到数秒，通常碰不到这个下限，设成 0.5~1s 也不会明显变慢。
+_MIN_REQUEST_INTERVAL = float(os.environ.get("PDF2ZH_MIN_REQUEST_INTERVAL") or 0)
+
+#: 节流用的锁 + 上次请求时间。类级别共享：翻译器实例是按 document 建的，
+#: 而限流要管的是「出口 IP 的总速率」，不是单个实例。
+_rate_lock = threading.Lock()
+_last_request_at = 0.0
+
+
+def _throttle() -> None:
+    """发请求前预约一个不早于 ``_MIN_REQUEST_INTERVAL`` 的时刻。
+
+    没有它时并发度就是 RPM：``--thread 4`` 约等于每秒 4 次请求起步，而匿名端点
+    对单 IP 的容忍度远低于此。这里是**兜底**，不是主要手段 —— 主要手段是少发
+    请求（见 ``v3/paragraph_batch.py`` 的段落打包）。
+
+    时刻**预约**而不是"睡完再抢"：N 个线程同时进来时，它们必须拿到 N 个错开
+    的出发时刻，否则都睡同一个间隔后仍然挤在一起。睡的动作在锁外做，避免把
+    其他线程一起堵住。
+
+    预约以「上次出发时刻」为基准，不是"上次结束时刻"：一次比间隔还慢的请求
+    （LLM 动辄几秒）之后，下一个请求应当**立刻**走，不该再白等一个满间隔
+    —— 实测两次 0.6s 的请求按结束时刻记账会被拖成 1.2s。
+    """
+    if _MIN_REQUEST_INTERVAL <= 0:
+        return
+    global _last_request_at
+    with _rate_lock:
+        now = time.monotonic()
+        start = max(now, _last_request_at + _MIN_REQUEST_INTERVAL)
+        _last_request_at = start
+    delay = start - now
+    if delay > 0:
+        time.sleep(delay)
+
+
 class BaseTranslator:
     name = "base"
     envs = {}
@@ -276,6 +319,7 @@ class BaseTranslator:
             if cache is not None:
                 return cache
 
+        _throttle()
         translation = self.do_translate(text)
         if translation is not None:
             self.cache.set(text, translation)

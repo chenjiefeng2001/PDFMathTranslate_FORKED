@@ -10,6 +10,7 @@
 - S6: 表格边框 / 公式块边界线条登记为障碍物
 """
 
+import os
 import re
 import unittest
 from unittest.mock import Mock
@@ -60,6 +61,20 @@ def make_zone_layout(zone_cls_map, shape=(800, 600), default=3.0):
 
 
 class ConverterCollisionBase(unittest.TestCase):
+    # Paragraph batching is now on by default; these tests assert push-down
+    # geometry and their Mock translator models one-call-per-segment. Disable
+    # batching so the fixtures keep their contract; batching itself is covered
+    # by tests/test_paragraph_batch.py.
+    def setUp(self):
+        self._saved_batch = os.environ.get("PDF2ZH_PARAGRAPH_BATCH")
+        os.environ["PDF2ZH_PARAGRAPH_BATCH"] = "0"
+
+    def tearDown(self):
+        if self._saved_batch is None:
+            os.environ.pop("PDF2ZH_PARAGRAPH_BATCH", None)
+        else:
+            os.environ["PDF2ZH_PARAGRAPH_BATCH"] = self._saved_batch
+
     def build_converter(
         self,
         page,
