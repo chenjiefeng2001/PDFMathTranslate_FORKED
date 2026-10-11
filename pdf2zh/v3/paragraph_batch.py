@@ -196,6 +196,10 @@ def batch_translate_paragraphs(
 #: 攒批窗口（秒）。只影响"并发请求正在到达"的场景；串行翻译不等待。
 _BATCH_WAIT = 0.025
 
+#: flush 线程的空闲退出时间（秒）。见 ``make_batching_translate_fn`` 里的说明：
+#: 每个包装器各起一个 flush 线程，不设空闲上限就会随任务数无界增长。
+_IDLE_EXIT = 300.0
+
 
 def _flush_batch(inner, batch, sep):
     """把一批文本合成一次请求，再按分隔符切回；任何不一致都整批逐段回落。"""
@@ -263,10 +267,18 @@ def make_batching_translate_fn(
     """
     sep = PARA_BATCH_SEP
     q: "queue.Queue" = queue.Queue()
+    spawn_lock = threading.Lock()
 
     def _flusher():
         while True:
-            first = q.get()
+            try:
+                first = q.get(timeout=_IDLE_EXIT)
+            except queue.Empty:
+                # 空闲超时就退出。每个 ``translate_document`` 都会建一个 flush
+                # 线程；不设上限的话，长驻 sidecar 翻 N 个文件就漏 N 个线程 ——
+                # 实测 30 次包装后常驻线程从 1 涨到 31。5 分钟足以覆盖"一次任务
+                # 翻译途中偶尔停顿"，而任务之间的空隙远长于此。
+                return
             if first is None:
                 return
             batch = [first]
@@ -292,11 +304,28 @@ def make_batching_translate_fn(
                         box.setdefault("error", RuntimeError("packing flusher failed"))
                     ev.set()
 
-    threading.Thread(target=_flusher, name="para-batch-flush", daemon=True).start()
+    # flush 线程引用 + 启动用的锁。``fn`` 每次请求都要确认它还活着 —— 空闲退出
+    # 之后若不再拉起，请求会永远等不到结果（整篇翻译静默卡死）。
+    state = {"thread": None}
+
+    def _ensure_flusher():
+        t = state["thread"]
+        if t is not None and t.is_alive():
+            return
+        with spawn_lock:
+            t = state["thread"]
+            if t is not None and t.is_alive():
+                return
+            t = threading.Thread(target=_flusher, name="para-batch-flush", daemon=True)
+            state["thread"] = t
+            t.start()
+
+    _ensure_flusher()
 
     def fn(text):
         if not (text or "").strip():
             return text  # 空白段原样保留：不发请求
+        _ensure_flusher()
         ev = threading.Event()
         box: dict = {}
         q.put((text, ev, box))

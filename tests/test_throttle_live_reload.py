@@ -270,6 +270,37 @@ def test_interval_survives_a_fresh_translator_instance(monkeypatch, throttle_env
 # --------------------------------------------------------------------------
 # 管线接线
 # --------------------------------------------------------------------------
+def test_setting_survives_a_restart(monkeypatch, throttle_env, tmp_path):
+    """设置必须落盘 —— 否则重启 sidecar 后用户的配置悄悄消失。
+
+    桌面端是长驻进程，但用户会重启应用；悄悄丢配置的症状是"我明明设过"，
+    而没有任何报错。这里把 ``Path.home`` 指到临时目录（``_config_path`` 是在
+    ``__init__`` 里按 home 定死的实例属性，只能从源头改），检查写入真的到了
+    文件里、并且换一个实例（等价于重启进程）能读回来。
+    """
+    import json
+    from pathlib import Path as _Path
+
+    import pdf2zh.config as config_mod
+
+    real_home = _Path.home
+    monkeypatch.setattr(_Path, "home", classmethod(lambda cls: tmp_path))
+    monkeypatch.setattr(config_mod.ConfigManager, "_instance", None, raising=False)
+    try:
+        config_mod.ConfigManager.set(translator._MIN_REQUEST_INTERVAL_KEY, 0.9)
+        cfg_file = tmp_path / ".config" / "PDFMathTranslate" / "config.json"
+        assert cfg_file.is_file(), f"配置没有写进文件：{cfg_file}"
+        on_disk = json.loads(cfg_file.read_text(encoding="utf-8"))
+        assert on_disk.get("min_request_interval") == 0.9
+
+        # 换个实例：ConfigManager 只在首次使用时读盘，等价于"重启进程"
+        config_mod.ConfigManager._instance = None
+        assert translator._request_interval() == 0.9, "重启后读不回用户设置"
+    finally:
+        monkeypatch.setattr(_Path, "home", real_home)
+        config_mod.ConfigManager._instance = None
+
+
 def test_cli_pipeline_goes_through_the_throttled_translate():
     """CLI/GUI 管线必须经过 ``BaseTranslator.translate`` —— 节流就在那里。
 

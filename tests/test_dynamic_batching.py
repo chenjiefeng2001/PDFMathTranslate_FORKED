@@ -15,8 +15,6 @@
 import threading
 import time
 
-import pytest
-
 from pdf2zh.v3.paragraph_batch import (
     PARA_BATCH_SEP,
     make_batching_translate_fn,
@@ -85,7 +83,6 @@ class TestCoreCoalescing:
 
     def test_partial_translations_are_returned_per_segment(self):
         """批内每条只该拿到自己那一段（分隔符切分正确）。"""
-        seen = {}
 
         def inner(text):
             # 按段分别加后缀；错位时后缀就对不上
@@ -193,7 +190,6 @@ class TestSafetyFallbacks:
             return text
 
         fn = make_batching_translate_fn(inner, max_chars=100_000, wait=0.05)
-        barrier = threading.Barrier(4)
         texts = ["ok1", "boom", "ok2", "ok3"]
         got = []
 
@@ -245,6 +241,57 @@ class TestSafetyFallbacks:
         assert rec.calls == []
 
 
+class TestFlusherLifetime:
+    """flush 线程的生命周期：不泄漏，也不许把调用方挂住。
+
+    这两条是同一处改动的两面。每个 ``translate_document`` 都会建一个 flush
+    线程；若让它永久存活，长驻 sidecar 翻 N 个文件就漏 N 个线程（实测 30 次
+    包装后常驻线程从 1 涨到 31）。但若只在空闲时退出而**不重新拉起**，空闲之后
+    的第一个请求会永远等不到结果 —— 整篇翻译静默卡死，比泄漏糟得多。实测过：
+    第一版只加退出没加重拉，第二条用例直接挂住不返回。
+    """
+
+    def test_idle_flusher_exits_and_does_not_leak(self, monkeypatch):
+        from pdf2zh.v3 import paragraph_batch as pb
+
+        monkeypatch.setattr(pb, "_IDLE_EXIT", 0.3)
+        before = [t for t in threading.enumerate() if "para-batch" in t.name]
+
+        for _ in range(8):
+            make_batching_translate_fn(lambda t: t)("warmup")
+
+        # 空闲窗口过后，之前那批 flush 线程应当自行退干净
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            alive = [t for t in threading.enumerate() if "para-batch" in t.name]
+            if len(alive) <= len(before):
+                break
+            time.sleep(0.05)
+
+        left = [t for t in threading.enumerate() if "para-batch" in t.name]
+        assert len(left) == len(
+            before
+        ), f"空闲 flush 线程没退出：先前 {len(before)} 个，现在 {len(left)} 个"
+
+    def test_request_after_idle_exit_still_completes(self, monkeypatch):
+        """空闲退出之后的请求必须仍能拿到结果（不能挂住）。"""
+        from pdf2zh.v3 import paragraph_batch as pb
+
+        monkeypatch.setattr(pb, "_IDLE_EXIT", 0.3)
+        seen = []
+        fn = make_batching_translate_fn(
+            lambda t: seen.append(t) or t.upper(), wait=0.02
+        )
+
+        assert fn("first") == "FIRST"
+        time.sleep(0.5)  # 跨越空闲退出点：flush 线程这会儿已经没了
+
+        # 这条若实现成"退出后不重拉"，会永远阻塞，用例直接挂死而不是报错
+        assert fn("second") == "SECOND"
+        assert fn("third") == "THIRD"
+        assert seen == ["first", "second", "third"], seen
+
+
 class TestNoPermanentHang:
     """兜底：flush 线程出任何漏网异常，都不能把等结果的调用方永久挂住。
 
@@ -255,33 +302,22 @@ class TestNoPermanentHang:
     """
 
     def test_flusher_exception_does_not_hang_the_caller(self):
-        """inner 在拆段之后炸掉，调用方也必须拿到一个结果而不是永远等。"""
+        """inner 炸掉时，调用方也必须拿到一个结果而不是永远等。"""
         from pdf2zh.v3 import paragraph_batch as pb
 
-        real_split = str.split
-        state = {"armed": False}
-
-        def killer(text, sep):
-            if state["armed"] and sep == PARA_BATCH_SEP and len(text) > 50:
-                raise MemoryError("boom inside split")
-            return real_split(text, sep)
-
-        rec = _Recorder()
-        original = pb.make_batching_translate_fn
-
-        # 让 _flush_batch 走到"校验通过"之后才炸：攻的是 zip/回填那段
+        # 只对"含分隔符的整批文本"抛错：逐段调用的单段文本不含分隔符，因此
+        # 逐段回落路径必然成功 —— 断言的就是"批失败后仍能逐段交付"。
         def armed_inner(text):
             if PARA_BATCH_SEP in text:
                 raise MemoryError("boom")
             return text
 
+        original = pb.make_batching_translate_fn
         fn = original(armed_inner, max_chars=100_000, wait=0.05)
-        barrier = threading.Barrier(2)
         texts = ["alpha", "beta"]
         got = []
 
         def run(i):
-            barrier.wait()
             try:
                 got.append((i, fn(texts[i])))
             except BaseException as exc:  # noqa: BLE001

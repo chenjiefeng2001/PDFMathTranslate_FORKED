@@ -266,6 +266,9 @@ _THROTTLE_KEYS = (
     "settings_translation_current",
     "settings_translation_none",
     "settings_translation_env_note",
+    "settings_translation_bad_format",
+    "settings_translation_out_of_range",
+    "settings_translation_env_active",
 )
 
 

@@ -890,6 +890,7 @@ function TranslationSection({ active }: { active: boolean }) {
   const [maxSeconds, setMaxSeconds] = useState(60);
   const [effective, setEffective] = useState(0);
   const [configured, setConfigured] = useState(false);
+  const [envActive, setEnvActive] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -902,6 +903,7 @@ function TranslationSection({ active }: { active: boolean }) {
         setMaxSeconds(Number(data.max_request_interval) || 60);
         setEffective(Number(data.min_request_interval) || 0);
         setConfigured(Boolean(data.configured));
+        setEnvActive(Boolean(data.sources?.env));
         setValue(
           data.configured && Number(data.min_request_interval) > 0
             ? String(data.min_request_interval)
@@ -920,14 +922,15 @@ function TranslationSection({ active }: { active: boolean }) {
     setBusy(true);
     try {
       const text = value.trim();
-      // 先本地挡一道：后端也会校验，但往返一次只为拿到 400 不划算
+      // 先本地挡一道：后端也会校验，但往返一次只为拿到 400 不划算。
+      // 提示要点名具体原因（格式 / 越界），而不是通用的"错误"。
       if (text && !/^\d+(\.\d+)?$/.test(text)) {
-        void message.error(t("ui.label_error"));
+        void message.error(t("ui.settings_translation_bad_format"));
         return;
       }
       const seconds = text ? Number(text) : 0;
       if (seconds < 0 || (maxSeconds && seconds > maxSeconds)) {
-        void message.error(t("ui.label_error"));
+        void message.error(t("ui.settings_translation_out_of_range", { max: maxSeconds }));
         return;
       }
       await updateTranslationSettings(text ? seconds : null);
@@ -952,6 +955,12 @@ function TranslationSection({ active }: { active: boolean }) {
           ? t("ui.settings_translation_current", { value: effective })
           : t("ui.settings_translation_none")}
       </Typography.Text>
+      {/* 没配用户设置却有环境变量时，光说"不限速"是假的 —— 实际受 env 管着 */}
+      {!configured && envActive && (
+        <Typography.Text type="warning" style={{ fontSize: 12 }}>
+          {t("ui.settings_translation_env_active", { value: effective })}
+        </Typography.Text>
+      )}
       <Space.Compact style={{ width: "100%" }}>
         <Input
           id="settings-translation-interval"
