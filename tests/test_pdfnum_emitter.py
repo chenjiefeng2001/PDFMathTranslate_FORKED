@@ -69,6 +69,38 @@ def _build_pdf_with_scientific_xobject():
     return buf.getvalue(), xobj_xref
 
 
+class _IdentityTranslator:
+    """离线恒等翻译器。
+
+    这组用例要验的是 **emitter 写出的 cm 操作数里没有科学计数法**，跟翻译毫无
+    关系；但它们构造的 ``TranslateConverter`` 里塞了真实文本（``(Hi) Tj``）和
+    ``service="google"``，于是 ``receive_layout`` 会真的去调 Google 翻译。
+
+    后果不是"慢一点"：单跑要 36–38 秒（真实网络 + 超时 + 重试），全量跑到出口
+    IP 被限流时 Google 回 429，抛 ``TranslationRateLimitError`` —— 于是这三条
+    用例"偶发"变红，而它红的原因跟被测行为（cm 格式）毫无关系。真实翻译是假
+    阳性，不是实现回归。
+
+    恒等翻译保住了原意：译文 = 原文，页面上照样有段落，照样走完整的
+    receive_layout / batch_translate_paragraphs 路径，只是不再出网。
+
+    ``lang_in`` / ``lang_out`` 也得给：converter 的 TOC 侧通道要读
+    ``self.translator.lang_out``，缺属性会让 XObject 解析中途抛异常并被
+    ``pdfinterp`` 吞掉 —— 那样 XObject 流根本没进 patch，用例照样"通过"，
+    变成一条什么都不验的假绿。
+    """
+
+    lang_in = "en"
+    lang_out = "zh-cn"
+
+    def __init__(self):
+        self.calls = []
+
+    def translate(self, text, ignore_cache: bool = False):
+        self.calls.append(text)
+        return text
+
+
 def _patched_streams():
     pdf_bytes, xobj_xref = _build_pdf_with_scientific_xobject()
     rsrcmgr = PDFResourceManager()
@@ -89,6 +121,8 @@ def _patched_streams():
         False,
         collision_resolver=CollisionResolver(),
     )
+    # 替换掉 build_translator 的产物：绝不出网（见 _IdentityTranslator 的说明）
+    device.translator = _IdentityTranslator()
     interpreter = PDFPageInterpreterEx(rsrcmgr, device, obj_patch)
     buf = io.BytesIO(pdf_bytes)
     page = next(PDFPage.create_pages(PDFDocument(PDFParser(buf))))
@@ -132,6 +166,34 @@ def test_xobject_cm_parseback_budget():
     for tok in tokens:
         val = parse_num(tok)
         assert abs(val) < 1e6, f"cm operand out of page-range: {tok!r}"
+
+
+def test_the_form_xobject_actually_reaches_the_patch():
+    """前提自检：XObject 的流必须真的进了 ``obj_patch``。
+
+    没有这条，上面三条断言可能是**假绿**：``pdfinterp`` 遇到 XObject 解析异常
+    会吞掉异常并清空该流，于是 patch 里只剩页面流、没有任何来自 XObject 的
+    cm 操作数 —— 而 ``test_xobject_cm_parseback_budget`` 的
+    ``assert tokens`` 仍会被页面流里的 cm 满足，于是整组用例验证的是一个
+    根本不存在的 XObject 场景。
+
+    这不是假想：把恒等翻译器换成缺 ``lang_out`` 的桩时，converter 的 TOC 侧
+    通道立刻抛 AttributeError，XObject 流被清空，四条用例里有三条照样全绿。
+    """
+    obj_patch, device = _patched_streams()
+
+    xobj_patches = {
+        k: v for k, v in obj_patch.items() if k != 999 and isinstance(v, str)
+    }
+    assert xobj_patches, "没有任何 XObject 流进 patch —— 上面几条用例验证的不是被测场景"
+    # XObject 的 Matrix 会被解释器求逆并写回 cm；那串极小值是本用例的立身之本
+    joined = "".join(xobj_patches.values())
+    assert "cm" in joined, f"XObject patch 里没有 cm：{xobj_patches}"
+    assert re.search(
+        r"0\.00009|9e-05", joined
+    ), f"没有出现预期的极小逆矩阵操作数（-9e-05 区间）：{xobj_patches}"
+    # 离线翻译器确实被走到了 —— 证明替换生效、且仍走完整翻译路径
+    assert device.translator.calls, "恒等翻译器一次都没被调用，路径没被覆盖"
 
 
 def test_emitted_cm_mupdf_parses_clean():

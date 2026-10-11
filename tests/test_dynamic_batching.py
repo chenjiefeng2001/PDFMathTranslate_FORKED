@@ -165,6 +165,12 @@ class TestSafetyFallbacks:
         assert sorted(results) == sorted(
             "T:" + t for t in texts
         ), f"回落结果错位：{results}"
+        # 只断言结果不够：一个"从来不合批"的退化实现也能让上面这行通过。
+        # 这里额外钉住**请求模式**：先整批（被判无效），再逐段重试。
+        batched = [c for c in rec.calls if PARA_BATCH_SEP in c]
+        per_seg = [c for c in rec.calls if PARA_BATCH_SEP not in c]
+        assert len(batched) == 1, f"应恰好发过 1 次整批：{batched}"
+        assert sorted(per_seg) == sorted(texts), f"逐段回落的请求集合不对：{per_seg}"
 
     def test_short_parts_falls_back_per_segment(self):
         """切出空段说明对齐已经不可信 —— 整批回落。"""
@@ -179,7 +185,12 @@ class TestSafetyFallbacks:
         barrier = threading.Barrier(4)
         texts = [f"seg{i}" for i in range(4)]
         results = _concurrent(fn, texts, barrier)
-        assert len(set(results)) == 4, f"空段未被识别，串号：{results}"
+        # 逐段回落时 inner 收到的是不含分隔符的单段，于是原样返回 ——
+        # 所以这里能逐字比对，而不只是数 set 大小（数大小看不出"哪一段配错了"）。
+        assert sorted(results) == sorted(texts), f"空段未被识别，译文错位：{results}"
+        assert any(
+            PARA_BATCH_SEP in c for c in rec.calls
+        ), f"没有走过整批请求 —— 回落路径没被验证：{rec.calls}"
 
     def test_inner_exception_propagates_to_the_right_caller(self):
         """批内抛异常：每个调用方只应看到自己那次的失败，不能吞掉别人的成功。"""
