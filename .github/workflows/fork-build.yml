@@ -259,10 +259,11 @@ jobs:
           }
 
       - name: Test - Translate with offline assets (offline mode)
+        shell: bash
         run: |
-          Write-Host "==== 测试离线资源包 ===="
-          New-Item -Path "./tests/file/offline_result" -ItemType Directory -Force
-          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file/offline_result
+          echo "==== 测试离线资源 ===="
+          mkdir -p ./tests/file/offline_result
+          PDF2ZH_SMOKE_CMD="./script/build/pdf2zh.exe" bash script/ci/translate_smoke.sh ./tests/file/translate.cli.plain.text.pdf -o ./tests/file/offline_result
 
       - name: Upload offline test results
         uses: actions/upload-artifact@v7
