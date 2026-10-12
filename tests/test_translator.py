@@ -23,6 +23,62 @@ from pdf2zh.translator import (
 # pyright: reportPrivateUsage=false
 
 
+class _FrozenBackoff:
+    """把 tenacity 的退避等待冻成 0，只记账不真睡。
+
+    为什么需要
+    ----------
+    Google 翻译器的重试策略是 ``wait_exponential(multiplier=2, min=2, max=20)``：
+    一次"一直 429"的重试链要真睡 2s + 4s = **6 秒**（实测）。验证限流逻辑的
+    用例并不关心"等多久才重试"，却要为这个等待实打实付钱 —— 两条用例加起来
+    占掉整个 ``test_translator.py`` 三分之二的时间（24s + 6s = 30s / 35s）。
+
+    为什么是改**装饰器实例**而不是改模块
+    ------------------------------------
+    ``@retry`` 在 ``translator.py`` 导入时就把 ``sleep`` 的函数对象捕获进
+    ``Retrying`` 实例（``BaseRetrying.__init__`` 的默认参数绑定），事后再改
+    ``tenacity.nap.sleep`` 对已装饰的函数**无效** —— 实测过，先踩了这个坑。
+    装饰器把实例挂在函数对象的 ``.retry`` 属性上（ tenacity 的公开做法），
+    所以从那里拿到实例、把 ``.sleep`` 换掉，才是真的在冻时钟。
+
+    被测逻辑一行没改：``DoSleep`` 对象仍带着正确的 ``upcoming_sleep``，
+    "重试几次""等多久才重试"这些断言依然成立。
+    """
+
+    def __init__(self, *retryings):
+        self.slept: list[float] = []
+        self._retryings = retryings
+
+    def __call__(self, seconds):
+        self.slept.append(seconds)
+
+    @property
+    def total(self) -> float:
+        """本轮冻结期间"本该睡掉"的秒数总和。"""
+        return sum(self.slept)
+
+    def __enter__(self):
+        self._saved = [(r, r.sleep) for r in self._retryings]
+        for r in self._retryings:
+            r.sleep = self
+        return self
+
+    def __exit__(self, *exc):
+        for r, old in self._saved:
+            r.sleep = old
+        self._saved = []
+        return False
+
+
+def _frozen_backoff(*funcs):
+    """冻住这些 ``@retry`` 函数的退避时钟。
+
+    用法：``with _frozen_backoff(GoogleTranslator.do_translate) as f:``，
+    ``f.slept`` 是每次退避的秒数（用于断言"退避策略确实按预期排布"）。
+    """
+    return _FrozenBackoff(*(f.retry for f in funcs))
+
+
 class AutoIncreaseTranslator(BaseTranslator):
     name = "auto_increase"
     n = 0
@@ -293,13 +349,24 @@ class TestOllamaTranslator(unittest.TestCase):
         回落原文 —— tenacity 根本看不到异常，一次重试都没有。实测 325 页书
         90 秒 1367 次 429，最终交付一份全英文 PDF、退出码 0、无任何告警。
         """
-        t = GoogleTranslator("en", "zh", None, True)
-        with mock.patch.object(t.session, "get") as m_get:
-            m_get.return_value = self._rate_limited_response(429)
-            with self.assertRaises(requests.HTTPError):
-                t.do_translate("hello")
-            # 单块重试 3 次：不重试 = 旧缺陷复现
-            self.assertEqual(m_get.call_count, 3)
+        with _frozen_backoff(GoogleTranslator.do_translate) as frozen:
+            t = GoogleTranslator("en", "zh", None, True)
+            with mock.patch.object(t.session, "get") as m_get:
+                m_get.return_value = self._rate_limited_response(429)
+                with self.assertRaises(requests.HTTPError):
+                    t.do_translate("hello")
+                # 单块重试 3 次：不重试 = 旧缺陷复现
+                self.assertEqual(m_get.call_count, 3)
+                # 退避是真的在按策略安排（冻了时钟，但策略没被绕过）
+                self.assertEqual(len(frozen.slept), 2, f"退避次数不对：{frozen.slept}")
+                self.assertEqual(frozen.slept[0], 2, "首等应是 wait 的 min=2")
+                self.assertEqual(frozen.slept[1], 4, "次等应是 multiplier=2 翻倍")
+                self.assertLessEqual(
+                    frozen.total,
+                    10,
+                    f"退避总时长 {frozen.total}s：这条用例是在验限流逻辑，"
+                    "不该为真实等待付钱（冻结之后仍偏大 = 策略被调大了）",
+                )
 
     def test_google_streak_rate_limit_fails_fast_with_actionable_message(self):
         """连续限流要硬失败，而不是把整本书磨成原文 PDF。
@@ -309,22 +376,29 @@ class TestOllamaTranslator(unittest.TestCase):
         """
         from pdf2zh.translator import _GOOGLE_RATE_LIMIT_FAIL_FAST
 
-        t = GoogleTranslator("en", "zh", None, True)
-        with mock.patch.object(t.session, "get") as m_get:
-            m_get.return_value = self._rate_limited_response(429)
-            err = None
-            # 每块 3 次尝试：跑到阈值就会从 HTTPError 切换成 RuntimeError
-            for _ in range(_GOOGLE_RATE_LIMIT_FAIL_FAST + 2):
-                try:
-                    t.do_translate("hello")
-                except RuntimeError as exc:  # noqa: BLE001 -- 正是要抓的
-                    err = exc
-                    break
-                except requests.HTTPError:
-                    continue
-            self.assertIsInstance(err, RuntimeError, "持续限流应硬失败")
-            self.assertIn("限流", str(err))
-            self.assertIn("代理", str(err))
+        with _frozen_backoff(GoogleTranslator.do_translate):
+            t = GoogleTranslator("en", "zh", None, True)
+            with mock.patch.object(t.session, "get") as m_get:
+                m_get.return_value = self._rate_limited_response(429)
+                err = None
+                # 每块 3 次尝试：跑到阈值就会从 HTTPError 切换到 RuntimeError
+                for _ in range(_GOOGLE_RATE_LIMIT_FAIL_FAST + 2):
+                    try:
+                        t.do_translate("hello")
+                    except RuntimeError as exc:  # noqa: BLE001 -- 正是要抓的
+                        err = exc
+                        break
+                    except requests.HTTPError:
+                        continue
+                self.assertIsInstance(err, RuntimeError, "持续限流应硬失败")
+                self.assertIn("限流", str(err))
+                self.assertIn("代理", str(err))
+                # "fail fast" 的另一半：不该把阈值乘 3 的量都跑完
+                self.assertLessEqual(
+                    m_get.call_count,
+                    (_GOOGLE_RATE_LIMIT_FAIL_FAST + 1) * 3,
+                    f"重试次数超出 fail-fast 预期：{m_get.call_count}",
+                )
 
     def test_google_success_resets_rate_limit_streak(self):
         """成功一次就清零：不能因为历史上被限流过就永久判死。"""
