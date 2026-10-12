@@ -165,10 +165,15 @@ jobs:
       # 收尾时炸：post 步骤先 `uv cache prune --ci --force` 把空目录删掉，
       # 紧接着保存缓存就报 "Cache path ... does not exist on disk"，
       # 明明 exe 已经构建成功，作业却被判红。
+      #
+      # 注意必须显式写 false：setup-uv 该版本的 enable-cache 默认是 "auto"，
+      # 而 auto 见到仓库里的 uv.lock 就会把缓存打开，所以光删掉
+      # `enable-cache: true` 那两行是没用的。
       - name: Setup uv with Python ${{ env.WIN_EXE_PYTHON_VERSION }}
         uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41 # v7.1.2
         with:
           python-version: ${{ env.WIN_EXE_PYTHON_VERSION }}
+          enable-cache: false
 
       # 统一走 script/build-win64.ps1（与 release.yml / python-publish.yml / exe-build.yml
       # 同一份实现），确保 gradio 长路径 & startup-events 补丁一定被应用；内联副本
