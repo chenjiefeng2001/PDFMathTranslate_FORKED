@@ -24,7 +24,12 @@ fi
 log=$(mktemp)
 trap 'rm -f "$log"' EXIT
 
-uv run pdf2zh "$@" 2>&1 | tee "$log"
+# 被测的入口：默认源码入口（uv run pdf2zh），win64 作业通过
+# PDF2ZH_SMOKE_CMD 换成构建好的 exe（./script/build/pdf2zh.exe）。
+# 故意用字符串 + 不加引号展开，让 "uv run pdf2zh" 这样的多词命令也能工作。
+smoke_cmd=${PDF2ZH_SMOKE_CMD:-uv run pdf2zh}
+# shellcheck disable=SC2086
+$smoke_cmd "$@" 2>&1 | tee "$log"
 rc=${PIPESTATUS[0]}
 
 if [ "$rc" -eq 0 ]; then

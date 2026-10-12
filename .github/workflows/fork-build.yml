@@ -217,17 +217,27 @@ jobs:
         run: |
           ./script/build/pdf2zh.exe --version
 
+      # 同 python-test.yml：默认 google 服务在 CI 出口 IP 上会被限流到 429，
+      # 那说明的是第三方网络而不是 exe 有没有构建对。交给 translate_smoke.sh
+      # 判定：只对「后端不可达」放行，其余真实失败照常红。PDF2ZH_SMOKE_CMD 把
+      # 被测入口从 `uv run pdf2zh` 换成刚构建出来的 exe。
+      #
+      # 必须显式 shell: bash —— 本作业跑在 windows-latest，默认 shell 是 pwsh，
+      # 不认 `VAR=值 命令` 这种 POSIX 前缀写法。
       - name: Test - Translate a PDF file with plain text only (online mode)
+        shell: bash
         run: |
-          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
+          PDF2ZH_SMOKE_CMD="./script/build/pdf2zh.exe" bash script/ci/translate_smoke.sh ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
 
       - name: Test - Translate a PDF file figure
+        shell: bash
         run: |
-          ./script/build/pdf2zh.exe ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
+          PDF2ZH_SMOKE_CMD="./script/build/pdf2zh.exe" bash script/ci/translate_smoke.sh ./tests/file/translate.cli.text.with.figure.pdf -o ./tests/file
 
       - name: Test - Translate without offline assets (online mode)
+        shell: bash
         run: |
-          ./script/build/pdf2zh.exe ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
+          PDF2ZH_SMOKE_CMD="./script/build/pdf2zh.exe" bash script/ci/translate_smoke.sh ./tests/file/translate.cli.plain.text.pdf -o ./tests/file
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
