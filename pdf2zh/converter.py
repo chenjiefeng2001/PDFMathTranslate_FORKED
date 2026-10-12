@@ -17,10 +17,7 @@ from tenacity import retry, retry_if_not_exception_type, stop_after_attempt, wai
 
 
 def _translate_retry_attempts() -> int:
-    """Resolve the per-segment translate retry budget (env-overridable).
-
-    Unparseable / non-positive values fall back to the default of 3.
-    """
+    """Per-segment translate retry budget (env-overridable); bad values → 3."""
     try:
         val = int(os.environ.get("PDF2ZH_TRANSLATE_RETRY") or 0)
     except (TypeError, ValueError):
@@ -33,8 +30,8 @@ def _translate_retry_attempts() -> int:
 #: 超限后由 _safe_worker 的 fallback 返回原文，整任务继续推进。
 _TRANSLATE_RETRY_ATTEMPTS = _translate_retry_attempts()
 
-from pdf2zh.v3.paragraph_batch import batch_translate_paragraphs
 from pdf2zh.toc import TOC_LEADER_CHARS, char_adv, detect_toc_line, looks_like_toc_text
+from pdf2zh.v3.paragraph_batch import batch_translate_paragraphs
 from pdf2zh.v3.semantic_sidechannel import code_flags_for, gen_text_op
 
 from pdf2zh.translator import (
@@ -61,7 +58,10 @@ from pdf2zh.translator import (
     SiliconTranslator,
     TencentTranslator,
     XinferenceTranslator,
-    ZhipuTranslator, TranslationRateLimitError, X302AITranslator, build_translator,
+    ZhipuTranslator,
+    X302AITranslator,
+    build_translator,
+    TranslationRateLimitError,
 )
 
 log = logging.getLogger(__name__)
