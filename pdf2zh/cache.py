@@ -252,8 +252,39 @@ def get_all_cached_hashes() -> set:
         return set()
 
 
+def _resolve_cache_db_path():
+    """缓存库路径：``PDF2ZH_CACHE_DIR`` > ``~/.cache/pdf2zh``。
+
+    为什么要这个环境变量
+    ------------------
+    路径原先是硬编码的 ``~/.cache/pdf2zh``，于是**测试套件会往用户真实缓存里
+    写**。实测后果不只是"脏"：本机那个库长到 754 MB / 811,917 行之后，
+    ``tests/test_translator.py`` 里两条普普通通的缓存用例在全量跑时从 0.06s
+    涨到 36s / 27s（单跑时库是干净的，所以单跑永远看不出来）。
+
+    ``pdf2zh/translation_cache.py`` 早就有同名钩子，这里补齐 —— 两套缓存库
+    各自一个位置、重定向方式却不一致，是实打实的接线缺口。
+
+    目录不可创建时退回默认路径并告警：缓存写不进去不该让翻译失败。
+    """
+    default_dir = os.path.join(os.path.expanduser("~"), ".cache", "pdf2zh")
+    env_dir = (os.environ.get("PDF2ZH_CACHE_DIR") or "").strip()
+    if not env_dir:
+        return default_dir
+    try:
+        os.makedirs(env_dir, exist_ok=True)
+    except OSError as exc:
+        logger.warning(
+            "PDF2ZH_CACHE_DIR %s not usable (%s); falling back to default",
+            env_dir,
+            str(exc)[:120],
+        )
+        return default_dir
+    return env_dir
+
+
 def init_db(remove_exists=False):
-    cache_folder = os.path.join(os.path.expanduser("~"), ".cache", "pdf2zh")
+    cache_folder = _resolve_cache_db_path()
     os.makedirs(cache_folder, exist_ok=True)
     # The current version does not support database migration, so add the version number to the file name.
     cache_db_path = os.path.join(cache_folder, "cache.v1.db")

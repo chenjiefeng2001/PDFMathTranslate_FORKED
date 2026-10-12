@@ -109,20 +109,21 @@ def _make_translator(clock=None) -> _FakeTranslator:
 
 @pytest.fixture
 def reset_rate_state(monkeypatch):
-    """每个用例还原限速器的全局状态，避免互相污染。"""
+    """每个用例还原限速器的**预约**状态。
+
+    间隔值本身由 conftest 的 ``_isolated_translation_settings`` 负责，并且那边
+    收尾时**故意不还原** —— 这里原先会把"进入时的值"当 old_cfg 写回去，于是
+    任何上游用例（``test_services_api.py`` 走真实端点写 ConfigManager）留下的
+    值都会被一轮轮固化，把同进程后续所有 ``translate()`` 都真的节流上。
+    实测代价：``TestTranslator::test_cache`` 从 0.06s 涨到 27s，而单跑看不出来。
+    """
     from pdf2zh.config import ConfigManager
 
-    old_env = os.environ.get(translator._MIN_REQUEST_INTERVAL_ENV)
-    old_cfg = ConfigManager.get(translator._MIN_REQUEST_INTERVAL_KEY, None)
-    monkeypatch.delenv(translator._MIN_REQUEST_INTERVAL_ENV, raising=False)
+    monkeypatch.delenv("PDF2ZH_MIN_REQUEST_INTERVAL", raising=False)
     ConfigManager.set(translator._MIN_REQUEST_INTERVAL_KEY, None)
     translator._last_request_at = 0.0
     yield
-    if old_env is None:
-        monkeypatch.delenv(translator._MIN_REQUEST_INTERVAL_ENV, raising=False)
-    else:
-        monkeypatch.setenv(translator._MIN_REQUEST_INTERVAL_ENV, old_env)
-    ConfigManager.set(translator._MIN_REQUEST_INTERVAL_KEY, old_cfg)
+    ConfigManager.set(translator._MIN_REQUEST_INTERVAL_KEY, None)
     translator._last_request_at = 0.0
 
 

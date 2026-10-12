@@ -119,6 +119,54 @@ def healthy_pdf(tmp_path):
     return plain_pdf(str(tmp_path / "plain.pdf"), pages=2, text="page")
 
 
+@pytest.fixture(autouse=True)
+def _isolated_cache(monkeypatch, tmp_path_factory):
+    """测试期间把缓存库重定向到临时目录，别写进用户真实缓存。
+
+    背景不是洁癖：本机那个真实库长到 754 MB / 811,917 行之后，
+    ``tests/test_translator.py`` 里两条普通缓存用例在全量跑时从 0.06s 涨到
+    36s / 27s —— 而单跑时库是干净的，所以单跑永远看不出来。这类"跑得越久越
+    慢"的问题会被误判成机器性能波动。
+
+    作用域用 session 级目录（而非 per-test）：``TranslationCache`` / ``db.init``
+    在模块导入期就会绑定路径，per-test 目录来不及生效。session 内共用一个库还
+    顺带保住了"同一 session 内缓存命中"的行为。
+    """
+    session_dir = tmp_path_factory.mktemp("pdf2zh-cache")
+    monkeypatch.setenv("PDF2ZH_CACHE_DIR", str(session_dir))
+    yield session_dir
+
+
+# --------------------------------------------------------------------------
+# 全局设置隔离：节流间隔绝不许漏到用户真实配置
+# --------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def _isolated_translation_settings(monkeypatch):
+    """测试期间清掉节流间隔，并保证收尾时**不还原成测试值**。
+
+    为什么必须在这里做，而不是让每个用例自己收尾
+    --------------------------------------------
+    实测踩过：``tests/test_services_api.py::test_config_beats_env`` 通过真实
+    端点把 0.4s 写进 ConfigManager（那是**用户真实配置文件**），而
+    ``tests/test_request_throttling.py`` 的 fixture 把当前值当 ``old_cfg``
+    在收尾时**还原回去** —— 于是 0.4 被一轮轮固化下来。后果不是"脏"：
+    同一个进程里后续任何 ``translate()`` 都被真的节流 0.4s，
+    ``TestTranslator::test_cache`` 从 0.06s 涨到 27s，单跑却永远看不出来
+    （单跑时进程刚启动，值还是干净的）。
+
+    所以这里用 autouse + 显式置 None：**收尾一律清空，不还原**。测试本来就不该
+    依赖"上一个用例留下的设置"，还原只会把污染固化。
+    """
+    from pdf2zh.config import ConfigManager
+    from pdf2zh.translator import _MIN_REQUEST_INTERVAL_KEY
+
+    monkeypatch.delenv("PDF2ZH_MIN_REQUEST_INTERVAL", raising=False)
+    ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+    yield
+    # 不还原：留在 None 上
+    ConfigManager.set(_MIN_REQUEST_INTERVAL_KEY, None)
+
+
 # --------------------------------------------------------------------------
 # 段落打包：测试环境默认关闭
 # --------------------------------------------------------------------------

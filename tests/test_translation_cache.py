@@ -121,8 +121,12 @@ class TestTranslationCache:
         assert legacy_db.exists()  # 旧库未被迁移/移动
         assert custom.exists()  # 新目录已被创建
 
-    def test_auto_migration_from_legacy_dir(self, tmp_path):
+    def test_auto_migration_from_legacy_dir(self, tmp_path, monkeypatch):
         # 旧位置 ~/.pdf2zh/translation_cache.db 存在时自动迁移到新默认位置
+        # 必须清掉 PDF2ZH_CACHE_DIR：conftest 里的隔离 fixture 会设它，而该
+        # 变量是"绝对权威、不做迁移"的（见 resolve_default_db_path 的文档）。
+        # 不清的话这条用例会去测 env 优先分支，而不是它想测的迁移。
+        monkeypatch.delenv("PDF2ZH_CACHE_DIR", raising=False)
         legacy_dir = tmp_path / "legacy_pdf2zh"
         legacy_dir.mkdir()
         legacy_db = legacy_dir / "translation_cache.db"
