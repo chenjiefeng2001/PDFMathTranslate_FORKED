@@ -178,7 +178,8 @@ def main() -> int:
         stdout=o,
         stderr=e,
         stdin=subprocess.DEVNULL,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        # 非 Windows 上没有这个标志，传 0 等价于"不设"（Linux CI 上取属性会 AttributeError）
+        creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0),
         close_fds=True,
     )
     o.close()

@@ -80,7 +80,8 @@ def start_serve() -> int:
     tmp = Path(os.environ.get("TEMP", "/tmp"))
     out_f = open(tmp / "oc_serve_7p1.out", "w", encoding="utf-8")
     err_f = open(tmp / "oc_serve_7p1.err", "w", encoding="utf-8")
-    flags = subprocess.CREATE_NEW_PROCESS_GROUP
+    # 非 Windows 上没有这个标志，传 0 等价于"不设"（Linux CI 上取属性会 AttributeError）
+    flags = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
     proc = subprocess.Popen(
         ["pwsh", "-NoProfile", "-Command", f"& '{exe}' serve --port {PORT}"],
         stdout=out_f,

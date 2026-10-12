@@ -95,6 +95,15 @@ class TestIdentityTranslationExitCode(unittest.TestCase):
             # 解析层：跳过 MinerU/Marker（adapter.parse / bridge 转换），
             # 直接给一份单页模型，聚焦「翻译 → 退出码」这一段。
             # results 必须是空列表 —— _write_dumps 会对每个元素调 to_dict()。
+            #
+            # is_available 也必须打桩：CI 上没装 magic-pdf/MinerU，它返回 False，
+            # 于是代码在**调用 _adapter_parse 之前**就走了"auto 回退 Marker"分支，
+            # 补丁被完全绕开 → 真去解析 → legacy passthrough → rc=0，
+            # 断言"恒等翻译必须硬失败"于是假失败（Linux CI 上实测）。
+            patch(
+                "pdf2zh.magicpdf_adapter.MagicPdfAdapter.is_available",
+                lambda self: True,
+            ),
             patch.object(magicpdf_cli, "_adapter_parse", return_value=[]),
             patch(
                 "pdf2zh.v3.magicpdf_bridge.MagicPdfBridge.convert_all",

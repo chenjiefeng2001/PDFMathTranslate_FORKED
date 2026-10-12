@@ -31,6 +31,12 @@ import json
 import os
 import subprocess
 import sys
+
+#: ``CREATE_NEW_PROCESS_GROUP`` 只在 Windows 上存在，Linux CI 上取属性直接
+#: AttributeError，整份脚本连带 tests/test_bench_ignore_cache.py 一起红。
+#: 这些脚本本来就只在本机 Windows 跑，但被测试加载着跑，所以必须跨平台可导入。
+#: 非 Windows 上传 0（等价于"不设标志"）。
+_NEW_PROCESS_GROUP = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
 import time
 from pathlib import Path
 
@@ -64,7 +70,7 @@ def serve_start() -> int:
         stdout=out_f,
         stderr=err_f,
         stdin=subprocess.DEVNULL,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        creationflags=_NEW_PROCESS_GROUP,
         close_fds=True,
     )
     out_f.close()
@@ -174,7 +180,7 @@ def launch(out_dir: Path, pages: str, thread: int, ignore_cache: bool = False) -
         stdout=out_f,
         stderr=err_f,
         env=env,
-        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+        creationflags=_NEW_PROCESS_GROUP,
         close_fds=True,
     )
     out_f.close()

@@ -22,6 +22,8 @@ WRAP→SHRINK→CLIP 阶梯缩回去。
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from pdf2zh.magicpdf_adapter import MagicPdfParseResult, _annotate_size_scale
@@ -36,6 +38,18 @@ from pdf2zh.v3.magicpdf_bridge import (
 )
 
 SRC = "tests/file/The Art of Multiprocessor Programming, 2e.pdf"
+
+#: 真实语料不在版本库里（``.gitignore`` 全局忽略 ``*.pdf``），所以 CI 上必然
+#: 缺这个文件。曾经这里没有任何守卫，于是 Linux CI 报一堆
+#: ``PDF file not found`` / ``'NoneType' has no attribute 'size_for'`` —— 看着像
+#: 校准逻辑坏了，其实只是语料缺席。
+#:
+#: 只给**真正要读这个文件**的用例用（``need_src``）；纯算法用例拿 ``_result()``
+#: 合成的数据，不该因为语料缺席而被跳过。
+need_src = pytest.mark.skipif(
+    not os.path.isfile(SRC),
+    reason=f"real corpus not present: {SRC}（*.pdf 不入库，需本地放置）",
+)
 
 
 def _result(
@@ -85,6 +99,7 @@ def _font_size(res) -> float:
 # --------------------------------------------------------------------------
 # 查表：核心是"±0.5 量化抖动也要命中"
 # --------------------------------------------------------------------------
+@need_src
 def test_both_quantized_boxes_land_on_the_source_size():
     """同一段 9.96pt 正文，MinerU 报 9.0 或 10.0 —— 两者都必须得到 9.96。
 
@@ -95,6 +110,7 @@ def test_both_quantized_boxes_land_on_the_source_size():
     assert cal.size_for(10.0) == pytest.approx(9.96, abs=0.01)
 
 
+@need_src
 def test_end_to_end_font_size_equals_the_source_size():
     res = _result(box=9.0)
     assert _font_size(res) == pytest.approx(7.65, abs=0.01), "precondition: 0.85 guess"
@@ -106,6 +122,7 @@ def test_end_to_end_font_size_equals_the_source_size():
     ), "calibrated size must land on the source's real glyph size"
 
 
+@need_src
 def test_the_translation_is_no_longer_smaller_than_the_original():
     """用户可见的判据：译文不再比原文小一截。"""
     res = _result(box=9.0)
@@ -113,6 +130,7 @@ def test_the_translation_is_no_longer_smaller_than_the_original():
     assert _font_size(res) >= 9.96 * 0.99
 
 
+@need_src
 def test_each_size_band_keeps_its_own_size():
     """混合字号的页：图注/标题不能被正文档位吞掉。"""
     cal = calibrate_size_map(
@@ -126,6 +144,7 @@ def test_each_size_band_keeps_its_own_size():
 # --------------------------------------------------------------------------
 # 兜底比例：算错会让小字被放大，制造溢出
 # --------------------------------------------------------------------------
+@need_src
 def test_fallback_scale_is_not_pinned_at_the_clamp():
     """回归：``src_mean`` 必须按出现次数加权。
 
@@ -141,6 +160,7 @@ def test_fallback_scale_is_not_pinned_at_the_clamp():
     assert SIZE_SCALE_MIN < cal.fallback_scale < SIZE_SCALE_MAX
 
 
+@need_src
 def test_a_box_far_from_every_source_band_uses_the_fallback_ratio():
     """查表未命中 → 用比例（猜测），不是硬套最近的档位。"""
     cal = calibrate_size_map(SRC, 14, [9.0] * 90 + [10.0] * 50)
@@ -158,12 +178,14 @@ def test_lookup_tolerance_covers_the_measured_quantization_jitter():
     ), "too loose: a 6pt caption would match a 21pt heading and get inflated"
 
 
+@need_src
 def test_a_zero_height_box_stays_zero():
     cal = calibrate_size_map(SRC, 14, [9.0])
     assert cal.size_for(0.0) == 0.0
     assert cal.size_for(-1.0) == 0.0
 
 
+@need_src
 def test_extreme_box_means_are_clamped():
     """钳位必须有测试，否则它形同虚设。
 
@@ -267,6 +289,7 @@ def test_short_spans_do_not_win_the_modal_vote(monkeypatch):
 # --------------------------------------------------------------------------
 # 接线：adapter 必须收 span 框高，且 parse() 的两个分支都要校准
 # --------------------------------------------------------------------------
+@need_src
 def test_adapter_collects_span_boxes_not_line_boxes():
     """回归：收的是 **span** 框高。
 
@@ -295,6 +318,7 @@ def _stubbed_adapter(monkeypatch, page_num: int = 0):
     return ad
 
 
+@need_src
 def test_parse_calibrates_the_slice_path(monkeypatch):
     """切片解析分支也必须校准。
 
@@ -319,6 +343,7 @@ def test_parse_calibrates_the_slice_path(monkeypatch):
     ), "slice path skipped calibration -- font sizes stay 23% too small in real use"
 
 
+@need_src
 def test_parse_calibrates_the_full_document_path(monkeypatch):
     """不切片（整篇解析）的分支同样必须校准 —— 这是最常见的用法。"""
     import pdf2zh.magicpdf_adapter as adapter_mod
@@ -394,6 +419,7 @@ def test_a_calibration_blowup_never_breaks_parsing(monkeypatch):
     ), "a failed calibration must leave the default in place, not corrupt the page"
 
 
+@need_src
 def test_a_calibration_blowup_does_not_stop_later_pages(monkeypatch):
     """一页炸了不能连累后面的页 —— 逐页容错，不是整批放弃。"""
     import pdf2zh.v3.magicpdf_bridge as bridge
@@ -417,6 +443,7 @@ def test_a_calibration_blowup_does_not_stop_later_pages(monkeypatch):
 # --------------------------------------------------------------------------
 # 溢出兜底：放不下时布局层必须缩
 # --------------------------------------------------------------------------
+@need_src
 def test_the_shrink_ladder_still_handles_a_block_that_cannot_fit():
     """字号变大后，放不下的块由布局层缩回去 —— 这才是"不溢出"的实现。"""
     from pdf2zh.semantic.renderer.flow import render_flow_text
@@ -476,6 +503,7 @@ def test_calibrated_size_never_exceeds_its_own_span_box_by_a_lot():
 # --------------------------------------------------------------------------
 # 前提钉子：源是什么字号
 # --------------------------------------------------------------------------
+@need_src
 def test_the_source_body_size_is_still_what_we_think_it_is():
     """钉住前提：源正文 9.96pt。语料换了这条会先失败。"""
     import pymupdf
