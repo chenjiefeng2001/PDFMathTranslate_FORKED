@@ -160,12 +160,15 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
+      # 不开 uv 缓存：本作业全程不碰 uv —— build-win64.ps1 自己下载嵌入式
+      # Python 并用内嵌 pip 装依赖，uv 的缓存目录从头到尾是空的。开着反而在
+      # 收尾时炸：post 步骤先 `uv cache prune --ci --force` 把空目录删掉，
+      # 紧接着保存缓存就报 "Cache path ... does not exist on disk"，
+      # 明明 exe 已经构建成功，作业却被判红。
       - name: Setup uv with Python ${{ env.WIN_EXE_PYTHON_VERSION }}
         uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41 # v7.1.2
         with:
           python-version: ${{ env.WIN_EXE_PYTHON_VERSION }}
-          enable-cache: true
-          cache-dependency-glob: "pyproject.toml"
 
       # 统一走 script/build-win64.ps1（与 release.yml / python-publish.yml / exe-build.yml
       # 同一份实现），确保 gradio 长路径 & startup-events 补丁一定被应用；内联副本
