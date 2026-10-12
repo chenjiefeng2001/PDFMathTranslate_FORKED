@@ -574,6 +574,62 @@ class TestMagicPdfDevice(unittest.TestCase):
         self.assertIsInstance(status["effective"], str)
         self.assertIsInstance(status["torch_cuda"], bool)
 
+    def test_device_status_probe_is_cached_per_process(self):
+        """设备探测必须被缓存：单次要起子进程，实测 4–10 秒。
+
+        ``magicpdf_cli`` 每次解析前都调它一次只为打条日志，GUI 状态面板也调；
+        不缓存就是每个文件白等 5 秒，而设备状态在一个进程里根本不会变。
+        """
+        from pdf2zh.magicpdf_adapter import (
+            _probe_device_status,
+            get_magicpdf_device_status,
+        )
+
+        _probe_device_status.cache_clear()
+        get_magicpdf_device_status(requested="cpu")
+        after_first = _probe_device_status.cache_info()
+        get_magicpdf_device_status(requested="cpu")
+        get_magicpdf_device_status(requested="cpu")
+        after_more = _probe_device_status.cache_info()
+
+        self.assertEqual(after_first.misses, 1, "首次应当探测一次")
+        self.assertEqual(after_more.misses, 1, "后续调用又重新探测了（未命中缓存）")
+        self.assertEqual(after_more.hits, 2, "后两次应当是缓存命中")
+
+        # 换个 requested 值 = 换个缓存键，应当真的重新探测
+        get_magicpdf_device_status(requested="cuda")
+        self.assertEqual(_probe_device_status.cache_info().misses, 2)
+
+    def test_device_status_cache_does_not_leak_mutations(self):
+        """lru_cache 返回的是同一个 dict：调用方改了会污染后续所有人。"""
+        from pdf2zh.magicpdf_adapter import (
+            _probe_device_status,
+            get_magicpdf_device_status,
+        )
+
+        _probe_device_status.cache_clear()
+        first = get_magicpdf_device_status(requested="cpu")
+        original = first["effective"]
+        first["effective"] = "MUTATED"
+
+        second = get_magicpdf_device_status(requested="cpu")
+        self.assertNotEqual(second["effective"], "MUTATED", "调用方的改动污染了缓存")
+        self.assertEqual(second["effective"], original)
+
+    def test_device_status_cache_can_be_cleared(self):
+        """测试/用户改完 ``magic-pdf.json`` 后要能重新探测。"""
+        from pdf2zh.magicpdf_adapter import (
+            _probe_device_status,
+            clear_magicpdf_device_status_cache,
+            get_magicpdf_device_status,
+        )
+
+        _probe_device_status.cache_clear()
+        get_magicpdf_device_status(requested="cpu")
+        self.assertTrue(_probe_device_status.cache_info().currsize >= 1)
+        clear_magicpdf_device_status_cache()
+        self.assertEqual(_probe_device_status.cache_info().currsize, 0)
+
     def test_normalize_block_strips_inline_formula_latex(self):
         """行内公式 span（LaTeX）不得混入段落文本（否则整段被翻译成乱码）。
 

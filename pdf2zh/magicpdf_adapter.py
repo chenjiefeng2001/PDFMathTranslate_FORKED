@@ -24,6 +24,7 @@ middle.json 树 + 归一化 block/lines/spans 列表）。下游
 
 from __future__ import annotations
 
+import functools
 import inspect
 import json
 import logging
@@ -479,7 +480,32 @@ def get_magicpdf_device_status(requested: str = "auto", models_dir: str = "") ->
         ``torch_cuda``（torch 是否 CUDA 可用）、``requested``（请求值）、
         ``config_file``、``device_mode``（配置值）、``effective``（实际生效值）、
         ``hint``（未走 GPU 时的修复建议，空串表示无）。
+
+    为什么带缓存
+    ------------
+    它会通过 ``_venv_torch_cuda`` 起一个子进程去问 MinerU 隔离 venv 的 torch，
+    **单次要 4–10 秒**（实测 9.98 / 4.35 / 5.92 / 6.20）。而调用方只是为了一条
+    启动日志（``magicpdf_cli`` 每次解析前都打一次）和 GUI 状态面板。设备状态在
+    一个进程里不会变，反复探测纯属浪费。
+
+    ``models_dir`` 不参与探测（仅用于展示），因此不进入缓存键。
+    测试需要重新探测时用 :func:`clear_magicpdf_device_status_cache`。
     """
+    status = dict(_probe_device_status(requested))
+    status["requested"] = requested
+    if models_dir:
+        status["models_dir"] = models_dir
+    return status
+
+
+def clear_magicpdf_device_status_cache() -> None:
+    """清掉设备探测缓存（测试隔离 / 用户改了 ``magic-pdf.json`` 之后）。"""
+    _probe_device_status.cache_clear()
+
+
+@functools.lru_cache(maxsize=8)
+def _probe_device_status(requested: str) -> dict:
+    """探测本体（带缓存）。见 :func:`get_magicpdf_device_status` 的说明。"""
     torch_cuda = _torch_cuda_available()
     torch_ver = _torch_version()
     installed = False

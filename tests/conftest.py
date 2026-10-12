@@ -137,6 +137,21 @@ def _isolated_cache(monkeypatch, tmp_path_factory):
     yield session_dir
 
 
+@pytest.fixture(autouse=True)
+def _clear_device_probe_cache():
+    """每条用例前后清掉设备探测缓存。
+
+    那个探测要起子进程问 MinerU venv 的 torch，单次 4–10 秒（实测）。生产代码
+    已按"进程内设备不变"加了缓存，但测试里常 monkeypatch torch/magic-pdf 配置，
+    缓存会让改动看不见 —— 于是这里前后各清一次。
+    """
+    from pdf2zh.magicpdf_adapter import clear_magicpdf_device_status_cache
+
+    clear_magicpdf_device_status_cache()
+    yield
+    clear_magicpdf_device_status_cache()
+
+
 # --------------------------------------------------------------------------
 # 全局设置隔离：节流间隔绝不许漏到用户真实配置
 # --------------------------------------------------------------------------
