@@ -265,12 +265,16 @@ jobs:
           mkdir -p ./tests/file/offline_result
           PDF2ZH_SMOKE_CMD="./script/build/pdf2zh.exe" bash script/ci/translate_smoke.sh ./tests/file/translate.cli.plain.text.pdf -o ./tests/file/offline_result
 
+      # 产物上传是「留证据」，不是断言。offline_result 为空只说明这次翻译没产出
+      # 译文 —— 在 CI 出口 IP 被 Google 限流时这是常态。真正的判红在前一步：
+      # translate_smoke.sh 遇到非后端原因的真实失败会 ::error 并退出非零，
+      # 所以这里用 warn 不会放过任何真实回归。
       - name: Upload offline test results
         uses: actions/upload-artifact@v7
         with:
           name: offline-test-results
           path: ./tests/file/offline_result/
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload build with offline assets artifact
         uses: actions/upload-artifact@v7
